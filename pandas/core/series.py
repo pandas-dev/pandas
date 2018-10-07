@@ -2360,10 +2360,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             pass
         elif is_extension_array_dtype(self.values):
             # The function can return something of any type, so check
-            # if the type is compatible with the calling EA
+            # if the type is compatible with the calling EA.
             try:
                 new_values = self._values._from_sequence(new_values)
-            except TypeError:
+            except Exception:
+                # https://github.com/pandas-dev/pandas/issues/22850
+                # pandas has no control over what 3rd-party ExtensionArrays
+                # do in _values_from_sequence. We still want ops to work
+                # though, so we catch any regular Exception.
                 pass
 
         return self._constructor(new_values, index=new_index, name=new_name)
@@ -3533,7 +3537,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self._set_name(index, inplace=kwargs.get('inplace'))
         return super(Series, self).rename(index=index, **kwargs)
 
-    @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(generic.NDFrame.reindex.__doc__)
     def reindex(self, index=None, **kwargs):
         return super(Series, self).reindex(index=index, **kwargs)
 
@@ -3717,7 +3722,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             v += self.index.memory_usage(deep=deep)
         return v
 
-    @Appender(generic._shared_docs['_take'])
+    @Appender(generic.NDFrame._take.__doc__)
     def _take(self, indices, axis=0, is_copy=False):
 
         indices = ensure_platform_int(indices)
@@ -4260,7 +4265,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         try:
             # gh-15832: Check if we are requesting a numeric dype and
             # that we can convert the data to the requested dtype.
-            if is_float_dtype(dtype) or is_integer_dtype(dtype):
+            if is_integer_dtype(dtype):
                 subarr = maybe_cast_to_integer_array(arr, dtype)
 
             subarr = maybe_cast_to_datetime(arr, dtype)

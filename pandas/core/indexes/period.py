@@ -287,7 +287,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         result._reset_identity()
         return result
 
-    def _shallow_copy_with_infer(self, values=None, **kwargs):
+    def _shallow_copy_with_infer(self, values, **kwargs):
         """ we always want to return a PeriodIndex """
         return self._shallow_copy(values=values, **kwargs)
 
@@ -364,16 +364,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         # the result is object dtype array of Period
         # cannot pass _simple_new as it is
         return self._shallow_copy(result, freq=self.freq, name=self.name)
-
-    def _to_embed(self, keep_tz=False, dtype=None):
-        """
-        return an array repr of this object, potentially casting to object
-        """
-
-        if dtype is not None:
-            return self.astype(dtype)._to_embed(keep_tz=keep_tz)
-
-        return self.astype(object).values
 
     @property
     def size(self):
