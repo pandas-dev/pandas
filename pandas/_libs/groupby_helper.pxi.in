@@ -466,7 +466,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     # with mask, without obfuscating location of missing data
     # in values array
     masked_vals = np.array(values[:, 0], copy=True)
-    {{if name=='int64'}}
+    {{if name == 'int64'}}
     mask = (masked_vals == {{nan_val}}).astype(np.uint8)
     {{else}}
     mask = np.isnan(masked_vals).astype(np.uint8)
@@ -590,41 +590,30 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
 {{endfor}}
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # group_min, group_max
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
-{{py:
-
-# name, c_type, nan_val, inf_val
-dtypes = [('float64', 'float64_t', 'NAN', 'np.inf'),
-          ('float32', 'float32_t', 'NAN', 'np.inf'),
-          ('int64', 'int64_t', 'iNaT', '_int64_max')]
-
-def get_dispatch(dtypes):
-
-    for name, c_type, nan_val, inf_val in dtypes:
-        yield name, c_type, nan_val, inf_val
-}}
-
-
-{{for name, c_type, nan_val, inf_val in get_dispatch(dtypes)}}
+ctypedef fused groupby_t:
+    float64_t
+    float32_t
+    int64_t
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_max_{{name}}(ndarray[{{c_type}}, ndim=2] out,
-                       ndarray[int64_t] counts,
-                       ndarray[{{c_type}}, ndim=2] values,
-                       ndarray[int64_t] labels,
-                       Py_ssize_t min_count=-1):
+def group_max(ndarray[groupby_t, ndim=2] out,
+              ndarray[int64_t] counts,
+              ndarray[groupby_t, ndim=2] values,
+              ndarray[int64_t] labels,
+              Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        {{c_type}} val, count
-        ndarray[{{c_type}}, ndim=2] maxx, nobs
+        groupby_t val, count, nan_val
+        ndarray[groupby_t, ndim=2] maxx, nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
@@ -634,7 +623,12 @@ def group_max_{{name}}(ndarray[{{c_type}}, ndim=2] out,
     nobs = np.zeros_like(out)
 
     maxx = np.empty_like(out)
-    maxx.fill(-{{inf_val}})
+    if groupby_t is int64_t:
+        maxx.fill(-_int64_max)
+        nan_val = iNaT
+    else:
+        maxx.fill(-np.inf)
+        nan_val = NAN
 
     N, K = (<object> values).shape
 
@@ -649,37 +643,44 @@ def group_max_{{name}}(ndarray[{{c_type}}, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                {{if name == 'int64'}}
-                if val != {{nan_val}}:
-                {{else}}
-                if val == val and val != {{nan_val}}:
-                {{endif}}
-                    nobs[lab, j] += 1
-                    if val > maxx[lab, j]:
-                        maxx[lab, j] = val
+                if groupby_t is int64_t:
+                    if val != nan_val:
+                        nobs[lab, j] += 1
+                        if val > maxx[lab, j]:
+                            maxx[lab, j] = val
+                else:
+                    if val == val and val != nan_val:
+                        nobs[lab, j] += 1
+                        if val > maxx[lab, j]:
+                            maxx[lab, j] = val
 
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] == 0:
-                    out[i, j] = {{nan_val}}
+                    out[i, j] = nan_val
                 else:
                     out[i, j] = maxx[i, j]
 
 
+group_max_float64 = group_max["float64_t"]
+group_max_float32 = group_max["float32_t"]
+group_max_int64 = group_max["int64_t"]
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_min_{{name}}(ndarray[{{c_type}}, ndim=2] out,
-                       ndarray[int64_t] counts,
-                       ndarray[{{c_type}}, ndim=2] values,
-                       ndarray[int64_t] labels,
-                       Py_ssize_t min_count=-1):
+def group_min(ndarray[groupby_t, ndim=2] out,
+              ndarray[int64_t] counts,
+              ndarray[groupby_t, ndim=2] values,
+              ndarray[int64_t] labels,
+              Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        {{c_type}} val, count
-        ndarray[{{c_type}}, ndim=2] minx, nobs
+        groupby_t val, count, nan_val
+        ndarray[groupby_t, ndim=2] minx, nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
@@ -689,7 +690,12 @@ def group_min_{{name}}(ndarray[{{c_type}}, ndim=2] out,
     nobs = np.zeros_like(out)
 
     minx = np.empty_like(out)
-    minx.fill({{inf_val}})
+    if groupby_t is int64_t:
+        minx.fill(_int64_max)
+        nan_val = iNaT
+    else:
+        minx.fill(np.inf)
+        nan_val = NAN
 
     N, K = (<object> values).shape
 
@@ -704,31 +710,28 @@ def group_min_{{name}}(ndarray[{{c_type}}, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                {{if name == 'int64'}}
-                if val != {{nan_val}}:
-                {{else}}
-                if val == val and val != {{nan_val}}:
-                {{endif}}
-                    nobs[lab, j] += 1
-                    if val < minx[lab, j]:
-                        minx[lab, j] = val
+                if groupby_t is int64_t:
+                    if val != nan_val:
+                        nobs[lab, j] += 1
+                        if val < minx[lab, j]:
+                            minx[lab, j] = val
+                else:
+                    if val == val and val != nan_val:
+                        nobs[lab, j] += 1
+                        if val < minx[lab, j]:
+                            minx[lab, j] = val
 
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] == 0:
-                    out[i, j] = {{nan_val}}
+                    out[i, j] = nan_val
                 else:
                     out[i, j] = minx[i, j]
 
 
-
-{{endfor}}
-
-
-ctypedef fused groupby_t:
-    float64_t
-    float32_t
-    int64_t
+group_min_float64 = group_min["float64_t"]
+group_min_float32 = group_min["float32_t"]
+group_min_int64 = group_min["int64_t"]
 
 
 @cython.boundscheck(False)

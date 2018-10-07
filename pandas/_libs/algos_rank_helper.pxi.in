@@ -131,45 +131,20 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
     argsorted = _as.astype('i8')
 
     {{if dtype == 'object'}}
-    for i in range(n):
-        sum_ranks += i + 1
-        dups += 1
-        isnan = sorted_mask[i]
-        val = util.get_value_at(sorted_data, i)
-
-        if isnan and keep_na:
-            ranks[argsorted[i]] = nan
-            continue
-        count += 1.0
-
-        if (i == n - 1 or
-                are_diff(util.get_value_at(sorted_data, i + 1), val) or
-                i == non_na_idx):
-            if tiebreak == TIEBREAK_AVERAGE:
-                for j in range(i - dups + 1, i + 1):
-                    ranks[argsorted[j]] = sum_ranks / dups
-            elif tiebreak == TIEBREAK_MIN:
-                for j in range(i - dups + 1, i + 1):
-                    ranks[argsorted[j]] = i - dups + 2
-            elif tiebreak == TIEBREAK_MAX:
-                for j in range(i - dups + 1, i + 1):
-                    ranks[argsorted[j]] = i + 1
-            elif tiebreak == TIEBREAK_FIRST:
-                raise ValueError('first not supported for non-numeric data')
-            elif tiebreak == TIEBREAK_FIRST_DESCENDING:
-                for j in range(i - dups + 1, i + 1):
-                    ranks[argsorted[j]] = 2 * i - j - dups + 2
-            elif tiebreak == TIEBREAK_DENSE:
-                total_tie_count += 1
-                for j in range(i - dups + 1, i + 1):
-                    ranks[argsorted[j]] = total_tie_count
-            sum_ranks = dups = 0
+    if True:
     {{else}}
     with nogil:
+    {{endif}}
+        # TODO: why does the 2d version not have a nogil block?
         for i in range(n):
             sum_ranks += i + 1
             dups += 1
+
+            {{if dtype == 'object'}}
+            val = util.get_value_at(sorted_data, i)
+            {{else}}
             val = sorted_data[i]
+            {{endif}}
 
             {{if dtype != 'uint64'}}
             isnan = sorted_mask[i]
@@ -180,8 +155,14 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
 
             count += 1.0
 
-            if (i == n - 1 or sorted_data[i + 1] != val or
-                i == non_na_idx):
+            {{if dtype == 'object'}}
+            if (i == n - 1 or
+                    are_diff(util.get_value_at(sorted_data, i + 1), val) or
+                    i == non_na_idx):
+            {{else}}
+            if (i == n - 1 or sorted_data[i + 1] != val or i == non_na_idx):
+            {{endif}}
+
                 if tiebreak == TIEBREAK_AVERAGE:
                     for j in range(i - dups + 1, i + 1):
                         ranks[argsorted[j]] = sum_ranks / dups
@@ -192,8 +173,12 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
                     for j in range(i - dups + 1, i + 1):
                         ranks[argsorted[j]] = i + 1
                 elif tiebreak == TIEBREAK_FIRST:
+                    {{if dtype == 'object'}}
+                    raise ValueError('first not supported for non-numeric data')
+                    {{else}}
                     for j in range(i - dups + 1, i + 1):
                         ranks[argsorted[j]] = j + 1
+                    {{endif}}
                 elif tiebreak == TIEBREAK_FIRST_DESCENDING:
                     for j in range(i - dups + 1, i + 1):
                         ranks[argsorted[j]] = 2 * i - j - dups + 2
@@ -202,7 +187,6 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
                     for j in range(i - dups + 1, i + 1):
                         ranks[argsorted[j]] = total_tie_count
                 sum_ranks = dups = 0
-    {{endif}}
     if pct:
         if tiebreak == TIEBREAK_DENSE:
             return ranks / total_tie_count

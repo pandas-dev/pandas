@@ -293,30 +293,17 @@ asof_join_backward_float = asof_join_backward["float"]
 asof_join_backward_double = asof_join_backward["double"]
 
 
-{{py:
-
-# on_dtype
-dtypes = ['uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
-          'int8_t', 'int16_t', 'int32_t', 'int64_t',
-          'float', 'double']
-
-}}
-
-{{for on_dtype in dtypes}}
-
-
-def asof_join_forward_{{on_dtype}}(
-        ndarray[{{on_dtype}}] left_values,
-        ndarray[{{on_dtype}}] right_values,
-        bint allow_exact_matches=1,
-        tolerance=None):
+def asof_join_forward(ndarray[asof_t] left_values,
+                      ndarray[asof_t] right_values,
+                      bint allow_exact_matches=1,
+                      tolerance=None):
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size
         ndarray[int64_t] left_indexer, right_indexer
         bint has_tolerance = 0
-        {{on_dtype}} tolerance_ = 0
-        {{on_dtype}} diff = 0
+        asof_t tolerance_ = 0
+        asof_t diff = 0
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
@@ -360,16 +347,27 @@ def asof_join_forward_{{on_dtype}}(
     return left_indexer, right_indexer
 
 
-def asof_join_nearest_{{on_dtype}}(
-        ndarray[{{on_dtype}}] left_values,
-        ndarray[{{on_dtype}}] right_values,
-        bint allow_exact_matches=1,
-        tolerance=None):
+asof_join_forward_uint8_t = asof_join_forward["uint8_t"]
+asof_join_forward_uint16_t = asof_join_forward["uint16_t"]
+asof_join_forward_uint32_t = asof_join_forward["uint32_t"]
+asof_join_forward_uint64_t = asof_join_forward["uint64_t"]
+asof_join_forward_int8_t = asof_join_forward["int8_t"]
+asof_join_forward_int16_t = asof_join_forward["int16_t"]
+asof_join_forward_int32_t = asof_join_forward["int32_t"]
+asof_join_forward_int64_t = asof_join_forward["int64_t"]
+asof_join_forward_float = asof_join_forward["float"]
+asof_join_forward_double = asof_join_forward["double"]
+
+
+def asof_join_nearest(ndarray[asof_t] left_values,
+                      ndarray[asof_t] right_values,
+                      bint allow_exact_matches=1,
+                      tolerance=None):
 
     cdef:
         Py_ssize_t left_size, right_size, i
         ndarray[int64_t] left_indexer, right_indexer, bli, bri, fli, fri
-        {{on_dtype}} bdiff, fdiff
+        asof_t bdiff, fdiff
 
     left_size = len(left_values)
     right_size = len(right_values)
@@ -378,10 +376,10 @@ def asof_join_nearest_{{on_dtype}}(
     right_indexer = np.empty(left_size, dtype=np.int64)
 
     # search both forward and backward
-    bli, bri = asof_join_backward_{{on_dtype}}(left_values, right_values,
-                                               allow_exact_matches, tolerance)
-    fli, fri = asof_join_forward_{{on_dtype}}(left_values, right_values,
-                                              allow_exact_matches, tolerance)
+    bli, bri = asof_join_backward(left_values, right_values,
+                                  allow_exact_matches, tolerance)
+    fli, fri = asof_join_forward(left_values, right_values,
+                                 allow_exact_matches, tolerance)
 
     for i in range(len(bri)):
         # choose timestamp from right with smaller difference
@@ -395,4 +393,14 @@ def asof_join_nearest_{{on_dtype}}(
 
     return left_indexer, right_indexer
 
-{{endfor}}
+
+asof_join_nearest_uint8_t = asof_join_nearest["uint8_t"]
+asof_join_nearest_uint16_t = asof_join_nearest["uint16_t"]
+asof_join_nearest_uint32_t = asof_join_nearest["uint32_t"]
+asof_join_nearest_uint64_t = asof_join_nearest["uint64_t"]
+asof_join_nearest_int8_t = asof_join_nearest["int8_t"]
+asof_join_nearest_int16_t = asof_join_nearest["int16_t"]
+asof_join_nearest_int32_t = asof_join_nearest["int32_t"]
+asof_join_nearest_int64_t = asof_join_nearest["int64_t"]
+asof_join_nearest_float = asof_join_nearest["float"]
+asof_join_nearest_double = asof_join_nearest["double"]
