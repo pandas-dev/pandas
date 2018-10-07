@@ -1120,18 +1120,15 @@ class Timedelta(_Timedelta):
                 value = parse_iso_format_string(value)
             else:
                 try:
-                    orig_value = value
                     value = float(value)
                 except ValueError:
                     if unit is not None:
-                        raise ValueError("Unit cannot be defined for strings other than pure integer/floats."
-                        " Value: {} Unit: {}".format(value, unit))
+                        raise ValueError("Unit cannot be defined for strings other than pure numbers.")
                     value = parse_timedelta_string(value)
                     value = np.timedelta64(value)
                 else:
                     if unit is None:
-                        raise ValueError("Cannot convert float string without unit."
-                        " Value: {} Type: {}".format(orig_value, type(orig_value)))
+                        warnings.warn("Converting float string without unit is not allowed and will be deprecated.", DeprecationWarning)
                     value = convert_to_timedelta64(value, unit)
         elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
