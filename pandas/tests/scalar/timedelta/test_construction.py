@@ -219,7 +219,7 @@ def test_td_constructor_value_error():
     ("", "s", tm.do_not_raise),              # Expected case
     ("s", "s", pytest.raises(ValueError)),   # Units doubly defined
     ("s", "d", pytest.raises(ValueError)),
-    ("", None, pytest.warns(DeprecationWarning)),   # No units
+    ("", None, pytest.raises(ValueError)),   # No units
 ])
 def test_string_with_unit(str_unit, unit, expectation):
     with expectation:

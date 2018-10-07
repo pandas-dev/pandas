@@ -144,7 +144,8 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
 
     try:
         result = parse_timedelta_string(r)
-    except:
+        result = np.timedelta64(result)
+    except Exception:
         try:
             result = convert_to_timedelta64(r, unit)
         except ValueError:

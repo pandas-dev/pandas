@@ -221,7 +221,7 @@ cpdef array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     # this is where all of the error handling will take place.
     try:
         for i in range(n):
-            result[i] = parse_timedelta_string(values[i])
+            result[i] = parse_timedelta_string(values[i], specified_unit=unit)
     except:
         for i in range(n):
             try:
@@ -287,7 +287,7 @@ cdef inline _decode_if_necessary(object ts):
     return ts
 
 
-cdef inline parse_timedelta_string(object ts):
+cpdef inline parse_timedelta_string(object ts, specified_unit=None):
     """
     Parse a regular format timedelta string. Return an int64_t (in ns)
     or raise a ValueError on an invalid parse.
@@ -401,6 +401,14 @@ cdef inline parse_timedelta_string(object ts):
             have_value = 1
             have_dot = 0
 
+    # Consider units from outside
+    if not unit:
+        if specified_unit:
+            unit = specified_unit
+    else:
+        if specified_unit:
+            raise ValueError("units doubly specified")
+
     # we had a dot, but we have a fractional
     # value since we have an unit
     if have_dot and len(unit):
@@ -442,14 +450,12 @@ cdef inline parse_timedelta_string(object ts):
         else:
             raise ValueError("unit abbreviation w/o a number")
 
-    # treat as nanoseconds
-    # but only if we don't have anything else
+    # raise if we just have a number without units
     else:
         if have_value:
             raise ValueError("have leftover units")
         if len(number):
-            r = timedelta_from_spec(number, frac, 'ns')
-            result += timedelta_as_neg(r, neg)
+            raise ValueError("number string without units")
 
     return result
 
@@ -1119,17 +1125,8 @@ class Timedelta(_Timedelta):
             if len(value) > 0 and value[0] == 'P':
                 value = parse_iso_format_string(value)
             else:
-                try:
-                    value = float(value)
-                except ValueError:
-                    if unit is not None:
-                        raise ValueError("Unit cannot be defined for strings other than pure numbers.")
-                    value = parse_timedelta_string(value)
-                    value = np.timedelta64(value)
-                else:
-                    if unit is None:
-                        warnings.warn("Converting float string without unit is not allowed and will be deprecated.", DeprecationWarning)
-                    value = convert_to_timedelta64(value, unit)
+                value = parse_timedelta_string(value, specified_unit=unit)
+            value = np.timedelta64(value)
         elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
         elif is_timedelta64_object(value):

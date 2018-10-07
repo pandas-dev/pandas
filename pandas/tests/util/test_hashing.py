@@ -20,7 +20,7 @@ class TestHashing(object):
         Series([True, False, True] * 3),
         Series(pd.date_range('20130101', periods=9)),
         Series(pd.date_range('20130101', periods=9, tz='US/Eastern')),
-        Series(pd.timedelta_range('2000', periods=9))])
+        Series(pd.timedelta_range('2000ns', periods=9))])
     def series(self, request):
         return request.param
 
