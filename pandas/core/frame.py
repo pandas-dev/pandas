@@ -953,16 +953,61 @@ class DataFrame(NDFrame):
 
     def dot(self, other):
         """
-        Matrix multiplication with DataFrame or Series objects.  Can also be
-        called using `self @ other` in Python >= 3.5.
+        Compute the matrix mutiplication between the DataFrame and other.
+
+        This method computes the matrix product between the DataFrame and the
+        values of an other Series, DataFrame or a numpy array.
+
+        It can also be called using `self @ other` in Python >= 3.5.
 
         Parameters
         ----------
-        other : DataFrame or Series
+        other : Series, DataFrame or array-like
+            The other object to compute the matrix product with.
 
         Returns
         -------
-        dot_product : DataFrame or Series
+        Series or DataFrame
+            Return the Series of the matrix product between the Dataframe and
+            other if other is a Series, the Dataframe of the matrix product of
+            each columns of the DataFrame/np.array and each columns of other
+            if other is a DataFrame or a numpy.ndarray.
+
+        See Also
+        --------
+        Series.dot: Compute the inner product of a Series with another Series
+            or the columns of a DataFrame or the columns of a numpy array.
+
+        Notes
+        -----
+        The dimensions of DataFrame and other must be compatible in order to
+        compute the matrix multiplication.
+
+        The dot method for Series computes the inner product, instead of the
+        matrix product here.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[0 ,1, -2, 3], [4, -5, 6, 7]])
+        >>> s = pd.Series([0, 1, 2, 3])
+        >>> print(df.dot(s))
+        0     6
+        1    28
+        dtype: int64
+        >>> other = pd.DataFrame([[0 ,1], [7, 8], [-6, 0], [-1, 2]])
+        >>> print(df.dot(other))
+            0   1
+        0  16  14
+        1 -78 -22
+        >>> df @ other
+            0   1
+        0  16  14
+        1 -78 -22
+        >>> arr = np.array([[0, 1], [-2, 3], [4, -5], [6, 7]])
+        >>> print(df.dot(arr))
+            0   1
+        0   8  34
+        1  76   8
         """
         if isinstance(other, (Series, DataFrame)):
             common = self.columns.union(other.index)
