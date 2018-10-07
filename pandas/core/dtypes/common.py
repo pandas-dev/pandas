@@ -4,12 +4,13 @@ import numpy as np
 from pandas.compat import (string_types, text_type, binary_type,
                            PY3, PY36)
 from pandas._libs import algos, lib
-from pandas._libs.tslibs import conversion
+from pandas._libs.tslibs import conversion, Period, Timestamp
+from pandas._libs.interval import Interval
 
 from pandas.core.dtypes.dtypes import (
     registry, CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype,
-    DatetimeTZDtypeType, PeriodDtype, PeriodDtypeType, IntervalDtype,
-    IntervalDtypeType, PandasExtensionDtype, ExtensionDtype,
+    PeriodDtype, IntervalDtype,
+    PandasExtensionDtype, ExtensionDtype,
     _pandas_registry)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
@@ -467,7 +468,7 @@ def is_timedelta64_dtype(arr_or_dtype):
         return False
     try:
         tipo = _get_dtype_type(arr_or_dtype)
-    except:
+    except (TypeError, ValueError, SyntaxError):
         return False
     return issubclass(tipo, np.timedelta64)
 
@@ -1619,6 +1620,11 @@ def is_bool_dtype(arr_or_dtype):
     -------
     boolean : Whether or not the array or dtype is of a boolean dtype.
 
+    Notes
+    -----
+    An ExtensionArray is considered boolean when the ``_is_boolean``
+    attribute is set to True.
+
     Examples
     --------
     >>> is_bool_dtype(str)
@@ -1635,6 +1641,8 @@ def is_bool_dtype(arr_or_dtype):
     False
     >>> is_bool_dtype(np.array([True, False]))
     True
+    >>> is_bool_dtype(pd.Categorical([True, False]))
+    True
     """
 
     if arr_or_dtype is None:
@@ -1645,6 +1653,13 @@ def is_bool_dtype(arr_or_dtype):
         # this isn't even a dtype
         return False
 
+    if isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex)):
+        arr_or_dtype = arr_or_dtype.dtype
+
+    if isinstance(arr_or_dtype, CategoricalDtype):
+        arr_or_dtype = arr_or_dtype.categories
+        # now we use the special definition for Index
+
     if isinstance(arr_or_dtype, ABCIndexClass):
 
         # TODO(jreback)
@@ -1653,6 +1668,9 @@ def is_bool_dtype(arr_or_dtype):
         # guess this
         return (arr_or_dtype.is_object and
                 arr_or_dtype.inferred_type == 'boolean')
+    elif is_extension_array_dtype(arr_or_dtype):
+        dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
+        return dtype._is_boolean
 
     return issubclass(tipo, np.bool_)
 
@@ -1888,20 +1906,20 @@ def _get_dtype_type(arr_or_dtype):
     elif isinstance(arr_or_dtype, CategoricalDtype):
         return CategoricalDtypeType
     elif isinstance(arr_or_dtype, DatetimeTZDtype):
-        return DatetimeTZDtypeType
+        return Timestamp
     elif isinstance(arr_or_dtype, IntervalDtype):
-        return IntervalDtypeType
+        return Interval
     elif isinstance(arr_or_dtype, PeriodDtype):
-        return PeriodDtypeType
+        return Period
     elif isinstance(arr_or_dtype, string_types):
         if is_categorical_dtype(arr_or_dtype):
             return CategoricalDtypeType
         elif is_datetime64tz_dtype(arr_or_dtype):
-            return DatetimeTZDtypeType
+            return Timestamp
         elif is_period_dtype(arr_or_dtype):
-            return PeriodDtypeType
+            return Period
         elif is_interval_dtype(arr_or_dtype):
-            return IntervalDtypeType
+            return Interval
         return _get_dtype_type(np.dtype(arr_or_dtype))
     try:
         return arr_or_dtype.dtype.type

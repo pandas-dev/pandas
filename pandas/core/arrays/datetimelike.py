@@ -38,6 +38,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
 
 from .base import ExtensionOpsMixin
+from pandas.util._decorators import deprecate_kwarg
 
 
 def _make_comparison_op(op, cls):
@@ -454,7 +455,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     def _addsub_int_array(self, other, op):
         """
         Add or subtract array-like of integers equivalent to applying
-        `shift` pointwise.
+        `_time_shift` pointwise.
 
         Parameters
         ----------
@@ -522,40 +523,71 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             kwargs['freq'] = 'infer'
         return type(self)(res_values, **kwargs)
 
-    def shift(self, n, freq=None):
+    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
+    def shift(self, periods, freq=None):
         """
-        Specialized shift which produces a Datetime/Timedelta Array/Index
+        Shift index by desired number of time frequency increments.
+
+        This method is for shifting the values of datetime-like indexes
+        by a specified time increment a given number of times.
 
         Parameters
         ----------
-        n : int
-            Periods to shift by
-        freq : DateOffset or timedelta-like, optional
+        periods : int
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+
+            .. versionchanged:: 0.24.0
+
+        freq : pandas.DateOffset, pandas.Timedelta or string, optional
+            Frequency increment to shift by.
+            If None, the index is shifted by its own `freq` attribute.
+            Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
 
         Returns
         -------
-        shifted : same type as self
+        pandas.DatetimeIndex
+            Shifted index.
+
+        See Also
+        --------
+        Index.shift : Shift values of Index.
+        """
+        return self._time_shift(periods=periods, freq=freq)
+
+    def _time_shift(self, periods, freq=None):
+        """
+        Shift each value by `periods`.
+
+        Note this is different from ExtensionArray.shift, which
+        shifts the *position* of each element, padding the end with
+        missing values.
+
+        Parameters
+        ----------
+        periods : int
+            Number of periods to shift by.
+        freq : pandas.DateOffset, pandas.Timedelta, or string
+            Frequency increment to shift by.
         """
         if freq is not None and freq != self.freq:
             if isinstance(freq, compat.string_types):
                 freq = frequencies.to_offset(freq)
-            offset = n * freq
+            offset = periods * freq
             result = self + offset
-
             if hasattr(self, 'tz'):
                 result._tz = self.tz
-
             return result
 
-        if n == 0:
+        if periods == 0:
             # immutable so OK
             return self.copy()
 
         if self.freq is None:
             raise NullFrequencyError("Cannot shift with no freq")
 
-        start = self[0] + n * self.freq
-        end = self[-1] + n * self.freq
+        start = self[0] + periods * self.freq
+        end = self[-1] + periods * self.freq
         attribs = self._get_attributes_dict()
         return self._generate_range(start=start, end=end, periods=None,
                                     **attribs)
@@ -585,7 +617,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
-                result = self.shift(other)
+                result = self._time_shift(other)
 
             # array-like others
             elif is_timedelta64_dtype(other):
@@ -637,7 +669,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
-                result = self.shift(-other)
+                result = self._time_shift(-other)
             elif isinstance(other, Period):
                 result = self._sub_period(other)
 

@@ -16,7 +16,8 @@ from pandas.core.groupby.generic import SeriesGroupBy, PanelGroupBy
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.tseries.offsets import DateOffset, Tick, Day, delta_to_nanoseconds
+from pandas.tseries.offsets import (DateOffset, Tick, Day,
+                                    delta_to_nanoseconds, Nano)
 from pandas.core.indexes.period import PeriodIndex
 from pandas.errors import AbstractMethodError
 import pandas.core.algorithms as algos
@@ -1328,8 +1329,7 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        first, last = ax.min(), ax.max()
-        first, last = _get_range_edges(first, last, self.freq,
+        first, last = _get_range_edges(ax.min(), ax.max(), self.freq,
                                        closed=self.closed,
                                        base=self.base)
         tz = ax.tz
@@ -1396,18 +1396,21 @@ class TimeGrouper(Grouper):
     def _adjust_bin_edges(self, binner, ax_values):
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        bin_edges = binner.asi8
-
         if self.freq != 'D' and is_superperiod(self.freq, 'D'):
-            day_nanos = delta_to_nanoseconds(timedelta(1))
             if self.closed == 'right':
-                bin_edges = bin_edges + day_nanos - 1
+                # GH 21459, GH 9119: Adjust the bins relative to the wall time
+                bin_edges = binner.tz_localize(None)
+                bin_edges = bin_edges + timedelta(1) - Nano(1)
+                bin_edges = bin_edges.tz_localize(binner.tz).asi8
+            else:
+                bin_edges = binner.asi8
 
             # intraday values on last day
             if bin_edges[-2] > ax_values.max():
                 bin_edges = bin_edges[:-1]
                 binner = binner[:-1]
-
+        else:
+            bin_edges = binner.asi8
         return binner, bin_edges
 
     def _get_time_delta_bins(self, ax):
@@ -1519,9 +1522,6 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 
 def _get_range_edges(first, last, offset, closed='left', base=0):
-    if isinstance(offset, compat.string_types):
-        offset = to_offset(offset)
-
     if isinstance(offset, Tick):
         is_day = isinstance(offset, Day)
         day_nanos = delta_to_nanoseconds(timedelta(1))
@@ -1531,8 +1531,7 @@ def _get_range_edges(first, last, offset, closed='left', base=0):
             return _adjust_dates_anchored(first, last, offset,
                                           closed=closed, base=base)
 
-    if not isinstance(offset, Tick):  # and first.time() != last.time():
-        # hack!
+    else:
         first = first.normalize()
         last = last.normalize()
 
@@ -1553,19 +1552,16 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
     #
     # See https://github.com/pandas-dev/pandas/issues/8683
 
-    # 14682 - Since we need to drop the TZ information to perform
-    # the adjustment in the presence of a DST change,
-    # save TZ Info and the DST state of the first and last parameters
-    # so that we can accurately rebuild them at the end.
+    # GH 10117 & GH 19375. If first and last contain timezone information,
+    # Perform the calculation in UTC in order to avoid localizing on an
+    # Ambiguous or Nonexistent time.
     first_tzinfo = first.tzinfo
     last_tzinfo = last.tzinfo
-    first_dst = bool(first.dst())
-    last_dst = bool(last.dst())
-
-    first = first.tz_localize(None)
-    last = last.tz_localize(None)
-
     start_day_nanos = first.normalize().value
+    if first_tzinfo is not None:
+        first = first.tz_convert('UTC')
+    if last_tzinfo is not None:
+        last = last.tz_convert('UTC')
 
     base_nanos = (base % offset.n) * offset.nanos // offset.n
     start_day_nanos += base_nanos
@@ -1598,9 +1594,13 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
             lresult = last.value + (offset.nanos - loffset)
         else:
             lresult = last.value + offset.nanos
-
-    return (Timestamp(fresult).tz_localize(first_tzinfo, ambiguous=first_dst),
-            Timestamp(lresult).tz_localize(last_tzinfo, ambiguous=last_dst))
+    fresult = Timestamp(fresult)
+    lresult = Timestamp(lresult)
+    if first_tzinfo is not None:
+        fresult = fresult.tz_localize('UTC').tz_convert(first_tzinfo)
+    if last_tzinfo is not None:
+        lresult = lresult.tz_localize('UTC').tz_convert(last_tzinfo)
+    return fresult, lresult
 
 
 def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):

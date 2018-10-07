@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer_dtype,
     is_float_dtype,
+    is_number,
     is_numeric_dtype,
     is_integer,
     is_int_or_datetime_dtype,
@@ -812,8 +813,11 @@ class _MergeOperation(object):
 
         left, right = self.left, self.right
 
-        is_lkey = lambda x: is_array_like(x) and len(x) == len(left)
-        is_rkey = lambda x: is_array_like(x) and len(x) == len(right)
+        def is_lkey(x):
+            return is_array_like(x) and len(x) == len(left)
+
+        def is_rkey(x):
+            return is_array_like(x) and len(x) == len(right)
 
         # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
         # user could, for example, request 'left_index' and 'left_by'. In a
@@ -967,11 +971,11 @@ class _MergeOperation(object):
 
             # boolean values are considered as numeric, but are still allowed
             # to be merged on object boolean values
-            elif ((is_numeric_dtype(lk) and not is_bool_dtype(lk))
-                    and not is_numeric_dtype(rk)):
+            elif ((is_numeric_dtype(lk) and not is_bool_dtype(lk)) and not
+                    is_numeric_dtype(rk)):
                 raise ValueError(msg)
-            elif (not is_numeric_dtype(lk)
-                    and (is_numeric_dtype(rk) and not is_bool_dtype(rk))):
+            elif (not is_numeric_dtype(lk) and
+                  (is_numeric_dtype(rk) and not is_bool_dtype(rk))):
                 raise ValueError(msg)
             elif is_datetimelike(lk) and not is_datetimelike(rk):
                 raise ValueError(msg)
@@ -1432,8 +1436,14 @@ class _AsOfMerge(_OrderedMerge):
                 if self.tolerance < 0:
                     raise MergeError("tolerance must be positive")
 
+            elif is_float_dtype(lt):
+                if not is_number(self.tolerance):
+                    raise MergeError(msg)
+                if self.tolerance < 0:
+                    raise MergeError("tolerance must be positive")
+
             else:
-                raise MergeError("key must be integer or timestamp")
+                raise MergeError("key must be integer, timestamp or float")
 
         # validate allow_exact_matches
         if not is_bool(self.allow_exact_matches):
@@ -1519,6 +1529,9 @@ class _AsOfMerge(_OrderedMerge):
 def _get_multiindex_indexer(join_keys, index, sort):
     from functools import partial
 
+    def i8copy(a):
+        return a.astype('i8', subok=False, copy=True)
+
     # bind `sort` argument
     fkeys = partial(_factorize_keys, sort=sort)
 
@@ -1527,7 +1540,6 @@ def _get_multiindex_indexer(join_keys, index, sort):
     if sort:
         rlab = list(map(np.take, rlab, index.labels))
     else:
-        i8copy = lambda a: a.astype('i8', subok=False, copy=True)
         rlab = list(map(i8copy, index.labels))
 
     # fix right labels if there were any nulls
@@ -1673,8 +1685,11 @@ def _sort_labels(uniques, left, right):
 
 def _get_join_keys(llab, rlab, shape, sort):
 
+    def pred(i):
+        return not is_int64_overflow_possible(shape[:i])
+
     # how many levels can be done without overflow
-    pred = lambda i: not is_int64_overflow_possible(shape[:i])
+
     nlev = next(filter(pred, range(len(shape), 0, -1)))
 
     # get keys for the first `nlev` levels

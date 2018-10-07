@@ -2,6 +2,7 @@
 import numpy as np
 
 from pandas import compat
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCDataFrame
 from pandas.errors import AbstractMethodError
 
 
@@ -83,7 +84,12 @@ class _DtypeOpsMixin(object):
         """
         dtype = getattr(dtype, 'dtype', dtype)
 
-        if isinstance(dtype, np.dtype):
+        if isinstance(dtype, (ABCSeries, ABCIndexClass,
+                              ABCDataFrame, np.dtype)):
+            # https://github.com/pandas-dev/pandas/issues/22960
+            # avoid passing data to `construct_from_string`. This could
+            # cause a FutureWarning from numpy about failing elementwise
+            # comparison from, e.g., comparing DataFrame == 'category'.
             return False
         elif dtype is None:
             return False
@@ -106,6 +112,25 @@ class _DtypeOpsMixin(object):
         """
         return False
 
+    @property
+    def _is_boolean(self):
+        # type: () -> bool
+        """
+        Whether this dtype should be considered boolean.
+
+        By default, ExtensionDtypes are assumed to be non-numeric.
+        Setting this to True will affect the behavior of several places,
+        e.g.
+
+        * is_bool
+        * boolean indexing
+
+        Returns
+        -------
+        bool
+        """
+        return False
+
 
 class ExtensionDtype(_DtypeOpsMixin):
     """A custom data type, to be paired with an ExtensionArray.
@@ -125,6 +150,7 @@ class ExtensionDtype(_DtypeOpsMixin):
     pandas operations
 
     * _is_numeric
+    * _is_boolean
 
     Optionally one can override construct_array_type for construction
     with the name of this dtype via the Registry. See
@@ -155,7 +181,9 @@ class ExtensionDtype(_DtypeOpsMixin):
         """The scalar type for the array, e.g. ``int``
 
         It's expected ``ExtensionArray[item]`` returns an instance
-        of ``ExtensionDtype.type`` for scalar ``item``.
+        of ``ExtensionDtype.type`` for scalar ``item``, assuming
+        that value is valid (not NA). NA values do not need to be
+        instances of `type`.
         """
         raise AbstractMethodError(self)
 

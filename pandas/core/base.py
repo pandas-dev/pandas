@@ -245,8 +245,8 @@ class SelectionMixin(object):
 
     def __getitem__(self, key):
         if self._selection is not None:
-            raise Exception('Column(s) {selection} already selected'
-                            .format(selection=self._selection))
+            raise IndexError('Column(s) {selection} already selected'
+                             .format(selection=self._selection))
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass,
                             np.ndarray)):
@@ -662,6 +662,21 @@ class IndexOpsMixin(object):
 
     T = property(transpose, doc="return the transpose, which is by "
                                 "definition self")
+
+    @property
+    def _is_homogeneous_type(self):
+        """Whether the object has a single dtype.
+
+        By definition, Series and Index are always considered homogeneous.
+        A MultiIndex may or may not be homogeneous, depending on the
+        dtypes of the levels.
+
+        See Also
+        --------
+        DataFrame._is_homogeneous_type
+        MultiIndex._is_homogeneous_type
+        """
+        return True
 
     @property
     def shape(self):

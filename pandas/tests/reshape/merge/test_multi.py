@@ -59,8 +59,12 @@ class TestMergeMulti(object):
         icols = ['1st', '2nd', '3rd']
 
         def bind_cols(df):
-            iord = lambda a: 0 if a != a else ord(a)
-            f = lambda ts: ts.map(iord) - ord('a')
+            def iord(a):
+                return 0 if a != a else ord(a)
+
+            def f(ts):
+                return ts.map(iord) - ord('a')
+
             return (f(df['1st']) + f(df['3rd']) * 1e2 +
                     df['2nd'].fillna(0) * 1e4)
 
