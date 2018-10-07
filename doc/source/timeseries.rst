@@ -892,8 +892,7 @@ The key features of a ``DateOffset`` object are:
   :meth:`~pandas.DateOffset.rollback` methods for moving a date forward or
   backward to the next or previous "offset date".
 
-Beware that ``DatetimeIndexes`` are not assumed to always be monotonic, so
-for example:
+Beware when using ``DatetimeIndexes`` with ``DateOffset``, for example:
 
 .. ipython:: python
 
@@ -902,11 +901,19 @@ df = pd.DataFrame([1,2,3], index=pd.DatetimeIndex(start='2018-02-27',
                                                   columns=['A'])
 df.index
 
-may give you non-monotonic result when performing offsets:
+may give you non-monotonic looking result when performing offsets:
 
 .. ipython:: python
 
 df.index = df.index + pd.tseries.offsets.DateOffset(months=4, days=2)
+df.index
+
+a way to achieve the expected result is to shift the first date with ``DateOffset``
+then construct the ``DatetimeIndexes`` using the original frequency
+
+.. ipython:: python
+start_date = df.index[0] + pd.tseries.offsets.DateOffset(months=4, days=2)
+df.index = pd.DatetimeIndex(start=start_date, periods=3, freq='D')
 df.index
 
 Subclasses of ``DateOffset`` define the ``apply`` function which dictates
