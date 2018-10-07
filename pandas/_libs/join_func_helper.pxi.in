@@ -211,34 +211,34 @@ def asof_join_nearest_{{on_dtype}}_by_{{by_dtype}}(
 {{endfor}}
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # asof_join
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
-{{py:
+ctypedef fused asof_t:
+    uint8_t
+    uint16_t
+    uint32_t
+    uint64_t
+    int8_t
+    int16_t
+    int32_t
+    int64_t
+    float
+    double
 
-# on_dtype
-dtypes = ['uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
-          'int8_t', 'int16_t', 'int32_t', 'int64_t',
-          'float', 'double']
 
-}}
-
-{{for on_dtype in dtypes}}
-
-
-def asof_join_backward_{{on_dtype}}(
-        ndarray[{{on_dtype}}] left_values,
-        ndarray[{{on_dtype}}] right_values,
-        bint allow_exact_matches=1,
-        tolerance=None):
+def asof_join_backward(ndarray[asof_t] left_values,
+                       ndarray[asof_t] right_values,
+                       bint allow_exact_matches=1,
+                       tolerance=None):
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size
         ndarray[int64_t] left_indexer, right_indexer
         bint has_tolerance = 0
-        {{on_dtype}} tolerance_ = 0
-        {{on_dtype}} diff = 0
+        asof_t tolerance_ = 0
+        asof_t diff = 0
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
@@ -279,6 +279,30 @@ def asof_join_backward_{{on_dtype}}(
                 right_indexer[left_pos] = -1
 
     return left_indexer, right_indexer
+
+
+asof_join_backward_uint8_t = asof_join_backward["uint8_t"]
+asof_join_backward_uint16_t = asof_join_backward["uint16_t"]
+asof_join_backward_uint32_t = asof_join_backward["uint32_t"]
+asof_join_backward_uint64_t = asof_join_backward["uint64_t"]
+asof_join_backward_int8_t = asof_join_backward["int8_t"]
+asof_join_backward_int16_t = asof_join_backward["int16_t"]
+asof_join_backward_int32_t = asof_join_backward["int32_t"]
+asof_join_backward_int64_t = asof_join_backward["int64_t"]
+asof_join_backward_float = asof_join_backward["float"]
+asof_join_backward_double = asof_join_backward["double"]
+
+
+{{py:
+
+# on_dtype
+dtypes = ['uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
+          'int8_t', 'int16_t', 'int32_t', 'int64_t',
+          'float', 'double']
+
+}}
+
+{{for on_dtype in dtypes}}
 
 
 def asof_join_forward_{{on_dtype}}(
