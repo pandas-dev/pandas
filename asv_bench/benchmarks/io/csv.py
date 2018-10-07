@@ -1,11 +1,9 @@
 import random
-import timeit
 import string
 
 import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, Categorical, date_range, read_csv
-from pandas.compat import PY2
 from pandas.compat import cStringIO as StringIO
 
 from ..pandas_vb_common import setup, BaseIO  # noqa
@@ -54,7 +52,14 @@ class ToCSVDatetime(BaseIO):
         self.data.to_csv(self.fname, date_format='%Y%m%d')
 
 
-class ReadCSVDInferDatetimeFormat(object):
+class StringIORewind(object):
+
+    def data(self, stringio_object):
+        stringio_object.seek(0)
+        return stringio_object
+
+
+class ReadCSVDInferDatetimeFormat(StringIORewind):
 
     goal_time = 0.2
     params = ([True, False], ['custom', 'iso8601', 'ymd'])
@@ -66,10 +71,12 @@ class ReadCSVDInferDatetimeFormat(object):
                    'iso8601': '%Y-%m-%d %H:%M:%S',
                    'ymd': '%Y%m%d'}
         dt_format = formats[format]
-        self.data = StringIO('\n'.join(rng.strftime(dt_format).tolist()))
+        self.StringIO_input = StringIO('\n'.join(
+                                       rng.strftime(dt_format).tolist()))
 
     def time_read_csv(self, infer_datetime_format, format):
-        read_csv(self.data, header=None, names=['foo'], parse_dates=['foo'],
+        read_csv(self.data(self.StringIO_input),
+                 header=None, names=['foo'], parse_dates=['foo'],
                  infer_datetime_format=infer_datetime_format)
 
 
@@ -95,7 +102,7 @@ class ReadCSVSkipRows(BaseIO):
         read_csv(self.fname, skiprows=skiprows)
 
 
-class ReadUint64Integers(object):
+class ReadUint64Integers(StringIORewind):
 
     goal_time = 0.2
 
@@ -108,13 +115,13 @@ class ReadUint64Integers(object):
         self.data2 = StringIO('\n'.join(arr.astype(str).tolist()))
 
     def time_read_uint64(self):
-        read_csv(self.data1, header=None, names=['foo'])
+        read_csv(self.data(self.data1), header=None, names=['foo'])
 
     def time_read_uint64_neg_values(self):
-        read_csv(self.data2, header=None, names=['foo'])
+        read_csv(self.data(self.data2), header=None, names=['foo'])
 
     def time_read_uint64_na_values(self):
-        read_csv(self.data1, header=None, names=['foo'],
+        read_csv(self.data(self.data1), header=None, names=['foo'],
                  na_values=self.na_values)
 
 
@@ -140,19 +147,20 @@ class ReadCSVThousands(BaseIO):
         read_csv(self.fname, sep=sep, thousands=thousands)
 
 
-class ReadCSVComment(object):
+class ReadCSVComment(StringIORewind):
 
     goal_time = 0.2
 
     def setup(self):
         data = ['A,B,C'] + (['1,2,3 # comment'] * 100000)
-        self.s_data = StringIO('\n'.join(data))
+        self.StringIO_input = StringIO('\n'.join(data))
 
     def time_comment(self):
-        read_csv(self.s_data, comment='#', header=None, names=list('abc'))
+        read_csv(self.data(self.StringIO_input), comment='#',
+                 header=None, names=list('abc'))
 
 
-class ReadCSVFloatPrecision(object):
+class ReadCSVFloatPrecision(StringIORewind):
 
     goal_time = 0.2
     params = ([',', ';'], ['.', '_'], [None, 'high', 'round_trip'])
@@ -164,15 +172,15 @@ class ReadCSVFloatPrecision(object):
         rows = sep.join(['0{}'.format(decimal) + '{}'] * 3) + '\n'
         data = rows * 5
         data = data.format(*floats) * 200  # 1000 x 3 strings csv
-        self.s_data = StringIO(data)
+        self.StringIO_input = StringIO(data)
 
     def time_read_csv(self, sep, decimal, float_precision):
-        read_csv(self.s_data, sep=sep, header=None, names=list('abc'),
-                 float_precision=float_precision)
+        read_csv(self.data(self.StringIO_input), sep=sep, header=None,
+                 names=list('abc'), float_precision=float_precision)
 
     def time_read_csv_python_engine(self, sep, decimal, float_precision):
-        read_csv(self.s_data, sep=sep, header=None, engine='python',
-                 float_precision=None, names=list('abc'))
+        read_csv(self.data(self.StringIO_input), sep=sep, header=None,
+                 engine='python', float_precision=None, names=list('abc'))
 
 
 class ReadCSVCategorical(BaseIO):
@@ -193,7 +201,7 @@ class ReadCSVCategorical(BaseIO):
         read_csv(self.fname, dtype='category')
 
 
-class ReadCSVParseDates(object):
+class ReadCSVParseDates(StringIORewind):
 
     goal_time = 0.2
 
@@ -206,12 +214,14 @@ class ReadCSVParseDates(object):
                """
         two_cols = ['KORD,19990127'] * 5
         data = data.format(*two_cols)
-        self.s_data = StringIO(data)
+        self.StringIO_input = StringIO(data)
 
     def time_multiple_date(self):
-        read_csv(self.s_data, sep=',', header=None,
-                 names=list(string.digits[:9]), parse_dates=[[1, 2], [1, 3]])
+        read_csv(self.data(self.StringIO_input), sep=',', header=None,
+                 names=list(string.digits[:9]),
+                 parse_dates=[[1, 2], [1, 3]])
 
     def time_baseline(self):
-        read_csv(self.s_data, sep=',', header=None, parse_dates=[1],
+        read_csv(self.data(self.StringIO_input), sep=',', header=None,
+                 parse_dates=[1],
                  names=list(string.digits[:9]))

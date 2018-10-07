@@ -19,7 +19,8 @@ class BaseMethodsTests(BaseExtensionTests):
             other = all_data
 
         result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
-        expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+        expected = pd.Series(other).value_counts(
+            dropna=dropna).sort_index()
 
         self.assert_series_equal(result, expected)
 
@@ -126,10 +127,11 @@ class BaseMethodsTests(BaseExtensionTests):
         s1 = pd.Series(orig_data1)
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 + x2)
-        expected = pd.Series(
-            orig_data1._from_sequence([a + b for (a, b) in
-                                       zip(list(orig_data1),
-                                           list(orig_data2))]))
+        with np.errstate(over='ignore'):
+            expected = pd.Series(
+                orig_data1._from_sequence([a + b for (a, b) in
+                                           zip(list(orig_data1),
+                                               list(orig_data2))]))
         self.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
@@ -137,3 +139,28 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.Series(
             orig_data1._from_sequence([a + val for a in list(orig_data1)]))
         self.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('frame', [True, False])
+    @pytest.mark.parametrize('periods, indices', [
+        (-2, [2, 3, 4, -1, -1]),
+        (0, [0, 1, 2, 3, 4]),
+        (2, [-1, -1, 0, 1, 2]),
+    ])
+    def test_container_shift(self, data, frame, periods, indices):
+        # https://github.com/pandas-dev/pandas/issues/22386
+        subset = data[:5]
+        data = pd.Series(subset, name='A')
+        expected = pd.Series(subset.take(indices, allow_fill=True), name='A')
+
+        if frame:
+            result = data.to_frame(name='A').assign(B=1).shift(periods)
+            expected = pd.concat([
+                expected,
+                pd.Series([1] * 5, name='B').shift(periods)
+            ], axis=1)
+            compare = self.assert_frame_equal
+        else:
+            result = data.shift(periods)
+            compare = self.assert_series_equal
+
+        compare(result, expected)

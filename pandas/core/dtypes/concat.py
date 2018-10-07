@@ -3,7 +3,7 @@ Utility functions related to concat
 """
 
 import numpy as np
-import pandas._libs.tslib as tslib
+from pandas._libs import tslib, tslibs
 from pandas import compat
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_object_dtype,
     is_bool_dtype,
+    is_interval_dtype,
     is_dtype_equal,
     _NS_DTYPE,
     _TD_DTYPE)
@@ -57,6 +58,8 @@ def get_dtype_kinds(l):
         elif is_bool_dtype(dtype):
             typ = 'bool'
         elif is_period_dtype(dtype):
+            typ = str(arr.dtype)
+        elif is_interval_dtype(dtype):
             typ = str(arr.dtype)
         else:
             typ = dtype.kind
@@ -185,8 +188,8 @@ def _concat_compat(to_concat, axis=0):
         typs = get_dtype_kinds(to_concat)
         if len(typs) != 1:
 
-            if (not len(typs - set(['i', 'u', 'f'])) or
-                    not len(typs - set(['bool', 'i', 'u']))):
+            if (not len(typs - {'i', 'u', 'f'}) or
+                    not len(typs - {'bool', 'i', 'u'})):
                 # let numpy coerce
                 pass
             else:
@@ -486,7 +489,7 @@ def _convert_datetimelike_to_object(x):
 
     elif x.dtype == _TD_DTYPE:
         shape = x.shape
-        x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
+        x = tslibs.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
         x = x.reshape(shape)
 
     return x
@@ -531,6 +534,7 @@ def _concat_index_asobject(to_concat, name=None):
 
     to_concat = [x._values if isinstance(x, Index) else x
                  for x in to_concat]
+
     return self._shallow_copy_with_infer(np.concatenate(to_concat), **attribs)
 
 
@@ -596,7 +600,7 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     to_concat = [convert_sparse(x, axis) for x in to_concat]
     result = np.concatenate(to_concat, axis=axis)
 
-    if not len(typs - set(['sparse', 'f', 'i'])):
+    if not len(typs - {'sparse', 'f', 'i'}):
         # sparsify if inputs are sparse and dense numerics
         # first sparse input's fill_value and SparseIndex is used
         result = SparseArray(result.ravel(), fill_value=fill_values[0],

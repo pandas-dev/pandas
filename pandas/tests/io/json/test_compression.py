@@ -2,6 +2,7 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import assert_frame_equal, assert_raises_regex
 
 
@@ -31,6 +32,7 @@ def test_read_zipped_json(datapath):
     assert_frame_equal(uncompressed_df, compressed_df)
 
 
+@td.skip_if_not_us_locale
 def test_with_s3_url(compression):
     boto3 = pytest.importorskip('boto3')
     pytest.importorskip('s3fs')
@@ -88,3 +90,35 @@ def test_read_unsupported_compression_type():
         msg = "Unrecognized compression type: unsupported"
         assert_raises_regex(ValueError, msg, pd.read_json,
                             path, compression="unsupported")
+
+
+@pytest.mark.parametrize("to_infer", [True, False])
+@pytest.mark.parametrize("read_infer", [True, False])
+def test_to_json_compression(compression_only,
+                             read_infer, to_infer):
+    # see gh-15008
+    compression = compression_only
+
+    if compression == "zip":
+        pytest.skip("{compression} is not supported "
+                    "for to_csv".format(compression=compression))
+
+    # We'll complete file extension subsequently.
+    filename = "test."
+
+    if compression == "gzip":
+        filename += "gz"
+    else:
+        # xz --> .xz
+        # bz2 --> .bz2
+        filename += compression
+
+    df = pd.DataFrame({"A": [1]})
+
+    to_compression = "infer" if to_infer else compression
+    read_compression = "infer" if read_infer else compression
+
+    with tm.ensure_clean(filename) as path:
+        df.to_json(path, compression=to_compression)
+        result = pd.read_json(path, compression=read_compression)
+        tm.assert_frame_equal(result, df)

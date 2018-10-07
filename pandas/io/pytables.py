@@ -11,6 +11,16 @@ import copy
 import itertools
 import warnings
 import os
+from distutils.version import LooseVersion
+
+import numpy as np
+
+from pandas._libs import algos, lib, writers as libwriters
+from pandas._libs.tslibs import timezones
+
+from pandas.errors import PerformanceWarning
+from pandas import compat
+from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -18,22 +28,15 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_datetime64tz_dtype,
     is_datetime64_dtype,
-    _ensure_object,
-    _ensure_int64,
-    _ensure_platform_int)
+    ensure_object,
+    ensure_int64,
+    ensure_platform_int)
 from pandas.core.dtypes.missing import array_equivalent
 
-import numpy as np
-from pandas import (Series, DataFrame, Panel, Index,
-                    MultiIndex, Int64Index, isna, concat, to_datetime,
-                    SparseSeries, SparseDataFrame, PeriodIndex,
-                    DatetimeIndex, TimedeltaIndex)
 from pandas.core import config
-from pandas.io.common import _stringify_path
+from pandas.core.config import get_option
 from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
-from pandas.io.formats.printing import adjoin, pprint_thing
-from pandas.errors import PerformanceWarning
 import pandas.core.common as com
 from pandas.core.algorithms import match, unique
 from pandas.core.arrays.categorical import (Categorical,
@@ -41,16 +44,16 @@ from pandas.core.arrays.categorical import (Categorical,
 from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
-from pandas.core.index import _ensure_index
-from pandas import compat
-from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
-from pandas.core.config import get_option
+from pandas.core.index import ensure_index
 from pandas.core.computation.pytables import Expr, maybe_expression
 
-from pandas._libs import algos, lib, writers as libwriters
-from pandas._libs.tslibs import timezones
+from pandas.io.common import _stringify_path
+from pandas.io.formats.printing import adjoin, pprint_thing
 
-from distutils.version import LooseVersion
+from pandas import (Series, DataFrame, Panel, Index,
+                    MultiIndex, Int64Index, isna, concat, to_datetime,
+                    SparseSeries, SparseDataFrame, PeriodIndex,
+                    DatetimeIndex, TimedeltaIndex)
 
 # versioning attribute
 _version = '0.15.2'
@@ -255,7 +258,7 @@ def _tables():
         try:
             _table_file_open_policy_is_strict = (
                 tables.file._FILE_OPEN_POLICY == 'strict')
-        except:
+        except AttributeError:
             pass
 
     return _table_mod
@@ -392,11 +395,11 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
                                      'contains multiple datasets.')
             key = candidate_only_group._v_pathname
         return store.select(key, auto_close=auto_close, **kwargs)
-    except:
+    except (ValueError, TypeError):
         # if there is an error, close the store
         try:
             store.close()
-        except:
+        except AttributeError:
             pass
 
         raise
@@ -454,10 +457,8 @@ class HDFStore(StringMixin):
 
     Examples
     --------
-    >>> from pandas import DataFrame
-    >>> from numpy.random import randn
-    >>> bar = DataFrame(randn(10, 4))
-    >>> store = HDFStore('test.h5')
+    >>> bar = pd.DataFrame(np.random.randn(10, 4))
+    >>> store = pd.HDFStore('test.h5')
     >>> store['foo'] = bar   # write to HDF5
     >>> bar = store['foo']   # retrieve
     >>> store.close()
@@ -516,7 +517,7 @@ class HDFStore(StringMixin):
         """ allow attribute access to get stores """
         try:
             return self.get(name)
-        except:
+        except (KeyError, ClosedFileError):
             pass
         raise AttributeError("'%s' object has no attribute '%s'" %
                              (type(self).__name__, name))
@@ -674,7 +675,7 @@ class HDFStore(StringMixin):
             if fsync:
                 try:
                     os.fsync(self._handle.fileno())
-                except:
+                except OSError:
                     pass
 
     def get(self, key):
@@ -1160,7 +1161,7 @@ class HDFStore(StringMixin):
             if not key.startswith('/'):
                 key = '/' + key
             return self._handle.get_node(self.root, key)
-        except:
+        except _table_mod.exceptions.NoSuchNodeError:
             return None
 
     def get_storer(self, key):
@@ -1269,7 +1270,7 @@ class HDFStore(StringMixin):
         # validate
         try:
             kwargs['format'] = _FORMAT_MAP[format.lower()]
-        except:
+        except KeyError:
             raise TypeError("invalid HDFStore format specified [{0}]"
                             .format(format))
 
@@ -1306,7 +1307,7 @@ class HDFStore(StringMixin):
 
                 try:
                     pt = _TYPE_MAP[type(value)]
-                except:
+                except KeyError:
                     error('_TYPE_MAP')
 
                 # we are actually a table
@@ -1317,7 +1318,7 @@ class HDFStore(StringMixin):
         if u('table') not in pt:
             try:
                 return globals()[_STORER_MAP[pt]](self, group, **kwargs)
-            except:
+            except KeyError:
                 error('_STORER_MAP')
 
         # existing node (and must be a table)
@@ -1353,12 +1354,12 @@ class HDFStore(StringMixin):
                     fields = group.table._v_attrs.fields
                     if len(fields) == 1 and fields[0] == u('value'):
                         tt = u('legacy_frame')
-                except:
+                except IndexError:
                     pass
 
         try:
             return globals()[_TABLE_MAP[tt]](self, group, **kwargs)
-        except:
+        except KeyError:
             error('_TABLE_MAP')
 
     def _write_to_group(self, key, value, format, index=True, append=False,
@@ -1623,7 +1624,7 @@ class IndexCol(StringMixin):
         """ return whether I am an indexed column """
         try:
             return getattr(self.table.cols, self.cname).is_indexed
-        except:
+        except AttributeError:
             False
 
     def copy(self):
@@ -1653,9 +1654,10 @@ class IndexCol(StringMixin):
             kwargs['freq'] = _ensure_decoded(self.freq)
         if self.index_name is not None:
             kwargs['name'] = _ensure_decoded(self.index_name)
+        # making an Index instance could throw a number of different errors
         try:
             self.values = Index(values, **kwargs)
-        except:
+        except Exception:  # noqa: E722
 
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
@@ -1868,7 +1870,7 @@ class DataCol(IndexCol):
                 m = re.search(r"values_block_(\d+)", name)
                 if m:
                     name = "values_%s" % m.groups()[0]
-        except:
+        except IndexError:
             pass
 
         return cls(name=name, cname=cname, **kwargs)
@@ -2231,7 +2233,7 @@ class DataCol(IndexCol):
 
                 try:
                     self.data = self.data.astype(dtype, copy=False)
-                except:
+                except TypeError:
                     self.data = self.data.astype('O', copy=False)
 
         # convert nans / decode
@@ -2324,7 +2326,7 @@ class Fixed(StringMixin):
             self.version = tuple(int(x) for x in version.split('.'))
             if len(self.version) == 2:
                 self.version = self.version + (0,)
-        except:
+        except AttributeError:
             self.version = (0, 0, 0)
 
     @property
@@ -2474,7 +2476,8 @@ class GenericFixed(Fixed):
         if klass == DatetimeIndex:
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
-                result = DatetimeIndex._simple_new(values, None, freq=freq)
+                result = DatetimeIndex._simple_new(values.values, None,
+                                                   freq=freq)
                 if tz is not None:
                     result = result.tz_localize('UTC').tz_convert(tz)
                 return result
@@ -2767,7 +2770,7 @@ class GenericFixed(Fixed):
             else:
                 try:
                     items = list(items)
-                except:
+                except TypeError:
                     pass
                 ws = performance_doc % (inferred_type, key, items)
                 warnings.warn(ws, PerformanceWarning, stacklevel=7)
@@ -2841,7 +2844,7 @@ class SeriesFixed(GenericFixed):
     def shape(self):
         try:
             return len(getattr(self.group, 'values')),
-        except:
+        except (TypeError, AttributeError):
             return None
 
     def read(self, **kwargs):
@@ -2959,7 +2962,7 @@ class BlockManagerFixed(GenericFixed):
                 shape = shape[::-1]
 
             return shape
-        except:
+        except AttributeError:
             return None
 
     def read(self, start=None, stop=None, **kwargs):
@@ -3493,7 +3496,7 @@ class Table(Fixed):
         if axes is None:
             try:
                 axes = _AXES_MAP[type(obj)]
-            except:
+            except KeyError:
                 raise TypeError("cannot properly create the storer for: "
                                 "[group->%s,value->%s]"
                                 % (self.group._v_name, type(obj)))
@@ -3612,7 +3615,7 @@ class Table(Fixed):
                     b, b_items = by_items.pop(items)
                     new_blocks.append(b)
                     new_blk_items.append(b_items)
-                except:
+                except (IndexError, KeyError):
                     raise ValueError(
                         "cannot match existing table structure for [%s] on "
                         "appending data" % ','.join(pprint_thing(item) for
@@ -3640,7 +3643,7 @@ class Table(Fixed):
             if existing_table is not None and validate:
                 try:
                     existing_col = existing_table.values_axes[i]
-                except:
+                except (IndexError, KeyError):
                     raise ValueError("Incompatible appended table [%s] with "
                                      "existing table [%s]"
                                      % (blocks, existing_table.values_axes))
@@ -3723,8 +3726,8 @@ class Table(Fixed):
                         elif field in axis_values:
 
                             # we need to filter on this dimension
-                            values = _ensure_index(getattr(obj, field).values)
-                            filt = _ensure_index(filt)
+                            values = ensure_index(getattr(obj, field).values)
+                            filt = ensure_index(filt)
 
                             # hack until we support reversed dim flags
                             if isinstance(obj, DataFrame):
@@ -3890,8 +3893,8 @@ class LegacyTable(Table):
         if len(unique(key)) == len(key):
 
             sorter, _ = algos.groupsort_indexer(
-                _ensure_int64(key), np.prod(N))
-            sorter = _ensure_platform_int(sorter)
+                ensure_int64(key), np.prod(N))
+            sorter = ensure_platform_int(sorter)
 
             # create the objs
             for c in self.values_axes:
@@ -3933,10 +3936,10 @@ class LegacyTable(Table):
                 tuple_index = long_index.values
 
                 unique_tuples = unique(tuple_index)
-                unique_tuples = com._asarray_tuplesafe(unique_tuples)
+                unique_tuples = com.asarray_tuplesafe(unique_tuples)
 
                 indexer = match(unique_tuples, tuple_index)
-                indexer = _ensure_platform_int(indexer)
+                indexer = ensure_platform_int(indexer)
 
                 new_index = long_index.take(indexer)
                 new_values = lp.values.take(indexer, axis=0)
@@ -4234,7 +4237,7 @@ class AppendableFrameTable(AppendableTable):
         for a in self.values_axes:
 
             # we could have a multi-index constructor here
-            # _ensure_index doesn't recognized our list-of-tuples here
+            # ensure_index doesn't recognized our list-of-tuples here
             if info.get('type') == 'MultiIndex':
                 cols = MultiIndex.from_tuples(a.values)
             else:
@@ -4435,18 +4438,18 @@ class AppendablePanelTable(AppendableTable):
 
 def _reindex_axis(obj, axis, labels, other=None):
     ax = obj._get_axis(axis)
-    labels = _ensure_index(labels)
+    labels = ensure_index(labels)
 
     # try not to reindex even if other is provided
     # if it equals our current index
     if other is not None:
-        other = _ensure_index(other)
+        other = ensure_index(other)
     if (other is None or labels.equals(other)) and labels.equals(ax):
         return obj
 
-    labels = _ensure_index(labels.unique())
+    labels = ensure_index(labels.unique())
     if other is not None:
-        labels = _ensure_index(other.unique()) & labels
+        labels = ensure_index(other.unique()) & labels
     if not labels.equals(ax):
         slicer = [slice(None, None)] * obj.ndim
         slicer[axis] = labels
@@ -4458,7 +4461,7 @@ def _get_info(info, name):
     """ get/create the info for this name """
     try:
         idx = info[name]
-    except:
+    except KeyError:
         idx = info[name] = dict()
     return idx
 
@@ -4654,7 +4657,7 @@ def _convert_string_array(data, encoding, errors, itemsize=None):
 
     # create the sized dtype
     if itemsize is None:
-        ensured = _ensure_object(data.ravel())
+        ensured = ensure_object(data.ravel())
         itemsize = libwriters.max_len_string_array(ensured)
 
     data = np.asarray(data, dtype="S%d" % itemsize)
@@ -4686,7 +4689,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None,
     encoding = _ensure_encoding(encoding)
     if encoding is not None and len(data):
 
-        itemsize = libwriters.max_len_string_array(_ensure_object(data))
+        itemsize = libwriters.max_len_string_array(ensure_object(data))
         if compat.PY3:
             dtype = "U{0}".format(itemsize)
         else:
@@ -4780,7 +4783,7 @@ class Selection(object):
                             )
                         self.coordinates = where
 
-            except:
+            except ValueError:
                 pass
 
         if self.coordinates is None:

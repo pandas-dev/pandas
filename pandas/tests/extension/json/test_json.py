@@ -130,7 +130,12 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
-    pass
+
+    # TODO: Should this be pytest.mark.skip?
+    @pytest.mark.xfail(reason="not implemented constructor from dtype")
+    def test_from_dtype(self, data):
+        # construct from our dtype & string dtype
+        pass
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
@@ -142,10 +147,12 @@ class TestGetitem(BaseJSON, base.BaseGetitemTests):
 
 
 class TestMissing(BaseJSON, base.BaseMissingTests):
+    # TODO: Should this be pytest.mark.skip?
     @pytest.mark.xfail(reason="Setting a dict as a scalar")
     def test_fillna_series(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
 
+    # TODO: Should this be pytest.mark.skip?
     @pytest.mark.xfail(reason="Setting a dict as a scalar")
     def test_fillna_frame(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
@@ -197,7 +204,8 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
-    @pytest.mark.xfail
+    # TODO: Should this be pytest.mark.skip?
+    @pytest.mark.xfail(reason="failing on np.array(self, dtype=str)")
     def test_astype_str(self):
         """This currently fails in NumPy on np.array(self, dtype=str) with
 
@@ -243,6 +251,11 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
 class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
     def test_error(self, data, all_arithmetic_operators):
         pass
+
+    def test_add_series_with_extension_array(self, data):
+        ser = pd.Series(data)
+        with tm.assert_raises_regex(TypeError, "unsupported"):
+            ser + data
 
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):

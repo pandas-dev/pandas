@@ -10,7 +10,8 @@ import numpy as np
 import pandas as pd
 
 from pandas import concat, DataFrame, Index, MultiIndex, Series
-from pandas.core.groupby.groupby import Grouping, SpecificationError
+from pandas.core.groupby.grouper import Grouping
+from pandas.core.base import SpecificationError
 from pandas.compat import OrderedDict
 import pandas.util.testing as tm
 

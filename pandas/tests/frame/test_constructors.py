@@ -501,9 +501,11 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_dict_multiindex(self):
-        check = lambda result, expected: tm.assert_frame_equal(
-            result, expected, check_dtype=True, check_index_type=True,
-            check_column_type=True, check_names=True)
+        def check(result, expected):
+            return tm.assert_frame_equal(result, expected, check_dtype=True,
+                                         check_index_type=True,
+                                         check_column_type=True,
+                                         check_names=True)
         d = {('a', 'a'): {('i', 'i'): 0, ('i', 'j'): 1, ('j', 'i'): 2},
              ('b', 'a'): {('i', 'i'): 6, ('i', 'j'): 5, ('j', 'i'): 4},
              ('b', 'c'): {('i', 'i'): 7, ('i', 'j'): 8, ('j', 'i'): 9}}
@@ -796,25 +798,20 @@ class TestDataFrameConstructors(TestData):
             result = DataFrame(mrecs, index=[1, 2])
             assert_fr_equal(result, expected)
 
-    def test_constructor_corner(self):
+    def test_constructor_corner_shape(self):
         df = DataFrame(index=[])
         assert df.values.shape == (0, 0)
 
-        # empty but with specified dtype
-        df = DataFrame(index=lrange(10), columns=['a', 'b'], dtype=object)
-        assert df.values.dtype == np.object_
-
-        # does not error but ends up float
-        df = DataFrame(index=lrange(10), columns=['a', 'b'], dtype=int)
-        assert df.values.dtype == np.dtype('float64')
-
-        # #1783 empty dtype object
-        df = DataFrame({}, columns=['foo', 'bar'])
-        assert df.values.dtype == np.object_
-
-        df = DataFrame({'b': 1}, index=lrange(10), columns=list('abc'),
-                       dtype=int)
-        assert df.values.dtype == np.dtype('float64')
+    @pytest.mark.parametrize("data, index, columns, dtype, expected", [
+        (None, lrange(10), ['a', 'b'], object, np.object_),
+        (None, None, ['a', 'b'], 'int64', np.dtype('int64')),
+        (None, lrange(10), ['a', 'b'], int, np.dtype('float64')),
+        ({}, None, ['foo', 'bar'], None, np.object_),
+        ({'b': 1}, lrange(10), list('abc'), int, np.dtype('float64'))
+    ])
+    def test_constructor_dtype(self, data, index, columns, dtype, expected):
+        df = DataFrame(data, index, columns, dtype)
+        assert df.values.dtype == expected
 
     def test_constructor_scalar_inference(self):
         data = {'int': 1, 'bool': True,
@@ -862,12 +859,6 @@ class TestDataFrameConstructors(TestData):
 
         dm = DataFrame(index=np.arange(10))
         assert dm.values.shape == (10, 0)
-
-        # corner, silly
-        # TODO: Fix this Exception to be better...
-        with tm.assert_raises_regex(ValueError, 'constructor not '
-                                    'properly called'):
-            DataFrame((1, 2, 3))
 
         # can't cast
         mat = np.array(['foo', 'bar'], dtype=object).reshape(2, 1)
@@ -920,9 +911,8 @@ class TestDataFrameConstructors(TestData):
     def test_constructor_sequence_like(self):
         # GH 3783
         # collections.Squence like
-        import collections
 
-        class DummyContainer(collections.Sequence):
+        class DummyContainer(compat.Sequence):
 
             def __init__(self, lst):
                 self._lst = lst
@@ -950,6 +940,17 @@ class TestDataFrameConstructors(TestData):
         result = DataFrame([array.array('i', range(10)),
                             array.array('i', range(10))])
         tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    def test_constructor_iterable(self):
+        # GH 21987
+        class Iter():
+            def __iter__(self):
+                for i in range(10):
+                    yield [1, 2, 3]
+
+        expected = DataFrame([[1, 2, 3]] * 10)
+        result = DataFrame(Iter())
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_iterator(self):
 
@@ -1372,10 +1373,6 @@ class TestDataFrameConstructors(TestData):
         expected = DataFrame([[np.nan, 1], [1, 0]])
         tm.assert_frame_equal(df, expected)
 
-    def test_constructor_iterator_failure(self):
-        with tm.assert_raises_regex(TypeError, 'iterator'):
-            DataFrame(iter([1, 2, 3]))
-
     def test_constructor_column_duplicates(self):
         # it works! #2079
         df = DataFrame([[8, 5]], columns=['a', 'a'])
@@ -1655,19 +1652,21 @@ class TestDataFrameConstructors(TestData):
             for i in range(len(df.columns)):
                 df.iloc[:, i]
 
-            # allow single nans to succeed
             indexer = np.arange(len(df.columns))[isna(df.columns)]
 
-            if len(indexer) == 1:
-                tm.assert_series_equal(df.iloc[:, indexer[0]],
-                                       df.loc[:, np.nan])
-
-            # multiple nans should fail
-            else:
-
+            # No NaN found -> error
+            if len(indexer) == 0:
                 def f():
                     df.loc[:, np.nan]
                 pytest.raises(TypeError, f)
+            # single nan should result in Series
+            elif len(indexer) == 1:
+                tm.assert_series_equal(df.iloc[:, indexer[0]],
+                                       df.loc[:, np.nan])
+            # multiple nans should result in DataFrame
+            else:
+                tm.assert_frame_equal(df.iloc[:, indexer],
+                                      df.loc[:, np.nan])
 
         df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[1, np.nan])
         check(df)
@@ -1681,6 +1680,11 @@ class TestDataFrameConstructors(TestData):
 
         df = DataFrame([[0.0, 1, 2, 3.0], [4, 5, 6, 7]],
                        columns=[np.nan, 1.1, 2.2, np.nan])
+        check(df)
+
+        # GH 21428 (non-unique columns)
+        df = DataFrame([[0.0, 1, 2, 3.0], [4, 5, 6, 7]],
+                       columns=[np.nan, 1, 2, 2])
         check(df)
 
     def test_constructor_lists_to_object_dtype(self):
@@ -2229,4 +2233,17 @@ class TestDataFrameConstructorWithDatetimeTZ(TestData):
             Timestamp('20130101T10:00:00', tz='US/Eastern'),
             Timestamp('20130101T10:01:00', tz='US/Eastern'),
             Timestamp('20130101T10:02:00', tz='US/Eastern')]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_nested_dict_construction(self):
+        # GH22227
+        columns = ['Nevada', 'Ohio']
+        pop = {'Nevada': {2001: 2.4, 2002: 2.9},
+               'Ohio': {2000: 1.5, 2001: 1.7, 2002: 3.6}}
+        result = pd.DataFrame(pop, index=[2001, 2002, 2003], columns=columns)
+        expected = pd.DataFrame(
+            [(2.4, 1.7), (2.9, 3.6), (np.nan, np.nan)],
+            columns=columns,
+            index=pd.Index([2001, 2002, 2003])
+        )
         tm.assert_frame_equal(result, expected)

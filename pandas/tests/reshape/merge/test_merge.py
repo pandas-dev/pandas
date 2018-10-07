@@ -601,6 +601,30 @@ class TestMerge(object):
         assert result['value_x'].dtype == 'datetime64[ns, US/Eastern]'
         assert result['value_y'].dtype == 'datetime64[ns, US/Eastern]'
 
+    def test_merge_datetime64tz_with_dst_transition(self):
+        # GH 18885
+        df1 = pd.DataFrame(pd.date_range(
+            '2017-10-29 01:00', periods=4, freq='H', tz='Europe/Madrid'),
+            columns=['date'])
+        df1['value'] = 1
+        df2 = pd.DataFrame({
+            'date': pd.to_datetime([
+                '2017-10-29 03:00:00', '2017-10-29 04:00:00',
+                '2017-10-29 05:00:00'
+            ]),
+            'value': 2
+        })
+        df2['date'] = df2['date'].dt.tz_localize('UTC').dt.tz_convert(
+            'Europe/Madrid')
+        result = pd.merge(df1, df2, how='outer', on='date')
+        expected = pd.DataFrame({
+            'date': pd.date_range(
+                '2017-10-29 01:00', periods=7, freq='H', tz='Europe/Madrid'),
+            'value_x': [1] * 4 + [np.nan] * 3,
+            'value_y': [np.nan] * 4 + [2] * 3
+        })
+        assert_frame_equal(result, expected)
+
     def test_merge_non_unique_period_index(self):
         # GH #16871
         index = pd.period_range('2016-01-01', periods=16, freq='M')
@@ -1887,3 +1911,33 @@ def test_merge_index_types(index):
         OrderedDict([('left_data', [1, 2]), ('right_data', [1.0, 2.0])]),
         index=index)
     assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("on,left_on,right_on,left_index,right_index,nms,nm", [
+    (['outer', 'inner'], None, None, False, False, ['outer', 'inner'], 'B'),
+    (None, None, None, True, True, ['outer', 'inner'], 'B'),
+    (None, ['outer', 'inner'], None, False, True, None, 'B'),
+    (None, None, ['outer', 'inner'], True, False, None, 'B'),
+    (['outer', 'inner'], None, None, False, False, ['outer', 'inner'], None),
+    (None, None, None, True, True, ['outer', 'inner'], None),
+    (None, ['outer', 'inner'], None, False, True, None, None),
+    (None, None, ['outer', 'inner'], True, False, None, None)])
+def test_merge_series(on, left_on, right_on, left_index, right_index, nms, nm):
+    # GH 21220
+    a = pd.DataFrame({"A": [1, 2, 3, 4]},
+                     index=pd.MultiIndex.from_product([['a', 'b'], [0, 1]],
+                     names=['outer', 'inner']))
+    b = pd.Series([1, 2, 3, 4],
+                  index=pd.MultiIndex.from_product([['a', 'b'], [1, 2]],
+                  names=['outer', 'inner']), name=nm)
+    expected = pd.DataFrame({"A": [2, 4], "B": [1, 3]},
+                            index=pd.MultiIndex.from_product([['a', 'b'], [1]],
+                            names=nms))
+    if nm is not None:
+        result = pd.merge(a, b, on=on, left_on=left_on, right_on=right_on,
+                          left_index=left_index, right_index=right_index)
+        tm.assert_frame_equal(result, expected)
+    else:
+        with tm.assert_raises_regex(ValueError, 'a Series without a name'):
+            result = pd.merge(a, b, on=on, left_on=left_on, right_on=right_on,
+                              left_index=left_index, right_index=right_index)

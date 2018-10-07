@@ -4,6 +4,7 @@
 import pytest
 
 from collections import Counter, defaultdict, OrderedDict
+from itertools import chain
 
 import numpy as np
 import pandas as pd
@@ -11,21 +12,23 @@ import pandas as pd
 from pandas import (Index, Series, DataFrame, isna)
 from pandas.compat import lrange
 from pandas import compat
-from pandas.util.testing import assert_series_equal, assert_frame_equal
+from pandas.util.testing import (assert_series_equal,
+                                 assert_frame_equal)
 import pandas.util.testing as tm
+from pandas.conftest import _get_cython_table_params
 
-from .common import TestData
 
+class TestSeriesApply():
 
-class TestSeriesApply(TestData):
-
-    def test_apply(self):
+    def test_apply(self, datetime_series):
         with np.errstate(all='ignore'):
-            tm.assert_series_equal(self.ts.apply(np.sqrt), np.sqrt(self.ts))
+            tm.assert_series_equal(datetime_series.apply(np.sqrt),
+                                   np.sqrt(datetime_series))
 
             # element-wise apply
             import math
-            tm.assert_series_equal(self.ts.apply(math.exp), np.exp(self.ts))
+            tm.assert_series_equal(datetime_series.apply(math.exp),
+                                   np.exp(datetime_series))
 
         # empty series
         s = Series(dtype=object, name='foo', index=pd.Index([], name='bar'))
@@ -63,11 +66,11 @@ class TestSeriesApply(TestData):
         result = s.apply(f, convert_dtype=False)
         assert result.dtype == object
 
-    def test_with_string_args(self):
+    def test_with_string_args(self, datetime_series):
 
         for arg in ['sum', 'mean', 'min', 'max', 'std']:
-            result = self.ts.apply(arg)
-            expected = getattr(self.ts, arg)()
+            result = datetime_series.apply(arg)
+            expected = getattr(datetime_series, arg)()
             assert result == expected
 
     def test_apply_args(self):
@@ -162,34 +165,34 @@ class TestSeriesApply(TestData):
             tsdf.A.agg({'foo': ['sum', 'mean']})
 
 
-class TestSeriesAggregate(TestData):
+class TestSeriesAggregate():
 
-    def test_transform(self):
+    def test_transform(self, string_series):
         # transforming functions
 
         with np.errstate(all='ignore'):
 
-            f_sqrt = np.sqrt(self.series)
-            f_abs = np.abs(self.series)
+            f_sqrt = np.sqrt(string_series)
+            f_abs = np.abs(string_series)
 
             # ufunc
-            result = self.series.transform(np.sqrt)
+            result = string_series.transform(np.sqrt)
             expected = f_sqrt.copy()
             assert_series_equal(result, expected)
 
-            result = self.series.apply(np.sqrt)
+            result = string_series.apply(np.sqrt)
             assert_series_equal(result, expected)
 
             # list-like
-            result = self.series.transform([np.sqrt])
+            result = string_series.transform([np.sqrt])
             expected = f_sqrt.to_frame().copy()
             expected.columns = ['sqrt']
             assert_frame_equal(result, expected)
 
-            result = self.series.transform([np.sqrt])
+            result = string_series.transform([np.sqrt])
             assert_frame_equal(result, expected)
 
-            result = self.series.transform(['sqrt'])
+            result = string_series.transform(['sqrt'])
             assert_frame_equal(result, expected)
 
             # multiple items in list
@@ -197,10 +200,10 @@ class TestSeriesAggregate(TestData):
             # series and then concatting
             expected = pd.concat([f_sqrt, f_abs], axis=1)
             expected.columns = ['sqrt', 'absolute']
-            result = self.series.apply([np.sqrt, np.abs])
+            result = string_series.apply([np.sqrt, np.abs])
             assert_frame_equal(result, expected)
 
-            result = self.series.transform(['sqrt', 'abs'])
+            result = string_series.transform(['sqrt', 'abs'])
             expected.columns = ['sqrt', 'abs']
             assert_frame_equal(result, expected)
 
@@ -209,28 +212,28 @@ class TestSeriesAggregate(TestData):
             expected.columns = ['foo', 'bar']
             expected = expected.unstack().rename('series')
 
-            result = self.series.apply({'foo': np.sqrt, 'bar': np.abs})
+            result = string_series.apply({'foo': np.sqrt, 'bar': np.abs})
             assert_series_equal(result.reindex_like(expected), expected)
 
-    def test_transform_and_agg_error(self):
+    def test_transform_and_agg_error(self, string_series):
         # we are trying to transform with an aggregator
         def f():
-            self.series.transform(['min', 'max'])
+            string_series.transform(['min', 'max'])
         pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
-                self.series.agg(['sqrt', 'max'])
+                string_series.agg(['sqrt', 'max'])
         pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
-                self.series.transform(['sqrt', 'max'])
+                string_series.transform(['sqrt', 'max'])
         pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
-                self.series.agg({'foo': np.sqrt, 'bar': 'sum'})
+                string_series.agg({'foo': np.sqrt, 'bar': 'sum'})
         pytest.raises(ValueError, f)
 
     def test_demo(self):
@@ -269,33 +272,34 @@ class TestSeriesAggregate(TestData):
                    'min', 'sum']).unstack().rename('series')
         tm.assert_series_equal(result.reindex_like(expected), expected)
 
-    def test_agg_apply_evaluate_lambdas_the_same(self):
+    def test_agg_apply_evaluate_lambdas_the_same(self, string_series):
         # test that we are evaluating row-by-row first
         # before vectorized evaluation
-        result = self.series.apply(lambda x: str(x))
-        expected = self.series.agg(lambda x: str(x))
+        result = string_series.apply(lambda x: str(x))
+        expected = string_series.agg(lambda x: str(x))
         tm.assert_series_equal(result, expected)
 
-        result = self.series.apply(str)
-        expected = self.series.agg(str)
+        result = string_series.apply(str)
+        expected = string_series.agg(str)
         tm.assert_series_equal(result, expected)
 
-    def test_with_nested_series(self):
+    def test_with_nested_series(self, datetime_series):
         # GH 2316
         # .agg with a reducer and a transform, what to do
-        result = self.ts.apply(lambda x: Series(
+        result = datetime_series.apply(lambda x: Series(
             [x, x ** 2], index=['x', 'x^2']))
-        expected = DataFrame({'x': self.ts, 'x^2': self.ts ** 2})
+        expected = DataFrame({'x': datetime_series,
+                              'x^2': datetime_series ** 2})
         tm.assert_frame_equal(result, expected)
 
-        result = self.ts.agg(lambda x: Series(
+        result = datetime_series.agg(lambda x: Series(
             [x, x ** 2], index=['x', 'x^2']))
         tm.assert_frame_equal(result, expected)
 
-    def test_replicate_describe(self):
+    def test_replicate_describe(self, string_series):
         # this also tests a result set that is all scalars
-        expected = self.series.describe()
-        result = self.series.apply(OrderedDict(
+        expected = string_series.describe()
+        result = string_series.apply(OrderedDict(
             [('count', 'count'),
              ('mean', 'mean'),
              ('std', 'std'),
@@ -306,13 +310,13 @@ class TestSeriesAggregate(TestData):
              ('max', 'max')]))
         assert_series_equal(result, expected)
 
-    def test_reduce(self):
+    def test_reduce(self, string_series):
         # reductions with named functions
-        result = self.series.agg(['sum', 'mean'])
-        expected = Series([self.series.sum(),
-                           self.series.mean()],
+        result = string_series.agg(['sum', 'mean'])
+        expected = Series([string_series.sum(),
+                           string_series.mean()],
                           ['sum', 'mean'],
-                          name=self.series.name)
+                          name=string_series.name)
         assert_series_equal(result, expected)
 
     def test_non_callable_aggregates(self):
@@ -331,10 +335,89 @@ class TestSeriesAggregate(TestData):
                                        ('mean', 1.5)]))
         assert_series_equal(result[expected.index], expected)
 
+    @pytest.mark.parametrize("series, func, expected", chain(
+        _get_cython_table_params(Series(), [
+            ('sum', 0),
+            ('max', np.nan),
+            ('min', np.nan),
+            ('all', True),
+            ('any', False),
+            ('mean', np.nan),
+            ('prod', 1),
+            ('std', np.nan),
+            ('var', np.nan),
+            ('median', np.nan),
+        ]),
+        _get_cython_table_params(Series([np.nan, 1, 2, 3]), [
+            ('sum', 6),
+            ('max', 3),
+            ('min', 1),
+            ('all', True),
+            ('any', True),
+            ('mean', 2),
+            ('prod', 6),
+            ('std', 1),
+            ('var', 1),
+            ('median', 2),
+        ]),
+        _get_cython_table_params(Series('a b c'.split()), [
+            ('sum', 'abc'),
+            ('max', 'c'),
+            ('min', 'a'),
+            ('all', 'c'),  # see GH12863
+            ('any', 'a'),
+        ]),
+    ))
+    def test_agg_cython_table(self, series, func, expected):
+        # GH21224
+        # test reducing functions in
+        # pandas.core.base.SelectionMixin._cython_table
+        result = series.agg(func)
+        if tm.is_number(expected):
+            assert np.isclose(result, expected, equal_nan=True)
+        else:
+            assert result == expected
 
-class TestSeriesMap(TestData):
+    @pytest.mark.parametrize("series, func, expected", chain(
+        _get_cython_table_params(Series(), [
+            ('cumprod', Series([], Index([]))),
+            ('cumsum', Series([], Index([]))),
+        ]),
+        _get_cython_table_params(Series([np.nan, 1, 2, 3]), [
+            ('cumprod', Series([np.nan, 1, 2, 6])),
+            ('cumsum', Series([np.nan, 1, 3, 6])),
+        ]),
+        _get_cython_table_params(Series('a b c'.split()), [
+            ('cumsum', Series(['a', 'ab', 'abc'])),
+        ]),
+    ))
+    def test_agg_cython_table_transform(self, series, func, expected):
+        # GH21224
+        # test transforming functions in
+        # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
+        result = series.agg(func)
+        tm.assert_series_equal(result, expected)
 
-    def test_map(self):
+    @pytest.mark.parametrize("series, func, expected", chain(
+        _get_cython_table_params(Series('a b c'.split()), [
+            ('mean', TypeError),  # mean raises TypeError
+            ('prod', TypeError),
+            ('std', TypeError),
+            ('var', TypeError),
+            ('median', TypeError),
+            ('cumprod', TypeError),
+        ])
+    ))
+    def test_agg_cython_table_raises(self, series, func, expected):
+        # GH21224
+        with pytest.raises(expected):
+            # e.g. Series('a b'.split()).cumprod() will raise
+            series.agg(func)
+
+
+class TestSeriesMap():
+
+    def test_map(self, datetime_series):
         index, data = tm.getMixedTypeDict()
 
         source = Series(data['B'], index=data['C'])
@@ -352,8 +435,8 @@ class TestSeriesMap(TestData):
             assert v == source[target[k]]
 
         # function
-        result = self.ts.map(lambda x: x * 2)
-        tm.assert_series_equal(result, self.ts * 2)
+        result = datetime_series.map(lambda x: x * 2)
+        tm.assert_series_equal(result, datetime_series * 2)
 
         # GH 10324
         a = Series([1, 2, 3, 4])
@@ -418,10 +501,10 @@ class TestSeriesMap(TestData):
         s2 = s.map(lambda x: np.where(x == 0, 0, 1))
         assert issubclass(s2.dtype.type, np.integer)
 
-    def test_map_decimal(self):
+    def test_map_decimal(self, string_series):
         from decimal import Decimal
 
-        result = self.series.map(lambda x: Decimal(str(x)))
+        result = string_series.map(lambda x: Decimal(str(x)))
         assert result.dtype == np.object_
         assert isinstance(result[0], Decimal)
 

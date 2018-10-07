@@ -12,10 +12,10 @@ import numpy as np
 
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.cast import maybe_upcast, find_common_type
-from pandas.core.dtypes.common import _ensure_platform_int, is_scipy_sparse
+from pandas.core.dtypes.common import ensure_platform_int, is_scipy_sparse
 
 from pandas.compat.numpy import function as nv
-from pandas.core.index import Index, MultiIndex, _ensure_index
+from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame, extract_index, _prep_ndarray
 import pandas.core.algorithms as algos
@@ -27,6 +27,7 @@ from pandas._libs.sparse import BlockIndex, get_blocks
 from pandas.util._decorators import Appender
 import pandas.core.ops as ops
 import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 
 _shared_doc_kwargs = dict(klass='SparseDataFrame')
 
@@ -111,7 +112,7 @@ class SparseDataFrame(DataFrame):
             if index is None:
                 index = Index([])
             else:
-                index = _ensure_index(index)
+                index = ensure_index(index)
 
             if columns is None:
                 columns = Index([])
@@ -139,18 +140,19 @@ class SparseDataFrame(DataFrame):
     def _init_dict(self, data, index, columns, dtype=None):
         # pre-filter out columns if we passed it
         if columns is not None:
-            columns = _ensure_index(columns)
+            columns = ensure_index(columns)
             data = {k: v for k, v in compat.iteritems(data) if k in columns}
         else:
-            keys = com._dict_keys_to_ordered_list(data)
+            keys = com.dict_keys_to_ordered_list(data)
             columns = Index(keys)
 
         if index is None:
             index = extract_index(list(data.values()))
 
-        sp_maker = lambda x: SparseArray(x, kind=self._default_kind,
-                                         fill_value=self._default_fill_value,
-                                         copy=True, dtype=dtype)
+        def sp_maker(x):
+            return SparseArray(x, kind=self._default_kind,
+                               fill_value=self._default_fill_value,
+                               copy=True, dtype=dtype)
         sdict = {}
         for k, v in compat.iteritems(data):
             if isinstance(v, Series):
@@ -218,9 +220,9 @@ class SparseDataFrame(DataFrame):
     def _prep_index(self, data, index, columns):
         N, K = data.shape
         if index is None:
-            index = com._default_index(N)
+            index = ibase.default_index(N)
         if columns is None:
-            columns = com._default_index(K)
+            columns = ibase.default_index(K)
 
         if len(columns) != K:
             raise ValueError('Column length mismatch: {columns} vs. {K}'
@@ -397,9 +399,10 @@ class SparseDataFrame(DataFrame):
         sanitized_column : SparseArray
 
         """
-        sp_maker = lambda x, index=None: SparseArray(
-            x, index=index, fill_value=self._default_fill_value,
-            kind=self._default_kind)
+        def sp_maker(x, index=None):
+            return SparseArray(x, index=index,
+                               fill_value=self._default_fill_value,
+                               kind=self._default_kind)
         if isinstance(value, SparseSeries):
             clean = value.reindex(self.index).as_sparse_array(
                 fill_value=self._default_fill_value, kind=self._default_kind)
@@ -427,18 +430,6 @@ class SparseDataFrame(DataFrame):
 
         # always return a SparseArray!
         return clean
-
-    def __getitem__(self, key):
-        """
-        Retrieve column or slice from DataFrame
-        """
-        if isinstance(key, slice):
-            date_rng = self.index[key]
-            return self.reindex(date_rng)
-        elif isinstance(key, (np.ndarray, list, Series)):
-            return self._getitem_array(key)
-        else:
-            return self._get_item_cache(key)
 
     def get_value(self, index, col, takeable=False):
         """
@@ -606,7 +597,6 @@ class SparseDataFrame(DataFrame):
             new_data[col] = func(series.values, other.values)
 
         # fill_value is a function of our operator
-        fill_value = None
         if isna(other.fill_value) or isna(self.default_fill_value):
             fill_value = np.nan
         else:
@@ -660,7 +650,7 @@ class SparseDataFrame(DataFrame):
                 index=index, columns=self.columns).__finalize__(self)
 
         indexer = self.index.get_indexer(index, method, limit=limit)
-        indexer = _ensure_platform_int(indexer)
+        indexer = ensure_platform_int(indexer)
         mask = indexer == -1
         need_mask = mask.any()
 
@@ -936,7 +926,7 @@ def to_manager(sdf, columns, index):
     """
 
     # from BlockManager perspective
-    axes = [_ensure_index(columns), _ensure_index(index)]
+    axes = [ensure_index(columns), ensure_index(index)]
 
     return create_block_manager_from_arrays(
         [sdf[c] for c in columns], columns, axes)

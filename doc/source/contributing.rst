@@ -365,6 +365,31 @@ This will identify methods documented in ``doc/source/api.rst`` that are not act
 class methods, and existing methods that are not documented in ``doc/source/api.rst``.
 
 
+Updating a *pandas* docstring
+-----------------------------
+
+When improving a single function or method's docstring, it is not necessarily
+needed to build the full documentation (see next section).
+However, there is a script that checks a docstring (for example for the ``DataFrame.mean`` method)::
+
+    python scripts/validate_docstrings.py pandas.DataFrame.mean
+
+This script will indicate some formatting errors if present, and will also
+run and test the examples included in the docstring.
+Check the :ref:`pandas docstring guide <docstring>` for a detailed guide
+on how to format the docstring.
+
+The examples in the docstring ('doctests') must be valid Python code,
+that in a deterministic way returns the presented output, and that can be
+copied and run by users. This can be checked with the script above, and is
+also tested on Travis. A failing doctest will be a blocker for merging a PR.
+Check the :ref:`examples <docstring.examples>` section in the docstring guide
+for some tips and tricks to get the doctests passing.
+
+When doing a PR with a docstring update, it is good to post the
+output of the validation script in a comment on github.
+
+
 How to build the *pandas* documentation
 ---------------------------------------
 
@@ -607,6 +632,14 @@ Otherwise, you need to do it manually:
         warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
         new_func()
 
+You'll also need to
+
+1. write a new test that asserts a warning is issued when calling with the deprecated argument
+2. Update all of pandas existing tests and code to use the new argument
+
+See :ref:`contributing.warnings` for more.
+
+
 .. _contributing.ci:
 
 Testing With Continuous Integration
@@ -652,13 +685,13 @@ Adding tests is one of the most common requests after code is pushed to *pandas*
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
 Like many packages, *pandas* uses `pytest
-<http://doc.pytest.org/en/latest/>`_ and the convenient
+<http://docs.pytest.org/en/latest/>`_ and the convenient
 extensions in `numpy.testing
 <http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
 
 .. note::
 
-   The earliest supported pytest version is 3.1.0.
+   The earliest supported pytest version is 3.6.0.
 
 Writing tests
 ~~~~~~~~~~~~~
@@ -702,7 +735,7 @@ Transitioning to ``pytest``
     class TestReallyCoolFeature(object):
         ....
 
-Going forward, we are moving to a more *functional* style using the `pytest <http://doc.pytest.org/en/latest/>`__ framework, which offers a richer testing
+Going forward, we are moving to a more *functional* style using the `pytest <http://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
 framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
 
 .. code-block:: python
@@ -766,7 +799,7 @@ A test run of this yields
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v
    =========================== test session starts ===========================
-   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   platform darwin -- Python 3.6.2, pytest-3.6.0, py-1.4.31, pluggy-0.4.0
    collected 11 items
 
    tester.py::test_dtypes[int8] PASSED
@@ -788,11 +821,100 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v -k int8
    =========================== test session starts ===========================
-   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   platform darwin -- Python 3.6.2, pytest-3.6.0, py-1.4.31, pluggy-0.4.0
    collected 11 items
 
    test_cool_feature.py::test_dtypes[int8] PASSED
    test_cool_feature.py::test_series[int8] PASSED
+
+
+.. _using-hypothesis:
+
+Using ``hypothesis``
+~~~~~~~~~~~~~~~~~~~~
+
+Hypothesis is a library for property-based testing.  Instead of explicitly
+parametrizing a test, you can describe *all* valid inputs and let Hypothesis
+try to find a failing input.  Even better, no matter how many random examples
+it tries, Hypothesis always reports a single minimal counterexample to your
+assertions - often an example that you would never have thought to test.
+
+See `Getting Started with Hypothesis <https://hypothesis.works/articles/getting-started-with-hypothesis/>`_
+for more of an introduction, then `refer to the Hypothesis documentation
+for details <https://hypothesis.readthedocs.io/en/latest/index.html>`_.
+
+.. code-block:: python
+
+    import json
+    from hypothesis import given, strategies as st
+
+    any_json_value = st.deferred(lambda: st.one_of(
+        st.none(), st.booleans(), st.floats(allow_nan=False), st.text(),
+        st.lists(any_json_value), st.dictionaries(st.text(), any_json_value)
+    ))
+
+    @given(value=any_json_value)
+    def test_json_roundtrip(value):
+        result = json.loads(json.dumps(value))
+        assert value == result
+
+This test shows off several useful features of Hypothesis, as well as
+demonstrating a good use-case: checking properties that should hold over
+a large or complicated domain of inputs.
+
+To keep the Pandas test suite running quickly, parametrized tests are
+preferred if the inputs or logic are simple, with Hypothesis tests reserved
+for cases with complex logic or where there are too many combinations of
+options or subtle interactions to test (or think of!) all of them.
+
+.. _contributing.warnings:
+
+Testing Warnings
+~~~~~~~~~~~~~~~~
+
+By default, one of pandas CI workers will fail if any unhandled warnings are emitted.
+
+If your change involves checking that a warning is actually emitted, use
+``tm.assert_produces_warning(ExpectedWarning)``.
+
+
+.. code-block:: python
+
+   with tm.assert_produces_warning(FutureWarning):
+       df.some_operation()
+
+We prefer this to the ``pytest.warns`` context manager because ours checks that the warning's
+stacklevel is set correctly. The stacklevel is what ensure the *user's* file name and line number
+is printed in the warning, rather than something internal to pandas. It represents the number of
+function calls from user code (e.g. ``df.some_operation()``) to the function that actually emits
+the warning. Our linter will fail the build if you use ``pytest.warns`` in a test.
+
+If you have a test that would emit a warning, but you aren't actually testing the
+warning itself (say because it's going to be removed in the future, or because we're
+matching a 3rd-party library's behavior), then use ``pytest.mark.filterwarnings`` to
+ignore the error.
+
+.. code-block:: python
+
+   @pytest.mark.filterwarnings("ignore:msg:category")
+   def test_thing(self):
+       ...
+
+If the test generates a warning of class ``category`` whose message starts
+with ``msg``, the warning will be ignored and the test will pass.
+
+If you need finer-grained control, you can use Python's usual
+`warnings module <https://docs.python.org/3/library/warnings.html>`__
+to control whether a warning is ignored / raised at different places within
+a single test.
+
+.. code-block:: python
+
+   with warch.catch_warnings():
+       warnings.simplefilter("ignore", FutureWarning)
+       # Or use warnings.filterwarnings(...)
+
+Alternatively, consider breaking up the unit test.
 
 
 Running the test suite
@@ -837,7 +959,7 @@ On Windows, one can type::
 This can significantly reduce the time it takes to locally run tests before
 submitting a pull request.
 
-For more, see the `pytest <http://doc.pytest.org/en/latest/>`_ documentation.
+For more, see the `pytest <http://docs.pytest.org/en/latest/>`_ documentation.
 
     .. versionadded:: 0.20.0
 

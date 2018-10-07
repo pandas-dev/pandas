@@ -11,13 +11,7 @@ import pandas.util.testing as tm
 import pandas as pd
 
 from pandas import date_range, Timestamp, DatetimeIndex
-
-
-@pytest.fixture(params=[None, 'UTC', 'Asia/Tokyo',
-                        'US/Eastern', 'dateutil/Asia/Singapore',
-                        'dateutil/US/Pacific'])
-def tz(request):
-    return request.param
+from pandas.tseries.frequencies import to_offset
 
 
 class TestDatetimeIndexOps(object):
@@ -84,7 +78,8 @@ class TestDatetimeIndexOps(object):
         for freq in ['Y', 'M', 'foobar']:
             pytest.raises(ValueError, lambda: dti.round(freq))
 
-    def test_round(self, tz):
+    def test_round(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         rng = date_range(start='2016-01-01', periods=5,
                          freq='30Min', tz=tz)
         elt = rng[1]
@@ -101,7 +96,7 @@ class TestDatetimeIndexOps(object):
         tm.assert_index_equal(rng.round(freq='H'), expected_rng)
         assert elt.round(freq='H') == expected_elt
 
-        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
         with tm.assert_raises_regex(ValueError, msg):
             rng.round(freq='foo')
         with tm.assert_raises_regex(ValueError, msg):
@@ -130,12 +125,13 @@ class TestDatetimeIndexOps(object):
         expected = DatetimeIndex(['2016-10-17 12:00:00.001501030'])
         tm.assert_index_equal(result, expected)
 
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(False):
             ts = '2016-10-17 12:00:00.001501031'
             DatetimeIndex([ts]).round('1010ns')
 
-    def test_no_rounding_occurs(self, tz):
+    def test_no_rounding_occurs(self, tz_naive_fixture):
         # GH 21262
+        tz = tz_naive_fixture
         rng = date_range(start='2016-01-01', periods=5,
                          freq='2Min', tz=tz)
 
@@ -167,12 +163,52 @@ class TestDatetimeIndexOps(object):
         (('NaT', '1823-01-01 00:00:01'), 'ceil', '1s',
          ('NaT', '1823-01-01 00:00:01'))
     ])
-    def test_ceil_floor_edge(self, tz, test_input, rounder, freq, expected):
+    def test_ceil_floor_edge(self, test_input, rounder, freq, expected):
         dt = DatetimeIndex(list(test_input))
         func = getattr(dt, rounder)
         result = func(freq)
         expected = DatetimeIndex(list(expected))
         assert expected.equals(result)
+
+    @pytest.mark.parametrize('start, index_freq, periods', [
+        ('2018-01-01', '12H', 25),
+        ('2018-01-01 0:0:0.124999', '1ns', 1000),
+    ])
+    @pytest.mark.parametrize('round_freq', [
+        '2ns', '3ns', '4ns', '5ns', '6ns', '7ns',
+        '250ns', '500ns', '750ns',
+        '1us', '19us', '250us', '500us', '750us',
+        '1s', '2s', '3s',
+        '12H', '1D',
+    ])
+    def test_round_int64(self, start, index_freq, periods, round_freq):
+        dt = DatetimeIndex(start=start, freq=index_freq, periods=periods)
+        unit = to_offset(round_freq).nanos
+
+        # test floor
+        result = dt.floor(round_freq)
+        diff = dt.asi8 - result.asi8
+        mod = result.asi8 % unit
+        assert (mod == 0).all(), "floor not a {} multiple".format(round_freq)
+        assert (0 <= diff).all() and (diff < unit).all(), "floor error"
+
+        # test ceil
+        result = dt.ceil(round_freq)
+        diff = result.asi8 - dt.asi8
+        mod = result.asi8 % unit
+        assert (mod == 0).all(), "ceil not a {} multiple".format(round_freq)
+        assert (0 <= diff).all() and (diff < unit).all(), "ceil error"
+
+        # test round
+        result = dt.round(round_freq)
+        diff = abs(result.asi8 - dt.asi8)
+        mod = result.asi8 % unit
+        assert (mod == 0).all(), "round not a {} multiple".format(round_freq)
+        assert (diff <= unit // 2).all(), "round error"
+        if unit % 2 == 0:
+            assert (
+                result.asi8[diff == unit // 2] % 2 == 0
+            ).all(), "round half to even error"
 
     # ----------------------------------------------------------------
     # DatetimeIndex.normalize

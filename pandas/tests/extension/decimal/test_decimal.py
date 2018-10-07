@@ -1,3 +1,4 @@
+import operator
 import decimal
 
 import numpy as np
@@ -23,14 +24,6 @@ def data():
 @pytest.fixture
 def data_missing():
     return DecimalArray([decimal.Decimal('NaN'), decimal.Decimal(1)])
-
-
-@pytest.fixture
-def data_repeated():
-    def gen(count):
-        for _ in range(count):
-            yield DecimalArray(make_data())
-    yield gen
 
 
 @pytest.fixture
@@ -108,7 +101,11 @@ class TestInterface(BaseDecimal, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
-    pass
+
+    @pytest.mark.xfail(reason="not implemented constructor from dtype")
+    def test_from_dtype(self, data):
+        # construct from our dtype & string dtype
+        pass
 
 
 class TestReshaping(BaseDecimal, base.BaseReshapingTests):
@@ -155,6 +152,14 @@ class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
     pass
 
 
+class TestSetitem(BaseDecimal, base.BaseSetitemTests):
+    pass
+
+
+# TODO(extension)
+@pytest.mark.xfail(reason=(
+    "raising AssertionError as this is not implemented, "
+    "though easy enough to do"))
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")
@@ -162,35 +167,49 @@ def test_series_constructor_coerce_data_to_extension_dtype_raises():
         pd.Series([0, 1, 2], dtype=DecimalDtype())
 
 
-def test_series_constructor_with_same_dtype_ok():
+def test_series_constructor_with_dtype():
     arr = DecimalArray([decimal.Decimal('10.0')])
     result = pd.Series(arr, dtype=DecimalDtype())
     expected = pd.Series(arr)
     tm.assert_series_equal(result, expected)
 
-
-def test_series_constructor_coerce_extension_array_to_dtype_raises():
-    arr = DecimalArray([decimal.Decimal('10.0')])
-    xpr = r"Cannot specify a dtype 'int64' .* \('decimal'\)."
-
-    with tm.assert_raises_regex(ValueError, xpr):
-        pd.Series(arr, dtype='int64')
+    result = pd.Series(arr, dtype='int64')
+    expected = pd.Series([10])
+    tm.assert_series_equal(result, expected)
 
 
-def test_dataframe_constructor_with_same_dtype_ok():
+def test_dataframe_constructor_with_dtype():
     arr = DecimalArray([decimal.Decimal('10.0')])
 
     result = pd.DataFrame({"A": arr}, dtype=DecimalDtype())
     expected = pd.DataFrame({"A": arr})
     tm.assert_frame_equal(result, expected)
 
-
-def test_dataframe_constructor_with_different_dtype_raises():
     arr = DecimalArray([decimal.Decimal('10.0')])
+    result = pd.DataFrame({"A": arr}, dtype='int64')
+    expected = pd.DataFrame({"A": [10]})
+    tm.assert_frame_equal(result, expected)
 
-    xpr = "Cannot coerce extension array to dtype 'int64'. "
-    with tm.assert_raises_regex(ValueError, xpr):
-        pd.DataFrame({"A": arr}, dtype='int64')
+
+@pytest.mark.parametrize("frame", [True, False])
+def test_astype_dispatches(frame):
+    # This is a dtype-specific test that ensures Series[decimal].astype
+    # gets all the way through to ExtensionArray.astype
+    # Designing a reliable smoke test that works for arbitrary data types
+    # is difficult.
+    data = pd.Series(DecimalArray([decimal.Decimal(2)]), name='a')
+    ctx = decimal.Context()
+    ctx.prec = 5
+
+    if frame:
+        data = data.to_frame()
+
+    result = data.astype(DecimalDtype(ctx))
+
+    if frame:
+        result = result['a']
+
+    assert result.dtype.context.prec == ctx.prec
 
 
 class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
@@ -199,7 +218,7 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
         super(TestArithmeticOps, self).check_opname(s, op_name,
                                                     other, exc=None)
 
-    def test_arith_array(self, data, all_arithmetic_operators):
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
         op_name = all_arithmetic_operators
         s = pd.Series(data)
 
@@ -252,3 +271,47 @@ class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
         other = pd.Series(data) * [decimal.Decimal(pow(2.0, i))
                                    for i in alter]
         self._compare_other(s, data, op_name, other)
+
+
+class DecimalArrayWithoutFromSequence(DecimalArray):
+    """Helper class for testing error handling in _from_sequence."""
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        raise KeyError("For the test")
+
+
+class DecimalArrayWithoutCoercion(DecimalArrayWithoutFromSequence):
+    @classmethod
+    def _create_arithmetic_method(cls, op):
+        return cls._create_method(op, coerce_to_dtype=False)
+
+
+DecimalArrayWithoutCoercion._add_arithmetic_ops()
+
+
+def test_combine_from_sequence_raises():
+    # https://github.com/pandas-dev/pandas/issues/22850
+    ser = pd.Series(DecimalArrayWithoutFromSequence([
+        decimal.Decimal("1.0"),
+        decimal.Decimal("2.0")
+    ]))
+    result = ser.combine(ser, operator.add)
+
+    # note: object dtype
+    expected = pd.Series([decimal.Decimal("2.0"),
+                          decimal.Decimal("4.0")], dtype="object")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("class_", [DecimalArrayWithoutFromSequence,
+                                    DecimalArrayWithoutCoercion])
+def test_scalar_ops_from_sequence_raises(class_):
+    # op(EA, EA) should return an EA, or an ndarray if it's not possible
+    # to return an EA with the return values.
+    arr = class_([
+        decimal.Decimal("1.0"),
+        decimal.Decimal("2.0")
+    ])
+    result = arr + arr
+    expected = np.array([decimal.Decimal("2.0"), decimal.Decimal("4.0")],
+                        dtype="object")
+    tm.assert_numpy_array_equal(result, expected)

@@ -6,7 +6,7 @@ from pandas.core.dtypes.common import (
     is_decimal,
     is_datetime_or_timedelta_dtype,
     is_number,
-    _ensure_object)
+    ensure_object)
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas._libs import lib
@@ -58,7 +58,6 @@ def to_numeric(arg, errors='raise', downcast=None):
     --------
     Take separate series and convert to numeric, coercing when told to
 
-    >>> import pandas as pd
     >>> s = pd.Series(['1.0', '2', -3])
     >>> pd.to_numeric(s)
     0    1.0
@@ -131,7 +130,7 @@ def to_numeric(arg, errors='raise', downcast=None):
         elif is_datetime_or_timedelta_dtype(values):
             values = values.astype(np.int64)
         else:
-            values = _ensure_object(values)
+            values = ensure_object(values)
             coerce_numeric = False if errors in ('ignore', 'raise') else True
             values = lib.maybe_convert_numeric(values, set(),
                                                coerce_numeric=coerce_numeric)

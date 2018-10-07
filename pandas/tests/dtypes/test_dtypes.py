@@ -7,10 +7,9 @@ import pandas as pd
 from pandas import (
     Series, Categorical, CategoricalIndex, IntervalIndex, date_range)
 
-from pandas.compat import string_types
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype, PeriodDtype,
-    IntervalDtype, CategoricalDtype)
+    IntervalDtype, CategoricalDtype, registry, _pandas_registry)
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_categorical,
     is_datetime64tz_dtype, is_datetimetz,
@@ -18,7 +17,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal, is_datetime64_ns_dtype,
     is_datetime64_dtype, is_interval_dtype,
     is_datetime64_any_dtype, is_string_dtype,
-    _coerce_to_dtype)
+    _coerce_to_dtype, is_bool_dtype)
 import pandas.util.testing as tm
 
 
@@ -126,6 +125,18 @@ class TestCategoricalDtype(Base):
         categories = [(1, 'a'), (2, 'b'), (3, 'c')]
         result = CategoricalDtype(categories)
         assert all(result.categories == categories)
+
+    @pytest.mark.parametrize("categories, expected", [
+        ([True, False], True),
+        ([True, False, None], True),
+        ([True, False, "a", "b'"], False),
+        ([0, 1], False),
+    ])
+    def test_is_boolean(self, categories, expected):
+        cat = Categorical(categories)
+        assert cat.dtype._is_boolean is expected
+        assert is_bool_dtype(cat) is expected
+        assert is_bool_dtype(cat.dtype) is expected
 
 
 class TestDatetimeTZDtype(Base):
@@ -448,7 +459,7 @@ class TestIntervalDtype(Base):
 
     def test_construction_errors(self):
         msg = 'could not construct IntervalDtype'
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             IntervalDtype('xx')
 
     def test_construction_from_string(self):
@@ -458,14 +469,21 @@ class TestIntervalDtype(Base):
         assert is_dtype_equal(self.dtype, result)
 
     @pytest.mark.parametrize('string', [
-        'foo', 'interval[foo]', 'foo[int64]', 0, 3.14, ('a', 'b'), None])
+        'foo', 'foo[int64]', 0, 3.14, ('a', 'b'), None])
     def test_construction_from_string_errors(self, string):
-        if isinstance(string, string_types):
-            error, msg = ValueError, 'could not construct IntervalDtype'
-        else:
-            error, msg = TypeError, 'a string needs to be passed, got type'
+        # these are invalid entirely
+        msg = 'a string needs to be passed, got type'
 
-        with tm.assert_raises_regex(error, msg):
+        with tm.assert_raises_regex(TypeError, msg):
+            IntervalDtype.construct_from_string(string)
+
+    @pytest.mark.parametrize('string', [
+        'interval[foo]'])
+    def test_construction_from_string_error_subtype(self, string):
+        # this is an invalid subtype
+        msg = 'could not construct IntervalDtype'
+
+        with tm.assert_raises_regex(TypeError, msg):
             IntervalDtype.construct_from_string(string)
 
     def test_subclass(self):
@@ -546,10 +564,8 @@ class TestIntervalDtype(Base):
 
         s = Series(ii, name='A')
 
-        # dtypes
-        # series results in object dtype currently,
-        assert not is_interval_dtype(s.dtype)
-        assert not is_interval_dtype(s)
+        assert is_interval_dtype(s.dtype)
+        assert is_interval_dtype(s)
 
     def test_basic_dtype(self):
         assert is_interval_dtype('interval[int64]')
@@ -767,3 +783,55 @@ class TestCategoricalDtypeParametrized(object):
         msg = 'a CategoricalDtype must be passed to perform an update, '
         with tm.assert_raises_regex(ValueError, msg):
             dtype.update_dtype(bad_dtype)
+
+
+@pytest.mark.parametrize(
+    'dtype',
+    [CategoricalDtype, IntervalDtype])
+def test_registry(dtype):
+    assert dtype in registry.dtypes
+
+
+@pytest.mark.parametrize('dtype', [DatetimeTZDtype, PeriodDtype])
+def test_pandas_registry(dtype):
+    assert dtype not in registry.dtypes
+    assert dtype in _pandas_registry.dtypes
+
+
+@pytest.mark.parametrize(
+    'dtype, expected',
+    [('int64', None),
+     ('interval', IntervalDtype()),
+     ('interval[int64]', IntervalDtype()),
+     ('interval[datetime64[ns]]', IntervalDtype('datetime64[ns]')),
+     ('category', CategoricalDtype())])
+def test_registry_find(dtype, expected):
+    assert registry.find(dtype) == expected
+
+
+@pytest.mark.parametrize(
+    'dtype, expected',
+    [('period[D]', PeriodDtype('D')),
+     ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern'))])
+def test_pandas_registry_find(dtype, expected):
+    assert _pandas_registry.find(dtype) == expected
+
+
+@pytest.mark.parametrize("check", [
+    is_categorical_dtype,
+    is_datetime64tz_dtype,
+    is_period_dtype,
+    is_datetime64_ns_dtype,
+    is_datetime64_dtype,
+    is_interval_dtype,
+    is_datetime64_any_dtype,
+    is_string_dtype,
+    is_bool_dtype,
+])
+def test_is_dtype_no_warning(check):
+    data = pd.DataFrame({"A": [1, 2]})
+    with tm.assert_produces_warning(None):
+        check(data)
+
+    with tm.assert_produces_warning(None):
+        check(data["A"])

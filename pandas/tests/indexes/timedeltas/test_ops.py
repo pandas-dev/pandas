@@ -334,7 +334,7 @@ class TestTimedeltaIndexOps(Ops):
             idx.freq = '5D'
 
         # setting with a non-fixed frequency
-        msg = '<2 \* BusinessDays> is a non-fixed frequency'
+        msg = r'<2 \* BusinessDays> is a non-fixed frequency'
         with tm.assert_raises_regex(ValueError, msg):
             idx.freq = '2B'
 

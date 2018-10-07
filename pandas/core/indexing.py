@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_scalar,
     is_sparse,
-    _ensure_platform_int)
+    ensure_platform_int)
 from pandas.core.dtypes.missing import isna, _infer_fill_value
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
@@ -112,7 +112,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def __getitem__(self, key):
         if type(key) is tuple:
-            key = tuple(com._apply_if_callable(x, self.obj)
+            key = tuple(com.apply_if_callable(x, self.obj)
                         for x in key)
             try:
                 values = self.obj._get_value(*key)
@@ -126,7 +126,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # we by definition only have the 0th axis
             axis = self.axis or 0
 
-            key = com._apply_if_callable(key, self.obj)
+            key = com.apply_if_callable(key, self.obj)
             return self._getitem_axis(key, axis=axis)
 
     def _get_label(self, label, axis=None):
@@ -186,10 +186,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
-            key = tuple(com._apply_if_callable(x, self.obj)
+            key = tuple(com.apply_if_callable(x, self.obj)
                         for x in key)
         else:
-            key = com._apply_if_callable(key, self.obj)
+            key = com.apply_if_callable(key, self.obj)
         indexer = self._get_setitem_indexer(key)
         self._setitem_with_indexer(indexer, value)
 
@@ -788,11 +788,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         if isinstance(indexer, tuple):
 
-            aligners = [not com.is_null_slice(idx) for idx in indexer]
-            sum_aligners = sum(aligners)
-            # TODO: single_aligner is not used
-            single_aligner = sum_aligners == 1  # noqa
-
             idx, cols = None, None
             sindexers = []
             for i, ix in enumerate(indexer):
@@ -865,9 +860,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         raise ValueError('Incompatible indexer with DataFrame')
 
     def _align_panel(self, indexer, df):
-        # TODO: is_frame, is_panel are unused
-        is_frame = self.obj.ndim == 2  # noqa
-        is_panel = self.obj.ndim >= 3  # noqa
         raise NotImplementedError("cannot set using an indexer with a Panel "
                                   "yet!")
 
@@ -1474,7 +1466,7 @@ class _IXIndexer(_NDFrameIndexer):
             keyarr = labels._convert_index_indexer(key)
         else:
             # asarray can be unsafe, NumPy strings are weird
-            keyarr = com._asarray_tuplesafe(key)
+            keyarr = com.asarray_tuplesafe(key)
 
         if is_integer_dtype(keyarr):
             # Cast the indexer to uint64 if possible so
@@ -1483,7 +1475,7 @@ class _IXIndexer(_NDFrameIndexer):
             keyarr = labels._convert_arr_indexer(keyarr)
 
             if not labels.is_integer():
-                keyarr = _ensure_platform_int(keyarr)
+                keyarr = ensure_platform_int(keyarr)
                 return labels.take(keyarr)
 
         return keyarr
@@ -1494,19 +1486,19 @@ class _LocationIndexer(_NDFrameIndexer):
 
     def __getitem__(self, key):
         if type(key) is tuple:
-            key = tuple(com._apply_if_callable(x, self.obj)
+            key = tuple(com.apply_if_callable(x, self.obj)
                         for x in key)
             try:
                 if self._is_scalar_access(key):
                     return self._getitem_scalar(key)
-            except (KeyError, IndexError):
+            except (KeyError, IndexError, AttributeError):
                 pass
             return self._getitem_tuple(key)
         else:
             # we by definition only have the 0th axis
             axis = self.axis or 0
 
-            maybe_callable = com._apply_if_callable(key, self.obj)
+            maybe_callable = com.apply_if_callable(key, self.obj)
             return self._getitem_axis(maybe_callable, axis=axis)
 
     def _is_scalar_access(self, key):
@@ -1924,7 +1916,8 @@ class _LocIndexer(_LocationIndexer):
 
 
 class _iLocIndexer(_LocationIndexer):
-    """Purely integer-location based indexing for selection by position.
+    """
+    Purely integer-location based indexing for selection by position.
 
     ``.iloc[]`` is primarily integer position based (from ``0`` to
     ``length-1`` of the axis), but may also be used with a boolean
@@ -1937,14 +1930,125 @@ class _iLocIndexer(_LocationIndexer):
     - A slice object with ints, e.g. ``1:7``.
     - A boolean array.
     - A ``callable`` function with one argument (the calling Series, DataFrame
-      or Panel) and that returns valid output for indexing (one of the above)
+      or Panel) and that returns valid output for indexing (one of the above).
+      This is useful in method chains, when you don't have a reference to the
+      calling object, but would like to base your selection on some value.
 
     ``.iloc`` will raise ``IndexError`` if a requested indexer is
     out-of-bounds, except *slice* indexers which allow out-of-bounds
     indexing (this conforms with python/numpy *slice* semantics).
 
-    See more at :ref:`Selection by Position <indexing.integer>`
+    See more at ref:`Selection by Position <indexing.integer>`.
 
+    See Also
+    --------
+    DataFrame.iat : Fast integer location scalar accessor.
+    DataFrame.loc : Purely label-location based indexer for selection by label.
+    Series.iloc : Purely integer-location based indexing for
+                   selection by position.
+
+    Examples
+    --------
+
+    >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
+    ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
+    ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
+    >>> df = pd.DataFrame(mydict)
+    >>> df
+          a     b     c     d
+    0     1     2     3     4
+    1   100   200   300   400
+    2  1000  2000  3000  4000
+
+    **Indexing just the rows**
+
+    With a scalar integer.
+
+    >>> type(df.iloc[0])
+    <class 'pandas.core.series.Series'>
+    >>> df.iloc[0]
+    a    1
+    b    2
+    c    3
+    d    4
+    Name: 0, dtype: int64
+
+    With a list of integers.
+
+    >>> df.iloc[[0]]
+       a  b  c  d
+    0  1  2  3  4
+    >>> type(df.iloc[[0]])
+    <class 'pandas.core.frame.DataFrame'>
+
+    >>> df.iloc[[0, 1]]
+         a    b    c    d
+    0    1    2    3    4
+    1  100  200  300  400
+
+    With a `slice` object.
+
+    >>> df.iloc[:3]
+          a     b     c     d
+    0     1     2     3     4
+    1   100   200   300   400
+    2  1000  2000  3000  4000
+
+    With a boolean mask the same length as the index.
+
+    >>> df.iloc[[True, False, True]]
+          a     b     c     d
+    0     1     2     3     4
+    2  1000  2000  3000  4000
+
+    With a callable, useful in method chains. The `x` passed
+    to the ``lambda`` is the DataFrame being sliced. This selects
+    the rows whose index label even.
+
+    >>> df.iloc[lambda x: x.index % 2 == 0]
+          a     b     c     d
+    0     1     2     3     4
+    2  1000  2000  3000  4000
+
+    **Indexing both axes**
+
+    You can mix the indexer types for the index and columns. Use ``:`` to
+    select the entire axis.
+
+    With scalar integers.
+
+    >>> df.iloc[0, 1]
+    2
+
+    With lists of integers.
+
+    >>> df.iloc[[0, 2], [1, 3]]
+          b     d
+    0     2     4
+    2  2000  4000
+
+    With `slice` objects.
+
+    >>> df.iloc[1:3, 0:3]
+          a     b     c
+    1   100   200   300
+    2  1000  2000  3000
+
+    With a boolean array whose length matches the columns.
+
+    >>> df.iloc[:, [True, False, True, False]]
+          a     c
+    0     1     3
+    1   100   300
+    2  1000  3000
+
+    With a callable function that expects the Series or DataFrame.
+
+    >>> df.iloc[:, lambda df: [0, 2]]
+          a     c
+    0     1     3
+    1   100   300
+    2  1000  3000
     """
 
     _valid_types = ("integer, integer slice (START point is INCLUDED, END "
@@ -2012,7 +2116,25 @@ class _iLocIndexer(_LocationIndexer):
         return values
 
     def _validate_integer(self, key, axis):
-        # return a boolean if we have a valid integer indexer
+        """
+        Check that 'key' is a valid position in the desired axis.
+
+        Parameters
+        ----------
+        key : int
+            Requested position
+        axis : int
+            Desired axis
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        IndexError
+            If 'key' is not a valid position in axis 'axis'
+        """
 
         ax = self.obj._get_axis(axis)
         l = len(ax)
@@ -2024,7 +2146,7 @@ class _iLocIndexer(_LocationIndexer):
         self._has_valid_tuple(tup)
         try:
             return self._getitem_lowerdim(tup)
-        except:
+        except IndexingError:
             pass
 
         retval = self.obj
@@ -2103,8 +2225,6 @@ class _iLocIndexer(_LocationIndexer):
 
         # a single integer
         else:
-            key = self._convert_scalar_indexer(key, axis)
-
             if not is_integer(key):
                 raise TypeError("Cannot index by location index with a "
                                 "non-integer key")
@@ -2154,11 +2274,11 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
-            key = tuple(com._apply_if_callable(x, self.obj)
+            key = tuple(com.apply_if_callable(x, self.obj)
                         for x in key)
         else:
             # scalar callable may return tuple
-            key = com._apply_if_callable(key, self.obj)
+            key = com.apply_if_callable(key, self.obj)
 
         if not isinstance(key, tuple):
             key = self._tuplify(key)
@@ -2234,7 +2354,7 @@ class _AtIndexer(_ScalarAccessIndexer):
                     raise ValueError("At based indexing on an integer index "
                                      "can only have integer indexers")
             else:
-                if is_integer(i):
+                if is_integer(i) and not ax.holds_integer():
                     raise ValueError("At based indexing on an non-integer "
                                      "index can only have non-integer "
                                      "indexers")
@@ -2484,6 +2604,7 @@ def maybe_convert_indices(indices, n):
 
     mask = indices < 0
     if mask.any():
+        indices = indices.copy()
         indices[mask] += n
 
     mask = (indices >= n) | (indices < 0)
@@ -2584,13 +2705,13 @@ def maybe_droplevels(index, key):
         for _ in key:
             try:
                 index = index.droplevel(0)
-            except:
+            except ValueError:
                 # we have dropped too much, so back out
                 return original_index
     else:
         try:
             index = index.droplevel(0)
-        except:
+        except ValueError:
             pass
 
     return index

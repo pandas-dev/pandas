@@ -26,10 +26,8 @@ from pandas.compat import lrange, range, zip, long, PY36
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
-from .common import TestData
 
-
-class TestSeriesConstructors(TestData):
+class TestSeriesConstructors():
 
     def test_invalid_dtype(self):
         # GH15520
@@ -50,23 +48,23 @@ class TestSeriesConstructors(TestData):
         assert int(Series([1.])) == 1
         assert long(Series([1.])) == 1
 
-    def test_constructor(self):
-        assert self.ts.index.is_all_dates
+    def test_constructor(self, datetime_series, empty_series):
+        assert datetime_series.index.is_all_dates
 
         # Pass in Series
-        derived = Series(self.ts)
+        derived = Series(datetime_series)
         assert derived.index.is_all_dates
 
-        assert tm.equalContents(derived.index, self.ts.index)
+        assert tm.equalContents(derived.index, datetime_series.index)
         # Ensure new index is not created
-        assert id(self.ts.index) == id(derived.index)
+        assert id(datetime_series.index) == id(derived.index)
 
         # Mixed type Series
         mixed = Series(['hello', np.NaN], index=[0, 1])
         assert mixed.dtype == np.object_
         assert mixed[1] is np.NaN
 
-        assert not self.empty.index.is_all_dates
+        assert not empty_series.index.is_all_dates
         assert not Series({}).index.is_all_dates
         pytest.raises(Exception, Series, np.random.randn(3, 3),
                       index=np.arange(3))
@@ -156,10 +154,27 @@ class TestSeriesConstructors(TestData):
 
         assert_series_equal(s2, s1.sort_index())
 
-    def test_constructor_iterator(self):
+    def test_constructor_iterable(self):
+        # GH 21987
+        class Iter():
+            def __iter__(self):
+                for i in range(10):
+                    yield i
 
         expected = Series(list(range(10)), dtype='int64')
+        result = Series(Iter(), dtype='int64')
+        assert_series_equal(result, expected)
+
+    def test_constructor_sequence(self):
+        # GH 21987
+        expected = Series(list(range(10)), dtype='int64')
         result = Series(range(10), dtype='int64')
+        assert_series_equal(result, expected)
+
+    def test_constructor_single_str(self):
+        # GH 21987
+        expected = Series(['abc'])
+        result = Series('abc')
         assert_series_equal(result, expected)
 
     def test_constructor_list_like(self):
@@ -226,10 +241,13 @@ class TestSeriesConstructors(TestData):
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 
+        # can cast to a new dtype
+        result = Series(pd.Categorical([1, 2, 3]),
+                        dtype='int64')
+        expected = pd.Series([1, 2, 3], dtype='int64')
+        tm.assert_series_equal(result, expected)
+
         # GH12574
-        pytest.raises(
-            ValueError, lambda: Series(pd.Categorical([1, 2, 3]),
-                                       dtype='int64'))
         cat = Series(pd.Categorical([1, 2, 3]), dtype='category')
         assert is_categorical_dtype(cat)
         assert is_categorical_dtype(cat.dtype)
@@ -445,7 +463,7 @@ class TestSeriesConstructors(TestData):
         # test that construction of a Series with an index of different length
         # raises an error
         msg = 'Length of passed values is 3, index implies 4'
-        with pytest.raises(ValueError, message=msg):
+        with pytest.raises(ValueError, match=msg):
             Series(input, index=np.arange(4))
 
     def test_constructor_numpy_scalar(self):
@@ -932,11 +950,13 @@ class TestSeriesConstructors(TestData):
         tm.assert_series_equal(result, expected)
 
     def test_constructor_set(self):
-        values = set([1, 2, 3, 4, 5])
+        values = {1, 2, 3, 4, 5}
         pytest.raises(TypeError, Series, values)
         values = frozenset(values)
         pytest.raises(TypeError, Series, values)
 
+    # https://github.com/pandas-dev/pandas/issues/22698
+    @pytest.mark.filterwarnings("ignore:elementwise comparison:FutureWarning")
     def test_fromDict(self):
         data = {'a': 0, 'b': 1, 'c': 2, 'd': 3}
 
@@ -955,27 +975,27 @@ class TestSeriesConstructors(TestData):
         series = Series(data, dtype=float)
         assert series.dtype == np.float64
 
-    def test_fromValue(self):
+    def test_fromValue(self, datetime_series):
 
-        nans = Series(np.NaN, index=self.ts.index)
+        nans = Series(np.NaN, index=datetime_series.index)
         assert nans.dtype == np.float_
-        assert len(nans) == len(self.ts)
+        assert len(nans) == len(datetime_series)
 
-        strings = Series('foo', index=self.ts.index)
+        strings = Series('foo', index=datetime_series.index)
         assert strings.dtype == np.object_
-        assert len(strings) == len(self.ts)
+        assert len(strings) == len(datetime_series)
 
         d = datetime.now()
-        dates = Series(d, index=self.ts.index)
+        dates = Series(d, index=datetime_series.index)
         assert dates.dtype == 'M8[ns]'
-        assert len(dates) == len(self.ts)
+        assert len(dates) == len(datetime_series)
 
         # GH12336
         # Test construction of categorical series from value
-        categorical = Series(0, index=self.ts.index, dtype="category")
-        expected = Series(0, index=self.ts.index).astype("category")
+        categorical = Series(0, index=datetime_series.index, dtype="category")
+        expected = Series(0, index=datetime_series.index).astype("category")
         assert categorical.dtype == 'category'
-        assert len(categorical) == len(self.ts)
+        assert len(categorical) == len(datetime_series)
         tm.assert_series_equal(categorical, expected)
 
     def test_constructor_dtype_timedelta64(self):

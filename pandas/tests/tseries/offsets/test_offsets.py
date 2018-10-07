@@ -2,6 +2,7 @@ from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
 
 import pytest
+import pytz
 from pandas.compat import range
 from pandas import compat
 
@@ -10,13 +11,15 @@ import numpy as np
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.series import Series
+from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
-                                             _INVALID_FREQ_ERROR)
+                                             INVALID_FREQ_ERR_MSG)
 from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import WeekDay, CacheableOffset
+from pandas._libs.tslibs.offsets import CacheableOffset
 from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     BusinessHour, WeekOfMonth, CBMonthEnd,
                                     CustomBusinessHour,
@@ -27,12 +30,12 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     YearEnd, Day,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Nano, Easter, FY5253Quarter,
-                                    LastWeekOfMonth, Tick)
-from pandas.core.tools.datetimes import format, ole2datetime
+                                    LastWeekOfMonth, Tick, CalendarDay)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslibs import timezones
-from pandas._libs.tslib import normalize_date, NaT, Timestamp
+from pandas._libs.tslib import NaT, Timestamp
+from pandas._libs.tslibs.timedeltas import Timedelta
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
@@ -40,27 +43,20 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 from .common import assert_offset_equal, assert_onOffset
 
 
+class WeekDay(object):
+    # TODO: Remove: This is not used outside of tests
+    MON = 0
+    TUE = 1
+    WED = 2
+    THU = 3
+    FRI = 4
+    SAT = 5
+    SUN = 6
+
+
 ####
 # Misc function tests
 ####
-
-
-def test_format():
-    actual = format(datetime(2008, 1, 15))
-    assert actual == '20080115'
-
-
-def test_ole2datetime():
-    actual = ole2datetime(60000)
-    assert actual == datetime(2064, 4, 8)
-
-    with pytest.raises(ValueError):
-        ole2datetime(60)
-
-
-def test_normalize_date():
-    actual = normalize_date(datetime(2007, 10, 1, 1, 12, 5, 10))
-    assert actual == datetime(2007, 10, 1)
 
 
 def test_to_m8():
@@ -111,7 +107,8 @@ class Base(object):
                 klass = klass(normalize=normalize)
         return klass
 
-    def test_apply_out_of_range(self, tz):
+    def test_apply_out_of_range(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         if self._offset is None:
             return
 
@@ -198,6 +195,7 @@ class TestCommon(Base):
     # are applied to 2011/01/01 09:00 (Saturday)
     # used for .apply and .rollforward
     expecteds = {'Day': Timestamp('2011-01-02 09:00:00'),
+                 'CalendarDay': Timestamp('2011-01-02 09:00:00'),
                  'DateOffset': Timestamp('2011-01-02 09:00:00'),
                  'BusinessDay': Timestamp('2011-01-03 09:00:00'),
                  'CustomBusinessDay': Timestamp('2011-01-03 09:00:00'),
@@ -319,7 +317,7 @@ class TestCommon(Base):
         for tz in self.timezones:
             expected_localize = expected.tz_localize(tz)
             tz_obj = timezones.maybe_get_tz(tz)
-            dt_tz = tslib._localize_pydatetime(dt, tz_obj)
+            dt_tz = conversion.localize_pydatetime(dt, tz_obj)
 
             result = func(dt_tz)
             assert isinstance(result, Timestamp)
@@ -366,7 +364,7 @@ class TestCommon(Base):
         # result will not be changed if the target is on the offset
         no_changes = ['Day', 'MonthBegin', 'SemiMonthBegin', 'YearBegin',
                       'Week', 'Hour', 'Minute', 'Second', 'Milli', 'Micro',
-                      'Nano', 'DateOffset']
+                      'Nano', 'DateOffset', 'CalendarDay']
         for n in no_changes:
             expecteds[n] = Timestamp('2011/01/01 09:00')
 
@@ -379,6 +377,7 @@ class TestCommon(Base):
             norm_expected[k] = Timestamp(norm_expected[k].date())
 
         normalized = {'Day': Timestamp('2011-01-02 00:00:00'),
+                      'CalendarDay': Timestamp('2011-01-02 00:00:00'),
                       'DateOffset': Timestamp('2011-01-02 00:00:00'),
                       'MonthBegin': Timestamp('2011-02-01 00:00:00'),
                       'SemiMonthBegin': Timestamp('2011-01-15 00:00:00'),
@@ -431,7 +430,7 @@ class TestCommon(Base):
         # result will not be changed if the target is on the offset
         for n in ['Day', 'MonthBegin', 'SemiMonthBegin', 'YearBegin', 'Week',
                   'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano',
-                  'DateOffset']:
+                  'DateOffset', 'CalendarDay']:
             expecteds[n] = Timestamp('2011/01/01 09:00')
 
         # but be changed when normalize=True
@@ -440,6 +439,7 @@ class TestCommon(Base):
             norm_expected[k] = Timestamp(norm_expected[k].date())
 
         normalized = {'Day': Timestamp('2010-12-31 00:00:00'),
+                      'CalendarDay': Timestamp('2010-12-31 00:00:00'),
                       'DateOffset': Timestamp('2010-12-31 00:00:00'),
                       'MonthBegin': Timestamp('2010-12-01 00:00:00'),
                       'SemiMonthBegin': Timestamp('2010-12-15 00:00:00'),
@@ -483,7 +483,8 @@ class TestCommon(Base):
         date = datetime(dt.year, dt.month, dt.day)
         assert offset_n.onOffset(date)
 
-    def test_add(self, offset_types, tz):
+    def test_add(self, offset_types, tz_naive_fixture):
+        tz = tz_naive_fixture
         dt = datetime(2011, 1, 1, 9, 0)
 
         offset_s = self._get_offset(offset_types)
@@ -1824,6 +1825,7 @@ class TestCustomBusinessDay(Base):
         xp_egypt = datetime(2013, 5, 5)
         assert xp_egypt == dt + 2 * bday_egypt
 
+    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_calendar(self):
         calendar = USFederalHolidayCalendar()
         dt = datetime(2014, 1, 17)
@@ -1986,6 +1988,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         assert dt + bm_offset == datetime(2012, 1, 30)
         assert dt + 2 * bm_offset == datetime(2012, 2, 27)
 
+    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_datetimeindex(self):
         from pandas.tseries.holiday import USFederalHolidayCalendar
         hcal = USFederalHolidayCalendar()
@@ -2104,6 +2107,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         assert dt + bm_offset == datetime(2012, 1, 2)
         assert dt + 2 * bm_offset == datetime(2012, 2, 3)
 
+    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_datetimeindex(self):
         hcal = USFederalHolidayCalendar()
         cbmb = CBMonthBegin(calendar=hcal)
@@ -2512,10 +2516,8 @@ class TestSemiMonthEnd(Base):
         dt, expected = case
         assert_onOffset(SemiMonthEnd(), dt, expected)
 
-    @pytest.mark.parametrize('klass,assert_func',
-                             [(Series, tm.assert_series_equal),
-                              (DatetimeIndex, tm.assert_index_equal)])
-    def test_vectorized_offset_addition(self, klass, assert_func):
+    @pytest.mark.parametrize('klass', [Series, DatetimeIndex])
+    def test_vectorized_offset_addition(self, klass):
         s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-15', tz='US/Central')], name='a')
 
@@ -2523,8 +2525,8 @@ class TestSemiMonthEnd(Base):
         result2 = SemiMonthEnd() + s
         exp = klass([Timestamp('2000-01-31 00:15:00', tz='US/Central'),
                      Timestamp('2000-02-29', tz='US/Central')], name='a')
-        assert_func(result, exp)
-        assert_func(result2, exp)
+        tm.assert_equal(result, exp)
+        tm.assert_equal(result2, exp)
 
         s = klass([Timestamp('2000-01-01 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-01', tz='US/Central')], name='a')
@@ -2532,8 +2534,8 @@ class TestSemiMonthEnd(Base):
         result2 = SemiMonthEnd() + s
         exp = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                      Timestamp('2000-02-15', tz='US/Central')], name='a')
-        assert_func(result, exp)
-        assert_func(result2, exp)
+        tm.assert_equal(result, exp)
+        tm.assert_equal(result2, exp)
 
 
 class TestSemiMonthBegin(Base):
@@ -2688,18 +2690,16 @@ class TestSemiMonthBegin(Base):
         dt, expected = case
         assert_onOffset(SemiMonthBegin(), dt, expected)
 
-    @pytest.mark.parametrize('klass,assert_func',
-                             [(Series, tm.assert_series_equal),
-                              (DatetimeIndex, tm.assert_index_equal)])
-    def test_vectorized_offset_addition(self, klass, assert_func):
+    @pytest.mark.parametrize('klass', [Series, DatetimeIndex])
+    def test_vectorized_offset_addition(self, klass):
         s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-15', tz='US/Central')], name='a')
         result = s + SemiMonthBegin()
         result2 = SemiMonthBegin() + s
         exp = klass([Timestamp('2000-02-01 00:15:00', tz='US/Central'),
                      Timestamp('2000-03-01', tz='US/Central')], name='a')
-        assert_func(result, exp)
-        assert_func(result2, exp)
+        tm.assert_equal(result, exp)
+        tm.assert_equal(result2, exp)
 
         s = klass([Timestamp('2000-01-01 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-01', tz='US/Central')], name='a')
@@ -2707,8 +2707,8 @@ class TestSemiMonthBegin(Base):
         result2 = SemiMonthBegin() + s
         exp = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                      Timestamp('2000-02-15', tz='US/Central')], name='a')
-        assert_func(result, exp)
-        assert_func(result2, exp)
+        tm.assert_equal(result, exp)
+        tm.assert_equal(result2, exp)
 
 
 def test_Easter():
@@ -2747,9 +2747,9 @@ class TestOffsetNames(object):
 
 
 def test_get_offset():
-    with pytest.raises(ValueError, match=_INVALID_FREQ_ERROR):
+    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
         get_offset('gibberish')
-    with pytest.raises(ValueError, match=_INVALID_FREQ_ERROR):
+    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
         get_offset('QS-JAN-B')
 
     pairs = [
@@ -2767,7 +2767,7 @@ def test_get_offset():
 def test_get_offset_legacy():
     pairs = [('w@Sat', Week(weekday=5))]
     for name, expected in pairs:
-        with pytest.raises(ValueError, match=_INVALID_FREQ_ERROR):
+        with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             get_offset(name)
 
 
@@ -3089,6 +3089,13 @@ def test_valid_month_attributes(kwd, month_classes):
 
 
 @pytest.mark.parametrize('kwd', sorted(list(liboffsets.relativedelta_kwds)))
+def test_valid_relativedelta_kwargs(kwd):
+    # Check that all the arguments specified in liboffsets.relativedelta_kwds
+    # are in fact valid relativedelta keyword args
+    DateOffset(**{kwd: 1})
+
+
+@pytest.mark.parametrize('kwd', sorted(list(liboffsets.relativedelta_kwds)))
 def test_valid_tick_attributes(kwd, tick_classes):
     # GH#18226
     cls = tick_classes
@@ -3172,3 +3179,71 @@ def test_last_week_of_month_on_offset():
     slow = (ts + offset) - offset == ts
     fast = offset.onOffset(ts)
     assert fast == slow
+
+
+class TestCalendarDay(object):
+
+    def test_add_across_dst_scalar(self):
+        # GH 22274
+        ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+        expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
+        result = ts + CalendarDay(1)
+        assert result == expected
+
+        result = result - CalendarDay(1)
+        assert result == ts
+
+    @pytest.mark.parametrize('box', [DatetimeIndex, Series])
+    def test_add_across_dst_array(self, box):
+        # GH 22274
+        ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+        expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
+        arr = box([ts])
+        expected = box([expected])
+        result = arr + CalendarDay(1)
+        tm.assert_equal(result, expected)
+
+        result = result - CalendarDay(1)
+        tm.assert_equal(arr, result)
+
+    @pytest.mark.parametrize('arg', [
+        Timestamp("2018-11-03 01:00:00", tz='US/Pacific'),
+        DatetimeIndex([Timestamp("2018-11-03 01:00:00", tz='US/Pacific')])
+    ])
+    def test_raises_AmbiguousTimeError(self, arg):
+        # GH 22274
+        with pytest.raises(pytz.AmbiguousTimeError):
+            arg + CalendarDay(1)
+
+    @pytest.mark.parametrize('arg', [
+        Timestamp("2019-03-09 02:00:00", tz='US/Pacific'),
+        DatetimeIndex([Timestamp("2019-03-09 02:00:00", tz='US/Pacific')])
+    ])
+    def test_raises_NonExistentTimeError(self, arg):
+        # GH 22274
+        with pytest.raises(pytz.NonExistentTimeError):
+            arg + CalendarDay(1)
+
+    @pytest.mark.parametrize('arg, exp', [
+        [1, 2],
+        [-1, 0],
+        [-5, -4]
+    ])
+    def test_arithmetic(self, arg, exp):
+        # GH 22274
+        result = CalendarDay(1) + CalendarDay(arg)
+        expected = CalendarDay(exp)
+        assert result == expected
+
+    @pytest.mark.parametrize('arg', [
+        timedelta(1),
+        Day(1),
+        Timedelta(1),
+        TimedeltaIndex([timedelta(1)])
+    ])
+    def test_invalid_arithmetic(self, arg):
+        # GH 22274
+        # CalendarDay (relative time) cannot be added to Timedelta-like objects
+        # (absolute time)
+        with pytest.raises(TypeError):
+            CalendarDay(1) + arg

@@ -5,6 +5,7 @@ import numpy as np
 from datetime import datetime, date, timedelta
 
 import pandas as pd
+from pandas import Timedelta
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
 from pandas.compat import text_type, iteritems
@@ -274,12 +275,14 @@ class TestPeriodProperties(object):
 
     def test_timestamp_mult(self):
         p = pd.Period('2011-01', freq='M')
-        assert p.to_timestamp(how='S') == pd.Timestamp('2011-01-01')
-        assert p.to_timestamp(how='E') == pd.Timestamp('2011-01-31')
+        assert p.to_timestamp(how='S') == Timestamp('2011-01-01')
+        expected = Timestamp('2011-02-01') - Timedelta(1, 'ns')
+        assert p.to_timestamp(how='E') == expected
 
         p = pd.Period('2011-01', freq='3M')
-        assert p.to_timestamp(how='S') == pd.Timestamp('2011-01-01')
-        assert p.to_timestamp(how='E') == pd.Timestamp('2011-03-31')
+        assert p.to_timestamp(how='S') == Timestamp('2011-01-01')
+        expected = Timestamp('2011-04-01') - Timedelta(1, 'ns')
+        assert p.to_timestamp(how='E') == expected
 
     def test_construction(self):
         i1 = Period('1/1/2005', freq='M')
@@ -515,7 +518,7 @@ class TestPeriodProperties(object):
                  "U": ["MICROSECOND", "MICROSECONDLY", "microsecond"],
                  "N": ["NANOSECOND", "NANOSECONDLY", "nanosecond"]}
 
-        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
         for exp, freqs in iteritems(cases):
             for freq in freqs:
                 with tm.assert_raises_regex(ValueError, msg):
@@ -611,19 +614,19 @@ class TestPeriodProperties(object):
         p = Period('1985', freq='A')
 
         result = p.to_timestamp('H', how='end')
-        expected = datetime(1985, 12, 31, 23)
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, 'ns')
         assert result == expected
         result = p.to_timestamp('3H', how='end')
         assert result == expected
 
         result = p.to_timestamp('T', how='end')
-        expected = datetime(1985, 12, 31, 23, 59)
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, 'ns')
         assert result == expected
         result = p.to_timestamp('2T', how='end')
         assert result == expected
 
         result = p.to_timestamp(how='end')
-        expected = datetime(1985, 12, 31)
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, 'ns')
         assert result == expected
 
         expected = datetime(1985, 1, 1)
@@ -759,7 +762,7 @@ class TestPeriodProperties(object):
         exp = Period(freq='W', year=2012, month=2, day=1)
         assert exp.days_in_month == 29
 
-        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
         with tm.assert_raises_regex(ValueError, msg):
             Period(freq='WK', year=2007, month=1, day=7)
 
@@ -1038,9 +1041,10 @@ class TestMethods(object):
             dt1 + dt2
 
     boxes = [lambda x: x, lambda x: pd.Series([x]), lambda x: pd.Index([x])]
+    ids = ['identity', 'Series', 'Index']
 
-    @pytest.mark.parametrize('lbox', boxes)
-    @pytest.mark.parametrize('rbox', boxes)
+    @pytest.mark.parametrize('lbox', boxes, ids=ids)
+    @pytest.mark.parametrize('rbox', boxes, ids=ids)
     def test_add_timestamp_raises(self, rbox, lbox):
         # GH # 17983
         ts = pd.Timestamp('2017')
@@ -1443,7 +1447,8 @@ def test_period_immutable():
         per.freq = 2 * freq
 
 
-@pytest.mark.xfail(reason='GH#19834 Period parsing error')
+# TODO: This doesn't fail on all systems; track down which
+@pytest.mark.xfail(reason="Parses as Jan 1, 0007 on some systems")
 def test_small_year_parsing():
     per1 = Period('0001-01-07', 'D')
     assert per1.year == 1

@@ -12,7 +12,7 @@ lxml
 matplotlib
 nbsphinx
 numexpr
-openpyxl
+openpyxl=2.5.5
 pyarrow
 pymysql
 pytables
@@ -22,6 +22,7 @@ s3fs
 scipy
 seaborn
 sqlalchemy
+statsmodels
 xarray
 xlrd
 xlsxwriter

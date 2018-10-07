@@ -1,36 +1,17 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
-from cython cimport Py_ssize_t
+from cython import Py_ssize_t
 
 import numpy as np
-cimport numpy as cnp
 from numpy cimport ndarray, int64_t, int32_t
-cnp.import_array()
 
 from util cimport is_string_object, get_nat
 
-from pandas._libs.khash cimport (khiter_t,
-                                 kh_destroy_int64, kh_put_int64,
-                                 kh_init_int64, kh_int64_t,
-                                 kh_resize_int64, kh_get_int64)
-
-from cpython.datetime cimport datetime
-
-from np_datetime cimport pandas_datetimestruct, dt64_to_dtstruct
+from np_datetime cimport npy_datetimestruct, dt64_to_dtstruct
 from frequencies cimport get_freq_code
-from timezones cimport (is_utc, is_tzlocal,
-                        maybe_get_tz, get_dst_info, get_utcoffset)
-from fields import build_field_sarray
-from conversion import tz_convert
+from timezones cimport is_utc, is_tzlocal, maybe_get_tz, get_dst_info
 from conversion cimport tz_convert_utc_to_tzlocal
-from ccalendar import MONTH_ALIASES, int_to_weekday
 from ccalendar cimport get_days_in_month
-
-from pandas._libs.properties import cache_readonly
-from pandas._libs.tslib import Timestamp
-
-from pandas.core.algorithms import unique  # TODO: Avoid this non-cython import
 
 # ----------------------------------------------------------------------
 # Constants
@@ -45,44 +26,30 @@ cdef int RESO_MIN = 4
 cdef int RESO_HR = 5
 cdef int RESO_DAY = 6
 
-_ONE_MICRO = <int64_t>1000L
-_ONE_MILLI = <int64_t>(_ONE_MICRO * 1000)
-_ONE_SECOND = <int64_t>(_ONE_MILLI * 1000)
-_ONE_MINUTE = <int64_t>(60 * _ONE_SECOND)
-_ONE_HOUR = <int64_t>(60 * _ONE_MINUTE)
-_ONE_DAY = <int64_t>(24 * _ONE_HOUR)
-
 # ----------------------------------------------------------------------
 
-cpdef resolution(ndarray[int64_t] stamps, tz=None):
+cpdef resolution(int64_t[:] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int reso = RESO_DAY, curr_reso
 
     if tz is not None:
         tz = maybe_get_tz(tz)
-        return _reso_local(stamps, tz)
-    else:
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                continue
-            dt64_to_dtstruct(stamps[i], &dts)
-            curr_reso = _reso_stamp(&dts)
-            if curr_reso < reso:
-                reso = curr_reso
-        return reso
+    return _reso_local(stamps, tz)
 
 
-cdef _reso_local(ndarray[int64_t] stamps, object tz):
+cdef _reso_local(int64_t[:] stamps, object tz):
     cdef:
-        Py_ssize_t n = len(stamps)
+        Py_ssize_t i, n = len(stamps)
         int reso = RESO_DAY, curr_reso
-        ndarray[int64_t] trans, deltas, pos
-        pandas_datetimestruct dts
-        int64_t local_val
+        ndarray[int64_t] trans
+        int64_t[:] deltas
+        Py_ssize_t[:] pos
+        npy_datetimestruct dts
+        int64_t local_val, delta
 
-    if is_utc(tz):
+    if is_utc(tz) or tz is None:
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
@@ -103,21 +70,18 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
 
-        _pos = trans.searchsorted(stamps, side='right') - 1
-        if _pos.dtype != np.int64:
-            _pos = _pos.astype(np.int64)
-        pos = _pos
-
-        # statictzinfo
         if typ not in ['pytz', 'dateutil']:
+            # static/fixed; in this case we know that len(delta) == 1
+            delta = deltas[0]
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     continue
-                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
+                dt64_to_dtstruct(stamps[i] + delta, &dts)
                 curr_reso = _reso_stamp(&dts)
                 if curr_reso < reso:
                     reso = curr_reso
         else:
+            pos = trans.searchsorted(stamps, side='right') - 1
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     continue
@@ -129,7 +93,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
     return reso
 
 
-cdef inline int _reso_stamp(pandas_datetimestruct *dts):
+cdef inline int _reso_stamp(npy_datetimestruct *dts):
     if dts.us != 0:
         if dts.us % 1000 == 0:
             return RESO_MS
@@ -346,309 +310,45 @@ class Resolution(object):
 # ----------------------------------------------------------------------
 # Frequency Inference
 
-
-# TODO: this is non performant logic here (and duplicative) and this
-# simply should call unique_1d directly
-# plus no reason to depend on khash directly
-cdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
+def month_position_check(fields, weekdays):
     cdef:
-        Py_ssize_t i, n = len(arr)
-        int64_t val
-        khiter_t k
-        kh_int64_t *table
-        int ret = 0
-        list uniques = []
+        int32_t daysinmonth, y, m, d
+        bint calendar_end = True
+        bint business_end = True
+        bint calendar_start = True
+        bint business_start = True
+        bint cal
+        int32_t[:] years
+        int32_t[:] months
+        int32_t[:] days
 
-    table = kh_init_int64()
-    kh_resize_int64(table, 10)
-    for i in range(n - 1):
-        val = arr[i + 1] - arr[i]
-        k = kh_get_int64(table, val)
-        if k == table.n_buckets:
-            kh_put_int64(table, val, &ret)
-            uniques.append(val)
-    kh_destroy_int64(table)
+    years = fields['Y']
+    months = fields['M']
+    days = fields['D']
 
-    result = np.array(uniques, dtype=np.int64)
-    result.sort()
-    return result
+    for y, m, d, wd in zip(years, months, days, weekdays):
+        if calendar_start:
+            calendar_start &= d == 1
+        if business_start:
+            business_start &= d == 1 or (d <= 3 and wd == 0)
 
+        if calendar_end or business_end:
+            daysinmonth = get_days_in_month(y, m)
+            cal = d == daysinmonth
+            if calendar_end:
+                calendar_end &= cal
+            if business_end:
+                business_end &= cal or (daysinmonth - d < 3 and wd == 4)
+        elif not calendar_start and not business_start:
+            break
 
-cdef inline bint _is_multiple(int64_t us, int64_t mult):
-    return us % mult == 0
-
-
-cdef inline str _maybe_add_count(str base, int64_t count):
-    if count != 1:
-        return '{count}{base}'.format(count=count, base=base)
+    if calendar_end:
+        return 'ce'
+    elif business_end:
+        return 'be'
+    elif calendar_start:
+        return 'cs'
+    elif business_start:
+        return 'bs'
     else:
-        return base
-
-
-cdef class _FrequencyInferer(object):
-    """
-    Not sure if I can avoid the state machine here
-    """
-    cdef public:
-        object index
-        object values
-        bint warn
-        bint is_monotonic
-        dict _cache
-
-    def __init__(self, index, warn=True):
-        self.index = index
-        self.values = np.asarray(index).view('i8')
-
-        # This moves the values, which are implicitly in UTC, to the
-        # the timezone so they are in local time
-        if hasattr(index, 'tz'):
-            if index.tz is not None:
-                self.values = tz_convert(self.values, 'UTC', index.tz)
-
-        self.warn = warn
-
-        if len(index) < 3:
-            raise ValueError('Need at least 3 dates to infer frequency')
-
-        self.is_monotonic = (self.index.is_monotonic_increasing or
-                             self.index.is_monotonic_decreasing)
-
-    @cache_readonly
-    def deltas(self):
-        return unique_deltas(self.values)
-
-    @cache_readonly
-    def deltas_asi8(self):
-        return unique_deltas(self.index.asi8)
-
-    @cache_readonly
-    def is_unique(self):
-        return len(self.deltas) == 1
-
-    @cache_readonly
-    def is_unique_asi8(self):
-        return len(self.deltas_asi8) == 1
-
-    def get_freq(self):
-        if not self.is_monotonic or not self.index.is_unique:
-            return None
-
-        delta = self.deltas[0]
-        if _is_multiple(delta, _ONE_DAY):
-            return self._infer_daily_rule()
-        else:
-            # Business hourly, maybe. 17: one day / 65: one weekend
-            if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
-                return 'BH'
-            # Possibly intraday frequency.  Here we use the
-            # original .asi8 values as the modified values
-            # will not work around DST transitions.  See #8772
-            elif not self.is_unique_asi8:
-                return None
-            delta = self.deltas_asi8[0]
-            if _is_multiple(delta, _ONE_HOUR):
-                # Hours
-                return _maybe_add_count('H', delta / _ONE_HOUR)
-            elif _is_multiple(delta, _ONE_MINUTE):
-                # Minutes
-                return _maybe_add_count('T', delta / _ONE_MINUTE)
-            elif _is_multiple(delta, _ONE_SECOND):
-                # Seconds
-                return _maybe_add_count('S', delta / _ONE_SECOND)
-            elif _is_multiple(delta, _ONE_MILLI):
-                # Milliseconds
-                return _maybe_add_count('L', delta / _ONE_MILLI)
-            elif _is_multiple(delta, _ONE_MICRO):
-                # Microseconds
-                return _maybe_add_count('U', delta / _ONE_MICRO)
-            else:
-                # Nanoseconds
-                return _maybe_add_count('N', delta)
-
-    @cache_readonly
-    def day_deltas(self):
-        return [x / _ONE_DAY for x in self.deltas]
-
-    @cache_readonly
-    def hour_deltas(self):
-        return [x / _ONE_HOUR for x in self.deltas]
-
-    @cache_readonly
-    def fields(self):
-        return build_field_sarray(self.values)
-
-    @cache_readonly
-    def rep_stamp(self):
-        return Timestamp(self.values[0])
-
-    cdef month_position_check(self):
-        # TODO: cythonize this, very slow
-        cdef:
-            int32_t daysinmonth, y, m, d
-            bint calendar_end = True
-            bint business_end = True
-            bint calendar_start = True
-            bint business_start = True
-            bint cal
-            int32_t[:] years
-            int32_t[:] months
-            int32_t[:] days
-
-        fields = self.fields
-        years = fields['Y']
-        months = fields['M']
-        days = fields['D']
-        weekdays = self.index.dayofweek
-
-        for y, m, d, wd in zip(years, months, days, weekdays):
-
-            if calendar_start:
-                calendar_start &= d == 1
-            if business_start:
-                business_start &= d == 1 or (d <= 3 and wd == 0)
-
-            if calendar_end or business_end:
-                daysinmonth = get_days_in_month(y, m)
-                cal = d == daysinmonth
-                if calendar_end:
-                    calendar_end &= cal
-                if business_end:
-                    business_end &= cal or (daysinmonth - d < 3 and wd == 4)
-            elif not calendar_start and not business_start:
-                break
-
-        if calendar_end:
-            return 'ce'
-        elif business_end:
-            return 'be'
-        elif calendar_start:
-            return 'cs'
-        elif business_start:
-            return 'bs'
-        else:
-            return None
-
-    @cache_readonly
-    def mdiffs(self):
-        nmonths = self.fields['Y'] * 12 + self.fields['M']
-        return unique_deltas(nmonths.astype('i8'))
-
-    @cache_readonly
-    def ydiffs(self):
-        return unique_deltas(self.fields['Y'].astype('i8'))
-
-    cdef _infer_daily_rule(self):
-        annual_rule = self._get_annual_rule()
-        if annual_rule:
-            nyears = self.ydiffs[0]
-            month = MONTH_ALIASES[self.rep_stamp.month]
-            alias = '{prefix}-{month}'.format(prefix=annual_rule, month=month)
-            return _maybe_add_count(alias, nyears)
-
-        quarterly_rule = self._get_quarterly_rule()
-        if quarterly_rule:
-            nquarters = self.mdiffs[0] / 3
-            mod_dict = {0: 12, 2: 11, 1: 10}
-            month = MONTH_ALIASES[mod_dict[self.rep_stamp.month % 3]]
-            alias = '{prefix}-{month}'.format(prefix=quarterly_rule,
-                                              month=month)
-            return _maybe_add_count(alias, nquarters)
-
-        monthly_rule = self._get_monthly_rule()
-        if monthly_rule:
-            return _maybe_add_count(monthly_rule, self.mdiffs[0])
-
-        if self.is_unique:
-            days = self.deltas[0] / _ONE_DAY
-            if days % 7 == 0:
-                # Weekly
-                day = int_to_weekday[self.rep_stamp.weekday()]
-                return _maybe_add_count('W-{day}'.format(day=day), days / 7)
-            else:
-                return _maybe_add_count('D', days)
-
-        if self._is_business_daily():
-            return 'B'
-
-        wom_rule = self._get_wom_rule()
-        if wom_rule:
-            return wom_rule
-
-    cdef _get_annual_rule(self):
-        if len(self.ydiffs) > 1:
-            return None
-
-        if len(unique(self.fields['M'])) > 1:
-            return None
-
-        pos_check = self.month_position_check()
-        return {'cs': 'AS', 'bs': 'BAS',
-                'ce': 'A', 'be': 'BA'}.get(pos_check)
-
-    cdef _get_quarterly_rule(self):
-        if len(self.mdiffs) > 1:
-            return None
-
-        if not self.mdiffs[0] % 3 == 0:
-            return None
-
-        pos_check = self.month_position_check()
-        return {'cs': 'QS', 'bs': 'BQS',
-                'ce': 'Q', 'be': 'BQ'}.get(pos_check)
-
-    cdef _get_monthly_rule(self):
-        if len(self.mdiffs) > 1:
-            return None
-        pos_check = self.month_position_check()
-        return {'cs': 'MS', 'bs': 'BMS',
-                'ce': 'M', 'be': 'BM'}.get(pos_check)
-
-    cdef bint _is_business_daily(self):
-        # quick check: cannot be business daily
-        if self.day_deltas != [1, 3]:
-            return False
-
-        # probably business daily, but need to confirm
-        first_weekday = self.index[0].weekday()
-        shifts = np.diff(self.index.asi8)
-        shifts = np.floor_divide(shifts, _ONE_DAY)
-        weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
-        return np.all(((weekdays == 0) & (shifts == 3)) |
-                      ((weekdays > 0) & (weekdays <= 4) & (shifts == 1)))
-
-    cdef _get_wom_rule(self):
-        #         wdiffs = unique(np.diff(self.index.week))
-        # We also need -47, -49, -48 to catch index spanning year boundary
-        #     if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():
-        #         return None
-
-        weekdays = unique(self.index.weekday)
-        if len(weekdays) > 1:
-            return None
-
-        week_of_months = unique((self.index.day - 1) // 7)
-        # Only attempt to infer up to WOM-4. See #9425
-        week_of_months = week_of_months[week_of_months < 4]
-        if len(week_of_months) == 0 or len(week_of_months) > 1:
-            return None
-
-        # get which week
-        week = week_of_months[0] + 1
-        wd = int_to_weekday[weekdays[0]]
-
-        return 'WOM-{week}{weekday}'.format(week=week, weekday=wd)
-
-
-cdef class _TimedeltaFrequencyInferer(_FrequencyInferer):
-
-    cdef _infer_daily_rule(self):
-        if self.is_unique:
-            days = self.deltas[0] / _ONE_DAY
-            if days % 7 == 0:
-                # Weekly
-                wd = int_to_weekday[self.rep_stamp.weekday()]
-                alias = 'W-{weekday}'.format(weekday=wd)
-                return _maybe_add_count(alias, days / 7)
-            else:
-                return _maybe_add_count('D', days)
+        return None
