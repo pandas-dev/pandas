@@ -404,7 +404,7 @@ cpdef inline parse_timedelta_string(object ts, specified_unit=None):
     # Consider units from outside
     if not unit:
         if specified_unit:
-            unit = specified_unit
+            unit = [specified_unit]
     else:
         if specified_unit:
             raise ValueError("units doubly specified")

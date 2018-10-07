@@ -143,7 +143,7 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
     """Convert string 'r' to a timedelta object."""
 
     try:
-        result = parse_timedelta_string(r)
+        result = parse_timedelta_string(r, unit)
         result = np.timedelta64(result)
     except Exception:
         try:
