@@ -1000,4 +1000,4 @@ class TestSeriesUnaryOps(object):
     def test_invert(self):
         ser = tm.makeStringSeries()
         ser.name = 'series'
-        assert_series_equal(-(ser < 0), ~(serser < 0))
+        assert_series_equal(-(ser < 0), ~(ser < 0))
