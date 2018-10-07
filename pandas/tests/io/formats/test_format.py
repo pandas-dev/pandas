@@ -345,7 +345,7 @@ class TestDataFrameFormatting(object):
 
         # GH 22984 ensure entire window is filled
         terminal_size = (80, 24)
-        df = pd.DataFrame(np.random.rand(1,7))
+        df = pd.DataFrame(np.random.rand(1, 7))
         p1 = mock.patch('pandas.io.formats.console.get_terminal_size',
                         return_value=terminal_size)
         p2 = mock.patch('pandas.io.formats.format.get_terminal_size',
