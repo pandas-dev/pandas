@@ -657,9 +657,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
               valid in the specified time zone (e.g. due to a transition from
-              or to DST time)
+              or to DST time). Use ``nonexistent='raise'`` instead.
             - 'coerce' will return NaT if the timestamp can not be converted
-              to the specified time zone
+              to the specified time zone. Use ``nonexistent='NaT'`` instead.
 
             .. deprecated:: 0.24.0
 
