@@ -65,6 +65,8 @@ class Styler(object):
         a unique identifier to avoid CSS collisions; generated automatically
     caption: str, default None
         caption to attach to the table
+    all_ids: bool, default False
+        if True, each cell will have an ``id`` attribute in their HTML tag.
 
     Attributes
     ----------
@@ -113,7 +115,7 @@ class Styler(object):
     template = env.get_template("html.tpl")
 
     def __init__(self, data, precision=None, table_styles=None, uuid=None,
-                 caption=None, table_attributes=None):
+                 caption=None, table_attributes=None, all_ids=False):
         self.ctx = defaultdict(list)
         self._todo = []
 
@@ -137,6 +139,7 @@ class Styler(object):
         self.table_attributes = table_attributes
         self.hidden_index = False
         self.hidden_columns = []
+        self.all_ids = all_ids
 
         # display_funcs maps (row, col) -> formatting function
 
@@ -313,7 +316,8 @@ class Styler(object):
                             "display_value": formatter(value),
                             "is_visible": (c not in hidden_columns)}
                 # only add an id if the cell has a style
-                if not(len(ctx[r, c]) == 1 and ctx[r, c][0] == ''):
+                if self.all_ids or \
+                        not(len(ctx[r, c]) == 1 and ctx[r, c][0] == ''):
                     row_dict["id"] = "_".join(cs[1:])
                 row_es.append(row_dict)
                 props = []
