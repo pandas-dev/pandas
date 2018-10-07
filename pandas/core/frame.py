@@ -988,13 +988,13 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame([[0 ,1, -2, 3], [4, -5, 6, 7]])
+        >>> df = pd.DataFrame([[0, 1, -2, 3], [4, -5, 6, 7]])
         >>> s = pd.Series([0, 1, 2, 3])
         >>> print(df.dot(s))
         0     6
         1    28
         dtype: int64
-        >>> other = pd.DataFrame([[0 ,1], [7, 8], [-6, 0], [-1, 2]])
+        >>> other = pd.DataFrame([[0, 1], [7, 8], [-6, 0], [-1, 2]])
         >>> print(df.dot(other))
             0   1
         0  16  14
