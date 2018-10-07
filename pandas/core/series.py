@@ -2103,7 +2103,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.dot: Compute dot product with the columns of the DataFrame.
+        DataFrame.dot: Compute the matrix product with the DataFrame.
         Series.mul: Multiplication of series and other, element-wise.
 
         Notes
