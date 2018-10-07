@@ -631,11 +631,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 return self._add_datelike(other)
             elif is_integer_dtype(other):
                 result = self._addsub_int_array(other, operator.add)
-            elif is_float_dtype(other) or is_period_dtype(other):
+            elif is_float_dtype(other):
                 # Explicitly catch invalid dtypes
                 raise TypeError("cannot add {dtype}-dtype to {cls}"
                                 .format(dtype=other.dtype,
                                         cls=type(self).__name__))
+            elif is_period_dtype(other):
+                # PeriodIndex + TimedeltaIndex _sometimes_ is valid
+                return NotImplemented
             elif is_extension_array_dtype(other):
                 # Categorical op will raise; defer explicitly
                 return NotImplemented

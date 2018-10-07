@@ -17,7 +17,7 @@ from pandas import compat
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    is_integer_dtype, is_float_dtype, is_period_dtype)
+    is_integer_dtype, is_float_dtype, is_period_dtype, is_timedelta64_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 
@@ -316,8 +316,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
                                             freqstr=self.freqstr))
 
     def _add_delta(self, other):
-        ordinal_delta = self._maybe_convert_timedelta(other)
-        return self._time_shift(ordinal_delta)
+        return self._time_shift(other)
 
     def shift(self, n):
         """
@@ -335,7 +334,8 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         return self._time_shift(n)
 
     def _time_shift(self, n):
-        values = self._ndarray_values + n * self.freq.n
+        n = self._maybe_convert_timedelta(n)
+        values = self._ndarray_values + n
         if self.hasnans:
             values[self._isnan] = iNaT
         return self._shallow_copy(values=values)
@@ -346,7 +346,8 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
         Parameters
         ----------
-        other : timedelta, np.timedelta64, DateOffset, int, np.ndarray
+        other : timedelta, np.timedelta64, DateOffset, int,
+                np.ndarray[timedelta64], TimedeltaIndex
 
         Returns
         -------
@@ -357,30 +358,42 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         IncompatibleFrequency : if the input cannot be written as a multiple
             of self.freq.  Note IncompatibleFrequency subclasses ValueError.
         """
-        if isinstance(
-                other, (timedelta, np.timedelta64, Tick, np.ndarray)):
-            offset = frequencies.to_offset(self.freq.rule_code)
-            if isinstance(offset, Tick):
-                if isinstance(other, np.ndarray):
-                    nanos = np.vectorize(delta_to_nanoseconds)(other)
-                else:
-                    nanos = delta_to_nanoseconds(other)
-                offset_nanos = delta_to_nanoseconds(offset)
-                check = np.all(nanos % offset_nanos == 0)
+        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            base_offset = frequencies.to_offset(self.freq.rule_code)
+            if isinstance(base_offset, Tick):
+                other_nanos = delta_to_nanoseconds(other)
+                base_nanos = delta_to_nanoseconds(base_offset)
+                check = np.all(other_nanos % base_nanos == 0)
                 if check:
-                    return nanos // offset_nanos
+                    return other_nanos // base_nanos
+        elif (isinstance(other, (np.ndarray, DatetimeLikeArrayMixin)) and
+              is_timedelta64_dtype(other)):
+            # i.e. TimedeltaArray/TimedeltaIndex
+            if isinstance(self.freq, Tick):
+                base_offset = frequencies.to_offset(self.freq.rule_code)
+                base_nanos = base_offset.nanos
+                if isinstance(other, np.ndarray):
+                    other_nanos = other.astype('m8[ns]').view('i8')
+                else:
+                    other_nanos = other.asi8
+                check = np.all(other_nanos % base_nanos == 0)
+                if check:
+                    return other_nanos // base_nanos
         elif isinstance(other, DateOffset):
             freqstr = other.rule_code
             base = frequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
-                return other.n
+                return other.n * self.freq.n
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
         elif lib.is_integer(other):
             # integer is passed to .shift via
             # _add_datetimelike_methods basically
             # but ufunc may pass integer to _add_delta
-            return other
+            return other * self.freq.n
+        elif is_integer_dtype(other) and isinstance(other, np.ndarray):
+            # TODO: Also need to get Index
+            return other * self.freq.n
 
         # raise when input doesn't have freq
         msg = "Input has different freq from {cls}(freq={freqstr})"
