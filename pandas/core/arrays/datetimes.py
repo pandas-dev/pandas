@@ -32,7 +32,7 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.core import ops
 
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.offsets import Tick, Day, generate_range
+from pandas.tseries.offsets import Tick, Day, generate_range, _Day
 
 from pandas.core.arrays import datetimelike as dtl
 
@@ -222,6 +222,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')
         freq = to_offset(freq)
+        # TODO: Remove once Day offsets fully becomes a calendar offset
+        if isinstance(freq, Day):
+            freq = _Day(freq.n)
 
         if start is not None:
             start = Timestamp(start)
@@ -291,6 +294,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
 
+        # TODO: Remove once Day offsets fully becomes a calendar offset
+        if isinstance(freq, _Day):
+            freq = Day(freq.n)
         return cls._simple_new(index.values, freq=freq, tz=tz)
 
     @classmethod
@@ -1348,9 +1354,8 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz):
     """
     # Make sure start and end are timezone localized if:
     # 1) freq = a Timedelta-like frequency (Tick) and freq != Day
-    # TODO: remove freq != Day condition once Day fully acts as calendar day
     # 2) freq = None i.e. generating a linspaced range
-    if (isinstance(freq, Tick) and not isinstance(freq, Day)) or freq is None:
+    if isinstance(freq, Tick) or freq is None:
         localize_args = {'tz': tz, 'ambiguous': False}
     else:
         localize_args = {'tz': None}

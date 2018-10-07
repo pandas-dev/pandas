@@ -2315,8 +2315,10 @@ class Day(Tick):
 
     def __add__(self, other):
         if isinstance(other, Tick):
-        #    warnings.warn("Arithmetic between {} and Day is deprecated. Day "
-        #                  "will become a non-fixed offset".format(type(self)))
+            """
+            warnings.warn("Arithmetic between {} and Day is deprecated. Day "
+                          "will become a non-fixed offset".format(type(self)))
+            """
             if type(self) == type(other):
                 return type(self)(self.n + other.n)
             else:
@@ -2365,8 +2367,10 @@ class Day(Tick):
     @property
     def nanos(self):
         # This is what Timedelta like operations call when 'D' is passed
-        #warnings.warn("'D' will refer to calendar day in a future release. "
-        #              "Use '24H' instead.")
+        """
+        warnings.warn("'D' will refer to calendar day in a future release. "
+                      "Use '24H' instead.")
+        """
         return delta_to_nanoseconds(self.delta)
 
     # TODO: Should Tick have its own apply_index?
@@ -2382,9 +2386,11 @@ class Day(Tick):
             result = other.__add__(self)
             if result == NotImplemented:
                 raise OverflowError
-            #if other.tz is not None:
-            #    warnings.warn("Day arithmetic will respect calendar day in a"
-            #                  "future release")
+            """
+            if other.tz is not None:
+                warnings.warn("Day arithmetic will respect calendar day in a"
+                              "future release")
+            """
             return result
         elif isinstance(other, (datetime, np.datetime64, date)):
             return as_timestamp(other) + self
