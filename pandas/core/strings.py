@@ -1332,23 +1332,57 @@ def str_index(arr, sub, start=0, end=None, side='left'):
 
 def str_pad(arr, width, side='left', fillchar=' '):
     """
-    Pad strings in the Series/Index with an additional character to
-    specified side.
+    Pad strings in the Series/Index up to width.
 
     Parameters
     ----------
     width : int
         Minimum width of resulting string; additional characters will be filled
-        with spaces
+        with character defined in `fillchar`.
     side : {'left', 'right', 'both'}, default 'left'
-    fillchar : str
-        Additional character for filling, default is whitespace
+        Side from which to fill resulting string.
+    fillchar : str, default ' '
+        Additional character for filling, default is whitespace.
 
     Returns
     -------
-    padded : Series/Index of objects
-    """
+    Series or Index of object
+        Returns Series or Index with minimum number of char in object.
 
+    See Also
+    --------
+    Series.str.rjust: Fills the left side of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='left')``.
+    Series.str.ljust: Fills the right side of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='right')``.
+    Series.str.center: Fills boths sides of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='both')``.
+    Series.str.zfill:  Pad strings in the Series/Index by prepending '0'
+        character. Equivalent to ``Series.str.pad(side='left', fillchar='0')``.
+
+    Examples
+    --------
+    >>> s = pd.Series(["caribou", "tiger"])
+    >>> s
+    0    caribou
+    1      tiger
+    dtype: object
+
+    >>> s.str.pad(width=10)
+    0       caribou
+    1         tiger
+    dtype: object
+
+    >>> s.str.pad(width=10, side='right', fillchar='-')
+    0    caribou---
+    1    tiger-----
+    dtype: object
+
+    >>> s.str.pad(width=10, side='both', fillchar='-')
+    0    -caribou--
+    1    --tiger---
+    dtype: object
+    """
     if not isinstance(fillchar, compat.string_types):
         msg = 'fillchar must be a character, not {0}'
         raise TypeError(msg.format(type(fillchar).__name__))
@@ -1403,17 +1437,69 @@ def str_rsplit(arr, pat=None, n=None):
 
 def str_slice(arr, start=None, stop=None, step=None):
     """
-    Slice substrings from each element in the Series/Index
+    Slice substrings from each element in the Series or Index.
 
     Parameters
     ----------
-    start : int or None
-    stop : int or None
-    step : int or None
+    start : int, optional
+        Start position for slice operation.
+    stop : int, optional
+        Stop position for slice operation.
+    step : int, optional
+        Step size for slice operation.
 
     Returns
     -------
-    sliced : Series/Index of objects
+    Series or Index of object
+        Series or Index from sliced substring from original string object.
+
+    See Also
+    --------
+    Series.str.slice_replace : Replace a slice with a string.
+    Series.str.get : Return element at position.
+        Equivalent to `Series.str.slice(start=i, stop=i+1)` with `i`
+        being the position.
+
+    Examples
+    --------
+    >>> s = pd.Series(["koala", "fox", "chameleon"])
+    >>> s
+    0        koala
+    1          fox
+    2    chameleon
+    dtype: object
+
+    >>> s.str.slice(start=1)
+    0        oala
+    1          ox
+    2    hameleon
+    dtype: object
+
+    >>> s.str.slice(stop=2)
+    0    ko
+    1    fo
+    2    ch
+    dtype: object
+
+    >>> s.str.slice(step=2)
+    0      kaa
+    1       fx
+    2    caeen
+    dtype: object
+
+    >>> s.str.slice(start=0, stop=5, step=3)
+    0    kl
+    1     f
+    2    cm
+    dtype: object
+
+    Equivalent behaviour to:
+
+    >>> s.str[0:5:3]
+    0    kl
+    1     f
+    2    cm
+    dtype: object
     """
     obj = slice(start, stop, step)
     f = lambda x: x[obj]

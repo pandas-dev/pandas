@@ -27,38 +27,122 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData, _check_mixed_float
 
 
-class TestDataFrameOperators(TestData):
+class TestDataFrameUnaryOperators(object):
+    # __pos__, __neg__, __inv__
 
-    def test_operators_boolean(self):
+    @pytest.mark.parametrize('df,expected', [
+        (pd.DataFrame({'a': [-1, 1]}), pd.DataFrame({'a': [1, -1]})),
+        (pd.DataFrame({'a': [False, True]}),
+            pd.DataFrame({'a': [True, False]})),
+        (pd.DataFrame({'a': pd.Series(pd.to_timedelta([-1, 1]))}),
+            pd.DataFrame({'a': pd.Series(pd.to_timedelta([1, -1]))}))
+    ])
+    def test_neg_numeric(self, df, expected):
+        assert_frame_equal(-df, expected)
+        assert_series_equal(-df['a'], expected['a'])
 
-        # GH 5808
+    @pytest.mark.parametrize('df, expected', [
+        (np.array([1, 2], dtype=object), np.array([-1, -2], dtype=object)),
+        ([Decimal('1.0'), Decimal('2.0')], [Decimal('-1.0'), Decimal('-2.0')]),
+    ])
+    def test_neg_object(self, df, expected):
+        # GH#21380
+        df = pd.DataFrame({'a': df})
+        expected = pd.DataFrame({'a': expected})
+        assert_frame_equal(-df, expected)
+        assert_series_equal(-df['a'], expected['a'])
+
+    @pytest.mark.parametrize('df', [
+        pd.DataFrame({'a': ['a', 'b']}),
+        pd.DataFrame({'a': pd.to_datetime(['2017-01-22', '1970-01-01'])}),
+    ])
+    def test_neg_raises(self, df):
+        with pytest.raises(TypeError):
+            (- df)
+        with pytest.raises(TypeError):
+            (- df['a'])
+
+    def test_invert(self):
+        _seriesd = tm.getSeriesData()
+        df = pd.DataFrame(_seriesd)
+
+        assert_frame_equal(-(df < 0), ~(df < 0))
+
+    @pytest.mark.parametrize('df', [
+        pd.DataFrame({'a': [-1, 1]}),
+        pd.DataFrame({'a': [False, True]}),
+        pd.DataFrame({'a': pd.Series(pd.to_timedelta([-1, 1]))}),
+    ])
+    def test_pos_numeric(self, df):
+        # GH#16073
+        assert_frame_equal(+df, df)
+        assert_series_equal(+df['a'], df['a'])
+
+    @pytest.mark.parametrize('df', [
+        # numpy changing behavior in the future
+        pytest.param(pd.DataFrame({'a': ['a', 'b']}),
+                     marks=[pytest.mark.filterwarnings("ignore")]),
+        pd.DataFrame({'a': np.array([-1, 2], dtype=object)}),
+        pd.DataFrame({'a': [Decimal('-1.0'), Decimal('2.0')]}),
+    ])
+    def test_pos_object(self, df):
+        # GH#21380
+        assert_frame_equal(+df, df)
+        assert_series_equal(+df['a'], df['a'])
+
+    @pytest.mark.parametrize('df', [
+        pd.DataFrame({'a': pd.to_datetime(['2017-01-22', '1970-01-01'])}),
+    ])
+    def test_pos_raises(self, df):
+        with pytest.raises(TypeError):
+            (+ df)
+        with pytest.raises(TypeError):
+            (+ df['a'])
+
+
+class TestDataFrameLogicalOperators(object):
+    # &, |, ^
+
+    def test_logical_ops_empty_frame(self):
+        # GH#5808
         # empty frames, non-mixed dtype
+        df = DataFrame(index=[1])
 
-        result = DataFrame(index=[1]) & DataFrame(index=[1])
-        assert_frame_equal(result, DataFrame(index=[1]))
+        result = df & df
+        assert_frame_equal(result, df)
 
-        result = DataFrame(index=[1]) | DataFrame(index=[1])
-        assert_frame_equal(result, DataFrame(index=[1]))
+        result = df | df
+        assert_frame_equal(result, df)
 
-        result = DataFrame(index=[1]) & DataFrame(index=[1, 2])
-        assert_frame_equal(result, DataFrame(index=[1, 2]))
+        df2 = DataFrame(index=[1, 2])
+        result = df & df2
+        assert_frame_equal(result, df2)
 
-        result = DataFrame(index=[1], columns=['A']) & DataFrame(
-            index=[1], columns=['A'])
-        assert_frame_equal(result, DataFrame(index=[1], columns=['A']))
+        dfa = DataFrame(index=[1], columns=['A'])
 
-        result = DataFrame(True, index=[1], columns=['A']) & DataFrame(
-            True, index=[1], columns=['A'])
-        assert_frame_equal(result, DataFrame(True, index=[1], columns=['A']))
+        result = dfa & dfa
+        assert_frame_equal(result, dfa)
 
-        result = DataFrame(True, index=[1], columns=['A']) | DataFrame(
-            True, index=[1], columns=['A'])
-        assert_frame_equal(result, DataFrame(True, index=[1], columns=['A']))
+    def test_logical_ops_bool_frame(self):
+        # GH#5808
+        df1a_bool = DataFrame(True, index=[1], columns=['A'])
 
-        # boolean ops
-        result = DataFrame(1, index=[1], columns=['A']) | DataFrame(
-            True, index=[1], columns=['A'])
-        assert_frame_equal(result, DataFrame(1, index=[1], columns=['A']))
+        result = df1a_bool & df1a_bool
+        assert_frame_equal(result, df1a_bool)
+
+        result = df1a_bool | df1a_bool
+        assert_frame_equal(result, df1a_bool)
+
+    def test_logical_ops_int_frame(self):
+        # GH#5808
+        df1a_int = DataFrame(1, index=[1], columns=['A'])
+        df1a_bool = DataFrame(True, index=[1], columns=['A'])
+
+        result = df1a_int | df1a_bool
+        assert_frame_equal(result, df1a_int)
+
+    def test_logical_ops_invalid(self):
+        # GH#5808
 
         df1 = DataFrame(1.0, index=[1], columns=['A'])
         df2 = DataFrame(True, index=[1], columns=['A'])
@@ -69,6 +153,70 @@ class TestDataFrameOperators(TestData):
         df2 = DataFrame(True, index=[1], columns=['A'])
         with pytest.raises(TypeError):
             df1 | df2
+
+    def test_logical_operators(self):
+
+        def _check_bin_op(op):
+            result = op(df1, df2)
+            expected = DataFrame(op(df1.values, df2.values), index=df1.index,
+                                 columns=df1.columns)
+            assert result.values.dtype == np.bool_
+            assert_frame_equal(result, expected)
+
+        def _check_unary_op(op):
+            result = op(df1)
+            expected = DataFrame(op(df1.values), index=df1.index,
+                                 columns=df1.columns)
+            assert result.values.dtype == np.bool_
+            assert_frame_equal(result, expected)
+
+        df1 = {'a': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True},
+               'b': {'a': False, 'b': True, 'c': False,
+                     'd': False, 'e': False},
+               'c': {'a': False, 'b': False, 'c': True,
+                     'd': False, 'e': False},
+               'd': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True},
+               'e': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True}}
+
+        df2 = {'a': {'a': True, 'b': False, 'c': True, 'd': False, 'e': False},
+               'b': {'a': False, 'b': True, 'c': False,
+                     'd': False, 'e': False},
+               'c': {'a': True, 'b': False, 'c': True, 'd': False, 'e': False},
+               'd': {'a': False, 'b': False, 'c': False,
+                     'd': True, 'e': False},
+               'e': {'a': False, 'b': False, 'c': False,
+                     'd': False, 'e': True}}
+
+        df1 = DataFrame(df1)
+        df2 = DataFrame(df2)
+
+        _check_bin_op(operator.and_)
+        _check_bin_op(operator.or_)
+        _check_bin_op(operator.xor)
+
+        # operator.neg is deprecated in numpy >= 1.9
+        _check_unary_op(operator.inv)  # TODO: belongs elsewhere
+
+    def test_logical_with_nas(self):
+        d = DataFrame({'a': [np.nan, False], 'b': [True, True]})
+
+        # GH4947
+        # bool comparisons should return bool
+        result = d['a'] | d['b']
+        expected = Series([False, True])
+        assert_series_equal(result, expected)
+
+        # GH4604, automatic casting here
+        result = d['a'].fillna(False) | d['b']
+        expected = Series([True, True])
+        assert_series_equal(result, expected)
+
+        result = d['a'].fillna(False, downcast=False) | d['b']
+        expected = Series([True, True])
+        assert_series_equal(result, expected)
+
+
+class TestDataFrameOperators(TestData):
 
     @pytest.mark.parametrize('op', [operator.add, operator.sub,
                                     operator.mul, operator.truediv])
@@ -164,141 +312,14 @@ class TestDataFrameOperators(TestData):
             result = right_f(Timestamp('nat'), df)
             assert_frame_equal(result, expected)
 
-    def test_logical_operators(self):
-
-        def _check_bin_op(op):
-            result = op(df1, df2)
-            expected = DataFrame(op(df1.values, df2.values), index=df1.index,
-                                 columns=df1.columns)
-            assert result.values.dtype == np.bool_
-            assert_frame_equal(result, expected)
-
-        def _check_unary_op(op):
-            result = op(df1)
-            expected = DataFrame(op(df1.values), index=df1.index,
-                                 columns=df1.columns)
-            assert result.values.dtype == np.bool_
-            assert_frame_equal(result, expected)
-
-        df1 = {'a': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True},
-               'b': {'a': False, 'b': True, 'c': False,
-                     'd': False, 'e': False},
-               'c': {'a': False, 'b': False, 'c': True,
-                     'd': False, 'e': False},
-               'd': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True},
-               'e': {'a': True, 'b': False, 'c': False, 'd': True, 'e': True}}
-
-        df2 = {'a': {'a': True, 'b': False, 'c': True, 'd': False, 'e': False},
-               'b': {'a': False, 'b': True, 'c': False,
-                     'd': False, 'e': False},
-               'c': {'a': True, 'b': False, 'c': True, 'd': False, 'e': False},
-               'd': {'a': False, 'b': False, 'c': False,
-                     'd': True, 'e': False},
-               'e': {'a': False, 'b': False, 'c': False,
-                     'd': False, 'e': True}}
-
-        df1 = DataFrame(df1)
-        df2 = DataFrame(df2)
-
-        _check_bin_op(operator.and_)
-        _check_bin_op(operator.or_)
-        _check_bin_op(operator.xor)
-
-        # operator.neg is deprecated in numpy >= 1.9
-        _check_unary_op(operator.inv)
-
     @pytest.mark.parametrize('op,res', [('__eq__', False),
                                         ('__ne__', True)])
-    # not sure what's correct here.
+    # TODO: not sure what's correct here.
     @pytest.mark.filterwarnings("ignore:elementwise:FutureWarning")
     def test_logical_typeerror_with_non_valid(self, op, res):
         # we are comparing floats vs a string
         result = getattr(self.frame, op)('foo')
         assert bool(result.all().all()) is res
-
-    def test_logical_with_nas(self):
-        d = DataFrame({'a': [np.nan, False], 'b': [True, True]})
-
-        # GH4947
-        # bool comparisons should return bool
-        result = d['a'] | d['b']
-        expected = Series([False, True])
-        assert_series_equal(result, expected)
-
-        # GH4604, automatic casting here
-        result = d['a'].fillna(False) | d['b']
-        expected = Series([True, True])
-        assert_series_equal(result, expected)
-
-        result = d['a'].fillna(False, downcast=False) | d['b']
-        expected = Series([True, True])
-        assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('df,expected', [
-        (pd.DataFrame({'a': [-1, 1]}), pd.DataFrame({'a': [1, -1]})),
-        (pd.DataFrame({'a': [False, True]}),
-            pd.DataFrame({'a': [True, False]})),
-        (pd.DataFrame({'a': pd.Series(pd.to_timedelta([-1, 1]))}),
-            pd.DataFrame({'a': pd.Series(pd.to_timedelta([1, -1]))}))
-    ])
-    def test_neg_numeric(self, df, expected):
-        assert_frame_equal(-df, expected)
-        assert_series_equal(-df['a'], expected['a'])
-
-    @pytest.mark.parametrize('df, expected', [
-        (np.array([1, 2], dtype=object), np.array([-1, -2], dtype=object)),
-        ([Decimal('1.0'), Decimal('2.0')], [Decimal('-1.0'), Decimal('-2.0')]),
-    ])
-    def test_neg_object(self, df, expected):
-        # GH 21380
-        df = pd.DataFrame({'a': df})
-        expected = pd.DataFrame({'a': expected})
-        assert_frame_equal(-df, expected)
-        assert_series_equal(-df['a'], expected['a'])
-
-    @pytest.mark.parametrize('df', [
-        pd.DataFrame({'a': ['a', 'b']}),
-        pd.DataFrame({'a': pd.to_datetime(['2017-01-22', '1970-01-01'])}),
-    ])
-    def test_neg_raises(self, df):
-        with pytest.raises(TypeError):
-            (- df)
-        with pytest.raises(TypeError):
-            (- df['a'])
-
-    def test_invert(self):
-        assert_frame_equal(-(self.frame < 0), ~(self.frame < 0))
-
-    @pytest.mark.parametrize('df', [
-        pd.DataFrame({'a': [-1, 1]}),
-        pd.DataFrame({'a': [False, True]}),
-        pd.DataFrame({'a': pd.Series(pd.to_timedelta([-1, 1]))}),
-    ])
-    def test_pos_numeric(self, df):
-        # GH 16073
-        assert_frame_equal(+df, df)
-        assert_series_equal(+df['a'], df['a'])
-
-    @pytest.mark.parametrize('df', [
-        # numpy changing behavior in the future
-        pytest.param(pd.DataFrame({'a': ['a', 'b']}),
-                     marks=[pytest.mark.filterwarnings("ignore")]),
-        pd.DataFrame({'a': np.array([-1, 2], dtype=object)}),
-        pd.DataFrame({'a': [Decimal('-1.0'), Decimal('2.0')]}),
-    ])
-    def test_pos_object(self, df):
-        # GH 21380
-        assert_frame_equal(+df, df)
-        assert_series_equal(+df['a'], df['a'])
-
-    @pytest.mark.parametrize('df', [
-        pd.DataFrame({'a': pd.to_datetime(['2017-01-22', '1970-01-01'])}),
-    ])
-    def test_pos_raises(self, df):
-        with pytest.raises(TypeError):
-            (+ df)
-        with pytest.raises(TypeError):
-            (+ df['a'])
 
     def test_binary_ops_align(self):
 
@@ -1030,3 +1051,9 @@ class TestDataFrameOperators(TestData):
             align(df, val, 'index')
         with pytest.raises(ValueError):
             align(df, val, 'columns')
+
+    def test_no_warning(self, all_arithmetic_operators):
+        df = pd.DataFrame({"A": [0., 0.], "B": [0., None]})
+        b = df['B']
+        with tm.assert_produces_warning(None):
+            getattr(df, all_arithmetic_operators)(b, 0)

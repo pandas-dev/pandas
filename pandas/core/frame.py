@@ -614,7 +614,7 @@ class DataFrame(NDFrame):
         return len(self.index), len(self.columns)
 
     @property
-    def _is_homogeneous(self):
+    def _is_homogeneous_type(self):
         """
         Whether all the columns in a DataFrame have the same type.
 
@@ -624,16 +624,17 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous
+        >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous_type
         True
-        >>> DataFrame({"A": [1, 2], "B": [3.0, 4.0]})._is_homogeneous
+        >>> DataFrame({"A": [1, 2], "B": [3.0, 4.0]})._is_homogeneous_type
         False
 
         Items with the same type but different sizes are considered
         different types.
 
-        >>> DataFrame({"A": np.array([1, 2], dtype=np.int32),
-        ...            "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous
+        >>> DataFrame({
+        ...    "A": np.array([1, 2], dtype=np.int32),
+        ...    "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous_type
         False
         """
         if self._data.any_extension_types:
@@ -778,14 +779,52 @@ class DataFrame(NDFrame):
         return Styler(self)
 
     def iteritems(self):
-        """
+        r"""
         Iterator over (column name, Series) pairs.
 
-        See also
-        --------
-        iterrows : Iterate over DataFrame rows as (index, Series) pairs.
-        itertuples : Iterate over DataFrame rows as namedtuples of the values.
+        Iterates over the DataFrame columns, returning a tuple with
+        the column name and the content as a Series.
 
+        Yields
+        ------
+        label : object
+            The column names for the DataFrame being iterated over.
+        content : Series
+            The column entries belonging to each label, as a Series.
+
+        See Also
+        --------
+        DataFrame.iterrows : Iterate over DataFrame rows as
+            (index, Series) pairs.
+        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
+            of the values.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'species': ['bear', 'bear', 'marsupial'],
+        ...                   'population': [1864, 22000, 80000]},
+        ...                   index=['panda', 'polar', 'koala'])
+        >>> df
+                species   population
+        panda 	bear 	  1864
+        polar 	bear 	  22000
+        koala 	marsupial 80000
+        >>> for label, content in df.iteritems():
+        ...     print('label:', label)
+        ...     print('content:', content, sep='\n')
+        ...
+        label: species
+        content:
+        panda         bear
+        polar         bear
+        koala    marsupial
+        Name: species, dtype: object
+        label: population
+        content:
+        panda     1864
+        polar    22000
+        koala    80000
+        Name: population, dtype: int64
         """
         if self.columns.is_unique and hasattr(self, '_item_cache'):
             for k in self.columns:
@@ -844,16 +883,22 @@ class DataFrame(NDFrame):
 
     def itertuples(self, index=True, name="Pandas"):
         """
-        Iterate over DataFrame rows as namedtuples, with index value as first
-        element of the tuple.
+        Iterate over DataFrame rows as namedtuples.
 
         Parameters
         ----------
-        index : boolean, default True
+        index : bool, default True
             If True, return the index as the first element of the tuple.
-        name : string, default "Pandas"
+        name : str, default "Pandas"
             The name of the returned namedtuples or None to return regular
             tuples.
+
+        Yields
+        -------
+        collections.namedtuple
+            Yields a namedtuple for each row in the DataFrame with the first
+            field possibly being the index and following fields being the
+            column values.
 
         Notes
         -----
@@ -861,26 +906,43 @@ class DataFrame(NDFrame):
         invalid Python identifiers, repeated, or start with an underscore.
         With a large number of columns (>255), regular tuples are returned.
 
-        See also
+        See Also
         --------
-        iterrows : Iterate over DataFrame rows as (index, Series) pairs.
-        iteritems : Iterate over (column name, Series) pairs.
+        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series)
+            pairs.
+        DataFrame.iteritems : Iterate over (column name, Series) pairs.
 
         Examples
         --------
-
-        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [0.1, 0.2]},
-                              index=['a', 'b'])
+        >>> df = pd.DataFrame({'num_legs': [4, 2], 'num_wings': [0, 2]},
+        ...                   index=['dog', 'hawk'])
         >>> df
-           col1  col2
-        a     1   0.1
-        b     2   0.2
+              num_legs  num_wings
+        dog          4          0
+        hawk         2          2
         >>> for row in df.itertuples():
         ...     print(row)
         ...
-        Pandas(Index='a', col1=1, col2=0.10000000000000001)
-        Pandas(Index='b', col1=2, col2=0.20000000000000001)
+        Pandas(Index='dog', num_legs=4, num_wings=0)
+        Pandas(Index='hawk', num_legs=2, num_wings=2)
 
+        By setting the `index` parameter to False we can remove the index
+        as the first element of the tuple:
+
+        >>> for row in df.itertuples(index=False):
+        ...     print(row)
+        ...
+        Pandas(num_legs=4, num_wings=0)
+        Pandas(num_legs=2, num_wings=2)
+
+        With the `name` parameter set we set a custom name for the yielded
+        namedtuples:
+
+        >>> for row in df.itertuples(name='Animal'):
+        ...     print(row)
+        ...
+        Animal(Index='dog', num_legs=4, num_wings=0)
+        Animal(Index='hawk', num_legs=2, num_wings=2)
         """
         arrays = []
         fields = []
@@ -3221,7 +3283,7 @@ class DataFrame(NDFrame):
         if not len(self.index) and is_list_like(value):
             try:
                 value = Series(value)
-            except:
+            except (ValueError, NotImplementedError, TypeError):
                 raise ValueError('Cannot set a frame with no defined index '
                                  'and a value that cannot be converted to a '
                                  'Series')
@@ -3590,7 +3652,8 @@ class DataFrame(NDFrame):
                                             fill_axis=fill_axis,
                                             broadcast_axis=broadcast_axis)
 
-    @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.reindex.__doc__)
     @rewrite_axis_style_signature('labels', [('method', None),
                                              ('copy', True),
                                              ('level', None),
@@ -4440,7 +4503,8 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Sorting
 
-    @Appender(_shared_docs['sort_values'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.sort_values.__doc__)
     def sort_values(self, by, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
         inplace = validate_bool_kwarg(inplace, 'inplace')
@@ -4482,7 +4546,8 @@ class DataFrame(NDFrame):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    @Appender(_shared_docs['sort_index'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.sort_index.__doc__)
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True,
                    by=None):
@@ -4847,7 +4912,7 @@ class DataFrame(NDFrame):
             left, right = ops.fill_binop(left, right, fill_value)
             return func(left, right)
 
-        if this._is_mixed_type or other._is_mixed_type:
+        if ops.should_series_dispatch(this, other, func):
             # iterate over columns
             return ops.dispatch_to_series(this, other, _arith_op)
         else:
@@ -4857,7 +4922,6 @@ class DataFrame(NDFrame):
                                      copy=False)
 
     def _combine_match_index(self, other, func, level=None):
-        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
         assert left.index.equals(right.index)
@@ -4867,7 +4931,8 @@ class DataFrame(NDFrame):
             return ops.dispatch_to_series(left, right, func)
         else:
             # fastpath --> operate directly on values
-            new_data = func(left.values.T, right.values).T
+            with np.errstate(all="ignore"):
+                new_data = func(left.values.T, right.values).T
             return self._constructor(new_data,
                                      index=left.index, columns=self.columns,
                                      copy=False)
@@ -4877,11 +4942,7 @@ class DataFrame(NDFrame):
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         assert left.columns.equals(right.index)
-
-        new_data = left._data.eval(func=func, other=right,
-                                   axes=[left.columns, self.index],
-                                   try_cast=try_cast)
-        return self._constructor(new_data)
+        return ops.dispatch_to_series(left, right, func, axis="columns")
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
         if lib.is_scalar(other) or np.ndim(other) == 0:
@@ -6672,10 +6733,14 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        method : {'pearson', 'kendall', 'spearman'}
+        method : {'pearson', 'kendall', 'spearman'} or callable
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
+            * callable: callable with input two 1d ndarrays
+                and returning a float
+                .. versionadded:: 0.24.0
+
         min_periods : int, optional
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for pearson
@@ -6684,6 +6749,18 @@ class DataFrame(NDFrame):
         Returns
         -------
         y : DataFrame
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> histogram_intersection = lambda a, b: np.minimum(a, b
+        ... ).sum().round(decimals=1)
+        >>> df = pd.DataFrame([(.2, .3), (.0, .6), (.6, .0), (.2, .1)],
+        ...                   columns=['dogs', 'cats'])
+        >>> df.corr(method=histogram_intersection)
+              dogs cats
+        dogs   1.0  0.3
+        cats   0.3  1.0
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
@@ -6695,7 +6772,7 @@ class DataFrame(NDFrame):
         elif method == 'spearman':
             correl = libalgos.nancorr_spearman(ensure_float64(mat),
                                                minp=min_periods)
-        elif method == 'kendall':
+        elif method == 'kendall' or callable(method):
             if min_periods is None:
                 min_periods = 1
             mat = ensure_float64(mat).T
@@ -7248,38 +7325,82 @@ class DataFrame(NDFrame):
 
     def mode(self, axis=0, numeric_only=False, dropna=True):
         """
-        Gets the mode(s) of each element along the axis selected. Adds a row
-        for each mode per label, fills in gaps with nan.
+        Get the mode(s) of each element along the selected axis.
 
-        Note that there could be multiple values returned for the selected
-        axis (when more than one item share the maximum frequency), which is
-        the reason why a dataframe is returned. If you want to impute missing
-        values with the mode in a dataframe ``df``, you can just do this:
-        ``df.fillna(df.mode().iloc[0])``
+        The mode of a set of values is the value that appears most often.
+        It can be multiple values.
 
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to iterate over while searching for the mode:
+
             * 0 or 'index' : get mode of each column
             * 1 or 'columns' : get mode of each row
-        numeric_only : boolean, default False
-            if True, only apply to numeric columns
-        dropna : boolean, default True
+        numeric_only : bool, default False
+            If True, only apply to numeric columns.
+        dropna : bool, default True
             Don't consider counts of NaN/NaT.
 
             .. versionadded:: 0.24.0
 
         Returns
         -------
-        modes : DataFrame (sorted)
+        DataFrame
+            The modes of each column or row.
+
+        See Also
+        --------
+        Series.mode : Return the highest frequency value in a Series.
+        Series.value_counts : Return the counts of values in a Series.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2, 1, 2, 1, 2, 3]})
+        >>> df = pd.DataFrame([('bird', 2, 2),
+        ...                    ('mammal', 4, np.nan),
+        ...                    ('arthropod', 8, 0),
+        ...                    ('bird', 2, np.nan)],
+        ...                   index=('falcon', 'horse', 'spider', 'ostrich'),
+        ...                   columns=('species', 'legs', 'wings'))
+        >>> df
+                   species  legs  wings
+        falcon        bird     2    2.0
+        horse       mammal     4    NaN
+        spider   arthropod     8    0.0
+        ostrich       bird     2    NaN
+
+        By default, missing values are not considered, and the mode of wings
+        are both 0 and 2. The second row of species and legs contains ``NaN``,
+        because they have only one mode, but the DataFrame has two rows.
+
         >>> df.mode()
-           A
-        0  1
-        1  2
+          species  legs  wings
+        0    bird   2.0    0.0
+        1     NaN   NaN    2.0
+
+        Setting ``dropna=False`` ``NaN`` values are considered and they can be
+        the mode (like for wings).
+
+        >>> df.mode(dropna=False)
+          species  legs  wings
+        0    bird     2    NaN
+
+        Setting ``numeric_only=True``, only the mode of numeric columns is
+        computed, and columns of other types are ignored.
+
+        >>> df.mode(numeric_only=True)
+           legs  wings
+        0   2.0    0.0
+        1   NaN    2.0
+
+        To compute the mode over columns and not rows, use the axis parameter:
+
+        >>> df.mode(axis='columns', numeric_only=True)
+                   0    1
+        falcon   2.0  NaN
+        horse    4.0  NaN
+        spider   0.0  8.0
+        ostrich  2.0  NaN
         """
         data = self if not numeric_only else self._get_numeric_data()
 
@@ -7451,52 +7572,66 @@ class DataFrame(NDFrame):
 
     def isin(self, values):
         """
-        Return boolean DataFrame showing whether each element in the
-        DataFrame is contained in values.
+        Whether each element in the DataFrame is contained in values.
 
         Parameters
         ----------
-        values : iterable, Series, DataFrame or dictionary
+        values : iterable, Series, DataFrame or dict
             The result will only be true at a location if all the
             labels match. If `values` is a Series, that's the index. If
-            `values` is a dictionary, the keys must be the column names,
+            `values` is a dict, the keys must be the column names,
             which must match. If `values` is a DataFrame,
             then both the index and column labels must match.
 
         Returns
         -------
+        DataFrame
+            DataFrame of booleans showing whether each element in the DataFrame
+            is contained in values.
 
-        DataFrame of booleans
+        See Also
+        --------
+        DataFrame.eq: Equality test for DataFrame.
+        Series.isin: Equivalent method on Series.
+        Series.str.contains: Test if pattern or regex is contained within a
+            string of a Series or Index.
 
         Examples
         --------
-        When ``values`` is a list:
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> df.isin([1, 3, 12, 'a'])
-               A      B
-        0   True   True
-        1  False  False
-        2   True  False
+        >>> df = pd.DataFrame({'num_legs': [2, 4], 'num_wings': [2, 0]},
+        ...                   index=['falcon', 'dog'])
+        >>> df
+                num_legs  num_wings
+        falcon         2          2
+        dog            4          0
 
-        When ``values`` is a dict:
+        When ``values`` is a list check whether every value in the DataFrame
+        is present in the list (which animals have 0 or 2 legs or wings)
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 4, 7]})
-        >>> df.isin({'A': [1, 3], 'B': [4, 7, 12]})
-               A      B
-        0   True  False  # Note that B didn't match the 1 here.
-        1  False   True
-        2   True   True
+        >>> df.isin([0, 2])
+                num_legs  num_wings
+        falcon      True       True
+        dog        False       True
 
-        When ``values`` is a Series or DataFrame:
+        When ``values`` is a dict, we can pass values to check for each
+        column separately:
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> df2 = pd.DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
-        >>> df.isin(df2)
-               A      B
-        0   True  False
-        1  False  False  # Column A in `df2` has a 3, but not at index 1.
-        2   True   True
+        >>> df.isin({'num_wings': [0, 3]})
+                num_legs  num_wings
+        falcon     False      False
+        dog        False       True
+
+        When ``values`` is a Series or DataFrame the index and column must
+        match. Note that 'falcon' does not match based on the number of legs
+        in df2.
+
+        >>> other = pd.DataFrame({'num_legs': [8, 2],'num_wings': [0, 2]},
+        ...                      index=['spider', 'falcon'])
+        >>> df.isin(other)
+                num_legs  num_wings
+        falcon      True       True
+        dog        False      False
         """
         if isinstance(values, dict):
             from pandas.core.reshape.concat import concat
@@ -7634,7 +7769,7 @@ def _prep_ndarray(values, copy=True):
                 values = np.array([convert(v) for v in values])
             else:
                 values = convert(values)
-        except:
+        except (ValueError, TypeError):
             values = convert(values)
 
     else:

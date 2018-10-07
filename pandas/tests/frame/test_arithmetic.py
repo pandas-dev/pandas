@@ -99,6 +99,7 @@ class TestFrameComparisons(object):
 # Arithmetic
 
 class TestFrameFlexArithmetic(object):
+
     def test_df_add_td64_columnwise(self):
         # GH 22534 Check that column-wise addition broadcasts correctly
         dti = pd.date_range('2016-01-01', periods=10)
@@ -132,8 +133,8 @@ class TestFrameFlexArithmetic(object):
         op = all_arithmetic_operators
 
         def f(x, y):
+            # r-versions not in operator-stdlib; get op without "r" and invert
             if op.startswith('__r'):
-                # get op without "r" and invert it
                 return getattr(operator, op.replace('__r', '__'))(y, x)
             return getattr(operator, op)(x, y)
 
@@ -176,8 +177,8 @@ class TestFrameFlexArithmetic(object):
         expected = f(int_frame, 2 * int_frame)
         tm.assert_frame_equal(result, expected)
 
-    def test_arith_flex_frame_corner(self, all_arithmetic_operators,
-                                     float_frame):
+    def test_arith_flex_frame_raise(self, all_arithmetic_operators,
+                                    float_frame):
         # one instance of parametrized fixture
         op = all_arithmetic_operators
 
@@ -187,6 +188,8 @@ class TestFrameFlexArithmetic(object):
             msg = "Unable to coerce to Series/DataFrame"
             with tm.assert_raises_regex(ValueError, msg):
                 getattr(float_frame, op)(arr)
+
+    def test_arith_flex_frame_corner(self, float_frame):
 
         const_add = float_frame.add(1)
         tm.assert_frame_equal(const_add, float_frame + 1)
@@ -250,6 +253,99 @@ class TestFrameFlexArithmetic(object):
 
 
 class TestFrameArithmetic(object):
+    def test_df_add_2d_array_rowlike_broadcasts(self):
+        # GH#23000
+        arr = np.arange(6).reshape(3, 2)
+        df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
+
+        rowlike = arr[[1], :]  # shape --> (1, ncols)
+        assert rowlike.shape == (1, df.shape[1])
+
+        expected = pd.DataFrame([[2, 4],
+                                 [4, 6],
+                                 [6, 8]],
+                                columns=df.columns, index=df.index,
+                                # specify dtype explicitly to avoid failing
+                                # on 32bit builds
+                                dtype=arr.dtype)
+        result = df + rowlike
+        tm.assert_frame_equal(result, expected)
+        result = rowlike + df
+        tm.assert_frame_equal(result, expected)
+
+    def test_df_add_2d_array_collike_broadcasts(self):
+        # GH#23000
+        arr = np.arange(6).reshape(3, 2)
+        df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
+
+        collike = arr[:, [1]]  # shape --> (nrows, 1)
+        assert collike.shape == (df.shape[0], 1)
+
+        expected = pd.DataFrame([[1, 2],
+                                 [5, 6],
+                                 [9, 10]],
+                                columns=df.columns, index=df.index,
+                                # specify dtype explicitly to avoid failing
+                                # on 32bit builds
+                                dtype=arr.dtype)
+        result = df + collike
+        tm.assert_frame_equal(result, expected)
+        result = collike + df
+        tm.assert_frame_equal(result, expected)
+
+    def test_df_arith_2d_array_rowlike_broadcasts(self,
+                                                  all_arithmetic_operators):
+        # GH#23000
+        opname = all_arithmetic_operators
+
+        arr = np.arange(6).reshape(3, 2)
+        df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
+
+        rowlike = arr[[1], :]  # shape --> (1, ncols)
+        assert rowlike.shape == (1, df.shape[1])
+
+        exvals = [getattr(df.loc['A'], opname)(rowlike.squeeze()),
+                  getattr(df.loc['B'], opname)(rowlike.squeeze()),
+                  getattr(df.loc['C'], opname)(rowlike.squeeze())]
+
+        expected = pd.DataFrame(exvals, columns=df.columns, index=df.index)
+
+        if opname in ['__rmod__', '__rfloordiv__']:
+            # exvals will have dtypes [f8, i8, i8] so expected will be
+            #   all-f8, but the DataFrame operation will return mixed dtypes
+            # use exvals[-1].dtype instead of "i8" for compat with 32-bit
+            # systems/pythons
+            expected[False] = expected[False].astype(exvals[-1].dtype)
+
+        result = getattr(df, opname)(rowlike)
+        tm.assert_frame_equal(result, expected)
+
+    def test_df_arith_2d_array_collike_broadcasts(self,
+                                                  all_arithmetic_operators):
+        # GH#23000
+        opname = all_arithmetic_operators
+
+        arr = np.arange(6).reshape(3, 2)
+        df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
+
+        collike = arr[:, [1]]  # shape --> (nrows, 1)
+        assert collike.shape == (df.shape[0], 1)
+
+        exvals = {True: getattr(df[True], opname)(collike.squeeze()),
+                  False: getattr(df[False], opname)(collike.squeeze())}
+
+        dtype = None
+        if opname in ['__rmod__', '__rfloordiv__']:
+            # Series ops may return mixed int/float dtypes in cases where
+            #   DataFrame op will return all-float.  So we upcast `expected`
+            dtype = np.common_type(*[x.values for x in exvals.values()])
+
+        expected = pd.DataFrame(exvals, columns=df.columns, index=df.index,
+                                dtype=dtype)
+
+        result = getattr(df, opname)(collike)
+        tm.assert_frame_equal(result, expected)
+
     def test_df_bool_mul_int(self):
         # GH 22047, GH 22163 multiplication by 1 should result in int dtype,
         # not object dtype
@@ -264,3 +360,18 @@ class TestFrameArithmetic(object):
         result = 1 * df
         kinds = result.dtypes.apply(lambda x: x.kind)
         assert (kinds == 'i').all()
+
+    def test_td64_df_add_int_frame(self):
+        # GH#22696 Check that we don't dispatch to numpy implementation,
+        # which treats int64 as m8[ns]
+        tdi = pd.timedelta_range('1', periods=3)
+        df = tdi.to_frame()
+        other = pd.DataFrame([1, 2, 3], index=tdi)  # indexed like `df`
+        with pytest.raises(TypeError):
+            df + other
+        with pytest.raises(TypeError):
+            other + df
+        with pytest.raises(TypeError):
+            df - other
+        with pytest.raises(TypeError):
+            other - df

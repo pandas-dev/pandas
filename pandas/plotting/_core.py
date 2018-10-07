@@ -32,7 +32,8 @@ from pandas.io.formats.printing import pprint_thing
 
 from pandas.plotting._compat import (_mpl_ge_1_3_1,
                                      _mpl_ge_1_5_0,
-                                     _mpl_ge_2_0_0)
+                                     _mpl_ge_2_0_0,
+                                     _mpl_ge_3_0_0)
 from pandas.plotting._style import (plot_params,
                                     _get_standard_colors)
 from pandas.plotting._tools import (_subplots, _flatten, table,
@@ -843,11 +844,16 @@ class PlanePlot(MPLPlot):
         # For a more detailed description of the issue
         # see the following link:
         # https://github.com/ipython/ipython/issues/11215
-
         img = ax.collections[0]
         cbar = self.fig.colorbar(img, ax=ax, **kwds)
+
+        if _mpl_ge_3_0_0():
+            # The workaround below is no longer necessary.
+            return
+
         points = ax.get_position().get_points()
         cbar_points = cbar.ax.get_position().get_points()
+
         cbar.ax.set_position([cbar_points[0, 0],
                               points[0, 1],
                               cbar_points[1, 0] - cbar_points[0, 0],
