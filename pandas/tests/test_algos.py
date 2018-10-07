@@ -15,7 +15,6 @@ import pandas as pd
 from pandas import compat
 from pandas._libs import (groupby as libgroupby, algos as libalgos,
                           hashtable as ht)
-from pandas._libs.hashtable import unique_label_indices
 from pandas.compat import lrange, range
 import pandas.core.algorithms as algos
 import pandas.core.common as com
@@ -1266,41 +1265,42 @@ class TestHashTable(object):
         exp = np.array([1, 2, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(s.unique(), exp)
 
-    def test_vector_resize(self, writable):
+    @pytest.mark.parametrize('nvals', [0, 10])  # resizing to 0 is special case
+    @pytest.mark.parametrize('htable, uniques, dtype, safely_resizes', [
+        (ht.PyObjectHashTable, ht.ObjectVector, 'object', False),
+        (ht.StringHashTable, ht.ObjectVector, 'object', True),
+        (ht.Float64HashTable, ht.Float64Vector, 'float64', False),
+        (ht.Int64HashTable, ht.Int64Vector, 'int64', False),
+        (ht.UInt64HashTable, ht.UInt64Vector, 'uint64', False)])
+    def test_vector_resize(self, writable, htable, uniques, dtype,
+                           safely_resizes, nvals):
         # Test for memory errors after internal vector
-        # reallocations (pull request #7157)
+        # reallocations (GH 7157)
+        vals = np.array(np.random.randn(1000), dtype=dtype)
 
-        def _test_vector_resize(htable, uniques, dtype, nvals, safely_resizes):
-            vals = np.array(np.random.randn(1000), dtype=dtype)
-            # GH 21688 ensure we can deal with readonly memory views
-            vals.setflags(write=writable)
-            # get_labels may append to uniques
-            htable.get_labels(vals[:nvals], uniques, 0, -1)
-            # to_array() set an external_view_exists flag on uniques.
-            tmp = uniques.to_array()
-            oldshape = tmp.shape
-            # subsequent get_labels() calls can no longer append to it
-            # (for all but StringHashTables + ObjectVector)
-            if safely_resizes:
+        # GH 21688 ensure we can deal with readonly memory views
+        vals.setflags(write=writable)
+
+        # initialise instances
+        htable = htable()
+        uniques = uniques()
+
+        # get_labels may append to uniques
+        htable.get_labels(vals[:nvals], uniques, 0, -1)
+        # to_array() sets an external_view_exists flag on uniques.
+        tmp = uniques.to_array()
+        oldshape = tmp.shape
+
+        # subsequent get_labels() calls can no longer append to it
+        # (except for StringHashTables + ObjectVector)
+        if safely_resizes:
+            htable.get_labels(vals, uniques, 0, -1)
+        else:
+            with tm.assert_raises_regex(ValueError, 'external reference.*'):
                 htable.get_labels(vals, uniques, 0, -1)
-            else:
-                with pytest.raises(ValueError) as excinfo:
-                    htable.get_labels(vals, uniques, 0, -1)
-                assert str(excinfo.value).startswith('external reference')
-            uniques.to_array()   # should not raise here
-            assert tmp.shape == oldshape
 
-        test_cases = [
-            (ht.PyObjectHashTable, ht.ObjectVector, 'object', False),
-            (ht.StringHashTable, ht.ObjectVector, 'object', True),
-            (ht.Float64HashTable, ht.Float64Vector, 'float64', False),
-            (ht.Int64HashTable, ht.Int64Vector, 'int64', False),
-            (ht.UInt64HashTable, ht.UInt64Vector, 'uint64', False)]
-
-        for (tbl, vect, dtype, safely_resizes) in test_cases:
-            # resizing to empty is a special case
-            _test_vector_resize(tbl(), vect(), dtype, 0, safely_resizes)
-            _test_vector_resize(tbl(), vect(), dtype, 10, safely_resizes)
+        uniques.to_array()   # should not raise here
+        assert tmp.shape == oldshape
 
 
 def test_quantile():
@@ -1315,14 +1315,14 @@ def test_unique_label_indices():
 
     a = np.random.randint(1, 1 << 10, 1 << 15).astype('i8')
 
-    left = unique_label_indices(a)
+    left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
 
     tm.assert_numpy_array_equal(left, right,
                                 check_dtype=False)
 
     a[np.random.choice(len(a), 10)] = -1
-    left = unique_label_indices(a)
+    left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1][1:]
     tm.assert_numpy_array_equal(left, right,
                                 check_dtype=False)
