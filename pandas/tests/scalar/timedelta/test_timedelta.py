@@ -396,7 +396,6 @@ class TestTimedeltas(object):
             return v.astype('m8[ns]')
 
         assert ct('10ns') == np.timedelta64(10, 'ns')
-        assert ct('100') == np.timedelta64(100, 'ns')
         assert ct('100ns') == np.timedelta64(100, 'ns')
 
         assert ct('1000ns') == np.timedelta64(1000, 'ns')
