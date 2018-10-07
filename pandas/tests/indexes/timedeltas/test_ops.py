@@ -241,7 +241,7 @@ class TestTimedeltaIndexOps(Ops):
 
     def test_nat_new(self):
 
-        idx = pd.timedelta_range('1', freq='D', periods=5, name='x')
+        idx = pd.timedelta_range('1ns', freq='D', periods=5, name='x')
         result = idx._nat_new()
         exp = pd.TimedeltaIndex([pd.NaT] * 5, name='x')
         tm.assert_index_equal(result, exp)

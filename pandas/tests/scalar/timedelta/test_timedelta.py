@@ -395,12 +395,10 @@ class TestTimedeltas(object):
         def conv(v):
             return v.astype('m8[ns]')
 
-        assert ct('10') == np.timedelta64(10, 'ns')
         assert ct('10ns') == np.timedelta64(10, 'ns')
         assert ct('100') == np.timedelta64(100, 'ns')
         assert ct('100ns') == np.timedelta64(100, 'ns')
 
-        assert ct('1000') == np.timedelta64(1000, 'ns')
         assert ct('1000ns') == np.timedelta64(1000, 'ns')
         assert ct('1000NS') == np.timedelta64(1000, 'ns')
 
@@ -537,7 +535,7 @@ class TestTimedeltas(object):
     def test_total_seconds_precision(self):
         # GH 19458
         assert Timedelta('30S').total_seconds() == 30.0
-        assert Timedelta('0').total_seconds() == 0.0
+        assert Timedelta('0ns').total_seconds() == 0.0
         assert Timedelta('-2S').total_seconds() == -2.0
         assert Timedelta('5.324S').total_seconds() == 5.324
         assert (Timedelta('30S').total_seconds() - 30.0) < 1e-20

@@ -1372,7 +1372,7 @@ class TestTSPlot(TestPlotBase):
                 '00:00:00.00000000{:d}'.format(i)
                 for i in range(10)]
 
-        rng = timedelta_range('0', periods=10, freq='ns')
+        rng = timedelta_range('0ns', periods=10, freq='ns')
         df = DataFrame(np.random.randn(len(rng), 3), rng)
         fig, ax = self.plt.subplots()
         df.plot(fontsize=2, ax=ax)
@@ -1414,7 +1414,7 @@ class TestTSPlot(TestPlotBase):
                 ''
             ]
 
-        rng = timedelta_range('0', periods=10, freq='1 d')
+        rng = timedelta_range('0ns', periods=10, freq='1 d')
         df = DataFrame(np.random.randn(len(rng), 3), rng)
         fig, ax = self.plt.subplots()
         ax = df.plot(fontsize=2, ax=ax)

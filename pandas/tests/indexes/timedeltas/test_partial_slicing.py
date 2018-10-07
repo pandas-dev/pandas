@@ -53,7 +53,7 @@ class TestSlicing(object):
         assert result == s.iloc[1001]
 
     def test_slice_with_negative_step(self):
-        ts = Series(np.arange(20), timedelta_range('0', periods=20, freq='H'))
+        ts = Series(np.arange(20), timedelta_range('0ns', periods=20, freq='H'))
         SLC = pd.IndexSlice
 
         def assert_slices_equivalent(l_slc, i_slc):
@@ -78,7 +78,7 @@ class TestSlicing(object):
         assert_slices_equivalent(SLC['7 hours':'15 hours':-1], SLC[:0])
 
     def test_slice_with_zero_step_raises(self):
-        ts = Series(np.arange(20), timedelta_range('0', periods=20, freq='H'))
+        ts = Series(np.arange(20), timedelta_range('0ns', periods=20, freq='H'))
         tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
                                lambda: ts[::0])
         tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
