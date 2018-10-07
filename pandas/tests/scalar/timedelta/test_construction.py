@@ -224,5 +224,9 @@ def test_td_constructor_value_error():
 def test_string_with_unit(str_unit, unit, expectation):
     with expectation:
         val_str = "10{}".format(str_unit)
-        assert Timedelta(val_str, unit=unit) == Timedelta(10, unit=unit)
-        assert pd.to_timedelta(val_str, unit=unit) == Timedelta(10, unit=unit)
+        expected_td = Timedelta(10, unit=unit)
+
+        assert Timedelta(val_str, unit=unit) == expected_td
+        assert pd.to_timedelta(val_str, unit=unit) == expected_td
+        assert pd.to_timedelta([val_str, val_str], unit=unit) == \
+            pd.to_timedelta([expected_td, expected_td])
