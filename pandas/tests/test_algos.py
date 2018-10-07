@@ -1328,12 +1328,6 @@ class TestHashTable(object):
         result_unique = htable().unique(s_duplicated.values)
         tm.assert_numpy_array_equal(result_unique, expected_unique)
 
-        result_unique, result_inverse = htable().unique(s_duplicated.values,
-                                                        return_inverse=True)
-        tm.assert_numpy_array_equal(result_unique, expected_unique)
-        reconstr = result_unique[result_inverse]
-        tm.assert_numpy_array_equal(reconstr, s_duplicated.values)
-
 
 def test_quantile():
     s = Series(np.random.randn(100))

@@ -358,9 +358,32 @@ cdef class {{name}}HashTable(HashTable):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def _unique_with_inverse(self, const {{dtype}}_t[:] values,
-                             {{name}}Vector uniques, bint ignore_na=False,
-                             Py_ssize_t count_prior=0,
+                             {{name}}Vector uniques, Py_ssize_t count_prior=0,
                              Py_ssize_t na_sentinel=-1, object na_value=None):
+        """
+        Calculate unique values without sorting; ignores all NA-values
+
+        Parameters
+        ----------
+        values : ndarray[{{dtype}}]
+            Array of values of which unique will be calculated
+        uniques : {{name}}Vector
+            Vector into which uniques will be written
+        count_prior : Py_ssize_t, default 0
+            Number of existing entries in uniques
+        na_sentinel : Py_ssize_t, default -1
+            Sentinel value used for all NA-values in inverse
+        na_value : object, default None
+            Value to identify as missing. If na_value is None, then
+            any value satisfying val!=val are considered missing.
+
+        Returns
+        -------
+        uniques : ndarray[{{dtype}}]
+            Unique values of input, not sorted
+        labels : ndarray[int64]
+            The labels from values to uniques
+        """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
             int64_t[:] labels
@@ -388,8 +411,7 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 val = values[i]
 
-                if ignore_na and (val != val
-                                  or (use_na_value and val == na_value2)):
+                if val != val or (use_na_value and val == na_value2):
                     labels[i] = na_sentinel
                     continue
 
@@ -417,20 +439,13 @@ cdef class {{name}}HashTable(HashTable):
 
         return uniques.to_array(), np.asarray(labels)
 
-    def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
-        if return_inverse:
-            return self._unique_with_inverse(values, uniques={{name}}Vector(),
-                                             ignore_na=False)
-        return self._unique_no_inverse(values)
-
     def factorize(self, {{dtype}}_t[:] values):
-        return self._unique_with_inverse(values, uniques={{name}}Vector(),
-                                         ignore_na=True)
+        return self._unique_with_inverse(values, uniques={{name}}Vector())
 
     def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
-        _, labels = self._unique_with_inverse(values, uniques, ignore_na=True,
+        _, labels = self._unique_with_inverse(values, uniques,
                                               count_prior=count_prior,
                                               na_sentinel=na_sentinel,
                                               na_value=na_value)
@@ -483,8 +498,20 @@ cdef class {{name}}HashTable(HashTable):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _unique_no_inverse(self, const {{dtype}}_t[:] values):
-        # define separate functions without inverse for performance
+    def unique(self, const {{dtype}}_t[:] values):
+        """
+        Calculate unique values without sorting
+
+        Parameters
+        ----------
+        values : ndarray[object]
+            Array of values of which unique will be calculated
+
+        Returns
+        -------
+        uniques : ndarray[object]
+            Unique values of input, not sorted
+        """
         cdef:
            Py_ssize_t i, n = len(values)
            int ret = 0
@@ -588,8 +615,20 @@ cdef class StringHashTable(HashTable):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _unique_no_inverse(self, ndarray[object] values):
-        # define separate functions without inverse for performance
+    def unique(self, ndarray[object] values):
+        """
+        Calculate unique values without sorting
+
+        Parameters
+        ----------
+        values : ndarray[object]
+            Array of values of which unique will be calculated
+
+        Returns
+        -------
+        uniques : ndarray[object]
+            Unique values of input, not sorted
+        """
         cdef:
             Py_ssize_t i, count, n = len(values)
             int64_t[:] uindexer
@@ -688,9 +727,31 @@ cdef class StringHashTable(HashTable):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def _unique_with_inverse(self, ndarray[object] values,
-                             ObjectVector uniques, bint ignore_na=False,
-                             Py_ssize_t count_prior=0,
+                             ObjectVector uniques, Py_ssize_t count_prior=0,
                              Py_ssize_t na_sentinel=-1, object na_value=None):
+        """
+        Calculate unique values without sorting; ignores all NA-values
+
+        Parameters
+        ----------
+        values : ndarray[object]
+            Array of values of which unique will be calculated
+        uniques : ObjectVector
+            Vector into which uniques will be written
+        count_prior : Py_ssize_t, default 0
+            Number of existing entries in uniques
+        na_sentinel : Py_ssize_t, default -1
+            Sentinel value used for all NA-values in inverse
+        na_value : object, default None
+            Value to identify as missing
+
+        Returns
+        -------
+        uniques : ndarray[object]
+            Unique values of input, not sorted
+        labels : ndarray[int64]
+            The labels from values to uniques
+        """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
             int64_t[:] labels
@@ -706,14 +767,13 @@ cdef class StringHashTable(HashTable):
         uindexer = np.empty(n, dtype=np.int64)
         use_na_value = na_value is not None
 
-        # assign pointers and pre-filter out missing (if ignore_na)
+        # assign pointers and pre-filter out missing
         vecs = <const char **> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 
-            if not ignore_na or ((PyUnicode_Check(val) or PyString_Check(val))
-                                 and not (use_na_value and val == na_value)):
-                # if ignore_na is False, we also stringify NaN/None/etc.
+            if (PyUnicode_Check(val) or PyString_Check(val))
+                and not (use_na_value and val == na_value)):
                 v = util.get_c_string(val)
                 vecs[i] = v
             else:
@@ -722,7 +782,7 @@ cdef class StringHashTable(HashTable):
         # compute
         with nogil:
             for i in range(n):
-                if ignore_na and labels[i] == na_sentinel:
+                if labels[i] == na_sentinel:
                     continue
 
                 v = vecs[i]
@@ -747,20 +807,13 @@ cdef class StringHashTable(HashTable):
 
         return uniques.to_array(), np.asarray(labels)
 
-    def unique(self, ndarray[object] values, bint return_inverse=False):
-        if return_inverse:
-            return self._unique_with_inverse(values, uniques=ObjectVector(),
-                                             ignore_na=False)
-        return self._unique_no_inverse(values)
-
     def factorize(self, ndarray[object] values):
-        return self._unique_with_inverse(values, uniques=ObjectVector(),
-                                         ignore_na=True)
+        return self._unique_with_inverse(values, uniques=ObjectVector())
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
-        _, labels = self._unique_with_inverse(values, uniques, ignore_na=True,
+        _, labels = self._unique_with_inverse(values, uniques,
                                               count_prior=count_prior,
                                               na_sentinel=na_sentinel,
                                               na_value=na_value)
@@ -854,8 +907,20 @@ cdef class PyObjectHashTable(HashTable):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _unique_no_inverse(self, ndarray[object] values):
-        # define separate functions without inverse for performance
+    def unique(self, ndarray[object] values):
+        """
+        Calculate unique values without sorting
+
+        Parameters
+        ----------
+        values : ndarray[object]
+            Array of values of which unique will be calculated
+
+        Returns
+        -------
+        uniques : ndarray[object]
+            Unique values of input, not sorted
+        """
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -876,9 +941,32 @@ cdef class PyObjectHashTable(HashTable):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def _unique_with_inverse(self, ndarray[object] values,
-                             ObjectVector uniques, bint ignore_na=False,
-                             Py_ssize_t count_prior=0,
+                             ObjectVector uniques, Py_ssize_t count_prior=0,
                              Py_ssize_t na_sentinel=-1, object na_value=None):
+        """
+        Calculate unique values without sorting; ignores all NA-values
+
+        Parameters
+        ----------
+        values : ndarray[object]
+            Array of values of which unique will be calculated
+        uniques : ObjectVector
+            Vector into which uniques will be written
+        count_prior : Py_ssize_t, default 0
+            Number of existing entries in uniques
+        na_sentinel : Py_ssize_t, default -1
+            Sentinel value used for all NA-values in inverse
+        na_value : object, default None
+            Value to identify as missing. If na_value is None, then None _plus_
+            any value satisfying val!=val are considered missing.
+
+        Returns
+        -------
+        uniques : ndarray[object]
+            Unique values of input, not sorted
+        labels : ndarray[int64]
+            The labels from values to uniques
+        """
         cdef:
             Py_ssize_t i, idx, count = count_prior, n = len(values)
             int64_t[:] labels
@@ -894,8 +982,8 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            if ignore_na and ((val != val or val is None)
-                              or (use_na_value and val == na_value)):
+            if ((val != val or val is None)
+                or (use_na_value and val == na_value)):
                 labels[i] = na_sentinel
                 continue
 
@@ -914,19 +1002,13 @@ cdef class PyObjectHashTable(HashTable):
 
         return uniques.to_array(), np.asarray(labels)
 
-    def unique(self, ndarray[object] values, bint return_inverse=False):
-        if return_inverse:
-            return self._unique_with_inverse(values, uniques=ObjectVector(),
-                                             ignore_na=False)
-        return self._unique_no_inverse(values)
-
     def factorize(self, ndarray[object] values):
-        return self._unique_with_inverse(values, uniques=ObjectVector(), ignore_na=True)
+        return self._unique_with_inverse(values, uniques=ObjectVector())
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
-        _, labels = self._unique_with_inverse(values, uniques, ignore_na=True,
+        _, labels = self._unique_with_inverse(values, uniques,
                                               count_prior=count_prior,
                                               na_sentinel=na_sentinel,
                                               na_value=na_value)
