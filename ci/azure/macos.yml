@@ -10,7 +10,7 @@ jobs:
     maxParallel: 11
     matrix:
       py35_np_110:
-        ENV_FILE: ci/azure-macos-35.yml
+        ENV_FILE: ci/azure-macos-35.yaml
         CONDA_PY: "35"
         CONDA_ENV: pandas
         TEST_ARGS: "--skip-slow --skip-network"
