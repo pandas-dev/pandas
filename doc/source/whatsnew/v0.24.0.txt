@@ -567,7 +567,6 @@ Previous Behavior:
 
    In [3]: arr = np.arange(6).reshape(3, 2)
    In [4]: df = pd.DataFrame(arr)
-
    In [5]: df + arr[[0], :]   # 1 row, 2 columns
    ...
    ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (1, 2)

@@ -813,9 +813,8 @@ class TestDataFrameOperators(TestData):
             # wrong shape
             result = df > tup
 
-        with pytest.raises(ValueError):
-            # wrong shape
-            result = df > b_r
+        result = df > b_r  # broadcasts like ndarray (GH#23000)
+        assert_frame_equal(result, expected)
 
         result = df.values > b_r
         assert_numpy_array_equal(result, expected.values)
@@ -837,8 +836,8 @@ class TestDataFrameOperators(TestData):
         with pytest.raises(ValueError):
             result = df == tup
 
-        with pytest.raises(ValueError):
-            result = df == b_r
+        result = df == b_r  # broadcasts like ndarray (GH#23000)
+        assert_frame_equal(result, expected)
 
         result = df.values == b_r
         assert_numpy_array_equal(result, expected.values)
