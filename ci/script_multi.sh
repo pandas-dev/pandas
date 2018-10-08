@@ -28,16 +28,16 @@ if [ "$DOC" ]; then
 
 elif [ "$COVERAGE" ]; then
     echo pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
-    pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
+    pytest      -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
 
 elif [ "$SLOW" ]; then
     TEST_ARGS="--only-slow --skip-network"
-    echo pytest -r xX -m "not single and slow" -v --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
-    pytest -r xX -m "not single and slow" -v --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
+    echo pytest -m "not single and slow" -v --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
+    pytest      -m "not single and slow" -v --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
 
 else
-    echo pytest -n 2 -r xX -m "not single" --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
-    pytest -n 2 -r xX -m "not single" --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas # TODO: doctest
+    echo pytest -n 2 -m "not single" --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
+    pytest      -n 2 -m "not single" --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas # TODO: doctest
 
 fi
 
