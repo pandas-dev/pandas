@@ -199,6 +199,7 @@ Other Enhancements
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- A newly constructed empty :class:`DataFrame` with integer as the ``dtype`` will now only be cast to ``float64`` if ``index`` is specified (:issue:`22858`)
 
 
 .. _whatsnew_0240.api_breaking.interval_values:
@@ -518,6 +519,39 @@ Previous Behavior:
     0 NaT
 
 
+.. _whatsnew_0240.api.dataframe_arithmetic_broadcasting:
+
+DataFrame Arithmetic Operations Broadcasting Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:class:`DataFrame` arithmetic operations when operating with 2-dimensional
+``np.ndarray`` objects now broadcast in the same way as ``np.ndarray``s
+broadcast.  (:issue:`23000`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [3]: arr = np.arange(6).reshape(3, 2)
+   In [4]: df = pd.DataFrame(arr)
+   In [5]: df + arr[[0], :]   # 1 row, 2 columns
+   ...
+   ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (1, 2)
+   In [6]: df + arr[:, [1]]   # 1 column, 3 rows
+   ...
+   ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (3, 1)
+
+*Current Behavior*:
+
+.. ipython:: python
+   arr = np.arange(6).reshape(3, 2)
+   df = pd.DataFrame(arr)
+   df
+
+.. ipython:: python
+   df + arr[[0], :]   # 1 row, 2 columns
+   df + arr[:, [1]]   # 1 column, 3 rows
+
+
 .. _whatsnew_0240.api.extension:
 
 ExtensionType Changes
@@ -536,6 +570,7 @@ ExtensionType Changes
 - :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
 - Slicing a single row of a ``DataFrame`` with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - Added :meth:`pandas.api.types.register_extension_dtype` to register an extension type with pandas (:issue:`22664`)
+- Updated the ``.type`` attribute for ``PeriodDtype``, ``DatetimeTZDtype``, and ``IntervalDtype`` to be instances of the dtype (``Period``, ``Timestamp``, and ``Interval`` respectively) (:issue:`22938`)
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -562,6 +597,35 @@ Current Behavior:
     Out [4]:
     ...
     OverflowError: Trying to coerce negative values to unsigned integers
+
+.. _whatsnew_0240.api.crosstab_dtypes
+
+Crosstab Preserves Dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`crosstab` will preserve now dtypes in some cases that previously would
+cast from integer dtype to floating dtype (:issue:`22019`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+       ...:                    'c': [1, 1, np.nan, 1, 1]})
+    In [4]: pd.crosstab(df.a, df.b, normalize='columns')
+    Out[4]:
+    b    3    4
+    a
+    1  0.5  0.0
+    2  0.5  1.0
+
+Current Behavior:
+
+.. code-block:: ipython
+
+    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+       ...:                    'c': [1, 1, np.nan, 1, 1]})
+    In [4]: pd.crosstab(df.a, df.b, normalize='columns')
 
 Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -697,7 +761,7 @@ Timedelta
 - Bug in :class:`Index` with numeric dtype when multiplying or dividing an array with dtype ``timedelta64`` (:issue:`22390`)
 - Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 - Fixed bug where subtracting :class:`Timedelta` from an object-dtyped array would raise ``TypeError`` (:issue:`21980`)
--
+- Fixed bug in adding a :class:`DataFrame` with all-`timedelta64[ns]` dtypes to a :class:`DataFrame` with all-integer dtypes returning incorrect results instead of raising ``TypeError`` (:issue:`22696`)
 -
 
 Timezones
@@ -757,7 +821,7 @@ Interval
 - Bug in the :class:`IntervalIndex` constructor where the ``closed`` parameter did not always override the inferred ``closed`` (:issue:`19370`)
 - Bug in the ``IntervalIndex`` repr where a trailing comma was missing after the list of intervals (:issue:`20611`)
 - Bug in :class:`Interval` where scalar arithmetic operations did not retain the ``closed`` value (:issue:`22313`)
--
+- Bug in :class:`IntervalIndex` where indexing with datetime-like values raised a ``KeyError`` (:issue:`20636`)
 
 Indexing
 ^^^^^^^^
@@ -825,6 +889,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`Resampler.asfreq` when frequency of ``TimedeltaIndex`` is a subperiod of a new frequency (:issue:`13022`).
 - Bug in :meth:`SeriesGroupBy.mean` when values were integral but could not fit inside of int64, overflowing instead. (:issue:`22487`)
 - :func:`RollingGroupby.agg` and :func:`ExpandingGroupby.agg` now support multiple aggregation functions as parameters (:issue:`15072`)
+- Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` when resampling by a weekly offset (``'W'``) across a DST transition (:issue:`9119`, :issue:`21459`)
 
 Sparse
 ^^^^^^
@@ -848,6 +913,7 @@ Reshaping
 - Bug in :meth:`DataFrame.drop_duplicates` for empty ``DataFrame`` which incorrectly raises an error (:issue:`20516`)
 - Bug in :func:`pandas.wide_to_long` when a string is passed to the stubnames argument and a column name is a substring of that stubname (:issue:`22468`)
 - Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
+- Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -865,4 +931,3 @@ Other
 - :meth:`DataFrame.nlargest` and :meth:`DataFrame.nsmallest` now returns the correct n values when keep != 'all' also when tied on the first columns (:issue:`22752`)
 - :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax`` (:issue:`21548` and :issue:`21526`). ``NaN`` values are also handled properly.
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
--

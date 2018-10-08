@@ -462,7 +462,8 @@ class Window(_Window):
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA). For a window that is specified by an offset,
-        this will default to 1.
+        `min_periods` will default to 1. Otherwise, `min_periods` will default
+        to the size of the window.
     center : boolean, default False
         Set the labels at the center of the window.
     win_type : string, default None
@@ -2504,7 +2505,7 @@ def _offset(window, center):
     offset = (window - 1) / 2. if center else 0
     try:
         return int(offset)
-    except:
+    except TypeError:
         return offset.astype(int)
 
 

@@ -4,6 +4,8 @@ import re
 import numpy as np
 from pandas import compat
 from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
+from pandas._libs.tslibs import Period, NaT, Timestamp
+from pandas._libs.interval import Interval
 
 from .base import ExtensionDtype, _DtypeOpsMixin
 
@@ -358,10 +360,10 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         try:
             if string == 'category':
                 return cls()
-        except:
+            else:
+                raise TypeError("cannot construct a CategoricalDtype")
+        except AttributeError:
             pass
-
-        raise TypeError("cannot construct a CategoricalDtype")
 
     @staticmethod
     def validate_ordered(ordered):
@@ -469,13 +471,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return is_bool_dtype(self.categories)
 
 
-class DatetimeTZDtypeType(type):
-    """
-    the type of DatetimeTZDtype, this metaclass determines subclass ability
-    """
-    pass
-
-
 class DatetimeTZDtype(PandasExtensionDtype):
 
     """
@@ -485,7 +480,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of
     np.datetime64[ns]
     """
-    type = DatetimeTZDtypeType
+    type = Timestamp
     kind = 'M'
     str = '|M8[ns]'
     num = 101
@@ -519,7 +514,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 if m is not None:
                     unit = m.groupdict()['unit']
                     tz = m.groupdict()['tz']
-            except:
+            except TypeError:
                 raise ValueError("could not construct DatetimeTZDtype")
 
         elif isinstance(unit, compat.string_types):
@@ -583,20 +578,13 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 str(self.tz) == str(other.tz))
 
 
-class PeriodDtypeType(type):
-    """
-    the type of PeriodDtype, this metaclass determines subclass ability
-    """
-    pass
-
-
 class PeriodDtype(PandasExtensionDtype):
     """
     A Period duck-typed class, suitable for holding a period with freq dtype.
 
     THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.int64.
     """
-    type = PeriodDtypeType
+    type = Period
     kind = 'O'
     str = '|O08'
     base = np.dtype('O')
@@ -666,11 +654,15 @@ class PeriodDtype(PandasExtensionDtype):
         raise TypeError("could not construct PeriodDtype")
 
     def __unicode__(self):
-        return "period[{freq}]".format(freq=self.freq.freqstr)
+        return compat.text_type(self.name)
 
     @property
     def name(self):
-        return str(self)
+        return str("period[{freq}]".format(freq=self.freq.freqstr))
+
+    @property
+    def na_value(self):
+        return NaT
 
     def __hash__(self):
         # make myself hashable
@@ -703,13 +695,6 @@ class PeriodDtype(PandasExtensionDtype):
             else:
                 return False
         return super(PeriodDtype, cls).is_dtype(dtype)
-
-
-class IntervalDtypeType(type):
-    """
-    the type of IntervalDtype, this metaclass determines subclass ability
-    """
-    pass
 
 
 @register_extension_dtype
@@ -800,7 +785,6 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @property
     def type(self):
-        from pandas import Interval
         return Interval
 
     def __unicode__(self):

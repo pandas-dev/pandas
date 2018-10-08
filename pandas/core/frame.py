@@ -883,16 +883,22 @@ class DataFrame(NDFrame):
 
     def itertuples(self, index=True, name="Pandas"):
         """
-        Iterate over DataFrame rows as namedtuples, with index value as first
-        element of the tuple.
+        Iterate over DataFrame rows as namedtuples.
 
         Parameters
         ----------
-        index : boolean, default True
+        index : bool, default True
             If True, return the index as the first element of the tuple.
-        name : string, default "Pandas"
+        name : str, default "Pandas"
             The name of the returned namedtuples or None to return regular
             tuples.
+
+        Yields
+        -------
+        collections.namedtuple
+            Yields a namedtuple for each row in the DataFrame with the first
+            field possibly being the index and following fields being the
+            column values.
 
         Notes
         -----
@@ -900,26 +906,43 @@ class DataFrame(NDFrame):
         invalid Python identifiers, repeated, or start with an underscore.
         With a large number of columns (>255), regular tuples are returned.
 
-        See also
+        See Also
         --------
-        iterrows : Iterate over DataFrame rows as (index, Series) pairs.
-        iteritems : Iterate over (column name, Series) pairs.
+        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series)
+            pairs.
+        DataFrame.iteritems : Iterate over (column name, Series) pairs.
 
         Examples
         --------
-
-        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [0.1, 0.2]},
-                              index=['a', 'b'])
+        >>> df = pd.DataFrame({'num_legs': [4, 2], 'num_wings': [0, 2]},
+        ...                   index=['dog', 'hawk'])
         >>> df
-           col1  col2
-        a     1   0.1
-        b     2   0.2
+              num_legs  num_wings
+        dog          4          0
+        hawk         2          2
         >>> for row in df.itertuples():
         ...     print(row)
         ...
-        Pandas(Index='a', col1=1, col2=0.10000000000000001)
-        Pandas(Index='b', col1=2, col2=0.20000000000000001)
+        Pandas(Index='dog', num_legs=4, num_wings=0)
+        Pandas(Index='hawk', num_legs=2, num_wings=2)
 
+        By setting the `index` parameter to False we can remove the index
+        as the first element of the tuple:
+
+        >>> for row in df.itertuples(index=False):
+        ...     print(row)
+        ...
+        Pandas(num_legs=4, num_wings=0)
+        Pandas(num_legs=2, num_wings=2)
+
+        With the `name` parameter set we set a custom name for the yielded
+        namedtuples:
+
+        >>> for row in df.itertuples(name='Animal'):
+        ...     print(row)
+        ...
+        Animal(Index='dog', num_legs=4, num_wings=0)
+        Animal(Index='hawk', num_legs=2, num_wings=2)
         """
         arrays = []
         fields = []
@@ -3264,7 +3287,7 @@ class DataFrame(NDFrame):
         if not len(self.index) and is_list_like(value):
             try:
                 value = Series(value)
-            except:
+            except (ValueError, NotImplementedError, TypeError):
                 raise ValueError('Cannot set a frame with no defined index '
                                  'and a value that cannot be converted to a '
                                  'Series')
@@ -3633,7 +3656,8 @@ class DataFrame(NDFrame):
                                             fill_axis=fill_axis,
                                             broadcast_axis=broadcast_axis)
 
-    @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.reindex.__doc__)
     @rewrite_axis_style_signature('labels', [('method', None),
                                              ('copy', True),
                                              ('level', None),
@@ -4483,7 +4507,8 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Sorting
 
-    @Appender(_shared_docs['sort_values'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.sort_values.__doc__)
     def sort_values(self, by, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
         inplace = validate_bool_kwarg(inplace, 'inplace')
@@ -4525,7 +4550,8 @@ class DataFrame(NDFrame):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    @Appender(_shared_docs['sort_index'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.sort_index.__doc__)
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True,
                    by=None):
@@ -4890,7 +4916,7 @@ class DataFrame(NDFrame):
             left, right = ops.fill_binop(left, right, fill_value)
             return func(left, right)
 
-        if this._is_mixed_type or other._is_mixed_type:
+        if ops.should_series_dispatch(this, other, func):
             # iterate over columns
             return ops.dispatch_to_series(this, other, _arith_op)
         else:
@@ -4900,7 +4926,6 @@ class DataFrame(NDFrame):
                                      copy=False)
 
     def _combine_match_index(self, other, func, level=None):
-        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
         assert left.index.equals(right.index)
@@ -4910,7 +4935,8 @@ class DataFrame(NDFrame):
             return ops.dispatch_to_series(left, right, func)
         else:
             # fastpath --> operate directly on values
-            new_data = func(left.values.T, right.values).T
+            with np.errstate(all="ignore"):
+                new_data = func(left.values.T, right.values).T
             return self._constructor(new_data,
                                      index=left.index, columns=self.columns,
                                      copy=False)
@@ -4920,11 +4946,7 @@ class DataFrame(NDFrame):
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         assert left.columns.equals(right.index)
-
-        new_data = left._data.eval(func=func, other=right,
-                                   axes=[left.columns, self.index],
-                                   try_cast=try_cast)
-        return self._constructor(new_data)
+        return ops.dispatch_to_series(left, right, func, axis="columns")
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
         if lib.is_scalar(other) or np.ndim(other) == 0:
@@ -7751,7 +7773,7 @@ def _prep_ndarray(values, copy=True):
                 values = np.array([convert(v) for v in values])
             else:
                 values = convert(values)
-        except:
+        except (ValueError, TypeError):
             values = convert(values)
 
     else:
