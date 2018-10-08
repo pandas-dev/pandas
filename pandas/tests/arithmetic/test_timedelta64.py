@@ -388,19 +388,11 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with pytest.raises(TypeError):
             p - idx
 
-    @pytest.mark.parametrize('box', [
-        pd.Index,
-        Series,
-        pytest.param(pd.DataFrame,
-                     marks=pytest.mark.xfail(reason="broadcasts along "
-                                                    "wrong axis",
-                                             raises=ValueError,
-                                             strict=True))
-    ], ids=lambda x: x.__name__)
     @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
     @pytest.mark.parametrize('tdi_freq', [None, 'H'])
-    def test_td64arr_sub_pi(self, box, tdi_freq, pi_freq):
+    def test_td64arr_sub_pi(self, box_df_broadcast_failure, tdi_freq, pi_freq):
         # GH#20049 subtracting PeriodIndex should raise TypeError
+        box = box_df_broadcast_failure
         tdi = TimedeltaIndex(['1 hours', '2 hours'], freq=tdi_freq)
         dti = Timestamp('2018-03-07 17:16:40') + tdi
         pi = dti.to_period(pi_freq)
@@ -529,16 +521,9 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with pytest.raises(err):
             Series([2, 3, 4]) - tdser
 
-    @pytest.mark.parametrize('box', [
-        pd.Index,
-        Series,
-        pytest.param(pd.DataFrame,
-                     marks=pytest.mark.xfail(reason="Attempts to broadcast "
-                                                    "incorrectly",
-                                             strict=True, raises=ValueError))
-    ], ids=lambda x: x.__name__)
-    def test_td64arr_add_intlike(self, box):
+    def test_td64arr_add_intlike(self, box_df_broadcast_failure):
         # GH#19123
+        box = box_df_broadcast_failure
         tdi = TimedeltaIndex(['59 days', '59 days', 'NaT'])
         ser = tm.box_expected(tdi, box)
         err = TypeError if box is not pd.Index else NullFrequencyError
@@ -706,21 +691,13 @@ class TestTimedeltaArraylikeAddSubOps(object):
         tm.assert_equal(result, expected)
 
     # TODO: parametrize over [add, sub, radd, rsub]?
-    @pytest.mark.parametrize('box', [
-        pd.Index,
-        Series,
-        pytest.param(pd.DataFrame,
-                     marks=pytest.mark.xfail(reason="Tries to broadcast "
-                                                    "incorrectly leading "
-                                                    "to alignment error",
-                                             strict=True, raises=ValueError))
-    ], ids=lambda x: x.__name__)
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('Egon', 'Venkman', None),
                                        ('NCC1701D', 'NCC1701D', 'NCC1701D')])
-    def test_td64arr_add_sub_tdi(self, box, names):
+    def test_td64arr_add_sub_tdi(self, box_df_broadcast_failure, names):
         # GH#17250 make sure result dtype is correct
         # GH#19043 make sure names are propagated correctly
+        box = box_df_broadcast_failure
         tdi = TimedeltaIndex(['0 days', '1 day'], name=names[0])
         ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[1])
         expected = Series([Timedelta(hours=3), Timedelta(days=1, hours=4)],
@@ -830,19 +807,12 @@ class TestTimedeltaArraylikeAddSubOps(object):
             td - op(5)
             op(5) - td
 
-    @pytest.mark.parametrize('box', [
-        pd.Index,
-        Series,
-        pytest.param(pd.DataFrame,
-                     marks=pytest.mark.xfail(reason="Tries to broadcast "
-                                                    "incorrectly",
-                                             strict=True, raises=ValueError))
-    ], ids=lambda x: x.__name__)
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('foo', 'bar', None),
                                        ('foo', 'foo', 'foo')])
-    def test_td64arr_add_offset_index(self, names, box):
+    def test_td64arr_add_offset_index(self, names, box_df_broadcast_failure):
         # GH#18849, GH#19744
+        box = box_df_broadcast_failure
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
                              name=names[0])
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],
