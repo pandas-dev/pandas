@@ -7394,16 +7394,16 @@ class DataFrame(NDFrame):
 
         This function returns the Series of 'q' quantile value(s)
         from the DataFrame, dividing data points into groups
-        along `axis` axis.
+        along `axis` axis
         In case of insufficient number of data points for clean division
         into groups, specify `interpolation` scheme to implement.
 
         Parameters
         ----------
         q : float or array-like, default 0.5
-            The quantile(s) to compute (0 <= q <= 1) (0.5 == 50% quantile)
-            If float is passed as `q`, scalar quantile is returned
-            If `array-like` is passed as `q`, Series is returned.
+            The quantile(s) to compute,
+            should be a float between 0 and 1 (inclusive),
+            0.5 is equivalent to calculate 50% quantile value ie the median.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             For row-wise : 0 or'index', for column-wise : 1 or 'columns'.
         numeric_only : bool, default True
@@ -7422,69 +7422,58 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        Series or DataFrame
-            - If `q` is an array, a DataFrame will be returned where the
-              index is `q`, the columns are the columns of self, and the
-              values are the quantiles.
-            - If `q` is a float, a Series will be returned where the
-              index is the columns of self and the values are the quantiles.
+        Series
 
         See Also
         --------
         pandas.core.window.Rolling.quantile
             Returns the rolling quantile for the DataFrame.
         numpy.percentile
-            Returns 'nth' percentile for the DataFrame.
+            Returns 'nth' percentile for numpy arrays.
 
         Examples
         --------
-        >>> import pandas as pd
-        >>> d = {'Data': [416, 493, 423, 859, 32, 548,\
-                             33, 951, 450, 1001, 998]}
+        >>> import numpy as np
+        >>> d = {'animal':['Cheetah','Falcon','Eagle','Goose','Pigeon'],
+        ... 'class':['mammal','bird','bird','bird','bird'],
+        ... 'max_speed':[120,np.nan,320,142,150]}
         >>> df = pd.DataFrame(data=d)
         >>> df
-            Data
-        0    416
-        1    493
-        2    423
-        3    859
-        4     32
-        5    548
-        6     33
-        7    951
-        8    450
-        9   1001
-        10   998
-        >>> for i in sorted(df['Data'],reverse=True): print(i)
-        1001
-        998
-        951
-        859
-        548
-        493
-        450
-        423
-        416
-        33
-        32
+            animal   class  max_speed
+        0  Cheetah  mammal        120.0
+        1   Falcon    bird        NaN
+        2    Eagle    bird        320.0
+        3    Goose    bird        142.0
+        4   Pigeon    bird        150.0
+
+        The `max_speed` in sorted order:-
+
+        >>> df['max_speed'].sort_values(ascending=False)
+        2    320.0
+        4    150.0
+        3    142.0
+        0    120.0
+        1    NaN
+        Name: max_speed, dtype: float64
+
         >>> df.quantile()
-        Data    493.0
+        max_speed    146.0
         Name: 0.5, dtype: float64
-        >>> type(df.quantile())
-        <class 'pandas.core.series.Series'>
-        >>> df.quantile(q=0.7)
-        Data    859.0
-        Name: 0.7, dtype: float64
-        >>> df.quantile(q=[0.5, 0.7])
-              Data
-        0.5  493.0
-        0.7  859.0
-        >>> df.quantile(q=[0.55],interpolation='higher')
-              Data
-        0.55   548
-        >>> df.quantile(q=[0.55],interpolation='lower')
-              Data
-        0.55   493
+
+        The above was calculated by interpolating between available values.
+
+        >>> df.quantile(q=[0.05,0.95])
+              max_speed
+        0.05      123.3
+        0.95      294.5
+        >>> df.quantile(q=[0.05,0.95],interpolation="higher")
+              max_speed
+        0.05      142.0
+        0.95      320.0
+        >>> df.quantile(q=[0.05,0.95],interpolation="lower")
+              max_speed
+        0.05      120.0
+        0.95      150.0
         """
         self._check_percentile(q)
 
