@@ -608,7 +608,7 @@ class TestValidator(object):
             assert msg in ' '.join(result['errors'])
 
 
-class TestApiItems(object):
+class ApiItems(object):
     @property
     def api_doc(self):
         return io.StringIO('''
@@ -652,8 +652,8 @@ All
                                           (3, 'random.seed'),
                                           (4, 'random.randint')])
     def test_item_name(self, idx, name):
-        res = list(validate_docstrings.get_api_items(self.api_doc))
-        assert res[idx][0] == name
+        result = list(validate_docstrings.get_api_items(self.api_doc))
+        assert result[idx][0] == name
 
     @pytest.mark.parametrize('idx,func', [(0, 'cycle'),
                                           (1, 'count'),
@@ -661,9 +661,9 @@ All
                                           (3, 'seed'),
                                           (4, 'randint')])
     def test_item_function(self, idx, func):
-        res = list(validate_docstrings.get_api_items(self.api_doc))
-        assert callable(res[idx][1])
-        assert res[idx][1].__name__ == func
+        result = list(validate_docstrings.get_api_items(self.api_doc))
+        assert callable(result[idx][1])
+        assert result[idx][1].__name__ == func
 
     @pytest.mark.parametrize('idx,section', [(0, 'Itertools'),
                                              (1, 'Itertools'),
@@ -671,8 +671,8 @@ All
                                              (3, 'Random'),
                                              (4, 'Random')])
     def test_item_section(self, idx, section):
-        res = list(validate_docstrings.get_api_items(self.api_doc))
-        assert res[idx][2] == section
+        result = list(validate_docstrings.get_api_items(self.api_doc))
+        assert result[idx][2] == section
 
     @pytest.mark.parametrize('idx,subsection', [(0, 'Infinite'),
                                                 (1, 'Infinite'),
@@ -680,5 +680,5 @@ All
                                                 (3, 'All'),
                                                 (4, 'All')])
     def test_item_subsection(self, idx, subsection):
-        res = list(validate_docstrings.get_api_items(self.api_doc))
-        assert res[idx][3] == subsection
+        result = list(validate_docstrings.get_api_items(self.api_doc))
+        assert result[idx][3] == subsection

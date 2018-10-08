@@ -47,6 +47,8 @@ DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
 
 def get_api_items(api_doc_fd):
     """
+    Yield information about all public API items.
+
     Parse api.rst file from the documentation, and extract all the functions,
     methods, classes, attributes... This should include all pandas public API.
 
