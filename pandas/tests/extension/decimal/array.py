@@ -15,14 +15,10 @@ class DecimalDtype(ExtensionDtype):
     type = decimal.Decimal
     name = 'decimal'
     na_value = decimal.Decimal('NaN')
+    _metadata = ('context',)
 
     def __init__(self, context=None):
         self.context = context or decimal.getcontext()
-
-    def __eq__(self, other):
-        if isinstance(other, type(self)):
-            return self.context == other.context
-        return super(DecimalDtype, self).__eq__(other)
 
     def __repr__(self):
         return 'DecimalDtype(context={})'.format(self.context)

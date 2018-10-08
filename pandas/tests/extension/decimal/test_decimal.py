@@ -3,6 +3,7 @@ import decimal
 
 import numpy as np
 import pandas as pd
+from pandas import compat
 import pandas.util.testing as tm
 import pytest
 
@@ -93,7 +94,9 @@ class BaseDecimal(object):
 
 
 class TestDtype(BaseDecimal, base.BaseDtypeTests):
-    pass
+    @pytest.mark.skipif(compat.PY2, reason="Context not hashable.")
+    def test_hashable(self, dtype):
+        pass
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):
