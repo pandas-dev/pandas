@@ -88,7 +88,6 @@ def test_construction():
     # no units specified
     with pytest.raises(ValueError):
         Timedelta('3.1415')
-
     with pytest.raises(ValueError):
         Timedelta('2000')
 
@@ -217,8 +216,8 @@ def test_td_constructor_value_error():
 
 @pytest.mark.parametrize("str_unit, unit, expectation", [
     ("", "s", tm.do_not_raise),              # Expected case
-    ("s", "s", pytest.raises(ValueError)),   # Units doubly defined
-    ("s", "d", pytest.raises(ValueError)),
+    ("s", "d", pytest.raises(ValueError)),   # Units doubly defined
+    ("s", "s", pytest.raises(ValueError)),   # Units doubly defined (same)
     ("", None, pytest.raises(ValueError)),   # No units
 ])
 def test_string_with_unit(str_unit, unit, expectation):
