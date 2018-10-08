@@ -52,7 +52,7 @@ class TestDataFrameConcatCommon(TestData):
         results = pd.concat([df2, df3]).reset_index(drop=True)
         expected = DataFrame(dict(time=[ts2, ts3]))
         assert_frame_equal(results, expected)
-        
+
     def test_concat_tz_NaT(self):
         # GH 22796
         # Concating tz-aware multicolumn DataFrames
