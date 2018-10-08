@@ -56,7 +56,7 @@ class TestDataFrameConcatCommon(TestData):
         assert_frame_equal(results, expected)
 
     @pytest.mark.parametrize('t1', ['2015-01-01',
-        pytest.param('pd.NaT', marks=pytest.mark.xfail(
+        pytest.param(pd.NaT, marks=pytest.mark.xfail(
                      reason='GH23037 incorrect dtype when concatenating'))])
     def test_concat_tz_NaT(self, t1):
         # GH 22796
@@ -65,8 +65,8 @@ class TestDataFrameConcatCommon(TestData):
         ts2 = Timestamp('2015-01-01', tz='UTC')
         ts3 = Timestamp('2015-01-01', tz='UTC')
 
-        df1 = pd.DataFrame([[ts1, ts2]])
-        df2 = pd.DataFrame([[ts3]])
+        df1 = DataFrame([[ts1, ts2]])
+        df2 = DataFrame([[ts3]])
 
         result = pd.concat([df1, df2])
         expected = DataFrame([[ts1, ts2], [ts3, pd.NaT]], index=[0, 0])

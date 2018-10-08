@@ -883,7 +883,7 @@ Reshaping
 - Bug in :func:`pandas.wide_to_long` when a string is passed to the stubnames argument and a column name is a substring of that stubname (:issue:`22468`)
 - Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
 - Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
-- Bug in :func:`pandas.concat` when merging multicolumn DataFrames with tz-aware data (:issue`22796`)
+- Bug in :func:`pandas.concat` when concatenating a multicolumn DataFrame with tz-aware data against a DataFrame with less columns (:issue`22796`)
 
 Build Changes
 ^^^^^^^^^^^^^
