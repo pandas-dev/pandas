@@ -18,6 +18,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import maybe_promote
 import pandas.core.dtypes.concat as _concat
 
+from pandas.core.indexes.datetimes import DatetimeIndex
+
 import pandas.core.algorithms as algos
 
 
@@ -186,7 +188,9 @@ class JoinUnit(object):
 
                 if getattr(self.block, 'is_datetimetz', False) or \
                         is_datetimetz(empty_dtype):
-                    pass
+                    missing_time = DatetimeIndex([fill_value],
+                                                dtype=empty_dtype)
+                    return missing_time
                 elif getattr(self.block, 'is_categorical', False):
                     pass
                 elif getattr(self.block, 'is_sparse', False):

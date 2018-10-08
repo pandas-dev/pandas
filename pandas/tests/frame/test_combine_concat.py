@@ -52,6 +52,21 @@ class TestDataFrameConcatCommon(TestData):
         results = pd.concat([df2, df3]).reset_index(drop=True)
         expected = DataFrame(dict(time=[ts2, ts3]))
         assert_frame_equal(results, expected)
+        
+    def test_concat_tz_NaT(self):
+        # GH 22796
+        # Concating tz-aware multicolumn DataFrames
+        ts1 = Timestamp('2015-01-01', tz='UTC')
+        ts2 = Timestamp('2015-01-01', tz='UTC')
+        ts3 = Timestamp('2015-01-01', tz='UTC')
+
+        df1 = pd.DataFrame([[ts1, ts2]])
+        df2 = pd.DataFrame([[ts3]])
+
+        result = pd.concat([df1, df2])
+        expected = DataFrame([[ts1, ts2], [ts3, pd.NaT]], index=[0, 0])
+
+        assert_frame_equal(result, expected)
 
     def test_concat_tuple_keys(self):
         # GH 14438
