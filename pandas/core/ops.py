@@ -1799,14 +1799,32 @@ def _align_method_FRAME(left, right, axis):
             right = to_series(right)
 
         elif right.ndim == 2:
-            if left.shape != right.shape:
+            if right.shape == left.shape:
+                right = left._constructor(right, index=left.index,
+                                          columns=left.columns)
+
+            elif right.shape[0] == left.shape[0] and right.shape[1] == 1:
+                # Broadcast across columns
+                try:
+                    right = np.broadcast_to(right, left.shape)
+                except AttributeError:
+                    # numpy < 1.10.0
+                    right = np.tile(right, (1, left.shape[1]))
+
+                right = left._constructor(right,
+                                          index=left.index,
+                                          columns=left.columns)
+
+            elif right.shape[1] == left.shape[1] and right.shape[0] == 1:
+                # Broadcast along rows
+                right = to_series(right[0, :])
+
+            else:
                 raise ValueError("Unable to coerce to DataFrame, shape "
                                  "must be {req_shape}: given {given_shape}"
                                  .format(req_shape=left.shape,
                                          given_shape=right.shape))
 
-            right = left._constructor(right, index=left.index,
-                                      columns=left.columns)
         elif right.ndim > 2:
             raise ValueError('Unable to coerce to Series/DataFrame, dim '
                              'must be <= 2: {dim}'.format(dim=right.shape))

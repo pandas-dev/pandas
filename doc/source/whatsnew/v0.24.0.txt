@@ -199,6 +199,7 @@ Other Enhancements
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- A newly constructed empty :class:`DataFrame` with integer as the ``dtype`` will now only be cast to ``float64`` if ``index`` is specified (:issue:`22858`)
 
 
 .. _whatsnew_0240.api_breaking.interval_values:
@@ -515,6 +516,39 @@ Previous Behavior:
     0 NaT
 
 
+.. _whatsnew_0240.api.dataframe_arithmetic_broadcasting:
+
+DataFrame Arithmetic Operations Broadcasting Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:class:`DataFrame` arithmetic operations when operating with 2-dimensional
+``np.ndarray`` objects now broadcast in the same way as ``np.ndarray``s
+broadcast.  (:issue:`23000`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [3]: arr = np.arange(6).reshape(3, 2)
+   In [4]: df = pd.DataFrame(arr)
+   In [5]: df + arr[[0], :]   # 1 row, 2 columns
+   ...
+   ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (1, 2)
+   In [6]: df + arr[:, [1]]   # 1 column, 3 rows
+   ...
+   ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (3, 1)
+
+*Current Behavior*:
+
+.. ipython:: python
+   arr = np.arange(6).reshape(3, 2)
+   df = pd.DataFrame(arr)
+   df
+
+.. ipython:: python
+   df + arr[[0], :]   # 1 row, 2 columns
+   df + arr[:, [1]]   # 1 column, 3 rows
+
+
 .. _whatsnew_0240.api.extension:
 
 ExtensionType Changes
@@ -785,7 +819,7 @@ Interval
 - Bug in the :class:`IntervalIndex` constructor where the ``closed`` parameter did not always override the inferred ``closed`` (:issue:`19370`)
 - Bug in the ``IntervalIndex`` repr where a trailing comma was missing after the list of intervals (:issue:`20611`)
 - Bug in :class:`Interval` where scalar arithmetic operations did not retain the ``closed`` value (:issue:`22313`)
--
+- Bug in :class:`IntervalIndex` where indexing with datetime-like values raised a ``KeyError`` (:issue:`20636`)
 
 Indexing
 ^^^^^^^^
@@ -870,6 +904,7 @@ Reshaping
 - Bug in :meth:`DataFrame.drop_duplicates` for empty ``DataFrame`` which incorrectly raises an error (:issue:`20516`)
 - Bug in :func:`pandas.wide_to_long` when a string is passed to the stubnames argument and a column name is a substring of that stubname (:issue:`22468`)
 - Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
+- Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
