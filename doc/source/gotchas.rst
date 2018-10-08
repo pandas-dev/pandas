@@ -346,10 +346,10 @@ Example of exploding nested lists into a DataFrame:
 
 .. ipython:: python
 
-   dframe = pd.DataFrame({'name': ['A.J. Price'] * 3, 
+   df = pd.DataFrame({'name': ['A.J. Price'] * 3, 
                       'opponent': ['76ers', 'blazers', 'bobcats']},
-                     columns=['name','opponent'])
-   dframe
+                       columns=['name','opponent'])
+   df
 
    nearest_neighbors = [['Zach LaVine', 'Jeremy Lin', 'Nate Robinson', 'Isaia']]*3
    nearest_neighbors
@@ -358,7 +358,7 @@ Create an index with the "parent" columns to be included in the final Dataframe
 
 .. ipython:: python
 
-   df = pd.concat([dframe[['name','opponent']], pd.DataFrame(nearest_neighbors)], axis=1)
+   df = pd.concat([df[['name','opponent']], pd.DataFrame(nearest_neighbors)], axis=1)
    df
 
 Transform the column with lists into series, which become columns in a new Dataframe. 
@@ -385,32 +385,22 @@ Note that at this point we have a Series, not a Dataframe
    df = ser.to_frame('nearest_neighbors')
    df
 
-All steps in one stack
-
-.. ipython:: python
-
-   df = (dframe.concat([df[['name','opponent']], pd.DataFrame(nearest_neighbors)], axis=1)
-	   .set_index(['name', 'opponent'])
-           .stack()
-           .reset_index(level=2, drop=True)
-           .to_frame('nearest_neighbors'))
-   df
 
 Example of exploding a list embedded in a dataframe:
 
 .. ipython:: python
 
-   dframe = pd.DataFrame({'name': ['A.J. Price'] * 3, 
+   df = pd.DataFrame({'name': ['A.J. Price'] * 3, 
                       'opponent': ['76ers', 'blazers', 'bobcats'], 
                       'nearest_neighbors': [['Zach LaVine', 'Jeremy Lin', 'Nate Robinson', 'Isaia']] * 3},
-                     columns=['name','opponent','nearest_neighbors'])
-   dframe
+                       columns=['name','opponent','nearest_neighbors'])
+   df
 
 Create an index with the "parent" columns to be included in the final Dataframe
 
 .. ipython:: python
 
-   df = dframe.set_index(['name', 'opponent'])
+   df = df.set_index(['name', 'opponent'])
    df
 
 Transform the column with lists into series, which become columns in a new Dataframe. 
@@ -437,13 +427,3 @@ Note that at this point we have a Series, not a Dataframe
    df = ser.to_frame('nearest_neighbors')
    df
 
-All steps in one stack
-
-.. ipython:: python
-
-   df = (dframe.set_index(['name', 'opponent'])
-           .nearest_neighbors.apply(pd.Series)
-           .stack()
-           .reset_index(level=2, drop=True)
-           .to_frame('nearest_neighbors'))
-   df
