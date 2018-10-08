@@ -93,7 +93,7 @@ def _get_series_result_type(result, objs=None):
 def _get_frame_result_type(result, objs):
     """
     return appropriate class of DataFrame-like concat
-    if all blocks are SparseBlock, return SparseDataFrame
+    if all blocks are sparse, return SparseDataFrame
     otherwise, return 1st obj
     """
 

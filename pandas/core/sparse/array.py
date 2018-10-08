@@ -258,9 +258,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         elif is_scalar(data):
             if sparse_index is None:
-                data = [data]
+                shape = (1,)
             else:
-                data = [data] * sparse_index.length
+                shape = (sparse_index.length,)
+
+            data = np.full(shape, data)
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -525,7 +527,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         fill_loc = self._first_fill_value_loc()
         if fill_loc >= 0:
             uniques.insert(fill_loc, self.fill_value)
-        return type(self)(uniques, dtype=self.dtype)
+        return type(self)._from_sequence(uniques, dtype=self.dtype)
 
     def factorize(self, na_sentinel=-1):
         # Currently, ExtensionArray.factorize -> Tuple[ndarray, EA]

@@ -462,8 +462,7 @@ def stack(frame, level=-1, dropna=True):
 
     # For homogonoues EAs, self.values will coerce to object. So
     # we concatenate instead.
-    if frame._data.any_extension_types and frame._data.is_homogenous:
-        # TODO: this needs to be unit tested.
+    if frame._data.any_extension_types and frame._is_homogeneous_type:
         arr = frame._data.blocks[0].dtype.construct_array_type()
         new_values = arr._concat_same_type([
             blk.values for blk in frame._data.blocks
