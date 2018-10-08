@@ -361,17 +361,16 @@ Create an index with the "parent" columns to be included in the final Dataframe
    df = pd.concat([dframe[['name','opponent']], pd.DataFrame(nearest_neighbors)], axis=1)
    df
 
-Transform the column with lists into series, which become columns in a new Dataframe.
-   Note that only the index from the original df is retained - 
-   Any other columns in the original df are not part of the new df
+Transform the column with lists into series, which become columns in a new Dataframe. 
+Note that only the index from the original df is retained - Any other columns in the original df are not part of the new df
 
 .. ipython:: python
 
    df = df.set_index(['name', 'opponent'])
    df
 
-Stack the new columns as rows; this creates a new index level we'll want to drop in the next step.
-   Note that at this point we have a Series, not a Dataframe
+Stack the new columns as rows; this creates a new index level we'll want to drop in the next step. 
+Note that at this point we have a Series, not a Dataframe
 
 .. ipython:: python
 
@@ -414,17 +413,16 @@ Create an index with the "parent" columns to be included in the final Dataframe
    df = dframe.set_index(['name', 'opponent'])
    df
 
-Transform the column with lists into series, which become columns in a new Dataframe.
-  Note that only the index from the original df is retained - 
+Transform the column with lists into series, which become columns in a new Dataframe. 
+Note that only the index from the original df is retained - any other columns in the original df are not part of the new df
 
 .. ipython:: python
 
-  any other columns in the original df are not part of the new df
    df = df.nearest_neighbors.apply(pd.Series)
    df
 
-Stack the new columns as rows; this creates a new index level we'll want to drop in the next step.
-  Note that at this point we have a Series, not a Dataframe
+Stack the new columns as rows; this creates a new index level we'll want to drop in the next step. 
+Note that at this point we have a Series, not a Dataframe
 
 .. ipython:: python
 
