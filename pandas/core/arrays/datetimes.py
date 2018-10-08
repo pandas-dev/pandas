@@ -1353,7 +1353,7 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz):
     ts : Timestamp
     """
     # Make sure start and end are timezone localized if:
-    # 1) freq = a Timedelta-like frequency (Tick) and freq != Day
+    # 1) freq = a Timedelta-like frequency (Tick)
     # 2) freq = None i.e. generating a linspaced range
     if isinstance(freq, Tick) or freq is None:
         localize_args = {'tz': tz, 'ambiguous': False}
