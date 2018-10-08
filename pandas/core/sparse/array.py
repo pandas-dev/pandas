@@ -444,19 +444,17 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         Notes
         -----
-        The result dtype depends on ``self.fill_value``. The goal is
-        to maintain low-memory use. If ``self.fill_value`` is null, the
-        result dtype will be ``SparseDtype(self.dtype, fill_value=value)``.
-        This will preserve amount of memory used before and after filling.
+        When `value` is specified, the result's ``fill_value`` depends on
+        ``self.fill_value``. The goal is to maintain low-memory use.
+
+        If ``self.fill_value`` is NA, the result dtype will be
+        ``SparseDtype(self.dtype, fill_value=value)``. This will preserve
+        amount of memory used before and after filling.
 
         When ``self.fill_value`` is not NA, the result dtype will be
         ``SparseDtype(..., fill_value=self.fill_value)``. Again, this
         preserves the amount of memory used.
         """
-        # TODO: discussion on what the return type should be.
-        # I think if self.fill_value is NA, then we want to maintain
-        # the sparsity by setting new.fill_value to `value`.
-
         if ((method is None and value is None) or
                 (method is not None and value is not None)):
             raise ValueError("Must specify one of 'method' or 'value'.")
