@@ -262,7 +262,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             else:
                 shape = (sparse_index.length,)
 
-            data = np.full(shape, data)
+            data = np.full(shape, data, dtype=np.result_type(data))
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
