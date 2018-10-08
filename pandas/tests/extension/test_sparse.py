@@ -232,8 +232,6 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             raise pytest.skip("Incorrected expected from Series.combine")
 
     def test_error(self, data, all_arithmetic_operators):
-        # not sure what this test is doing
-        # should this check _is_numeric in the base test?
         pass
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):

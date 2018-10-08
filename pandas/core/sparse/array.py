@@ -378,7 +378,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         The kind of sparse index for this array. One of {'integer', 'block'}.
         """
-        # TODO: make this an abstract attribute of SparseIndex
         if isinstance(self.sp_index, IntIndex):
             return 'integer'
         else:
@@ -949,7 +948,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             self.__dict__.update(state)
 
     def nonzero(self):
-        # TODO: Add to EA API? This is used by DataFrame.dropna
         if self.fill_value == 0:
             return self.sp_index.to_int_index().indices,
         else:
@@ -1197,13 +1195,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                         other = SparseArray(other, fill_value=self.fill_value,
                                             dtype=dtype)
                     return _sparse_array_op(self, other, op, op_name)
-                    # fill_value = op(self.fill_value, other)
-                    # result = op(self.sp_values, other)
-
-                # TODO: is self.sp_index right? An op could change what's
-                # sparse...
-                # return type(self)(result, sparse_index=self.sp_index,
-                #                   fill_value=fill_value)
 
         name = '__{name}__'.format(name=op.__name__)
         return compat.set_function_name(sparse_arithmetic_method, name, cls)
