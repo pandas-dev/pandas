@@ -772,8 +772,8 @@ cdef class StringHashTable(HashTable):
         for i in range(n):
             val = values[i]
 
-            if (PyUnicode_Check(val) or PyString_Check(val))
-                and not (use_na_value and val == na_value)):
+            if ((PyUnicode_Check(val) or PyString_Check(val))
+                    and not (use_na_value and val == na_value)):
                 v = util.get_c_string(val)
                 vecs[i] = v
             else:
