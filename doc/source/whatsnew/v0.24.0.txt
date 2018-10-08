@@ -489,10 +489,52 @@ Previous Behavior:
     0 NaT
 
 
+.. _whatsnew_0240.api.dataframe_arithmetic_broadcasting:
+
+DataFrame Arithmetic Operations Broadcasting Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:class:`DataFrame` arithmetic operations when operating with 2-dimensional
+``np.ndarray`` objects now broadcast in the same way as ``np.ndarray``s
+broadcast.  (:issue:`23000`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [3]: arr = np.arange(6).reshape(3, 2)
+   In [4]: df = pd.DataFrame(arr)
+   In [5]: df + arr[[0], :]   # 1 row, 2 columns
+   ...
+   ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (1, 2)
+   In [6]: df + arr[:, [1]]   # 1 column, 3 rows
+   ...
+   ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (3, 1)
+
+*Current Behavior*:
+
+.. ipython:: python
+   arr = np.arange(6).reshape(3, 2)
+   df = pd.DataFrame(arr)
+   df
+
+.. ipython:: python
+   df + arr[[0], :]   # 1 row, 2 columns
+   df + arr[:, [1]]   # 1 column, 3 rows
+
+
 .. _whatsnew_0240.api.extension:
 
 ExtensionType Changes
 ^^^^^^^^^^^^^^^^^^^^^
+
+**:class:`pandas.api.extensions.ExtensionDtype` Equality and Hashability**
+
+Pandas now requires that extension dtypes be hashable. The base class implements
+a default ``__eq__`` and ``__hash__``. If you have a parametrized dtype, you should
+update the ``ExtensionDtype._metadata`` tuple to match the signature of your
+``__init__`` method. See :class:`pandas.api.extensions.ExtensionDtype` for more (:issue:`22476`).
+
+**Other changes**
 
 - ``ExtensionArray`` has gained the abstract methods ``.dropna()`` (:issue:`21185`)
 - ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
@@ -606,6 +648,7 @@ Deprecations
   many ``Series``, ``Index`` or 1-dimensional ``np.ndarray``, or alternatively, only scalar values. (:issue:`21950`)
 - :meth:`FrozenNDArray.searchsorted` has deprecated the ``v`` parameter in favor of ``value`` (:issue:`14645`)
 - :func:`DatetimeIndex.shift` now accepts ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`)
+- :func:`DatetimeIndex.shift` and :func:`PeriodIndex.shift` now accept ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`, :issue:`22912`)
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have deprecated the ``errors`` argument in favor of the ``nonexistent`` argument (:issue:`8917`)
 
 .. _whatsnew_0240.prior_deprecations:
@@ -759,7 +802,7 @@ Interval
 - Bug in the :class:`IntervalIndex` constructor where the ``closed`` parameter did not always override the inferred ``closed`` (:issue:`19370`)
 - Bug in the ``IntervalIndex`` repr where a trailing comma was missing after the list of intervals (:issue:`20611`)
 - Bug in :class:`Interval` where scalar arithmetic operations did not retain the ``closed`` value (:issue:`22313`)
--
+- Bug in :class:`IntervalIndex` where indexing with datetime-like values raised a ``KeyError`` (:issue:`20636`)
 
 Indexing
 ^^^^^^^^
