@@ -2005,15 +2005,29 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
     _index_shared_docs['contains'] = """
-        return a boolean if this key is IN the index
+        Return a boolean if this key is in the index.
+
 
         Parameters
         ----------
         key : object
+        key to be searched.
 
         Returns
         -------
         boolean
+        result of the search.
+
+        See Also
+        --------
+        Index.isin
+
+        Examples
+        --------
+        >>> pd.CategoricalIndex([2000, 2001, 2012]).contains(2001)
+        True
+        >>> pd.CategoricalIndex([2000, 2001, 2012]).contains(2222)
+        False
         """
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
