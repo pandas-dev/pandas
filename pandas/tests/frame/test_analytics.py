@@ -2153,7 +2153,7 @@ class TestNLargestNSmallest(object):
             tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('columns', [
-        ('group', 'category_string'), ('group', 'string')])
+        ['group', 'category_string'], ['group', 'string']])
     def test_n_error(self, df_main_dtypes, nselect_method, columns):
         df = df_main_dtypes
         col = columns[1]
