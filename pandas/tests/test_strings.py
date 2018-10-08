@@ -367,6 +367,12 @@ class TestStringMethods(object):
         with tm.assert_raises_regex(ValueError, rgx):
             s.str.cat([t, z], join=join)
 
+    def test_str_cat_raises(self):
+        # non-strings hiding behind object dtype
+        s = Series([1, 2, 3, 4], dtype='object')
+        with tm.assert_raises_regex(TypeError, "unsupported operand type.*"):
+            s.str.cat(s)
+
     def test_str_cat_special_cases(self):
         s = Series(['a', 'b', 'c', 'd'])
         t = Series(['d', 'a', 'e', 'b'], index=[3, 0, 4, 1])
@@ -3089,7 +3095,7 @@ class TestStringMethods(object):
         lhs = Series(np.array(list('abc'), 'S1').astype(object))
         rhs = Series(np.array(list('def'), 'S1').astype(object))
         if compat.PY3:
-            pytest.raises(TypeError, lhs.str.cat, rhs, sep=',')
+            pytest.raises(TypeError, lhs.str.cat, rhs)
         else:
             result = lhs.str.cat(rhs)
             expected = Series(np.array(
