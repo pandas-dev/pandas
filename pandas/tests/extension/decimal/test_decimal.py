@@ -8,7 +8,7 @@ import pytest
 
 from pandas.tests.extension import base
 
-from .array import DecimalDtype, DecimalArray, make_data
+from .array import DecimalDtype, DecimalArray, make_data, to_decimal
 
 
 @pytest.fixture
@@ -102,7 +102,7 @@ class TestInterface(BaseDecimal, base.BaseInterfaceTests):
 
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
 
-    @pytest.mark.xfail(reason="not implemented constructor from dtype")
+    @pytest.mark.skip(reason="not implemented constructor from dtype")
     def test_from_dtype(self, data):
         # construct from our dtype & string dtype
         pass
@@ -240,9 +240,11 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
         context.traps[decimal.DivisionByZero] = divbyzerotrap
         context.traps[decimal.InvalidOperation] = invalidoptrap
 
-    @pytest.mark.skip(reason="divmod not appropriate for decimal")
-    def test_divmod(self, data):
-        pass
+    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
+        # We implement divmod
+        super(TestArithmeticOps, self)._check_divmod_op(
+            s, op, other, exc=None
+        )
 
     def test_error(self):
         pass
@@ -315,3 +317,21 @@ def test_scalar_ops_from_sequence_raises(class_):
     expected = np.array([decimal.Decimal("2.0"), decimal.Decimal("4.0")],
                         dtype="object")
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("reverse, expected_div, expected_mod", [
+    (False, [0, 1, 1, 2], [1, 0, 1, 0]),
+    (True, [2, 1, 0, 0], [0, 0, 2, 2]),
+])
+def test_divmod_array(reverse, expected_div, expected_mod):
+    # https://github.com/pandas-dev/pandas/issues/22930
+    arr = to_decimal([1, 2, 3, 4])
+    if reverse:
+        div, mod = divmod(2, arr)
+    else:
+        div, mod = divmod(arr, 2)
+    expected_div = to_decimal(expected_div)
+    expected_mod = to_decimal(expected_mod)
+
+    tm.assert_extension_array_equal(div, expected_div)
+    tm.assert_extension_array_equal(mod, expected_mod)
