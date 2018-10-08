@@ -608,49 +608,53 @@ class TestDataFrameSortIndexKinds(TestData):
             'c': pd.Categorical(['A', np.nan, 'B', np.nan, 'C'],
                                 categories=categories,
                                 ordered=True)})
-        result_ascending_na_first = df.sort_values(by='c',
-                                                   ascending=True,
-                                                   na_position='first')
-        expected_ascending_na_first = DataFrame({
+        # sort ascending with na first
+        result = df.sort_values(by='c',
+                                ascending=True,
+                                na_position='first')
+        expected = DataFrame({
             'c': Categorical(list_of_nans + categories,
                              categories=categories,
                              ordered=True)}, index=[1, 3, 0, 2, 4])
 
-        assert_frame_equal(result_ascending_na_first,
-                           expected_ascending_na_first)
+        assert_frame_equal(result,
+                           expected)
 
-        result_ascending_na_last = df.sort_values(by='c',
-                                                  ascending=True,
-                                                  na_position='last')
-        expected_ascending_na_last = DataFrame({
+        # sort ascending with na last
+        result = df.sort_values(by='c',
+                                ascending=True,
+                                na_position='last')
+        expected = DataFrame({
             'c': Categorical(categories + list_of_nans,
                              categories=categories,
                              ordered=True)}, index=[0, 2, 4, 1, 3])
 
-        assert_frame_equal(result_ascending_na_last,
-                           expected_ascending_na_last)
+        assert_frame_equal(result,
+                           expected)
 
-        result_descending_na_first = df.sort_values(by='c',
-                                                    ascending=False,
-                                                    na_position='first')
-        expected_descending_na_first = DataFrame({
+        # sort descending with na first
+        result = df.sort_values(by='c',
+                                ascending=False,
+                                na_position='first')
+        expected = DataFrame({
             'c': Categorical(list_of_nans + sorted(categories, reverse=True),
                              categories=categories,
                              ordered=True)}, index=[3, 1, 4, 2, 0])
 
-        assert_frame_equal(result_descending_na_first,
-                           expected_descending_na_first)
+        assert_frame_equal(result,
+                           expected)
 
-        result_descending_na_last = df.sort_values(by='c',
-                                                   ascending=False,
-                                                   na_position='last')
-        expected_descending_na_last = DataFrame({
+        # sort descending with na last
+        result = df.sort_values(by='c',
+                                ascending=False,
+                                na_position='last')
+        expected = DataFrame({
             'c': Categorical(sorted(categories, reverse=True) + list_of_nans,
                              categories=categories,
                              ordered=True)}, index=[4, 2, 0, 3, 1])
 
-        assert_frame_equal(result_descending_na_last,
-                           expected_descending_na_last)
+        assert_frame_equal(result,
+                           expected)
 
     def test_sort_index_na_position_with_categories_raises(self):
         df = pd.DataFrame({
