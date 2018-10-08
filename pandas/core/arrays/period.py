@@ -344,14 +344,11 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.shift : Shift values of DatetimeIndex.
         """
-<<<<<<< HEAD
         values = self._ndarray_values + periods * self.freq.n
-=======
         return self._time_shift(n)
 
     def _time_shift(self, n):
         values = self._ndarray_values + n * self.freq.n
->>>>>>> upstream/master
         if self.hasnans:
             values[self._isnan] = iNaT
         return self._shallow_copy(values=values)
