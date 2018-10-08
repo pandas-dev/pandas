@@ -2259,3 +2259,14 @@ class TestNLargestNSmallest(object):
         df.rank()
         result = df
         tm.assert_frame_equal(result, expected)
+
+    def test_multiindex_column_lookup(self):
+        df = pd.DataFrame(
+            columns=pd.MultiIndex.from_product([['x'], ['a', 'b']]),
+            data=[[0.33, 0.13], [0.86, 0.25], [0.25, 0.70], [0.85, 0.91]])
+        pd.util.testing.assert_frame_equal(
+            df.nsmallest(3, ('x', 'a')),
+            df.iloc[[2, 0, 3]])
+        pd.util.testing.assert_frame_equal(
+            df.nlargest(3, ('x', 'b')),
+            df.iloc[[3, 2, 1]])
