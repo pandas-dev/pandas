@@ -169,7 +169,7 @@ This is the same behavior as ``Series.values`` for categorical data. See
 Joining with two multi-indexes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-As of Pandas 0.24.0 the :func:`Dataframe.join` can be used to join multi-indexed ``Dataframe`` instances on the overlaping index levels (:issue:`20356`)
+As of Pandas 0.24.0 the :func:`Dataframe.join` can be used to join multi-indexed ``Dataframe`` instances on the overlaping index levels (:issue:`6360`)
 
 See the :ref:`Merge, join, and concatenate
 <merging.Join_with_two_multi_indexes>` documentation section.

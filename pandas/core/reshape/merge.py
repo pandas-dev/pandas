@@ -1141,12 +1141,12 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner',
     return join_func(lkey, rkey, count, **kwargs)
 
 
-def _complete_multilevel_join(left, right, how, dropped_levels,
-                              join_idx, lidx, ridx):
+def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
+                                      join_idx, lidx, ridx):
     """
     *this is an internal non-public method*
 
-    Returns the levels, labels and names of a multilevel to multilevel join
+    Returns the levels, labels and names of a multil-index to multi-index join.
     Depending on the type of join, this method restores the appropriate
     dropped levels of the joined multi-index. The method relies on lidx, ridx
     which hold the index positions of left and right, where a join was feasible
@@ -1157,19 +1157,18 @@ def _complete_multilevel_join(left, right, how, dropped_levels,
         left index
     right : Index
         right index
+    dropped_level_names : str array
+        list of non-common levels
     join_idx : Index
         the index of the join between the common levels of left and right
-    how : {'left', 'right', 'outer', 'inner'}
     lidx : intp array
         left indexer
     right : intp array
         right indexer
-    dropped_levels : str array
-        list of non-common levels
 
     Returns
     -------
-    levels : intp array
+    levels : intp ndarray
         levels of combined multiindexes
     labels : str array
         labels of combined multiindexes
@@ -1178,12 +1177,20 @@ def _complete_multilevel_join(left, right, how, dropped_levels,
 
     """
 
+    # Convert to 1 level multi-index if not
+    if not isinstance(join_idx, MultiIndex):
+        levels = [join_idx.values]
+        labels = [list(range(0, len(join_idx)))]
+        names = [join_idx.name]
+        join_idx = MultiIndex(levels=levels, labels=labels,
+                              names=names, verify_integrity=False)
+
     join_levels = join_idx.levels
     join_labels = join_idx.labels
     join_names = join_idx.names
 
     # lidx and ridx hold the indexes where the join occured
-    # for left and right respectively. If left (right) is None it means that
+    # for left and right respectively. If left (right) is None then
     # the join occured on all indices of left (right)
     if lidx is None:
         lidx = range(0, len(left))
@@ -1192,8 +1199,8 @@ def _complete_multilevel_join(left, right, how, dropped_levels,
         ridx = range(0, len(right))
 
     # Iterate through the levels that must be restored
-    for dl in dropped_levels:
-        if dl in left.names:
+    for dropped_level_name in dropped_level_names:
+        if dropped_level_name in left.names:
             idx = left
             indexer = lidx
         else:
@@ -1201,18 +1208,17 @@ def _complete_multilevel_join(left, right, how, dropped_levels,
             indexer = ridx
 
         # The index of the level name to be restored
-        name_idx = idx.names.index(dl)
+        name_idx = idx.names.index(dropped_level_name)
 
         restore_levels = idx.levels[name_idx].values
-        restore_labels = idx.labels[name_idx]
-
-        join_levels = join_levels.__add__([restore_levels])
-        join_names = join_names.__add__([dl])
-
         # Inject -1 in the labels list where a join was not possible
         # IOW indexer[i]=-1
-        labels = [restore_labels[i] if i != -1 else -1 for i in indexer]
-        join_labels = join_labels.__add__([labels])
+        labels = idx.labels[name_idx]
+        restore_labels = [labels[i] if i != -1 else -1 for i in indexer]
+
+        join_levels = join_levels.__add__([restore_levels])
+        join_labels = join_labels.__add__([restore_labels])
+        join_names = join_names.__add__([dropped_level_name])
 
     return join_levels, join_labels, join_names
 

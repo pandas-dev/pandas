@@ -3912,7 +3912,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _join_multi(self, other, how, return_indexers=True):
         from .multi import MultiIndex
-        from pandas.core.reshape.merge import _complete_multilevel_join
+        from pandas.core.reshape.merge import _restore_dropped_levels_multijoin
 
         # figure out join names
         self_names = set(com._not_none(*self.names))
@@ -3928,27 +3928,30 @@ class Index(IndexOpsMixin, PandasObject):
 
         if self_is_mi and other_is_mi:
 
-            # Drop the non matching levels
-            ldrop_levels = list(set(self_names) - set(overlap))
-            rdrop_levels = list(set(other_names) - set(overlap))
+            # Drop the non-matching levels from left and right respectively
+            ldrop_names = list(set(self_names) - set(overlap))
+            rdrop_names = list(set(other_names) - set(overlap))
 
-            self_jnlevels = self.droplevel(ldrop_levels)
-            other_jnlevels = other.droplevel(rdrop_levels)
+            self_jnlevels = self.droplevel(ldrop_names)
+            other_jnlevels = other.droplevel(rdrop_names)
 
-            if not (self_jnlevels.is_unique and other_jnlevels.is_unique):
-                raise ValueError("Join on level between two MultiIndex objects"
-                                 "is ambiguous")
-
-            dropped_levels = ldrop_levels + rdrop_levels
-
+            # Join left and right
+            # Join on same leveled multi-index frames is supported
             join_idx, lidx, ridx = self_jnlevels.join(other_jnlevels, how,
                                                       return_indexers=True)
 
-            levels, labels, names = _complete_multilevel_join(self, other, how,
-                                                              dropped_levels,
-                                                              join_idx,
-                                                              lidx, ridx)
+            # Restore the dropped levels
+            # Returned index level order is
+            # common levels, ldrop_names, rdrop_names
+            dropped_names = ldrop_names + rdrop_names
 
+            levels, labels, names = (
+                _restore_dropped_levels_multijoin(self, other,
+                                                  dropped_names,
+                                                  join_idx,
+                                                  lidx, ridx))
+
+            # Re-create the multi-index
             multi_join_idx = MultiIndex(levels=levels, labels=labels,
                                         names=names, verify_integrity=False)
 
