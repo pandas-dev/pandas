@@ -1278,10 +1278,12 @@ class TestHashTable(object):
         # reallocations (GH 7157)
         vals = np.array(np.random.randn(1000), dtype=dtype)
 
-        # GH 21688 ensure we can deal with readonly memory views
+        # GH 21688 ensures we can deal with read-only memory views
         vals.setflags(write=writable)
 
-        # initialise instances
+        # initialise instances; cannot initialise in parametrization,
+        # as otherwise external views would be held on the array (which is
+        # one of the things this test is checking)
         htable = htable()
         uniques = uniques()
 
@@ -1322,8 +1324,8 @@ class TestHashTable(object):
         # create duplicated selection
         s_duplicated = s.sample(frac=3, replace=True)
 
-        # drop_duplicates has own cython code (khash) and is tested separately
-        # keeps first occurrence like ht.unique
+        # drop_duplicates has own cython code (hash_table_func_helper.pxi)
+        #  and is tested separately; keeps first occurrence like ht.unique()
         expected_unique = s_duplicated.drop_duplicates(keep='first').values
         result_unique = htable().unique(s_duplicated.values)
         tm.assert_numpy_array_equal(result_unique, expected_unique)

@@ -361,7 +361,7 @@ cdef class {{name}}HashTable(HashTable):
                              {{name}}Vector uniques, Py_ssize_t count_prior=0,
                              Py_ssize_t na_sentinel=-1, object na_value=None):
         """
-        Calculate unique values without sorting; ignores all NA-values
+        Calculate unique values and labels (no sorting); ignores all NA-values
 
         Parameters
         ----------
@@ -730,7 +730,7 @@ cdef class StringHashTable(HashTable):
                              ObjectVector uniques, Py_ssize_t count_prior=0,
                              Py_ssize_t na_sentinel=-1, object na_value=None):
         """
-        Calculate unique values without sorting; ignores all NA-values
+        Calculate unique values and labels (no sorting); ignores all NA-values
 
         Parameters
         ----------
@@ -944,7 +944,7 @@ cdef class PyObjectHashTable(HashTable):
                              ObjectVector uniques, Py_ssize_t count_prior=0,
                              Py_ssize_t na_sentinel=-1, object na_value=None):
         """
-        Calculate unique values without sorting; ignores all NA-values
+        Calculate unique values and labels (no sorting); ignores all NA-values
 
         Parameters
         ----------
@@ -983,7 +983,7 @@ cdef class PyObjectHashTable(HashTable):
             hash(val)
 
             if ((val != val or val is None)
-                or (use_na_value and val == na_value)):
+                    or (use_na_value and val == na_value)):
                 labels[i] = na_sentinel
                 continue
 
