@@ -440,7 +440,8 @@ cdef class {{name}}HashTable(HashTable):
         return uniques.to_array(), np.asarray(labels)
 
     def factorize(self, {{dtype}}_t[:] values):
-        return self._unique_with_inverse(values, uniques={{name}}Vector())
+        uniques = {{name}}Vector()
+        return self._unique_with_inverse(values, uniques=uniques)
 
     def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
@@ -808,7 +809,8 @@ cdef class StringHashTable(HashTable):
         return uniques.to_array(), np.asarray(labels)
 
     def factorize(self, ndarray[object] values):
-        return self._unique_with_inverse(values, uniques=ObjectVector())
+        uniques = ObjectVector()
+        return self._unique_with_inverse(values, uniques=uniques)
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
@@ -1003,7 +1005,8 @@ cdef class PyObjectHashTable(HashTable):
         return uniques.to_array(), np.asarray(labels)
 
     def factorize(self, ndarray[object] values):
-        return self._unique_with_inverse(values, uniques=ObjectVector())
+        uniques = ObjectVector()
+        return self._unique_with_inverse(values, uniques=uniques)
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
