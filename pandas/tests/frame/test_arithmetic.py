@@ -17,7 +17,7 @@ from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
 class TestFrameComparisons(object):
     def test_flex_comparison_nat(self):
-        # GH#15697, GH#22163 df.eq(pd.NaT) should behave like df == pd.NaT,
+        # GH 15697, GH 22163 df.eq(pd.NaT) should behave like df == pd.NaT,
         # and _definitely_ not be NaN
         df = pd.DataFrame([pd.NaT])
 
@@ -35,7 +35,7 @@ class TestFrameComparisons(object):
         assert result.iloc[0, 0].item() is True
 
     def test_mixed_comparison(self):
-        # GH#13128, GH#22163 != datetime64 vs non-dt64 should be False,
+        # GH 13128, GH 22163 != datetime64 vs non-dt64 should be False,
         # not raise TypeError
         # (this appears to be fixed before #22163, not sure when)
         df = pd.DataFrame([['1989-08-01', 1], ['1989-08-01', 2]])
@@ -81,7 +81,7 @@ class TestFrameComparisons(object):
 
     @pytest.mark.parametrize('opname', ['eq', 'ne', 'gt', 'lt', 'ge', 'le'])
     def test_df_flex_cmp_constant_return_types(self, opname):
-        # GH#15077, non-empty DataFrame
+        # GH 15077, non-empty DataFrame
         df = pd.DataFrame({'x': [1, 2, 3], 'y': [1., 2., 3.]})
         const = 2
 
@@ -90,7 +90,7 @@ class TestFrameComparisons(object):
 
     @pytest.mark.parametrize('opname', ['eq', 'ne', 'gt', 'lt', 'ge', 'le'])
     def test_df_flex_cmp_constant_return_types_empty(self, opname):
-        # GH#15077 empty DataFrame
+        # GH 15077 empty DataFrame
         df = pd.DataFrame({'x': [1, 2, 3], 'y': [1., 2., 3.]})
         const = 2
 
@@ -105,7 +105,7 @@ class TestFrameComparisons(object):
 class TestFrameFlexArithmetic(object):
 
     def test_df_add_td64_columnwise(self):
-        # GH#22534 Check that column-wise addition broadcasts correctly
+        # GH 22534 Check that column-wise addition broadcasts correctly
         dti = pd.date_range('2016-01-01', periods=10)
         tdi = pd.timedelta_range('1', periods=10)
         tser = pd.Series(tdi)
@@ -117,7 +117,7 @@ class TestFrameFlexArithmetic(object):
         tm.assert_frame_equal(result, expected)
 
     def test_df_add_flex_filled_mixed_dtypes(self):
-        # GH#19611
+        # GH 19611
         dti = pd.date_range('2016-01-01', periods=3)
         ser = pd.Series(['1 Day', 'NaT', '2 Days'], dtype='timedelta64[ns]')
         df = pd.DataFrame({'A': dti, 'B': ser})
@@ -143,13 +143,13 @@ class TestFrameFlexArithmetic(object):
             return getattr(operator, op)(x, y)
 
         result = getattr(float_frame, op)(2 * float_frame)
-        exp = f(float_frame, 2 * float_frame)
-        tm.assert_frame_equal(result, exp)
+        expected = f(float_frame, 2 * float_frame)
+        tm.assert_frame_equal(result, expected)
 
         # vs mix float
         result = getattr(mixed_float_frame, op)(2 * mixed_float_frame)
-        exp = f(mixed_float_frame, 2 * mixed_float_frame)
-        tm.assert_frame_equal(result, exp)
+        expected = f(mixed_float_frame, 2 * mixed_float_frame)
+        tm.assert_frame_equal(result, expected)
         _check_mixed_float(result, dtype=dict(C=None))
 
     @pytest.mark.parametrize('op', ['__add__', '__sub__', '__mul__'])
@@ -159,7 +159,7 @@ class TestFrameFlexArithmetic(object):
 
         # vs mix int
         result = getattr(mixed_int_frame, op)(2 + mixed_int_frame)
-        exp = f(mixed_int_frame, 2 + mixed_int_frame)
+        expected = f(mixed_int_frame, 2 + mixed_int_frame)
 
         # no overflow in the uint
         dtype = None
@@ -167,19 +167,19 @@ class TestFrameFlexArithmetic(object):
             dtype = dict(B='uint64', C=None)
         elif op in ['__add__', '__mul__']:
             dtype = dict(C=None)
-        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result, expected)
         _check_mixed_int(result, dtype=dtype)
 
         # vs mix float
         result = getattr(mixed_float_frame, op)(2 * mixed_float_frame)
-        exp = f(mixed_float_frame, 2 * mixed_float_frame)
-        tm.assert_frame_equal(result, exp)
+        expected = f(mixed_float_frame, 2 * mixed_float_frame)
+        tm.assert_frame_equal(result, expected)
         _check_mixed_float(result, dtype=dict(C=None))
 
         # vs plain int
         result = getattr(int_frame, op)(2 * int_frame)
-        exp = f(int_frame, 2 * int_frame)
-        tm.assert_frame_equal(result, exp)
+        expected = f(int_frame, 2 * int_frame)
+        tm.assert_frame_equal(result, expected)
 
     def test_arith_flex_frame_raise(self, all_arithmetic_operators,
                                     float_frame):
@@ -231,7 +231,7 @@ class TestFrameFlexArithmetic(object):
         tm.assert_frame_equal(df.div(row), df / row)
         tm.assert_frame_equal(df.div(col, axis=0), (df.T / col).T)
 
-        # broadcasting issue in GH#7325
+        # broadcasting issue in GH 7325
         df = pd.DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype='int64')
         expected = pd.DataFrame([[np.nan, np.inf], [1.0, 1.5], [1.0, 1.25]])
         result = df.div(df[0], axis='index')
@@ -243,7 +243,7 @@ class TestFrameFlexArithmetic(object):
         tm.assert_frame_equal(result, expected)
 
     def test_arith_flex_zero_len_raises(self):
-        # GH#19522 passing fill_value to frame flex arith methods should
+        # GH 19522 passing fill_value to frame flex arith methods should
         # raise even in the zero-length special cases
         ser_len0 = pd.Series([])
         df_len0 = pd.DataFrame([], columns=['A', 'B'])
@@ -351,7 +351,7 @@ class TestFrameArithmetic(object):
         tm.assert_frame_equal(result, expected)
 
     def test_df_bool_mul_int(self):
-        # GH#22047, GH#22163 multiplication by 1 should result in int dtype,
+        # GH 22047, GH 22163 multiplication by 1 should result in int dtype,
         # not object dtype
         df = pd.DataFrame([[False, True], [False, False]])
         result = df * 1
