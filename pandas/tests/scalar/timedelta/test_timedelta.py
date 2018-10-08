@@ -106,7 +106,8 @@ class TestTimedeltaComparison(object):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_compare_custom_object(self):
-        # GH20829
+        """Make sure non supported operations on Timedelta returns NonImplemented
+        and yields to other operand (GH20829)."""
         class CustomClass(object):
 
             def __init__(self, cmp_result=None):

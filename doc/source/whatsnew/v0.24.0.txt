@@ -186,6 +186,7 @@ Other Enhancements
 - :func:`~DataFrame.to_csv`, :func:`~Series.to_csv`, :func:`~DataFrame.to_json`, and :func:`~Series.to_json` now support ``compression='infer'`` to infer compression based on filename extension (:issue:`15008`).
   The default compression for ``to_csv``, ``to_json``, and ``to_pickle`` methods has been updated to ``'infer'`` (:issue:`22004`).
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
+- Comparing :class:`Timedelta` with unknown types now return ``NotImplemented`` instead of ``False`` (:issue:`20829`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
 - :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support an ``ambiguous`` argument for handling datetimes that are rounded to ambiguous times (:issue:`18946`)
@@ -479,7 +480,6 @@ all-``NaT``.  This is for compatibility with ``TimedeltaIndex`` and
 Previous Behavior:
 
 .. code-block:: ipython
-- Comparing :class:`Timedelta` with unknown types now return NotImplemented instead of False (:issue:`20829`)
 
     In [4]: df = pd.DataFrame([pd.Timedelta(days=1)])
 
@@ -699,7 +699,7 @@ Timedelta
 - Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 - Fixed bug where subtracting :class:`Timedelta` from an object-dtyped array would raise ``TypeError`` (:issue:`21980`)
 - Fixed bug in adding a :class:`DataFrame` with all-`timedelta64[ns]` dtypes to a :class:`DataFrame` with all-integer dtypes returning incorrect results instead of raising ``TypeError`` (:issue:`22696`)
--
+
 
 Timezones
 ^^^^^^^^^
