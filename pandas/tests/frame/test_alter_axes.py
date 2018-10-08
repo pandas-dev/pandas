@@ -204,7 +204,8 @@ class TestDataFrameAlterAxes():
         keys = [box1(df['A']), box2(df['A'])]
 
         # need to adapt first drop for case that both keys are 'A' --
-        # can't drop the same column twice
+        # cannot drop the same column twice;
+        # use "is" because == would give ambiguous Boolean error for containers
         first_drop = False if (keys[0] is 'A' and keys[1] is 'A') else drop
 
         # to test against already-tested behaviour, we add sequentially,
