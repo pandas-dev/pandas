@@ -49,6 +49,10 @@ class BaseDtypeTests(BaseExtensionTests):
     def test_eq_with_numpy_object(self, dtype):
         assert dtype != np.dtype('object')
 
+    def test_eq_with_self(self, dtype):
+        assert dtype == dtype
+        assert dtype != object()
+
     def test_array_type(self, data, dtype):
         assert dtype.construct_array_type() is type(data)
 
@@ -81,3 +85,6 @@ class BaseDtypeTests(BaseExtensionTests):
                              index=list('ABCD'))
         result = df.dtypes.apply(str) == str(dtype)
         self.assert_series_equal(result, expected)
+
+    def test_hashable(self, dtype):
+        hash(dtype)  # no error
