@@ -344,8 +344,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         --------
         DatetimeIndex.shift : Shift values of DatetimeIndex.
         """
-        values = self._ndarray_values + periods * self.freq.n
-        return self._time_shift(n)
+        return self._time_shift(periods)
 
     def _time_shift(self, n):
         values = self._ndarray_values + n * self.freq.n
