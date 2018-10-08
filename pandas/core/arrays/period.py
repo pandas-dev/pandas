@@ -264,7 +264,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         if self.hasnans:
             new_data[self._isnan] = iNaT
 
-        return self._simple_new(new_data, self.name, freq=freq)
+        return self._shallow_copy(new_data, freq=freq)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -297,7 +297,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         if base != self.freq.rule_code:
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
-        return self.shift(other.n)
+        return self._time_shift(other.n)
 
     def _add_delta_td(self, other):
         assert isinstance(other, (timedelta, np.timedelta64, Tick))
@@ -307,7 +307,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         if isinstance(own_offset, Tick):
             offset_nanos = delta_to_nanoseconds(own_offset)
             if np.all(nanos % offset_nanos == 0):
-                return self.shift(nanos // offset_nanos)
+                return self._time_shift(nanos // offset_nanos)
 
         # raise when input doesn't have freq
         raise IncompatibleFrequency("Input has different freq from "
@@ -317,7 +317,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
     def _add_delta(self, other):
         ordinal_delta = self._maybe_convert_timedelta(other)
-        return self.shift(ordinal_delta)
+        return self._time_shift(ordinal_delta)
 
     @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
     def shift(self, periods):
@@ -342,10 +342,16 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
         See Also
         --------
-        Index.shift : Shift values of Index.
         DatetimeIndex.shift : Shift values of DatetimeIndex.
         """
+<<<<<<< HEAD
         values = self._ndarray_values + periods * self.freq.n
+=======
+        return self._time_shift(n)
+
+    def _time_shift(self, n):
+        values = self._ndarray_values + n * self.freq.n
+>>>>>>> upstream/master
         if self.hasnans:
             values[self._isnan] = iNaT
         return self._shallow_copy(values=values)

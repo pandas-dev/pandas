@@ -160,9 +160,18 @@ your ``MyExtensionArray`` class, as follows:
     MyExtensionArray._add_arithmetic_ops()
     MyExtensionArray._add_comparison_ops()
 
-Note that since ``pandas`` automatically calls the underlying operator on each
-element one-by-one, this might not be as performant as implementing your own
-version of the associated operators directly on the ``ExtensionArray``.
+
+.. note::
+
+   Since ``pandas`` automatically calls the underlying operator on each
+   element one-by-one, this might not be as performant as implementing your own
+   version of the associated operators directly on the ``ExtensionArray``.
+
+For arithmetic operations, this implementation will try to reconstruct a new
+``ExtensionArray`` with the result of the element-wise operation. Whether
+or not that succeeds depends on whether the operation returns a result
+that's valid for the ``ExtensionArray``. If an ``ExtensionArray`` cannot
+be reconstructed, an ndarray containing the scalars returned instead.
 
 .. _extending.extension.testing:
 

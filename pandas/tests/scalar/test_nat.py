@@ -312,19 +312,16 @@ def test_nat_arithmetic_index():
     tm.assert_index_equal(NaT - tdi, tdi_nat)
 
 
-@pytest.mark.parametrize('box, assert_func', [
-    (TimedeltaIndex, tm.assert_index_equal),
-    (Series, tm.assert_series_equal)
-])
-def test_nat_arithmetic_td64_vector(box, assert_func):
+@pytest.mark.parametrize('box', [TimedeltaIndex, Series])
+def test_nat_arithmetic_td64_vector(box):
     # GH#19124
     vec = box(['1 day', '2 day'], dtype='timedelta64[ns]')
     box_nat = box([NaT, NaT], dtype='timedelta64[ns]')
 
-    assert_func(vec + NaT, box_nat)
-    assert_func(NaT + vec, box_nat)
-    assert_func(vec - NaT, box_nat)
-    assert_func(NaT - vec, box_nat)
+    tm.assert_equal(vec + NaT, box_nat)
+    tm.assert_equal(NaT + vec, box_nat)
+    tm.assert_equal(vec - NaT, box_nat)
+    tm.assert_equal(NaT - vec, box_nat)
 
 
 def test_nat_pinned_docstrings():

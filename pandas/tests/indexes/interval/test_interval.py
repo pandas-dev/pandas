@@ -1,7 +1,9 @@
 from __future__ import division
 
+from itertools import permutations
 import pytest
 import numpy as np
+import re
 from pandas import (
     Interval, IntervalIndex, Index, isna, notna, interval_range, Timestamp,
     Timedelta, date_range, timedelta_range)
@@ -498,6 +500,48 @@ class TestIntervalIndex(Base):
         result = index.get_loc(item)
         assert result == 0
 
+    # Make consistent with test_interval_new.py (see #16316, #16386)
+    @pytest.mark.parametrize('breaks', [
+        date_range('20180101', periods=4),
+        date_range('20180101', periods=4, tz='US/Eastern'),
+        timedelta_range('0 days', periods=4)], ids=lambda x: str(x.dtype))
+    def test_get_loc_datetimelike_nonoverlapping(self, breaks):
+        # GH 20636
+        # nonoverlapping = IntervalIndex method and no i8 conversion
+        index = IntervalIndex.from_breaks(breaks)
+
+        value = index[0].mid
+        result = index.get_loc(value)
+        expected = 0
+        assert result == expected
+
+        interval = Interval(index[0].left, index[1].right)
+        result = index.get_loc(interval)
+        expected = slice(0, 2)
+        assert result == expected
+
+    # Make consistent with test_interval_new.py (see #16316, #16386)
+    @pytest.mark.parametrize('arrays', [
+        (date_range('20180101', periods=4), date_range('20180103', periods=4)),
+        (date_range('20180101', periods=4, tz='US/Eastern'),
+         date_range('20180103', periods=4, tz='US/Eastern')),
+        (timedelta_range('0 days', periods=4),
+         timedelta_range('2 days', periods=4))], ids=lambda x: str(x[0].dtype))
+    def test_get_loc_datetimelike_overlapping(self, arrays):
+        # GH 20636
+        # overlapping = IntervalTree method with i8 conversion
+        index = IntervalIndex.from_arrays(*arrays)
+
+        value = index[0].mid + Timedelta('12 hours')
+        result = np.sort(index.get_loc(value))
+        expected = np.array([0, 1], dtype='int64')
+        assert tm.assert_numpy_array_equal(result, expected)
+
+        interval = Interval(index[0].left, index[1].right)
+        result = np.sort(index.get_loc(interval))
+        expected = np.array([0, 1, 2], dtype='int64')
+        assert tm.assert_numpy_array_equal(result, expected)
+
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_indexer(self):
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
@@ -554,6 +598,97 @@ class TestIntervalIndex(Base):
         result = index.get_indexer(item)
         expected = np.array([0] * len(item), dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
+
+    # Make consistent with test_interval_new.py (see #16316, #16386)
+    @pytest.mark.parametrize('arrays', [
+        (date_range('20180101', periods=4), date_range('20180103', periods=4)),
+        (date_range('20180101', periods=4, tz='US/Eastern'),
+         date_range('20180103', periods=4, tz='US/Eastern')),
+        (timedelta_range('0 days', periods=4),
+         timedelta_range('2 days', periods=4))], ids=lambda x: str(x[0].dtype))
+    def test_get_reindexer_datetimelike(self, arrays):
+        # GH 20636
+        index = IntervalIndex.from_arrays(*arrays)
+        tuples = [(index[0].left, index[0].left + pd.Timedelta('12H')),
+                  (index[-1].right - pd.Timedelta('12H'), index[-1].right)]
+        target = IntervalIndex.from_tuples(tuples)
+
+        result = index._get_reindexer(target)
+        expected = np.array([0, 3], dtype='int64')
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize('breaks', [
+        date_range('20180101', periods=4),
+        date_range('20180101', periods=4, tz='US/Eastern'),
+        timedelta_range('0 days', periods=4)], ids=lambda x: str(x.dtype))
+    def test_maybe_convert_i8(self, breaks):
+        # GH 20636
+        index = IntervalIndex.from_breaks(breaks)
+
+        # intervalindex
+        result = index._maybe_convert_i8(index)
+        expected = IntervalIndex.from_breaks(breaks.asi8)
+        tm.assert_index_equal(result, expected)
+
+        # interval
+        interval = Interval(breaks[0], breaks[1])
+        result = index._maybe_convert_i8(interval)
+        expected = Interval(breaks[0].value, breaks[1].value)
+        assert result == expected
+
+        # datetimelike index
+        result = index._maybe_convert_i8(breaks)
+        expected = Index(breaks.asi8)
+        tm.assert_index_equal(result, expected)
+
+        # datetimelike scalar
+        result = index._maybe_convert_i8(breaks[0])
+        expected = breaks[0].value
+        assert result == expected
+
+        # list-like of datetimelike scalars
+        result = index._maybe_convert_i8(list(breaks))
+        expected = Index(breaks.asi8)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('breaks', [
+        np.arange(5, dtype='int64'),
+        np.arange(5, dtype='float64')], ids=lambda x: str(x.dtype))
+    @pytest.mark.parametrize('make_key', [
+        IntervalIndex.from_breaks,
+        lambda breaks: Interval(breaks[0], breaks[1]),
+        lambda breaks: breaks,
+        lambda breaks: breaks[0],
+        list], ids=['IntervalIndex', 'Interval', 'Index', 'scalar', 'list'])
+    def test_maybe_convert_i8_numeric(self, breaks, make_key):
+        # GH 20636
+        index = IntervalIndex.from_breaks(breaks)
+        key = make_key(breaks)
+
+        # no conversion occurs for numeric
+        result = index._maybe_convert_i8(key)
+        assert result is key
+
+    @pytest.mark.parametrize('breaks1, breaks2', permutations([
+        date_range('20180101', periods=4),
+        date_range('20180101', periods=4, tz='US/Eastern'),
+        timedelta_range('0 days', periods=4)], 2), ids=lambda x: str(x.dtype))
+    @pytest.mark.parametrize('make_key', [
+        IntervalIndex.from_breaks,
+        lambda breaks: Interval(breaks[0], breaks[1]),
+        lambda breaks: breaks,
+        lambda breaks: breaks[0],
+        list], ids=['IntervalIndex', 'Interval', 'Index', 'scalar', 'list'])
+    def test_maybe_convert_i8_errors(self, breaks1, breaks2, make_key):
+        # GH 20636
+        index = IntervalIndex.from_breaks(breaks1)
+        key = make_key(breaks2)
+
+        msg = ('Cannot index an IntervalIndex of subtype {dtype1} with '
+               'values of dtype {dtype2}')
+        msg = re.escape(msg.format(dtype1=breaks1.dtype, dtype2=breaks2.dtype))
+        with tm.assert_raises_regex(ValueError, msg):
+            index._maybe_convert_i8(key)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_contains(self):
