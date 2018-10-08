@@ -17,6 +17,8 @@ from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
+import pytest
+
 
 class TestDataFrameConcatCommon(TestData):
 
@@ -53,10 +55,13 @@ class TestDataFrameConcatCommon(TestData):
         expected = DataFrame(dict(time=[ts2, ts3]))
         assert_frame_equal(results, expected)
 
-    def test_concat_tz_NaT(self):
+    @pytest.mark.parametrize('t1', ['2015-01-01',
+        pytest.param('pd.NaT', marks=pytest.mark.xfail(
+                     reason='GH23037 incorrect dtype when concatenating'))])
+    def test_concat_tz_NaT(self, t1):
         # GH 22796
         # Concating tz-aware multicolumn DataFrames
-        ts1 = Timestamp('2015-01-01', tz='UTC')
+        ts1 = Timestamp(t1, tz='UTC')
         ts2 = Timestamp('2015-01-01', tz='UTC')
         ts3 = Timestamp('2015-01-01', tz='UTC')
 
