@@ -381,29 +381,6 @@ Raise ValueError in ``DataFrame.to_dict(orient='index')``
 Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with 
 ``orient='index'`` and a non-unique index instead of losing data (:issue:`22801`)
 
-Previous Behavior:
-
-Calling :func:`DataFrame.to_dict` resulted in data loss when ``orient='index'``
-for non-unique indexes
-
-.. code-block:: ipython
-
-   In [2]: df = pd.DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
-   
-   In [3]: df.to_dict(orient='index')
-   Out [3]: {'A': {'a': 2.0, 'b': 0.75}}
-
-Current Behavior:
-
-Calling :func:`DataFrame.to_dict` will now result in a ValueError being raised
-when ``orient='index'`` for non-unique index values
-
-.. ipython:: python
-
-   df = pd.DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
-   
-   df.to_dict(orient='index')
-
 .. _whatsnew_0240.api.datetimelike.normalize:
 
 Tick DateOffset Normalize Restrictions
