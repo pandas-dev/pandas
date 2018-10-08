@@ -2011,23 +2011,23 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         key : object
-	key to be searched.
+        key to be searched.
 
         Returns
         -------
         boolean
-	result of the search.
+        result of the search.
 
-	See Also
-	--------
-	Index.isin
+        See Also
+        --------
+        Index.isin
 
-	Examples
-	--------
-	>>> pd.CategoricalIndex([2000, 2001, 2012]).contains(2001)
-	True
-	>>> pd.CategoricalIndex([2000, 2001, 2012]).contains(2222)
-	False
+        Examples
+        --------
+        >>> pd.CategoricalIndex([2000, 2001, 2012]).contains(2001)
+        True
+        >>> pd.CategoricalIndex([2000, 2001, 2012]).contains(2222)
+        False
         """
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
