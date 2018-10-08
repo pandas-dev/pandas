@@ -18,8 +18,8 @@ jobs:
 - template: ci/azure/windows.yml
   parameters:
     name: Windows
-    vmImage: vs2017-win2017
+    vmImage: vs2017-win2016
 - template: ci/azure/windows-py27.yml
   parameters:
     name: WindowsPy27
-    vmImage: vs2017-win2017
+    vmImage: vs2017-win2016
