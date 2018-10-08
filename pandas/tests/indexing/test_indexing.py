@@ -631,6 +631,21 @@ class TestFancy(Base):
         # GH 19860
         assert val not in index
 
+    def test_contains_with_float_index(self):
+        # GH#22085
+        integer_index = pd.Int64Index([0, 1, 2, 3])
+        uinteger_index = pd.UInt64Index([0, 1, 2, 3])
+        float_index = pd.Float64Index([0.1, 1.1, 2.2, 3.3])
+
+        for index in (integer_index, uinteger_index):
+            assert 1.1 not in index
+            assert 1.0 in index
+            assert 1 in index
+
+        assert 1.1 in float_index
+        assert 1.0 not in float_index
+        assert 1 not in float_index
+
     def test_index_type_coercion(self):
 
         with catch_warnings(record=True):
@@ -1064,3 +1079,31 @@ def test_validate_indices_high():
 def test_validate_indices_empty():
     with tm.assert_raises_regex(IndexError, "indices are out"):
         validate_indices(np.array([0, 1]), 0)
+
+
+def test_extension_array_cross_section():
+    # A cross-section of a homogeneous EA should be an EA
+    df = pd.DataFrame({
+        "A": pd.core.arrays.integer_array([1, 2]),
+        "B": pd.core.arrays.integer_array([3, 4])
+    }, index=['a', 'b'])
+    expected = pd.Series(pd.core.arrays.integer_array([1, 3]),
+                         index=['A', 'B'], name='a')
+    result = df.loc['a']
+    tm.assert_series_equal(result, expected)
+
+    result = df.iloc[0]
+    tm.assert_series_equal(result, expected)
+
+
+def test_extension_array_cross_section_converts():
+    df = pd.DataFrame({
+        "A": pd.core.arrays.integer_array([1, 2]),
+        "B": np.array([1, 2]),
+    }, index=['a', 'b'])
+    result = df.loc['a']
+    expected = pd.Series([1, 1], dtype=object, index=['A', 'B'], name='a')
+    tm.assert_series_equal(result, expected)
+
+    result = df.iloc[0]
+    tm.assert_series_equal(result, expected)

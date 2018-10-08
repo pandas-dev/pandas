@@ -14,6 +14,7 @@ from pandas import (Index, Series, DataFrame, isna, bdate_range,
                     NaT, date_range, timedelta_range, Categorical)
 from pandas.core.indexes.datetimes import Timestamp
 import pandas.core.nanops as nanops
+from pandas.core import ops
 
 from pandas.compat import range
 from pandas import compat
@@ -22,6 +23,361 @@ from pandas.util.testing import (assert_series_equal, assert_almost_equal,
 import pandas.util.testing as tm
 
 from .common import TestData
+
+
+class TestSeriesLogicalOps(object):
+    @pytest.mark.parametrize('bool_op', [operator.and_,
+                                         operator.or_, operator.xor])
+    def test_bool_operators_with_nas(self, bool_op):
+        # boolean &, |, ^ should work with object arrays and propagate NAs
+        ser = Series(bdate_range('1/1/2000', periods=10), dtype=object)
+        ser[::2] = np.nan
+
+        mask = ser.isna()
+        filled = ser.fillna(ser[0])
+
+        result = bool_op(ser < ser[9], ser > ser[3])
+
+        expected = bool_op(filled < filled[9], filled > filled[3])
+        expected[mask] = False
+        assert_series_equal(result, expected)
+
+    def test_operators_bitwise(self):
+        # GH#9016: support bitwise op for integer types
+        index = list('bca')
+
+        s_tft = Series([True, False, True], index=index)
+        s_fff = Series([False, False, False], index=index)
+        s_tff = Series([True, False, False], index=index)
+        s_empty = Series([])
+
+        # TODO: unused
+        # s_0101 = Series([0, 1, 0, 1])
+
+        s_0123 = Series(range(4), dtype='int64')
+        s_3333 = Series([3] * 4)
+        s_4444 = Series([4] * 4)
+
+        res = s_tft & s_empty
+        expected = s_fff
+        assert_series_equal(res, expected)
+
+        res = s_tft | s_empty
+        expected = s_tft
+        assert_series_equal(res, expected)
+
+        res = s_0123 & s_3333
+        expected = Series(range(4), dtype='int64')
+        assert_series_equal(res, expected)
+
+        res = s_0123 | s_4444
+        expected = Series(range(4, 8), dtype='int64')
+        assert_series_equal(res, expected)
+
+        s_a0b1c0 = Series([1], list('b'))
+
+        res = s_tft & s_a0b1c0
+        expected = s_tff.reindex(list('abc'))
+        assert_series_equal(res, expected)
+
+        res = s_tft | s_a0b1c0
+        expected = s_tft.reindex(list('abc'))
+        assert_series_equal(res, expected)
+
+        n0 = 0
+        res = s_tft & n0
+        expected = s_fff
+        assert_series_equal(res, expected)
+
+        res = s_0123 & n0
+        expected = Series([0] * 4)
+        assert_series_equal(res, expected)
+
+        n1 = 1
+        res = s_tft & n1
+        expected = s_tft
+        assert_series_equal(res, expected)
+
+        res = s_0123 & n1
+        expected = Series([0, 1, 0, 1])
+        assert_series_equal(res, expected)
+
+        s_1111 = Series([1] * 4, dtype='int8')
+        res = s_0123 & s_1111
+        expected = Series([0, 1, 0, 1], dtype='int64')
+        assert_series_equal(res, expected)
+
+        res = s_0123.astype(np.int16) | s_1111.astype(np.int32)
+        expected = Series([1, 1, 3, 3], dtype='int32')
+        assert_series_equal(res, expected)
+
+        with pytest.raises(TypeError):
+            s_1111 & 'a'
+        with pytest.raises(TypeError):
+            s_1111 & ['a', 'b', 'c', 'd']
+        with pytest.raises(TypeError):
+            s_0123 & np.NaN
+        with pytest.raises(TypeError):
+            s_0123 & 3.14
+        with pytest.raises(TypeError):
+            s_0123 & [0.1, 4, 3.14, 2]
+
+        # s_0123 will be all false now because of reindexing like s_tft
+        if compat.PY3:
+            # unable to sort incompatible object via .union.
+            exp = Series([False] * 7, index=['b', 'c', 'a', 0, 1, 2, 3])
+            with tm.assert_produces_warning(RuntimeWarning):
+                assert_series_equal(s_tft & s_0123, exp)
+        else:
+            exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
+            assert_series_equal(s_tft & s_0123, exp)
+
+        # s_tft will be all false now because of reindexing like s_0123
+        if compat.PY3:
+            # unable to sort incompatible object via .union.
+            exp = Series([False] * 7, index=[0, 1, 2, 3, 'b', 'c', 'a'])
+            with tm.assert_produces_warning(RuntimeWarning):
+                assert_series_equal(s_0123 & s_tft, exp)
+        else:
+            exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
+            assert_series_equal(s_0123 & s_tft, exp)
+
+        assert_series_equal(s_0123 & False, Series([False] * 4))
+        assert_series_equal(s_0123 ^ False, Series([False, True, True, True]))
+        assert_series_equal(s_0123 & [False], Series([False] * 4))
+        assert_series_equal(s_0123 & (False), Series([False] * 4))
+        assert_series_equal(s_0123 & Series([False, np.NaN, False, False]),
+                            Series([False] * 4))
+
+        s_ftft = Series([False, True, False, True])
+        assert_series_equal(s_0123 & Series([0.1, 4, -3.14, 2]), s_ftft)
+
+        s_abNd = Series(['a', 'b', np.NaN, 'd'])
+        res = s_0123 & s_abNd
+        expected = s_ftft
+        assert_series_equal(res, expected)
+
+    def test_scalar_na_logical_ops_corners(self):
+        s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
+
+        with pytest.raises(TypeError):
+            s & datetime(2005, 1, 1)
+
+        s = Series([2, 3, 4, 5, 6, 7, 8, 9, datetime(2005, 1, 1)])
+        s[::2] = np.nan
+
+        expected = Series(True, index=s.index)
+        expected[::2] = False
+        result = s & list(s)
+        assert_series_equal(result, expected)
+
+        d = DataFrame({'A': s})
+        # TODO: Fix this exception - needs to be fixed! (see GH5035)
+        # (previously this was a TypeError because series returned
+        # NotImplemented
+
+        # this is an alignment issue; these are equivalent
+        # https://github.com/pandas-dev/pandas/issues/5284
+
+        with pytest.raises(TypeError):
+            d.__and__(s, axis='columns')
+
+        with pytest.raises(TypeError):
+            s & d
+
+        # this is wrong as its not a boolean result
+        # result = d.__and__(s,axis='index')
+
+    @pytest.mark.parametrize('op', [
+        operator.and_,
+        operator.or_,
+        operator.xor,
+        pytest.param(ops.rand_,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation returns "
+                                                    "Index",
+                                             raises=AssertionError,
+                                             strict=True)),
+        pytest.param(ops.ror_,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation raises",
+                                             raises=ValueError, strict=True)),
+        pytest.param(ops.rxor,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation raises",
+                                             raises=TypeError, strict=True))
+    ])
+    def test_logical_ops_with_index(self, op):
+        # GH#22092, GH#19792
+        ser = Series([True, True, False, False])
+        idx1 = Index([True, False, True, False])
+        idx2 = Index([1, 0, 1, 0])
+
+        expected = Series([op(ser[n], idx1[n]) for n in range(len(ser))])
+
+        result = op(ser, idx1)
+        assert_series_equal(result, expected)
+
+        expected = Series([op(ser[n], idx2[n]) for n in range(len(ser))],
+                          dtype=bool)
+
+        result = op(ser, idx2)
+        assert_series_equal(result, expected)
+
+    def test_logical_ops_label_based(self):
+        # GH#4947
+        # logical ops should be label based
+
+        a = Series([True, False, True], list('bca'))
+        b = Series([False, True, False], list('abc'))
+
+        expected = Series([False, True, False], list('abc'))
+        result = a & b
+        assert_series_equal(result, expected)
+
+        expected = Series([True, True, False], list('abc'))
+        result = a | b
+        assert_series_equal(result, expected)
+
+        expected = Series([True, False, False], list('abc'))
+        result = a ^ b
+        assert_series_equal(result, expected)
+
+        # rhs is bigger
+        a = Series([True, False, True], list('bca'))
+        b = Series([False, True, False, True], list('abcd'))
+
+        expected = Series([False, True, False, False], list('abcd'))
+        result = a & b
+        assert_series_equal(result, expected)
+
+        expected = Series([True, True, False, False], list('abcd'))
+        result = a | b
+        assert_series_equal(result, expected)
+
+        # filling
+
+        # vs empty
+        result = a & Series([])
+        expected = Series([False, False, False], list('bca'))
+        assert_series_equal(result, expected)
+
+        result = a | Series([])
+        expected = Series([True, False, True], list('bca'))
+        assert_series_equal(result, expected)
+
+        # vs non-matching
+        result = a & Series([1], ['z'])
+        expected = Series([False, False, False, False], list('abcz'))
+        assert_series_equal(result, expected)
+
+        result = a | Series([1], ['z'])
+        expected = Series([True, True, False, False], list('abcz'))
+        assert_series_equal(result, expected)
+
+        # identity
+        # we would like s[s|e] == s to hold for any e, whether empty or not
+        for e in [Series([]), Series([1], ['z']),
+                  Series(np.nan, b.index), Series(np.nan, a.index)]:
+            result = a[a | e]
+            assert_series_equal(result, a[a])
+
+        for e in [Series(['z'])]:
+            if compat.PY3:
+                with tm.assert_produces_warning(RuntimeWarning):
+                    result = a[a | e]
+            else:
+                result = a[a | e]
+            assert_series_equal(result, a[a])
+
+        # vs scalars
+        index = list('bca')
+        t = Series([True, False, True])
+
+        for v in [True, 1, 2]:
+            result = Series([True, False, True], index=index) | v
+            expected = Series([True, True, True], index=index)
+            assert_series_equal(result, expected)
+
+        for v in [np.nan, 'foo']:
+            with pytest.raises(TypeError):
+                t | v
+
+        for v in [False, 0]:
+            result = Series([True, False, True], index=index) | v
+            expected = Series([True, False, True], index=index)
+            assert_series_equal(result, expected)
+
+        for v in [True, 1]:
+            result = Series([True, False, True], index=index) & v
+            expected = Series([True, False, True], index=index)
+            assert_series_equal(result, expected)
+
+        for v in [False, 0]:
+            result = Series([True, False, True], index=index) & v
+            expected = Series([False, False, False], index=index)
+            assert_series_equal(result, expected)
+        for v in [np.nan]:
+            with pytest.raises(TypeError):
+                t & v
+
+    def test_logical_ops_df_compat(self):
+        # GH#1134
+        s1 = pd.Series([True, False, True], index=list('ABC'), name='x')
+        s2 = pd.Series([True, True, False], index=list('ABD'), name='x')
+
+        exp = pd.Series([True, False, False, False],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s1 & s2, exp)
+        assert_series_equal(s2 & s1, exp)
+
+        # True | np.nan => True
+        exp = pd.Series([True, True, True, False],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s1 | s2, exp)
+        # np.nan | True => np.nan, filled with False
+        exp = pd.Series([True, True, False, False],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s2 | s1, exp)
+
+        # DataFrame doesn't fill nan with False
+        exp = pd.DataFrame({'x': [True, False, np.nan, np.nan]},
+                           index=list('ABCD'))
+        assert_frame_equal(s1.to_frame() & s2.to_frame(), exp)
+        assert_frame_equal(s2.to_frame() & s1.to_frame(), exp)
+
+        exp = pd.DataFrame({'x': [True, True, np.nan, np.nan]},
+                           index=list('ABCD'))
+        assert_frame_equal(s1.to_frame() | s2.to_frame(), exp)
+        assert_frame_equal(s2.to_frame() | s1.to_frame(), exp)
+
+        # different length
+        s3 = pd.Series([True, False, True], index=list('ABC'), name='x')
+        s4 = pd.Series([True, True, True, True], index=list('ABCD'), name='x')
+
+        exp = pd.Series([True, False, True, False],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s3 & s4, exp)
+        assert_series_equal(s4 & s3, exp)
+
+        # np.nan | True => np.nan, filled with False
+        exp = pd.Series([True, True, True, False],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s3 | s4, exp)
+        # True | np.nan => True
+        exp = pd.Series([True, True, True, True],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s4 | s3, exp)
+
+        exp = pd.DataFrame({'x': [True, False, True, np.nan]},
+                           index=list('ABCD'))
+        assert_frame_equal(s3.to_frame() & s4.to_frame(), exp)
+        assert_frame_equal(s4.to_frame() & s3.to_frame(), exp)
+
+        exp = pd.DataFrame({'x': [True, True, True, np.nan]},
+                           index=list('ABCD'))
+        assert_frame_equal(s3.to_frame() | s4.to_frame(), exp)
+        assert_frame_equal(s4.to_frame() | s3.to_frame(), exp)
 
 
 class TestSeriesComparisons(object):
@@ -163,22 +519,6 @@ class TestSeriesComparisons(object):
             # expected = f(val, s.dropna()).reindex(s.index)
             # assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize('bool_op', [operator.and_,
-                                         operator.or_, operator.xor])
-    def test_bool_operators_with_nas(self, bool_op):
-        # boolean &, |, ^ should work with object arrays and propagate NAs
-        ser = Series(bdate_range('1/1/2000', periods=10), dtype=object)
-        ser[::2] = np.nan
-
-        mask = ser.isna()
-        filled = ser.fillna(ser[0])
-
-        result = bool_op(ser < ser[9], ser > ser[3])
-
-        expected = bool_op(filled < filled[9], filled > filled[3])
-        expected[mask] = False
-        assert_series_equal(result, expected)
-
     def test_unequal_categorical_comparison_raises_type_error(self):
         # unequal comparison should raise for unordered cats
         cat = Series(Categorical(list("abc")))
@@ -257,104 +597,44 @@ class TestSeriesComparisons(object):
         with pytest.raises(ValueError):
             a == b
 
-    def test_comparison_label_based(self):
+    def test_ne(self):
+        ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
+        expected = [True, True, False, True, True]
+        assert tm.equalContents(ts.index != 5, expected)
+        assert tm.equalContents(~(ts.index == 5), expected)
 
-        # GH 4947
-        # comparisons should be label based
+    def test_comp_ops_df_compat(self):
+        # GH 1134
+        s1 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
+        s2 = pd.Series([2, 2, 2], index=list('ABD'), name='x')
 
-        a = Series([True, False, True], list('bca'))
-        b = Series([False, True, False], list('abc'))
+        s3 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
+        s4 = pd.Series([2, 2, 2, 2], index=list('ABCD'), name='x')
 
-        expected = Series([False, True, False], list('abc'))
-        result = a & b
-        assert_series_equal(result, expected)
+        for left, right in [(s1, s2), (s2, s1), (s3, s4), (s4, s3)]:
 
-        expected = Series([True, True, False], list('abc'))
-        result = a | b
-        assert_series_equal(result, expected)
+            msg = "Can only compare identically-labeled Series objects"
+            with tm.assert_raises_regex(ValueError, msg):
+                left == right
 
-        expected = Series([True, False, False], list('abc'))
-        result = a ^ b
-        assert_series_equal(result, expected)
+            with tm.assert_raises_regex(ValueError, msg):
+                left != right
 
-        # rhs is bigger
-        a = Series([True, False, True], list('bca'))
-        b = Series([False, True, False, True], list('abcd'))
+            with tm.assert_raises_regex(ValueError, msg):
+                left < right
 
-        expected = Series([False, True, False, False], list('abcd'))
-        result = a & b
-        assert_series_equal(result, expected)
+            msg = "Can only compare identically-labeled DataFrame objects"
+            with tm.assert_raises_regex(ValueError, msg):
+                left.to_frame() == right.to_frame()
 
-        expected = Series([True, True, False, False], list('abcd'))
-        result = a | b
-        assert_series_equal(result, expected)
+            with tm.assert_raises_regex(ValueError, msg):
+                left.to_frame() != right.to_frame()
 
-        # filling
+            with tm.assert_raises_regex(ValueError, msg):
+                left.to_frame() < right.to_frame()
 
-        # vs empty
-        result = a & Series([])
-        expected = Series([False, False, False], list('bca'))
-        assert_series_equal(result, expected)
 
-        result = a | Series([])
-        expected = Series([True, False, True], list('bca'))
-        assert_series_equal(result, expected)
-
-        # vs non-matching
-        result = a & Series([1], ['z'])
-        expected = Series([False, False, False, False], list('abcz'))
-        assert_series_equal(result, expected)
-
-        result = a | Series([1], ['z'])
-        expected = Series([True, True, False, False], list('abcz'))
-        assert_series_equal(result, expected)
-
-        # identity
-        # we would like s[s|e] == s to hold for any e, whether empty or not
-        for e in [Series([]), Series([1], ['z']),
-                  Series(np.nan, b.index), Series(np.nan, a.index)]:
-            result = a[a | e]
-            assert_series_equal(result, a[a])
-
-        for e in [Series(['z'])]:
-            if compat.PY3:
-                with tm.assert_produces_warning(RuntimeWarning):
-                    result = a[a | e]
-            else:
-                result = a[a | e]
-            assert_series_equal(result, a[a])
-
-        # vs scalars
-        index = list('bca')
-        t = Series([True, False, True])
-
-        for v in [True, 1, 2]:
-            result = Series([True, False, True], index=index) | v
-            expected = Series([True, True, True], index=index)
-            assert_series_equal(result, expected)
-
-        for v in [np.nan, 'foo']:
-            with pytest.raises(TypeError):
-                t | v
-
-        for v in [False, 0]:
-            result = Series([True, False, True], index=index) | v
-            expected = Series([True, False, True], index=index)
-            assert_series_equal(result, expected)
-
-        for v in [True, 1]:
-            result = Series([True, False, True], index=index) & v
-            expected = Series([True, False, True], index=index)
-            assert_series_equal(result, expected)
-
-        for v in [False, 0]:
-            result = Series([True, False, True], index=index) & v
-            expected = Series([False, False, False], index=index)
-            assert_series_equal(result, expected)
-        for v in [np.nan]:
-            with pytest.raises(TypeError):
-                t & v
-
+class TestSeriesFlexComparisonOps(object):
     def test_comparison_flex_basic(self):
         left = pd.Series(np.random.randn(10))
         right = pd.Series(np.random.randn(10))
@@ -424,66 +704,6 @@ class TestSeriesComparisons(object):
 
         exp = pd.Series([True, True, False, False], index=list('abcd'))
         assert_series_equal(left.gt(right, fill_value=0), exp)
-
-    def test_logical_ops_with_index(self):
-        # GH22092
-        ser = Series([True, True, False, False])
-        idx1 = Index([True, False, True, False])
-        idx2 = Index([1, 0, 1, 0])
-
-        expected = Series([True, False, False, False])
-        result1 = ser & idx1
-        assert_series_equal(result1, expected)
-        result2 = ser & idx2
-        assert_series_equal(result2, expected)
-
-        expected = Series([True, True, True, False])
-        result1 = ser | idx1
-        assert_series_equal(result1, expected)
-        result2 = ser | idx2
-        assert_series_equal(result2, expected)
-
-        expected = Series([False, True, True, False])
-        result1 = ser ^ idx1
-        assert_series_equal(result1, expected)
-        result2 = ser ^ idx2
-        assert_series_equal(result2, expected)
-
-    def test_ne(self):
-        ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
-        expected = [True, True, False, True, True]
-        assert tm.equalContents(ts.index != 5, expected)
-        assert tm.equalContents(~(ts.index == 5), expected)
-
-    def test_comp_ops_df_compat(self):
-        # GH 1134
-        s1 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
-        s2 = pd.Series([2, 2, 2], index=list('ABD'), name='x')
-
-        s3 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
-        s4 = pd.Series([2, 2, 2, 2], index=list('ABCD'), name='x')
-
-        for left, right in [(s1, s2), (s2, s1), (s3, s4), (s4, s3)]:
-
-            msg = "Can only compare identically-labeled Series objects"
-            with tm.assert_raises_regex(ValueError, msg):
-                left == right
-
-            with tm.assert_raises_regex(ValueError, msg):
-                left != right
-
-            with tm.assert_raises_regex(ValueError, msg):
-                left < right
-
-            msg = "Can only compare identically-labeled DataFrame objects"
-            with tm.assert_raises_regex(ValueError, msg):
-                left.to_frame() == right.to_frame()
-
-            with tm.assert_raises_regex(ValueError, msg):
-                left.to_frame() != right.to_frame()
-
-            with tm.assert_raises_regex(ValueError, msg):
-                left.to_frame() < right.to_frame()
 
 
 class TestDatetimeSeriesArithmetic(object):
@@ -600,12 +820,6 @@ class TestSeriesOperators(TestData):
             expected = alt(other, series)
             assert_almost_equal(result, expected)
 
-    def test_neg(self):
-        assert_series_equal(-self.series, -1 * self.series)
-
-    def test_invert(self):
-        assert_series_equal(-(self.series < 0), ~(self.series < 0))
-
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
         s2 = Series({'x': 0.})
@@ -626,152 +840,6 @@ class TestSeriesOperators(TestData):
         expected = Series(expected, name=0)
         result = (dt2.to_frame() - dt.to_frame())[0]
         assert_series_equal(result, expected)
-
-    def test_operators_bitwise(self):
-        # GH 9016: support bitwise op for integer types
-        index = list('bca')
-
-        s_tft = Series([True, False, True], index=index)
-        s_fff = Series([False, False, False], index=index)
-        s_tff = Series([True, False, False], index=index)
-        s_empty = Series([])
-
-        # TODO: unused
-        # s_0101 = Series([0, 1, 0, 1])
-
-        s_0123 = Series(range(4), dtype='int64')
-        s_3333 = Series([3] * 4)
-        s_4444 = Series([4] * 4)
-
-        res = s_tft & s_empty
-        expected = s_fff
-        assert_series_equal(res, expected)
-
-        res = s_tft | s_empty
-        expected = s_tft
-        assert_series_equal(res, expected)
-
-        res = s_0123 & s_3333
-        expected = Series(range(4), dtype='int64')
-        assert_series_equal(res, expected)
-
-        res = s_0123 | s_4444
-        expected = Series(range(4, 8), dtype='int64')
-        assert_series_equal(res, expected)
-
-        s_a0b1c0 = Series([1], list('b'))
-
-        res = s_tft & s_a0b1c0
-        expected = s_tff.reindex(list('abc'))
-        assert_series_equal(res, expected)
-
-        res = s_tft | s_a0b1c0
-        expected = s_tft.reindex(list('abc'))
-        assert_series_equal(res, expected)
-
-        n0 = 0
-        res = s_tft & n0
-        expected = s_fff
-        assert_series_equal(res, expected)
-
-        res = s_0123 & n0
-        expected = Series([0] * 4)
-        assert_series_equal(res, expected)
-
-        n1 = 1
-        res = s_tft & n1
-        expected = s_tft
-        assert_series_equal(res, expected)
-
-        res = s_0123 & n1
-        expected = Series([0, 1, 0, 1])
-        assert_series_equal(res, expected)
-
-        s_1111 = Series([1] * 4, dtype='int8')
-        res = s_0123 & s_1111
-        expected = Series([0, 1, 0, 1], dtype='int64')
-        assert_series_equal(res, expected)
-
-        res = s_0123.astype(np.int16) | s_1111.astype(np.int32)
-        expected = Series([1, 1, 3, 3], dtype='int32')
-        assert_series_equal(res, expected)
-
-        with pytest.raises(TypeError):
-            s_1111 & 'a'
-        with pytest.raises(TypeError):
-            s_1111 & ['a', 'b', 'c', 'd']
-        with pytest.raises(TypeError):
-            s_0123 & np.NaN
-        with pytest.raises(TypeError):
-            s_0123 & 3.14
-        with pytest.raises(TypeError):
-            s_0123 & [0.1, 4, 3.14, 2]
-
-        # s_0123 will be all false now because of reindexing like s_tft
-        if compat.PY3:
-            # unable to sort incompatible object via .union.
-            exp = Series([False] * 7, index=['b', 'c', 'a', 0, 1, 2, 3])
-            with tm.assert_produces_warning(RuntimeWarning):
-                assert_series_equal(s_tft & s_0123, exp)
-        else:
-            exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
-            assert_series_equal(s_tft & s_0123, exp)
-
-        # s_tft will be all false now because of reindexing like s_0123
-        if compat.PY3:
-            # unable to sort incompatible object via .union.
-            exp = Series([False] * 7, index=[0, 1, 2, 3, 'b', 'c', 'a'])
-            with tm.assert_produces_warning(RuntimeWarning):
-                assert_series_equal(s_0123 & s_tft, exp)
-        else:
-            exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
-            assert_series_equal(s_0123 & s_tft, exp)
-
-        assert_series_equal(s_0123 & False, Series([False] * 4))
-        assert_series_equal(s_0123 ^ False, Series([False, True, True, True]))
-        assert_series_equal(s_0123 & [False], Series([False] * 4))
-        assert_series_equal(s_0123 & (False), Series([False] * 4))
-        assert_series_equal(s_0123 & Series([False, np.NaN, False, False]),
-                            Series([False] * 4))
-
-        s_ftft = Series([False, True, False, True])
-        assert_series_equal(s_0123 & Series([0.1, 4, -3.14, 2]), s_ftft)
-
-        s_abNd = Series(['a', 'b', np.NaN, 'd'])
-        res = s_0123 & s_abNd
-        expected = s_ftft
-        assert_series_equal(res, expected)
-
-    def test_scalar_na_cmp_corners(self):
-        s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
-
-        def tester(a, b):
-            return a & b
-
-        with pytest.raises(TypeError):
-            s & datetime(2005, 1, 1)
-
-        s = Series([2, 3, 4, 5, 6, 7, 8, 9, datetime(2005, 1, 1)])
-        s[::2] = np.nan
-
-        expected = Series(True, index=s.index)
-        expected[::2] = False
-        result = s & list(s)
-        assert_series_equal(result, expected)
-
-        d = DataFrame({'A': s})
-        # TODO: Fix this exception - needs to be fixed! (see GH5035)
-        # (previously this was a TypeError because series returned
-        # NotImplemented
-
-        # this is an alignment issue; these are equivalent
-        # https://github.com/pandas-dev/pandas/issues/5284
-
-        pytest.raises(ValueError, lambda: d.__and__(s, axis='columns'))
-        pytest.raises(ValueError, tester, s, d)
-
-        # this is wrong as its not a boolean result
-        # result = d.__and__(s,axis='index')
 
     def test_operators_corner(self):
         series = self.ts
@@ -921,62 +989,15 @@ class TestSeriesOperators(TestData):
             np.isnan(s.idxmax(skipna=False))
 
 
-class TestSeriesOperationsDataFrameCompat(object):
+class TestSeriesUnaryOps(object):
+    # __neg__, __pos__, __inv__
 
-    def test_bool_ops_df_compat(self):
-        # GH 1134
-        s1 = pd.Series([True, False, True], index=list('ABC'), name='x')
-        s2 = pd.Series([True, True, False], index=list('ABD'), name='x')
+    def test_neg(self):
+        ser = tm.makeStringSeries()
+        ser.name = 'series'
+        assert_series_equal(-ser, -1 * ser)
 
-        exp = pd.Series([True, False, False, False],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s1 & s2, exp)
-        assert_series_equal(s2 & s1, exp)
-
-        # True | np.nan => True
-        exp = pd.Series([True, True, True, False],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s1 | s2, exp)
-        # np.nan | True => np.nan, filled with False
-        exp = pd.Series([True, True, False, False],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s2 | s1, exp)
-
-        # DataFrame doesn't fill nan with False
-        exp = pd.DataFrame({'x': [True, False, np.nan, np.nan]},
-                           index=list('ABCD'))
-        assert_frame_equal(s1.to_frame() & s2.to_frame(), exp)
-        assert_frame_equal(s2.to_frame() & s1.to_frame(), exp)
-
-        exp = pd.DataFrame({'x': [True, True, np.nan, np.nan]},
-                           index=list('ABCD'))
-        assert_frame_equal(s1.to_frame() | s2.to_frame(), exp)
-        assert_frame_equal(s2.to_frame() | s1.to_frame(), exp)
-
-        # different length
-        s3 = pd.Series([True, False, True], index=list('ABC'), name='x')
-        s4 = pd.Series([True, True, True, True], index=list('ABCD'), name='x')
-
-        exp = pd.Series([True, False, True, False],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s3 & s4, exp)
-        assert_series_equal(s4 & s3, exp)
-
-        # np.nan | True => np.nan, filled with False
-        exp = pd.Series([True, True, True, False],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s3 | s4, exp)
-        # True | np.nan => True
-        exp = pd.Series([True, True, True, True],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s4 | s3, exp)
-
-        exp = pd.DataFrame({'x': [True, False, True, np.nan]},
-                           index=list('ABCD'))
-        assert_frame_equal(s3.to_frame() & s4.to_frame(), exp)
-        assert_frame_equal(s4.to_frame() & s3.to_frame(), exp)
-
-        exp = pd.DataFrame({'x': [True, True, True, np.nan]},
-                           index=list('ABCD'))
-        assert_frame_equal(s3.to_frame() | s4.to_frame(), exp)
-        assert_frame_equal(s4.to_frame() | s3.to_frame(), exp)
+    def test_invert(self):
+        ser = tm.makeStringSeries()
+        ser.name = 'series'
+        assert_series_equal(-(ser < 0), ~(ser < 0))

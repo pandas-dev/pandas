@@ -9,6 +9,7 @@ import re
 import sys
 from datetime import datetime
 from collections import OrderedDict
+from io import TextIOWrapper
 
 import pytest
 import numpy as np
@@ -196,20 +197,6 @@ footer
                 self.read_table(StringIO(data), sep=',',
                                 header=1, comment='#',
                                 skipfooter=1)
-
-    def test_quoting(self):
-        bad_line_small = """printer\tresult\tvariant_name
-Klosterdruckerei\tKlosterdruckerei <Salem> (1611-1804)\tMuller, Jacob
-Klosterdruckerei\tKlosterdruckerei <Salem> (1611-1804)\tMuller, Jakob
-Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\t"Furststiftische Hofdruckerei,  <Kempten""
-Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tGaller, Alois
-Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhandlung <Kempten>"""  # noqa
-        pytest.raises(Exception, self.read_table, StringIO(bad_line_small),
-                      sep='\t')
-
-        good_line_small = bad_line_small + '"'
-        df = self.read_table(StringIO(good_line_small), sep='\t')
-        assert len(df) == 3
 
     def test_unnamed_columns(self):
         data = """A,B,C,,
@@ -1609,3 +1596,11 @@ j,-inF"""
         val = sys.stderr.getvalue()
         assert 'Skipping line 3' in val
         assert 'Skipping line 5' in val
+
+    def test_buffer_rd_bytes_bad_unicode(self):
+        # Regression test for #22748
+        t = BytesIO(b"\xB0")
+        if PY3:
+            t = TextIOWrapper(t, encoding='ascii', errors='surrogateescape')
+        with pytest.raises(UnicodeError):
+            pd.read_csv(t, encoding='UTF-8')

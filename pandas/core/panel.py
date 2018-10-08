@@ -1215,7 +1215,8 @@ class Panel(NDFrame):
 
         return self._construct_return_type(result, axes)
 
-    @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.reindex.__doc__)
     def reindex(self, *args, **kwargs):
         major = kwargs.pop("major", None)
         minor = kwargs.pop('minor', None)
@@ -1236,7 +1237,8 @@ class Panel(NDFrame):
         kwargs.pop('labels', None)
         return super(Panel, self).reindex(**kwargs)
 
-    @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.rename.__doc__)
     def rename(self, items=None, major_axis=None, minor_axis=None, **kwargs):
         major_axis = (major_axis if major_axis is not None else
                       kwargs.pop('major', None))
@@ -1253,7 +1255,8 @@ class Panel(NDFrame):
                                                copy=copy, limit=limit,
                                                fill_value=fill_value)
 
-    @Appender(_shared_docs['transpose'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.transpose.__doc__)
     def transpose(self, *args, **kwargs):
         # check if a list of axes was passed in instead as a
         # single *args element
@@ -1535,6 +1538,13 @@ class Panel(NDFrame):
             index = Index([])
 
         return ensure_index(index)
+
+    def sort_values(self, *args, **kwargs):
+        """
+        NOT IMPLEMENTED: do not call this method, as sorting values is not
+        supported for Panel objects and will raise an error.
+        """
+        super(Panel, self).sort_values(*args, **kwargs)
 
 
 Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
