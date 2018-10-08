@@ -1144,9 +1144,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def __abs__(self):
         return np.abs(self)
 
-    def __invert__(self):
-        pass
-
     # ------------------------------------------------------------------------
     # Ops
     # ------------------------------------------------------------------------
