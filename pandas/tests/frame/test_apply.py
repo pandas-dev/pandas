@@ -59,7 +59,7 @@ class TestDataFrameApply():
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
         pytest.raises(ValueError, df.apply, lambda x: x, 2)
 
-        # see gh-9573
+        # GH 9573
         df = DataFrame({'c0': ['A', 'A', 'B', 'B'],
                         'c1': ['C', 'C', 'D', 'D']})
         df = df.apply(lambda ts: ts.astype('category'))
@@ -94,10 +94,10 @@ class TestDataFrameApply():
         expected = Series(np.nan, index=float_frame.index)
         assert_series_equal(result, expected)
 
-        # 2476
-        xp = DataFrame(index=['a'])
-        rs = xp.apply(lambda x: x['a'], axis=1)
-        assert_frame_equal(xp, rs)
+        # GH 2476
+        expected = DataFrame(index=['a'])
+        result = expected.apply(lambda x: x['a'], axis=1)
+        assert_frame_equal(expected, result)
 
     def test_apply_with_reduce_empty(self, empty_frame):
         # reduce with an empty DataFrame
@@ -126,12 +126,13 @@ class TestDataFrameApply():
     def test_apply_standard_nonunique(self):
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
-        rs = df.apply(lambda s: s[0], axis=1)
-        xp = Series([1, 4, 7], ['a', 'a', 'c'])
-        assert_series_equal(rs, xp)
 
-        rs = df.T.apply(lambda s: s[0], axis=0)
-        assert_series_equal(rs, xp)
+        result = df.apply(lambda s: s[0], axis=1)
+        expected = Series([1, 4, 7], ['a', 'a', 'c'])
+        assert_series_equal(result, expected)
+
+        result = df.T.apply(lambda s: s[0], axis=0)
+        assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('func', ['sum', 'mean', 'min', 'max', 'std'])
     @pytest.mark.parametrize('args,kwds', [
@@ -265,13 +266,13 @@ class TestDataFrameApply():
             is_reduction = not isinstance(test_res, np.ndarray)
 
             def _checkit(axis=0, raw=False):
-                res = df.apply(f, axis=axis, raw=raw)
+                result = df.apply(f, axis=axis, raw=raw)
                 if is_reduction:
                     agg_axis = df._get_agg_axis(axis)
-                    assert isinstance(res, Series)
-                    assert res.index is agg_axis
+                    assert isinstance(result, Series)
+                    assert result.index is agg_axis
                 else:
-                    assert isinstance(res, DataFrame)
+                    assert isinstance(result, DataFrame)
 
             _checkit()
             _checkit(axis=1)
@@ -298,16 +299,16 @@ class TestDataFrameApply():
             return (x - sub) / divide
 
         result = float_frame.apply(add_some, howmuch=2)
-        exp = float_frame.apply(lambda x: x + 2)
-        assert_frame_equal(result, exp)
+        expected = float_frame.apply(lambda x: x + 2)
+        assert_frame_equal(result, expected)
 
         result = float_frame.apply(agg_and_add, howmuch=2)
-        exp = float_frame.apply(lambda x: x.mean() + 2)
-        assert_series_equal(result, exp)
+        expected = float_frame.apply(lambda x: x.mean() + 2)
+        assert_series_equal(result, expected)
 
-        res = float_frame.apply(subtract_and_divide, args=(2,), divide=2)
-        exp = float_frame.apply(lambda x: (x - 2.) / 2.)
-        assert_frame_equal(res, exp)
+        result = float_frame.apply(subtract_and_divide, args=(2,), divide=2)
+        expected = float_frame.apply(lambda x: (x - 2.) / 2.)
+        assert_frame_equal(result, expected)
 
     def test_apply_yield_list(self, float_frame):
         result = float_frame.apply(list)
@@ -467,11 +468,11 @@ class TestDataFrameApply():
         tm.assert_frame_equal(applied, float_frame * 2)
         float_frame.applymap(type)
 
-        # gh-465: function returning tuples
+        # GH 465: function returning tuples
         result = float_frame.applymap(lambda x: (x, x))
         assert isinstance(result['A'][0], tuple)
 
-        # gh-2909: object conversion to float in constructor?
+        # GH 2909: object conversion to float in constructor?
         df = DataFrame(data=[1, 'a'])
         result = df.applymap(lambda x: x)
         assert result.dtypes[0] == object
@@ -480,7 +481,7 @@ class TestDataFrameApply():
         result = df.applymap(lambda x: x)
         assert result.dtypes[0] == object
 
-        # see gh-2786
+        # GH 2786
         df = DataFrame(np.random.random((3, 4)))
         df2 = df.copy()
         cols = ['a', 'a', 'a', 'a']
@@ -498,7 +499,7 @@ class TestDataFrameApply():
         for f in ['datetime', 'timedelta']:
             assert result.loc[0, f] == str(df.loc[0, f])
 
-        # see gh-8222
+        # GH 8222
         empty_frames = [pd.DataFrame(),
                         pd.DataFrame(columns=list('ABC')),
                         pd.DataFrame(index=list('ABC')),
@@ -509,7 +510,7 @@ class TestDataFrameApply():
                 tm.assert_frame_equal(result, frame)
 
     def test_applymap_box_timestamps(self):
-        # #2689, #2627
+        # GH 2689, GH 2627
         ser = pd.Series(date_range('1/1/2000', periods=10))
 
         def func(x):
@@ -529,12 +530,12 @@ class TestDataFrameApply():
                            'd': [pd.Period('2011-01-01', freq='M'),
                                  pd.Period('2011-01-02', freq='M')]})
 
-        res = df.applymap(lambda x: '{0}'.format(x.__class__.__name__))
-        exp = pd.DataFrame({'a': ['Timestamp', 'Timestamp'],
-                            'b': ['Timestamp', 'Timestamp'],
-                            'c': ['Timedelta', 'Timedelta'],
-                            'd': ['Period', 'Period']})
-        tm.assert_frame_equal(res, exp)
+        result = df.applymap(lambda x: '{0}'.format(x.__class__.__name__))
+        expected = pd.DataFrame({'a': ['Timestamp', 'Timestamp'],
+                                 'b': ['Timestamp', 'Timestamp'],
+                                 'c': ['Timedelta', 'Timedelta'],
+                                 'd': ['Period', 'Period']})
+        tm.assert_frame_equal(result, expected)
 
     def test_frame_apply_dont_convert_datetime64(self):
         from pandas.tseries.offsets import BDay
@@ -546,7 +547,7 @@ class TestDataFrameApply():
         assert df.x1.dtype == 'M8[ns]'
 
     def test_apply_non_numpy_dtype(self):
-        # See gh-12244
+        # GH 12244
         df = DataFrame({'dt': pd.date_range(
             "2015-01-01", periods=3, tz='Europe/Brussels')})
         result = df.apply(lambda x: x)
@@ -576,7 +577,7 @@ class TestInferOutputShape(object):
     # us to infer the output
 
     def test_infer_row_shape(self):
-        # gh-17437
+        # GH 17437
         # if row shape is changing, infer it
         df = pd.DataFrame(np.random.rand(10, 2))
         result = df.apply(np.fft.fft, axis=0)
@@ -586,7 +587,7 @@ class TestInferOutputShape(object):
         assert result.shape == (6, 2)
 
     def test_with_dictlike_columns(self):
-        # gh 17602
+        # GH 17602
         df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
         result = df.apply(lambda x: {'s': x['a'] + x['b']},
                           axis=1)
@@ -604,7 +605,7 @@ class TestInferOutputShape(object):
         expected = Series([{'s': 3}, {'s': 3}])
         assert_series_equal(result, expected)
 
-        # gh-18775
+        # GH 18775
         df = DataFrame()
         df["author"] = ["X", "Y", "Z"]
         df["publisher"] = ["BBC", "NBC", "N24"]
@@ -616,7 +617,7 @@ class TestInferOutputShape(object):
         assert_series_equal(result, expected)
 
     def test_with_dictlike_columns_with_infer(self):
-        # gh 17602
+        # GH 17602
         df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
         result = df.apply(lambda x: {'s': x['a'] + x['b']},
                           axis=1, result_type='expand')
@@ -630,7 +631,7 @@ class TestInferOutputShape(object):
         assert_frame_equal(result, expected)
 
     def test_with_listlike_columns(self):
-        # gh-17348
+        # GH 17348
         df = DataFrame({'a': Series(np.random.randn(4)),
                         'b': ['a', 'list', 'of', 'words'],
                         'ts': date_range('2016-10-01', periods=4, freq='H')})
@@ -643,7 +644,7 @@ class TestInferOutputShape(object):
         expected = Series([t[1:] for t in df[['a', 'ts']].itertuples()])
         assert_series_equal(result, expected)
 
-        # gh-18919
+        # GH 18919
         df = DataFrame({'x': Series([['a', 'b'], ['q']]),
                         'y': Series([['z'], ['q', 't']])})
         df.index = MultiIndex.from_tuples([('i0', 'j0'), ('i1', 'j1')])
@@ -655,7 +656,7 @@ class TestInferOutputShape(object):
         assert_series_equal(result, expected)
 
     def test_infer_output_shape_columns(self):
-        # gh-18573
+        # GH 18573
 
         df = DataFrame({'number': [1., 2.],
                         'string': ['foo', 'bar'],
@@ -666,7 +667,7 @@ class TestInferOutputShape(object):
         assert_series_equal(result, expected)
 
     def test_infer_output_shape_listlike_columns(self):
-        # gh-16353
+        # GH 16353
 
         df = DataFrame(np.random.randn(6, 3), columns=['A', 'B', 'C'])
 
@@ -678,7 +679,7 @@ class TestInferOutputShape(object):
         expected = Series([[1, 2] for t in df.itertuples()])
         assert_series_equal(result, expected)
 
-        # gh-17970
+        # GH 17970
         df = DataFrame({"a": [1, 2, 3]}, index=list('abc'))
 
         result = df.apply(lambda row: np.ones(1), axis=1)
@@ -691,7 +692,7 @@ class TestInferOutputShape(object):
                           index=df.index)
         assert_series_equal(result, expected)
 
-        # gh-17892
+        # GH 17892
         df = pd.DataFrame({'a': [pd.Timestamp('2010-02-01'),
                                  pd.Timestamp('2010-02-04'),
                                  pd.Timestamp('2010-02-05'),
@@ -899,7 +900,7 @@ class TestDataFrameAggregate():
         'abs', 'shift', 'pct_change', 'cumsum', 'rank',
     ])
     def test_transform_method_name(self, method):
-        # https://github.com/pandas-dev/pandas/issues/19760
+        # GH 19760
         df = pd.DataFrame({"A": [-1, 2]})
         result = df.transform(method)
         expected = operator.methodcaller(method)(df)
@@ -923,7 +924,7 @@ class TestDataFrameAggregate():
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
     def test_agg_multiple_mixed_no_warning(self):
-        # https://github.com/pandas-dev/pandas/issues/20909
+        # GH 20909
         mdf = pd.DataFrame({'A': [1, 2, 3],
                             'B': [1., 2., 3.],
                             'C': ['foo', 'bar', 'baz'],
@@ -1106,7 +1107,7 @@ class TestDataFrameAggregate():
             ]),
     ))
     def test_agg_cython_table(self, df, func, expected, axis):
-        # GH21224
+        # GH 21224
         # test reducing functions in
         # pandas.core.base.SelectionMixin._cython_table
         result = df.agg(func, axis=axis)
@@ -1125,7 +1126,7 @@ class TestDataFrameAggregate():
             ]),
     ))
     def test_agg_cython_table_transform(self, df, func, expected, axis):
-        # GH21224
+        # GH 21224
         # test transforming functions in
         # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
         result = df.agg(func, axis=axis)
@@ -1137,7 +1138,7 @@ class TestDataFrameAggregate():
         ]),
     )
     def test_agg_cython_table_raises(self, df, func, expected, axis):
-        # GH21224
+        # GH 21224
         with pytest.raises(expected):
             df.agg(func, axis=axis)
 
@@ -1156,7 +1157,7 @@ class TestDataFrameAggregate():
 
     @given(index=indices(5), num_columns=integers(0, 5))
     def test_frequency_is_original(self, index, num_columns):
-        # GH22150
+        # GH 22150
         original = index.copy()
         df = DataFrame(True, index=index, columns=range(num_columns))
         df.apply(lambda x: x)
