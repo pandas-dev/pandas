@@ -27,6 +27,7 @@ See LICENSE for the license
 #define ERROR_INVALID_CHARS 3
 
 #include "../headers/stdint.h"
+#include "../inline_helper.h"
 
 #include "khash.h"
 
@@ -38,17 +39,6 @@ See LICENSE for the license
 #define REACHED_EOF 1
 #define CALLING_READ_FAILED 2
 
-#ifndef P_INLINE
-#if defined(__GNUC__)
-#define P_INLINE static __inline__
-#elif defined(_MSC_VER)
-#define P_INLINE
-#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-#define P_INLINE static inline
-#else
-#define P_INLINE
-#endif
-#endif
 
 #if defined(_MSC_VER)
 #define strtoll _strtoi64
@@ -246,8 +236,6 @@ void parser_free(parser_t *self);
 void parser_del(parser_t *self);
 
 void parser_set_default_options(parser_t *self);
-
-void debug_print_parser(parser_t *self);
 
 int tokenize_nrows(parser_t *self, size_t nrows);
 

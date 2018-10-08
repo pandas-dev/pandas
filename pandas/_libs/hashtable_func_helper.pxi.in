@@ -161,18 +161,18 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
         {{endif}}
     elif keep == 'first':
         {{if dtype == 'object'}}
-        for i from 0 <= i < n:
+        for i in range(n):
             kh_put_{{ttype}}(table, <PyObject*> values[i], &ret)
             out[i] = ret == 0
         {{else}}
         with nogil:
-            for i from 0 <= i < n:
+            for i in range(n):
                 kh_put_{{ttype}}(table, values[i], &ret)
                 out[i] = ret == 0
         {{endif}}
     else:
         {{if dtype == 'object'}}
-        for i from 0 <= i < n:
+        for i in range(n):
             value = values[i]
             k = kh_get_{{ttype}}(table, <PyObject*> value)
             if k != table.n_buckets:
@@ -185,7 +185,7 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
                 out[i] = 0
         {{else}}
         with nogil:
-            for i from 0 <= i < n:
+            for i in range(n):
                 value = values[i]
                 k = kh_get_{{ttype}}(table, value)
                 if k != table.n_buckets:
@@ -210,10 +210,10 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
 
-def ismember_{{dtype}}(ndarray[{{scalar}}] arr, ndarray[{{scalar}}] values, bint hasnans=0):
+def ismember_{{dtype}}(ndarray[{{scalar}}] arr, ndarray[{{scalar}}] values):
 {{else}}
 
-def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values, bint hasnans=0):
+def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values):
 {{endif}}
 
     """
@@ -224,7 +224,6 @@ def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values, bint hasnans=0):
     ----------
     arr : {{dtype}} ndarray
     values : {{dtype}} ndarray
-    hasnans : bint, optional
 
     Returns
     -------
@@ -259,26 +258,19 @@ def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values, bint hasnans=0):
     for i in range(n):
         val = arr[i]
         k = kh_get_{{ttype}}(table, <PyObject*> val)
-        if k != table.n_buckets:
-            result[i] = 1
-        else:
-            result[i] = hasnans and val != val
+        result[i] = (k != table.n_buckets)
     {{else}}
     with nogil:
         for i in range(n):
             val = arr[i]
             k = kh_get_{{ttype}}(table, val)
-            if k != table.n_buckets:
-                result[i] = 1
-            else:
-                result[i] = hasnans and val != val
+            result[i] = (k != table.n_buckets)
     {{endif}}
 
     kh_destroy_{{ttype}}(table)
     return result.view(np.bool_)
 
 {{endfor}}
-
 
 
 #----------------------------------------------------------------------
@@ -288,7 +280,8 @@ def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values, bint hasnans=0):
 {{py:
 
 # dtype, ctype, table_type, npy_dtype
-dtypes = [('int64', 'int64_t', 'int64', 'int64'),
+dtypes = [('float64', 'float64_t', 'float64', 'float64'),
+          ('int64', 'int64_t', 'int64', 'int64'),
           ('uint64', 'uint64_t', 'uint64', 'uint64'),
           ('object', 'object', 'pymap', 'object_')]
 }}
@@ -302,11 +295,11 @@ dtypes = [('int64', 'int64_t', 'int64', 'int64'),
 {{if dtype == 'object'}}
 
 
-def mode_{{dtype}}(ndarray[{{ctype}}] values):
+def mode_{{dtype}}(ndarray[{{ctype}}] values, bint dropna):
 {{else}}
 
 
-def mode_{{dtype}}({{ctype}}[:] values):
+def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
 {{endif}}
     cdef:
         int count, max_count = 1
@@ -317,9 +310,9 @@ def mode_{{dtype}}({{ctype}}[:] values):
 
     table = kh_init_{{table_type}}()
     {{if dtype == 'object'}}
-    build_count_table_{{dtype}}(values, table, 1)
+    build_count_table_{{dtype}}(values, table, dropna)
     {{else}}
-    build_count_table_{{dtype}}(values, table, 0)
+    build_count_table_{{dtype}}(values, table, dropna)
     {{endif}}
 
     modes = np.empty(table.n_buckets, dtype=np.{{npy_dtype}})
@@ -329,7 +322,6 @@ def mode_{{dtype}}({{ctype}}[:] values):
         for k in range(table.n_buckets):
             if kh_exist_{{table_type}}(table, k):
                 count = table.vals[k]
-
                 if count == max_count:
                     j += 1
                 elif count > max_count:

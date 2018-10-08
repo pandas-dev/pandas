@@ -1,5 +1,7 @@
+import warnings
+
 import numpy as np
-from pandas import Series
+from pandas import Series, DataFrame
 import pandas.util.testing as tm
 
 
@@ -9,9 +11,6 @@ class Methods(object):
 
     def setup(self):
         self.s = Series(tm.makeStringIndex(10**5))
-
-    def time_cat(self):
-        self.s.str.cat(sep=',')
 
     def time_center(self):
         self.s.str.center(100)
@@ -23,7 +22,8 @@ class Methods(object):
         self.s.str.endswith('A')
 
     def time_extract(self):
-        self.s.str.extract('(\\w*)A(\\w*)')
+        with warnings.catch_warnings(record=True):
+            self.s.str.extract('(\\w*)A(\\w*)')
 
     def time_findall(self):
         self.s.str.findall('[A-Z]+')
@@ -82,6 +82,32 @@ class Repeat(object):
 
     def time_repeat(self, repeats):
         self.s.str.repeat(self.repeat)
+
+
+class Cat(object):
+
+    goal_time = 0.2
+    params = ([0, 3], [None, ','], [None, '-'], [0.0, 0.001, 0.15])
+    param_names = ['other_cols', 'sep', 'na_rep', 'na_frac']
+
+    def setup(self, other_cols, sep, na_rep, na_frac):
+        N = 10 ** 5
+        mask_gen = lambda: np.random.choice([True, False], N,
+                                            p=[1 - na_frac, na_frac])
+        self.s = Series(tm.makeStringIndex(N)).where(mask_gen())
+        if other_cols == 0:
+            # str.cat self-concatenates only for others=None
+            self.others = None
+        else:
+            self.others = DataFrame({i: tm.makeStringIndex(N).where(mask_gen())
+                                     for i in range(other_cols)})
+
+    def time_cat(self, other_cols, sep, na_rep, na_frac):
+        # before the concatenation (one caller + other_cols columns), the total
+        # expected fraction of rows containing any NaN is:
+        # reduce(lambda t, _: t + (1 - t) * na_frac, range(other_cols + 1), 0)
+        # for other_cols=3 and na_frac=0.15, this works out to ~48%
+        self.s.str.cat(others=self.others, sep=sep, na_rep=na_rep)
 
 
 class Contains(object):

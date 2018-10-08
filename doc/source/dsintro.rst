@@ -51,9 +51,9 @@ labels are collectively referred to as the **index**. The basic method to create
 
 Here, ``data`` can be many different things:
 
- - a Python dict
- - an ndarray
- - a scalar value (like 5)
+* a Python dict
+* an ndarray
+* a scalar value (like 5)
 
 The passed **index** is a list of axis labels. Thus, this separates into a few
 cases depending on what **data is**:
@@ -81,9 +81,28 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 **From dict**
 
-If ``data`` is a dict, if **index** is passed the values in data corresponding
-to the labels in the index will be pulled out. Otherwise, an index will be
-constructed from the sorted keys of the dict, if possible.
+Series can be instantiated from dicts:
+
+.. ipython:: python
+
+   d = {'b' : 1, 'a' : 0, 'c' : 2}
+   pd.Series(d)
+
+.. note::
+
+   When the data is a dict, and an index is not passed, the ``Series`` index
+   will be ordered by the dict's insertion order, if you're using Python
+   version >= 3.6 and Pandas version >= 0.23.
+
+   If you're using Python < 3.6 or Pandas < 0.23, and an index is not passed,
+   the ``Series`` index will be the lexically ordered list of dict keys.
+
+In the example above, if you were on a Python version lower than 3.6 or a
+Pandas version lower than 0.23, the ``Series`` would be ordered by the lexical
+order of the dict keys (i.e. ``['a', 'b', 'c']`` rather than ``['b', 'a', 'c']``).
+
+If an index is passed, the values in data corresponding to the labels in the
+index will be pulled out.
 
 .. ipython:: python
 
@@ -95,7 +114,7 @@ constructed from the sorted keys of the dict, if possible.
 
     NaN (not a number) is the standard missing data marker used in pandas.
 
-**From scalar value** 
+**From scalar value**
 
 If ``data`` is a scalar value, an index must be
 provided. The value will be repeated to match the length of **index**.
@@ -154,7 +173,7 @@ See also the :ref:`section on attribute access<indexing.attribute_access>`.
 Vectorized operations and label alignment with Series
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When working with raw NumPy arrays, looping through value-by-value is usually 
+When working with raw NumPy arrays, looping through value-by-value is usually
 not necessary. The same is true when working with Series in pandas.
 Series can also be passed into most NumPy methods expecting an ndarray.
 
@@ -227,12 +246,12 @@ potentially different types. You can think of it like a spreadsheet or SQL
 table, or a dict of Series objects. It is generally the most commonly used
 pandas object. Like Series, DataFrame accepts many different kinds of input:
 
- - Dict of 1D ndarrays, lists, dicts, or Series
- - 2-D numpy.ndarray
- - `Structured or record
-   <http://docs.scipy.org/doc/numpy/user/basics.rec.html>`__ ndarray
- - A ``Series``
- - Another ``DataFrame``
+* Dict of 1D ndarrays, lists, dicts, or Series
+* 2-D numpy.ndarray
+* `Structured or record
+  <http://docs.scipy.org/doc/numpy/user/basics.rec.html>`__ ndarray
+* A ``Series``
+* Another ``DataFrame``
 
 Along with the data, you can optionally pass **index** (row labels) and
 **columns** (column labels) arguments. If you pass an index and / or columns,
@@ -243,12 +262,22 @@ not matching up to the passed index.
 If axis labels are not passed, they will be constructed from the input data
 based on common sense rules.
 
+.. note::
+
+   When the data is a dict, and ``columns`` is not specified, the ``DataFrame``
+   columns will be ordered by the dict's insertion order, if you are using
+   Python version >= 3.6 and Pandas >= 0.23.
+
+   If you are using Python < 3.6 or Pandas < 0.23, and ``columns`` is not
+   specified, the ``DataFrame`` columns will be the lexically ordered list of dict
+   keys.
+
 From dict of Series or dicts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The resulting **index** will be the **union** of the indexes of the various
 Series. If there are any nested dicts, these will first be converted to
-Series. If no columns are passed, the columns will be the sorted list of dict
+Series. If no columns are passed, the columns will be the ordered list of dict
 keys.
 
 .. ipython:: python
@@ -324,7 +353,7 @@ From a list of dicts
 From a dict of tuples
 ~~~~~~~~~~~~~~~~~~~~~
 
-You can automatically create a multi-indexed frame by passing a tuples 
+You can automatically create a MultiIndexed frame by passing a tuples
 dictionary.
 
 .. ipython:: python
@@ -347,7 +376,7 @@ column name provided).
 **Missing Data**
 
 Much more will be said on this topic in the :ref:`Missing data <missing_data>`
-section. To construct a DataFrame with missing data, we use ``np.nan`` to 
+section. To construct a DataFrame with missing data, we use ``np.nan`` to
 represent missing values. Alternatively, you may pass a ``numpy.MaskedArray``
 as the data argument to the DataFrame constructor, and its masked entries will
 be considered missing.
@@ -364,13 +393,26 @@ and returns a DataFrame. It operates like the ``DataFrame`` constructor except
 for the ``orient`` parameter which is ``'columns'`` by default, but which can be
 set to ``'index'`` in order to use the dict keys as row labels.
 
+
+.. ipython:: python
+
+   pd.DataFrame.from_dict(dict([('A', [1, 2, 3]), ('B', [4, 5, 6])]))
+
+If you pass ``orient='index'``, the keys will be the row labels. In this
+case, you can also pass the desired column names:
+
+.. ipython:: python
+
+   pd.DataFrame.from_dict(dict([('A', [1, 2, 3]), ('B', [4, 5, 6])]),
+                          orient='index', columns=['one', 'two', 'three'])
+
 .. _basics.dataframe.from_records:
 
 **DataFrame.from_records**
 
 ``DataFrame.from_records`` takes a list of tuples or an ndarray with structured
 dtype. It works analogously to the normal ``DataFrame`` constructor, except that
-the resulting DataFrame index may be a specific field of the structured 
+the resulting DataFrame index may be a specific field of the structured
 dtype. For example:
 
 .. ipython:: python
@@ -378,28 +420,6 @@ dtype. For example:
    data
    pd.DataFrame.from_records(data, index='C')
 
-.. _basics.dataframe.from_items:
-
-**DataFrame.from_items**
-
-``DataFrame.from_items`` works analogously to the form of the ``dict``
-constructor that takes a sequence of ``(key, value)`` pairs, where the keys are
-column (or row, in the case of ``orient='index'``) names, and the value are the
-column values (or row values). This can be useful for constructing a DataFrame
-with the columns in a particular order without having to pass an explicit list
-of columns:
-
-.. ipython:: python
-
-   pd.DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])])
-
-If you pass ``orient='index'``, the keys will be the row labels. But in this
-case you must also pass the desired column names:
-
-.. ipython:: python
-
-   pd.DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])],
-                           orient='index', columns=['one', 'two', 'three'])
 
 Column selection, addition, deletion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -506,25 +526,70 @@ to be inserted (for example, a ``Series`` or NumPy array), or a function
 of one argument to be called on the ``DataFrame``. A *copy* of the original
 DataFrame is returned, with the new values inserted.
 
+.. versionchanged:: 0.23.0
+
+Starting with Python 3.6 the order of ``**kwargs`` is preserved. This allows
+for *dependent* assignment, where an expression later in ``**kwargs`` can refer
+to a column created earlier in the same :meth:`~DataFrame.assign`.
+
+.. ipython:: python
+
+   dfa = pd.DataFrame({"A": [1, 2, 3],
+                       "B": [4, 5, 6]})
+   dfa.assign(C=lambda x: x['A'] + x['B'],
+              D=lambda x: x['A'] + x['C'])
+
+In the second expression, ``x['C']`` will refer to the newly created column,
+that's equal to ``dfa['A'] + dfa['B']``.
+
+To write code compatible with all versions of Python, split the assignment in two.
+
+.. ipython:: python
+
+   dependent = pd.DataFrame({"A": [1, 1, 1]})
+   (dependent.assign(A=lambda x: x['A'] + 1)
+             .assign(B=lambda x: x['A'] + 2))
+
 .. warning::
 
-  Since the function signature of ``assign`` is ``**kwargs``, a dictionary,
-  the order of the new columns in the resulting DataFrame cannot be guaranteed
-  to match the order you pass in. To make things predictable, items are inserted
-  alphabetically (by key) at the end of the DataFrame.
+   Dependent assignment maybe subtly change the behavior of your code between
+   Python 3.6 and older versions of Python.
 
-  All expressions are computed first, and then assigned. So you can't refer
-  to another column being assigned in the same call to ``assign``. For example:
+   If you wish write code that supports versions of python before and after 3.6,
+   you'll need to take care when passing ``assign`` expressions that
 
-   .. ipython::
-       :verbatim:
+   * Updating an existing column
+   * Referring to the newly updated column in the same ``assign``
 
-       In [1]: # Don't do this, bad reference to `C`
-               df.assign(C = lambda x: x['A'] + x['B'],
-                         D = lambda x: x['A'] + x['C'])
-       In [2]: # Instead, break it into two assigns
-               (df.assign(C = lambda x: x['A'] + x['B'])
-                  .assign(D = lambda x: x['A'] + x['C']))
+   For example, we'll update column "A" and then refer to it when creating "B".
+
+   .. code-block:: python
+
+      >>> dependent = pd.DataFrame({"A": [1, 1, 1]})
+      >>> dependent.assign(A=lambda x: x["A"] + 1,
+                           B=lambda x: x["A"] + 2)
+
+   For Python 3.5 and earlier the expression creating ``B`` refers to the
+   "old" value of ``A``, ``[1, 1, 1]``. The output is then
+
+   .. code-block:: python
+
+         A  B
+      0  2  3
+      1  2  3
+      2  2  3
+
+   For Python 3.6 and later, the expression creating ``A`` refers to the
+   "new" value of ``A``, ``[2, 2, 2]``, which results in
+
+   .. code-block:: python
+
+         A  B
+      0  2  4
+      1  2  4
+      2  2  4
+
+
 
 Indexing / Selection
 ~~~~~~~~~~~~~~~~~~~~
@@ -777,10 +842,10 @@ econometric analysis of panel data. However, for the strict purposes of slicing
 and dicing a collection of DataFrame objects, you may find the axis names
 slightly arbitrary:
 
-  - **items**: axis 0, each item corresponds to a DataFrame contained inside
-  - **major_axis**: axis 1, it is the **index** (rows) of each of the
-    DataFrames
-  - **minor_axis**: axis 2, it is the **columns** of each of the DataFrames
+* **items**: axis 0, each item corresponds to a DataFrame contained inside
+* **major_axis**: axis 1, it is the **index** (rows) of each of the
+  DataFrames
+* **minor_axis**: axis 2, it is the **columns** of each of the DataFrames
 
 Construction of Panels works about like you would expect:
 
@@ -914,7 +979,7 @@ For example, using the earlier example data, we could do:
 Squeezing
 ~~~~~~~~~
 
-Another way to change the dimensionality of an object is to ``squeeze`` a 1-len 
+Another way to change the dimensionality of an object is to ``squeeze`` a 1-len
 object, similar to ``wp['Item1']``.
 
 .. ipython:: python
@@ -949,7 +1014,7 @@ Deprecate Panel
 Over the last few years, pandas has increased in both breadth and depth, with new features,
 datatype support, and manipulation routines. As a result, supporting efficient indexing and functional
 routines for ``Series``, ``DataFrame`` and ``Panel`` has contributed to an increasingly fragmented and
-difficult-to-understand codebase.
+difficult-to-understand code base.
 
 The 3-D structure of a ``Panel`` is much less common for many types of data analysis,
 than the 1-D of the ``Series`` or the 2-D of the ``DataFrame``. Going forward it makes sense for
@@ -958,7 +1023,7 @@ pandas to focus on these areas exclusively.
 Oftentimes, one can simply use a MultiIndex ``DataFrame`` for easily working with higher dimensional data.
 
 In addition, the ``xarray`` package was built from the ground up, specifically in order to
-support the multi-dimensional analysis that is one of ``Panel`` s main usecases.
+support the multi-dimensional analysis that is one of ``Panel`` s main use cases.
 `Here is a link to the xarray panel-transition documentation <http://xarray.pydata.org/en/stable/pandas.html#panel-transition>`__.
 
 .. ipython:: python

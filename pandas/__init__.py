@@ -41,7 +41,6 @@ import pandas.core.config_init
 
 from pandas.core.api import *
 from pandas.core.sparse.api import *
-from pandas.stats.api import *
 from pandas.tseries.api import *
 from pandas.core.computation.api import *
 from pandas.core.reshape.api import *
@@ -62,9 +61,6 @@ import pandas.testing
 # extension module deprecations
 from pandas.util._depr_module import _DeprecatedModule
 
-json = _DeprecatedModule(deprmod='pandas.json',
-                         moved={'dumps': 'pandas.io.json.dumps',
-                                'loads': 'pandas.io.json.loads'})
 parser = _DeprecatedModule(deprmod='pandas.parser',
                            removals=['na_values'],
                            moved={'CParserError': 'pandas.errors.ParserError'})
@@ -84,6 +80,7 @@ tslib = _DeprecatedModule(deprmod='pandas.tslib',
 from ._version import get_versions
 v = get_versions()
 __version__ = v.get('closest-tag', v['version'])
+__git_version__ = v.get('full-revisionid')
 del get_versions, v
 
 # module level doc-string

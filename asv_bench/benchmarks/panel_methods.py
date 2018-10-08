@@ -1,6 +1,9 @@
-import numpy as np
+import warnings
 
-from .pandas_vb_common import Panel, setup  # noqa
+import numpy as np
+from pandas import Panel
+
+from .pandas_vb_common import setup  # noqa
 
 
 class PanelMethods(object):
@@ -10,10 +13,13 @@ class PanelMethods(object):
     param_names = ['axis']
 
     def setup(self, axis):
-        self.panel = Panel(np.random.randn(100, 1000, 100))
+        with warnings.catch_warnings(record=True):
+            self.panel = Panel(np.random.randn(100, 1000, 100))
 
     def time_pct_change(self, axis):
-        self.panel.pct_change(1, axis=axis)
+        with warnings.catch_warnings(record=True):
+            self.panel.pct_change(1, axis=axis)
 
     def time_shift(self, axis):
-        self.panel.shift(1, axis=axis)
+        with warnings.catch_warnings(record=True):
+            self.panel.shift(1, axis=axis)

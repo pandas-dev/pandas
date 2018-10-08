@@ -1,7 +1,9 @@
+import string
 from itertools import product
 
 import numpy as np
 from pandas import DataFrame, MultiIndex, date_range, melt, wide_to_long
+import pandas as pd
 
 from .pandas_vb_common import setup  # noqa
 
@@ -104,9 +106,9 @@ class WideToLong(object):
         self.letters = list('ABCD')
         yrvars = [l + str(num)
                   for l, num in product(self.letters, range(1, nyrs + 1))]
-
+        columns = [str(i) for i in range(nidvars)] + yrvars
         self.df = DataFrame(np.random.randn(N, nidvars + len(yrvars)),
-                            columns=list(range(nidvars)) + yrvars)
+                            columns=columns)
         self.df['id'] = self.df.index
 
     def time_wide_to_long_big(self):
@@ -132,3 +134,19 @@ class PivotTable(object):
 
     def time_pivot_table(self):
         self.df.pivot_table(index='key1', columns=['key2', 'key3'])
+
+
+class GetDummies(object):
+    goal_time = 0.2
+
+    def setup(self):
+        categories = list(string.ascii_letters[:12])
+        s = pd.Series(np.random.choice(categories, size=1000000),
+                      dtype=pd.api.types.CategoricalDtype(categories))
+        self.s = s
+
+    def time_get_dummies_1d(self):
+        pd.get_dummies(self.s, sparse=False)
+
+    def time_get_dummies_1d_sparse(self):
+        pd.get_dummies(self.s, sparse=True)

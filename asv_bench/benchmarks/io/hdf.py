@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 from pandas import DataFrame, Panel, date_range, HDFStore, read_hdf
 import pandas.util.testing as tm
@@ -105,22 +107,25 @@ class HDFStorePanel(BaseIO):
 
     def setup(self):
         self.fname = '__test__.h5'
-        self.p = Panel(np.random.randn(20, 1000, 25),
-                       items=['Item%03d' % i for i in range(20)],
-                       major_axis=date_range('1/1/2000', periods=1000),
-                       minor_axis=['E%03d' % i for i in range(25)])
-        self.store = HDFStore(self.fname)
-        self.store.append('p1', self.p)
+        with warnings.catch_warnings(record=True):
+            self.p = Panel(np.random.randn(20, 1000, 25),
+                           items=['Item%03d' % i for i in range(20)],
+                           major_axis=date_range('1/1/2000', periods=1000),
+                           minor_axis=['E%03d' % i for i in range(25)])
+            self.store = HDFStore(self.fname)
+            self.store.append('p1', self.p)
 
     def teardown(self):
         self.store.close()
         self.remove(self.fname)
 
     def time_read_store_table_panel(self):
-        self.store.select('p1')
+        with warnings.catch_warnings(record=True):
+            self.store.select('p1')
 
     def time_write_store_table_panel(self):
-        self.store.append('p2', self.p)
+        with warnings.catch_warnings(record=True):
+            self.store.append('p2', self.p)
 
 
 class HDF(BaseIO):

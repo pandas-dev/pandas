@@ -33,6 +33,11 @@ class TestCategoricalIndex(Base):
         return CategoricalIndex(
             list('aabbca'), categories=categories, ordered=ordered)
 
+    def test_can_hold_identifiers(self):
+        idx = self.create_index(categories=list('abcd'))
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is True
+
     def test_construction(self):
 
         ci = self.create_index(categories=list('abcd'))
@@ -130,6 +135,12 @@ class TestCategoricalIndex(Base):
         idx = Index(range(3))
         result = CategoricalIndex(idx, categories=idx, ordered=True)
         tm.assert_index_equal(result, expected, exact=True)
+
+    def test_construction_empty_with_bool_categories(self):
+        # see gh-22702
+        cat = pd.CategoricalIndex([], categories=[True, False])
+        categories = sorted(cat.categories.tolist())
+        assert categories == [False, True]
 
     def test_construction_with_categorical_dtype(self):
         # construction with CategoricalDtype
@@ -353,6 +364,14 @@ class TestCategoricalIndex(Base):
         expected = Index(list('caaabbca'))
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_append_to_another(self):
+        # hits _concat_index_asobject
+        fst = Index(['a', 'b'])
+        snd = CategoricalIndex(['d', 'e'])
+        result = fst.append(snd)
+        expected = Index(['a', 'b', 'd', 'e'])
+        tm.assert_index_equal(result, expected)
+
     def test_insert(self):
 
         ci = self.create_index()
@@ -422,7 +441,7 @@ class TestCategoricalIndex(Base):
         expected = ii.take([0, 1, -1])
         tm.assert_index_equal(result, expected)
 
-        result = IntervalIndex.from_intervals(result.values)
+        result = IntervalIndex(result.values)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('name', [None, 'foo'])
@@ -530,44 +549,62 @@ class TestCategoricalIndex(Base):
         tm.assert_numpy_array_equal(indexer,
                                     np.array([-1, -1], dtype=np.intp))
 
-    def test_is_monotonic(self):
-        c = CategoricalIndex([1, 2, 3])
+    @pytest.mark.parametrize('data, non_lexsorted_data', [
+        [[1, 2, 3], [9, 0, 1, 2, 3]],
+        [list('abc'), list('fabcd')],
+    ])
+    def test_is_monotonic(self, data, non_lexsorted_data):
+        c = CategoricalIndex(data)
         assert c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
 
-        c = CategoricalIndex([1, 2, 3], ordered=True)
+        c = CategoricalIndex(data, ordered=True)
         assert c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
 
-        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1])
+        c = CategoricalIndex(data, categories=reversed(data))
         assert not c.is_monotonic_increasing
         assert c.is_monotonic_decreasing
 
-        c = CategoricalIndex([1, 3, 2], categories=[3, 2, 1])
+        c = CategoricalIndex(data, categories=reversed(data), ordered=True)
+        assert not c.is_monotonic_increasing
+        assert c.is_monotonic_decreasing
+
+        # test when data is neither monotonic increasing nor decreasing
+        reordered_data = [data[0], data[2], data[1]]
+        c = CategoricalIndex(reordered_data, categories=reversed(data))
         assert not c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
-
-        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1], ordered=True)
-        assert not c.is_monotonic_increasing
-        assert c.is_monotonic_decreasing
 
         # non lexsorted categories
-        categories = [9, 0, 1, 2, 3]
+        categories = non_lexsorted_data
 
-        c = CategoricalIndex([9, 0], categories=categories)
+        c = CategoricalIndex(categories[:2], categories=categories)
         assert c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
 
-        c = CategoricalIndex([0, 1], categories=categories)
+        c = CategoricalIndex(categories[1:3], categories=categories)
         assert c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
 
-    def test_duplicates(self):
+    @pytest.mark.parametrize('values, expected', [
+        ([1, 2, 3], True),
+        ([1, 3, 1], False),
+        (list('abc'), True),
+        (list('aba'), False)])
+    def test_is_unique(self, values, expected):
+        ci = CategoricalIndex(values)
+        assert ci.is_unique is expected
+
+    def test_has_duplicates(self):
 
         idx = CategoricalIndex([0, 0, 0], name='foo')
         assert not idx.is_unique
         assert idx.has_duplicates
 
+    def test_drop_duplicates(self):
+
+        idx = CategoricalIndex([0, 0, 0], name='foo')
         expected = CategoricalIndex([0], name='foo')
         tm.assert_index_equal(idx.drop_duplicates(), expected)
         tm.assert_index_equal(idx.unique(), expected)

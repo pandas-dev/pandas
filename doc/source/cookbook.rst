@@ -132,7 +132,7 @@ Building Criteria
 
 .. ipython:: python
 
-   newseries = df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']; newseries;
+   newseries = df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']; newseries
 
 ...or (with assignment modifies the DataFrame.)
 
@@ -286,7 +286,7 @@ New Columns
    df = pd.DataFrame(
         {'AAA' : [1,1,1,2,2,2,3,3], 'BBB' : [2,1,3,4,5,1,2,3]}); df
 
-Method 1 : idxmin() to get the index of the mins
+Method 1 : idxmin() to get the index of the minimums
 
 .. ipython:: python
 
@@ -307,7 +307,7 @@ MultiIndexing
 
 The :ref:`multindexing <advanced.hierarchical>` docs.
 
-`Creating a multi-index from a labeled frame
+`Creating a MultiIndex from a labeled frame
 <http://stackoverflow.com/questions/14916358/reshaping-dataframes-in-pandas-based-on-column-labels>`__
 
 .. ipython:: python
@@ -330,7 +330,7 @@ The :ref:`multindexing <advanced.hierarchical>` docs.
 Arithmetic
 **********
 
-`Performing arithmetic with a multi-index that needs broadcasting
+`Performing arithmetic with a MultiIndex that needs broadcasting
 <http://stackoverflow.com/questions/19501510/divide-entire-pandas-multiindex-dataframe-by-dataframe-variable/19502176#19502176>`__
 
 .. ipython:: python
@@ -342,7 +342,7 @@ Arithmetic
 Slicing
 *******
 
-`Slicing a multi-index with xs
+`Slicing a MultiIndex with xs
 <http://stackoverflow.com/questions/12590131/how-to-slice-multindex-columns-in-pandas-dataframes>`__
 
 .. ipython:: python
@@ -363,7 +363,7 @@ To take the cross section of the 1st level and 1st axis the index:
 
    df.xs('six',level=1,axis=0)
 
-`Slicing a multi-index with xs, method #2
+`Slicing a MultiIndex with xs, method #2
 <http://stackoverflow.com/questions/14964493/multiindex-based-indexing-in-pandas>`__
 
 .. ipython:: python
@@ -386,13 +386,13 @@ To take the cross section of the 1st level and 1st axis the index:
    df.loc[(All,'Math'),('Exams')]
    df.loc[(All,'Math'),(All,'II')]
 
-`Setting portions of a multi-index with xs
+`Setting portions of a MultiIndex with xs
 <http://stackoverflow.com/questions/19319432/pandas-selecting-a-lower-level-in-a-dataframe-to-do-a-ffill>`__
 
 Sorting
 *******
 
-`Sort by specific column or an ordered list of columns, with a multi-index
+`Sort by specific column or an ordered list of columns, with a MultiIndex
 <http://stackoverflow.com/questions/14733871/mutli-index-sorting-in-pandas>`__
 
 .. ipython:: python
@@ -410,6 +410,8 @@ Levels
 
 `Flatten Hierarchical columns
 <http://stackoverflow.com/questions/14507794/python-pandas-how-to-flatten-a-hierarchical-index-in-columns>`__
+
+.. _cookbook.missing_data:
 
 Missing Data
 ------------
@@ -494,7 +496,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    def Red(x):
       return functools.reduce(CumRet,x,1.0)
 
-   S.expanding().apply(Red)
+   S.expanding().apply(Red, raw=True)
 
 
 `Replacing some values with mean of the rest of a group
@@ -503,13 +505,11 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 .. ipython:: python
 
    df = pd.DataFrame({'A' : [1, 1, 2, 2], 'B' : [1, -1, 1, 2]})
-
    gb = df.groupby('A')
 
    def replace(g):
-      mask = g < 0
-      g.loc[mask] = g[~mask].mean()
-      return g
+       mask = g < 0
+       return g.where(mask, g[~mask].mean())
 
    gb.transform(replace)
 
@@ -662,7 +662,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 `Plot pandas DataFrame with year over year data
 <http://stackoverflow.com/questions/30379789/plot-pandas-data-frame-with-year-over-year-data>`__
 
-To create year and month crosstabulation:
+To create year and month cross tabulation:
 
 .. ipython:: python
 
@@ -675,7 +675,7 @@ To create year and month crosstabulation:
 Apply
 *****
 
-`Rolling Apply to Organize - Turning embedded lists into a multi-index frame
+`Rolling Apply to Organize - Turning embedded lists into a MultiIndex frame
 <http://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__
 
 .. ipython:: python
@@ -1027,8 +1027,8 @@ Skip row between header and data
     01.01.1990 05:00;21;11;12;13
     """
 
-Option 1: pass rows explicitly to skiprows
-""""""""""""""""""""""""""""""""""""""""""
+Option 1: pass rows explicitly to skip rows
+"""""""""""""""""""""""""""""""""""""""""""
 
 .. ipython:: python
 
@@ -1222,6 +1222,42 @@ Computation
 
 `Numerical integration (sample-based) of a time series
 <http://nbviewer.ipython.org/5720498>`__
+
+Correlation
+***********
+
+The `method` argument within `DataFrame.corr` can accept a callable in addition to the named correlation types.  Here we compute the `distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>`__ matrix for a `DataFrame` object.
+
+.. ipython:: python
+
+    def distcorr(x, y):
+        n = len(x)
+        a = np.zeros(shape=(n, n))
+        b = np.zeros(shape=(n, n))
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                a[i, j] = abs(x[i] - x[j])
+                b[i, j] = abs(y[i] - y[j])
+
+        a += a.T
+        b += b.T
+
+        a_bar = np.vstack([np.nanmean(a, axis=0)] * n)
+        b_bar = np.vstack([np.nanmean(b, axis=0)] * n)
+
+        A = a - a_bar - a_bar.T + np.full(shape=(n, n), fill_value=a_bar.mean())
+        B = b - b_bar - b_bar.T + np.full(shape=(n, n), fill_value=b_bar.mean())
+
+        cov_ab = np.sqrt(np.nansum(A * B)) / n
+        std_a = np.sqrt(np.sqrt(np.nansum(A**2)) / n)
+        std_b = np.sqrt(np.sqrt(np.nansum(B**2)) / n)
+
+        return cov_ab / std_a / std_b
+
+    df = pd.DataFrame(np.random.normal(size=(100, 3)))
+
+    df.corr(method=distcorr)
 
 Timedeltas
 ----------

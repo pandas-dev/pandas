@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 # cython: boundscheck=False
 """
 Cython implementations of functions resembling the stdlib calendar module
 """
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
-import numpy as np
-cimport numpy as np
 from numpy cimport int64_t, int32_t
-np.import_array()
 
+from locale import LC_TIME
+from strptime import LocaleTime
 
 # ----------------------------------------------------------------------
 # Constants
@@ -36,11 +34,18 @@ cdef int32_t* _month_offset = [
 # Canonical location for other modules to find name constants
 MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+# The first blank line is consistent with calendar.month_name in the calendar
+# standard library
+MONTHS_FULL = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+               'July', 'August', 'September', 'October', 'November',
+               'December']
 MONTH_NUMBERS = {name: num for num, name in enumerate(MONTHS)}
 MONTH_ALIASES = {(num + 1): name for num, name in enumerate(MONTHS)}
 MONTH_TO_CAL_NUM = {name: num + 1 for num, name in enumerate(MONTHS)}
 
 DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+DAYS_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday',
+             'Saturday', 'Sunday']
 int_to_weekday = {num: name for num, name in enumerate(DAYS)}
 weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
 
@@ -143,17 +148,13 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
     Assumes the inputs describe a valid date.
     """
     cdef:
-        bint isleap, isleap_prev
-        int32_t mo_off
+        bint isleap
         int32_t doy, dow
         int woy
 
     isleap = is_leapyear(year)
-    isleap_prev = is_leapyear(year - 1)
 
-    mo_off = _month_offset[isleap * 13 + month - 1]
-
-    doy = mo_off + day
+    doy = get_day_of_year(year, month, day)
     dow = dayofweek(year, month, day)
 
     # estimate
@@ -163,7 +164,7 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
 
     # verify
     if woy < 0:
-        if (woy > -2) or (woy == -2 and isleap_prev):
+        if (woy > -2) or (woy == -2 and is_leapyear(year - 1)):
             woy = 53
         else:
             woy = 52
@@ -172,3 +173,55 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
             woy = 1
 
     return woy
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
+    """Return the ordinal day-of-year for the given day.
+
+    Parameters
+    ----------
+    year : int
+    month : int
+    day : int
+
+    Returns
+    -------
+    day_of_year : int32_t
+
+    Notes
+    -----
+    Assumes the inputs describe a valid date.
+    """
+    cdef:
+        bint isleap
+        int32_t mo_off
+        int day_of_year
+
+    isleap = is_leapyear(year)
+
+    mo_off = _month_offset[isleap * 13 + month - 1]
+
+    day_of_year = mo_off + day
+    return day_of_year
+
+
+cpdef get_locale_names(object name_type, object locale=None):
+    """Returns an array of localized day or month names
+
+    Parameters
+    ----------
+    name_type : string, attribute of LocaleTime() in which to return localized
+        names
+    locale : string
+
+    Returns
+    -------
+    list of locale names
+
+    """
+    from pandas.util.testing import set_locale
+
+    with set_locale(locale, LC_TIME):
+        return getattr(LocaleTime(), name_type)

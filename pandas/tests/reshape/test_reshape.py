@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
 
-from warnings import catch_warnings
 import pytest
+from collections import OrderedDict
 
 from pandas import DataFrame, Series
 import pandas as pd
@@ -99,8 +99,8 @@ class TestGetDummies(object):
         expected_counts = {'int64': 1, 'object': 1}
         expected_counts[dtype_name] = 3 + expected_counts.get(dtype_name, 0)
 
-        expected = Series(expected_counts).sort_values()
-        tm.assert_series_equal(result.get_dtype_counts().sort_values(),
+        expected = Series(expected_counts).sort_index()
+        tm.assert_series_equal(result.get_dtype_counts().sort_index(),
                                expected)
 
     def test_just_na(self, sparse):
@@ -211,10 +211,10 @@ class TestGetDummies(object):
     def test_dataframe_dummies_subset(self, df, sparse):
         result = get_dummies(df, prefix=['from_A'], columns=['A'],
                              sparse=sparse)
-        expected = DataFrame({'from_A_a': [1, 0, 1],
-                              'from_A_b': [0, 1, 0],
-                              'B': ['b', 'b', 'c'],
-                              'C': [1, 2, 3]}, dtype=np.uint8)
+        expected = DataFrame({'B': ['b', 'b', 'c'],
+                              'C': [1, 2, 3],
+                              'from_A_a': [1, 0, 1],
+                              'from_A_b': [0, 1, 0]}, dtype=np.uint8)
         expected[['C']] = df[['C']]
         assert_frame_equal(result, expected)
 
@@ -248,16 +248,16 @@ class TestGetDummies(object):
 
     def test_dataframe_dummies_prefix_dict(self, sparse):
         prefixes = {'A': 'from_A', 'B': 'from_B'}
-        df = DataFrame({'A': ['a', 'b', 'a'],
-                        'B': ['b', 'b', 'c'],
-                        'C': [1, 2, 3]})
+        df = DataFrame({'C': [1, 2, 3],
+                        'A': ['a', 'b', 'a'],
+                        'B': ['b', 'b', 'c']})
         result = get_dummies(df, prefix=prefixes, sparse=sparse)
 
-        expected = DataFrame({'from_A_a': [1, 0, 1],
+        expected = DataFrame({'C': [1, 2, 3],
+                              'from_A_a': [1, 0, 1],
                               'from_A_b': [0, 1, 0],
                               'from_B_b': [1, 1, 0],
-                              'from_B_c': [0, 0, 1],
-                              'C': [1, 2, 3]})
+                              'from_B_c': [0, 0, 1]})
 
         columns = ['from_A_a', 'from_A_b', 'from_B_b', 'from_B_c']
         expected[columns] = expected[columns].astype(np.uint8)
@@ -299,6 +299,24 @@ class TestGetDummies(object):
         effective_dtype = self.effective_dtype(dtype)
         expected[columns] = expected[columns].astype(effective_dtype)
         expected.sort_index(axis=1)
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('get_dummies_kwargs,expected', [
+        ({'data': pd.DataFrame(({u'ä': ['a']}))},
+         pd.DataFrame({u'ä_a': [1]}, dtype=np.uint8)),
+
+        ({'data': pd.DataFrame({'x': [u'ä']})},
+         pd.DataFrame({u'x_ä': [1]}, dtype=np.uint8)),
+
+        ({'data': pd.DataFrame({'x': [u'a']}), 'prefix':u'ä'},
+         pd.DataFrame({u'ä_a': [1]}, dtype=np.uint8)),
+
+        ({'data': pd.DataFrame({'x': [u'a']}), 'prefix_sep':u'ä'},
+         pd.DataFrame({u'xäa': [1]}, dtype=np.uint8))])
+    def test_dataframe_dummies_unicode(self, get_dummies_kwargs, expected):
+        # GH22084 pd.get_dummies incorrectly encodes unicode characters
+        # in dataframe column names
+        result = get_dummies(**get_dummies_kwargs)
         assert_frame_equal(result, expected)
 
     def test_basic_drop_first(self, sparse):
@@ -454,15 +472,40 @@ class TestGetDummies(object):
 
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('sparse', [True, False])
+    def test_get_dummies_dont_sparsify_all_columns(self, sparse):
+        # GH18914
+        df = DataFrame.from_dict(OrderedDict([('GDP', [1, 2]),
+                                              ('Nation', ['AB', 'CD'])]))
+        df = get_dummies(df, columns=['Nation'], sparse=sparse)
+        df2 = df.reindex(columns=['GDP'])
+
+        tm.assert_frame_equal(df[['GDP']], df2)
+
+    def test_get_dummies_duplicate_columns(self, df):
+        # GH20839
+        df.columns = ["A", "A", "A"]
+        result = get_dummies(df).sort_index(axis=1)
+
+        expected = DataFrame([[1, 1, 0, 1, 0],
+                              [2, 0, 1, 1, 0],
+                              [3, 1, 0, 0, 1]],
+                             columns=['A', 'A_a', 'A_b', 'A_b', 'A_c'],
+                             dtype=np.uint8).sort_index(axis=1)
+
+        expected = expected.astype({"A": np.int64})
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestCategoricalReshape(object):
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_reshaping_panel_categorical(self):
 
-        with catch_warnings(record=True):
-            p = tm.makePanel()
-            p['str'] = 'foo'
-            df = p.to_frame()
+        p = tm.makePanel()
+        p['str'] = 'foo'
+        df = p.to_frame()
 
         df['category'] = df['str'].astype('category')
         result = df['category'].unstack()

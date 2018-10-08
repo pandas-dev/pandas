@@ -1,31 +1,26 @@
-import os
-
 import pytest
-from pandas.io.parsers import read_table
-
-HERE = os.path.dirname(__file__)
+from pandas.io.parsers import read_csv
 
 
-@pytest.fixture(scope='module')
-def tips_file():
+@pytest.fixture
+def tips_file(datapath):
     """Path to the tips dataset"""
-    return os.path.join(HERE, 'parser', 'data', 'tips.csv')
+    return datapath('io', 'parser', 'data', 'tips.csv')
 
 
-@pytest.fixture(scope='module')
-def jsonl_file():
+@pytest.fixture
+def jsonl_file(datapath):
     """Path a JSONL dataset"""
-    return os.path.join(HERE, 'parser', 'data', 'items.jsonl')
+    return datapath('io', 'parser', 'data', 'items.jsonl')
 
 
-@pytest.fixture(scope='module')
-def salaries_table():
+@pytest.fixture
+def salaries_table(datapath):
     """DataFrame with the salaries dataset"""
-    path = os.path.join(HERE, 'parser', 'data', 'salaries.csv')
-    return read_table(path)
+    return read_csv(datapath('io', 'parser', 'data', 'salaries.csv'), sep='\t')
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture
 def s3_resource(tips_file, jsonl_file):
     """Fixture for mocking S3 interaction.
 
@@ -41,8 +36,8 @@ def s3_resource(tips_file, jsonl_file):
     is yielded by the fixture.
     """
     pytest.importorskip('s3fs')
+    boto3 = pytest.importorskip('boto3')
     moto = pytest.importorskip('moto')
-    moto.mock_s3().start()
 
     test_s3_files = [
         ('tips.csv', tips_file),
@@ -58,17 +53,22 @@ def s3_resource(tips_file, jsonl_file):
                     Key=s3_key,
                     Body=f)
 
-    boto3 = pytest.importorskip('boto3')
-    # see gh-16135
-    bucket = 'pandas-test'
+    try:
 
-    conn = boto3.resource("s3", region_name="us-east-1")
-    conn.create_bucket(Bucket=bucket)
-    add_tips_files(bucket)
+        s3 = moto.mock_s3()
+        s3.start()
 
-    conn.create_bucket(Bucket='cant_get_it', ACL='private')
-    add_tips_files('cant_get_it')
+        # see gh-16135
+        bucket = 'pandas-test'
+        conn = boto3.resource("s3", region_name="us-east-1")
 
-    yield conn
+        conn.create_bucket(Bucket=bucket)
+        add_tips_files(bucket)
 
-    moto.mock_s3().stop()
+        conn.create_bucket(Bucket='cant_get_it', ACL='private')
+        add_tips_files('cant_get_it')
+        yield conn
+    except:  # noqa: flake8
+        pytest.skip("failure to use s3 resource")
+    finally:
+        s3.stop()

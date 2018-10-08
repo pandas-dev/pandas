@@ -12,21 +12,20 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
-
+import glob
 import pytest
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 
 import os
 from distutils.version import LooseVersion
 import pandas as pd
 from pandas import Index
-from pandas.compat import is_platform_little_endian
+from pandas.compat import is_platform_little_endian, PY3
 import pandas
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 from pandas.tseries.offsets import Day, MonthEnd
 import shutil
-import sys
 
 
 @pytest.fixture(scope='module')
@@ -185,27 +184,26 @@ def compare_sp_frame_float(result, expected, typ, version):
         tm.assert_sp_frame_equal(result, expected)
 
 
+files = glob.glob(os.path.join(os.path.dirname(__file__), "data",
+                  "legacy_pickle", "*", "*.pickle"))
+
+
+@pytest.fixture(params=files)
+def legacy_pickle(request, datapath):
+    return datapath(request.param)
+
+
 # ---------------------
 # tests
 # ---------------------
-def legacy_pickle_versions():
-    # yield the pickle versions
-    path = tm.get_data_path('legacy_pickle')
-    for v in os.listdir(path):
-        p = os.path.join(path, v)
-        if os.path.isdir(p):
-            for f in os.listdir(p):
-                yield (v, f)
-
-
-@pytest.mark.parametrize('version, f', legacy_pickle_versions())
-def test_pickles(current_pickle_data, version, f):
+def test_pickles(current_pickle_data, legacy_pickle):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
 
-    vf = tm.get_data_path('legacy_pickle/{}/{}'.format(version, f))
+    version = os.path.basename(os.path.dirname(legacy_pickle))
     with catch_warnings(record=True):
-        compare(current_pickle_data, vf, version)
+        simplefilter("ignore")
+        compare(current_pickle_data, legacy_pickle, version)
 
 
 def test_round_trip_current(current_pickle_data):
@@ -221,7 +219,7 @@ def test_round_trip_current(current_pickle_data):
             with open(path, 'rb') as fh:
                 fh.seek(0)
                 return c_pickle.load(fh)
-    except:
+    except ImportError:
         c_pickler = None
         c_unpickler = None
 
@@ -261,12 +259,11 @@ def test_round_trip_current(current_pickle_data):
                     compare_element(result, expected, typ)
 
 
-def test_pickle_v0_14_1():
+def test_pickle_v0_14_1(datapath):
 
     cat = pd.Categorical(values=['a', 'b', 'c'], ordered=False,
                          categories=['a', 'b', 'c', 'd'])
-    pickle_path = os.path.join(tm.get_data_path(),
-                               'categorical_0_14_1.pickle')
+    pickle_path = datapath('io', 'data', 'categorical_0_14_1.pickle')
     # This code was executed once on v0.14.1 to generate the pickle:
     #
     # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
@@ -276,14 +273,13 @@ def test_pickle_v0_14_1():
     tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
 
-def test_pickle_v0_15_2():
+def test_pickle_v0_15_2(datapath):
     # ordered -> _ordered
     # GH 9347
 
     cat = pd.Categorical(values=['a', 'b', 'c'], ordered=False,
                          categories=['a', 'b', 'c', 'd'])
-    pickle_path = os.path.join(tm.get_data_path(),
-                               'categorical_0_15_2.pickle')
+    pickle_path = datapath('io', 'data', 'categorical_0_15_2.pickle')
     # This code was executed once on v0.15.2 to generate the pickle:
     #
     # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
@@ -337,9 +333,9 @@ class TestCompression(object):
             f = bz2.BZ2File(dest_path, "w")
         elif compression == 'zip':
             import zipfile
-            zip_file = zipfile.ZipFile(dest_path, "w",
-                                       compression=zipfile.ZIP_DEFLATED)
-            zip_file.write(src_path, os.path.basename(src_path))
+            with zipfile.ZipFile(dest_path, "w",
+                                 compression=zipfile.ZIP_DEFLATED) as f:
+                f.write(src_path, os.path.basename(src_path))
         elif compression == 'xz':
             lzma = pandas.compat.import_lzma()
             f = lzma.LZMAFile(dest_path, "w")
@@ -348,45 +344,9 @@ class TestCompression(object):
             raise ValueError(msg)
 
         if compression != "zip":
-            with open(src_path, "rb") as fh:
+            with open(src_path, "rb") as fh, f:
                 f.write(fh.read())
-            f.close()
 
-    def decompress_file(self, src_path, dest_path, compression):
-        if compression is None:
-            shutil.copyfile(src_path, dest_path)
-            return
-
-        if compression == 'gzip':
-            import gzip
-            f = gzip.open(src_path, "r")
-        elif compression == 'bz2':
-            import bz2
-            f = bz2.BZ2File(src_path, "r")
-        elif compression == 'zip':
-            import zipfile
-            zip_file = zipfile.ZipFile(src_path)
-            zip_names = zip_file.namelist()
-            if len(zip_names) == 1:
-                f = zip_file.open(zip_names.pop())
-            else:
-                raise ValueError('ZIP file {} error. Only one file per ZIP.'
-                                 .format(src_path))
-        elif compression == 'xz':
-            lzma = pandas.compat.import_lzma()
-            f = lzma.LZMAFile(src_path, "r")
-        else:
-            msg = 'Unrecognized compression type: {}'.format(compression)
-            raise ValueError(msg)
-
-        with open(dest_path, "wb") as fh:
-            fh.write(f.read())
-        f.close()
-
-    @pytest.mark.parametrize('compression', [
-        None, 'gzip', 'bz2',
-        pytest.param('xz', marks=td.skip_if_no_lzma)  # issue 11666
-    ])
     def test_write_explicit(self, compression, get_random_path):
         base = get_random_path
         path1 = base + ".compressed"
@@ -399,7 +359,9 @@ class TestCompression(object):
             df.to_pickle(p1, compression=compression)
 
             # decompress
-            self.decompress_file(p1, p2, compression=compression)
+            with tm.decompress_file(p1, compression=compression) as f:
+                with open(p2, "wb") as fh:
+                    fh.write(f.read())
 
             # read decompressed file
             df2 = pd.read_pickle(p2, compression=None)
@@ -435,17 +397,15 @@ class TestCompression(object):
             df.to_pickle(p1)
 
             # decompress
-            self.decompress_file(p1, p2, compression=compression)
+            with tm.decompress_file(p1, compression=compression) as f:
+                with open(p2, "wb") as fh:
+                    fh.write(f.read())
 
             # read decompressed file
             df2 = pd.read_pickle(p2, compression=None)
 
             tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.parametrize('compression', [
-        None, 'gzip', 'bz2', "zip",
-        pytest.param('xz', marks=td.skip_if_no_lzma)
-    ])
     def test_read_explicit(self, compression, get_random_path):
         base = get_random_path
         path1 = base + ".raw"
@@ -509,21 +469,12 @@ class TestProtocol(object):
             tm.assert_frame_equal(df, df2)
 
     @pytest.mark.parametrize('protocol', [3, 4])
-    @pytest.mark.skipif(sys.version_info[:2] >= (3, 4),
-                        reason="Testing invalid parameters for "
-                               "Python 2.x and 3.y (y < 4).")
+    @pytest.mark.skipif(PY3, reason="Testing invalid parameters for Python 2")
     def test_read_bad_versions(self, protocol, get_random_path):
-        # For Python 2.x (respectively 3.y with y < 4), [expected]
-        # HIGHEST_PROTOCOL should be 2 (respectively 3). Hence, the protocol
-        # parameter should not exceed 2 (respectively 3).
-        if sys.version_info[:2] < (3, 0):
-            expect_hp = 2
-        else:
-            expect_hp = 3
-        with tm.assert_raises_regex(ValueError,
-                                    "pickle protocol %d asked for; the highest"
-                                    " available protocol is %d" % (protocol,
-                                                                   expect_hp)):
+        # For Python 2, HIGHEST_PROTOCOL should be 2.
+        msg = ("pickle protocol {protocol} asked for; the highest available "
+               "protocol is 2").format(protocol=protocol)
+        with tm.assert_raises_regex(ValueError, msg):
             with tm.ensure_clean(get_random_path) as path:
                 df = tm.makeDataFrame()
                 df.to_pickle(path, protocol=protocol)

@@ -44,12 +44,12 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             if isinstance(colors, compat.string_types):
                 colors = list(colors)
         elif color_type == 'random':
-            from pandas.core.common import _random_state
+            import pandas.core.common as com
 
             def random_color(column):
                 """ Returns a random color represented as a list of length 3"""
                 # GH17525 use common._random_state to avoid resetting the seed
-                rs = _random_state(column)
+                rs = com.random_state(column)
                 return rs.rand(3).tolist()
 
             colors = lmap(random_color, lrange(num_colors))

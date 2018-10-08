@@ -1,11 +1,15 @@
 """ io on the clipboard """
-from pandas import compat, get_option, option_context, DataFrame
-from pandas.compat import StringIO, PY2
+import warnings
+
+from pandas.compat import StringIO, PY2, PY3
+
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas import compat, get_option, option_context
 
 
 def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     r"""
-    Read text from clipboard and pass to read_table. See read_table for the
+    Read text from clipboard and pass to read_csv. See read_csv for the
     full argument list
 
     Parameters
@@ -27,12 +31,12 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
             'reading from clipboard only supports utf-8 encoding')
 
     from pandas.io.clipboard import clipboard_get
-    from pandas.io.parsers import read_table
+    from pandas.io.parsers import read_csv
     text = clipboard_get()
 
     # try to decode (if needed on PY3)
     # Strange. linux py33 doesn't complain, win py33 does
-    if compat.PY3:
+    if PY3:
         try:
             text = compat.bytes_to_str(
                 text, encoding=(kwargs.get('encoding') or
@@ -47,7 +51,7 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     # that this came from excel and set 'sep' accordingly
     lines = text[:10000].split('\n')[:-1][:10]
 
-    # Need to remove leading white space, since read_table
+    # Need to remove leading white space, since read_csv
     # accepts:
     #    a  b
     # 0  1  2
@@ -55,15 +59,31 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
 
     counts = {x.lstrip().count('\t') for x in lines}
     if len(lines) > 1 and len(counts) == 1 and counts.pop() != 0:
-        sep = r'\t'
+        sep = '\t'
 
+    # Edge case where sep is specified to be None, return to default
     if sep is None and kwargs.get('delim_whitespace') is None:
         sep = r'\s+'
 
-    return read_table(StringIO(text), sep=sep, **kwargs)
+    # Regex separator currently only works with python engine.
+    # Default to python if separator is multi-character (regex)
+    if len(sep) > 1 and kwargs.get('engine') is None:
+        kwargs['engine'] = 'python'
+    elif len(sep) > 1 and kwargs.get('engine') == 'c':
+        warnings.warn('read_clipboard with regex separator does not work'
+                      ' properly with c engine')
+
+    # In PY2, the c table reader first encodes text with UTF-8 but Python
+    # table reader uses the format of the passed string. For consistency,
+    # encode strings for python engine so that output from python and c
+    # engines produce consistent results
+    if kwargs.get('engine') == 'python' and PY2:
+        text = text.encode('utf-8')
+
+    return read_csv(StringIO(text), sep=sep, **kwargs)
 
 
-def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
+def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
     """
     Attempt to write text representation of object to the system clipboard
     The clipboard can be then pasted into Excel for example.
@@ -99,7 +119,7 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
     if excel:
         try:
             if sep is None:
-                sep = r'\t'
+                sep = '\t'
             buf = StringIO()
             # clipboard_set (pyperclip) expects unicode
             obj.to_csv(buf, sep=sep, encoding='utf-8', **kwargs)
@@ -108,10 +128,13 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
                 text = text.decode('utf-8')
             clipboard_set(text)
             return
-        except:
-            pass
+        except TypeError:
+            warnings.warn('to_clipboard in excel mode requires a single '
+                          'character separator.')
+    elif sep is not None:
+        warnings.warn('to_clipboard with excel=False ignores the sep argument')
 
-    if isinstance(obj, DataFrame):
+    if isinstance(obj, ABCDataFrame):
         # str(df) has various unhelpful defaults, like truncation
         with option_context('display.max_colwidth', 999999):
             objstr = obj.to_string(**kwargs)

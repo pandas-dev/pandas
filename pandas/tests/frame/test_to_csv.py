@@ -9,7 +9,8 @@ from numpy import nan
 import numpy as np
 
 from pandas.compat import (lmap, range, lrange, StringIO, u)
-from pandas.core.common import _all_none
+from pandas.io.common import _get_handle
+import pandas.core.common as com
 from pandas.errors import ParserError
 from pandas import (DataFrame, Index, Series, MultiIndex, Timestamp,
                     date_range, read_csv, compat, to_datetime)
@@ -21,7 +22,6 @@ from pandas.util.testing import (assert_almost_equal,
                                  ensure_clean,
                                  makeCustomDataframe as mkdf)
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 
 from pandas.tests.frame.common import TestData
 
@@ -154,7 +154,7 @@ class TestDataFrameToCSV(TestData):
             self.tzframe.to_csv(path)
             result = pd.read_csv(path, index_col=0, parse_dates=['A'])
 
-            converter = lambda c: to_datetime(result[c]).dt.tz_localize(
+            converter = lambda c: to_datetime(result[c]).dt.tz_convert(
                 'UTC').dt.tz_convert(self.tzframe[c].dt.tz)
             result['B'] = converter('B')
             result['C'] = converter('C')
@@ -572,7 +572,7 @@ class TestDataFrameToCSV(TestData):
             df = _make_frame(True)
             df.to_csv(path, index=False)
             result = read_csv(path, header=[0, 1])
-            assert _all_none(*result.columns.names)
+            assert com._all_none(*result.columns.names)
             result.columns.names = df.columns.names
             assert_frame_equal(df, result)
 
@@ -893,22 +893,27 @@ class TestDataFrameToCSV(TestData):
 
     def test_to_csv_from_csv_categorical(self):
 
-        # CSV with categoricals should result in the same output as when one
-        # would add a "normal" Series/DataFrame.
-        s = Series(pd.Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']))
-        s2 = Series(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
+        # CSV with categoricals should result in the same output
+        # as when one would add a "normal" Series/DataFrame.
+        s = Series(pd.Categorical(["a", "b", "b", "a", "a", "c", "c", "c"]))
+        s2 = Series(["a", "b", "b", "a", "a", "c", "c", "c"])
         res = StringIO()
-        s.to_csv(res)
+
+        s.to_csv(res, header=False)
         exp = StringIO()
-        s2.to_csv(exp)
+
+        s2.to_csv(exp, header=False)
         assert res.getvalue() == exp.getvalue()
 
         df = DataFrame({"s": s})
         df2 = DataFrame({"s": s2})
+
         res = StringIO()
         df.to_csv(res)
+
         exp = StringIO()
         df2.to_csv(exp)
+
         assert res.getvalue() == exp.getvalue()
 
     def test_to_csv_path_is_none(self):
@@ -920,86 +925,46 @@ class TestDataFrameToCSV(TestData):
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 
-    def test_to_csv_compression_gzip(self):
-        # GH7615
-        # use the compression kw in to_csv
-        df = DataFrame([[0.123456, 0.234567, 0.567567],
-                        [12.32112, 123123.2, 321321.2]],
-                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
+    @pytest.mark.parametrize('df,encoding', [
+        (DataFrame([[0.123456, 0.234567, 0.567567],
+                    [12.32112, 123123.2, 321321.2]],
+                   index=['A', 'B'], columns=['X', 'Y', 'Z']), None),
+        # GH 21241, 21118
+        (DataFrame([['abc', 'def', 'ghi']], columns=['X', 'Y', 'Z']), 'ascii'),
+        (DataFrame(5 * [[123, u"你好", u"世界"]],
+                   columns=['X', 'Y', 'Z']), 'gb2312'),
+        (DataFrame(5 * [[123, u"Γειά σου", u"Κόσμε"]],
+                   columns=['X', 'Y', 'Z']), 'cp737')
+    ])
+    def test_to_csv_compression(self, df, encoding, compression):
 
         with ensure_clean() as filename:
 
-            df.to_csv(filename, compression="gzip")
-
+            df.to_csv(filename, compression=compression, encoding=encoding)
             # test the round trip - to_csv -> read_csv
-            rs = read_csv(filename, compression="gzip", index_col=0)
-            assert_frame_equal(df, rs)
+            result = read_csv(filename, compression=compression,
+                              index_col=0, encoding=encoding)
+            assert_frame_equal(df, result)
 
-            # explicitly make sure file is gziped
-            import gzip
-            f = gzip.open(filename, 'rb')
-            text = f.read().decode('utf8')
-            f.close()
-            for col in df.columns:
-                assert col in text
+            # test the round trip using file handle - to_csv -> read_csv
+            f, _handles = _get_handle(filename, 'w', compression=compression,
+                                      encoding=encoding)
+            with f:
+                df.to_csv(f, encoding=encoding)
+            result = pd.read_csv(filename, compression=compression,
+                                 encoding=encoding, index_col=0, squeeze=True)
+            assert_frame_equal(df, result)
 
-    def test_to_csv_compression_bz2(self):
-        # GH7615
-        # use the compression kw in to_csv
-        df = DataFrame([[0.123456, 0.234567, 0.567567],
-                        [12.32112, 123123.2, 321321.2]],
-                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
+            # explicitly make sure file is compressed
+            with tm.decompress_file(filename, compression) as fh:
+                text = fh.read().decode(encoding or 'utf8')
+                for col in df.columns:
+                    assert col in text
 
-        with ensure_clean() as filename:
-
-            df.to_csv(filename, compression="bz2")
-
-            # test the round trip - to_csv -> read_csv
-            rs = read_csv(filename, compression="bz2", index_col=0)
-            assert_frame_equal(df, rs)
-
-            # explicitly make sure file is bz2ed
-            import bz2
-            f = bz2.BZ2File(filename, 'rb')
-            text = f.read().decode('utf8')
-            f.close()
-            for col in df.columns:
-                assert col in text
-
-    @td.skip_if_no_lzma
-    def test_to_csv_compression_xz(self):
-        # GH11852
-        # use the compression kw in to_csv
-        df = DataFrame([[0.123456, 0.234567, 0.567567],
-                        [12.32112, 123123.2, 321321.2]],
-                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
-
-        with ensure_clean() as filename:
-
-            df.to_csv(filename, compression="xz")
-
-            # test the round trip - to_csv -> read_csv
-            rs = read_csv(filename, compression="xz", index_col=0)
-            assert_frame_equal(df, rs)
-
-            # explicitly make sure file is xzipped
-            lzma = compat.import_lzma()
-            f = lzma.open(filename, 'rb')
-            assert_frame_equal(df, read_csv(f, index_col=0))
-            f.close()
-
-    def test_to_csv_compression_value_error(self):
-        # GH7615
-        # use the compression kw in to_csv
-        df = DataFrame([[0.123456, 0.234567, 0.567567],
-                        [12.32112, 123123.2, 321321.2]],
-                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
-
-        with ensure_clean() as filename:
-            # zip compression is not supported and should raise ValueError
-            import zipfile
-            pytest.raises(zipfile.BadZipfile, df.to_csv,
-                          filename, compression="zip")
+            with tm.decompress_file(filename, compression) as fh:
+                assert_frame_equal(df, read_csv(fh,
+                                                index_col=0,
+                                                encoding=encoding))
 
     def test_to_csv_date_format(self):
         with ensure_clean('__tmp_to_csv_date_format__') as path:
@@ -1067,12 +1032,11 @@ class TestDataFrameToCSV(TestData):
                 time_range = np.array(range(len(i)), dtype='int64')
                 df = DataFrame({'A': time_range}, index=i)
                 df.to_csv(path, index=True)
-
                 # we have to reconvert the index as we
                 # don't parse the tz's
                 result = read_csv(path, index_col=0)
-                result.index = to_datetime(result.index).tz_localize(
-                    'UTC').tz_convert('Europe/London')
+                result.index = to_datetime(result.index, utc=True).tz_convert(
+                    'Europe/London')
                 assert_frame_equal(result, df)
 
         # GH11619
@@ -1083,9 +1047,9 @@ class TestDataFrameToCSV(TestData):
         with ensure_clean('csv_date_format_with_dst') as path:
             df.to_csv(path, index=True)
             result = read_csv(path, index_col=0)
-            result.index = to_datetime(result.index).tz_localize(
-                'UTC').tz_convert('Europe/Paris')
-            result['idx'] = to_datetime(result['idx']).astype(
+            result.index = to_datetime(result.index, utc=True).tz_convert(
+                'Europe/Paris')
+            result['idx'] = to_datetime(result['idx'], utc=True).astype(
                 'datetime64[ns, Europe/Paris]')
             assert_frame_equal(result, df)
 
@@ -1099,10 +1063,10 @@ class TestDataFrameToCSV(TestData):
 
     def test_to_csv_quoting(self):
         df = DataFrame({
-            'c_string': ['a', 'b,c'],
-            'c_int': [42, np.nan],
-            'c_float': [1.0, 3.2],
             'c_bool': [True, False],
+            'c_float': [1.0, 3.2],
+            'c_int': [42, np.nan],
+            'c_string': ['a', 'b,c'],
         })
 
         expected = """\

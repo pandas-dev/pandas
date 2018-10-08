@@ -16,19 +16,23 @@ if [ "$SLOW" ]; then
     TEST_ARGS="--only-slow --skip-network"
 fi
 
-if [ "$PIP_BUILD_TEST" ] || [ "$CONDA_BUILD_TEST" ]; then
-    echo "We are not running pytest as this is a build test."
+# Enforce absent network during testing by faking a proxy
+if echo "$TEST_ARGS" | grep -e --skip-network -q; then
+    export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
+fi
 
-elif [ "$DOC" ]; then
+if [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
 
 elif [ "$COVERAGE" ]; then
-    echo pytest -s -m "single" --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
-    pytest -s -m "single" --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
+    echo pytest -s -m "single" -r xXs --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
+    pytest      -s -m "single" -r xXs --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
 
+    echo pytest -s -r xXs --strict scripts
+    pytest      -s -r xXs --strict scripts
 else
-    echo pytest -m "single" -r xX --junitxml=/tmp/single.xml --strict $TEST_ARGS pandas
-    pytest -m "single" -r xX  --junitxml=/tmp/single.xml --strict $TEST_ARGS pandas # TODO: doctest
+    echo pytest -m "single" -r xXs --junitxml=/tmp/single.xml --strict $TEST_ARGS pandas
+    pytest      -m "single" -r xXs --junitxml=/tmp/single.xml --strict $TEST_ARGS pandas # TODO: doctest
 
 fi
 

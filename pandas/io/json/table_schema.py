@@ -3,10 +3,12 @@ Table Schema builders
 
 http://specs.frictionlessdata.io/json-table-schema/
 """
+import warnings
+
 import pandas._libs.json as json
 from pandas import DataFrame
 from pandas.api.types import CategoricalDtype
-from pandas.core.common import _all_not_none
+import pandas.core.common as com
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_timedelta64_dtype, is_numeric_dtype,
     is_bool_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -67,7 +69,13 @@ def as_json_table_type(x):
 
 def set_default_names(data):
     """Sets index names to 'index' for regular, or 'level_x' for Multi"""
-    if _all_not_none(*data.index.names):
+    if com._all_not_none(*data.index.names):
+        nms = data.index.names
+        if len(nms) == 1 and data.index.name == 'index':
+            warnings.warn("Index name of 'index' is not round-trippable")
+        elif len(nms) > 1 and any(x.startswith('level_') for x in nms):
+            warnings.warn("Index names beginning with 'level_' are not "
+                          "round-trippable")
         return data
 
     data = data.copy()
@@ -211,7 +219,7 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     -----
     See `_as_json_table_type` for conversion types.
     Timedeltas as converted to ISO8601 duration format with
-    9 decimal places after the secnods field for nanosecond precision.
+    9 decimal places after the seconds field for nanosecond precision.
 
     Categoricals are converted to the `any` dtype, and use the `enum` field
     constraint to list the allowed values. The `ordered` attribute is included
@@ -273,10 +281,13 @@ def parse_table_schema(json, precise_float):
 
     Notes
     -----
-        Because ``write_json`` uses the string `index` to denote a name-less
-        ``Index``, this function sets the name of the returned ``DataFrame`` to
-        ``None`` when said string is encountered. Therefore, intentional usage
-        of `index` as the ``Index`` name is not supported.
+        Because :func:`DataFrame.to_json` uses the string 'index' to denote a
+        name-less :class:`Index`, this function sets the name of the returned
+        :class:`DataFrame` to ``None`` when said string is encountered with a
+        normal :class:`Index`. For a :class:`MultiIndex`, the same limitation
+        applies to any strings beginning with 'level_'. Therefore, an
+        :class:`Index` name of 'index'  and :class:`MultiIndex` names starting
+        with 'level_' are not supported.
 
     See also
     --------
@@ -285,7 +296,7 @@ def parse_table_schema(json, precise_float):
     """
     table = loads(json, precise_float=precise_float)
     col_order = [field['name'] for field in table['schema']['fields']]
-    df = DataFrame(table['data'])[col_order]
+    df = DataFrame(table['data'], columns=col_order)[col_order]
 
     dtypes = {field['name']: convert_json_field_to_pandas_type(field)
               for field in table['schema']['fields']}
@@ -303,10 +314,11 @@ def parse_table_schema(json, precise_float):
     df = df.astype(dtypes)
 
     df = df.set_index(table['schema']['primaryKey'])
-    if len(df.index.names) == 1 and df.index.name == 'index':
-        df.index.name = None
+    if len(df.index.names) == 1:
+        if df.index.name == 'index':
+            df.index.name = None
     else:
-        if all(x.startswith('level_') for x in df.index.names):
-            df.index.names = [None] * len(df.index.names)
+        df.index.names = [None if x.startswith('level_') else x for x in
+                          df.index.names]
 
     return df

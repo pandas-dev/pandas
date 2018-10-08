@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101,W0141
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 import datetime
 import itertools
 import pytest
@@ -10,7 +10,8 @@ from numpy.random import randn
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
-from pandas import Panel, DataFrame, Series, notna, isna, Timestamp
+from pandas import (Panel, DataFrame, Series, notna, isna, Timestamp, concat,
+                    read_csv)
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.core.common as com
@@ -19,6 +20,9 @@ from pandas.compat import (range, lrange, StringIO, lzip, u, product as
                            cart_product, zip)
 import pandas as pd
 import pandas._libs.index as _index
+
+AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
+                 'std', 'var', 'sem']
 
 
 class Base(object):
@@ -190,6 +194,7 @@ class TestMultiLevel(Base):
         tm.assert_frame_equal(reindexed, expected)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             reindexed = self.frame.ix[[('foo', 'one'), ('bar', 'one')]]
         tm.assert_frame_equal(reindexed, expected)
 
@@ -202,6 +207,7 @@ class TestMultiLevel(Base):
         assert chunk.index is new_index
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             chunk = self.ymd.ix[new_index]
         assert chunk.index is new_index
 
@@ -265,6 +271,7 @@ class TestMultiLevel(Base):
         tm.assert_series_equal(result, expected)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
         tm.assert_series_equal(result, expected)
 
@@ -344,6 +351,7 @@ class TestMultiLevel(Base):
         tm.assert_series_equal(df['value'], result)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             result = df.ix[:, 'value']
         tm.assert_series_equal(df['value'], result)
 
@@ -419,6 +427,7 @@ class TestMultiLevel(Base):
         expected = idf.loc[0, 0]
         expected2 = idf.xs((0, 0))
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             expected3 = idf.ix[0, 0]
 
         tm.assert_series_equal(result, expected)
@@ -483,6 +492,14 @@ class TestMultiLevel(Base):
         expected = df.loc['foo', 'one']
         tm.assert_frame_equal(result, expected)
 
+    def test_xs_with_duplicates(self):
+        # Issue #13719
+        df_dup = concat([self.frame] * 2)
+        assert not df_dup.index.is_unique
+        expected = concat([self.frame.xs('one', level='second')] * 2)
+        tm.assert_frame_equal(df_dup.xs('one', level='second'), expected)
+        tm.assert_frame_equal(df_dup.xs(['one'], level=['second']), expected)
+
     def test_xs_level(self):
         result = self.frame.xs('two', level='second')
         expected = self.frame[self.frame.index.get_level_values(1) == 'two']
@@ -509,14 +526,13 @@ class TestMultiLevel(Base):
         pytest.raises(com.SettingWithCopyError, f, result)
 
     def test_xs_level_multiple(self):
-        from pandas import read_table
         text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
 a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
-        df = read_table(StringIO(text), sep=r'\s+', engine='python')
+        df = read_csv(StringIO(text), sep=r'\s+', engine='python')
 
         result = df.xs(('a', 4), level=['one', 'four'])
         expected = df.xs('a').xs(4, level='four')
@@ -544,14 +560,13 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tm.assert_frame_equal(rs, xp)
 
     def test_xs_level0(self):
-        from pandas import read_table
         text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
 a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
-        df = read_table(StringIO(text), sep=r'\s+', engine='python')
+        df = read_csv(StringIO(text), sep=r'\s+', engine='python')
 
         result = df.xs('a', level=0)
         expected = df.xs('a')
@@ -674,6 +689,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert df.loc[('bar', 'two'), 1] == 7
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             df = self.frame.copy()
             df.columns = lrange(3)
             df.ix[('bar', 'two'), 1] = 7
@@ -703,6 +719,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tm.assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             result = df.ix[('a', 'y'), [1, 0]]
         tm.assert_frame_equal(result, expected)
 
@@ -1284,6 +1301,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_swaplevel_panel(self):
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
             expected = panel.copy()
             expected.major_axis = expected.major_axis.swaplevel(0, 1)
@@ -1389,60 +1407,57 @@ Thur,Lunch,Yes,51.51,17"""
         pytest.raises(KeyError, series.count, 'x')
         pytest.raises(KeyError, frame.count, level='x')
 
-    AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
-                     'mad', 'std', 'var', 'sem']
-
+    @pytest.mark.parametrize('op', AGG_FUNCTIONS)
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('skipna', [True, False])
     @pytest.mark.parametrize('sort', [True, False])
-    def test_series_group_min_max(self, sort):
+    def test_series_group_min_max(self, op, level, skipna, sort):
         # GH 17537
-        for op, level, skipna in cart_product(self.AGG_FUNCTIONS, lrange(2),
-                                              [False, True]):
-            grouped = self.series.groupby(level=level, sort=sort)
-            aggf = lambda x: getattr(x, op)(skipna=skipna)
-            # skipna=True
-            leftside = grouped.agg(aggf)
-            rightside = getattr(self.series, op)(level=level, skipna=skipna)
-            if sort:
-                rightside = rightside.sort_index(level=level)
-            tm.assert_series_equal(leftside, rightside)
+        grouped = self.series.groupby(level=level, sort=sort)
+        # skipna=True
+        leftside = grouped.agg(lambda x: getattr(x, op)(skipna=skipna))
+        rightside = getattr(self.series, op)(level=level, skipna=skipna)
+        if sort:
+            rightside = rightside.sort_index(level=level)
+        tm.assert_series_equal(leftside, rightside)
 
+    @pytest.mark.parametrize('op', AGG_FUNCTIONS)
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('axis', [0, 1])
+    @pytest.mark.parametrize('skipna', [True, False])
     @pytest.mark.parametrize('sort', [True, False])
-    def test_frame_group_ops(self, sort):
+    def test_frame_group_ops(self, op, level, axis, skipna, sort):
         # GH 17537
         self.frame.iloc[1, [1, 2]] = np.nan
         self.frame.iloc[7, [0, 1]] = np.nan
 
-        for op, level, axis, skipna in cart_product(self.AGG_FUNCTIONS,
-                                                    lrange(2), lrange(2),
-                                                    [False, True]):
+        if axis == 0:
+            frame = self.frame
+        else:
+            frame = self.frame.T
 
-            if axis == 0:
-                frame = self.frame
-            else:
-                frame = self.frame.T
+        grouped = frame.groupby(level=level, axis=axis, sort=sort)
 
-            grouped = frame.groupby(level=level, axis=axis, sort=sort)
+        pieces = []
 
-            pieces = []
+        def aggf(x):
+            pieces.append(x)
+            return getattr(x, op)(skipna=skipna, axis=axis)
 
-            def aggf(x):
-                pieces.append(x)
-                return getattr(x, op)(skipna=skipna, axis=axis)
+        leftside = grouped.agg(aggf)
+        rightside = getattr(frame, op)(level=level, axis=axis,
+                                       skipna=skipna)
+        if sort:
+            rightside = rightside.sort_index(level=level, axis=axis)
+            frame = frame.sort_index(level=level, axis=axis)
 
-            leftside = grouped.agg(aggf)
-            rightside = getattr(frame, op)(level=level, axis=axis,
-                                           skipna=skipna)
-            if sort:
-                rightside = rightside.sort_index(level=level, axis=axis)
-                frame = frame.sort_index(level=level, axis=axis)
+        # for good measure, groupby detail
+        level_index = frame._get_axis(axis).levels[level]
 
-            # for good measure, groupby detail
-            level_index = frame._get_axis(axis).levels[level]
+        tm.assert_index_equal(leftside._get_axis(axis), level_index)
+        tm.assert_index_equal(rightside._get_axis(axis), level_index)
 
-            tm.assert_index_equal(leftside._get_axis(axis), level_index)
-            tm.assert_index_equal(rightside._get_axis(axis), level_index)
-
-            tm.assert_frame_equal(leftside, rightside)
+        tm.assert_frame_equal(leftside, rightside)
 
     def test_stat_op_corner(self):
         obj = Series([10.0], index=MultiIndex.from_tuples([(2, 3)]))
@@ -1589,6 +1604,38 @@ Thur,Lunch,Yes,51.51,17"""
         s = Series(np.arange(1000), index=index)
         result = s.unstack(4)
         assert result.shape == (500, 2)
+
+    def test_pyint_engine(self):
+        # GH 18519 : when combinations of codes cannot be represented in 64
+        # bits, the index underlying the MultiIndex engine works with Python
+        # integers, rather than uint64.
+        N = 5
+        keys = [tuple(l) for l in [[0] * 10 * N,
+                                   [1] * 10 * N,
+                                   [2] * 10 * N,
+                                   [np.nan] * N + [2] * 9 * N,
+                                   [0] * N + [2] * 9 * N,
+                                   [np.nan] * N + [2] * 8 * N + [0] * N]]
+        # Each level contains 4 elements (including NaN), so it is represented
+        # in 2 bits, for a total of 2*N*10 = 100 > 64 bits. If we were using a
+        # 64 bit engine and truncating the first levels, the fourth and fifth
+        # keys would collide; if truncating the last levels, the fifth and
+        # sixth; if rotating bits rather than shifting, the third and fifth.
+
+        for idx in range(len(keys)):
+            index = MultiIndex.from_tuples(keys)
+            assert index.get_loc(keys[idx]) == idx
+
+            expected = np.arange(idx + 1, dtype=np.intp)
+            result = index.get_indexer([keys[i] for i in expected])
+            tm.assert_numpy_array_equal(result, expected)
+
+        # With missing key:
+        idces = range(len(keys))
+        expected = np.array([-1] + list(idces), dtype=np.intp)
+        missing = tuple([0, 1] * 5 * N)
+        result = index.get_indexer([missing] + [keys[i] for i in idces])
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_getitem_lowerdim_corner(self):
         pytest.raises(KeyError, self.frame.loc.__getitem__,

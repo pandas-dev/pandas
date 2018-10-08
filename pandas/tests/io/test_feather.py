@@ -1,5 +1,6 @@
 """ test feather-format compat """
 from distutils.version import LooseVersion
+from warnings import catch_warnings
 
 import numpy as np
 
@@ -31,7 +32,9 @@ class TestFeather(object):
 
         with ensure_clean() as path:
             to_feather(df, path)
-            result = read_feather(path, **kwargs)
+
+            with catch_warnings(record=True):
+                result = read_feather(path, **kwargs)
             assert_frame_equal(result, df)
 
     def test_error(self):

@@ -1844,6 +1844,67 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
+    def test_to_html_multiindex_max_cols(self):
+        # GH 6131
+        index = MultiIndex(levels=[['ba', 'bb', 'bc'], ['ca', 'cb', 'cc']],
+                           labels=[[0, 1, 2], [0, 1, 2]],
+                           names=['b', 'c'])
+        columns = MultiIndex(levels=[['d'], ['aa', 'ab', 'ac']],
+                             labels=[[0, 0, 0], [0, 1, 2]],
+                             names=[None, 'a'])
+        data = np.array(
+            [[1., np.nan, np.nan], [np.nan, 2., np.nan], [np.nan, np.nan, 3.]])
+        df = DataFrame(data, index, columns)
+        result = df.to_html(max_cols=2)
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <thead>
+            <tr>
+              <th></th>
+              <th></th>
+              <th colspan="3" halign="left">d</th>
+            </tr>
+            <tr>
+              <th></th>
+              <th>a</th>
+              <th>aa</th>
+              <th>...</th>
+              <th>ac</th>
+            </tr>
+            <tr>
+              <th>b</th>
+              <th>c</th>
+              <th></th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>ba</th>
+              <th>ca</th>
+              <td>1.0</td>
+              <td>...</td>
+              <td>NaN</td>
+            </tr>
+            <tr>
+              <th>bb</th>
+              <th>cb</th>
+              <td>NaN</td>
+              <td>...</td>
+              <td>NaN</td>
+            </tr>
+            <tr>
+              <th>bc</th>
+              <th>cc</th>
+              <td>NaN</td>
+              <td>...</td>
+              <td>3.0</td>
+            </tr>
+          </tbody>
+        </table>""")
+        assert result == expected
+
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
         result = df.to_html(notebook=True)
@@ -1864,3 +1925,10 @@ class TestToHTML(object):
                                                         name='myindexname'))
         result = df.to_html(index_names=False)
         assert 'myindexname' not in result
+
+    def test_to_html_with_id(self):
+        # gh-8496
+        df = pd.DataFrame({"A": [1, 2]}, index=pd.Index(['a', 'b'],
+                                                        name='myindexname'))
+        result = df.to_html(index_names=False, table_id="TEST_ID")
+        assert ' id="TEST_ID"' in result

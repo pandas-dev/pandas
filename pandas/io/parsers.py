@@ -16,7 +16,7 @@ from pandas import compat
 from pandas.compat import (range, lrange, PY3, StringIO, lzip,
                            zip, string_types, map, u)
 from pandas.core.dtypes.common import (
-    is_integer, _ensure_object,
+    is_integer, ensure_object,
     is_list_like, is_integer_dtype,
     is_float, is_dtype_equal,
     is_object_dtype, is_string_dtype,
@@ -25,12 +25,12 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.index import (Index, MultiIndex, RangeIndex,
-                               _ensure_index_from_sequences)
+                               ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
-from pandas.core.categorical import Categorical
+from pandas.core.arrays import Categorical
 from pandas.core import algorithms
-from pandas.core.common import AbstractMethodError
+import pandas.core.common as com
 from pandas.io.date_converters import generic_parser
 from pandas.errors import ParserWarning, ParserError, EmptyDataError
 from pandas.io.common import (get_filepath_or_buffer, is_file_like,
@@ -43,6 +43,7 @@ from pandas.util._decorators import Appender
 
 import pandas._libs.lib as lib
 import pandas._libs.parsers as parsers
+import pandas._libs.ops as libops
 from pandas._libs.tslibs import parsing
 
 # BOM character (byte order mark)
@@ -59,11 +60,16 @@ Additional help can be found in the `online docs for IO Tools
 
 Parameters
 ----------
-filepath_or_buffer : str, pathlib.Path, py._path.local.LocalPath or any \
-object with a read() method (such as a file handle or StringIO)
-    The string could be a URL. Valid URL schemes include http, ftp, s3, and
-    file. For file URLs, a host is expected. For instance, a local file could
-    be file://localhost/path/to/table.csv
+filepath_or_buffer : str, path object, or file-like object
+    Any valid string path is acceptable. The string could be a URL. Valid
+    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    expected. A local file could be: file://localhost/path/to/table.csv.
+
+    If you want to pass in a path object, pandas accepts either
+    ``pathlib.Path`` or ``py._path.local.LocalPath``.
+
+    By file-like object, we refer to objects with a ``read()`` method, such as
+    a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
 %s
 delim_whitespace : boolean, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
@@ -96,13 +102,18 @@ index_col : int or sequence or False, default None
     MultiIndex is used. If you have a malformed file with delimiters at the end
     of each line, you might consider index_col=False to force pandas to _not_
     use the first column as the index (row names)
-usecols : array-like or callable, default None
-    Return a subset of the columns. If array-like, all elements must either
+usecols : list-like or callable, default None
+    Return a subset of the columns. If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in `names` or
-    inferred from the document header row(s). For example, a valid array-like
+    inferred from the document header row(s). For example, a valid list-like
     `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
-    order is ignored, so usecols=[1,0] is the same as [0,1].
+    order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
+    To instantiate a DataFrame from ``data`` with element order preserved use
+    ``pd.read_csv(data, usecols=['foo', 'bar'])[['foo', 'bar']]`` for columns
+    in ``['foo', 'bar']`` order or
+    ``pd.read_csv(data, usecols=['foo', 'bar'])[['bar', 'foo']]``
+    for ``['bar', 'foo']`` order.
 
     If callable, the callable function will be evaluated against the column
     names, returning names where the callable function evaluates to True. An
@@ -114,12 +125,13 @@ squeeze : boolean, default False
 prefix : str, default None
     Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
 mangle_dupe_cols : boolean, default True
-    Duplicate columns will be specified as 'X.0'...'X.N', rather than
+    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
-    Use `str` or `object` to preserve and not interpret dtype.
+    Use `str` or `object` together with suitable `na_values` settings
+    to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
 %s
@@ -149,8 +161,20 @@ na_values : scalar, str, list-like, or dict, default None
     NaN: '""" + fill("', '".join(sorted(_NA_VALUES)),
                      70, subsequent_indent="    ") + """'.
 keep_default_na : bool, default True
-    If na_values are specified and keep_default_na is False the default NaN
-    values are overridden, otherwise they're appended to.
+    Whether or not to include the default NaN values when parsing the data.
+    Depending on whether `na_values` is passed in, the behavior is as follows:
+
+    * If `keep_default_na` is True, and `na_values` are specified, `na_values`
+      is appended to the default NaN values used for parsing.
+    * If `keep_default_na` is True, and `na_values` are not specified, only
+      the default NaN values are used for parsing.
+    * If `keep_default_na` is False, and `na_values` are specified, only
+      the NaN values specified `na_values` are used for parsing.
+    * If `keep_default_na` is False, and `na_values` are not specified, no
+      strings will be parsed as NaN.
+
+    Note that if `na_filter` is passed in as False, the `keep_default_na` and
+    `na_values` parameters will be ignored.
 na_filter : boolean, default True
     Detect missing value markers (empty strings and the value of na_values). In
     data without any NAs, passing na_filter=False can improve the performance
@@ -307,6 +331,10 @@ Read CSV (comma-separated) file into DataFrame
 """ % (_parser_params % (_sep_doc.format(default="','"), _engine_doc))
 
 _read_table_doc = """
+
+.. deprecated:: 0.24.0
+   Use :func:`pandas.read_csv` instead, passing ``sep='\t'`` if necessary.
+
 Read general delimited file into DataFrame
 
 %s
@@ -401,7 +429,7 @@ def _read(filepath_or_buffer, kwds):
 
     compression = kwds.get('compression')
     compression = _infer_compression(filepath_or_buffer, compression)
-    filepath_or_buffer, _, compression = get_filepath_or_buffer(
+    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         filepath_or_buffer, encoding, compression)
     kwds['compression'] = compression
 
@@ -427,6 +455,13 @@ def _read(filepath_or_buffer, kwds):
         data = parser.read(nrows)
     finally:
         parser.close()
+
+    if should_close:
+        try:
+            filepath_or_buffer.close()
+        except:  # noqa: flake8
+            pass
+
     return data
 
 
@@ -509,9 +544,13 @@ _deprecated_args = {
 }
 
 
-def _make_parser_function(name, sep=','):
+def _make_parser_function(name, default_sep=','):
 
-    default_sep = sep
+    # prepare read_table deprecation
+    if name == "read_table":
+        sep = False
+    else:
+        sep = default_sep
 
     def parser_f(filepath_or_buffer,
                  sep=sep,
@@ -580,11 +619,24 @@ def _make_parser_function(name, sep=','):
                  memory_map=False,
                  float_precision=None):
 
+        # deprecate read_table GH21948
+        if name == "read_table":
+            if sep is False and delimiter is None:
+                warnings.warn("read_table is deprecated, use read_csv "
+                              "instead, passing sep='\\t'.",
+                              FutureWarning, stacklevel=2)
+            else:
+                warnings.warn("read_table is deprecated, use read_csv "
+                              "instead.",
+                              FutureWarning, stacklevel=2)
+            if sep is False:
+                sep = default_sep
+
         # Alias sep -> delimiter.
         if delimiter is None:
             delimiter = sep
 
-        if delim_whitespace and delimiter is not default_sep:
+        if delim_whitespace and delimiter != default_sep:
             raise ValueError("Specified a delimiter with both sep and"
                              " delim_whitespace=True; you can only"
                              " specify one.")
@@ -656,10 +708,10 @@ def _make_parser_function(name, sep=','):
     return parser_f
 
 
-read_csv = _make_parser_function('read_csv', sep=',')
+read_csv = _make_parser_function('read_csv', default_sep=',')
 read_csv = Appender(_read_csv_doc)(read_csv)
 
-read_table = _make_parser_function('read_table', sep='\t')
+read_table = _make_parser_function('read_table', default_sep='\t')
 read_table = Appender(_read_table_doc)(read_table)
 
 
@@ -910,9 +962,6 @@ class TextFileReader(BaseIterator):
         na_values = options['na_values']
         skiprows = options['skiprows']
 
-        # really delete this one
-        keep_default_na = result.pop('keep_default_na')
-
         _validate_header_arg(options['header'])
 
         depr_warning = ''
@@ -957,6 +1006,7 @@ class TextFileReader(BaseIterator):
             converters = {}
 
         # Converting values to NA
+        keep_default_na = options['keep_default_na']
         na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
 
         # handle skiprows; this is internally handled by the
@@ -1000,7 +1050,7 @@ class TextFileReader(BaseIterator):
             self._engine = klass(self.f, **self.options)
 
     def _failover_to_python(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def read(self, nrows=None):
         nrows = _validate_integer('nrows', nrows)
@@ -1154,7 +1204,7 @@ def _validate_usecols_arg(usecols):
 
     Parameters
     ----------
-    usecols : array-like, callable, or None
+    usecols : list-like, callable, or None
         List of columns to use when parsing or a callable that can be used
         to filter a list of table columns.
 
@@ -1169,17 +1219,19 @@ def _validate_usecols_arg(usecols):
         'usecols_dtype` is the inferred dtype of 'usecols' if an array-like
         is passed in or None if a callable or None is passed in.
     """
-    msg = ("'usecols' must either be all strings, all unicode, "
-           "all integers or a callable")
-
+    msg = ("'usecols' must either be list-like of all strings, all unicode, "
+           "all integers or a callable.")
     if usecols is not None:
         if callable(usecols):
             return usecols, None
-        usecols_dtype = lib.infer_dtype(usecols)
-        if usecols_dtype not in ('empty', 'integer',
-                                 'string', 'unicode'):
+        # GH20529, ensure is iterable container but not string.
+        elif not is_list_like(usecols):
             raise ValueError(msg)
-
+        else:
+            usecols_dtype = lib.infer_dtype(usecols)
+            if usecols_dtype not in ('empty', 'integer',
+                                     'string', 'unicode'):
+                raise ValueError(msg)
         return set(usecols), usecols_dtype
     return usecols, None
 
@@ -1225,6 +1277,7 @@ class ParserBase(object):
         self.na_values = kwds.get('na_values')
         self.na_fvalues = kwds.get('na_fvalues')
         self.na_filter = kwds.get('na_filter', False)
+        self.keep_default_na = kwds.get('keep_default_na', True)
 
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
@@ -1487,13 +1540,14 @@ class ParserBase(object):
                 col_name = self.index_names[i]
                 if col_name is not None:
                     col_na_values, col_na_fvalues = _get_na_values(
-                        col_name, self.na_values, self.na_fvalues)
+                        col_name, self.na_values, self.na_fvalues,
+                        self.keep_default_na)
 
             arr, _ = self._infer_types(arr, col_na_values | col_na_fvalues)
             arrays.append(arr)
 
         names = self.index_names
-        index = _ensure_index_from_sequences(arrays, names)
+        index = ensure_index_from_sequences(arrays, names)
 
         return index
 
@@ -1510,7 +1564,7 @@ class ParserBase(object):
 
             if self.na_filter:
                 col_na_values, col_na_fvalues = _get_na_values(
-                    c, na_values, na_fvalues)
+                    c, na_values, na_fvalues, self.keep_default_na)
             else:
                 col_na_values, col_na_fvalues = set(), set()
 
@@ -1566,7 +1620,6 @@ class ParserBase(object):
         converted : ndarray
         na_count : int
         """
-
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
             mask = algorithms.isin(values, list(na_values))
@@ -1584,16 +1637,17 @@ class ParserBase(object):
             except Exception:
                 result = values
                 if values.dtype == np.object_:
-                    na_count = lib.sanitize_objects(result, na_values, False)
+                    na_count = parsers.sanitize_objects(result,
+                                                        na_values, False)
         else:
             result = values
             if values.dtype == np.object_:
-                na_count = lib.sanitize_objects(values, na_values, False)
+                na_count = parsers.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
-            result = lib.maybe_convert_bool(values,
-                                            true_values=self.true_values,
-                                            false_values=self.false_values)
+            result = libops.maybe_convert_bool(np.asarray(values),
+                                               true_values=self.true_values,
+                                               false_values=self.false_values)
 
         return result, na_count
 
@@ -1671,11 +1725,12 @@ class CParserWrapper(ParserBase):
         # #2442
         kwds['allow_leading_cols'] = self.index_col is not False
 
-        self._reader = parsers.TextReader(src, **kwds)
-
-        # XXX
+        # GH20529, validate usecol arg before TextReader
         self.usecols, self.usecols_dtype = _validate_usecols_arg(
-            self._reader.usecols)
+            kwds['usecols'])
+        kwds['usecols'] = self.usecols
+
+        self._reader = parsers.TextReader(src, **kwds)
 
         passed_names = self.names is None
 
@@ -1859,7 +1914,7 @@ class CParserWrapper(ParserBase):
                                                  try_parse_dates=True)
                 arrays.append(values)
 
-            index = _ensure_index_from_sequences(arrays)
+            index = ensure_index_from_sequences(arrays)
 
             if self.usecols is not None:
                 names = self._filter_usecols(names)
@@ -2672,9 +2727,6 @@ class PythonParser(ParserBase):
                            'cannot be processed in Python\'s '
                            'native csv library at the moment, '
                            'so please pass in engine=\'c\' instead')
-                elif 'newline inside string' in msg:
-                    msg = ('EOF inside string starting with '
-                           'line ' + str(row_num))
 
                 if self.skipfooter > 0:
                     reason = ('Error could possibly be due to '
@@ -2975,7 +3027,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
 
             try:
                 return tools.to_datetime(
-                    _ensure_object(strs),
+                    ensure_object(strs),
                     utc=None,
                     box=False,
                     dayfirst=dayfirst,
@@ -3097,16 +3149,22 @@ def _clean_na_values(na_values, keep_default_na=True):
             na_values = set()
         na_fvalues = set()
     elif isinstance(na_values, dict):
-        na_values = na_values.copy()  # Prevent aliasing.
-        if keep_default_na:
-            for k, v in compat.iteritems(na_values):
-                if not is_list_like(v):
-                    v = [v]
+        old_na_values = na_values.copy()
+        na_values = {}  # Prevent aliasing.
+
+        # Convert the values in the na_values dictionary
+        # into array-likes for further use. This is also
+        # where we append the default NaN values, provided
+        # that `keep_default_na=True`.
+        for k, v in compat.iteritems(old_na_values):
+            if not is_list_like(v):
+                v = [v]
+
+            if keep_default_na:
                 v = set(v) | _NA_VALUES
-                na_values[k] = v
-        na_fvalues = dict(
-            (k, _floatify_na_values(v)) for k, v in na_values.items()  # noqa
-        )
+
+            na_values[k] = v
+        na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
@@ -3172,12 +3230,22 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
             col = columns[k] if is_integer(k) else k
             dtype[col] = v
 
-    if index_col is None or index_col is False:
+    # Even though we have no data, the "index" of the empty DataFrame
+    # could for example still be an empty MultiIndex. Thus, we need to
+    # check whether we have any index columns specified, via either:
+    #
+    # 1) index_col (column indices)
+    # 2) index_names (column names)
+    #
+    # Both must be non-null to ensure a successful construction. Otherwise,
+    # we have to create a generic emtpy Index.
+    if (index_col is None or index_col is False) or index_names is None:
         index = Index([])
     else:
         data = [Series([], dtype=dtype[name]) for name in index_names]
-        index = _ensure_index_from_sequences(data, names=index_names)
+        index = ensure_index_from_sequences(data, names=index_names)
         index_col.sort()
+
         for i, n in enumerate(index_col):
             columns.pop(n - i)
 
@@ -3225,12 +3293,38 @@ def _stringify_na_values(na_values):
     return set(result)
 
 
-def _get_na_values(col, na_values, na_fvalues):
+def _get_na_values(col, na_values, na_fvalues, keep_default_na):
+    """
+    Get the NaN values for a given column.
+
+    Parameters
+    ----------
+    col : str
+        The name of the column.
+    na_values : array-like, dict
+        The object listing the NaN values as strings.
+    na_fvalues : array-like, dict
+        The object listing the NaN values as floats.
+    keep_default_na : bool
+        If `na_values` is a dict, and the column is not mapped in the
+        dictionary, whether to return the default NaN values or the empty set.
+
+    Returns
+    -------
+    nan_tuple : A length-two tuple composed of
+
+        1) na_values : the string NaN values for that column.
+        2) na_fvalues : the float NaN values for that column.
+    """
+
     if isinstance(na_values, dict):
         if col in na_values:
             return na_values[col], na_fvalues[col]
         else:
-            return _NA_VALUES, set()
+            if keep_default_na:
+                return _NA_VALUES, set()
+
+            return set(), set()
     else:
         return na_values, na_fvalues
 

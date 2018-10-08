@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 from pandas import compat
-from pandas.core.categorical import Categorical
+from pandas.core.arrays import Categorical
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
@@ -13,7 +13,9 @@ from pandas.util._decorators import Appender
 
 import re
 from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.common import is_extension_type
 from pandas.core.tools.numeric import to_numeric
+from pandas.core.reshape.concat import concat
 
 
 @Appender(_shared_docs['melt'] %
@@ -70,7 +72,12 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
 
     mdata = {}
     for col in id_vars:
-        mdata[col] = np.tile(frame.pop(col).values, K)
+        id_data = frame.pop(col)
+        if is_extension_type(id_data):
+            id_data = concat([id_data] * K, ignore_index=True)
+        else:
+            id_data = np.tile(id_data.values, K)
+        mdata[col] = id_data
 
     mcolumns = id_vars + var_name + [value_name]
 
@@ -96,7 +103,6 @@ def lreshape(data, groups, dropna=True, label=None):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> data = pd.DataFrame({'hr1': [514, 573], 'hr2': [545, 526],
     ...                      'team': ['Red Sox', 'Yankees'],
     ...                      'year1': [2007, 2007], 'year2': [2008, 2008]})
@@ -159,7 +165,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
     With stubnames ['A', 'B'], this function expects to find one or more
-    group of columns with format Asuffix1, Asuffix2,..., Bsuffix1, Bsuffix2,...
+    group of columns with format
+    A-suffix1, A-suffix2,..., B-suffix1, B-suffix2,...
     You specify what you want to call this suffix in the resulting long format
     with `j` (for example `j='year'`)
 
@@ -178,7 +185,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     i : str or list-like
         Column(s) to use as id variable(s)
     j : str
-        The name of the subobservation variable. What you wish to name your
+        The name of the sub-observation variable. What you wish to name your
         suffix in the long format.
     sep : str, default ""
         A character indicating the separation of the variable names
@@ -193,7 +200,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
         numeric suffixes. Suffixes with no numbers could be specified with the
         negated character class '\\D+'. You can also further disambiguate
         suffixes, for example, if your wide variables are of the form
-        Aone, Btwo,.., and you have an unrelated column Arating, you can
+        A-one, B-two,.., and you have an unrelated column A-rating, you can
         ignore the last one by specifying `suffix='(!?one|two)'`
 
         .. versionadded:: 0.20.0
@@ -209,8 +216,6 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
 
     Examples
     --------
-    >>> import pandas as pd
-    >>> import numpy as np
     >>> np.random.seed(123)
     >>> df = pd.DataFrame({"A1970" : {0 : "a", 1 : "b", 2 : "c"},
     ...                    "A1980" : {0 : "d", 1 : "e", 2 : "f"},
@@ -235,7 +240,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     1  1980  0.997345  e  1.3
     2  1980  0.282978  f  0.1
 
-    With multuple id columns
+    With multiple id columns
 
     >>> df = pd.DataFrame({
     ...     'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],
@@ -404,13 +409,13 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
 
         return newdf.set_index(i + [j])
 
-    if any(col in stubnames for col in df.columns):
-        raise ValueError("stubname can't be identical to a column name")
-
     if not is_list_like(stubnames):
         stubnames = [stubnames]
     else:
         stubnames = list(stubnames)
+
+    if any(col in stubnames for col in df.columns):
+        raise ValueError("stubname can't be identical to a column name")
 
     if not is_list_like(i):
         i = [i]

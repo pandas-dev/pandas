@@ -14,15 +14,17 @@ from pandas.util import testing as tm
 from pandas.errors import PerformanceWarning
 
 
+def test_ix_deprecation():
+    # GH 15114
+
+    df = DataFrame({'A': [1, 2, 3]})
+    with tm.assert_produces_warning(DeprecationWarning,
+                                    check_stacklevel=False):
+        df.ix[1, 'A']
+
+
+@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
 class TestIX(object):
-
-    def test_ix_deprecation(self):
-        # GH 15114
-
-        df = DataFrame({'A': [1, 2, 3]})
-        with tm.assert_produces_warning(DeprecationWarning,
-                                        check_stacklevel=False):
-            df.ix[1, 'A']
 
     def test_ix_loc_setitem_consistency(self):
 
@@ -53,13 +55,15 @@ class TestIX(object):
 
         # GH 8607
         # ix setitem consistency
-        df = DataFrame({'timestamp': [1413840976, 1413842580, 1413760580],
-                        'delta': [1174, 904, 161],
-                        'elapsed': [7673, 9277, 1470]})
-        expected = DataFrame({'timestamp': pd.to_datetime(
-            [1413840976, 1413842580, 1413760580], unit='s'),
-            'delta': [1174, 904, 161],
-            'elapsed': [7673, 9277, 1470]})
+        df = DataFrame({'delta': [1174, 904, 161],
+                        'elapsed': [7673, 9277, 1470],
+                        'timestamp': [1413840976, 1413842580, 1413760580]})
+        expected = DataFrame({'delta': [1174, 904, 161],
+                              'elapsed': [7673, 9277, 1470],
+                              'timestamp': pd.to_datetime(
+                                  [1413840976, 1413842580, 1413760580],
+                                  unit='s')
+                              })
 
         df2 = df.copy()
         df2['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')

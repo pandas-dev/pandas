@@ -11,6 +11,9 @@ import matplotlib.dates as dates
 from matplotlib.ticker import Formatter, AutoLocator, Locator
 from matplotlib.transforms import nonsingular
 
+from pandas._libs import tslibs
+from pandas._libs.tslibs import resolution
+
 from pandas.core.dtypes.common import (
     is_float, is_integer,
     is_integer_dtype,
@@ -23,13 +26,11 @@ from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.compat import lrange
 import pandas.compat as compat
-import pandas._libs.lib as lib
 import pandas.core.common as com
 from pandas.core.index import Index
 
 from pandas.core.indexes.datetimes import date_range
 import pandas.core.tools.datetimes as tools
-from pandas._libs.tslibs import resolution
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
 from pandas.core.indexes.period import Period, PeriodIndex
@@ -52,7 +53,7 @@ _mpl_units = {}  # Cache for units overwritten by us
 
 def get_pairs():
     pairs = [
-        (lib.Timestamp, DatetimeConverter),
+        (tslibs.Timestamp, DatetimeConverter),
         (Period, PeriodConverter),
         (pydt.datetime, DatetimeConverter),
         (pydt.date, DatetimeConverter),
@@ -197,7 +198,7 @@ class TimeFormatter(Formatter):
         ----------
         x : float
             The time of day specified as seconds since 00:00 (midnight),
-            with upto microsecond precision.
+            with up to microsecond precision.
         pos
             Unused
 
@@ -244,16 +245,16 @@ class PeriodConverter(dates.DateConverter):
         if not hasattr(axis, 'freq'):
             raise TypeError('Axis must have `freq` set to convert to Periods')
         valid_types = (compat.string_types, datetime,
-                       Period, pydt.date, pydt.time)
+                       Period, pydt.date, pydt.time, np.datetime64)
         if (isinstance(values, valid_types) or is_integer(values) or
                 is_float(values)):
             return get_datevalue(values, axis.freq)
         if isinstance(values, PeriodIndex):
-            return values.asfreq(axis.freq)._values
+            return values.asfreq(axis.freq)._ndarray_values
         if isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
         if is_period_arraylike(values):
-            return PeriodIndex(values, freq=axis.freq)._values
+            return PeriodIndex(values, freq=axis.freq)._ndarray_values
         if isinstance(values, (list, tuple, np.ndarray, Index)):
             return [get_datevalue(x, axis.freq) for x in values]
         return values
@@ -263,7 +264,7 @@ def get_datevalue(date, freq):
     if isinstance(date, Period):
         return date.asfreq(freq).ordinal
     elif isinstance(date, (compat.string_types, datetime,
-                           pydt.date, pydt.time)):
+                           pydt.date, pydt.time, np.datetime64)):
         return Period(date, freq).ordinal
     elif (is_integer(date) or is_float(date) or
           (isinstance(date, (np.ndarray, Index)) and (date.size == 1))):
@@ -312,18 +313,22 @@ class DatetimeConverter(dates.DateConverter):
         if isinstance(values, (datetime, pydt.date)):
             return _dt_to_float_ordinal(values)
         elif isinstance(values, np.datetime64):
-            return _dt_to_float_ordinal(lib.Timestamp(values))
+            return _dt_to_float_ordinal(tslibs.Timestamp(values))
         elif isinstance(values, pydt.time):
             return dates.date2num(values)
         elif (is_integer(values) or is_float(values)):
             return values
         elif isinstance(values, compat.string_types):
             return try_parse(values)
-        elif isinstance(values, (list, tuple, np.ndarray, Index)):
+        elif isinstance(values, (list, tuple, np.ndarray, Index, ABCSeries)):
+            if isinstance(values, ABCSeries):
+                # https://github.com/matplotlib/matplotlib/issues/11391
+                # Series was skipped. Convert to DatetimeIndex to get asi8
+                values = Index(values)
             if isinstance(values, Index):
                 values = values.values
             if not isinstance(values, np.ndarray):
-                values = com._asarray_tuplesafe(values)
+                values = com.asarray_tuplesafe(values)
 
             if is_integer_dtype(values) or is_float_dtype(values):
                 return values
@@ -642,7 +647,7 @@ def _daily_finder(vmin, vmax, freq):
     info = np.zeros(span,
                     dtype=[('val', np.int64), ('maj', bool),
                            ('min', bool), ('fmt', '|S20')])
-    info['val'][:] = dates_._values
+    info['val'][:] = dates_._ndarray_values
     info['fmt'][:] = ''
     info['maj'][[0, -1]] = True
     # .. and set some shortcuts

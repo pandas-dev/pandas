@@ -1,3 +1,4 @@
+import warnings
 from importlib import import_module
 
 import numpy as np
@@ -8,7 +9,7 @@ for imp in ['pandas.util', 'pandas.tools.hashing']:
     try:
         hashing = import_module(imp)
         break
-    except:
+    except (ImportError, TypeError, ValueError):
         pass
 
 from .pandas_vb_common import setup # noqa
@@ -83,7 +84,8 @@ class Match(object):
         self.all = self.uniques.repeat(10)
 
     def time_match_string(self):
-        pd.match(self.all, self.uniques)
+        with warnings.catch_warnings(record=True):
+            pd.match(self.all, self.uniques)
 
 
 class Hashing(object):

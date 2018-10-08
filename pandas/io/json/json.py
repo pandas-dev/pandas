@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 import pandas._libs.json as json
-from pandas._libs.tslib import iNaT
+from pandas._libs.tslibs import iNaT
 from pandas.compat import StringIO, long, u, to_str
 from pandas import compat, isna
 from pandas import Series, DataFrame, to_datetime, MultiIndex
@@ -12,7 +12,7 @@ from pandas.io.common import (get_filepath_or_buffer, _get_handle,
                               _infer_compression, _stringify_path,
                               BaseIterator)
 from pandas.io.parsers import _validate_integer
-from pandas.core.common import AbstractMethodError
+import pandas.core.common as com
 from pandas.core.reshape.concat import concat
 from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
@@ -28,7 +28,7 @@ TABLE_SCHEMA_VERSION = '0.20.0'
 # interface to/from
 def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             double_precision=10, force_ascii=True, date_unit='ms',
-            default_handler=None, lines=False, compression=None,
+            default_handler=None, lines=False, compression='infer',
             index=True):
 
     if not index and orient not in ['split', 'table']:
@@ -93,7 +93,7 @@ class Writer(object):
         self._format_axes()
 
     def _format_axes(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def write(self):
         return self._write(self.obj, self.orient, self.double_precision,
@@ -231,9 +231,9 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     Parameters
     ----------
     path_or_buf : a valid JSON string or file-like, default: None
-        The string could be a URL. Valid URL schemes include http, ftp, s3, and
-        file. For file URLs, a host is expected. For instance, a local file
-        could be ``file://localhost/path/to/table.json``
+        The string could be a URL. Valid URL schemes include http, ftp, s3,
+        gcs, and file. For file URLs, a host is expected. For instance, a local
+        file could be ``file://localhost/path/to/table.json``
 
     orient : string,
         Indication of expected JSON string format.
@@ -341,12 +341,14 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     Notes
     -----
-    Specific to ``orient='table'``, if a ``DataFrame`` with a literal ``Index``
-    name of `index` gets written with ``write_json``, the subsequent read
-    operation will incorrectly set the ``Index`` name to ``None``. This is
-    because `index` is also used by ``write_json`` to denote a missing
-    ``Index`` name, and the subsequent ``read_json`` operation cannot
-    distinguish between the two.
+    Specific to ``orient='table'``, if a :class:`DataFrame` with a literal
+    :class:`Index` name of `index` gets written with :func:`to_json`, the
+    subsequent read operation will incorrectly set the :class:`Index` name to
+    ``None``. This is because `index` is also used by :func:`DataFrame.to_json`
+    to denote a missing :class:`Index` name, and the subsequent
+    :func:`read_json` operation cannot distinguish between the two. The same
+    limitation is encountered with a :class:`MultiIndex` and any names
+    beginning with ``'level_'``.
 
     See Also
     --------
@@ -402,7 +404,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     """
 
     compression = _infer_compression(path_or_buf, compression)
-    filepath_or_buffer, _, compression = get_filepath_or_buffer(
+    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         path_or_buf, encoding=encoding, compression=compression,
     )
 
@@ -417,7 +419,13 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     if chunksize:
         return json_reader
 
-    return json_reader.read()
+    result = json_reader.read()
+    if should_close:
+        try:
+            filepath_or_buffer.close()
+        except:  # noqa: flake8
+            pass
+    return result
 
 
 class JsonReader(BaseIterator):
@@ -539,7 +547,7 @@ class JsonReader(BaseIterator):
 
         if typ == 'series' or obj is None:
             if not isinstance(dtype, bool):
-                dtype = dict(data=dtype)
+                kwargs['dtype'] = dtype
             obj = SeriesParser(json, **kwargs).parse()
 
         return obj
@@ -646,7 +654,7 @@ class Parser(object):
                 setattr(self.obj, axis, new_axis)
 
     def _try_convert_types(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _try_convert_data(self, name, data, use_dtypes=True,
                           convert_dates=True):
@@ -759,7 +767,7 @@ class Parser(object):
         return data, False
 
     def _try_convert_dates(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
 
 class SeriesParser(Parser):

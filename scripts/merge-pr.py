@@ -22,7 +22,6 @@
 #   usage: ./apache-pr-merge.py    (see config env vars below)
 #
 # Lightly modified from version of this script in incubator-parquet-format
-
 from __future__ import print_function
 
 from subprocess import check_output
@@ -223,7 +222,7 @@ def update_pr(pr_num, user_login, base_ref):
             try:
                 run_cmd(
                     'git push -f %s %s:%s' % (push_user_remote, pr_branch_name,
-                                           base_ref))
+                                              base_ref))
             except Exception as e:
                 fail("Exception while pushing: %s" % e)
                 clean_up()
@@ -274,6 +273,7 @@ def fix_version_from_branch(branch, versions):
     else:
         branch_ver = branch.replace("branch-", "")
         return filter(lambda x: x.name.startswith(branch_ver), versions)[-1]
+
 
 pr_num = input("Which pull request would you like to merge? (e.g. 34): ")
 pr = get_json("%s/pulls/%s" % (GITHUB_API_BASE, pr_num))

@@ -167,10 +167,6 @@ class LibFastZip(object):
         col_array2 = col_array.copy()
         col_array2[:, :10000] = np.nan
         self.col_array_list = list(col_array)
-        self.col_array_list2 = list(col_array2)
 
     def time_lib_fast_zip(self):
         lib.fast_zip(self.col_array_list)
-
-    def time_lib_fast_zip_fillna(self):
-        lib.fast_zip_fillna(self.col_array_list2)

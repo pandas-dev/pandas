@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import pandas.util.testing as tm
 
 from pandas import read_csv, read_table, DataFrame
-from pandas.core.common import AbstractMethodError
-from pandas._libs.lib import Timestamp
+import pandas.core.common as com
+from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO
 
 from .common import ParserTests
@@ -43,10 +44,11 @@ class BaseParser(CommentTests, CompressionTests,
         raise NotImplementedError
 
     def float_precision_choices(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
+        self.dirpath = datapath('io', 'parser', 'data')
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
@@ -68,7 +70,9 @@ class TestCParserHighMemory(BaseParser, CParserTests):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
         kwds['low_memory'] = self.low_memory
-        return read_table(*args, **kwds)
+        with tm.assert_produces_warning(FutureWarning):
+            df = read_table(*args, **kwds)
+        return df
 
 
 class TestCParserLowMemory(BaseParser, CParserTests):
@@ -86,7 +90,9 @@ class TestCParserLowMemory(BaseParser, CParserTests):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
         kwds['low_memory'] = True
-        return read_table(*args, **kwds)
+        with tm.assert_produces_warning(FutureWarning):
+            df = read_table(*args, **kwds)
+        return df
 
 
 class TestPythonParser(BaseParser, PythonParserTests):
@@ -101,7 +107,9 @@ class TestPythonParser(BaseParser, PythonParserTests):
     def read_table(self, *args, **kwds):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
-        return read_table(*args, **kwds)
+        with tm.assert_produces_warning(FutureWarning):
+            df = read_table(*args, **kwds)
+        return df
 
 
 class TestUnsortedUsecols(object):

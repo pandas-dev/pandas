@@ -6,7 +6,6 @@ from pandas import TimedeltaIndex, timedelta_range, Int64Index
 
 
 class TestTimedeltaIndex(object):
-    _multiprocess_can_split_ = True
 
     def test_union(self):
 

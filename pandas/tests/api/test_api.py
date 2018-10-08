@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-
-from warnings import catch_warnings
+import sys
 
 import pytest
 import pandas as pd
@@ -15,7 +14,7 @@ class Base(object):
         # ignored ones
         # compare vs the expected
 
-        result = sorted([f for f in dir(namespace) if not f.startswith('_')])
+        result = sorted(f for f in dir(namespace) if not f.startswith('_'))
         if ignored is not None:
             result = sorted(list(set(result) - set(ignored)))
 
@@ -35,8 +34,7 @@ class TestPDApi(Base):
            'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = ['stats', 'datetools', 'parser',
-                          'json', 'lib', 'tslib']
+    deprecated_modules = ['parser', 'lib', 'tslib']
 
     # misc
     misc = ['IndexSlice', 'NaT']
@@ -51,7 +49,7 @@ class TestPDApi(Base):
                'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['WidePanel', 'TimeGrouper', 'Expr', 'Term']
+    deprecated_classes = ['TimeGrouper', 'Expr', 'Term']
 
     # these should be deprecated in the future
     deprecated_classes_in_future = ['Panel']
@@ -91,19 +89,7 @@ class TestPDApi(Base):
     deprecated_funcs_in_future = []
 
     # these are already deprecated; awaiting removal
-    deprecated_funcs = ['ewma', 'ewmcorr', 'ewmcov', 'ewmstd', 'ewmvar',
-                        'ewmvol', 'expanding_apply', 'expanding_corr',
-                        'expanding_count', 'expanding_cov', 'expanding_kurt',
-                        'expanding_max', 'expanding_mean', 'expanding_median',
-                        'expanding_min', 'expanding_quantile',
-                        'expanding_skew', 'expanding_std', 'expanding_sum',
-                        'expanding_var', 'rolling_apply',
-                        'rolling_corr', 'rolling_count', 'rolling_cov',
-                        'rolling_kurt', 'rolling_max', 'rolling_mean',
-                        'rolling_median', 'rolling_min', 'rolling_quantile',
-                        'rolling_skew', 'rolling_std', 'rolling_sum',
-                        'rolling_var', 'rolling_window',
-                        'pnow', 'match', 'groupby', 'get_store',
+    deprecated_funcs = ['pnow', 'match', 'groupby', 'get_store',
                         'plot_params', 'scatter_matrix']
 
     def test_api(self):
@@ -122,7 +108,7 @@ class TestPDApi(Base):
 
 class TestApi(Base):
 
-    allowed = ['types']
+    allowed = ['types', 'extensions']
 
     def test_api(self):
 
@@ -138,19 +124,6 @@ class TestTesting(Base):
 
         from pandas import testing
         self.check(testing, self.funcs)
-
-
-class TestDatetoolsDeprecation(object):
-
-    def test_deprecation_access_func(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.datetools.to_datetime('2016-01-01')
-
-    def test_deprecation_access_obj(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.datetools.monthEnd
 
 
 class TestTopLevelDeprecations(object):
@@ -199,32 +172,25 @@ class TestTopLevelDeprecations(object):
                 s.close()
 
 
-class TestJson(object):
-
-    def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.json.dumps([])
-
-
 class TestParser(object):
 
+    @pytest.mark.filterwarnings("ignore")
     def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.parser.na_values
+        pd.parser.na_values
 
 
 class TestLib(object):
 
+    @pytest.mark.filterwarnings("ignore")
     def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.lib.infer_dtype('foo')
+        pd.lib.infer_dtype('foo')
 
 
 class TestTSLib(object):
 
+    @pytest.mark.filterwarnings("ignore")
     def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.tslib.Timestamp('20160101')
+        pd.tslib.Timestamp('20160101')
 
 
 class TestTypes(object):
@@ -249,3 +215,18 @@ class TestCDateRange(object):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             cdate_range('2017-01-01', '2017-12-31')
+
+
+class TestCategoricalMove(object):
+
+    def test_categorical_move(self):
+        # May have been cached by another import, e.g. pickle tests.
+        sys.modules.pop("pandas.core.categorical", None)
+
+        with tm.assert_produces_warning(FutureWarning):
+            from pandas.core.categorical import Categorical  # noqa
+
+        sys.modules.pop("pandas.core.categorical", None)
+
+        with tm.assert_produces_warning(FutureWarning):
+            from pandas.core.categorical import CategoricalDtype  # noqa

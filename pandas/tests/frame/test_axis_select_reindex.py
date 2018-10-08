@@ -10,7 +10,7 @@ from numpy import random
 import numpy as np
 
 from pandas.compat import lrange, lzip, u
-from pandas import (compat, DataFrame, Series, Index, MultiIndex,
+from pandas import (compat, DataFrame, Series, Index, MultiIndex, Categorical,
                     date_range, isna)
 import pandas as pd
 
@@ -41,8 +41,8 @@ class TestDataFrameSelectReindex(TestData):
             assert obj.columns.name == 'second'
         assert list(df.columns) == ['d', 'e', 'f']
 
-        pytest.raises(ValueError, df.drop, ['g'])
-        pytest.raises(ValueError, df.drop, ['g'], 1)
+        pytest.raises(KeyError, df.drop, ['g'])
+        pytest.raises(KeyError, df.drop, ['g'], 1)
 
         # errors = 'ignore'
         dropped = df.drop(['g'], errors='ignore')
@@ -87,10 +87,10 @@ class TestDataFrameSelectReindex(TestData):
         assert_frame_equal(simple.drop(
             [0, 3], axis='index'), simple.loc[[1, 2], :])
 
-        pytest.raises(ValueError, simple.drop, 5)
-        pytest.raises(ValueError, simple.drop, 'C', 1)
-        pytest.raises(ValueError, simple.drop, [1, 5])
-        pytest.raises(ValueError, simple.drop, ['A', 'C'], 1)
+        pytest.raises(KeyError, simple.drop, 5)
+        pytest.raises(KeyError, simple.drop, 'C', 1)
+        pytest.raises(KeyError, simple.drop, [1, 5])
+        pytest.raises(KeyError, simple.drop, ['A', 'C'], 1)
 
         # errors = 'ignore'
         assert_frame_equal(simple.drop(5, errors='ignore'), simple)
@@ -674,29 +674,12 @@ class TestDataFrameSelectReindex(TestData):
         assert_frame_equal(aa, ea)
         assert_frame_equal(ab, eb)
 
-    def test_align_fill_method_inner(self):
-        for meth in ['pad', 'bfill']:
-            for ax in [0, 1, None]:
-                for fax in [0, 1]:
-                    self._check_align_fill('inner', meth, ax, fax)
-
-    def test_align_fill_method_outer(self):
-        for meth in ['pad', 'bfill']:
-            for ax in [0, 1, None]:
-                for fax in [0, 1]:
-                    self._check_align_fill('outer', meth, ax, fax)
-
-    def test_align_fill_method_left(self):
-        for meth in ['pad', 'bfill']:
-            for ax in [0, 1, None]:
-                for fax in [0, 1]:
-                    self._check_align_fill('left', meth, ax, fax)
-
-    def test_align_fill_method_right(self):
-        for meth in ['pad', 'bfill']:
-            for ax in [0, 1, None]:
-                for fax in [0, 1]:
-                    self._check_align_fill('right', meth, ax, fax)
+    @pytest.mark.parametrize('meth', ['pad', 'bfill'])
+    @pytest.mark.parametrize('ax', [0, 1, None])
+    @pytest.mark.parametrize('fax', [0, 1])
+    @pytest.mark.parametrize('how', ['inner', 'outer', 'left', 'right'])
+    def test_align_fill_method(self, how, meth, ax, fax):
+        self._check_align_fill(how, meth, ax, fax)
 
     def _check_align_fill(self, kind, meth, ax, fax):
         left = self.frame.iloc[0:4, :10]
@@ -738,7 +721,7 @@ class TestDataFrameSelectReindex(TestData):
 
         result = df1 - df1.mean()
         expected = df2 - df2.mean()
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result.astype('f8'), expected)
 
     def test_align_multiindex(self):
         # GH 10665
@@ -1128,3 +1111,54 @@ class TestDataFrameSelectReindex(TestData):
         expected = df.reindex([0, 1]).reindex(columns=['a', 'b'])
 
         assert_frame_equal(result, expected)
+
+    def test_reindex_multi_categorical_time(self):
+        # https://github.com/pandas-dev/pandas/issues/21390
+        midx = pd.MultiIndex.from_product(
+            [Categorical(['a', 'b', 'c']),
+             Categorical(date_range("2012-01-01", periods=3, freq='H'))])
+        df = pd.DataFrame({'a': range(len(midx))}, index=midx)
+        df2 = df.iloc[[0, 1, 2, 3, 4, 5, 6, 8]]
+
+        result = df2.reindex(midx)
+        expected = pd.DataFrame(
+            {'a': [0, 1, 2, 3, 4, 5, 6, np.nan, 8]}, index=midx)
+        assert_frame_equal(result, expected)
+
+    data = [[1, 2, 3], [1, 2, 3]]
+
+    @pytest.mark.parametrize('actual', [
+        DataFrame(data=data, index=['a', 'a']),
+        DataFrame(data=data, index=['a', 'b']),
+        DataFrame(data=data, index=['a', 'b']).set_index([0, 1]),
+        DataFrame(data=data, index=['a', 'a']).set_index([0, 1])
+    ])
+    def test_raise_on_drop_duplicate_index(self, actual):
+
+        # issue 19186
+        level = 0 if isinstance(actual.index, MultiIndex) else None
+        with pytest.raises(KeyError):
+            actual.drop('c', level=level, axis=0)
+        with pytest.raises(KeyError):
+            actual.T.drop('c', level=level, axis=1)
+        expected_no_err = actual.drop('c', axis=0, level=level,
+                                      errors='ignore')
+        assert_frame_equal(expected_no_err, actual)
+        expected_no_err = actual.T.drop('c', axis=1, level=level,
+                                        errors='ignore')
+        assert_frame_equal(expected_no_err.T, actual)
+
+    @pytest.mark.parametrize('index', [[1, 2, 3], [1, 1, 2]])
+    @pytest.mark.parametrize('drop_labels', [[], [1], [2]])
+    def test_drop_empty_list(self, index, drop_labels):
+        # GH 21494
+        expected_index = [i for i in index if i not in drop_labels]
+        frame = pd.DataFrame(index=index).drop(drop_labels)
+        tm.assert_frame_equal(frame, pd.DataFrame(index=expected_index))
+
+    @pytest.mark.parametrize('index', [[1, 2, 3], [1, 2, 2]])
+    @pytest.mark.parametrize('drop_labels', [[1, 4], [4, 5]])
+    def test_drop_non_empty_list(self, index, drop_labels):
+        # GH 21494
+        with tm.assert_raises_regex(KeyError, 'not found in axis'):
+            pd.DataFrame(index=index).drop(drop_labels)

@@ -451,6 +451,20 @@ class TestTableOrient(object):
         result = set_default_names(data)
         assert getattr(result.index, prop) == nm
 
+    @pytest.mark.parametrize("idx", [
+        pd.Index([], name='index'),
+        pd.MultiIndex.from_arrays([['foo'], ['bar']],
+                                  names=('level_0', 'level_1')),
+        pd.MultiIndex.from_arrays([['foo'], ['bar']],
+                                  names=('foo', 'level_1'))
+    ])
+    def test_warns_non_roundtrippable_names(self, idx):
+        # GH 19130
+        df = pd.DataFrame([[]], index=idx)
+        df.index.name = 'index'
+        with tm.assert_produces_warning():
+            set_default_names(df)
+
     def test_timestamp_in_columns(self):
         df = pd.DataFrame([[1, 2]], columns=[pd.Timestamp('2016'),
                                              pd.Timedelta(10, unit='s')])
@@ -481,7 +495,11 @@ class TestTableOrient(object):
 class TestTableOrientReader(object):
 
     @pytest.mark.parametrize("index_nm", [
-        None, "idx", pytest.param("index", marks=pytest.mark.xfail)])
+        None,
+        "idx",
+        pytest.param("index",
+                     marks=pytest.mark.xfail(strict=True)),
+        'level_0'])
     @pytest.mark.parametrize("vals", [
         {'ints': [1, 2, 3, 4]},
         {'objects': ['a', 'b', 'c', 'd']},
@@ -489,10 +507,11 @@ class TestTableOrientReader(object):
         {'categoricals': pd.Series(pd.Categorical(['a', 'b', 'c', 'c']))},
         {'ordered_cats': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'],
                                                   ordered=True))},
-        pytest.param({'floats': [1., 2., 3., 4.]}, marks=pytest.mark.xfail),
+        pytest.param({'floats': [1., 2., 3., 4.]},
+                     marks=pytest.mark.xfail(strict=True)),
         {'floats': [1.1, 2.2, 3.3, 4.4]},
         {'bools': [True, False, False, True]}])
-    def test_read_json_table_orient(self, index_nm, vals):
+    def test_read_json_table_orient(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")
@@ -504,7 +523,7 @@ class TestTableOrientReader(object):
         {'timedeltas': pd.timedelta_range('1H', periods=4, freq='T')},
         {'timezones': pd.date_range('2016-01-01', freq='d', periods=4,
                                     tz='US/Central')}])
-    def test_read_json_table_orient_raises(self, index_nm, vals):
+    def test_read_json_table_orient_raises(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")
         with tm.assert_raises_regex(NotImplementedError, 'can not yet read '):
@@ -530,7 +549,9 @@ class TestTableOrientReader(object):
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.parametrize("index_names", [[None, None], ['foo', 'bar']])
+    @pytest.mark.parametrize("index_names", [
+        [None, None], ['foo', 'bar'], ['foo', None], [None, 'foo'],
+        ['index', 'foo']])
     def test_multiindex(self, index_names):
         # GH 18912
         df = pd.DataFrame(
@@ -543,3 +564,18 @@ class TestTableOrientReader(object):
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize("strict_check", [
+        pytest.param(True, marks=pytest.mark.xfail(strict=True)),
+        False
+    ])
+    def test_empty_frame_roundtrip(self, strict_check):
+        # GH 21287
+        df = pd.DataFrame([], columns=['a', 'b', 'c'])
+        expected = df.copy()
+        out = df.to_json(orient='table')
+        result = pd.read_json(out, orient='table')
+        # TODO: When DF coercion issue (#21345) is resolved tighten type checks
+        tm.assert_frame_equal(expected, result,
+                              check_dtype=strict_check,
+                              check_index_type=strict_check)

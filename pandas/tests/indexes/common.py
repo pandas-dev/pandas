@@ -24,7 +24,7 @@ import pandas as pd
 class Base(object):
     """ base class for index sub-class tests """
     _holder = None
-    _compat_props = ['shape', 'ndim', 'size', 'itemsize', 'nbytes']
+    _compat_props = ['shape', 'ndim', 'size', 'nbytes']
 
     def setup_indices(self):
         for name, idx in self.indices.items():
@@ -35,10 +35,6 @@ class Base(object):
         assert indices.equals(unpickled)
 
     def test_pickle_compat_construction(self):
-        # this is testing for pickle compat
-        if self._holder is None:
-            return
-
         # need an object to create with
         pytest.raises(TypeError, self._holder)
 
@@ -70,19 +66,24 @@ class Base(object):
         assert s.index is not idx
         assert s.name != idx.name
 
-    def test_to_frame(self):
-        # see gh-15230
+    @pytest.mark.parametrize("name", [None, "new_name"])
+    def test_to_frame(self, name):
+        # see GH-15230, GH-22580
         idx = self.create_index()
-        name = idx.name or 0
 
-        df = idx.to_frame()
+        if name:
+            idx_name = name
+        else:
+            idx_name = idx.name or 0
+
+        df = idx.to_frame(name=idx_name)
 
         assert df.index is idx
         assert len(df.columns) == 1
-        assert df.columns[0] == name
-        assert df[name].values is not idx.values
+        assert df.columns[0] == idx_name
+        assert df[idx_name].values is not idx.values
 
-        df = idx.to_frame(index=False)
+        df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
 
     def test_shift(self):
@@ -127,16 +128,17 @@ class Base(object):
         idx = self.create_index()
         tm.assert_raises_regex(TypeError, "cannot perform __mul__",
                                lambda: idx * 1)
-        tm.assert_raises_regex(TypeError, "cannot perform __mul__",
+        tm.assert_raises_regex(TypeError, "cannot perform __rmul__",
                                lambda: 1 * idx)
 
         div_err = "cannot perform __truediv__" if PY3 \
             else "cannot perform __div__"
         tm.assert_raises_regex(TypeError, div_err, lambda: idx / 1)
+        div_err = div_err.replace(' __', ' __r')
         tm.assert_raises_regex(TypeError, div_err, lambda: 1 / idx)
         tm.assert_raises_regex(TypeError, "cannot perform __floordiv__",
                                lambda: idx // 1)
-        tm.assert_raises_regex(TypeError, "cannot perform __floordiv__",
+        tm.assert_raises_regex(TypeError, "cannot perform __rfloordiv__",
                                lambda: 1 // idx)
 
     def test_logical_compat(self):
@@ -235,7 +237,7 @@ class Base(object):
 
         # don't tests a MultiIndex here (as its tested separated)
         if isinstance(indices, MultiIndex):
-            return
+            pytest.skip('Skip check for MultiIndex')
         original_name = indices.name
         new_ind = indices.set_names([new_name])
         assert new_ind.name == new_name
@@ -314,7 +316,8 @@ class Base(object):
                 # .values an object array of Period, thus copied
                 result = index_type(ordinal=index.asi8, copy=False,
                                     **init_kwargs)
-                tm.assert_numpy_array_equal(index._values, result._values,
+                tm.assert_numpy_array_equal(index._ndarray_values,
+                                            result._ndarray_values,
                                             check_same='same')
             elif isinstance(index, IntervalIndex):
                 # checked in test_interval.py
@@ -323,14 +326,16 @@ class Base(object):
                 result = index_type(index.values, copy=False, **init_kwargs)
                 tm.assert_numpy_array_equal(index.values, result.values,
                                             check_same='same')
-                tm.assert_numpy_array_equal(index._values, result._values,
+                tm.assert_numpy_array_equal(index._ndarray_values,
+                                            result._ndarray_values,
                                             check_same='same')
 
     def test_copy_and_deepcopy(self, indices):
         from copy import copy, deepcopy
 
         if isinstance(indices, MultiIndex):
-            return
+            pytest.skip('Skip check for MultiIndex')
+
         for func in (copy, deepcopy):
             idx_copy = func(indices)
             assert idx_copy is not indices
@@ -339,20 +344,50 @@ class Base(object):
         new_copy = indices.copy(deep=True, name="banana")
         assert new_copy.name == "banana"
 
-    def test_duplicates(self, indices):
+    def test_has_duplicates(self, indices):
         if type(indices) is not self._holder:
-            return
+            pytest.skip('Can only check if we have the correct type')
         if not len(indices) or isinstance(indices, MultiIndex):
-            return
+            # MultiIndex tested separately in:
+            # tests/indexes/multi/test_unique_and_duplicates
+            pytest.skip('Skip check for empty Index and MultiIndex')
+
         idx = self._holder([indices[0]] * 5)
         assert not idx.is_unique
         assert idx.has_duplicates
+
+    @pytest.mark.parametrize('keep', ['first', 'last', False])
+    def test_duplicated(self, indices, keep):
+        if type(indices) is not self._holder:
+            pytest.skip('Can only check if we know the index type')
+        if not len(indices) or isinstance(indices, MultiIndex):
+            # MultiIndex tested separately in:
+            # tests/indexes/multi/test_unique_and_duplicates
+            pytest.skip('Skip check for empty Index and MultiIndex')
+
+        idx = self._holder(indices)
+        if idx.has_duplicates:
+            # We are testing the duplicated-method here, so we need to know
+            # exactly which indices are duplicate and how (for the result).
+            # This is not possible if "idx" has duplicates already, which we
+            # therefore remove. This is seemingly circular, as drop_duplicates
+            # invokes duplicated, but in the end, it all works out because we
+            # cross-check with Series.duplicated, which is tested separately.
+            idx = idx.drop_duplicates()
+
+        n, k = len(idx), 10
+        duplicated_selection = np.random.choice(n, k * n)
+        expected = pd.Series(duplicated_selection).duplicated(keep=keep).values
+        idx = self._holder(idx.values[duplicated_selection])
+
+        result = idx.duplicated(keep=keep)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_unique(self, indices):
         # don't test a MultiIndex here (as its tested separated)
         # don't test a CategoricalIndex because categories change (GH 18291)
         if isinstance(indices, (MultiIndex, CategoricalIndex)):
-            return
+            pytest.skip('Skip check for MultiIndex/CategoricalIndex')
 
         # GH 17896
         expected = indices.drop_duplicates()
@@ -372,7 +407,7 @@ class Base(object):
     def test_get_unique_index(self, indices):
         # MultiIndex tested separately
         if not len(indices) or isinstance(indices, MultiIndex):
-            return
+            pytest.skip('Skip check for empty Index and MultiIndex')
 
         idx = indices[[0] * 5]
         idx_unique = indices[[0]]
@@ -391,7 +426,7 @@ class Base(object):
 
         # nans:
         if not indices._can_hold_na:
-            return
+            pytest.skip('Skip na-check if index cannot hold na')
 
         if needs_i8_conversion(indices):
             vals = indices.asi8[[0] * 5]
@@ -420,7 +455,7 @@ class Base(object):
 
     def test_mutability(self, indices):
         if not len(indices):
-            return
+            pytest.skip('Skip check for empty Index')
         pytest.raises(TypeError, indices.__setitem__, 0, indices[0])
 
     def test_view(self, indices):
@@ -758,7 +793,7 @@ class Base(object):
         # GH9947, GH10637
         index_a = self.create_index()
         if isinstance(index_a, PeriodIndex):
-            return
+            pytest.skip('Skip check for PeriodIndex')
 
         n = len(index_a)
         index_b = index_a[0:-1]
@@ -788,6 +823,7 @@ class Base(object):
         series_d = Series(array_d)
         with tm.assert_raises_regex(ValueError, "Lengths must match"):
             index_a == series_b
+
         tm.assert_numpy_array_equal(index_a == series_a, expected1)
         tm.assert_numpy_array_equal(index_a == series_c, expected2)
 
@@ -882,7 +918,7 @@ class Base(object):
                 assert not idx.hasnans
 
                 idx = index.copy()
-                values = idx.values
+                values = np.asarray(idx.values)
 
                 if len(index) == 0:
                     continue
@@ -924,7 +960,7 @@ class Base(object):
                     idx.fillna([idx[0]])
 
                 idx = index.copy()
-                values = idx.values
+                values = np.asarray(idx.values)
 
                 if isinstance(index, DatetimeIndexOpsMixin):
                     values[1] = iNaT
@@ -974,11 +1010,10 @@ class Base(object):
         assert not index.empty
         assert index[:0].empty
 
-    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
-    def test_join_self_unique(self, how):
+    def test_join_self_unique(self, join_type):
         index = self.create_index()
         if index.is_unique:
-            joined = index.join(index, how=how)
+            joined = index.join(index, how=join_type)
             assert (index == joined).all()
 
     def test_searchsorted_monotonic(self, indices):
@@ -986,11 +1021,11 @@ class Base(object):
         # not implemented for tuple searches in MultiIndex
         # or Intervals searches in IntervalIndex
         if isinstance(indices, (MultiIndex, IntervalIndex)):
-            return
+            pytest.skip('Skip check for MultiIndex/IntervalIndex')
 
         # nothing to test if the index is empty
         if indices.empty:
-            return
+            pytest.skip('Skip check for empty Index')
         value = indices[0]
 
         # determine the expected results (handle dupes for 'right')

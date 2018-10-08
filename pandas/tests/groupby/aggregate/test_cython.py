@@ -12,8 +12,9 @@ import numpy as np
 from numpy import nan
 import pandas as pd
 
-from pandas import bdate_range, DataFrame, Index, Series
-from pandas.core.groupby import DataError
+from pandas import (bdate_range, DataFrame, Index, Series, Timestamp,
+                    Timedelta, NaT)
+from pandas.core.groupby.groupby import DataError
 import pandas.util.testing as tm
 
 
@@ -24,7 +25,12 @@ import pandas.util.testing as tm
     'var',
     'sem',
     'mean',
-    'median',
+    pytest.param('median',
+                 # ignore mean of empty slice
+                 # and all-NaN
+                 marks=[pytest.mark.filterwarnings(
+                     "ignore::RuntimeWarning"
+                 )]),
     'prod',
     'min',
     'max',
@@ -157,33 +163,60 @@ def test__cython_agg_general(op, targop):
     ('min', np.min),
     ('max', np.max), ]
 )
-def test_cython_agg_empty_buckets(op, targop):
+def test_cython_agg_empty_buckets(op, targop, observed):
     df = pd.DataFrame([11, 12, 13])
     grps = range(0, 55, 5)
 
     # calling _cython_agg_general directly, instead of via the user API
     # which sets different values for min_count, so do that here.
-    result = df.groupby(pd.cut(df[0], grps))._cython_agg_general(op)
-    expected = df.groupby(pd.cut(df[0], grps)).agg(lambda x: targop(x))
+    g = df.groupby(pd.cut(df[0], grps), observed=observed)
+    result = g._cython_agg_general(op)
+
+    g = df.groupby(pd.cut(df[0], grps), observed=observed)
+    expected = g.agg(lambda x: targop(x))
     tm.assert_frame_equal(result, expected)
 
 
-def test_cython_agg_empty_buckets_nanops():
+def test_cython_agg_empty_buckets_nanops(observed):
     # GH-18869 can't call nanops on empty groups, so hardcode expected
     # for these
     df = pd.DataFrame([11, 12, 13], columns=['a'])
     grps = range(0, 25, 5)
     # add / sum
-    result = df.groupby(pd.cut(df['a'], grps))._cython_agg_general('add')
+    result = df.groupby(pd.cut(df['a'], grps),
+                        observed=observed)._cython_agg_general('add')
     intervals = pd.interval_range(0, 20, freq=5)
     expected = pd.DataFrame(
         {"a": [0, 0, 36, 0]},
         index=pd.CategoricalIndex(intervals, name='a', ordered=True))
+    if observed:
+        expected = expected[expected.a != 0]
+
     tm.assert_frame_equal(result, expected)
 
     # prod
-    result = df.groupby(pd.cut(df['a'], grps))._cython_agg_general('prod')
+    result = df.groupby(pd.cut(df['a'], grps),
+                        observed=observed)._cython_agg_general('prod')
     expected = pd.DataFrame(
         {"a": [1, 1, 1716, 1]},
         index=pd.CategoricalIndex(intervals, name='a', ordered=True))
+    if observed:
+        expected = expected[expected.a != 1]
+
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize('op', ['first', 'last', 'max', 'min'])
+@pytest.mark.parametrize('data', [
+    Timestamp('2016-10-14 21:00:44.557'),
+    Timedelta('17088 days 21:00:44.557'), ])
+def test_cython_with_timestamp_and_nat(op, data):
+    # https://github.com/pandas-dev/pandas/issues/19526
+    df = DataFrame({'a': [0, 1], 'b': [data, NaT]})
+    index = Index([0, 1], name='a')
+
+    # We will group by a and test the cython aggregations
+    expected = DataFrame({'b': [data, NaT]}, index=index)
+
+    result = df.groupby('a').aggregate(op)
+    tm.assert_frame_equal(expected, result)

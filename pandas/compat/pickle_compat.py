@@ -33,18 +33,18 @@ def load_reduce(self):
                 cls = args[0]
                 stack[-1] = object.__new__(cls)
                 return
-            except:
+            except TypeError:
                 pass
 
         # try to re-encode the arguments
         if getattr(self, 'encoding', None) is not None:
-            args = tuple([arg.encode(self.encoding)
-                          if isinstance(arg, string_types)
-                          else arg for arg in args])
+            args = tuple(arg.encode(self.encoding)
+                         if isinstance(arg, string_types)
+                         else arg for arg in args)
             try:
                 stack[-1] = func(*args)
                 return
-            except:
+            except TypeError:
                 pass
 
         # unknown exception, re-raise
@@ -108,7 +108,17 @@ _class_locations_map = {
     ('pandas.tseries.index', 'DatetimeIndex'):
         ('pandas.core.indexes.datetimes', 'DatetimeIndex'),
     ('pandas.tseries.period', 'PeriodIndex'):
-        ('pandas.core.indexes.period', 'PeriodIndex')
+        ('pandas.core.indexes.period', 'PeriodIndex'),
+
+    # 19269, arrays moving
+    ('pandas.core.categorical', 'Categorical'):
+        ('pandas.core.arrays', 'Categorical'),
+
+    # 19939, add timedeltaindex, float64index compat from 15998 move
+    ('pandas.tseries.tdi', 'TimedeltaIndex'):
+        ('pandas.core.indexes.timedeltas', 'TimedeltaIndex'),
+    ('pandas.indexes.numeric', 'Float64Index'):
+        ('pandas.core.indexes.numeric', 'Float64Index'),
 }
 
 
@@ -172,7 +182,7 @@ def load_newobj_ex(self):
 
 try:
     Unpickler.dispatch[pkl.NEWOBJ_EX[0]] = load_newobj_ex
-except:
+except (AttributeError, KeyError):
     pass
 
 
@@ -200,5 +210,5 @@ def load(fh, encoding=None, compat=False, is_verbose=False):
         up.is_verbose = is_verbose
 
         return up.load()
-    except:
+    except (ValueError, TypeError):
         raise

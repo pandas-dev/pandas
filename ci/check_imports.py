@@ -5,9 +5,11 @@ import sys
 
 blacklist = {
     'bs4',
+    'gcsfs',
     'html5lib',
     'ipython',
     'jinja2'
+    'hypothesis',
     'lxml',
     'numexpr',
     'openpyxl',

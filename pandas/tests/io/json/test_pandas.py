@@ -15,14 +15,15 @@ from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network,
                                  ensure_clean, assert_index_equal)
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 
 _frame = DataFrame(_seriesd)
 _frame2 = DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])
-_intframe = DataFrame(dict((k, v.astype(np.int64))
-                           for k, v in compat.iteritems(_seriesd)))
+_intframe = DataFrame({k: v.astype(np.int64)
+                       for k, v in compat.iteritems(_seriesd)})
 
 _tsframe = DataFrame(_tsd)
 _cat_frame = _frame.copy()
@@ -37,8 +38,9 @@ _mixed_frame = _frame.copy()
 
 class TestPandasContainer(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(scope="function", autouse=True)
+    def setup(self, datapath):
+        self.dirpath = datapath("io", "json", "data")
 
         self.ts = tm.makeTimeSeries()
         self.ts.name = 'ts'
@@ -59,7 +61,8 @@ class TestPandasContainer(object):
         self.mixed_frame = _mixed_frame.copy()
         self.categorical = _cat_frame.copy()
 
-    def teardown_method(self, method):
+        yield
+
         del self.dirpath
 
         del self.ts
@@ -553,7 +556,7 @@ class TestPandasContainer(object):
 
     def test_label_overflow(self):
         # GH14256: buffer length not checked when writing label
-        df = pd.DataFrame({'foo': [1337], 'bar' * 100000: [1]})
+        df = pd.DataFrame({'bar' * 100000: [1], 'foo': [1337]})
         assert df.to_json() == \
             '{{"{bar}":{{"0":1}},"foo":{{"0":1337}}}}'.format(
                 bar=('bar' * 100000))
@@ -639,6 +642,13 @@ class TestPandasContainer(object):
         s = Series([4.56, 4.56, 4.56])
         result = read_json(s.to_json(), typ='series', precise_float=True)
         assert_series_equal(result, s, check_index_type=False)
+
+    def test_series_with_dtype(self):
+        # GH 21986
+        s = Series([4.56, 4.56, 4.56])
+        result = read_json(s.to_json(), typ='series', dtype=np.int64)
+        expected = Series([4] * 3)
+        assert_series_equal(result, expected)
 
     def test_frame_from_json_precise_float(self):
         df = DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
@@ -1038,8 +1048,8 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
         assert_frame_equal(result, expected)
 
+    @td.skip_if_not_us_locale
     def test_read_s3_jsonl(self, s3_resource):
-        pytest.importorskip('s3fs')
         # GH17200
 
         result = read_json('s3n://pandas-test/items.jsonl', lines=True)

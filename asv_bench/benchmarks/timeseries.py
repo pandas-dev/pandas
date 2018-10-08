@@ -74,7 +74,7 @@ class TzLocalize(object):
                                                   freq='S'))
 
     def time_infer_dst(self):
-        self.index.tz_localize('US/Eastern', infer_dst=True)
+        self.index.tz_localize('US/Eastern', ambiguous='infer')
 
 
 class ResetIndex(object):
@@ -342,6 +342,25 @@ class ToDatetimeISO8601(object):
         to_datetime(self.strings_tz_space)
 
 
+class ToDatetimeNONISO8601(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 10000
+        half = int(N / 2)
+        ts_string_1 = 'March 1, 2018 12:00:00+0400'
+        ts_string_2 = 'March 1, 2018 12:00:00+0500'
+        self.same_offset = [ts_string_1] * N
+        self.diff_offset = [ts_string_1] * half + [ts_string_2] * half
+
+    def time_same_offset(self):
+        to_datetime(self.same_offset)
+
+    def time_different_offset(self):
+        to_datetime(self.diff_offset)
+
+
 class ToDatetimeFormat(object):
 
     goal_time = 0.2
@@ -365,7 +384,7 @@ class ToDatetimeCache(object):
 
     def setup(self, cache):
         N = 10000
-        self.unique_numeric_seconds = range(N)
+        self.unique_numeric_seconds = list(range(N))
         self.dup_numeric_seconds = [1000] * N
         self.dup_string_dates = ['2000-02-11'] * N
         self.dup_string_with_tz = ['2000-02-11 15:00:00-0800'] * N

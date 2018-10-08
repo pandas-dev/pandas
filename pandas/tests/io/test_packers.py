@@ -3,14 +3,15 @@ import pytest
 from warnings import catch_warnings
 import os
 import datetime
+import glob
 import numpy as np
-import sys
 from distutils.version import LooseVersion
 
 from pandas import compat
 from pandas.compat import u, PY3
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
-                    date_range, period_range, Index, Categorical)
+                    date_range, period_range, Index, Categorical,
+                    Period, Interval)
 from pandas.errors import PerformanceWarning
 from pandas.io.packers import to_msgpack, read_msgpack
 import pandas.util.testing as tm
@@ -90,6 +91,7 @@ def check_arbitrary(a, b):
         assert(a == b)
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestPackers(object):
 
     def setup_method(self, method):
@@ -104,6 +106,7 @@ class TestPackers(object):
             return read_msgpack(p, **kwargs)
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestAPI(TestPackers):
 
     def test_string_io(self):
@@ -128,9 +131,8 @@ class TestAPI(TestPackers):
         with ensure_clean(self.path) as p:
 
             s = df.to_msgpack()
-            fh = open(p, 'wb')
-            fh.write(s)
-            fh.close()
+            with open(p, 'wb') as fh:
+                fh.write(s)
             result = read_msgpack(p)
             tm.assert_frame_equal(result, df)
 
@@ -297,11 +299,6 @@ class TestBasic(TestPackers):
 
     def test_datetimes(self):
 
-        # fails under 2.6/win32 (np.datetime64 seems broken)
-
-        if LooseVersion(sys.version) < LooseVersion('2.7'):
-            pytest.skip('2.6 with np.datetime64 is broken')
-
         for i in [datetime.datetime(2013, 1, 1),
                   datetime.datetime(2013, 1, 1, 5, 1),
                   datetime.date(2013, 1, 1),
@@ -314,6 +311,19 @@ class TestBasic(TestPackers):
         for i in [datetime.timedelta(days=1),
                   datetime.timedelta(days=1, seconds=10),
                   np.timedelta64(1000000)]:
+            i_rec = self.encode_decode(i)
+            assert i == i_rec
+
+    def test_periods(self):
+        # 13463
+        for i in [Period('2010-09', 'M'), Period('2014-Q1', 'Q')]:
+            i_rec = self.encode_decode(i)
+            assert i == i_rec
+
+    def test_intervals(self):
+        # 19967
+        for i in [Interval(0, 1), Interval(0, 1, 'left'),
+                  Interval(10, 25., 'right')]:
             i_rec = self.encode_decode(i)
             assert i == i_rec
 
@@ -334,7 +344,9 @@ class TestIndex(TestPackers):
             'period': Index(period_range('2012-1-1', freq='M', periods=3)),
             'date2': Index(date_range('2013-01-1', periods=10)),
             'bdate': Index(bdate_range('2013-01-02', periods=10)),
-            'cat': tm.makeCategoricalIndex(100)
+            'cat': tm.makeCategoricalIndex(100),
+            'interval': tm.makeIntervalIndex(100),
+            'timedelta': tm.makeTimedeltaIndex(100, 'H')
         }
 
         self.mi = {
@@ -454,6 +466,7 @@ class TestCategorical(TestPackers):
                 assert_categorical_equal(i, i_rec)
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestNDFrame(TestPackers):
 
     def setup_method(self, method):
@@ -476,10 +489,9 @@ class TestNDFrame(TestPackers):
             'int': DataFrame(dict(A=data['B'], B=Series(data['B']) + 1)),
             'mixed': DataFrame(data)}
 
-        with catch_warnings(record=True):
-            self.panel = {
-                'float': Panel(dict(ItemA=self.frame['float'],
-                                    ItemB=self.frame['float'] + 1))}
+        self.panel = {
+            'float': Panel(dict(ItemA=self.frame['float'],
+                                ItemB=self.frame['float'] + 1))}
 
     def test_basic_frame(self):
 
@@ -827,15 +839,16 @@ class TestEncoding(TestPackers):
             assert_frame_equal(result, frame)
 
 
-def legacy_packers_versions():
-    # yield the packers versions
-    path = tm.get_data_path('legacy_msgpack')
-    for v in os.listdir(path):
-        p = os.path.join(path, v)
-        if os.path.isdir(p):
-            yield v
+files = glob.glob(os.path.join(os.path.dirname(__file__), "data",
+                               "legacy_msgpack", "*", "*.msgpack"))
 
 
+@pytest.fixture(params=files)
+def legacy_packer(request, datapath):
+    return datapath(request.param)
+
+
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestMsgpack(object):
     """
     How to add msgpack tests:
@@ -910,24 +923,20 @@ TestPackers
         else:
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('version', legacy_packers_versions())
     def test_msgpacks_legacy(self, current_packers_data, all_packers_data,
-                             version):
+                             legacy_packer, datapath):
 
-        pth = tm.get_data_path('legacy_msgpack/{0}'.format(version))
-        n = 0
-        for f in os.listdir(pth):
-            # GH12142 0.17 files packed in P2 can't be read in P3
-            if (compat.PY3 and version.startswith('0.17.') and
-                    f.split('.')[-4][-1] == '2'):
-                continue
-            vf = os.path.join(pth, f)
-            try:
-                with catch_warnings(record=True):
-                    self.compare(current_packers_data, all_packers_data,
-                                 vf, version)
-            except ImportError:
-                # blosc not installed
-                continue
-            n += 1
-        assert n > 0, 'Msgpack files are not tested'
+        version = os.path.basename(os.path.dirname(legacy_packer))
+
+        # GH12142 0.17 files packed in P2 can't be read in P3
+        if (compat.PY3 and version.startswith('0.17.') and
+                legacy_packer.split('.')[-4][-1] == '2'):
+            msg = "Files packed in Py2 can't be read in Py3 ({})"
+            pytest.skip(msg.format(version))
+        try:
+            with catch_warnings(record=True):
+                self.compare(current_packers_data, all_packers_data,
+                             legacy_packer, version)
+        except ImportError:
+            # blosc not installed
+            pass

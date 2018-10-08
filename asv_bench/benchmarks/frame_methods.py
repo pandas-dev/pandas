@@ -1,4 +1,6 @@
 import string
+import warnings
+
 import numpy as np
 import pandas.util.testing as tm
 from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
@@ -15,7 +17,8 @@ class GetNumericData(object):
         self.df = DataFrame(np.random.randn(10000, 25))
         self.df['foo'] = 'bar'
         self.df['bar'] = 'baz'
-        self.df = self.df.consolidate()
+        with warnings.catch_warnings(record=True):
+            self.df = self.df.consolidate()
 
     def time_frame_get_numeric_data(self):
         self.df._get_numeric_data()
@@ -141,8 +144,8 @@ class Repr(object):
     def setup(self):
         nrows = 10000
         data = np.random.randn(nrows, 10)
-        idx = MultiIndex.from_arrays(np.tile(np.random.randn(3, nrows / 100),
-                                             100))
+        arrays = np.tile(np.random.randn(3, int(nrows / 100)), 100)
+        idx = MultiIndex.from_arrays(arrays)
         self.df3 = DataFrame(data, index=idx)
         self.df4 = DataFrame(data, index=np.random.randn(nrows))
         self.df_tall = DataFrame(np.random.randn(nrows, 10))
@@ -498,14 +501,39 @@ class GetDtypeCounts(object):
 class NSort(object):
 
     goal_time = 0.2
-    params = ['first', 'last']
+    params = ['first', 'last', 'all']
     param_names = ['keep']
 
     def setup(self, keep):
-        self.df = DataFrame(np.random.randn(1000, 3), columns=list('ABC'))
+        self.df = DataFrame(np.random.randn(100000, 3),
+                            columns=list('ABC'))
 
-    def time_nlargest(self, keep):
+    def time_nlargest_one_column(self, keep):
         self.df.nlargest(100, 'A', keep=keep)
 
-    def time_nsmallest(self, keep):
+    def time_nlargest_two_columns(self, keep):
+        self.df.nlargest(100, ['A', 'B'], keep=keep)
+
+    def time_nsmallest_one_column(self, keep):
         self.df.nsmallest(100, 'A', keep=keep)
+
+    def time_nsmallest_two_columns(self, keep):
+        self.df.nsmallest(100, ['A', 'B'], keep=keep)
+
+
+class Describe(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame({
+            'a': np.random.randint(0, 100, int(1e6)),
+            'b': np.random.randint(0, 100, int(1e6)),
+            'c': np.random.randint(0, 100, int(1e6))
+        })
+
+    def time_series_describe(self):
+        self.df['a'].describe()
+
+    def time_dataframe_describe(self):
+        self.df.describe()

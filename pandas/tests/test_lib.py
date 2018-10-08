@@ -3,7 +3,8 @@
 import pytest
 
 import numpy as np
-from pandas._libs import lib
+from pandas import Index
+from pandas._libs import lib, writers as libwriters
 import pandas.util.testing as tm
 
 
@@ -12,19 +13,19 @@ class TestMisc(object):
     def test_max_len_string_array(self):
 
         arr = a = np.array(['foo', 'b', np.nan], dtype='object')
-        assert lib.max_len_string_array(arr) == 3
+        assert libwriters.max_len_string_array(arr) == 3
 
         # unicode
         arr = a.astype('U').astype(object)
-        assert lib.max_len_string_array(arr) == 3
+        assert libwriters.max_len_string_array(arr) == 3
 
         # bytes for python3
         arr = a.astype('S').astype(object)
-        assert lib.max_len_string_array(arr) == 3
+        assert libwriters.max_len_string_array(arr) == 3
 
         # raises
         pytest.raises(TypeError,
-                      lambda: lib.max_len_string_array(arr.astype('U')))
+                      lambda: libwriters.max_len_string_array(arr.astype('U')))
 
     def test_fast_unique_multiple_list_gen_sort(self):
         keys = [['p', 'a'], ['n', 'd'], ['a', 's']]
@@ -198,3 +199,8 @@ class TestIndexing(object):
         result = lib.get_reverse_indexer(indexer, 5)
         expected = np.array([4, 2, 3, 6, 7], dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
+
+
+def test_cache_readonly_preserve_docstrings():
+    # GH18197
+    assert Index.hasnans.__doc__ is not None

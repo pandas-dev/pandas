@@ -92,15 +92,15 @@ Enhancements
   ``offsets.apply``, ``rollforward`` and ``rollback`` resets the time (hour,
   minute, etc) or not (default ``False``, preserves time) (:issue:`7156`):
 
-  .. ipython:: python
+  .. code-block:: python
 
-   import pandas.tseries.offsets as offsets
+     import pandas.tseries.offsets as offsets
 
-   day = offsets.Day()
-   day.apply(Timestamp('2014-01-01 09:00'))
+     day = offsets.Day()
+     day.apply(Timestamp('2014-01-01 09:00'))
 
-   day = offsets.Day(normalize=True)
-   day.apply(Timestamp('2014-01-01 09:00'))
+     day = offsets.Day(normalize=True)
+     day.apply(Timestamp('2014-01-01 09:00'))
 
 - ``PeriodIndex`` is represented as the same format as ``DatetimeIndex`` (:issue:`7601`)
 - ``StringMethods`` now work on empty Series (:issue:`7242`)
@@ -145,7 +145,7 @@ Performance
 ~~~~~~~~~~~
 - Improvements in dtype inference for numeric operations involving yielding performance gains for dtypes: ``int64``, ``timedelta64``, ``datetime64`` (:issue:`7223`)
 - Improvements in Series.transform for significant performance gains (:issue:`6496`)
-- Improvements in DataFrame.transform with ufuncs and built-in grouper functions for signifcant performance gains (:issue:`7383`)
+- Improvements in DataFrame.transform with ufuncs and built-in grouper functions for significant performance gains (:issue:`7383`)
 - Regression in groupby aggregation of datetime64 dtypes (:issue:`7555`)
 - Improvements in `MultiIndex.from_product` for large iterables (:issue:`7627`)
 
@@ -156,7 +156,7 @@ Experimental
 ~~~~~~~~~~~~
 
 - ``pandas.io.data.Options`` has a new method, ``get_all_data`` method, and now consistently returns a
-  multi-indexed ``DataFrame`` (:issue:`5602`)
+  MultiIndexed ``DataFrame`` (:issue:`5602`)
 - ``io.gbq.read_gbq`` and ``io.gbq.to_gbq`` were refactored to remove the
   dependency on the Google ``bq.py`` command line client. This submodule
   now uses ``httplib2`` and the Google ``apiclient`` and ``oauth2client`` API client
@@ -169,10 +169,10 @@ Experimental
 Bug Fixes
 ~~~~~~~~~
 - Bug in ``DataFrame.where`` with a symmetric shaped frame and a passed other of a DataFrame (:issue:`7506`)
-- Bug in Panel indexing with a multi-index axis (:issue:`7516`)
+- Bug in Panel indexing with a MultiIndex axis (:issue:`7516`)
 - Regression in datetimelike slice indexing with a duplicated index and non-exact end-points (:issue:`7523`)
 - Bug in setitem with list-of-lists and single vs mixed types (:issue:`7551`:)
-- Bug in timeops with non-aligned Series (:issue:`7500`)
+- Bug in time ops with non-aligned Series (:issue:`7500`)
 - Bug in timedelta inference when assigning an incomplete Series (:issue:`7592`)
 - Bug in groupby ``.nth`` with a Series and integer-like column name (:issue:`7559`)
 - Bug in ``Series.get`` with a boolean accessor (:issue:`7407`)
@@ -183,10 +183,10 @@ Bug Fixes
 - Bug in plotting subplots with ``DataFrame.plot``, ``hist`` clears passed ``ax`` even if the number of subplots is one (:issue:`7391`).
 - Bug in plotting subplots with ``DataFrame.boxplot`` with ``by`` kw raises ``ValueError`` if the number of subplots exceeds 1 (:issue:`7391`).
 - Bug in subplots displays ``ticklabels`` and ``labels`` in different rule (:issue:`5897`)
-- Bug in ``Panel.apply`` with a multi-index as an axis (:issue:`7469`)
+- Bug in ``Panel.apply`` with a MultiIndex as an axis (:issue:`7469`)
 - Bug in ``DatetimeIndex.insert`` doesn't preserve ``name`` and ``tz`` (:issue:`7299`)
 - Bug in ``DatetimeIndex.asobject`` doesn't preserve ``name`` (:issue:`7299`)
-- Bug in multi-index slicing with datetimelike ranges (strings and Timestamps), (:issue:`7429`)
+- Bug in MultiIndex slicing with datetimelike ranges (strings and Timestamps), (:issue:`7429`)
 - Bug in ``Index.min`` and ``max`` doesn't handle ``nan`` and ``NaT`` properly (:issue:`7261`)
 - Bug in ``PeriodIndex.min/max`` results in ``int`` (:issue:`7609`)
 - Bug in ``resample`` where ``fill_method`` was ignored if you passed ``how`` (:issue:`2073`)
@@ -209,7 +209,7 @@ Bug Fixes
 - Bug in inferred_freq results in None for eastern hemisphere timezones (:issue:`7310`)
 - Bug in ``Easter`` returns incorrect date when offset is negative (:issue:`7195`)
 - Bug in broadcasting with ``.div``, integer dtypes and divide-by-zero (:issue:`7325`)
-- Bug in ``CustomBusinessDay.apply`` raiases ``NameError`` when ``np.datetime64`` object is passed (:issue:`7196`)
+- Bug in ``CustomBusinessDay.apply`` raises ``NameError`` when ``np.datetime64`` object is passed (:issue:`7196`)
 - Bug in ``MultiIndex.append``, ``concat`` and ``pivot_table`` don't preserve timezone (:issue:`6606`)
 - Bug in ``.loc`` with a list of indexers on a single-multi index level (that is not nested) (:issue:`7349`)
 - Bug in ``Series.map`` when mapping a dict with tuple keys of different lengths (:issue:`7333`)
@@ -221,15 +221,15 @@ Bug Fixes
 - Bug where ``NDFrame.replace()`` didn't correctly replace objects with
   ``Period`` values (:issue:`7379`).
 - Bug in ``.ix`` getitem should always return a Series (:issue:`7150`)
-- Bug in multi-index slicing with incomplete indexers (:issue:`7399`)
-- Bug in multi-index slicing with a step in a sliced level (:issue:`7400`)
+- Bug in MultiIndex slicing with incomplete indexers (:issue:`7399`)
+- Bug in MultiIndex slicing with a step in a sliced level (:issue:`7400`)
 - Bug where negative indexers in ``DatetimeIndex`` were not correctly sliced
   (:issue:`7408`)
 - Bug where ``NaT`` wasn't repr'd correctly in a ``MultiIndex`` (:issue:`7406`,
   :issue:`7409`).
 - Bug where bool objects were converted to ``nan`` in ``convert_objects``
   (:issue:`7416`).
-- Bug in ``quantile`` ignoring the axis keyword argument (:issue`7306`)
+- Bug in ``quantile`` ignoring the axis keyword argument (:issue:`7306`)
 - Bug where ``nanops._maybe_null_out`` doesn't work with complex numbers
   (:issue:`7353`)
 - Bug in several ``nanops`` functions when ``axis==0`` for

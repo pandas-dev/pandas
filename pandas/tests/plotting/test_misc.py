@@ -17,6 +17,15 @@ import pandas.plotting as plotting
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 
+@td.skip_if_mpl
+def test_import_error_message():
+    # GH-19810
+    df = DataFrame({"A": [1, 2]})
+
+    with tm.assert_raises_regex(ImportError, 'matplotlib is required'):
+        df.plot()
+
+
 @td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
 
@@ -52,6 +61,7 @@ class TestSeriesPlots(TestPlotBase):
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
+    @td.xfail_if_mpl_2_2
     @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
         scatter_matrix = plotting.scatter_matrix
@@ -90,11 +100,11 @@ class TestDataFramePlots(TestPlotBase):
             axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
     @pytest.mark.slow
-    def test_andrews_curves(self):
+    def test_andrews_curves(self, iris):
         from pandas.plotting import andrews_curves
         from matplotlib import cm
 
-        df = self.iris
+        df = iris
 
         _check_plot_works(andrews_curves, frame=df, class_column='Name')
 
@@ -155,11 +165,11 @@ class TestDataFramePlots(TestPlotBase):
             andrews_curves(data=df, class_column='Name')
 
     @pytest.mark.slow
-    def test_parallel_coordinates(self):
+    def test_parallel_coordinates(self, iris):
         from pandas.plotting import parallel_coordinates
         from matplotlib import cm
 
-        df = self.iris
+        df = iris
 
         ax = _check_plot_works(parallel_coordinates,
                                frame=df, class_column='Name')
@@ -202,7 +212,8 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(FutureWarning):
             parallel_coordinates(df, 'Name', colors=colors)
 
-    @pytest.mark.xfail(reason="unreliable test")
+    # not sure if this is indicative of a problem
+    @pytest.mark.filterwarnings("ignore:Attempting to set:UserWarning")
     def test_parallel_coordinates_with_sorted_labels(self):
         """ For #15908 """
         from pandas.plotting import parallel_coordinates
@@ -224,11 +235,11 @@ class TestDataFramePlots(TestPlotBase):
             assert prev[1] < nxt[1] and prev[0] < nxt[0]
 
     @pytest.mark.slow
-    def test_radviz(self):
+    def test_radviz(self, iris):
         from pandas.plotting import radviz
         from matplotlib import cm
 
-        df = self.iris
+        df = iris
         _check_plot_works(radviz, frame=df, class_column='Name')
 
         rgba = ('#556270', '#4ECDC4', '#C7F464')
@@ -262,8 +273,8 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(handles, facecolors=colors)
 
     @pytest.mark.slow
-    def test_subplot_titles(self):
-        df = self.iris.drop('Name', axis=1).head()
+    def test_subplot_titles(self, iris):
+        df = iris.drop('Name', axis=1).head()
         # Use the column names as the subplot titles
         title = list(df.columns)
 
