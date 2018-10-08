@@ -883,16 +883,22 @@ class DataFrame(NDFrame):
 
     def itertuples(self, index=True, name="Pandas"):
         """
-        Iterate over DataFrame rows as namedtuples, with index value as first
-        element of the tuple.
+        Iterate over DataFrame rows as namedtuples.
 
         Parameters
         ----------
-        index : boolean, default True
+        index : bool, default True
             If True, return the index as the first element of the tuple.
-        name : string, default "Pandas"
+        name : str, default "Pandas"
             The name of the returned namedtuples or None to return regular
             tuples.
+
+        Yields
+        -------
+        collections.namedtuple
+            Yields a namedtuple for each row in the DataFrame with the first
+            field possibly being the index and following fields being the
+            column values.
 
         Notes
         -----
@@ -900,26 +906,43 @@ class DataFrame(NDFrame):
         invalid Python identifiers, repeated, or start with an underscore.
         With a large number of columns (>255), regular tuples are returned.
 
-        See also
+        See Also
         --------
-        iterrows : Iterate over DataFrame rows as (index, Series) pairs.
-        iteritems : Iterate over (column name, Series) pairs.
+        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series)
+            pairs.
+        DataFrame.iteritems : Iterate over (column name, Series) pairs.
 
         Examples
         --------
-
-        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [0.1, 0.2]},
-                              index=['a', 'b'])
+        >>> df = pd.DataFrame({'num_legs': [4, 2], 'num_wings': [0, 2]},
+        ...                   index=['dog', 'hawk'])
         >>> df
-           col1  col2
-        a     1   0.1
-        b     2   0.2
+              num_legs  num_wings
+        dog          4          0
+        hawk         2          2
         >>> for row in df.itertuples():
         ...     print(row)
         ...
-        Pandas(Index='a', col1=1, col2=0.10000000000000001)
-        Pandas(Index='b', col1=2, col2=0.20000000000000001)
+        Pandas(Index='dog', num_legs=4, num_wings=0)
+        Pandas(Index='hawk', num_legs=2, num_wings=2)
 
+        By setting the `index` parameter to False we can remove the index
+        as the first element of the tuple:
+
+        >>> for row in df.itertuples(index=False):
+        ...     print(row)
+        ...
+        Pandas(num_legs=4, num_wings=0)
+        Pandas(num_legs=2, num_wings=2)
+
+        With the `name` parameter set we set a custom name for the yielded
+        namedtuples:
+
+        >>> for row in df.itertuples(name='Animal'):
+        ...     print(row)
+        ...
+        Animal(Index='dog', num_legs=4, num_wings=0)
+        Animal(Index='hawk', num_legs=2, num_wings=2)
         """
         arrays = []
         fields = []
@@ -4908,7 +4931,8 @@ class DataFrame(NDFrame):
             return ops.dispatch_to_series(left, right, func)
         else:
             # fastpath --> operate directly on values
-            new_data = func(left.values.T, right.values).T
+            with np.errstate(all="ignore"):
+                new_data = func(left.values.T, right.values).T
             return self._constructor(new_data,
                                      index=left.index, columns=self.columns,
                                      copy=False)
