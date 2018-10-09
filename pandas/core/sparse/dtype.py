@@ -34,12 +34,18 @@ class SparseDtype(ExtensionDtype):
 
         The default value may be overridden by specifying a `fill_value`.
     """
+    # We include `_is_na_fill_value` in the metadata to avoid hash collisions
+    # between SparseDtype(float, 0.0) and SparseDtype(float, nan).
+    # Without is_na_fill_value in the comparison, those would be equal since
+    # hash(nan) is (sometimes?) 0.
+    _metadata = ('_dtype', '_fill_value', '_is_na_fill_value')
 
     def __init__(self, dtype=np.float64, fill_value=None):
         # type: (Union[str, np.dtype, 'ExtensionDtype', type], Any) -> None
         from pandas.core.dtypes.missing import na_value_for_dtype
-        from pandas.core.dtypes.common import pandas_dtype, is_string_dtype
-        from pandas.core.dtypes.common import is_scalar
+        from pandas.core.dtypes.common import (
+            pandas_dtype, is_string_dtype, is_scalar
+        )
 
         if isinstance(dtype, type(self)):
             if fill_value is None:
@@ -60,9 +66,19 @@ class SparseDtype(ExtensionDtype):
         self._fill_value = fill_value
 
     def __hash__(self):
-        return hash(str(self))
+        # Python3 doesn't inherit __hash__ when a base class overrides
+        # __eq__, so we explicitly do it here.
+        return super(SparseDtype, self).__hash__()
 
     def __eq__(self, other):
+        # We have to override __eq__ to handle NA values in _metadata.
+        # The base class does simple == checks, which fail for NA.
+        if isinstance(other, compat.string_types):
+            try:
+                other = self.construct_from_string(other)
+            except TypeError:
+                return False
+
         if isinstance(other, type(self)):
             subtype = self.subtype == other.subtype
             if self._is_na_fill_value:
@@ -80,8 +96,7 @@ class SparseDtype(ExtensionDtype):
                 fill_value = self.fill_value == other.fill_value
 
             return subtype and fill_value
-        else:
-            return super(SparseDtype, self).__eq__(other)
+        return False
 
     @property
     def fill_value(self):

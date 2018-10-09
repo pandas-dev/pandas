@@ -101,3 +101,18 @@ def test_str_uses_object():
 def test_construct_from_string(string, expected):
     result = SparseDtype.construct_from_string(string)
     assert result == expected
+
+
+@pytest.mark.parametrize("a, b, expected", [
+    (SparseDtype(float, 0.0), SparseDtype(np.dtype('float'), 0.0), True),
+    (SparseDtype(int, 0), SparseDtype(int, 0), True),
+    (SparseDtype(float, float('nan')), SparseDtype(float, np.nan), True),
+    (SparseDtype(float, 0), SparseDtype(float, np.nan), False),
+    (SparseDtype(int, 0.0), SparseDtype(float, 0.0), False),
+])
+def test_hash_equal(a, b, expected):
+    result = a == b
+    assert result is expected
+
+    result = hash(a) == hash(b)
+    assert result is expected

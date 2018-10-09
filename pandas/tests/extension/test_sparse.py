@@ -256,7 +256,11 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
 
         # array
         result = pd.Series(op(data, other))
-        assert result.dtype == 'Sparse[bool]'
+        # hard to test the fill value, since we don't know what expected
+        # is in general.
+        # Rely on tests in `tests/sparse` to validate that.
+        assert isinstance(result.dtype, SparseDtype)
+        assert result.dtype.subtype == np.dtype('bool')
 
         with np.errstate(all='ignore'):
             expected = pd.Series(
