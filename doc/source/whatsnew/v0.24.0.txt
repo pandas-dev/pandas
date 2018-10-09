@@ -208,12 +208,14 @@ Dependencies have increased minimum versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We have updated our minimum supported versions of dependencies (:issue:`21242`).
-We now require:
+If installed, we now require:
 
 +-----------------+-----------------+----------+---------------+
 | Package         | Minimum Version | Required |     Issue     |
 +=================+=================+==========+===============+
 | numpy           | 1.12.0          |    X     | :issue:`21242`|
++-----------------+-----------------+----------+---------------+
+| bottleneck      | 1.2.0           |          | :issue:`21242`|
 +-----------------+-----------------+----------+---------------+
 
 .. _whatsnew_0240.api_breaking.interval_values:

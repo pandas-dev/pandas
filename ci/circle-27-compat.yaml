@@ -3,7 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - bottleneck=1.0.0
+  - bottleneck=1.2.0
   - cython=0.28.2
   - jinja2=2.8
   - numexpr=2.4.4 # we test that we correctly don't use an unsupported numexpr

@@ -240,7 +240,7 @@ Recommended Dependencies
 
 * `bottleneck <https://github.com/kwgoodman/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
-  must be Version 1.0.0 or higher.
+  must be Version 1.2.0 or higher.
 
 .. note::
 

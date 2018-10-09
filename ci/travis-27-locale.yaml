@@ -3,7 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - bottleneck=1.0.0
+  - bottleneck=1.2.0
   - cython=0.28.2
   - lxml
   - matplotlib=1.4.3
