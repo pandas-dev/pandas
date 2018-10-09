@@ -11,7 +11,7 @@ dependencies:
   - matplotlib
   - nomkl
   - numexpr
-  - numpy=1.12.1
+  - numpy=1.12.0
   - openpyxl=2.5.5
   - pytables
   - python=3.5*

@@ -266,7 +266,7 @@ Optional Dependencies
     * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
     * `SQLite <https://docs.python.org/3/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
 
-* `matplotlib <http://matplotlib.org/>`__: for plotting, Version 1.4.3 or higher.
+* `matplotlib <http://matplotlib.org/>`__: for plotting, Version 2.0.0 or higher.
 * For Excel I/O:
 
     * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
