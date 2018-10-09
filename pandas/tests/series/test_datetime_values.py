@@ -18,6 +18,7 @@ from pandas import (Index, Series, DataFrame, bdate_range,
                     PeriodIndex, DatetimeIndex, TimedeltaIndex,
                     compat)
 import pandas.core.common as com
+from pandas.core.arrays import PeriodArray
 from pandas._libs.tslibs.timezones import maybe_get_tz
 
 from pandas.util.testing import assert_series_equal
@@ -31,7 +32,7 @@ class TestSeriesDatetimeValues():
         # GH 7207, 11128
         # test .dt namespace accessor
 
-        ok_for_period = PeriodIndex._datetimelike_ops
+        ok_for_period = PeriodArray._datetimelike_ops
         ok_for_period_methods = ['strftime', 'to_timestamp', 'asfreq']
         ok_for_dt = DatetimeIndex._datetimelike_ops
         ok_for_dt_methods = ['to_period', 'to_pydatetime', 'tz_localize',
@@ -195,12 +196,6 @@ class TestSeriesDatetimeValues():
         tm.assert_almost_equal(
             results, list(sorted(set(ok_for_dt + ok_for_dt_methods))))
 
-        s = Series(period_range('20130101', periods=5,
-                                freq='D', name='xxx').astype(object))
-        results = get_dir(s)
-        tm.assert_almost_equal(
-            results, list(sorted(set(ok_for_period + ok_for_period_methods))))
-
         # 11295
         # ambiguous time error on the conversions
         s = Series(pd.date_range('2015-01-01', '2016-01-01',
@@ -223,6 +218,13 @@ class TestSeriesDatetimeValues():
         with pd.option_context('chained_assignment', 'raise'):
             with pytest.raises(com.SettingWithCopyError):
                 s.dt.hour[0] = 5
+
+        # XXX: Series.dt no longer works for Series[object[Period]].
+        # I think that's OK, but want a +1.
+        s = Series(period_range('20130101', periods=5,
+                                freq='D', name='xxx').astype(object))
+        with tm.assert_raises_regex(AttributeError, "Can only use .dt"):
+            results = get_dir(s)
 
     @pytest.mark.parametrize('method, dates', [
         ['round', ['2012-01-02', '2012-01-02', '2012-01-01']],

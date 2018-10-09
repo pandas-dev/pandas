@@ -335,6 +335,8 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         return new_values
 
     def __setitem__(self, key, value):
+        from pandas.core.dtypes.missing import isna
+
         if isinstance(value, (compat.Sequence, type(self))):
             if len(key) != len(value) and not com.is_bool_indexer(key):
                 msg = ("shape mismatch: value array of length '{}' does not "
@@ -356,7 +358,9 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
                 raise IncompatibleFrequency(msg)
 
             value = value.ordinal
-        elif isinstance(value, (type(None), type(NaT))):
+        elif isna(value):
+            # Previously we allowed setting np.nan on a Series[object]
+            # do we still want to allow that, or should we require None / NaT?
             value = iNaT
         else:
             msg = ("'value' should be a 'Period', 'NaT', or array of those. "

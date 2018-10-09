@@ -76,7 +76,10 @@ class PeriodDelegateMixin(PandasDelegate):
     """
     def _delegate_property_get(self, name, *args, **kwargs):
         result = getattr(self._data, name)
-        if name in PeriodArray._datetimelike_ops:
+        box_ops = (
+            set(PeriodArray._datetimelike_ops) - set(PeriodArray._bool_ops)
+        )
+        if name in box_ops:
             result = Index(result, name=self.name)
         return result
 
@@ -84,7 +87,8 @@ class PeriodDelegateMixin(PandasDelegate):
         setattr(self._data, name, value)
 
     def _delegate_method(self, name, *args, **kwargs):
-        return operator.methodcaller(name, *args, **kwargs)(self._data)
+        result = operator.methodcaller(name, *args, **kwargs)(self._data)
+        return Index(result, name=self.name)
 
 
 @delegate_names(
@@ -809,12 +813,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                 np.ndarray.__setstate__(data, nd_state)
 
                 # backcompat
-                self._freq = Period._maybe_convert_freq(own_state[1])
+                freq = Period._maybe_convert_freq(own_state[1])
 
             else:  # pragma: no cover
                 data = np.empty(state)
                 np.ndarray.__setstate__(self, state)
+                freq = None  # ?
 
+            data = PeriodArray._from_ordinals(data, freq=freq)
             self._data = data
 
         else:

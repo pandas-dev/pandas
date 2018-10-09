@@ -862,10 +862,9 @@ class TestSeriesConstructors():
 
         pi = period_range('20130101', periods=5, freq='D')
         s = Series(pi)
+        assert s.dtype == 'Period[D]'
         expected = Series(pi.astype(object))
-        assert_series_equal(s, expected)
-
-        assert s.dtype == 'object'
+        assert_series_equal(s.astype(object), expected)
 
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}
@@ -1141,7 +1140,12 @@ class TestSeriesConstructors():
     def test_constructor_cant_cast_datetimelike(self, index):
 
         # floats are not ok
-        msg = "Cannot cast {} to ".format(type(index).__name__)
+        msg = "Cannot cast {}.*? to ".format(
+            # strip Index to convert PeriodIndex -> Period
+            # We don't care whether the error message says
+            # PeriodIndex or PeriodArray
+            type(index).__name__.rstrip("Index")
+        )
         with tm.assert_raises_regex(TypeError, msg):
             Series(index, dtype=float)
 

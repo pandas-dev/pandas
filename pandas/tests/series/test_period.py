@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
+from pandas.core.arrays import PeriodArray
 from pandas import Series, period_range, DataFrame, Period
 
 
@@ -30,9 +31,9 @@ class TestSeriesPeriod(object):
         result = self.series[[2, 4]]
         exp = pd.Series([pd.Period('2000-01-03', freq='D'),
                          pd.Period('2000-01-05', freq='D')],
-                        index=[2, 4])
+                        index=[2, 4], dtype='Period[D]')
         tm.assert_series_equal(result, exp)
-        assert result.dtype == 'object'
+        assert result.dtype == 'Period[D]'
 
     def test_isna(self):
         # GH 13737
@@ -91,19 +92,20 @@ class TestSeriesPeriod(object):
         expected = Series([pd.NaT])
         tm.assert_series_equal(result, expected)
 
-    def test_set_none_nan(self):
-        # currently Period is stored as object dtype, not as NaT
+    def test_set_none(self):
         self.series[3] = None
-        assert self.series[3] is None
+        assert self.series[3] is pd.NaT
 
         self.series[3:5] = None
-        assert self.series[4] is None
+        assert self.series[4] is pd.NaT
 
+    def test_set_nan(self):
+        # Do we want to allow this?
         self.series[5] = np.nan
-        assert np.isnan(self.series[5])
+        assert self.series[5] is pd.NaT
 
         self.series[5:7] = np.nan
-        assert np.isnan(self.series[6])
+        assert self.series[6] is pd.NaT
 
     def test_intercept_astype_object(self):
         expected = self.series.astype('object')
@@ -184,6 +186,7 @@ class TestSeriesPeriod(object):
         # GH 17157
         # Check that the time part of the Period is adjusted by end_time
         # when using the dt accessor on a Series
+        input_vals = PeriodArray._from_periods(np.asarray(input_vals))
 
         s = Series(input_vals)
         result = s.dt.end_time

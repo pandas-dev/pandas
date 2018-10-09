@@ -5115,6 +5115,8 @@ class DataFrame(NDFrame):
             # see if we need to be represented as i8 (datetimelike)
             # try to keep us at this dtype
             needs_i8_conversion_i = needs_i8_conversion(new_dtype)
+            # Is this third argument documented? The docs say func is binary
+            # don't mention needs_i8_conversion...
             if needs_i8_conversion_i:
                 arr = func(series, otherSeries, True)
             else:
@@ -5189,7 +5191,13 @@ class DataFrame(NDFrame):
             if y.name not in self.columns:
                 return y_values
 
-            return expressions.where(mask, y_values, x_values)
+            result = expressions.where(mask, y_values, x_values)
+            # if needs_i8_conversion:
+            # TODO: handle all these
+            from pandas.core.dtypes.common import is_period_dtype
+            if is_period_dtype(x):
+                result = x.values._simple_new(result, freq=x.values.freq)
+            return result
 
         return self.combine(other, combiner, overwrite=False)
 
