@@ -382,6 +382,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if not len(self) == len(other):
             raise ValueError("cannot add indices of unequal length")
 
+        if isinstance(other, np.ndarray):
+            # ndarray[timedelta64]; wrap in TimedeltaIndex for op
+            from pandas import TimedeltaIndex
+            other = TimedeltaIndex(other)
+
         self_i8 = self.asi8
         other_i8 = other.asi8
         new_values = checked_add_with_arr(self_i8, other_i8,
