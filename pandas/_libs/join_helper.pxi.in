@@ -93,6 +93,7 @@ def get_dispatch(dtypes):
 
 {{for name, c_type, dtype in get_dispatch(dtypes)}}
 
+
 # @cython.wraparound(False)
 # @cython.boundscheck(False)
 def left_join_indexer_{{name}}(ndarray[{{c_type}}] left,
