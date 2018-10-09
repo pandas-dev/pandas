@@ -499,8 +499,8 @@ operations has been changed to match the arithmetic operations in these cases.
 
 The affected cases are:
   - operating against a 2-dimensional ``np.ndarray`` with either 1 row or 1 column
-  - a list or tuple with the same length matching the number of rows in the :class:`DataFrame`
-  - a list or tuple with thlength matching the number of columns in the :class:`DataFrame`.
+  - a list or tuple with length matching the number of rows in the :class:`DataFrame`
+  - a list or tuple with length matching the number of columns in the :class:`DataFrame`.
 
 Previous Behavior:
 
@@ -551,11 +551,22 @@ Previous Behavior:
 
    arr = np.arange(6).reshape(3, 2)
    df = pd.DataFrame(arr)
-   df == arr[[0], :]  # raises just like the next arithmetic operation
+
+.. ipython:: python
+   :okexcept:
+   # comparison and arithmetic both raise
+   df == arr[[0], :]
    df + arr[[0], :]
-   df == (1, 2)       # broadcasts just like the next arithmetic operation
+
+.. ipython:: python
+   # comparison and arithmetic broadcast the same way
+   df == (1, 2)
    df + (1, 2)
-   df == (1, 2, 3)    # raises just like the next arithmetic operation
+
+.. ipython:: python
+   :okexcept:
+   # comparison and arithmetic both raise
+   df == (1, 2, 3)
    df + (1, 2, 3)
 
 
