@@ -77,6 +77,16 @@ class TestDataFrameConcatCommon(TestData):
 
         assert_frame_equal(result, expected)
 
+    def test_concat_tz_not_aligned(self):
+        # GH 22796
+        ts = pd.to_datetime([1, 2]).tz_localize("UTC")
+        a = pd.DataFrame({"A": ts})
+        b = pd.DataFrame({"A": ts, "B": ts})
+        result = pd.concat([a, b], sort=True, ignore_index=True)
+        expected = pd.DataFrame({"A": list(ts) + list(ts),
+                                 "B": [pd.NaT, pd.NaT] + list(ts)})
+        assert_frame_equal(result, expected)
+
     def test_concat_tuple_keys(self):
         # GH 14438
         df1 = pd.DataFrame(np.ones((2, 2)), columns=list('AB'))

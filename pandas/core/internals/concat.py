@@ -189,7 +189,7 @@ class JoinUnit(object):
                     if self.block is None:
                         array = empty_dtype.construct_array_type()
                         missing_arr = array([fill_value], dtype=empty_dtype)
-                        return missing_arr.repeat(self.shape[0])
+                        return missing_arr.repeat(self.shape[1])
                     pass
                 elif getattr(self.block, 'is_categorical', False):
                     pass
