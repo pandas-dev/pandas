@@ -795,7 +795,8 @@ def _pop_header_name(row, index_col):
         return none_fill(row[0]), row[1:]
     else:
         # pop out header name and fill w/ blank
-        i = index_col if not is_list_like(index_col, strict=False) else max(index_col)
+        i = (index_col if not is_list_like(index_col, strict=False)
+             else max(index_col))
         return none_fill(row[i]), row[:i] + [''] + row[i + 1:]
 
 
