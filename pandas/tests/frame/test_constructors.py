@@ -2104,6 +2104,15 @@ class TestDataFrameConstructors(TestData):
         for r in results:
             tm.assert_frame_equal(r, df)
 
+    @pytest.mark.skipif(not PY36, reason='Insertion order for Python>=3.6')
+    def test_from_records_dict_order_insertion(self):
+        # GH 22687
+        # initialization ordering: by insertion order if python>= 3.6
+        d = {'b': self.ts2, 'a': self.ts1}
+        frame = DataFrame.from_records(data=d)
+        expected = DataFrame(data=d, columns=list('ba'))
+        tm.assert_frame_equal(frame, expected)
+
     def test_from_records_with_index_data(self):
         df = DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
 
