@@ -916,7 +916,6 @@ Sparse
 - Providing a ``sparse_index`` to the SparseArray constructor no longer defaults the na-value to ``np.nan`` for all dtypes. The correct na_value for ``data.dtype`` is now used.
 - Bug in ``SparseArray.nbytes`` under-reporting its memory usage by not including the size of its sparse index.
 - Improved performance of :meth:`Series.shift` for non-NA ``fill_value``, as values are no longer converted to a dense array.
-- A SparseDtype with boolean subtype is considered bool by :meth:`api.types.is_bool_dtype`.
 - Bug in ``DataFrame.groupby`` not including ``fill_value`` in the groups for non-NA ``fill_value`` when grouping by a sparse column (:issue:`5078`)
 - Bug in unary inversion operator (``~``) on a ``SparseSeries`` with boolean values. The performance of this has also been improved (:issue:`22835`)
 
