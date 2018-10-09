@@ -1154,29 +1154,32 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         **Series**
 
-        >>> s = pd.Series([1, 2, 3])
-        >>> s.rename_axis("foo")
-        foo
-        0    1
-        1    2
-        2    3
-        dtype: int64
+        >>> s = pd.Series(["dog", "cat", "monkey"])
+        >>> s.rename_axis("animal")
+        animal
+        0    dog
+        1    cat
+        2    monkey
+        dtype: object
 
         **DataFrame**
 
-        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.rename_axis("foo")
-             A  B
-        foo
-        0    1  4
-        1    2  5
-        2    3  6
-
-        >>> df.rename_axis("bar", axis="columns")
-        bar  A  B
-        0    1  4
-        1    2  5
-        2    3  6
+        >>> df = pd.DataFrame({"name": ["dog", "cat", "monkey"], "legs": [4, 4, 2]})
+             name  legs
+        0     dog     4
+        1     cat     4
+        2  monkey     2
+        >>> df.rename_axis("animal")
+                  name  legs
+        animal
+        0          dog     4
+        1          cat     4
+        2       monkey     2
+        >>> df.rename_axis("id", axis="columns")
+        id    name  legs
+        0      dog     4
+        1      cat     4
+        2   monkey     2
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
