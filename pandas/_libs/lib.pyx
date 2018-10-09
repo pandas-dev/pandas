@@ -156,7 +156,7 @@ def is_scalar(val: object) -> bool:
 
     return (cnp.PyArray_IsAnyScalar(val)
             # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
-            or isinstance(val,(bytes, Fraction, Number))
+            or isinstance(val, (bytes, Fraction, Number))
             # We differ from numpy (as of 1.10), which claims that None is
             # not scalar in np.isscalar().
             or val is None
@@ -167,6 +167,7 @@ def is_scalar(val: object) -> bool:
             or is_decimal(val)
             or is_interval(val)
             or util.is_offset_object(val))
+
 
 def item_from_zerodim(val: object) -> object:
     """

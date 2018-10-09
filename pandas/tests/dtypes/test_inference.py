@@ -1250,6 +1250,7 @@ class TestIsScalar(object):
         assert not is_scalar(Index([]))
         assert not is_scalar(Index([1]))
 
+
 def test_datetimeindex_from_empty_datetime64_array():
     for unit in ['ms', 'us', 'ns']:
         idx = DatetimeIndex(np.array([], dtype='datetime64[%s]' % unit))
