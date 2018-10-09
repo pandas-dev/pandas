@@ -11,8 +11,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Series, Categorical, DataFrame, isna, notna,
-                    bdate_range, date_range, _np_version_under1p10,
-                    CategoricalIndex)
+                    bdate_range, date_range, CategoricalIndex)
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
@@ -1246,12 +1245,11 @@ class TestSeriesAnalytics(TestData):
 
         assert result == 1
 
-        if not _np_version_under1p10:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                msg = "the 'out' parameter is not supported"
-                tm.assert_raises_regex(ValueError, msg, np.argmin,
-                                       s, out=data)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            msg = "the 'out' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.argmin,
+                                   s, out=data)
 
     def test_idxmax(self):
         # test idxmax
@@ -1315,12 +1313,11 @@ class TestSeriesAnalytics(TestData):
 
         assert result == 10
 
-        if not _np_version_under1p10:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                msg = "the 'out' parameter is not supported"
-                tm.assert_raises_regex(ValueError, msg, np.argmax,
-                                       s, out=data)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            msg = "the 'out' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.argmax,
+                                   s, out=data)
 
     def test_ptp(self):
         # GH21614

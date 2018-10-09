@@ -15,7 +15,6 @@ import numpy as np
 from pandas.compat import lrange, PY35
 from pandas import (compat, isna, notna, DataFrame, Series,
                     MultiIndex, date_range, Timestamp, Categorical,
-                    _np_version_under1p12,
                     to_datetime, to_timedelta)
 import pandas as pd
 import pandas.core.nanops as nanops
@@ -2021,9 +2020,6 @@ class TestDataFrameAnalytics():
 
     @pytest.mark.skipif(not PY35,
                         reason='matmul supported for Python>=3.5')
-    @pytest.mark.xfail(
-        _np_version_under1p12,
-        reason="unpredictable return types under numpy < 1.12")
     def test_matmul(self):
         # matmul test is for GH 10259
         a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],

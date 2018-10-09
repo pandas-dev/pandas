@@ -30,7 +30,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int, ensure_object,
     ensure_float64, ensure_uint64,
     ensure_int64)
-from pandas.compat.numpy import _np_version_under1p10
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
@@ -914,15 +913,7 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
         """
         Helper function to broadcast arrays / scalars to the desired shape.
         """
-        if _np_version_under1p10:
-            if is_scalar(arr_or_scalar):
-                out = np.empty(shape)
-                out.fill(arr_or_scalar)
-            else:
-                out = arr_or_scalar
-        else:
-            out = np.broadcast_to(arr_or_scalar, shape)
-        return out
+        return np.broadcast_to(arr_or_scalar, shape)
 
     # For performance reasons, we broadcast 'b' to the new array 'b2'
     # so that it has the same size as 'arr'.

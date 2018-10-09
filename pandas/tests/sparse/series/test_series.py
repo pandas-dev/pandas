@@ -9,8 +9,7 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
-from pandas import (Series, DataFrame, bdate_range,
-                    isna, compat, _np_version_under1p12)
+from pandas import Series, DataFrame, bdate_range, isna, compat
 from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
@@ -551,17 +550,16 @@ class TestSparseSeries(SharedWithSparse):
         sp = SparseSeries([1.0, 2.0, 3.0])
         indices = [1, 2]
 
-        if not _np_version_under1p12:
-            tm.assert_series_equal(np.take(sp, indices, axis=0).to_dense(),
-                                   np.take(sp.to_dense(), indices, axis=0))
+        tm.assert_series_equal(np.take(sp, indices, axis=0).to_dense(),
+                               np.take(sp.to_dense(), indices, axis=0))
 
-            msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.take,
-                                   sp, indices, out=np.empty(sp.shape))
+        msg = "the 'out' parameter is not supported"
+        tm.assert_raises_regex(ValueError, msg, np.take,
+                               sp, indices, out=np.empty(sp.shape))
 
-            msg = "the 'mode' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.take,
-                                   sp, indices, out=None, mode='clip')
+        msg = "the 'mode' parameter is not supported"
+        tm.assert_raises_regex(ValueError, msg, np.take,
+                               sp, indices, out=None, mode='clip')
 
     def test_setitem(self):
         self.bseries[5] = 7.
