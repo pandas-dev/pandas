@@ -526,6 +526,15 @@ Previous Behavior:
 ExtensionType Changes
 ^^^^^^^^^^^^^^^^^^^^^
 
+**:class:`pandas.api.extensions.ExtensionDtype` Equality and Hashability**
+
+Pandas now requires that extension dtypes be hashable. The base class implements
+a default ``__eq__`` and ``__hash__``. If you have a parametrized dtype, you should
+update the ``ExtensionDtype._metadata`` tuple to match the signature of your
+``__init__`` method. See :class:`pandas.api.extensions.ExtensionDtype` for more (:issue:`22476`).
+
+**Other changes**
+
 - ``ExtensionArray`` has gained the abstract methods ``.dropna()`` (:issue:`21185`)
 - ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
   the ``ExtensionDtype`` has gained the method ``construct_array_type`` (:issue:`21185`)
@@ -637,7 +646,7 @@ Deprecations
 - :meth:`Series.str.cat` has deprecated using arbitrary list-likes *within* list-likes. A list-like container may still contain
   many ``Series``, ``Index`` or 1-dimensional ``np.ndarray``, or alternatively, only scalar values. (:issue:`21950`)
 - :meth:`FrozenNDArray.searchsorted` has deprecated the ``v`` parameter in favor of ``value`` (:issue:`14645`)
-- :func:`DatetimeIndex.shift` now accepts ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`)
+- :func:`DatetimeIndex.shift` and :func:`PeriodIndex.shift` now accept ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`, :issue:`22912`)
 
 .. _whatsnew_0240.prior_deprecations:
 
