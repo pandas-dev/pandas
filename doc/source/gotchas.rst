@@ -336,3 +336,91 @@ constructors using something similar to the following:
 See `the NumPy documentation on byte order
 <https://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more
 details.
+
+
+Alternative to storing lists in DataFrame Cells
+------------------------------------------------------
+Storing nested lists/arrays inside a pandas object should be avoided for performance and memory use reasons. Instead they should be "exploded" into a flat ``DataFrame`` structure.
+
+Example of exploding nested lists into a DataFrame:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'name': ['A.J. Price'] * 3, 
+                      'opponent': ['76ers', 'blazers', 'bobcats']},
+                     columns=['name','opponent'])
+   df
+
+   nearest_neighbors = [['Zach LaVine', 'Jeremy Lin', 'Nate Robinson', 'Isaia']]*3
+   nearest_neighbors
+
+   #. Create an index with the "parent" columns to be included in the final Dataframe
+   df2 = pd.concat([df[['name','opponent']], pd.DataFrame(nearest_neighbors)], axis=1)
+   df2
+
+   #. Transform the column with lists into series, which become columns in a new Dataframe.
+   #    Note that only the index from the original df is retained - 
+   #    any other columns in the original df are not part of the new df
+   df3 = df2.set_index(['name', 'opponent'])
+   df3
+
+   #. Stack the new columns as rows; this creates a new index level we'll want to drop in the next step.
+   #    Note that at this point we have a Series, not a Dataframe
+   ser = df3.stack()
+   ser
+
+   #. Drop the extraneous index level created by the stack
+   ser.reset_index(level=2, drop=True, inplace=True)
+   ser
+
+   #. Create a Dataframe from the Series
+   df4 = ser.to_frame('nearest_neighbors')
+   df4
+
+   # All steps in one stack
+   df4 = (df2.set_index(['name', 'opponent'])
+           .stack()
+           .reset_index(level=2, drop=True)
+           .to_frame('nearest_neighbors'))
+   df4
+
+Example of exploding a list embedded in a dataframe:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'name': ['A.J. Price'] * 3, 
+                      'opponent': ['76ers', 'blazers', 'bobcats'], 
+                      'nearest_neighbors': [['Zach LaVine', 'Jeremy Lin', 'Nate Robinson', 'Isaia']] * 3},
+                     columns=['name','opponent','nearest_neighbors'])
+   df
+
+   #. Create an index with the "parent" columns to be included in the final Dataframe
+   df2 = df.set_index(['name', 'opponent'])
+   df2
+
+   #. Transform the column with lists into series, which become columns in a new Dataframe.
+   #    Note that only the index from the original df is retained - 
+   #    any other columns in the original df are not part of the new df
+   df3 = df2.nearest_neighbors.apply(pd.Series)
+   df3
+
+   #. Stack the new columns as rows; this creates a new index level we'll want to drop in the next step.
+   #    Note that at this point we have a Series, not a Dataframe
+   ser = df3.stack()
+   ser
+
+   #. Drop the extraneous index level created by the stack
+   ser.reset_index(level=2, drop=True, inplace=True)
+   ser
+
+   #. Create a Dataframe from the Series
+   df4 = ser.to_frame('nearest_neighbors')
+   df4
+
+   # All steps in one stack
+   df4 = (df.set_index(['name', 'opponent'])
+           .nearest_neighbors.apply(pd.Series)
+           .stack()
+           .reset_index(level=2, drop=True)
+           .to_frame('nearest_neighbors'))
+   df4
