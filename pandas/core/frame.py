@@ -5095,9 +5095,17 @@ class DataFrame(NDFrame):
                 series[this_mask] = fill_value
                 otherSeries[other_mask] = fill_value
 
-            # if we have different dtypes, possibly promote
-            new_dtype = this_dtype
-            if not is_dtype_equal(this_dtype, other_dtype):
+            if col not in self.columns:
+                # If self DataFrame does not have col in other DataFrame,
+                # try to promote series, which is all NaN, as other_dtype.
+                new_dtype = other_dtype
+                try:
+                    series = series.astype(new_dtype, copy=False)
+                except ValueError:
+                    # e.g. new_dtype is integer types
+                    pass
+            else:
+                # if we have different dtypes, possibly promote
                 new_dtype = find_common_type([this_dtype, other_dtype])
                 if not is_dtype_equal(this_dtype, new_dtype):
                     series = series.astype(new_dtype)
@@ -5175,6 +5183,11 @@ class DataFrame(NDFrame):
                 y_values = y_values.view('i8')
             else:
                 mask = isna(x_values)
+
+            # If the column y in other DataFrame is not in first DataFrame,
+            # just return y_values.
+            if y.name not in self.columns:
+                return y_values
 
             return expressions.where(mask, y_values, x_values)
 
