@@ -637,7 +637,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                                 .format(dtype=other.dtype,
                                         cls=type(self).__name__))
             elif is_period_dtype(other):
-                # PeriodIndex + TimedeltaIndex _sometimes_ is valid
+                # if self is a TimedeltaArray and other is a PeriodArray with
+                #  a timedelta-like (i.e. Tick) freq, this operation is valid.
+                #  Defer to the PeriodArray implementation.
+                # In remaining cases, this will end up raising TypeError.
                 return NotImplemented
             elif is_extension_array_dtype(other):
                 # Categorical op will raise; defer explicitly
