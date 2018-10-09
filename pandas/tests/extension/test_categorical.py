@@ -140,11 +140,11 @@ class TestGetitem(base.BaseGetitemTests):
     def test_reindex_non_na_fill_value(self):
         pass
 
-    @pytest.mark.xfail(reason="Categorical.take buggy")
+    @pytest.mark.skip(reason="Categorical.take buggy")
     def test_take_empty(self):
         pass
 
-    @pytest.mark.xfail(reason="test not written correctly for categorical")
+    @pytest.mark.skip(reason="test not written correctly for categorical")
     def test_reindex(self):
         pass
 
@@ -207,6 +207,11 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         ser = pd.Series(data)
         with tm.assert_raises_regex(TypeError, "cannot perform"):
             ser + data
+
+    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
+        return super(TestArithmeticOps, self)._check_divmod_op(
+            s, op, other, exc=TypeError
+        )
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):

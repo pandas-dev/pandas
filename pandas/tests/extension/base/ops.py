@@ -71,7 +71,8 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         s = pd.Series(data)
         self.check_opname(s, op_name, s.iloc[0], exc=self.series_scalar_exc)
 
-    @pytest.mark.xfail(run=False, reason="_reduce needs implementation")
+    @pytest.mark.xfail(run=False, reason="_reduce needs implementation",
+                       strict=True)
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op_name = all_arithmetic_operators
@@ -89,6 +90,10 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         s = pd.Series(data)
         self._check_divmod_op(s, divmod, 1, exc=self.divmod_exc)
         self._check_divmod_op(1, ops.rdivmod, s, exc=self.divmod_exc)
+
+    def test_divmod_series_array(self, data):
+        s = pd.Series(data)
+        self._check_divmod_op(s, divmod, data)
 
     def test_add_series_with_extension_array(self, data):
         s = pd.Series(data)

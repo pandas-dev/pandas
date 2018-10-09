@@ -552,6 +552,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         See Also
         --------
         Index.shift : Shift values of Index.
+        PeriodIndex.shift : Shift values of PeriodIndex.
         """
         return self._time_shift(periods=periods, freq=freq)
 
