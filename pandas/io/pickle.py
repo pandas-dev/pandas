@@ -165,13 +165,13 @@ def read_pickle(path, compression='infer'):
                 return read_wrapper(lambda f: pkl.load(f))
         except Exception:  # noqa: E722
             # reg/patched pickle
-            # compat not used in pandas/compat/pickle_compat.py::load 
+            # compat not used in pandas/compat/pickle_compat.py::load
             # TODO: remove except block OR modify load to use compat
             try:
                 return read_wrapper(
                     lambda f: pc.load(f, encoding=encoding, compat=False))
             # compat pickle
-            except:
+            except Exception:  # noqa: E722
                 return read_wrapper(
                     lambda f: pc.load(f, encoding=encoding, compat=True))
     try:
