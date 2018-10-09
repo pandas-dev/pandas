@@ -88,18 +88,15 @@ class PeriodDelegateMixin(PandasDelegate):
 
     def _delegate_method(self, name, *args, **kwargs):
         result = operator.methodcaller(name, *args, **kwargs)(self._data)
+        raw = {'_format_native_types'}
+        if name in raw:
+            return result
         return Index(result, name=self.name)
 
 
-@delegate_names(
-    PeriodArray,
-    PeriodArray._datetimelike_ops + [
-        'size',
-        'asi8',
-        'shape',
-    ],
-    "property"
-)
+@delegate_names(PeriodArray,
+                PeriodArray._datetimelike_ops + ['size', 'asi8', 'shape'],
+                typ='property')
 @delegate_names(
     PeriodArray,
     [x for x in PeriodArray._datetimelike_methods
@@ -107,8 +104,7 @@ class PeriodDelegateMixin(PandasDelegate):
         '_format_native_types',
         '_maybe_convert_timedelta',
     ],
-    "method",
-    # overwrite size, asi8, etc. but not asfreq, to_timestamp
+    typ="method",
     overwrite=True,
 )
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,

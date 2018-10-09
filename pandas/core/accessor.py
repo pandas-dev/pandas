@@ -121,7 +121,8 @@ def delegate_names(delegate, accessors, typ, overwrite=False):
 
     Returns
     -------
-    decorator
+    callable
+        A class decorator
 
     Examples
     --------
