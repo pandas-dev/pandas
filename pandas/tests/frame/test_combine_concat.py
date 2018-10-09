@@ -18,8 +18,6 @@ from pandas.tests.frame.common import TestData
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
-import pytest
-
 
 class TestDataFrameConcatCommon(TestData):
 
