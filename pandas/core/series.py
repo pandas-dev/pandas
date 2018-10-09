@@ -3,6 +3,10 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import division
 
+# pylint: disable=E1101,E1103combine
+# pylint: disable=W0703,W0622,W0613,W0201
+
+import warnings
 from textwrap import dedent
 import warnings
 
@@ -2287,7 +2291,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         selection for combined Series.
         `fill_value` is assumed when value is missing from one
         of the two objects being combined at some index.
-        
+
         Parameters
         ----------
         other : Series or scalar
@@ -2302,7 +2306,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         Series
-            A combined Series object. 
+            A combined Series object.
+
+        See Also
+        --------
+        Series.combine_first : Combine Series values, choosing the calling
+                                Series' values first
 
         Examples
         --------
@@ -2332,11 +2341,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         If `func` doesn't get a value from either of the two Series,
         fill_value` is used.
-
-        See Also
-        --------
-        Series.combine_first : Combine Series values, choosing the calling
-                                Series' values first
         """
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
