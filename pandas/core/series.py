@@ -2281,23 +2281,23 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def combine(self, other, func, fill_value=None):
         """
-        Combine the Series with a Series or Scalar according to `func`.
+        Combine the Series with a Series or scalar according to `func`.
 
-        Perform elementwise binary operation on two Series using given function
-        with optional `fill_value` when an index is missing from the Series or
-        the other value.
-
+        Combine the Series and `other` using `func` to perform elementwise
+        selection for combined Series.
+        `fill_value` is assumed when value is missing from one
+        of the two objects being combined at some index.
+        
         Parameters
         ----------
-        other : Series or Scalar
+        other : Series or scalar
             The value(s) to be combined with the `Series`.
-        func : Function
-            `function` that takes two Scalars as inputs and returns a `bool`.
-        fill_value : Scalar
-            The optional value to assume when an index
-            is missing from one Series or the other,
-            The default specifies to use the appropriate NaN value for
-            the underlying dtype of the Series.
+        func : function
+            Function that takes two scalars as inputs and returns a `bool`.
+        fill_value : scalar
+            The optional value to assume when an index is missing from
+            one Series or the other. The default specifies to use the
+            appropriate NaN value for the underlying dtype of the Series.
 
         Returns
         -------
@@ -2306,14 +2306,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Examples
         --------
         >>> import pandas as pd
-        >>> s1 = pd.Series([1,2])
-        >>> s2 = pd.Series([0,3])
+        >>> s1 = pd.Series([1, 2])
+        >>> s2 = pd.Series([0, 3])
         >>> s1.combine(s2, lambda x1, x2: x1 if x1 < x2 else x2)
         0    0
         1    2
         dtype: int64
 
-        >>> s2 = pd.Series([0,3,4])
+        >>> s2 = pd.Series([0, 3, 4])
         >>> s1.combine(s2, lambda x1, x2: x1 if x1 > x2 else x2)
         0    1
         1    3
