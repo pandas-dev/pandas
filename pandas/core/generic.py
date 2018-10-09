@@ -1200,11 +1200,11 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         name : str or list of str
             Labels(s) to set.
-        axis : int or str, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to set the label. The value 0 or 'index' specifies index,
             and the value 1 or 'columns' specifies columns.
-        inplace : bool, default False
-            Whether to modify `self` directly or return a copy.
+        inplace : boolean, default False
+            If `True`, do operation inplace and return None.
 
             .. versionadded:: 0.21.0
 
@@ -1222,20 +1222,24 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": [1, 2, 3]})
-        >>> df._set_axis_name("foo")
-             A
-        foo
-        0    1
-        1    2
-        2    3
-        >>> df.index = pd.MultiIndex.from_product([['A'], ['a', 'b', 'c']])
-        >>> df._set_axis_name(["bar", "baz"])
-                 A
-        bar baz
-        A   a    1
-            b    2
-            c    3
+        >>> df = pd.DataFrame({"legs": [4, 4, 2]})
+             legs
+        0    4
+        1    4
+        2    2
+        >>> df._set_axis_name("animal")
+                legs
+        animal
+        0          4
+        1          2
+        2          0
+        >>> df.index = pd.MultiIndex.from_product([["mammal"], ['dog', 'cat', 'monkey']])
+        >>> df._set_axis_name(["type", "name"])
+                       legs
+        type   name
+        mammal dog        4
+               cat        4
+               monkey     2
         """
         axis = self._get_axis_number(axis)
         idx = self._get_axis(axis).set_names(name)
