@@ -331,8 +331,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         return result
 
     def to_timestamp(self, freq=None, how='start'):
+        from pandas import DatetimeIndex
         result = self._data.to_timestamp(freq=freq, how=how)
-        return result._simple_new(result, name=self.name)
+        return DatetimeIndex._simple_new(result, name=self.name)
 
     # ------------------------------------------------------------------------
     # Indexing

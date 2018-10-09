@@ -244,15 +244,6 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         return cls._from_periods(data, freq=freq)
 
     @classmethod
-    def _from_ordinals(cls, values, freq=None):
-        # type: (ndarray[int], Optional[Tick]) -> PeriodArray
-        """
-        Values should be int ordinals
-        `__new__` & `_simple_new` coerce to ordinals and call this method
-        """
-        return cls(values, freq=freq)
-
-    @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         # type: (Sequence[Optional[Period]], Dtype, bool) -> PeriodArray
         if dtype:
@@ -264,6 +255,15 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     def _from_factorized(cls, values, original):
         # type: (Sequence[Optional[Period]], PeriodArray) -> PeriodArray
         return cls._from_periods(values, freq=original.freq)
+
+    @classmethod
+    def _from_ordinals(cls, values, freq=None):
+        # type: (ndarray[int], Optional[Tick]) -> PeriodArray
+        """
+        Values should be int ordinals
+        `__new__` & `_simple_new` coerce to ordinals and call this method
+        """
+        return cls(values, freq=freq)
 
     @classmethod
     def _from_periods(cls, periods, freq=None):
@@ -280,11 +280,11 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         ----------
         data : ndarray[datetime64[ns], datetime64[ns, tz]]
         freq : str or Tick
-        tz : tzinfo, option
+        tz : tzinfo, optional
 
         Returns
         -------
-
+        PeriodArray[freq]
         """
         data = dt64arr_to_periodarr(data, freq, tz)
         return cls._simple_new(data, freq=freq)
@@ -869,8 +869,6 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
 PeriodArray._add_comparison_ops()
 PeriodArray._add_datetimelike_methods()
-# PeriodArray._add_numeric_methods_disabled()
-# PeriodArray._add_logical_methods_disabled()
 
 
 # -------------------------------------------------------------------
