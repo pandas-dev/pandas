@@ -1164,22 +1164,24 @@ class NDFrame(PandasObject, SelectionMixin):
 
         **DataFrame**
 
-        >>> df = pd.DataFrame({"name": ["dog", "cat", "monkey"], "legs": [4, 4, 2]})
-             name  legs
-        0     dog     4
-        1     cat     4
-        2  monkey     2
+        >>> df = pd.DataFrame({"num_legs": [4, 4, 2],
+        ...                   "num_arms": [0, 0, 2]},
+        ...                   ["dog", "cat", "monkey"])
+                num_legs  num_arms
+        dog            4         0
+        cat            4         0
+        monkey         2         2
         >>> df.rename_axis("animal")
-                  name  legs
+                num_legs  num_arms
         animal
-        0          dog     4
-        1          cat     4
-        2       monkey     2
-        >>> df.rename_axis("id", axis="columns")
-        id    name  legs
-        0      dog     4
-        1      cat     4
-        2   monkey     2
+        dog            4         0
+        cat            4         0
+        monkey         2         2
+        >>> df.rename_axis("limbs", axis="columns")
+        limbs   num_legs  num_arms
+        dog            4         0
+        cat            4         0
+        monkey         2         2
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
@@ -1225,18 +1227,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"legs": [4, 4, 2]})
-             legs
-        0    4
-        1    4
-        2    2
+        >>> df = pd.DataFrame({"num_legs": [4, 4, 2]},
+        ...                   ["dog", "cat", "monkey"])
+                num_legs
+        dog            4
+        cat            4
+        monkey         2
         >>> df._set_axis_name("animal")
-                legs
+                num_legs
         animal
-        0          4
-        1          2
-        2          0
-        >>> df.index = pd.MultiIndex.from_product([["mammal"], ['dog', 'cat', 'monkey']])
+        dog            4
+        cat            4
+        monkey         2
+        >>> df.index = pd.MultiIndex.from_product(
+        ...             [["mammal"], ['dog', 'cat', 'monkey']])
         >>> df._set_axis_name(["type", "name"])
                        legs
         type   name
