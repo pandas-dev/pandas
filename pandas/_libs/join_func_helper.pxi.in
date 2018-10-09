@@ -25,7 +25,6 @@ on_dtypes = ['uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
 }}
 
 
-
 {{for table_type, by_dtype in by_dtypes}}
 {{for on_dtype in on_dtypes}}
 

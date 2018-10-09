@@ -45,15 +45,14 @@ matrix:
           - language-pack-zh-hans
     - dist: trusty
       env:
-        - JOB="2.7, lint" ENV_FILE="ci/travis-27.yaml" TEST_ARGS="--skip-slow" LINT=true
+        - JOB="2.7" ENV_FILE="ci/travis-27.yaml" TEST_ARGS="--skip-slow"
       addons:
         apt:
           packages:
           - python-gtk2
     - dist: trusty
       env:
-        - JOB="3.6, coverage" ENV_FILE="ci/travis-36.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true DOCTEST=true
-
+        - JOB="3.6, lint, coverage" ENV_FILE="ci/travis-36.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true LINT=true
     - dist: trusty
       env:
         - JOB="3.7, NumPy dev" ENV_FILE="ci/travis-37-numpydev.yaml" TEST_ARGS="--skip-slow --skip-network -W error" PANDAS_TESTING_MODE="deprecate"
@@ -109,11 +108,7 @@ script:
   - ci/run_build_docs.sh
   - ci/script_single.sh
   - ci/script_multi.sh
-  - ci/lint.sh
-  - ci/doctests.sh
-  - echo "checking imports"
-  - source activate pandas && python ci/check_imports.py
-  - echo "script done"
+  - ci/code_checks.sh
 
 after_success:
   -  ci/upload_coverage.sh
