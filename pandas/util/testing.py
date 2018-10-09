@@ -1544,6 +1544,10 @@ def assert_equal(left, right, **kwargs):
         assert_series_equal(left, right, **kwargs)
     elif isinstance(left, pd.DataFrame):
         assert_frame_equal(left, right, **kwargs)
+    elif isinstance(left, IntervalArray):
+        assert_interval_array_equal(left, right, **kwargs)
+    elif isinstance(left, PeriodArray):
+        assert_period_array_equal(left, right, **kwargs)
     elif isinstance(left, ExtensionArray):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):
