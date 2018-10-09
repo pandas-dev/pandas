@@ -1,9 +1,16 @@
-from sys import getsizeof
 import operator
 from datetime import timedelta
+from sys import getsizeof
 
 import numpy as np
+
+from pandas import compat
+
 from pandas._libs import index as libindex
+from pandas.util._decorators import Appender, cache_readonly
+
+from pandas.compat import lrange, range, get_range_parameters
+from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -11,18 +18,12 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_int64_dtype)
 from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
-
-from pandas import compat
-from pandas.compat import lrange, range, get_range_parameters
-from pandas.compat.numpy import function as nv
+from pandas.core.dtypes import concat as _concat
 
 import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 from pandas.core import ops
 from pandas.core.indexes.base import Index, _index_shared_docs
-from pandas.util._decorators import Appender, cache_readonly
-import pandas.core.dtypes.concat as _concat
-import pandas.core.indexes.base as ibase
-
 from pandas.core.indexes.numeric import Int64Index
 
 
