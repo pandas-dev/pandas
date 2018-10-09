@@ -623,6 +623,15 @@ class TestPeriodIndexArithmetic(object):
         result = other + rng
         tm.assert_index_equal(result, expected)
 
+        # subtraction
+        expected = pd.PeriodIndex(['2014-04-28', '2014-04-30', '2014-05-02'],
+                                  freq='2D')
+        result = rng - other
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            other - rng
+
     @pytest.mark.parametrize('freqstr', ['5ns', '5us', '5ms',
                                          '5s', '5T', '5h', '5d'])
     def test_pi_add_timedeltalike_tick_gt1(self, three_days, freqstr):
@@ -638,6 +647,14 @@ class TestPeriodIndexArithmetic(object):
 
         result = other + rng
         tm.assert_index_equal(result, expected)
+
+        # subtraction
+        expected = pd.period_range(rng[0] - other, periods=6, freq=freqstr)
+        result = rng - other
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            other - rng
 
     def test_pi_add_iadd_timedeltalike_daily(self, three_days):
         # Tick
