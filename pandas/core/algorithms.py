@@ -909,18 +909,12 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
     ------
     OverflowError if any x + y exceeds the maximum or minimum int64 value.
     """
-    def _broadcast(arr_or_scalar, shape):
-        """
-        Helper function to broadcast arrays / scalars to the desired shape.
-        """
-        return np.broadcast_to(arr_or_scalar, shape)
-
     # For performance reasons, we broadcast 'b' to the new array 'b2'
     # so that it has the same size as 'arr'.
-    b2 = _broadcast(b, arr.shape)
+    b2 = np.broadcast_to(b, arr.shape)
     if b_mask is not None:
         # We do the same broadcasting for b_mask as well.
-        b2_mask = _broadcast(b_mask, arr.shape)
+        b2_mask = np.broadcast_to(b_mask, arr.shape)
     else:
         b2_mask = None
 

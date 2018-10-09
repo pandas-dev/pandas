@@ -1154,9 +1154,6 @@ class AreaPlot(LinePlot):
         res = [rect]
         return res
 
-    def _add_legend_handle(self, handle, label, index=None):
-        LinePlot._add_legend_handle(self, handle, label, index=index)
-
     def _post_plot_logic(self, ax, data):
         LinePlot._post_plot_logic(self, ax, data)
 
