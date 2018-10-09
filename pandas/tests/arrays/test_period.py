@@ -34,4 +34,3 @@ def test_setitem_raises():
 
     with tm.assert_raises_regex(TypeError, "int"):
         arr[0] = 1
-

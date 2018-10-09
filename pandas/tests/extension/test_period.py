@@ -122,7 +122,6 @@ class TestMissing(BasePeriodTests, base.BaseMissingTests):
     pass
 
 
-
 class TestReshaping(BasePeriodTests, base.BaseReshapingTests):
     pass
 
@@ -133,4 +132,3 @@ class TestSetitem(BasePeriodTests, base.BaseSetitemTests):
 
 class TestGroupby(BasePeriodTests, base.BaseGroupbyTests):
     pass
-

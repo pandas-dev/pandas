@@ -6,13 +6,12 @@ import numpy as np
 
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas._libs import Timedelta
 from pandas._libs import lib
 from pandas._libs.tslib import NaT, iNaT
 from pandas._libs.tslibs.period import (
     Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX,
     get_period_field_arr, period_asfreq_arr,
-    _validate_end_alias)
+)
 from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.fields import isleapyear_arr
@@ -29,9 +28,6 @@ from pandas.core.dtypes.common import (
     ensure_object
 )
 
-from pandas.core.dtypes.common import (
-    is_integer_dtype, is_float_dtype, is_period_dtype,
-    is_datetime64_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCPeriodIndex, ABCIndexClass,
@@ -810,45 +806,6 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     def strftime(self, date_format):
         return self._format_native_types(date_format=date_format)
 
-    def to_timestamp(self, freq=None, how='start'):
-        from pandas import DatetimeIndex
-
-        how = _validate_end_alias(how)
-
-        end = how == 'E'
-        if end:
-            if freq == 'B':
-                # roll forward to ensure we land on B date
-                adjust = Timedelta(1, 'D') - Timedelta(1, 'ns')
-                return self.to_timestamp(how='start') + adjust
-            else:
-                adjust = Timedelta(1, 'ns')
-                return (self + 1).to_timestamp(how='start') - adjust
-
-        if freq is None:
-            base, mult = _gfc(self.freq)
-            freq = frequencies.get_to_timestamp_base(base)
-        else:
-            freq = Period._maybe_convert_freq(freq)
-
-        base, mult = _gfc(freq)
-        new_data = self.asfreq(freq, how)
-
-        new_data = libperiod.periodarr_to_dt64arr(new_data._ndarray_values,
-                                                  base)
-        # TODO: what should the return type of this be?
-        # Eventually a DatetimeArray makes sense.
-        # But for now let's do a DatetimeIndex?
-        return DatetimeIndex(new_data)
-
-    @property
-    def start_time(self):
-        return self.to_timestamp(how='start')
-
-    @property
-    def end_time(self):
-        return self.to_timestamp(how='end')
-
     def astype(self, dtype, copy=True):
         # TODO: Figure out something better here...
         # We have DatetimeLikeArrayMixin ->
@@ -908,6 +865,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         else:
             raise ValueError('can only convert an array of size 1 to a '
                              'Python scalar')
+
 
 PeriodArray._add_comparison_ops()
 PeriodArray._add_datetimelike_methods()
@@ -1025,12 +983,3 @@ def _make_field_arrays(*fields):
               else np.repeat(x, length) for x in fields]
 
     return arrays
-
-
-def dt64arr_to_periodarr(data, freq, tz):
-    if data.dtype != np.dtype('M8[ns]'):
-        raise ValueError('Wrong dtype: %s' % data.dtype)
-
-    freq = Period._maybe_convert_freq(freq)
-    base, mult = _gfc(freq)
-    return libperiod.dt64arr_to_periodarr(data.view('i8'), base, tz)

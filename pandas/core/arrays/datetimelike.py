@@ -570,23 +570,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         freq : pandas.DateOffset, pandas.Timedelta, or string
             Frequency increment to shift by.
         """
-        return self._time_shift(periods=periods, freq=freq)
-
-    def _time_shift(self, periods, freq=None):
-        """
-        Shift each value by `periods`.
-
-        Note this is different from ExtensionArray.shift, which
-        shifts the *position* of each element, padding the end with
-        missing values.
-
-        Parameters
-        ----------
-        periods : int
-            Number of periods to shift by.
-        freq : pandas.DateOffset, pandas.Timedelta, or string
-            Frequency increment to shift by.
-        """
         if freq is not None and freq != self.freq:
             if isinstance(freq, compat.string_types):
                 freq = frequencies.to_offset(freq)
