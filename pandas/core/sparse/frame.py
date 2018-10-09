@@ -625,7 +625,7 @@ class SparseDataFrame(DataFrame):
                 # TOOD: won't this evaluate as False if both are np.nan?
                 fill_value = own_default
             elif np.isnan(own_default) and not np.isnan(other_default):
-                fill_value = other_fill_value
+                fill_value = other_default
             elif not np.isnan(own_default) and np.isnan(other_default):
                 fill_value = own_default
             else:
