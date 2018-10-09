@@ -18,8 +18,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import maybe_promote
 import pandas.core.dtypes.concat as _concat
 
-from pandas.core.indexes.datetimes import DatetimeIndex
-
 import pandas.core.algorithms as algos
 
 
@@ -189,10 +187,9 @@ class JoinUnit(object):
                 if getattr(self.block, 'is_datetimetz', False) or \
                         is_datetimetz(empty_dtype):
                     if self.block is None:
-                        missing_arr = np.full(self.shape, fill_value)
-                        missing_time = DatetimeIndex(missing_arr[0],
-                                                     dtype=empty_dtype)
-                        return missing_time
+                        array = empty_dtype.construct_array_type()
+                        missing_arr = array([fill_value], dtype=empty_dtype)
+                        return missing_arr.repeat(self.shape[0])
                     pass
                 elif getattr(self.block, 'is_categorical', False):
                     pass

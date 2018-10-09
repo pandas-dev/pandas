@@ -55,9 +55,12 @@ class TestDataFrameConcatCommon(TestData):
         expected = DataFrame(dict(time=[ts2, ts3]))
         assert_frame_equal(results, expected)
 
-    @pytest.mark.parametrize('t1', ['2015-01-01',
-        pytest.param(pd.NaT, marks=pytest.mark.xfail(
-                     reason='GH23037 incorrect dtype when concatenating'))])
+    @pytest.mark.parametrize(
+        't1',
+        [
+            '2015-01-01',
+            pytest.param(pd.NaT, marks=pytest.mark.xfail(
+                reason='GH23037 incorrect dtype when concatenating'))])
     def test_concat_tz_NaT(self, t1):
         # GH 22796
         # Concating tz-aware multicolumn DataFrames
