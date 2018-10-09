@@ -48,7 +48,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     values_passed = values is not None
     if values_passed:
-        if is_list_like(values):
+        if is_list_like(values, strict=False):
             values_multi = True
             values = list(values)
         else:
@@ -383,7 +383,8 @@ def pivot(data, index=None, columns=None, values=None):
             index = data[index]
         index = MultiIndex.from_arrays([index, data[columns]])
 
-        if is_list_like(values) and not isinstance(values, tuple):
+        if (is_list_like(values, strict=False)
+                and not isinstance(values, tuple)):
             # Exclude tuple because it is seen as a single column name
             indexed = data._constructor(data[values].values, index=index,
                                         columns=values)

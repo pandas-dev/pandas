@@ -4758,7 +4758,7 @@ class Selection(object):
         self.terms = None
         self.coordinates = None
 
-        if is_list_like(where):
+        if is_list_like(where, strict=False):
 
             # see if we have a passed coordinate like
             try:

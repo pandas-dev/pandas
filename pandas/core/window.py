@@ -149,7 +149,8 @@ class _Window(PandasObject, SelectionMixin):
         self = self._shallow_copy(subset)
         self._reset_cache()
         if subset.ndim == 2:
-            if is_scalar(key) and key in subset or is_list_like(key):
+            if (is_scalar(key) and key in subset
+                    or is_list_like(key, strict=False)):
                 self._selection = key
         return self
 

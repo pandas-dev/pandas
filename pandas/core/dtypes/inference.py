@@ -7,6 +7,7 @@ from pandas import compat
 from pandas.compat import (PY2, string_types, text_type,
                            string_and_binary_types, re_type)
 from pandas._libs import lib
+import warnings
 
 is_bool = lib.is_bool
 
@@ -247,7 +248,7 @@ def is_re_compilable(obj):
         return True
 
 
-def is_list_like(obj):
+def is_list_like(obj, strict=None):
     """
     Check if the object is list-like.
 
@@ -259,6 +260,8 @@ def is_list_like(obj):
     Parameters
     ----------
     obj : The object to check.
+    strict : boolean, default None
+        Whether `set` should be counted as list-like
 
     Returns
     -------
@@ -282,12 +285,20 @@ def is_list_like(obj):
     >>> is_list_like(np.array(2)))
     False
     """
+    if strict is None and isinstance(obj, set):
+        # only raise warning if necessary
+        warnings.warn('is_list_like will in the future return False for sets. '
+                      'To keep the previous behavior, pass `strict=False`. To '
+                      'adapt the future behavior and silence this warning, '
+                      'pass `strict=True`', FutureWarning)
+    strict = False if strict is None else strict
 
-    return (isinstance(obj, compat.Iterable) and
-            # we do not count strings/unicode/bytes as list-like
-            not isinstance(obj, string_and_binary_types) and
-            # exclude zero-dimensional numpy arrays, effectively scalars
-            not (isinstance(obj, np.ndarray) and obj.ndim == 0))
+    list_like = (isinstance(obj, compat.Iterable)
+                 # we do not count strings/unicode/bytes as set-like
+                 and not isinstance(obj, string_and_binary_types)
+                 # exclude zero-dimensional numpy arrays, effectively scalars
+                 and not (isinstance(obj, np.ndarray) and obj.ndim == 0))
+    return list_like and (not strict or not isinstance(obj, set))
 
 
 def is_array_like(obj):
@@ -320,7 +331,7 @@ def is_array_like(obj):
     False
     """
 
-    return is_list_like(obj) and hasattr(obj, "dtype")
+    return is_list_like(obj, strict=False) and hasattr(obj, "dtype")
 
 
 def is_nested_list_like(obj):
@@ -363,8 +374,9 @@ def is_nested_list_like(obj):
     --------
     is_list_like
     """
-    return (is_list_like(obj) and hasattr(obj, '__len__') and
-            len(obj) > 0 and all(is_list_like(item) for item in obj))
+    return (is_list_like(obj, strict=False) and hasattr(obj, '__len__')
+            and len(obj) > 0 and all(is_list_like(item, strict=False)
+                                     for item in obj))
 
 
 def is_dict_like(obj):

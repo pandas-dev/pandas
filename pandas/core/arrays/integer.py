@@ -505,7 +505,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             mask = None
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
-            elif is_list_like(other):
+            elif is_list_like(other, strict=False):
                 other = np.asarray(other)
                 if other.ndim > 0 and len(self) != len(other):
                     raise ValueError('Lengths must match to compare')
@@ -568,7 +568,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             elif getattr(other, 'ndim', 0) > 1:
                 raise NotImplementedError(
                     "can only perform ops with 1-d structures")
-            elif is_list_like(other):
+            elif is_list_like(other, strict=False):
                 other = np.asarray(other)
                 if not other.ndim:
                     other = other.item()

@@ -322,7 +322,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         try:
             res = self.get_loc(key)
             return (is_scalar(res) or isinstance(res, slice) or
-                    (is_list_like(res) and len(res)))
+                    (is_list_like(res, strict=False) and len(res)))
         except (KeyError, TypeError, ValueError):
             return False
 

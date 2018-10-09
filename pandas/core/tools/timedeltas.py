@@ -88,7 +88,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     elif isinstance(arg, np.ndarray) and arg.ndim == 0:
         # extract array scalar and process below
         arg = arg.item()
-    elif is_list_like(arg) and getattr(arg, 'ndim', 1) == 1:
+    elif is_list_like(arg, strict=False) and getattr(arg, 'ndim', 1) == 1:
         return _convert_listlike(arg, unit=unit, box=box, errors=errors)
     elif getattr(arg, 'ndim', 1) > 1:
         raise TypeError('arg must be a string, timedelta, list, tuple, '

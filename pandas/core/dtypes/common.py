@@ -327,8 +327,8 @@ def is_offsetlike(arr_or_obj):
     """
     if isinstance(arr_or_obj, ABCDateOffset):
         return True
-    elif (is_list_like(arr_or_obj) and len(arr_or_obj) and
-          is_object_dtype(arr_or_obj)):
+    elif (is_list_like(arr_or_obj, strict=False) and len(arr_or_obj)
+          and is_object_dtype(arr_or_obj)):
         return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
     return False
 

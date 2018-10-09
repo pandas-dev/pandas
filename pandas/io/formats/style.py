@@ -1104,7 +1104,7 @@ class Styler(object):
         if align not in ('left', 'zero', 'mid'):
             raise ValueError("`align` must be one of {'left', 'zero',' mid'}")
 
-        if not (is_list_like(color)):
+        if not (is_list_like(color, strict=False)):
             color = [color, color]
         elif len(color) == 1:
             color = [color[0], color[0]]

@@ -1396,7 +1396,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             if loc in (0, -len(self), -1, len(self) - 1):
                 freq = self.freq
         else:
-            if is_list_like(loc):
+            if is_list_like(loc, strict=False):
                 loc = lib.maybe_indices_to_slice(
                     ensure_int64(np.array(loc)), len(self))
             if isinstance(loc, slice) and loc.step in (1, None):

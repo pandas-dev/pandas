@@ -67,17 +67,24 @@ def test_is_sequence():
     "ll",
     [
         [], [1], (1, ), (1, 2), {'a': 1},
-        {1, 'a'}, Series([1]),
+        Series([1]),
         Series([]), Series(['a']).str,
-        np.array([2])])
+        np.array([2])
+    ])
 def test_is_list_like_passes(ll):
-    assert inference.is_list_like(ll)
+    assert inference.is_list_like(ll, strict=False)
+
+
+def test_is_list_like_strict():
+    ll = {1, 'a'}
+    assert inference.is_list_like(ll, strict=False)
+    assert not inference.is_list_like(ll, strict=True)
 
 
 @pytest.mark.parametrize(
     "ll", [1, '2', object(), str, np.array(2)])
 def test_is_list_like_fails(ll):
-    assert not inference.is_list_like(ll)
+    assert not inference.is_list_like(ll, strict=False)
 
 
 def test_is_array_like():
@@ -106,7 +113,7 @@ def test_is_array_like():
 ])
 def test_is_nested_list_like_passes(inner, outer):
     result = outer([inner for _ in range(5)])
-    assert inference.is_list_like(result)
+    assert inference.is_list_like(result, strict=False)
 
 
 @pytest.mark.parametrize('obj', [

@@ -110,7 +110,7 @@ class FrameApply(object):
         """ compute the results """
 
         # dispatch to agg
-        if is_list_like(self.f) or is_dict_like(self.f):
+        if is_list_like(self.f, strict=False) or is_dict_like(self.f):
             return self.obj.aggregate(self.f, axis=self.axis,
                                       *self.args, **self.kwds)
 

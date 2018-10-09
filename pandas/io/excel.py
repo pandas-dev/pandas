@@ -639,13 +639,13 @@ class ExcelFile(object):
                 output[asheetname] = DataFrame()
                 continue
 
-            if is_list_like(header) and len(header) == 1:
+            if is_list_like(header, strict=False) and len(header) == 1:
                 header = header[0]
 
             # forward fill and pull out names for MultiIndex column
             header_names = None
             if header is not None:
-                if is_list_like(header):
+                if is_list_like(header, strict=False):
                     header_names = []
                     control_row = [True] * len(data[0])
                     for row in header:
@@ -660,9 +660,9 @@ class ExcelFile(object):
                 else:
                     data[header] = _trim_excel_header(data[header])
 
-            if is_list_like(index_col):
+            if is_list_like(index_col, strict=False):
                 # forward fill values for MultiIndex index
-                if not is_list_like(header):
+                if not is_list_like(header, strict=False):
                     offset = 1 + header
                 else:
                     offset = 1 + max(header)
@@ -675,7 +675,8 @@ class ExcelFile(object):
                         else:
                             last = data[row][col]
 
-            has_index_names = is_list_like(header) and len(header) > 1
+            has_index_names = (is_list_like(header, strict=False)
+                               and len(header) > 1)
 
             # GH 12292 : error when read one empty column from excel file
             try:
@@ -794,7 +795,7 @@ def _pop_header_name(row, index_col):
         return none_fill(row[0]), row[1:]
     else:
         # pop out header name and fill w/ blank
-        i = index_col if not is_list_like(index_col) else max(index_col)
+        i = index_col if not is_list_like(index_col, strict=False) else max(index_col)
         return none_fill(row[i]), row[:i] + [''] + row[i + 1:]
 
 

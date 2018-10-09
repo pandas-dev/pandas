@@ -389,15 +389,16 @@ class MultiIndex(Index):
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'foo', u'bar'])
         """
-        if level is not None and not is_list_like(level):
-            if not is_list_like(levels):
+        if level is not None and not is_list_like(level, strict=False):
+            if not is_list_like(levels, strict=False):
                 raise TypeError("Levels must be list-like")
-            if is_list_like(levels[0]):
+            if is_list_like(levels[0], strict=False):
                 raise TypeError("Levels must be list-like")
             level = [level]
             levels = [levels]
-        elif level is None or is_list_like(level):
-            if not is_list_like(levels) or not is_list_like(levels[0]):
+        elif level is None or is_list_like(level, strict=False):
+            if (not is_list_like(levels, strict=False)
+                    or not is_list_like(levels[0], strict=False)):
                 raise TypeError("Levels must be list of lists-like")
 
         if inplace:
@@ -485,15 +486,16 @@ class MultiIndex(Index):
                    labels=[[1, 0, 1, 0], [0, 0, 1, 1]],
                    names=[u'foo', u'bar'])
         """
-        if level is not None and not is_list_like(level):
-            if not is_list_like(labels):
+        if level is not None and not is_list_like(level, strict=False):
+            if not is_list_like(labels, strict=False):
                 raise TypeError("Labels must be list-like")
-            if is_list_like(labels[0]):
+            if is_list_like(labels[0], strict=False):
                 raise TypeError("Labels must be list-like")
             level = [level]
             labels = [labels]
-        elif level is None or is_list_like(level):
-            if not is_list_like(labels) or not is_list_like(labels[0]):
+        elif level is None or is_list_like(level, strict=False):
+            if (not is_list_like(labels, strict=False)
+                    or not is_list_like(labels[0], strict=False)):
                 raise TypeError("Labels must be list of lists-like")
 
         if inplace:
@@ -685,7 +687,7 @@ class MultiIndex(Index):
         """
         # GH 15110
         # Don't allow a single string for names in a MultiIndex
-        if names is not None and not is_list_like(names):
+        if names is not None and not is_list_like(names, strict=False):
             raise ValueError('Names should be list-like for a MultiIndex')
         names = list(names)
 
@@ -1178,7 +1180,7 @@ class MultiIndex(Index):
 
         from pandas import DataFrame
         if name is not None:
-            if not is_list_like(name):
+            if not is_list_like(name, strict=False):
                 raise TypeError("'name' must be a list / sequence "
                                 "of column names.")
 
@@ -1295,7 +1297,7 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
-        if not is_list_like(arrays):
+        if not is_list_like(arrays, strict=False):
             raise TypeError("Input must be a list / sequence of array-likes.")
         elif is_iterator(arrays):
             arrays = list(arrays)
@@ -1344,7 +1346,7 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
-        if not is_list_like(tuples):
+        if not is_list_like(tuples, strict=False):
             raise TypeError('Input must be a list / sequence of tuple-likes.')
         elif is_iterator(tuples):
             tuples = list(tuples)
@@ -1403,7 +1405,7 @@ class MultiIndex(Index):
         from pandas.core.arrays.categorical import _factorize_from_iterables
         from pandas.core.reshape.util import cartesian_product
 
-        if not is_list_like(iterables):
+        if not is_list_like(iterables, strict=False):
             raise TypeError("Input must be a list / sequence of iterables.")
         elif is_iterator(iterables):
             iterables = list(iterables)
@@ -1976,7 +1978,7 @@ class MultiIndex(Index):
         target = ensure_index(target)
 
         # empty indexer
-        if is_list_like(target) and not len(target):
+        if is_list_like(target, strict=False) and not len(target):
             return ensure_platform_int(np.array([]))
 
         if not isinstance(target, MultiIndex):
@@ -2574,7 +2576,7 @@ class MultiIndex(Index):
                 indexer = _update_indexer(_convert_to_indexer(k),
                                           indexer=indexer)
 
-            elif is_list_like(k):
+            elif is_list_like(k, strict=False):
                 # a collection of labels to include from this level (these
                 # are or'd)
                 indexers = None

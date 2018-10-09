@@ -751,7 +751,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         if not isinstance(other, type(self)):
             # coerce to a similar object
-            if not is_list_like(other):
+            if not is_list_like(other, strict=False):
                 # scalar
                 other = [other]
             elif lib.is_scalar(lib.item_from_zerodim(other)):

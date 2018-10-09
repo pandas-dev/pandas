@@ -2528,7 +2528,7 @@ def check_setitem_lengths(indexer, value, values):
     """
     # boolean with truth values == len of the value is ok too
     if isinstance(indexer, (np.ndarray, list)):
-        if is_list_like(value) and len(indexer) != len(value):
+        if is_list_like(value, strict=False) and len(indexer) != len(value):
             if not (isinstance(indexer, np.ndarray) and
                     indexer.dtype == np.bool_ and
                     len(indexer[indexer]) == len(value)):
@@ -2537,7 +2537,7 @@ def check_setitem_lengths(indexer, value, values):
     # slice
     elif isinstance(indexer, slice):
 
-        if is_list_like(value) and len(values):
+        if is_list_like(value, strict=False) and len(values):
             if len(value) != length_of_indexer(indexer, values):
                 raise ValueError("cannot set using a slice indexer with a "
                                  "different length than the value")
@@ -2677,16 +2677,16 @@ def is_nested_tuple(tup, labels):
 
     for i, k in enumerate(tup):
 
-        if is_list_like(k) or isinstance(k, slice):
+        if is_list_like(k, strict=False) or isinstance(k, slice):
             return isinstance(labels, MultiIndex)
 
     return False
 
 
 def is_list_like_indexer(key):
-    # allow a list_like, but exclude NamedTuples which can be indexers
-    return is_list_like(key) and not (isinstance(key, tuple) and
-                                      type(key) is not tuple)
+    # allow a list-like, but exclude NamedTuples which can be indexers
+    return (is_list_like(key, strict=False)
+            and not (isinstance(key, tuple) and type(key) is not tuple))
 
 
 def is_label_like(key):
@@ -2734,9 +2734,9 @@ def _non_reducing_slice(slice_):
 
     def pred(part):
         # true when slice does *not* reduce
-        return isinstance(part, slice) or is_list_like(part)
+        return isinstance(part, slice) or is_list_like(part, strict=False)
 
-    if not is_list_like(slice_):
+    if not is_list_like(slice_, strict=False):
         if not isinstance(slice_, slice):
             # a 1-d slice, like df.loc[1]
             slice_ = [[slice_]]

@@ -421,7 +421,8 @@ class DataFrame(NDFrame):
             if not isinstance(data, compat.Sequence):
                 data = list(data)
             if len(data) > 0:
-                if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
+                if (is_list_like(data[0], strict=False)
+                        and getattr(data[0], 'ndim', 1) == 1):
                     if is_named_tuple(data[0]) and columns is None:
                         columns = data[0]._fields
                     arrays, columns = _to_arrays(data, columns, dtype=dtype)
@@ -2790,7 +2791,8 @@ class DataFrame(NDFrame):
 
         # We are left with two options: a single key, and a collection of keys,
         # We interpret tuples as collections only for non-MultiIndex
-        is_single_key = isinstance(key, tuple) or not is_list_like(key)
+        is_single_key = (isinstance(key, tuple)
+                         or not is_list_like(key, strict=False))
 
         if is_single_key:
             if self.columns.nlevels > 1:
@@ -3152,9 +3154,9 @@ class DataFrame(NDFrame):
         5  False  2.0
         """
 
-        if not is_list_like(include):
+        if not is_list_like(include, strict=False):
             include = (include,) if include is not None else ()
-        if not is_list_like(exclude):
+        if not is_list_like(exclude, strict=False):
             exclude = (exclude,) if exclude is not None else ()
 
         selection = tuple(map(frozenset, (include, exclude)))
@@ -3279,7 +3281,7 @@ class DataFrame(NDFrame):
         passed value
         """
         # GH5632, make sure that we are a Series convertible
-        if not len(self.index) and is_list_like(value):
+        if not len(self.index) and is_list_like(value, strict=False):
             try:
                 value = Series(value)
             except (ValueError, NotImplementedError, TypeError):
@@ -7661,7 +7663,7 @@ class DataFrame(NDFrame):
                                  "a duplicate axis.")
             return self.eq(values.reindex_like(self))
         else:
-            if not is_list_like(values):
+            if not is_list_like(values, strict=False):
                 raise TypeError("only list-like or dict-like objects are "
                                 "allowed to be passed to DataFrame.isin(), "
                                 "you passed a "
@@ -7731,7 +7733,7 @@ def extract_index(data):
             elif isinstance(v, dict):
                 have_dicts = True
                 indexes.append(list(v.keys()))
-            elif is_list_like(v) and getattr(v, 'ndim', 1) == 1:
+            elif is_list_like(v, strict=False) and getattr(v, 'ndim', 1) == 1:
                 have_raw_arrays = True
                 raw_lengths.append(len(v))
 
@@ -7774,7 +7776,8 @@ def _prep_ndarray(values, copy=True):
         # this is equiv of np.asarray, but does object conversion
         # and platform dtype preservation
         try:
-            if is_list_like(values[0]) or hasattr(values[0], 'len'):
+            if (is_list_like(values[0], strict=False)
+                    or hasattr(values[0], 'len')):
                 values = np.array([convert(v) for v in values])
             elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
                 # GH#21861

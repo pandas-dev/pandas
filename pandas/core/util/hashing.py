@@ -140,7 +140,7 @@ def hash_tuples(vals, encoding='utf8', hash_key=None):
     if isinstance(vals, tuple):
         vals = [vals]
         is_tuple = True
-    elif not is_list_like(vals):
+    elif not is_list_like(vals, strict=False):
         raise TypeError("must be convertible to a list-of-tuples")
 
     from pandas import Categorical, MultiIndex

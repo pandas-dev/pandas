@@ -234,7 +234,7 @@ def _in(x, y):
     try:
         return x.isin(y)
     except AttributeError:
-        if is_list_like(x):
+        if is_list_like(x, strict=False):
             try:
                 return y.isin(x)
             except AttributeError:
@@ -249,7 +249,7 @@ def _not_in(x, y):
     try:
         return ~x.isin(y)
     except AttributeError:
-        if is_list_like(x):
+        if is_list_like(x, strict=False):
             try:
                 return ~y.isin(x)
             except AttributeError:

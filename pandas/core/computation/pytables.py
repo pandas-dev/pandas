@@ -127,7 +127,7 @@ class BinOp(ops.BinOp):
 
     def conform(self, rhs):
         """ inplace conform rhs """
-        if not is_list_like(rhs):
+        if not is_list_like(rhs, strict=False):
             rhs = [rhs]
         if isinstance(rhs, np.ndarray):
             rhs = rhs.ravel()
@@ -472,7 +472,8 @@ def _validate_where(w):
     TypeError : An invalid data type was passed in for w (e.g. dict).
     """
 
-    if not (isinstance(w, (Expr, string_types)) or is_list_like(w)):
+    if not (isinstance(w, (Expr, string_types))
+            or is_list_like(w, strict=False)):
         raise TypeError("where must be passed as a string, Expr, "
                         "or list-like of Exprs")
 

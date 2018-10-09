@@ -445,7 +445,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif data is None or is_scalar(data):
             cls._scalar_data_error(data)
         else:
-            if tupleize_cols and is_list_like(data):
+            if tupleize_cols and is_list_like(data, strict=False):
                 # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
                     data = list(data)
@@ -1020,11 +1020,11 @@ class Index(IndexOpsMixin, PandasObject):
         elif names is None and name is None:
             return deepcopy(self.names) if deep else self.names
         elif names is not None:
-            if not is_list_like(names):
+            if not is_list_like(names, strict=False):
                 raise TypeError("Must pass list-like as `names`.")
             return names
         else:
-            if not is_list_like(name):
+            if not is_list_like(name, strict=False):
                 return [name]
             return name
 
@@ -1222,7 +1222,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self
 
     def _assert_can_do_setop(self, other):
-        if not is_list_like(other):
+        if not is_list_like(other, strict=False):
             raise TypeError('Input must be Index or array-like')
         return True
 
@@ -1267,7 +1267,7 @@ class Index(IndexOpsMixin, PandasObject):
         ------
         TypeError if each name is not hashable.
         """
-        if not is_list_like(values):
+        if not is_list_like(values, strict=False):
             raise ValueError('Names must be a list-like')
         if len(values) != 1:
             raise ValueError('Length of new names must be 1, got %d' %
@@ -1337,17 +1337,18 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and not isinstance(self, MultiIndex):
             raise ValueError('Level must be None for non-MultiIndex')
 
-        if level is not None and not is_list_like(level) and is_list_like(
-                names):
+        if (level is not None and not is_list_like(level, strict=False)
+                and is_list_like(names, strict=False)):
             msg = "Names must be a string when a single level is provided."
             raise TypeError(msg)
 
-        if not is_list_like(names) and level is None and self.nlevels > 1:
+        if (not is_list_like(names, strict=False)
+                and level is None and self.nlevels > 1):
             raise TypeError("Must pass list-like as `names`.")
 
-        if not is_list_like(names):
+        if not is_list_like(names, strict=False):
             names = [names]
-        if level is not None and not is_list_like(level):
+        if level is not None and not is_list_like(level, strict=False):
             level = [level]
 
         if inplace:

@@ -76,7 +76,7 @@ def _td_array_cmp(cls, op):
             if isna(other):
                 result.fill(nat_result)
 
-        elif not is_list_like(other):
+        elif not is_list_like(other, strict=False):
             raise TypeError(msg.format(cls=type(self).__name__,
                                        typ=type(other).__name__))
         else:

@@ -163,8 +163,8 @@ class TestPlotBase(object):
             expected visibility
         """
         from matplotlib.collections import Collection
-        if not isinstance(collections,
-                          Collection) and not is_list_like(collections):
+        if (not isinstance(collections, Collection)
+                and not is_list_like(collections, strict=False)):
             collections = [collections]
 
         for patch in collections:
@@ -251,7 +251,7 @@ class TestPlotBase(object):
         expected : str or list-like which has the same length as texts
             expected text label, or its list
         """
-        if not is_list_like(texts):
+        if not is_list_like(texts, strict=False):
             assert texts.get_text() == expected
         else:
             labels = [t.get_text() for t in texts]

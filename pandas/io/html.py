@@ -105,7 +105,8 @@ def _get_skiprows(skiprows):
     """
     if isinstance(skiprows, slice):
         return lrange(skiprows.start or 0, skiprows.stop, skiprows.step or 1)
-    elif isinstance(skiprows, numbers.Integral) or is_list_like(skiprows):
+    elif (isinstance(skiprows, numbers.Integral)
+          or is_list_like(skiprows, strict=False)):
         return skiprows
     elif skiprows is None:
         return 0

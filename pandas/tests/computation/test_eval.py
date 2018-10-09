@@ -268,7 +268,7 @@ class TestEvalNumexprPandas(object):
 
     def check_simple_cmp_op(self, lhs, cmp1, rhs):
         ex = 'lhs {0} rhs'.format(cmp1)
-        if cmp1 in ('in', 'not in') and not is_list_like(rhs):
+        if cmp1 in ('in', 'not in') and not is_list_like(rhs, strict=False):
             pytest.raises(TypeError, pd.eval, ex, engine=self.engine,
                           parser=self.parser, local_dict={'lhs': lhs,
                                                           'rhs': rhs})

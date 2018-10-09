@@ -32,10 +32,10 @@ def cartesian_product(X):
     pandas.compat.product : An alias for itertools.product.
     """
     msg = "Input must be a list-like of list-likes"
-    if not is_list_like(X):
+    if not is_list_like(X, strict=False):
         raise TypeError(msg)
     for x in X:
-        if not is_list_like(x):
+        if not is_list_like(x, strict=False):
             raise TypeError(msg)
 
     if len(X) == 0:
