@@ -537,11 +537,11 @@ class SparseDataFrame(DataFrame):
     # Arithmetic-related methods
 
     def _combine_frame(self, other, func, fill_value=None, level=None):
-        this, other = self.align(other, join='outer', level=level, copy=False)
-        new_index, new_columns = this.index, this.columns
-
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
+
+        this, other = self.align(other, join='outer', level=level, copy=False)
+        new_index, new_columns = this.index, this.columns
 
         if self.empty and other.empty:
             return self._constructor(index=new_index).__finalize__(self)
@@ -585,13 +585,8 @@ class SparseDataFrame(DataFrame):
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
-        new_index = self.index.union(other.index)
-        this = self
-        if self.index is not new_index:
-            this = self.reindex(new_index)
-
-        if other.index is not new_index:
-            other = other.reindex(new_index)
+        this, other = self.align(other, join='outer', axis=0, level=level,
+                                 copy=False)
 
         for col, series in compat.iteritems(this):
             new_data[col] = func(series.values, other.values)
@@ -604,10 +599,10 @@ class SparseDataFrame(DataFrame):
                               np.float64(other.fill_value))
 
         return self._constructor(
-            new_data, index=new_index, columns=self.columns,
+            new_data, index=this.index, columns=self.columns,
             default_fill_value=fill_value).__finalize__(self)
 
-    def _combine_match_columns(self, other, func, level=None, try_cast=True):
+    def _combine_match_columns(self, other, func, level=None):
         # patched version of DataFrame._combine_match_columns to account for
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
         # where 3.0 is numpy.float64 and series is a SparseSeries. Still
