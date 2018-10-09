@@ -135,7 +135,7 @@ class TestTSPlot(TestPlotBase):
 
         _, ax = self.plt.subplots()
         ts.plot(style='k', ax=ax)
-        color = (0., 0., 0., 1) if self.mpl_ge_2_0_0 else (0., 0., 0.)
+        color = (0., 0., 0., 1)
         assert color == ax.get_lines()[0].get_color()
 
     def test_both_style_and_color(self):
@@ -403,11 +403,8 @@ class TestTSPlot(TestPlotBase):
     def test_finder_daily(self):
         day_lst = [10, 40, 252, 400, 950, 2750, 10000]
 
-        if self.mpl_ge_2_0_0:
-            xpl1 = [7565, 7564, 7553, 7546, 7518, 7428, 7066]
-            xpl2 = [7566, 7564, 7554, 7546, 7519, 7429, 7066]
-        else:
-            xpl1 = xpl2 = [Period('1999-1-1', freq='B').ordinal] * len(day_lst)
+        xpl1 = [7565, 7564, 7553, 7546, 7518, 7428, 7066]
+        xpl2 = [7566, 7564, 7554, 7546, 7519, 7429, 7066]
 
         for i, n in enumerate(day_lst):
             xp = xpl1[i]
@@ -429,11 +426,8 @@ class TestTSPlot(TestPlotBase):
     def test_finder_quarterly(self):
         yrs = [3.5, 11]
 
-        if self.mpl_ge_2_0_0:
-            xpl1 = [68, 68]
-            xpl2 = [72, 68]
-        else:
-            xpl1 = xpl2 = [Period('1988Q1').ordinal] * len(yrs)
+        xpl1 = [68, 68]
+        xpl2 = [72, 68]
 
         for i, n in enumerate(yrs):
             xp = xpl1[i]
@@ -455,11 +449,8 @@ class TestTSPlot(TestPlotBase):
     def test_finder_monthly(self):
         yrs = [1.15, 2.5, 4, 11]
 
-        if self.mpl_ge_2_0_0:
-            xpl1 = [216, 216, 204, 204]
-            xpl2 = [216, 216, 216, 204]
-        else:
-            xpl1 = xpl2 = [Period('Jan 1988').ordinal] * len(yrs)
+        xpl1 = [216, 216, 204, 204]
+        xpl2 = [216, 216, 216, 204]
 
         for i, n in enumerate(yrs):
             xp = xpl1[i]
@@ -489,10 +480,7 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_finder_annual(self):
-        if self.mpl_ge_2_0_0:
-            xp = [1986, 1986, 1990, 1990, 1995, 2020, 1970, 1970]
-        else:
-            xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
+        xp = [1986, 1986, 1990, 1990, 1995, 2020, 1970, 1970]
 
         for i, nyears in enumerate([5, 10, 19, 49, 99, 199, 599, 1001]):
             rng = period_range('1987', periods=nyears, freq='A')
@@ -513,10 +501,7 @@ class TestTSPlot(TestPlotBase):
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        if self.mpl_ge_2_0_0:
-            xp = Period('1998-12-29 12:00', freq='Min').ordinal
-        else:
-            xp = Period('1/1/1999', freq='Min').ordinal
+        xp = Period('1998-12-29 12:00', freq='Min').ordinal
         assert rs == xp
 
     def test_finder_hourly(self):
@@ -527,13 +512,9 @@ class TestTSPlot(TestPlotBase):
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        if self.mpl_ge_2_0_0:
-            xp = Period('1998-12-31 22:00', freq='H').ordinal
-        else:
-            xp = Period('1/1/1999', freq='H').ordinal
+        xp = Period('1998-12-31 22:00', freq='H').ordinal
         assert rs == xp
 
-    @td.skip_if_mpl_1_5
     @pytest.mark.slow
     def test_gaps(self):
         ts = tm.makeTimeSeries()
@@ -578,7 +559,6 @@ class TestTSPlot(TestPlotBase):
         mask = data.mask
         assert mask[2:5, 1].all()
 
-    @td.skip_if_mpl_1_5
     @pytest.mark.slow
     def test_gap_upsample(self):
         low = tm.makeTimeSeries()
@@ -659,8 +639,6 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_secondary_kde(self):
-        if not self.mpl_ge_1_5_0:
-            pytest.skip("mpl is not supported")
         _skip_if_no_scipy_gaussian_kde()
 
         ser = Series(np.random.randn(10))
@@ -1363,14 +1341,10 @@ class TestTSPlot(TestPlotBase):
             expected_labels = (['-1 days 23:59:59.999999998'] +
                                ['00:00:00.0000000{:0>2d}'.format(2 * i)
                                 for i in range(6)])
-        elif self.mpl_ge_2_0_0:
+        else:
             expected_labels = [''] + [
                 '00:00:00.00000000{:d}'.format(2 * i)
                 for i in range(5)] + ['']
-        else:
-            expected_labels = [
-                '00:00:00.00000000{:d}'.format(i)
-                for i in range(10)]
 
         rng = timedelta_range('0', periods=10, freq='ns')
         df = DataFrame(np.random.randn(len(rng), 3), rng)
@@ -1384,35 +1358,22 @@ class TestTSPlot(TestPlotBase):
 
     def test_format_timedelta_ticks_wide(self):
 
-        if self.mpl_ge_2_0_0:
-            expected_labels = [
-                '',
-                '00:00:00',
-                '1 days 03:46:40',
-                '2 days 07:33:20',
-                '3 days 11:20:00',
-                '4 days 15:06:40',
-                '5 days 18:53:20',
-                '6 days 22:40:00',
-                '8 days 02:26:40',
-                '9 days 06:13:20',
-                ''
-            ]
-            if self.mpl_ge_2_2_0:
-                expected_labels[0] = '-2 days 20:13:20'
-                expected_labels[-1] = '10 days 10:00:00'
-        else:
-            expected_labels = [
-                '00:00:00',
-                '1 days 03:46:40',
-                '2 days 07:33:20',
-                '3 days 11:20:00',
-                '4 days 15:06:40',
-                '5 days 18:53:20',
-                '6 days 22:40:00',
-                '8 days 02:26:40',
-                ''
-            ]
+        expected_labels = [
+            '',
+            '00:00:00',
+            '1 days 03:46:40',
+            '2 days 07:33:20',
+            '3 days 11:20:00',
+            '4 days 15:06:40',
+            '5 days 18:53:20',
+            '6 days 22:40:00',
+            '8 days 02:26:40',
+            '9 days 06:13:20',
+            ''
+        ]
+        if self.mpl_ge_2_2_0:
+            expected_labels[0] = '-2 days 20:13:20'
+            expected_labels[-1] = '10 days 10:00:00'
 
         rng = timedelta_range('0', periods=10, freq='1 d')
         df = DataFrame(np.random.randn(len(rng), 3), rng)

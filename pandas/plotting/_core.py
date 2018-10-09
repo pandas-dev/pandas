@@ -30,10 +30,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.io.formats.printing import pprint_thing
 
-from pandas.plotting._compat import (_mpl_ge_1_3_1,
-                                     _mpl_ge_1_5_0,
-                                     _mpl_ge_2_0_0,
-                                     _mpl_ge_3_0_0)
+from pandas.plotting._compat import _mpl_ge_3_0_0
 from pandas.plotting._style import (plot_params,
                                     _get_standard_colors)
 from pandas.plotting._tools import (_subplots, _flatten, table,
@@ -551,14 +548,6 @@ class MPLPlot(object):
         import matplotlib.pyplot as plt
         return plt
 
-    @staticmethod
-    def mpl_ge_1_3_1():
-        return _mpl_ge_1_3_1()
-
-    @staticmethod
-    def mpl_ge_1_5_0():
-        return _mpl_ge_1_5_0()
-
     _need_to_set_index = False
 
     def _get_xticks(self, convert_period=False):
@@ -908,8 +897,7 @@ class ScatterPlot(PlanePlot):
         scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
                              label=label, cmap=cmap, **self.kwds)
         if cb:
-            if self.mpl_ge_1_3_1():
-                cbar_label = c if c_is_column else ''
+            cbar_label = c if c_is_column else ''
             self._plot_colorbar(ax, label=cbar_label)
 
         if label is not None:
@@ -1012,10 +1000,9 @@ class LinePlot(MPLPlot):
                              **kwds)
             self._add_legend_handle(newlines[0], label, index=i)
 
-            if not _mpl_ge_2_0_0():
-                lines = _get_all_lines(ax)
-                left, right = _get_xlim(lines)
-                ax.set_xlim(left, right)
+            lines = _get_all_lines(ax)
+            left, right = _get_xlim(lines)
+            ax.set_xlim(left, right)
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None,
@@ -1141,8 +1128,7 @@ class AreaPlot(LinePlot):
 
         # need to remove label, because subplots uses mpl legend as it is
         line_kwds = kwds.copy()
-        if cls.mpl_ge_1_5_0():
-            line_kwds.pop('label')
+        line_kwds.pop('label')
         lines = MPLPlot._plot(ax, x, y_values, style=style, **line_kwds)
 
         # get data from the line to get coordinates for fill_between
@@ -1165,17 +1151,10 @@ class AreaPlot(LinePlot):
         cls._update_stacker(ax, stacking_id, y)
 
         # LinePlot expects list of artists
-        res = [rect] if cls.mpl_ge_1_5_0() else lines
+        res = [rect]
         return res
 
     def _add_legend_handle(self, handle, label, index=None):
-        if not self.mpl_ge_1_5_0():
-            from matplotlib.patches import Rectangle
-            # Because fill_between isn't supported in legend,
-            # specifically add Rectangle handle here
-            alpha = self.kwds.get('alpha', None)
-            handle = Rectangle((0, 0), 1, 1, fc=handle.get_color(),
-                               alpha=alpha)
         LinePlot._add_legend_handle(self, handle, label, index=index)
 
     def _post_plot_logic(self, ax, data):

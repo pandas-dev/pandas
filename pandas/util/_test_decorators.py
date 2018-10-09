@@ -78,17 +78,6 @@ def _skip_if_no_mpl():
         return True
 
 
-def _skip_if_mpl_1_5():
-    mod = safe_import("matplotlib")
-
-    if mod:
-        v = mod.__version__
-        if LooseVersion(v) > LooseVersion('1.4.3') or str(v)[0] == '0':
-            return True
-        else:
-            mod.use("Agg", warn=False)
-
-
 def _skip_if_mpl_2_2():
     mod = safe_import("matplotlib")
 
@@ -165,8 +154,6 @@ skip_if_np_lt_115 = pytest.mark.skipif(_np_version_under1p15,
                                        reason="NumPy 1.15 or greater required")
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(),
                                  reason="matplotlib is present")
-skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
-                                     reason="matplotlib 1.5")
 xfail_if_mpl_2_2 = pytest.mark.xfail(_skip_if_mpl_2_2(),
                                      reason="matplotlib 2.2")
 skip_if_32bit = pytest.mark.skipif(is_platform_32bit(),
