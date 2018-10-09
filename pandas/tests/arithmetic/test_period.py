@@ -926,9 +926,8 @@ class TestPeriodIndexSeriesMethods(object):
 
         # Series op is applied per Period instance, thus error is raised
         # from Period
-        msg_idx = r"Input has different freq from Period.*?\(freq=D\)"
-        msg_s = r"Input cannot be converted to Period\(freq=D\)"
-        for obj, msg in [(idx, msg_idx), (ser, msg_s)]:
+        msg = r"Input has different freq from Period.*?\(freq=D\)"
+        for obj in [idx, ser]:
             with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
                 obj + pd.offsets.Hour(2)
 
