@@ -2301,7 +2301,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        A Series object.
+        Series
+            A combined Series object. 
 
         Examples
         --------
