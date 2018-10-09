@@ -1011,7 +1011,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         'is_month_start',
         'is_month_start',
         "Logical indicating if first day of month (defined by frequency)")
-        """
+    """
         Indicates whether the date is the first day of the month.
         Returns
         -------
@@ -1034,7 +1034,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         1    False
         2    True
         dtype: bool
-        """)
+    """
     is_month_end = _field_accessor(
         'is_month_end',
         'is_month_end',
