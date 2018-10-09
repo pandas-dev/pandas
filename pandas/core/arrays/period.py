@@ -10,14 +10,15 @@ from pandas._libs.tslibs.period import (
     Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX,
     get_period_field_arr, period_asfreq_arr)
 from pandas._libs.tslibs import period as libperiod
-from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.fields import isleapyear_arr
 
 from pandas import compat
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (cache_readonly, deprecate_kwarg)
 
 from pandas.core.dtypes.common import (
-    is_integer_dtype, is_float_dtype, is_period_dtype)
+    is_integer_dtype, is_float_dtype, is_period_dtype,
+    is_datetime64_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 
@@ -127,6 +128,10 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
             freq = values.freq
             values = values.asi8
 
+        elif is_datetime64_dtype(values):
+            # TODO: what if it has tz?
+            values = dt64arr_to_periodarr(values, freq)
+
         return cls._simple_new(values, freq, **kwargs)
 
     @classmethod
@@ -207,6 +212,14 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         """ Logical indicating if the date belongs to a leap year """
         return isleapyear_arr(np.asarray(self.year))
 
+    @property
+    def start_time(self):
+        return self.to_timestamp(how='start')
+
+    @property
+    def end_time(self):
+        return self.to_timestamp(how='end')
+
     def asfreq(self, freq=None, how='E'):
         """
         Convert the Period Array/Index to the specified frequency `freq`.
@@ -266,6 +279,48 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
         return self._shallow_copy(new_data, freq=freq)
 
+    def to_timestamp(self, freq=None, how='start'):
+        """
+        Cast to DatetimeArray/Index
+
+        Parameters
+        ----------
+        freq : string or DateOffset, optional
+            Target frequency. The default is 'D' for week or longer,
+            'S' otherwise
+        how : {'s', 'e', 'start', 'end'}
+
+        Returns
+        -------
+        DatetimeArray/Index
+        """
+        from pandas.core.arrays.datetimes import DatetimeArrayMixin
+
+        how = libperiod._validate_end_alias(how)
+
+        end = how == 'E'
+        if end:
+            if freq == 'B':
+                # roll forward to ensure we land on B date
+                adjust = Timedelta(1, 'D') - Timedelta(1, 'ns')
+                return self.to_timestamp(how='start') + adjust
+            else:
+                adjust = Timedelta(1, 'ns')
+                return (self + 1).to_timestamp(how='start') - adjust
+
+        if freq is None:
+            base, mult = frequencies.get_freq_code(self.freq)
+            freq = frequencies.get_to_timestamp_base(base)
+        else:
+            freq = Period._maybe_convert_freq(freq)
+
+        base, mult = frequencies.get_freq_code(freq)
+        new_data = self.asfreq(freq, how=how)
+
+        new_data = libperiod.periodarr_to_dt64arr(new_data._ndarray_values,
+                                                  base)
+        return DatetimeArrayMixin(new_data, freq='infer')
+
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
@@ -297,7 +352,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         if base != self.freq.rule_code:
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
-        return self.shift(other.n)
+        return self._time_shift(other.n)
 
     def _add_delta_td(self, other):
         assert isinstance(other, (timedelta, np.timedelta64, Tick))
@@ -307,7 +362,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         if isinstance(own_offset, Tick):
             offset_nanos = delta_to_nanoseconds(own_offset)
             if np.all(nanos % offset_nanos == 0):
-                return self.shift(nanos // offset_nanos)
+                return self._time_shift(nanos // offset_nanos)
 
         # raise when input doesn't have freq
         raise IncompatibleFrequency("Input has different freq from "
@@ -317,21 +372,36 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
     def _add_delta(self, other):
         ordinal_delta = self._maybe_convert_timedelta(other)
-        return self.shift(ordinal_delta)
+        return self._time_shift(ordinal_delta)
 
-    def shift(self, n):
+    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
+    def shift(self, periods):
         """
-        Specialized shift which produces an Period Array/Index
+        Shift index by desired number of increments.
+
+        This method is for shifting the values of period indexes
+        by a specified time increment.
 
         Parameters
         ----------
-        n : int
-            Periods to shift by
+        periods : int
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+
+            .. versionchanged:: 0.24.0
 
         Returns
         -------
-        shifted : Period Array/Index
+        pandas.PeriodIndex
+            Shifted index.
+
+        See Also
+        --------
+        DatetimeIndex.shift : Shift values of DatetimeIndex.
         """
+        return self._time_shift(periods)
+
+    def _time_shift(self, n):
         values = self._ndarray_values + n * self.freq.n
         if self.hasnans:
             values[self._isnan] = iNaT
@@ -391,6 +461,15 @@ PeriodArrayMixin._add_datetimelike_methods()
 
 # -------------------------------------------------------------------
 # Constructor Helpers
+
+def dt64arr_to_periodarr(data, freq, tz=None):
+    if data.dtype != np.dtype('M8[ns]'):
+        raise ValueError('Wrong dtype: %s' % data.dtype)
+
+    freq = Period._maybe_convert_freq(freq)
+    base, mult = frequencies.get_freq_code(freq)
+    return libperiod.dt64arr_to_periodarr(data.view('i8'), base, tz)
+
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):
     if com.count_not_none(start, end, periods) != 2:

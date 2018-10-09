@@ -2,7 +2,6 @@
 Template for each `dtype` helper function using 1-d template
 
 # 1-d template
-- map_indices
 - pad
 - pad_1d
 - pad_2d

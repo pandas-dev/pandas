@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer_dtype,
     is_float_dtype,
+    is_number,
     is_numeric_dtype,
     is_integer,
     is_int_or_datetime_dtype,
@@ -1356,8 +1357,14 @@ class _AsOfMerge(_OrderedMerge):
                 if self.tolerance < 0:
                     raise MergeError("tolerance must be positive")
 
+            elif is_float_dtype(lt):
+                if not is_number(self.tolerance):
+                    raise MergeError(msg)
+                if self.tolerance < 0:
+                    raise MergeError("tolerance must be positive")
+
             else:
-                raise MergeError("key must be integer or timestamp")
+                raise MergeError("key must be integer, timestamp or float")
 
         # validate allow_exact_matches
         if not is_bool(self.allow_exact_matches):

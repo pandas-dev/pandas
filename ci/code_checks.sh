@@ -114,7 +114,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests generic.py' ; echo $MSG
     pytest --doctest-modules -v pandas/core/generic.py \
-        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -sample -to_json -transpose -values -xs"
+        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -to_json -transpose -values -xs"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests top-level reshaping functions' ; echo $MSG
