@@ -1180,7 +1180,7 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
     # Convert to 1 level multi-index if not
     if not isinstance(join_idx, MultiIndex):
         levels = [join_idx.values]
-        labels = [list(range(0, len(join_idx)))]
+        labels = [list(range(join_idx.size))]
         names = [join_idx.name]
         join_idx = MultiIndex(levels=levels, labels=labels,
                               names=names, verify_integrity=False)
@@ -1193,10 +1193,10 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
     # for left and right respectively. If left (right) is None then
     # the join occured on all indices of left (right)
     if lidx is None:
-        lidx = range(0, len(left))
+        lidx = range(left.size)
 
     if ridx is None:
-        ridx = range(0, len(right))
+        ridx = range(right.size)
 
     # Iterate through the levels that must be restored
     for dropped_level_name in dropped_level_names:
@@ -1214,7 +1214,7 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
         # Inject -1 in the labels list where a join was not possible
         # IOW indexer[i]=-1
         labels = idx.labels[name_idx]
-        restore_labels = [labels[i] if i != -1 else -1 for i in indexer]
+        restore_labels = algos.take_nd(labels, indexer, fill_value=-1)
 
         join_levels = join_levels.__add__([restore_levels])
         join_labels = join_labels.__add__([restore_labels])

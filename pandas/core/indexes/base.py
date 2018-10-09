@@ -3917,10 +3917,10 @@ class Index(IndexOpsMixin, PandasObject):
         # figure out join names
         self_names = set(com._not_none(*self.names))
         other_names = set(com._not_none(*other.names))
-        overlap = list(self_names & other_names)
+        overlap = self_names & other_names
 
         # need at least 1 in common
-        if not len(overlap):
+        if not overlap:
             raise ValueError("cannot join with no overlapping index names")
 
         self_is_mi = isinstance(self, MultiIndex)
@@ -3929,8 +3929,8 @@ class Index(IndexOpsMixin, PandasObject):
         if self_is_mi and other_is_mi:
 
             # Drop the non-matching levels from left and right respectively
-            ldrop_names = list(set(self_names) - set(overlap))
-            rdrop_names = list(set(other_names) - set(overlap))
+            ldrop_names = list(self_names - overlap)
+            rdrop_names = list(other_names - overlap)
 
             self_jnlevels = self.droplevel(ldrop_names)
             other_jnlevels = other.droplevel(rdrop_names)

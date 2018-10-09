@@ -10,13 +10,13 @@ from numpy.random import randn
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (DataFrame, Index, MultiIndex, Series)
-from pandas.compat import lzip
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
 
 
 @pytest.fixture
 def left():
+    """left dataframe (not multi-indexed) for multi-index join tests"""
     # a little relevant example with NAs
     key1 = ['bar', 'bar', 'bar', 'foo', 'foo', 'baz', 'baz', 'qux',
             'qux', 'snap']
@@ -29,11 +29,12 @@ def left():
 
 @pytest.fixture
 def right():
+    """right dataframe (multi-indexed) for multi-index join tests"""
     index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
                                ['one', 'two', 'three']],
                        labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
                                [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                       names=['first', 'second'])
+                       names=['key1', 'key2'])
 
     return DataFrame(np.random.randn(10, 3), index=index,
                      columns=['j_one', 'j_two', 'j_three'])
@@ -41,24 +42,28 @@ def right():
 
 class TestMergeMulti(object):
 
-    def test_merge_on_multikey(self, left, right):
-        joined = left.join(right, on=['key1', 'key2'])
+    def test_merge_on_multikey(self, left, right, join_type):
+        on_cols = ['key1', 'key2']
+        result = (left.join(right, on=on_cols, how=join_type)
+                  .reset_index(drop=True))
 
-        join_key = Index(lzip(left['key1'], left['key2']))
-        indexer = right.index.get_indexer(join_key)
-        ex_values = right.values.take(indexer, axis=0)
-        ex_values[indexer == -1] = np.nan
-        expected = left.join(DataFrame(ex_values, columns=right.columns))
+        expected = pd.merge(left, right.reset_index(),
+                            on=on_cols, how=join_type)
 
-        # TODO: columns aren't in the same order yet
-        tm.assert_frame_equal(joined, expected.loc[:, joined.columns])
+        tm.assert_frame_equal(result, expected)
 
-        left = left.join(right, on=['key1', 'key2'], sort=True)
-        right = expected.loc[:, joined.columns].sort_values(['key1', 'key2'],
-                                                            kind='mergesort')
-        tm.assert_frame_equal(left, right)
+        result = (left.join(right, on=on_cols, how=join_type, sort=True)
+                  .reset_index(drop=True))
 
-    def test_left_join_multi_index(self):
+        expected = pd.merge(left, right.reset_index(),
+                            on=on_cols, how=join_type, sort=True)
+
+        tm.assert_frame_equal(result, expected)
+
+    """
+    @pytest.mark.parametrize("sort", [False, True])
+    def test_left_join_multi_index(self, sort):
+
         icols = ['1st', '2nd', '3rd']
 
         def bind_cols(df):
@@ -71,29 +76,29 @@ class TestMergeMulti(object):
             return (f(df['1st']) + f(df['3rd']) * 1e2 +
                     df['2nd'].fillna(0) * 1e4)
 
-        def run_asserts(left, right):
-            for sort in [False, True]:
-                res = left.join(right, on=icols, how='left', sort=sort)
+        def run_asserts(left, right, sort):
+            res = left.join(right, on=icols, how='left', sort=sort)
 
-                assert len(left) < len(res) + 1
-                assert not res['4th'].isna().any()
-                assert not res['5th'].isna().any()
+            assert len(left) < len(res) + 1
+            assert not res['4th'].isna().any()
+            assert not res['5th'].isna().any()
 
-                tm.assert_series_equal(
-                    res['4th'], - res['5th'], check_names=False)
-                result = bind_cols(res.iloc[:, :-2])
-                tm.assert_series_equal(res['4th'], result, check_names=False)
-                assert result.name is None
+            tm.assert_series_equal(res['4th'], - res['5th'],
+                                   check_names=False)
+            result = bind_cols(res.iloc[:, :-2])
 
-                if sort:
-                    tm.assert_frame_equal(
-                        res, res.sort_values(icols, kind='mergesort'))
+            tm.assert_series_equal(res['4th'], result, check_names=False)
+            assert result.name is None
 
-                out = merge(left, right.reset_index(), on=icols,
-                            sort=sort, how='left')
+            if sort:
+                tm.assert_frame_equal(
+                    res, res.sort_values(icols, kind='mergesort'))
 
-                res.index = np.arange(len(res))
-                tm.assert_frame_equal(out, res)
+            out = merge(left, right.reset_index(), on=icols,
+                        sort=sort, how='left')
+
+            res.index = np.arange(len(res))
+            tm.assert_frame_equal(out, res)
 
         lc = list(map(chr, np.arange(ord('a'), ord('z') + 1)))
         left = DataFrame(np.random.choice(lc, (5000, 2)),
@@ -121,19 +126,24 @@ class TestMergeMulti(object):
         right.set_index(icols, inplace=True)
 
         run_asserts(left, right)
+    """
 
-    def test_merge_right_vs_left(self, left, right):
+    @pytest.mark.parametrize("sort", [False, True])
+    def test_merge_right_vs_left(self, left, right, sort):
         # compare left vs right merge with multikey
-        for sort in [False, True]:
-            merged1 = left.merge(right, left_on=['key1', 'key2'],
-                                 right_index=True, how='left', sort=sort)
+        on_cols = ['key1', 'key2']
+        merged_left_right = left.merge(right,
+                                       left_on=on_cols, right_index=True,
+                                       how='left', sort=sort)
 
-            merged2 = right.merge(left, right_on=['key1', 'key2'],
-                                  left_index=True, how='right',
-                                  sort=sort)
+        merge_right_left = right.merge(left,
+                                       right_on=on_cols, left_index=True,
+                                       how='right', sort=sort)
 
-            merged2 = merged2.loc[:, merged1.columns]
-            tm.assert_frame_equal(merged1, merged2)
+        # Reorder columns
+        merge_right_left = merge_right_left[merged_left_right.columns]
+
+        tm.assert_frame_equal(merged_left_right, merge_right_left)
 
     def test_compress_group_combinations(self):
 
@@ -153,6 +163,7 @@ class TestMergeMulti(object):
 
     def test_left_join_index_preserve_order(self):
 
+        on_cols = ['k1', 'k2']
         left = DataFrame({'k1': [0, 1, 2] * 8,
                           'k2': ['foo', 'bar'] * 12,
                           'v': np.array(np.arange(24), dtype=np.int64)})
@@ -160,7 +171,7 @@ class TestMergeMulti(object):
         index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
         right = DataFrame({'v2': [5, 7]}, index=index)
 
-        result = left.join(right, on=['k1', 'k2'])
+        result = left.join(right, on=on_cols)
 
         expected = left.copy()
         expected['v2'] = np.nan
@@ -168,9 +179,11 @@ class TestMergeMulti(object):
         expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'), 'v2'] = 7
 
         tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(
-            result.sort_values(['k1', 'k2'], kind='mergesort'),
-            left.join(right, on=['k1', 'k2'], sort=True))
+
+        result.sort_values(on_cols, kind='mergesort', inplace=True)
+        expected = left.join(right, on=on_cols, sort=True)
+
+        tm.assert_frame_equal(result, expected)
 
         # test join with multi dtypes blocks
         left = DataFrame({'k1': [0, 1, 2] * 8,
@@ -181,7 +194,7 @@ class TestMergeMulti(object):
         index = MultiIndex.from_tuples([(2, 'bar'), (1, 'foo')])
         right = DataFrame({'v2': [5, 7]}, index=index)
 
-        result = left.join(right, on=['k1', 'k2'])
+        result = left.join(right, on=on_cols)
 
         expected = left.copy()
         expected['v2'] = np.nan
@@ -189,14 +202,11 @@ class TestMergeMulti(object):
         expected.loc[(expected.k1 == 1) & (expected.k2 == 'foo'), 'v2'] = 7
 
         tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(
-            result.sort_values(['k1', 'k2'], kind='mergesort'),
-            left.join(right, on=['k1', 'k2'], sort=True))
 
-        # do a right join for an extra test
-        joined = merge(right, left, left_index=True,
-                       right_on=['k1', 'k2'], how='right')
-        tm.assert_frame_equal(joined.loc[:, expected.columns], expected)
+        result = result.sort_values(on_cols, kind='mergesort')
+        expected = left.join(right, on=on_cols, sort=True)
+
+        tm.assert_frame_equal(result, expected)
 
     def test_left_join_index_multi_match_multiindex(self):
         left = DataFrame([
@@ -229,8 +239,8 @@ class TestMergeMulti(object):
             ['V', 'R', 'D', -1],
             ['V', 'Q', 'A', -3]],
             columns=['col1', 'col2', 'col3', 'val'])
-
         right.set_index(['col1', 'col2', 'col3'], inplace=True)
+
         result = left.join(right, on=['cola', 'colb', 'colc'], how='left')
 
         expected = DataFrame([
@@ -256,15 +266,9 @@ class TestMergeMulti(object):
         result = left.join(right, on=['cola', 'colb', 'colc'],
                            how='left', sort=True)
 
-        tm.assert_frame_equal(
-            result,
-            expected.sort_values(['cola', 'colb', 'colc'], kind='mergesort'))
+        expected = expected.sort_values(['cola', 'colb', 'colc'],
+                                        kind='mergesort')
 
-        # GH7331 - maintain left frame order in left merge
-        right.reset_index(inplace=True)
-        right.columns = left.columns[:3].tolist() + right.columns[-1:].tolist()
-        result = merge(left, right, how='left', on=left.columns[:-1].tolist())
-        expected.index = np.arange(len(expected))
         tm.assert_frame_equal(result, expected)
 
     def test_left_join_index_multi_match(self):
@@ -321,11 +325,11 @@ class TestMergeMulti(object):
         right = DataFrame({'id': ['a', 'b', np.nan, np.nan, np.nan],
                            'sv3': [1.234, 5.678, np.nan, np.nan, np.nan]})
 
-        merged = merge(left, right, on='id', how='left')
+        result = merge(left, right, on='id', how='left')
 
         rdf = right.drop(['id'], axis=1)
         expected = left.join(rdf)
-        tm.assert_frame_equal(merged, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_merge_na_keys(self):
         data = [[1950, "A", 1.5],
