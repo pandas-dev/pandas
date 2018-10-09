@@ -117,45 +117,29 @@ Institutional Partners
 
 The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about.html>`__.
 
-Modules Privacy Has Changed
-----------------------------
+Modules Privacy
+----------------
 
-Some formerly public python/c/c++/cython extension modules have been moved and/or renamed. These are all removed from the public API. Furthermore, the pandas.core, pandas.compat, and pandas.util top-level modules are now considered to be PRIVATE. If indicated, a deprecation warning will be issued if you reference theses modules. (GH12588)
+The following modules in pandas are considered PRIVATE:
 
-.. csv-table::
-    :header: "Location", "Depreciated"
-    :widths: 50, 15
-    
-    "pandas._libs.lib", 	"X"
-    "pandas._libs.tslib", 	"X"
-    "pandas.core.computation", 	"X"
-    "pandas.io.msgpack", 	 
-    "pandas._libs.index", 	 
-    "pandas._libs.algos",	 
-    "pandas._libs.hashtable", 	 
-    "pandas.core.indexes", 	 
-    "pandas._libs.json / pandas.io.json", 	"X"
-    "pandas._libs.parsers", 	"X"
-    "pandas.io.formats", 	 
-    "pandas.core.sparse", 	 
-    "pandas.core.reshape", 	"X"
-    "pandas.core.dtypes", 	"X"
-    "pandas.io.sas._sas", 	 
-    "pandas._libs.join",	 
-    "pandas._libs.hashing", 	 
-    "pandas._libs.period", 	 
-    "pandas._libs.sparse", 
-    "pandas._libs.testing", 	 
-    "pandas._libs.window",	      
+::
 
-Some new subpackages are created with public functionality that is not directly exposed in the top-level namespace: *pandas.errors*, *pandas.plotting* and *pandas.testing* (more details below). Together with *pandas.api.types* and certain functions in the *pandas.io* and *pandas.tseries* submodules, these are now the public subpackages.
-
-Further changes:
-
-* The function *union_categoricals()* is now importable from *pandas.api.types*, formerly from *pandas.types.concat* (GH15998)
-* The type import *pandas.tslib.NaTType* is deprecated and can be replaced by using *type(pandas.NaT)* (GH16146)
-* The public functions in *pandas.tools.hashing* deprecated from that locations, but are now importable from *pandas.util* (GH16223)
-* The modules in *pandas.util* : *decorators*, *print_versions*, *doctools*, *validators*, *depr_module* are now private. Only the functions exposed in *pandas.util* itself are public (GH16223)
+  * pandas.compat
+  
+  * pandas.util
+      -decorators
+      -print_versions
+      -doctools
+      -validators
+      -depr_module
+      
+  * pandas.core
+      -computation
+      -indexes
+      -sparse
+      -reshape
+      -dtypes
+  	      
 
 License
 -------
