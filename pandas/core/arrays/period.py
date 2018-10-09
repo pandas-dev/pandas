@@ -762,7 +762,8 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
                                                freqstr=self.freqstr))
 
-    def _format_native_types(self, na_rep=u'NaT', date_format=None):
+    def _format_native_types(self, na_rep=u'NaT', date_format=None,
+                             **kwargs):
         # TODO(DatetimeArray): remove
         values = self.astype(object)
 
