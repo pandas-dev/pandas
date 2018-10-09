@@ -54,6 +54,38 @@ class TestDataFrameConcatCommon(TestData):
         expected = DataFrame(dict(time=[ts2, ts3]))
         assert_frame_equal(results, expected)
 
+    @pytest.mark.parametrize(
+        't1',
+        [
+            '2015-01-01',
+            pytest.param(pd.NaT, marks=pytest.mark.xfail(
+                reason='GH23037 incorrect dtype when concatenating',
+                strict=True))])
+    def test_concat_tz_NaT(self, t1):
+        # GH 22796
+        # Concating tz-aware multicolumn DataFrames
+        ts1 = Timestamp(t1, tz='UTC')
+        ts2 = Timestamp('2015-01-01', tz='UTC')
+        ts3 = Timestamp('2015-01-01', tz='UTC')
+
+        df1 = DataFrame([[ts1, ts2]])
+        df2 = DataFrame([[ts3]])
+
+        result = pd.concat([df1, df2])
+        expected = DataFrame([[ts1, ts2], [ts3, pd.NaT]], index=[0, 0])
+
+        assert_frame_equal(result, expected)
+
+    def test_concat_tz_not_aligned(self):
+        # GH 22796
+        ts = pd.to_datetime([1, 2]).tz_localize("UTC")
+        a = pd.DataFrame({"A": ts})
+        b = pd.DataFrame({"A": ts, "B": ts})
+        result = pd.concat([a, b], sort=True, ignore_index=True)
+        expected = pd.DataFrame({"A": list(ts) + list(ts),
+                                 "B": [pd.NaT, pd.NaT] + list(ts)})
+        assert_frame_equal(result, expected)
+
     def test_concat_tuple_keys(self):
         # GH 14438
         df1 = pd.DataFrame(np.ones((2, 2)), columns=list('AB'))
