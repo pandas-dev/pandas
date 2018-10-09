@@ -603,58 +603,67 @@ class TestDataFrameSortIndexKinds(TestData):
         # GH 22556
         # Positioning missing value properly when column is Categorical.
         categories = ['A', 'B', 'C']
+        reversed_categories = sorted(categories, reverse=True)
+        category_indices = [0, 2, 4]
+        reversed_category_indices = sorted(category_indices, reverse=True)
+        na_indices = [1, 3]
+        reversed_na_indices = sorted(na_indices, reverse=True)
         list_of_nans = [np.nan, np.nan]
+        is_ascending = True
+        not_ascending = not is_ascending
+        na_position_first = 'first'
+        na_position_last = 'last'
+        column_name = 'c'
+
         df = pd.DataFrame({
-            'c': pd.Categorical(['A', np.nan, 'B', np.nan, 'C'],
+            column_name: pd.Categorical(['A', np.nan, 'B', np.nan, 'C'],
                                 categories=categories,
                                 ordered=True)})
         # sort ascending with na first
-        result = df.sort_values(by='c',
-                                ascending=True,
-                                na_position='first')
+        result = df.sort_values(by=column_name,
+                                ascending=is_ascending,
+                                na_position=na_position_first)
         expected = DataFrame({
-            'c': Categorical(list_of_nans + categories,
+            column_name: Categorical(list_of_nans + categories,
                              categories=categories,
-                             ordered=True)}, index=[1, 3, 0, 2, 4])
+                             ordered=True)}, index=na_indices+category_indices)
 
-        assert_frame_equal(result,
-                           expected)
+        assert_frame_equal(result, expected)
 
         # sort ascending with na last
-        result = df.sort_values(by='c',
-                                ascending=True,
-                                na_position='last')
+        result = df.sort_values(by=column_name,
+                                ascending=is_ascending,
+                                na_position=na_position_last)
         expected = DataFrame({
-            'c': Categorical(categories + list_of_nans,
+            column_name: Categorical(categories + list_of_nans,
                              categories=categories,
-                             ordered=True)}, index=[0, 2, 4, 1, 3])
+                             ordered=True)}, index=category_indices+na_indices)
 
-        assert_frame_equal(result,
-                           expected)
+        assert_frame_equal(result, expected)
 
         # sort descending with na first
-        result = df.sort_values(by='c',
-                                ascending=False,
-                                na_position='first')
+        result = df.sort_values(by=column_name,
+                                ascending=not_ascending,
+                                na_position=na_position_first)
         expected = DataFrame({
-            'c': Categorical(list_of_nans + sorted(categories, reverse=True),
+            column_name: Categorical(list_of_nans + reversed_categories,
                              categories=categories,
-                             ordered=True)}, index=[3, 1, 4, 2, 0])
+                             ordered=True)},
+            index=reversed_na_indices + reversed_category_indices)
 
-        assert_frame_equal(result,
-                           expected)
+        assert_frame_equal(result, expected)
 
         # sort descending with na last
-        result = df.sort_values(by='c',
-                                ascending=False,
-                                na_position='last')
+        result = df.sort_values(by=column_name,
+                                ascending=not_ascending,
+                                na_position=na_position_last)
         expected = DataFrame({
-            'c': Categorical(sorted(categories, reverse=True) + list_of_nans,
+            column_name: Categorical(reversed_categories + list_of_nans,
                              categories=categories,
-                             ordered=True)}, index=[4, 2, 0, 3, 1])
+                             ordered=True)},
+            index=reversed_category_indices + reversed_na_indices)
 
-        assert_frame_equal(result,
-                           expected)
+        assert_frame_equal(result, expected)
 
     def test_sort_index_na_position_with_categories_raises(self):
         df = pd.DataFrame({

@@ -241,7 +241,7 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
 
     # specially handle Categorical
     if is_categorical_dtype(items):
-        if na_position not in ['first', 'last']:
+        if na_position not in {'first', 'last'}:
             raise ValueError('invalid na_position: {!r}'.format(na_position))
 
         mask = isna(items)
