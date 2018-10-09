@@ -906,7 +906,6 @@ Indexing, iteration
    DataFrame.loc
    DataFrame.iloc
    DataFrame.insert
-   DataFrame.insert
    DataFrame.__iter__
    DataFrame.items
    DataFrame.keys
