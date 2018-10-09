@@ -1,4 +1,18 @@
 #!/bin/bash
+#
+# Run checks related to code quality.
+#
+# This script is intended for both the CI and to check locally that code standards are
+# respected. We are currently linting (PEP-8 and similar), looking for patterns of
+# common mistakes (sphinx directives with missing blank lines, old style classes,
+# unwanted imports...), and we also run doctests here (currently some files only).
+# In the future we may want to add the validation of docstrings and other checks here.
+#
+# Usage:
+#   $ ./ci/code_checks.sh             # run all checks
+#   $ ./ci/code_checks.sh lint        # run linting only
+#   $ ./ci/code_checks.sh patterns    # check for patterns that should not exist
+#   $ ./ci/code_checks.sh doctests    # run doctests
 
 echo "inside $0"
 [[ $LINT ]] || { echo "NOT Linting"; exit 0; }

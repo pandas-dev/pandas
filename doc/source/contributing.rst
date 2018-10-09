@@ -497,6 +497,17 @@ tools will be run to check your code for stylistic errors.
 Generating any warnings will cause the test to fail.
 Thus, good style is a requirement for submitting code to *pandas*.
 
+There is a tool in pandas to help contributors verify their changes before
+contributing them to the project:
+
+   ./ci/code_checks.sh
+
+The script verify the linting of code files, it looks for common mistake patterns
+(like missing spaces around sphinx directives that make the documentation not
+being rendered properly) and it also validates the doctests. It is possible to
+run the checks independently by using the parameters ``lint``, ``patterns`` and
+``doctests`` (e.g. ``./ci/code_checks.sh lint``).
+
 In addition, because a lot of people use our library, it is important that we
 do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
