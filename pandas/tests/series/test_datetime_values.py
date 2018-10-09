@@ -224,7 +224,7 @@ class TestSeriesDatetimeValues():
         s = Series(period_range('20130101', periods=5,
                                 freq='D', name='xxx').astype(object))
         with tm.assert_raises_regex(AttributeError, "Can only use .dt"):
-            results = get_dir(s)
+            get_dir(s)
 
     @pytest.mark.parametrize('method, dates', [
         ['round', ['2012-01-02', '2012-01-02', '2012-01-01']],

@@ -88,24 +88,17 @@ class PeriodDelegateMixin(PandasDelegate):
 
     def _delegate_method(self, name, *args, **kwargs):
         result = operator.methodcaller(name, *args, **kwargs)(self._data)
-        raw = {'_format_native_types'}
-        if name in raw:
-            return result
         return Index(result, name=self.name)
 
 
 @delegate_names(PeriodArray,
                 PeriodArray._datetimelike_ops + ['size', 'asi8', 'shape'],
                 typ='property')
-@delegate_names(
-    PeriodArray,
-    [x for x in PeriodArray._datetimelike_methods
-     if x not in {"asfreq", "to_timestamp"}] + [
-        '_format_native_types',
-        '_maybe_convert_timedelta',
-    ],
-    typ="method",
-    overwrite=True,
+@delegate_names(PeriodArray,
+                [x for x in PeriodArray._datetimelike_methods
+                 if x not in {"asfreq", "to_timestamp"}],
+                typ="method",
+                overwrite=True,
 )
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                   Int64Index, PeriodDelegateMixin):
@@ -317,7 +310,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         return PeriodArray._from_ordinals(values, freq=freq)
 
     # ------------------------------------------------------------------------
-    # Dispatch and Wrap
+    # Dispatch and maybe box. Not done in delegate_names because we box
+    # different from those (which use Index).
 
     def asfreq(self, freq=None, how='E'):
         result = self._data.asfreq(freq=freq, how=how)
@@ -336,6 +330,16 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         return DatetimeIndex._simple_new(result,
                                          name=self.name,
                                          freq=result.freq)
+
+    def _format_native_types(self, na_rep='', quoting=None, **kwargs):
+        # just dispatch, return ndarray
+        return self._data._format_native_types(na_rep=na_rep,
+                                               quoting=quoting,
+                                               **kwargs)
+
+    def _maybe_convert_timedelta(self, other):
+        # just dispatch, return ndarray
+        return self._data._maybe_convert_timedelta(other)
 
     # ------------------------------------------------------------------------
     # Indexing
