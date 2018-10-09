@@ -2769,9 +2769,17 @@ class MultiIndex(Index):
             return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                           names=result_names)
 
-    def difference(self, other):
+    def difference(self, other, sort=True):
         """
         Compute sorted set difference of two MultiIndex objects
+
+        Parameters
+        ----------
+        other : MultiIndex
+        sort : bool, default True
+            Sort the resulting MultiIndex if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2788,8 +2796,10 @@ class MultiIndex(Index):
                               labels=[[]] * self.nlevels,
                               names=result_names, verify_integrity=False)
 
-        difference = sorted(set(self._ndarray_values) -
-                            set(other._ndarray_values))
+        difference = set(self._ndarray_values) - set(other._ndarray_values)
+
+        if sort:
+            difference = sorted(difference)
 
         if len(difference) == 0:
             return MultiIndex(levels=[[]] * self.nlevels,
