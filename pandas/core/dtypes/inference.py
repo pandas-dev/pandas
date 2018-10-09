@@ -289,7 +289,7 @@ def is_list_like(obj, strict=None):
         # only raise warning if necessary
         warnings.warn('is_list_like will in the future return False for sets. '
                       'To keep the previous behavior, pass `strict=False`. To '
-                      'adapt the future behavior and silence this warning, '
+                      'adopt the future behavior and silence this warning, '
                       'pass `strict=True`', FutureWarning)
     strict = False if strict is None else strict
 
