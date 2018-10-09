@@ -378,11 +378,9 @@ class TestPeriodDtype(Base):
         assert is_period(pidx)
 
         s = Series(pidx, name='A')
-        # dtypes
-        # series results in object dtype currently,
-        # is_period checks period_arraylike
-        assert not is_period_dtype(s.dtype)
-        assert not is_period_dtype(s)
+
+        assert is_period_dtype(s.dtype)
+        assert is_period_dtype(s)
         assert is_period(s)
 
         assert not is_period_dtype(np.dtype('float64'))
