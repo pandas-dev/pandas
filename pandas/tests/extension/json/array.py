@@ -27,6 +27,7 @@ from pandas.core.arrays import ExtensionArray
 class JSONDtype(ExtensionDtype):
     type = compat.Mapping
     name = 'json'
+
     try:
         na_value = collections.UserDict()
     except AttributeError:
