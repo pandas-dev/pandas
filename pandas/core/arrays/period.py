@@ -16,7 +16,7 @@ from pandas._libs.tslibs.period import (
 from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.fields import isleapyear_arr
-from pandas.util._decorators import cache_readonly, deprecate_kwarg
+from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype, is_period_dtype,
     is_float, is_integer, pandas_dtype, is_scalar,
@@ -275,6 +275,23 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         freq = freq or libperiod.extract_freq(periods)
         ordinals = libperiod.extract_ordinals(periods, freq)
         return cls._from_ordinals(ordinals, freq=freq)
+
+    @classmethod
+    def _from_datetime64(cls, data, freq, tz=None):
+        """Construct a PeriodArray from a datetime64 array
+
+        Parameters
+        ----------
+        data : ndarray[datetime64[ns], datetime64[ns, tz]]
+        freq : str or Tick
+        tz : tzinfo, option
+
+        Returns
+        -------
+
+        """
+        data = dt64arr_to_periodarr(data, freq, tz)
+        return cls._simple_new(data, freq=freq)
 
     def __repr__(self):
         return '<pandas PeriodArray>\n{}\nLength: {}, dtype: {}'.format(
@@ -658,30 +675,24 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         ordinal_delta = self._maybe_convert_timedelta(other)
         return self._time_shift(ordinal_delta)
 
-    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
-    def shift(self, periods):
+    def shift(self, periods=1):
         """
-        Shift index by desired number of increments.
+        Shift values by desired number.
 
-        This method is for shifting the values of period indexes
-        by a specified time increment.
+        Newly introduced missing values are filled with
+        ``self.dtype.na_value``.
+
+        .. versionadded:: 0.24.0
 
         Parameters
         ----------
-        periods : int
-            Number of periods (or increments) to shift by,
-            can be positive or negative.
-
-            .. versionchanged:: 0.24.0
+        periods : int, default 1
+            The number of periods to shift. Negative values are allowed
+            for shifting backwards.
 
         Returns
         -------
-        pandas.PeriodIndex
-            Shifted index.
-
-        See Also
-        --------
-        DatetimeIndex.shift : Shift values of DatetimeIndex.
+        shifted : PeriodArray
         """
         # TODO(DatetimeArray): remove from DatetimeLikeArrayMixin
         # The semantics for Index.shift differ from EA.shift

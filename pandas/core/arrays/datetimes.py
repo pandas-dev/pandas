@@ -812,7 +812,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         pandas.PeriodIndex: Immutable ndarray holding ordinal values
         pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
         """
-        from pandas.core.arrays.period import PeriodArrayMixin
+        from pandas.core.arrays.period import PeriodArray
 
         if self.tz is not None:
             warnings.warn("Converting to PeriodArray/Index representation "
@@ -827,7 +827,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
             freq = get_period_alias(freq)
 
-        return PeriodArrayMixin(self.values, freq=freq)
+        return PeriodArray._from_datetime64(self.values, freq, tz=self.tz)
 
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods

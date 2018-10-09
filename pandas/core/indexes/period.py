@@ -37,7 +37,9 @@ from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 
 from pandas import compat
-from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._decorators import (
+    Appender, Substitution, cache_readonly, deprecate_kwarg
+)
 
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -328,6 +330,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             result = self._simple_new(result, name=self.name)
         return result
 
+    def to_timestamp(self, freq=None, how='start'):
+        result = self._data.to_timestamp(freq=freq, how=how)
+        return result._simple_new(result, name=self.name)
+
     # ------------------------------------------------------------------------
     # Indexing
     @cache_readonly
@@ -357,20 +363,32 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     # ------------------------------------------------------------------------
     # Index Methods
 
-    def shift(self, n):
+    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
+    def shift(self, periods):
         """
-        Specialized shift which produces a PeriodIndex
+        Shift index by desired number of increments.
+
+        This method is for shifting the values of period indexes
+        by a specified time increment.
 
         Parameters
         ----------
-        n : int
-            Periods to shift by
+        periods : int, default 1
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+
+            .. versionchanged:: 0.24.0
 
         Returns
         -------
-        shifted : PeriodIndex
+        pandas.PeriodIndex
+            Shifted index.
+
+        See Also
+        --------
+        DatetimeIndex.shift : Shift values of DatetimeIndex.
         """
-        i8values = self._data._time_shift(n)
+        i8values = self._data._time_shift(periods)
         return self._simple_new(i8values, name=self.name, freq=self.freq)
 
     def _coerce_scalar_to_index(self, item):
