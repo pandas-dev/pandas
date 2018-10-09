@@ -458,8 +458,6 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         """
         if isinstance(
                 other, (timedelta, np.timedelta64, Tick, np.ndarray)):
-            # TODO: is the np.ndarray case still relevant now that Arithmetic
-            #  methods don't call this method?
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, Tick):
                 # _check_timedeltalike_freq_compat will raise if incompatible
