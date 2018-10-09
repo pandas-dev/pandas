@@ -498,7 +498,7 @@ Generating any warnings will cause the test to fail.
 Thus, good style is a requirement for submitting code to *pandas*.
 
 There is a tool in pandas to help contributors verify their changes before
-contributing them to the project:
+contributing them to the project::
 
    ./ci/code_checks.sh
 
