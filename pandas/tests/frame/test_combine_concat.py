@@ -4,6 +4,7 @@ from __future__ import print_function
 
 from datetime import datetime
 
+import pytest
 import numpy as np
 from numpy import nan
 
@@ -749,6 +750,17 @@ class TestDataFrameCombineFirst(TestData):
         res = df1.combine_first(df2)
         tm.assert_frame_equal(res, df1)
         assert res['a'].dtype == 'int64'
+
+    @pytest.mark.parametrize("val", [1, 1.0])
+    def test_combine_first_with_asymmetric_other(self, val):
+        # see gh-20699
+        df1 = pd.DataFrame({'isNum': [val]})
+        df2 = pd.DataFrame({'isBool': [True]})
+
+        res = df1.combine_first(df2)
+        exp = pd.DataFrame({'isBool': [True], 'isNum': [val]})
+
+        tm.assert_frame_equal(res, exp)
 
     def test_concat_datetime_datetime64_frame(self):
         # #2624

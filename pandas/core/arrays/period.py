@@ -14,9 +14,9 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr, period_asfreq_arr,
     _validate_end_alias)
 from pandas._libs.tslibs import period as libperiod
-from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.fields import isleapyear_arr
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly, deprecate_kwarg
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype, is_period_dtype,
     is_float, is_integer, pandas_dtype, is_scalar,
@@ -28,6 +28,10 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     ensure_object
 )
+
+from pandas.core.dtypes.common import (
+    is_integer_dtype, is_float_dtype, is_period_dtype,
+    is_datetime64_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCPeriodIndex, ABCIndexClass,
@@ -41,6 +45,7 @@ from pandas.tseries.offsets import Tick, DateOffset
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays import datetimelike as dtl
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -174,6 +179,8 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
             elif not is_integer(periods):
                 msg = 'periods must be a number, got {periods}'
                 raise TypeError(msg.format(periods=periods))
+
+            periods = dtl.validate_periods(periods)
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -489,6 +496,14 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         """ Logical indicating if the date belongs to a leap year """
         return isleapyear_arr(np.asarray(self.year))
 
+    @property
+    def start_time(self):
+        return self.to_timestamp(how='start')
+
+    @property
+    def end_time(self):
+        return self.to_timestamp(how='end')
+
     def asfreq(self, freq=None, how='E'):
         """
         Convert the Period Array/Index to the specified frequency `freq`.
@@ -548,6 +563,48 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
         return self._shallow_copy(new_data, freq=freq)
 
+    def to_timestamp(self, freq=None, how='start'):
+        """
+        Cast to DatetimeArray/Index
+
+        Parameters
+        ----------
+        freq : string or DateOffset, optional
+            Target frequency. The default is 'D' for week or longer,
+            'S' otherwise
+        how : {'s', 'e', 'start', 'end'}
+
+        Returns
+        -------
+        DatetimeArray/Index
+        """
+        from pandas.core.arrays.datetimes import DatetimeArrayMixin
+
+        how = libperiod._validate_end_alias(how)
+
+        end = how == 'E'
+        if end:
+            if freq == 'B':
+                # roll forward to ensure we land on B date
+                adjust = Timedelta(1, 'D') - Timedelta(1, 'ns')
+                return self.to_timestamp(how='start') + adjust
+            else:
+                adjust = Timedelta(1, 'ns')
+                return (self + 1).to_timestamp(how='start') - adjust
+
+        if freq is None:
+            base, mult = frequencies.get_freq_code(self.freq)
+            freq = frequencies.get_to_timestamp_base(base)
+        else:
+            freq = Period._maybe_convert_freq(freq)
+
+        base, mult = frequencies.get_freq_code(freq)
+        new_data = self.asfreq(freq, how=how)
+
+        new_data = libperiod.periodarr_to_dt64arr(new_data._ndarray_values,
+                                                  base)
+        return DatetimeArrayMixin(new_data, freq='infer')
+
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
@@ -601,18 +658,30 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         ordinal_delta = self._maybe_convert_timedelta(other)
         return self._time_shift(ordinal_delta)
 
-    def shift(self, periods=1):
+    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
+    def shift(self, periods):
         """
-        Specialized shift which produces an Period Array/Index
+        Shift index by desired number of increments.
+
+        This method is for shifting the values of period indexes
+        by a specified time increment.
 
         Parameters
         ----------
-        n : int
-            Periods to shift by
+        periods : int
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+
+            .. versionchanged:: 0.24.0
 
         Returns
         -------
-        shifted : Period Array/Index
+        pandas.PeriodIndex
+            Shifted index.
+
+        See Also
+        --------
+        DatetimeIndex.shift : Shift values of DatetimeIndex.
         """
         # TODO(DatetimeArray): remove from DatetimeLikeArrayMixin
         # The semantics for Index.shift differ from EA.shift
@@ -840,6 +909,15 @@ PeriodArray._add_datetimelike_methods()
 
 def to_period_array(data):
     return PeriodArray._complex_new(data, freq=None)
+
+
+def dt64arr_to_periodarr(data, freq, tz=None):
+    if data.dtype != np.dtype('M8[ns]'):
+        raise ValueError('Wrong dtype: %s' % data.dtype)
+
+    freq = Period._maybe_convert_freq(freq)
+    base, mult = frequencies.get_freq_code(freq)
+    return libperiod.dt64arr_to_periodarr(data.view('i8'), base, tz)
 
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):

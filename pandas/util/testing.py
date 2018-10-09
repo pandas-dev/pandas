@@ -1534,8 +1534,8 @@ def assert_equal(left, right, **kwargs):
 
     Parameters
     ----------
-    left : Index, Series, or DataFrame
-    right : Index, Series, or DataFrame
+    left : Index, Series, DataFrame, ExtensionArray, or np.ndarray
+    right : Index, Series, DataFrame, ExtensionArray, or np.ndarray
     **kwargs
     """
     if isinstance(left, pd.Index):
@@ -1544,6 +1544,10 @@ def assert_equal(left, right, **kwargs):
         assert_series_equal(left, right, **kwargs)
     elif isinstance(left, pd.DataFrame):
         assert_frame_equal(left, right, **kwargs)
+    elif isinstance(left, ExtensionArray):
+        assert_extension_array_equal(left, right, **kwargs)
+    elif isinstance(left, np.ndarray):
+        assert_numpy_array_equal(left, right, **kwargs)
     else:
         raise NotImplementedError(type(left))
 

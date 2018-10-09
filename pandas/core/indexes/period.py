@@ -12,7 +12,10 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_bool_dtype,
     pandas_dtype,
+    ensure_object
 )
+
+from pandas.tseries.frequencies import get_freq_code as _gfc
 
 from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
@@ -26,7 +29,10 @@ from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
                                         DIFFERENT_FREQ_INDEX)
 from pandas._libs.tslibs import resolution
 
-from pandas.core.arrays.period import PeriodArray
+from pandas._libs.tslibs import resolution, period
+
+from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays.period import PeriodArray, dt64arr_to_periodarr
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 
@@ -524,24 +530,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return self.astype(object).values
-
-    def to_timestamp(self, freq=None, how='start'):
-        """
-        Cast to DatetimeIndex
-
-        Parameters
-        ----------
-        freq : string or DateOffset, optional
-            Target frequency. The default is 'D' for week or longer,
-            'S' otherwise
-        how : {'s', 'e', 'start', 'end'}
-
-        Returns
-        -------
-        DatetimeIndex
-        """
-        result = self._data.to_timestamp(freq=freq, how=how)
-        return DatetimeIndex(result, freq='infer', name=self.name)
 
     @property
     def inferred_type(self):
