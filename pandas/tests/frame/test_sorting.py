@@ -161,7 +161,7 @@ class TestDataFrameSorting(TestData):
              'B': [5, 9, 2, nan, 5, 5, 4]},
             index=[2, 0, 3, 1, 6, 4, 5])
         sorted_df = df.sort_values(['A', 'B'], ascending=[
-                                   1, 0], na_position='first')
+            1, 0], na_position='first')
         assert_frame_equal(sorted_df, expected)
 
         # na_position='last', not order
@@ -170,7 +170,7 @@ class TestDataFrameSorting(TestData):
              'B': [4, 5, 5, nan, 2, 9, 5]},
             index=[5, 4, 6, 1, 3, 0, 2])
         sorted_df = df.sort_values(['A', 'B'], ascending=[
-                                   0, 1], na_position='last')
+            0, 1], na_position='last')
         assert_frame_equal(sorted_df, expected)
 
         # Test DataFrame with nan label
@@ -514,7 +514,7 @@ class TestDataFrameSortIndexKinds(TestData):
 
         df = (DataFrame({'A': np.arange(6, dtype='int64'),
                          'B': Series(list('aabbca'))
-                         .astype(CategoricalDtype(list('cab')))})
+                        .astype(CategoricalDtype(list('cab')))})
               .set_index('B'))
 
         result = df.sort_index()
@@ -617,16 +617,18 @@ class TestDataFrameSortIndexKinds(TestData):
 
         df = pd.DataFrame({
             column_name: pd.Categorical(['A', np.nan, 'B', np.nan, 'C'],
-                                categories=categories,
-                                ordered=True)})
+                                        categories=categories,
+                                        ordered=True)})
         # sort ascending with na first
         result = df.sort_values(by=column_name,
                                 ascending=is_ascending,
                                 na_position=na_position_first)
         expected = DataFrame({
             column_name: Categorical(list_of_nans + categories,
-                             categories=categories,
-                             ordered=True)}, index=na_indices+category_indices)
+                                     categories=categories,
+                                     ordered=True)
+        },
+            index=na_indices + category_indices)
 
         assert_frame_equal(result, expected)
 
@@ -636,8 +638,10 @@ class TestDataFrameSortIndexKinds(TestData):
                                 na_position=na_position_last)
         expected = DataFrame({
             column_name: Categorical(categories + list_of_nans,
-                             categories=categories,
-                             ordered=True)}, index=category_indices+na_indices)
+                                     categories=categories,
+                                     ordered=True)
+        },
+            index=category_indices + na_indices)
 
         assert_frame_equal(result, expected)
 
@@ -647,8 +651,9 @@ class TestDataFrameSortIndexKinds(TestData):
                                 na_position=na_position_first)
         expected = DataFrame({
             column_name: Categorical(list_of_nans + reversed_categories,
-                             categories=categories,
-                             ordered=True)},
+                                     categories=categories,
+                                     ordered=True)
+        },
             index=reversed_na_indices + reversed_category_indices)
 
         assert_frame_equal(result, expected)
@@ -659,8 +664,9 @@ class TestDataFrameSortIndexKinds(TestData):
                                 na_position=na_position_last)
         expected = DataFrame({
             column_name: Categorical(reversed_categories + list_of_nans,
-                             categories=categories,
-                             ordered=True)},
+                                     categories=categories,
+                                     ordered=True)
+        },
             index=reversed_category_indices + reversed_na_indices)
 
         assert_frame_equal(result, expected)
