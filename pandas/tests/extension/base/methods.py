@@ -164,3 +164,7 @@ class BaseMethodsTests(BaseExtensionTests):
             compare = self.assert_series_equal
 
         compare(result, expected)
+
+    def test_hashing_works(self, data):
+        pd.util.hash_pandas_object(pd.Series(data))
+        pd.util.hash_pandas_object(pd.DataFrame({"A": data}))
