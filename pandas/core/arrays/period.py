@@ -268,6 +268,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     @classmethod
     def _from_periods(cls, periods, freq=None):
         # type: (np.ndarray[Optional[Period]], Optional[Tick]) -> PeriodArray
+        periods = np.asarray(periods, dtype=object)
         freq = freq or libperiod.extract_freq(periods)
         ordinals = libperiod.extract_ordinals(periods, freq)
         return cls._from_ordinals(ordinals, freq=freq)
@@ -879,8 +880,46 @@ PeriodArray._add_datetimelike_methods()
 # -------------------------------------------------------------------
 # Constructor Helpers
 
-def to_period_array(data):
-    return PeriodArray._complex_new(data, freq=None)
+def period_array(data, freq=None):
+    # type: (Sequence[Optional[Period]], Optional[Tick]) -> PeriodArray
+    """
+    Construct a new PeriodArray from a sequence of Period scalars.
+
+    Parameters
+    ----------
+    data : Sequence of Period objects
+        A sequence of Period objects. These are required to all have
+        the same ``freq.`` Missing values can be indicated by ``None``
+        or ``pandas.NaT``.
+    freq : str, Tick, or Offset
+        The frequency of every element of the array. This can be specified
+        to avoid inferring the `freq` from `data`.
+
+    Returns
+    -------
+    PeriodArray
+
+    See Also
+    --------
+    PeriodArray
+    pandas.PeriodIndex
+
+    Examples
+    --------
+    >>> period_array([pd.Period('2017', freq='A'),
+    ...               pd.Period('2018', freq='A')])
+    <pandas PeriodArray>
+    ['2017', '2018']
+    Length: 2, dtype: period[A-DEC]
+
+    >>> period_array([pd.Period('2017', freq='A'),
+    ...               pd.Period('2018', freq='A'),
+    ...               pd.NaT])
+    <pandas PeriodArray>
+    ['2017', '2018', 'NaT']
+    Length: 3, dtype: period[A-DEC]
+    """
+    return PeriodArray._from_periods(data, freq=freq)
 
 
 def dt64arr_to_periodarr(data, freq, tz=None):
