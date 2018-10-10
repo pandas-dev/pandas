@@ -690,6 +690,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         return self._simple_new(new_data, **attribs)
 
     def _maybe_box_as_values(self, values, **attribs):
+        # TODO(DatetimeArray): remove
         return values
 
     def astype(self, dtype, copy=True):
@@ -728,7 +729,6 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
         return iNaT
     elif isinstance(other, (PeriodArray, ABCIndexClass)):
         # convert tz if needed
-        # TODO: Ensure PeriodArray.tz_localize
         if getattr(other, 'tz', None) is not None:
             if to_utc:
                 other = other.tz_convert('UTC')

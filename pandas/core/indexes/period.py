@@ -175,8 +175,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     """
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
-    # see hack in arrays/datetimelike.py make_comparison_op
-    # _wrap_cmp_method = False
 
     # define my properties & methods for delegation
     _is_numeric_dtype = False
@@ -308,6 +306,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         and Datetime/TimedeltaIndex. Once these are all backed by
         an ExtensionArray, this can be removed
         """
+        # TODO(DatetimeArray): remove
         freq = attribs['freq']
         return PeriodArray._from_ordinals(values, freq=freq)
 
@@ -529,30 +528,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             raise ValueError('Index is not monotonic')
         values = self.asi8
         return ((values[1:] - values[:-1]) < 2).all()
-
-    # # year = _wrap_field_accessor('year')
-    # month = _wrap_field_accessor('month')
-    # day = _wrap_field_accessor('day')
-    # hour = _wrap_field_accessor('hour')
-    # minute = _wrap_field_accessor('minute')
-    # second = _wrap_field_accessor('second')
-    # weekofyear = _wrap_field_accessor('week')
-    # week = weekofyear
-    # dayofweek = _wrap_field_accessor('dayofweek')
-    # weekday = dayofweek
-    # dayofyear = day_of_year = _wrap_field_accessor('dayofyear')
-    # quarter = _wrap_field_accessor('quarter')
-    # qyear = _wrap_field_accessor('qyear')
-    # days_in_month = _wrap_field_accessor('days_in_month')
-    # daysinmonth = days_in_month
-    #
-    # @property
-    # def start_time(self):
-    #     return self.to_timestamp(how='start')
-    #
-    # @property
-    # def end_time(self):
-    #     return self.to_timestamp(how='end')
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
