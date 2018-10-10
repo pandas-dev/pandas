@@ -106,8 +106,13 @@ def _period_array_cmp(cls, op):
 
 class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     """
-    Pandas ExtensionArray for Period data.
+    Pandas ExtensionArray for storing Period data.
 
+    Users should use the :func:`period_array` function to create
+    new instances of PeriodArray.
+
+    Notes
+    -----
     There are two components to a PeriodArray
 
     - ordinals : integer ndarray
@@ -118,6 +123,11 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
     The `freq` indicates the span covered by each element of the array.
     All elements in the PeriodArray have the same `freq`.
+
+    See Also
+    --------
+    period_array : Create a new PeriodArray
+    pandas.PeriodIndex : Immutable Index for period data
     """
     _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
@@ -291,7 +301,8 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         return cls._simple_new(data, freq=freq)
 
     def __repr__(self):
-        return '<pandas PeriodArray>\n{}\nLength: {}, dtype: {}'.format(
+        return '<{}>\n{}\nLength: {}, dtype: {}'.format(
+            self.__class__.__name__,
             [str(s) for s in self],
             len(self),
             self.dtype
@@ -304,6 +315,12 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         return self._data == iNaT
 
     def fillna(self, value=None, method=None, limit=None):
+        # TODO(#20300)
+        # To avoid converting to object, we re-implement here with the changes
+        # 1. Passing `_ndarray_values` to func instead of self.astype(object)
+        # 2. Re-boxing with `_from_ordinals`
+        # #20300 should let us do this kind of logic on ExtensionArray.fillna
+        # and we can use it.
         from pandas.api.types import is_array_like
         from pandas.util._validators import validate_fillna_kwargs
         from pandas.core.missing import pad_1d, backfill_1d
@@ -908,14 +925,14 @@ def period_array(data, freq=None):
     --------
     >>> period_array([pd.Period('2017', freq='A'),
     ...               pd.Period('2018', freq='A')])
-    <pandas PeriodArray>
+    <PeriodArray>
     ['2017', '2018']
     Length: 2, dtype: period[A-DEC]
 
     >>> period_array([pd.Period('2017', freq='A'),
     ...               pd.Period('2018', freq='A'),
     ...               pd.NaT])
-    <pandas PeriodArray>
+    <PeriodArray>
     ['2017', '2018', 'NaT']
     Length: 3, dtype: period[A-DEC]
     """
