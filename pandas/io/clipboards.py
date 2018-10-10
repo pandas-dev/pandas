@@ -42,7 +42,7 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
                 text, encoding=(kwargs.get('encoding') or
                                 get_option('display.encoding'))
             )
-        except:
+        except AttributeError:
             pass
 
     # Excel copies into clipboard with \t separation
