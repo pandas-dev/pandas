@@ -367,15 +367,6 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         """Return the frequency object if it is set, otherwise None"""
         return self._freq
 
-    @freq.setter
-    def freq(self, value):
-        msg = ('Setting {cls}.freq has been deprecated and will be '
-               'removed in a future version; use {cls}.asfreq instead. '
-               'The {cls}.freq setter is not guaranteed to work.')
-        warnings.warn(msg.format(cls='PeriodIndex'),
-                      FutureWarning, stacklevel=3)
-        self._freq = value
-
     @property
     def flags(self):
         """Deprecated"""
@@ -876,14 +867,6 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
             return self.asfreq(dtype.freq)
         else:
             return np.asarray(self, dtype=dtype)
-
-    def _box_values_as_index(self):
-        """
-        return object Index which contains boxed values
-        """
-        # This is implemented just for astype
-        from pandas.core.index import Index
-        return Index(self._box_values(self.asi8), dtype=object)
 
     def item(self):
         if len(self) == 1:
