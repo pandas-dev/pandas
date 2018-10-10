@@ -51,15 +51,15 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
 
     Parameters
     ----------
-    objs: list of objects
+    objs : list of objects
         Each object will only be considered if it has a _get_axis
         attribute
-    intersect: boolean, default False
+    intersect : boolean, default False
         If True, calculate the intersection between indexes. Otherwise,
         calculate the union
-    axis: {0 or 'index', 1 or 'outer'}, default 0
+    axis : {0 or 'index', 1 or 'outer'}, default 0
         The axis to extract indexes from
-    sort: boolean, default True
+    sort : boolean, default True
         Whether the result index should come out sorted or not
 
     Returns
@@ -78,12 +78,12 @@ def _get_combined_index(indexes, intersect=False, sort=False):
 
     Parameters
     ----------
-    indexes: a list of Index or list objects
+    indexes : a list of Index or list objects
         When intersect=True, do not accept list of lists
-    intersect: boolean, default False
+    intersect : boolean, default False
         If True, calculate the intersection between indexes. Otherwise,
         calculate the union
-    sort: boolean, default False
+    sort : boolean, default False
         Whether the result index should come out sorted or not
 
     Returns
@@ -121,8 +121,8 @@ def _union_indexes(indexes, sort=True):
 
     Parameters
     ----------
-    indexes: a list of Index or list objects
-    sort: boolean, default True
+    indexes : a list of Index or list objects
+    sort : boolean, default True
         Whether the result index should come out sorted or not
 
     Returns
@@ -147,7 +147,7 @@ def _union_indexes(indexes, sort=True):
 
         Parameters
         ----------
-        inds: a list of Index or list objects
+        inds : a list of Index or list objects
 
         Returns
         -------
@@ -204,12 +204,12 @@ def _sanitize_and_check(indexes):
 
     Parameters
     ----------
-    indexes: a list of Index or list objects
+    indexes : a list of Index or list objects
 
     Returns
     -------
-    sanitized_indexes: list of Index or list objects
-    type: {'list', 'array', 'special'}
+    sanitized_indexes : list of Index or list objects
+    type : {'list', 'array', 'special'}
     """
     kinds = list({type(index) for index in indexes})
 
@@ -237,7 +237,7 @@ def _get_consensus_names(indexes):
 
     Parameters
     ----------
-    indexes: a list of index objects
+    indexes : a list of index objects
 
     Returns
     -------
@@ -260,7 +260,7 @@ def _all_indexes_same(indexes):
 
     Parameters
     ----------
-    indexes: a list of Index objects
+    indexes : a list of Index objects
 
     Returns
     -------
