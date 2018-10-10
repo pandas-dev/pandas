@@ -83,23 +83,20 @@ def test_is_list_like_fails(ll):
 @pytest.mark.parametrize(
     "ll",
     [
-        [], [1], tuple(), (1, ), (1, 2), np.array([2]), OrderedDict({'a': 1}),
+        [], [1], tuple(), (1, ), (1, 2), {'a': 1}, np.array([2]),
         Series([1]), Series([]), Series(['a']).str, Index([]), Index([1]),
         DataFrame(), DataFrame([[1]]), iter([1, 2]), (x for x in [1, 2]),
         np.ndarray((2,) * 2), np.ndarray((2,) * 3), np.ndarray((2,) * 4)
     ])
-def test_is_ordered_list_like_passes(ll):
-    assert inference.is_list_like(ll)
+def test_is_list_like_strict_passes(ll):
+    assert inference.is_list_like(ll, strict=True)
 
 
 @pytest.mark.parametrize("ll", [1, '2', object(), str, np.array(2),
-                                {1, 'a'}, frozenset({1, 'a'}), {1, 'a'}])
-def test_is_ordered_like_fails(ll):
+                                {1, 'a'}, frozenset({1, 'a'})])
+def test_is_list_like_strict_fails(ll):
     # GH 23061
-    if PY36 and isinstance(ll, dict):
-        assert inference.is_ordered_list_like(ll)
-    else:
-        assert not inference.is_ordered_list_like(ll)
+    assert not inference.is_list_like(ll, strict=True)
 
 
 def test_is_array_like():
