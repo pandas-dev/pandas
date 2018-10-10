@@ -156,7 +156,7 @@ class TestPeriodArray(object):
         #  an EA-specific tm.assert_ function
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
 
-    @pytest.mark.parametrize('propname', pd.PeriodIndex._bool_ops)
+    @pytest.mark.parametrize('propname', pd.core.arrays.PeriodArray._bool_ops)
     def test_bool_properties(self, period_index, propname):
         # in this case _bool_ops is just `is_leap_year`
         pi = period_index
@@ -167,7 +167,8 @@ class TestPeriodArray(object):
 
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize('propname', pd.PeriodIndex._field_ops)
+    @pytest.mark.parametrize('propname',
+                             pd.core.arrays.PeriodArray._field_ops)
     def test_int_properties(self, period_index, propname):
         pi = period_index
         arr = PeriodArray(pi.values)
