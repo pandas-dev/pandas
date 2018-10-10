@@ -23,6 +23,7 @@ from pandas.util.testing import assert_series_equal, ensure_clean
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
+from pandas.plotting._compat import _mpl_ge_3_0_0
 from pandas.tests.plotting.common import (TestPlotBase,
                                           _skip_if_no_scipy_gaussian_kde)
 
@@ -407,11 +408,12 @@ class TestTSPlot(TestPlotBase):
     def test_finder_daily(self):
         day_lst = [10, 40, 252, 400, 950, 2750, 10000]
 
-        xpl1 = [7565, 7564, 7553, 7546, 7518, 7428, 7066]
-        if self.mpl_ge_2_0_1:
-            xpl2 = [7566, 7564, 7554, 7546, 7519, 7429, 7066]
-        else:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1:
+            xpl1 = [7566] * len(day_lst)
             xpl2 = xpl1
+        else:
+            xpl1 = [7565, 7564, 7553, 7546, 7518, 7428, 7066]
+            xpl2 = [7566, 7564, 7554, 7546, 7519, 7429, 7066]
 
         rs1 = []
         rs2 = []
@@ -441,7 +443,10 @@ class TestTSPlot(TestPlotBase):
     def test_finder_quarterly(self):
         yrs = [3.5, 11]
 
-        if self.mpl_ge_2_0_1:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1:
+            xpl1 = [72, 72]
+            xpl2 = [72, 72]
+        elif self.mpl_ge_2_0_1:
             xpl1 = [68, 68]
             xpl2 = [72, 68]
         else:
@@ -476,6 +481,9 @@ class TestTSPlot(TestPlotBase):
     def test_finder_monthly(self):
         yrs = [1.15, 2.5, 4, 11]
 
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1:
+            xpl1 = [216] * 4
+            xpl2 = xpl1
         if self.mpl_ge_2_0_1:
             xpl1 = [216, 216, 204, 204]
             xpl2 = [216, 216, 216, 204]
@@ -519,6 +527,8 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_finder_annual(self):
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1:
+            xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
         if self.mpl_ge_2_0_1:
             xp = [1986, 1986, 1990, 1990, 1995, 2020, 1970, 1970]
         else:
@@ -536,9 +546,8 @@ class TestTSPlot(TestPlotBase):
             self.plt.close(ax.get_figure())
 
         if rs != xp:
-            print(matplotlib.__version__, np.__version__,
-                  rs, xp)
-        for res, exp in zip(rs1, xpl1):
+            print(matplotlib.__version__, np.__version__, rs, xp)
+        for res, exp in zip(rs, xp):
             assert res == exp
 
     @pytest.mark.slow
@@ -550,10 +559,7 @@ class TestTSPlot(TestPlotBase):
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        if self.mpl_ge_2_0_1:
-            xp = Period('1999-01-01 00:00', freq='Min').ordinal
-        else:
-            xp = Period('1998-12-29 12:00', freq='Min').ordinal
+        xp = Period('1999-01-01 00:00', freq='Min').ordinal
         if rs != xp:
             print(matplotlib.__version__, np.__version__, rs, xp)
         assert rs == xp
@@ -566,7 +572,7 @@ class TestTSPlot(TestPlotBase):
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        if self.mpl_ge_2_2_3:
+        if self.mpl_ge_2_1_0:
             xp = Period('1999-01-01 00:00', freq='H').ordinal
         else:
             xp = Period('1998-12-31 22:00', freq='H').ordinal
@@ -575,6 +581,8 @@ class TestTSPlot(TestPlotBase):
         assert rs == xp
 
     @pytest.mark.slow
+    @pytest.mark.xfail(_mpl_ge_3_0_0,
+                       reason="return type not a masked array anymore?")
     def test_gaps(self):
         ts = tm.makeTimeSeries()
         ts[5:25] = np.nan
@@ -626,6 +634,8 @@ class TestTSPlot(TestPlotBase):
         assert mask[2:5, 1].all()
 
     @pytest.mark.slow
+    @pytest.mark.xfail(_mpl_ge_3_0_0,
+                       reason="return type not a masked array anymore?")
     def test_gap_upsample(self):
         low = tm.makeTimeSeries()
         low[5:25] = np.nan
