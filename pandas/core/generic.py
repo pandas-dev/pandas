@@ -1799,6 +1799,13 @@ class NDFrame(PandasObject, SelectionMixin):
         return com.values_from_object(self)
 
     def __array_wrap__(self, result, context=None):
+        if (context is not None and context[1] is not None and
+                len(context[1]) == 2 and context[1][1] is self and
+                isinstance(context[1][0], np.ndarray)):
+            # TODO: Can we return NotImplemented earlier?  By the time we
+            #  get here we've calculated `result`, which may not be cheap
+            return NotImplemented
+
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
         return self._constructor(result, **d).__finalize__(self)
 
