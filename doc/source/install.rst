@@ -257,7 +257,7 @@ Optional Dependencies
   version. Version 0.28.2 or higher.
 * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.18.1 or higher
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
-* `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.2.2 or higher required.
+* `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.4.2 or higher required.
 * `Feather Format <https://github.com/wesm/feather>`__: necessary for feather-based storage, version 0.3.1 or higher.
 * `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1) or `fastparquet <https://fastparquet.readthedocs.io/en/latest>`__ (>= 0.0.6) for parquet-based storage. The `snappy <https://pypi.org/project/python-snappy>`__ and `brotli <https://pypi.org/project/brotlipy>`__ are available for compression support.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended. Besides SQLAlchemy, you also need a database specific driver. You can find an overview of supported drivers for each SQL dialect in the `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__. Some common drivers are:
