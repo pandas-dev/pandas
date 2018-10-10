@@ -9,6 +9,7 @@ from pandas import Timedelta
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
 from pandas.compat import text_type, iteritems
+from pandas.core.arrays import period_array
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas._libs import tslib
@@ -1040,7 +1041,7 @@ class TestMethods(object):
         with tm.assert_raises_regex(TypeError, msg):
             dt1 + dt2
 
-    boxes = [lambda x: x, lambda x: pd.Series([x]), lambda x: pd.Index([x])]
+    boxes = [lambda x: x[0], pd.Series, pd.Index]
     ids = ['identity', 'Series', 'Index']
 
     @pytest.mark.parametrize('lbox', boxes, ids=ids)
@@ -1056,13 +1057,13 @@ class TestMethods(object):
                r"can only operate on a|incompatible type|"
                r"ufunc add cannot use operands")
         with tm.assert_raises_regex(TypeError, msg):
-            lbox(ts) + rbox(per)
+            lbox([ts]) + rbox(period_array([per]))
 
         with tm.assert_raises_regex(TypeError, msg):
-            lbox(per) + rbox(ts)
+            lbox(period_array([per])) + rbox([ts])
 
         with tm.assert_raises_regex(TypeError, msg):
-            lbox(per) + rbox(per)
+            lbox([per]) + rbox([period_array(per)])
 
     def test_sub(self):
         dt1 = Period('2011-01-01', freq='D')

@@ -562,7 +562,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         -------
         shifted : PeriodArray
         """
-        # TODO(DatetimeArray): remove from DatetimeLikeArrayMixin
+        # TODO(DatetimeArray): remove
         # The semantics for Index.shift differ from EA.shift
         # then just call super.
         return ExtensionArray.shift(self, periods)
@@ -589,6 +589,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
     @property
     def _box_func(self):
+        # Used in DatelikeArray.__iter__
         return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
 
     def asfreq(self, freq=None, how='E'):
