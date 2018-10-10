@@ -25,7 +25,6 @@ on_dtypes = ['uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
 }}
 
 
-
 {{for table_type, by_dtype in by_dtypes}}
 {{for on_dtype in on_dtypes}}
 
@@ -68,21 +67,21 @@ def asof_join_backward_{{on_dtype}}_by_{{by_dtype}}(
 
         # find last position in right whose value is less than left's
         if allow_exact_matches:
-            while right_pos < right_size and\
-                right_values[right_pos] <= left_values[left_pos]:
+            while (right_pos < right_size and
+                   right_values[right_pos] <= left_values[left_pos]):
                 hash_table.set_item(right_by_values[right_pos], right_pos)
                 right_pos += 1
         else:
-            while right_pos < right_size and\
-                right_values[right_pos] < left_values[left_pos]:
+            while (right_pos < right_size and
+                   right_values[right_pos] < left_values[left_pos]):
                 hash_table.set_item(right_by_values[right_pos], right_pos)
                 right_pos += 1
         right_pos -= 1
 
         # save positions as the desired index
         by_value = left_by_values[left_pos]
-        found_right_pos = hash_table.get_item(by_value)\
-                          if by_value in hash_table else -1
+        found_right_pos = (hash_table.get_item(by_value)
+                           if by_value in hash_table else -1)
         left_indexer[left_pos] = left_pos
         right_indexer[left_pos] = found_right_pos
 
@@ -133,21 +132,21 @@ def asof_join_forward_{{on_dtype}}_by_{{by_dtype}}(
 
         # find first position in right whose value is greater than left's
         if allow_exact_matches:
-            while right_pos >= 0 and\
-                right_values[right_pos] >= left_values[left_pos]:
+            while (right_pos >= 0 and
+                   right_values[right_pos] >= left_values[left_pos]):
                 hash_table.set_item(right_by_values[right_pos], right_pos)
                 right_pos -= 1
         else:
-            while right_pos >= 0 and\
-                right_values[right_pos] > left_values[left_pos]:
+            while (right_pos >= 0 and
+                   right_values[right_pos] > left_values[left_pos]):
                 hash_table.set_item(right_by_values[right_pos], right_pos)
                 right_pos -= 1
         right_pos += 1
 
         # save positions as the desired index
         by_value = left_by_values[left_pos]
-        found_right_pos = hash_table.get_item(by_value)\
-                          if by_value in hash_table else -1
+        found_right_pos = (hash_table.get_item(by_value)
+                           if by_value in hash_table else -1)
         left_indexer[left_pos] = left_pos
         right_indexer[left_pos] = found_right_pos
 
@@ -259,12 +258,12 @@ def asof_join_backward_{{on_dtype}}(
 
         # find last position in right whose value is less than left's
         if allow_exact_matches:
-            while right_pos < right_size and\
-                right_values[right_pos] <= left_values[left_pos]:
+            while (right_pos < right_size and
+                   right_values[right_pos] <= left_values[left_pos]):
                 right_pos += 1
         else:
-            while right_pos < right_size and\
-                right_values[right_pos] < left_values[left_pos]:
+            while (right_pos < right_size and
+                   right_values[right_pos] < left_values[left_pos]):
                 right_pos += 1
         right_pos -= 1
 
@@ -313,19 +312,19 @@ def asof_join_forward_{{on_dtype}}(
 
         # find first position in right whose value is greater than left's
         if allow_exact_matches:
-            while right_pos >= 0 and\
-                right_values[right_pos] >= left_values[left_pos]:
+            while (right_pos >= 0 and
+                   right_values[right_pos] >= left_values[left_pos]):
                 right_pos -= 1
         else:
-            while right_pos >= 0 and\
-                right_values[right_pos] > left_values[left_pos]:
+            while (right_pos >= 0 and
+                   right_values[right_pos] > left_values[left_pos]):
                 right_pos -= 1
         right_pos += 1
 
         # save positions as the desired index
         left_indexer[left_pos] = left_pos
-        right_indexer[left_pos] = right_pos\
-                                  if right_pos != right_size else -1
+        right_indexer[left_pos] = (right_pos
+                                   if right_pos != right_size else -1)
 
         # if needed, verify that tolerance is met
         if has_tolerance and right_pos != right_size:

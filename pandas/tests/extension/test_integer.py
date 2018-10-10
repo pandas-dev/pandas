@@ -48,14 +48,6 @@ def data_missing(dtype):
 
 
 @pytest.fixture
-def data_repeated(data):
-    def gen(count):
-        for _ in range(count):
-            yield data
-    yield gen
-
-
-@pytest.fixture
 def data_for_sorting(dtype):
     return integer_array([1, 2, 0], dtype=dtype)
 
@@ -150,6 +142,12 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     def test_error(self, data, all_arithmetic_operators):
         # other specific errors tested in the integer array specific tests
         pass
+
+    @pytest.mark.xfail(reason="EA is listified. GH-22922", strict=True)
+    def test_add_series_with_extension_array(self, data):
+        super(TestArithmeticOps, self).test_add_series_with_extension_array(
+            data
+        )
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
