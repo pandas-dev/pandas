@@ -444,8 +444,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
         Parameters
         ----------
-        other : timedelta, np.timedelta64, DateOffset, int,
-                np.ndarray[timedelta64], TimedeltaIndex
+        other : timedelta, np.timedelta64, DateOffset, int, np.ndarray
 
         Returns
         -------
