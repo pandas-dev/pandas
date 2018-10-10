@@ -3,7 +3,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import division
 
-# pylint: disable=E1101,E1103combine
+# pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
 import warnings
@@ -2315,7 +2315,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> s1 = pd.Series([1, 2])
         >>> s2 = pd.Series([0, 3])
         >>> s1.combine(s2, lambda x1, x2: x1 if x1 < x2 else x2)
@@ -2331,9 +2330,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: int64
 
         When fill_value is given:-
-
         >>> s1.combine(s2, lambda x1, x2: x1 if x1 > x2 else x2,
-        ...             fill_value = 787)
+        ...            fill_value = 787)
         0      1
         1      3
         2    787
