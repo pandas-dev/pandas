@@ -890,6 +890,7 @@ Reshaping
 - Bug in :func:`pandas.wide_to_long` when a string is passed to the stubnames argument and a column name is a substring of that stubname (:issue:`22468`)
 - Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
 - Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
+- Bug in :func:`pandas.concat` when concatenating a multicolumn DataFrame with tz-aware data against a DataFrame with a different number of columns (:issue`22796`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -907,3 +908,4 @@ Other
 - :meth:`DataFrame.nlargest` and :meth:`DataFrame.nsmallest` now returns the correct n values when keep != 'all' also when tied on the first columns (:issue:`22752`)
 - :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax`` (:issue:`21548` and :issue:`21526`). ``NaN`` values are also handled properly.
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
+- Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
