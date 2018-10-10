@@ -440,7 +440,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         # on the outside of this condition.
         # (GH 17621)
         if isinstance(group_axis, MultiIndex):
-            if is_list_like(level, strict=False) and len(level) == 1:
+            if is_list_like(level) and len(level) == 1:
                 level = level[0]
 
             if key is None and is_scalar(level):
@@ -452,7 +452,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
             # allow level to be a length-one list-like object
             # (e.g., level=[0])
             # GH 13901
-            if is_list_like(level, strict=False):
+            if is_list_like(level):
                 nlevels = len(level)
                 if nlevels == 1:
                     level = level[0]

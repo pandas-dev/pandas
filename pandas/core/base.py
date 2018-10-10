@@ -543,8 +543,7 @@ class SelectionMixin(object):
                                 name=getattr(self, 'name', None))
 
             return result, True
-        elif (is_list_like(arg, strict=False)
-              and arg not in compat.string_types):
+        elif is_list_like(arg) and arg not in compat.string_types:
             # we require a list, but not an 'str'
             return self._aggregate_multiple_funcs(arg,
                                                   _level=_level,

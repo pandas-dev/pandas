@@ -4,10 +4,10 @@ import re
 import numpy as np
 from numbers import Number
 from pandas import compat
-from pandas.compat import (PY2, string_types, text_type,
+from pandas.compat import (PY2, PY36, string_types, text_type,
                            string_and_binary_types, re_type)
 from pandas._libs import lib
-import warnings
+from collections import abc, OrderedDict
 
 is_bool = lib.is_bool
 
@@ -248,7 +248,7 @@ def is_re_compilable(obj):
         return True
 
 
-def is_list_like(obj, strict=None):
+def is_list_like(obj):
     """
     Check if the object is list-like.
 
@@ -260,8 +260,6 @@ def is_list_like(obj, strict=None):
     Parameters
     ----------
     obj : The object to check.
-    strict : boolean, default None
-        Whether `set` should be counted as list-like
 
     Returns
     -------
@@ -285,21 +283,38 @@ def is_list_like(obj, strict=None):
     >>> is_list_like(np.array(2)))
     False
     """
-    if strict is None and isinstance(obj, set):
-        # only raise warning if necessary
-        warnings.warn('is_list_like will in the future return False for sets. '
-                      'To keep the previous behavior, pass `strict=False`. To '
-                      'adopt the future behavior and silence this warning, '
-                      'pass `strict=True`', FutureWarning)
-    strict = False if strict is None else strict
 
-    list_like = (isinstance(obj, compat.Iterable)
-                 # we do not count strings/unicode/bytes as set-like
-                 and not isinstance(obj, string_and_binary_types)
-                 # exclude zero-dimensional numpy arrays, effectively scalars
-                 and not (isinstance(obj, np.ndarray) and obj.ndim == 0))
-    return list_like and (not strict or not isinstance(obj, set))
+    return (isinstance(obj, compat.Iterable) and
+            # we do not count strings/unicode/bytes as list-like
+            not isinstance(obj, string_and_binary_types) and
+            # exclude zero-dimensional numpy arrays, effectively scalars
+            not (isinstance(obj, np.ndarray) and obj.ndim == 0))
 
+
+def is_ordered_list_like(obj):
+    """
+    Check if the object is list-like and has a defined order
+
+    Works like :meth:`is_list_like` but excludes sets (as well as unordered
+    `dict` before Python 3.6)
+
+    Note that iterators can not be inspected for order - this check will return
+    True but it is up to the user to make sure that their iterators are
+    generated in an ordered way.
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Returns
+    -------
+    is_ordered_list_like : bool
+        Whether `obj` is an ordered list-like
+    """
+    list_like = is_list_like(obj)
+    unordered_dict = not PY36 and (isinstance(obj, dict)
+                                   and not isinstance(obj, OrderedDict))
+    return list_like and not unordered_dict and not isinstance(obj, abc.Set)
 
 def is_array_like(obj):
     """
@@ -331,7 +346,7 @@ def is_array_like(obj):
     False
     """
 
-    return is_list_like(obj, strict=False) and hasattr(obj, "dtype")
+    return is_list_like(obj) and hasattr(obj, "dtype")
 
 
 def is_nested_list_like(obj):
@@ -374,9 +389,8 @@ def is_nested_list_like(obj):
     --------
     is_list_like
     """
-    return (is_list_like(obj, strict=False) and hasattr(obj, '__len__')
-            and len(obj) > 0 and all(is_list_like(item, strict=False)
-                                     for item in obj))
+    return (is_list_like(obj) and hasattr(obj, '__len__') and
+            len(obj) > 0 and all(is_list_like(item) for item in obj))
 
 
 def is_dict_like(obj):

@@ -396,11 +396,11 @@ def isin(comps, values):
     boolean array same length as comps
     """
 
-    if not is_list_like(comps, strict=False):
+    if not is_list_like(comps):
         raise TypeError("only list-like objects are allowed to be passed"
                         " to isin(), you passed a [{comps_type}]"
                         .format(comps_type=type(comps).__name__))
-    if not is_list_like(values, strict=False):
+    if not is_list_like(values):
         raise TypeError("only list-like objects are allowed to be passed"
                         " to isin(), you passed a [{values_type}]"
                         .format(values_type=type(values).__name__))
@@ -1178,7 +1178,7 @@ class SelectNFrame(SelectN):
 
     def __init__(self, obj, n, keep, columns):
         super(SelectNFrame, self).__init__(obj, n, keep)
-        if not is_list_like(columns, strict=False):
+        if not is_list_like(columns):
             columns = [columns]
         columns = list(columns)
         self.columns = columns

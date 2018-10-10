@@ -26,7 +26,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
          value_name='value', col_level=None):
     # TODO: what about the existing index?
     if id_vars is not None:
-        if not is_list_like(id_vars, strict=False):
+        if not is_list_like(id_vars):
             id_vars = [id_vars]
         elif (isinstance(frame.columns, ABCMultiIndex) and
               not isinstance(id_vars, list)):
@@ -38,7 +38,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         id_vars = []
 
     if value_vars is not None:
-        if not is_list_like(value_vars, strict=False):
+        if not is_list_like(value_vars):
             value_vars = [value_vars]
         elif (isinstance(frame.columns, ABCMultiIndex) and
               not isinstance(value_vars, list)):
@@ -409,7 +409,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
 
         return newdf.set_index(i + [j])
 
-    if not is_list_like(stubnames, strict=False):
+    if not is_list_like(stubnames):
         stubnames = [stubnames]
     else:
         stubnames = list(stubnames)
@@ -417,7 +417,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     if any(col in stubnames for col in df.columns):
         raise ValueError("stubname can't be identical to a column name")
 
-    if not is_list_like(i, strict=False):
+    if not is_list_like(i):
         i = [i]
     else:
         i = list(i)

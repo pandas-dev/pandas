@@ -244,7 +244,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                                 "when appending")
         else:
             values = other
-            if not is_list_like(values, strict=False):
+            if not is_list_like(values):
                 values = [values]
             other = CategoricalIndex(self._create_categorical(
                 other, dtype=self.dtype))

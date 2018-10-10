@@ -464,7 +464,7 @@ def _infer_fill_value(val):
     element to provide proper block construction
     """
 
-    if not is_list_like(val, strict=False):
+    if not is_list_like(val):
         val = [val]
     val = np.array(val, copy=False)
     if is_datetimelike(val):

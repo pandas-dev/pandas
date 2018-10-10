@@ -776,7 +776,7 @@ def _sanitize_values(arr):
         if isinstance(arr, np.ndarray):
             pass
 
-        elif is_list_like(arr, strict=False) and len(arr) > 0:
+        elif is_list_like(arr) and len(arr) > 0:
             arr = maybe_convert_platform(arr)
 
         else:

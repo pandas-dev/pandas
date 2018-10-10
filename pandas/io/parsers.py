@@ -1225,7 +1225,7 @@ def _validate_usecols_arg(usecols):
         if callable(usecols):
             return usecols, None
         # GH20529, ensure is iterable container but not string.
-        elif not is_list_like(usecols, strict=False):
+        elif not is_list_like(usecols):
             raise ValueError(msg)
         else:
             usecols_dtype = lib.infer_dtype(usecols)
@@ -3157,7 +3157,7 @@ def _clean_na_values(na_values, keep_default_na=True):
         # where we append the default NaN values, provided
         # that `keep_default_na=True`.
         for k, v in compat.iteritems(old_na_values):
-            if not is_list_like(v, strict=False):
+            if not is_list_like(v):
                 v = [v]
 
             if keep_default_na:
@@ -3166,7 +3166,7 @@ def _clean_na_values(na_values, keep_default_na=True):
             na_values[k] = v
         na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
-        if not is_list_like(na_values, strict=False):
+        if not is_list_like(na_values):
             na_values = [na_values]
         na_values = _stringify_na_values(na_values)
         if keep_default_na:

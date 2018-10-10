@@ -517,7 +517,7 @@ class DataFrameFormatter(TableFormatter):
 
         str_index = self._get_formatted_index(frame)
 
-        if not is_list_like(self.header, strict=False) and not self.header:
+        if not is_list_like(self.header) and not self.header:
             stringified = []
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
@@ -526,7 +526,7 @@ class DataFrameFormatter(TableFormatter):
                                                adj=self.adj)
                 stringified.append(fmt_values)
         else:
-            if is_list_like(self.header, strict=False):
+            if is_list_like(self.header):
                 if len(self.header) != len(self.columns):
                     raise ValueError(('Writing {ncols} cols but got {nalias} '
                                       'aliases'

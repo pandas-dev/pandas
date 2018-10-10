@@ -424,7 +424,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     ValueError
         * If ``labels`` is not None and ``values`` contain duplicates.
     """
-    if not is_list_like(values, strict=False):
+    if not is_list_like(values):
         raise TypeError("Only list-like objects are allowed to be passed to"
                         "safe_sort as values")
 
@@ -459,7 +459,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     if labels is None:
         return ordered
 
-    if not is_list_like(labels, strict=False):
+    if not is_list_like(labels):
         raise TypeError("Only list-like objects or None are allowed to be"
                         "passed to safe_sort as labels")
     labels = ensure_platform_int(np.asarray(labels))

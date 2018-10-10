@@ -375,7 +375,7 @@ def _adjust_to_origin(arg, origin, unit):
         offset = offset // tslibs.Timedelta(1, unit=unit)
 
         # scalars & ndarray-like can handle the addition
-        if is_list_like(arg, strict=False) and not isinstance(
+        if is_list_like(arg) and not isinstance(
                 arg, (ABCSeries, ABCIndexClass, np.ndarray)):
             arg = np.asarray(arg)
         arg = arg + offset
@@ -580,7 +580,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         else:
             convert_listlike = partial(convert_listlike, name=arg.name)
             result = convert_listlike(arg, box, format)
-    elif is_list_like(arg, strict=False):
+    elif is_list_like(arg):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
             result = _convert_and_box_cache(arg, cache_array, box, errors)
@@ -868,7 +868,7 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
         return Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, ABCIndexClass):
         return _convert_listlike(arg, format)
-    elif is_list_like(arg, strict=False):
+    elif is_list_like(arg):
         return _convert_listlike(arg, format)
 
     return _convert_listlike(np.array([arg]), format)[0]

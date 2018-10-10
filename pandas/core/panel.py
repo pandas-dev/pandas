@@ -286,7 +286,7 @@ class Panel(NDFrame):
 
         if isinstance(self._info_axis, MultiIndex):
             return self._getitem_multilevel(key)
-        if not (is_list_like(key, strict=False) or isinstance(key, slice)):
+        if not (is_list_like(key) or isinstance(key, slice)):
             return super(Panel, self).__getitem__(key)
         return self.loc[key]
 
@@ -884,7 +884,7 @@ class Panel(NDFrame):
         # if we have a multi-index and a single tuple, then its a reduction
         # (GH 7516)
         if not (isinstance(ax, MultiIndex) and isinstance(key, tuple)):
-            if is_list_like(key, strict=False):
+            if is_list_like(key):
                 indexer = {self._get_axis_name(axis): key}
                 return self.reindex(**indexer)
 

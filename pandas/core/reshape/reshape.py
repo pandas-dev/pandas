@@ -743,7 +743,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
             len_msg = ("Length of '{name}' ({len_item}) did not match the "
                        "length of the columns being encoded ({len_enc}).")
 
-            if is_list_like(item, strict=False):
+            if is_list_like(item):
                 if not len(item) == data_to_encode.shape[1]:
                     len_msg = \
                         len_msg.format(name=name, len_item=len(item),

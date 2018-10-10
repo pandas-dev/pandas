@@ -104,7 +104,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         return super(DecimalArray, self).astype(dtype, copy)
 
     def __setitem__(self, key, value):
-        if pd.api.types.is_list_like(value, strict=False):
+        if pd.api.types.is_list_like(value):
             value = [decimal.Decimal(v) for v in value]
         else:
             value = decimal.Decimal(value)

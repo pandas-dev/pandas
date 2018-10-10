@@ -1179,8 +1179,8 @@ class NDFrame(PandasObject, SelectionMixin):
         2    3  6
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        non_mapper = is_scalar(mapper) or (is_list_like(mapper, strict=False)
-                                           and not is_dict_like(mapper))
+        non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
+                                           is_dict_like(mapper))
         if non_mapper:
             return self._set_axis_name(mapper, axis=axis, inplace=inplace)
         else:
@@ -3263,7 +3263,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # if we encounter an array-like and we only have 1 dim
             # that means that their are list/ndarrays inside the Series!
             # so just return them (GH 6394)
-            if not is_list_like(new_values, strict=False) or self.ndim == 1:
+            if not is_list_like(new_values) or self.ndim == 1:
                 return com.maybe_box_datetimelike(new_values)
 
             result = self._constructor_sliced(
@@ -4674,8 +4674,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 else:
                     object.__setattr__(self, name, value)
             except (AttributeError, TypeError):
-                if (isinstance(self, ABCDataFrame)
-                        and is_list_like(value, strict=False)):
+                if isinstance(self, ABCDataFrame) and (is_list_like(value)):
                     warnings.warn("Pandas doesn't allow columns to be "
                                   "created via a new attribute name - see "
                                   "https://pandas.pydata.org/pandas-docs/"
@@ -5670,7 +5669,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if isinstance(value, (dict, ABCSeries)):
                     from pandas import Series
                     value = Series(value)
-                elif not is_list_like(value, strict=False):
+                elif not is_list_like(value):
                     pass
                 else:
                     raise TypeError('"value" parameter must be a scalar, dict '
@@ -5695,7 +5694,7 @@ class NDFrame(PandasObject, SelectionMixin):
                     obj.fillna(v, limit=limit, inplace=True, downcast=downcast)
                 return result if not inplace else None
 
-            elif not is_list_like(value, strict=False):
+            elif not is_list_like(value):
                 new_data = self._data.fillna(value=value, limit=limit,
                                              inplace=inplace,
                                              downcast=downcast)
@@ -6096,7 +6095,7 @@ class NDFrame(PandasObject, SelectionMixin):
                     return None if inplace else res
 
                 # {'A': NA} -> 0
-                elif not is_list_like(value, strict=False):
+                elif not is_list_like(value):
                     keys = [(k, src) for k, src in compat.iteritems(to_replace)
                             if k in self]
                     keys_len = len(keys) - 1
@@ -6112,9 +6111,8 @@ class NDFrame(PandasObject, SelectionMixin):
                     raise TypeError('value argument must be scalar, dict, or '
                                     'Series')
 
-            elif is_list_like(to_replace, strict=False):
-                # [NA, ''] -> [0, 'missing']
-                if is_list_like(value, strict=False):
+            elif is_list_like(to_replace):  # [NA, ''] -> [0, 'missing']
+                if is_list_like(value):
                     if len(to_replace) != len(value):
                         raise ValueError('Replacement lists must match '
                                          'in length. Expecting %d got %d ' %
@@ -6130,9 +6128,8 @@ class NDFrame(PandasObject, SelectionMixin):
                                                   value=value, inplace=inplace,
                                                   regex=regex)
             elif to_replace is None:
-                if not (is_re_compilable(regex)
-                        or is_list_like(regex, strict=False)
-                        or is_dict_like(regex)):
+                if not (is_re_compilable(regex) or
+                        is_list_like(regex) or is_dict_like(regex)):
                     raise TypeError("'regex' must be a string or a compiled "
                                     "regular expression or a list or dict of "
                                     "strings or regular expressions, you "
@@ -6153,7 +6150,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                                         inplace=inplace,
                                                         regex=regex)
 
-                elif not is_list_like(value, strict=False):  # NA -> 0
+                elif not is_list_like(value):  # NA -> 0
                     new_data = self._data.replace(to_replace=to_replace,
                                                   value=value, inplace=inplace,
                                                   regex=regex)
@@ -6480,10 +6477,10 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             if subset is None:
                 subset = self.columns
-            if not is_list_like(subset, strict=False):
+            if not is_list_like(subset):
                 subset = [subset]
 
-        is_list = is_list_like(where, strict=False)
+        is_list = is_list_like(where)
         if not is_list:
             start = self.index[0]
             if isinstance(self.index, PeriodIndex):
@@ -6715,8 +6712,7 @@ class NDFrame(PandasObject, SelectionMixin):
         # GH #15390
         # In order for where method to work, the threshold must
         # be transformed to NDFrame from other array like structure.
-        if (not isinstance(threshold, ABCSeries)
-                and is_list_like(threshold, strict=False)):
+        if (not isinstance(threshold, ABCSeries)) and is_list_like(threshold):
             if isinstance(self, ABCSeries):
                 threshold = pd.Series(threshold, index=self.index)
             else:
@@ -6817,9 +6813,9 @@ class NDFrame(PandasObject, SelectionMixin):
         # so ignore
         # GH 19992
         # numpy doesn't drop a list-like bound containing NaN
-        if not is_list_like(lower, strict=False) and np.any(pd.isnull(lower)):
+        if not is_list_like(lower) and np.any(pd.isnull(lower)):
             lower = None
-        if not is_list_like(upper, strict=False) and np.any(pd.isnull(upper)):
+        if not is_list_like(upper) and np.any(pd.isnull(upper)):
             upper = None
 
         # GH 2747 (arguments were reversed)

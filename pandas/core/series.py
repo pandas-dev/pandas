@@ -249,10 +249,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     data = data.to_dense()
 
             if index is None:
-                if not is_list_like(data, strict=False):
+                if not is_list_like(data):
                     data = [data]
                 index = ibase.default_index(len(data))
-            elif is_list_like(data, strict=False):
+            elif is_list_like(data):
 
                 # a scalar numpy array is list-like but doesn't
                 # have a proper length
@@ -775,8 +775,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             result = self.index.get_value(self, key)
 
             if not is_scalar(result):
-                if (is_list_like(result, strict=False)
-                        and not isinstance(result, Series)):
+                if is_list_like(result) and not isinstance(result, Series):
+
                     # we need to box if loc of the key isn't scalar here
                     # otherwise have inline ndarray/lists
                     try:
@@ -1895,7 +1895,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         result = self._data.quantile(qs=q, interpolation=interpolation)
 
-        if is_list_like(q, strict=False):
+        if is_list_like(q):
             return self._constructor(result,
                                      index=Float64Index(q),
                                      name=self.name)
@@ -2561,7 +2561,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         argsorted = _try_kind_sort(arr[good])
 
-        if is_list_like(ascending, strict=False):
+        if is_list_like(ascending):
             if len(ascending) != 1:
                 raise ValueError('Length of ascending (%d) must be 1 '
                                  'for Series' % (len(ascending)))
@@ -3494,8 +3494,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         kwargs['inplace'] = validate_bool_kwarg(kwargs.get('inplace', False),
                                                 'inplace')
 
-        non_mapping = is_scalar(index) or (is_list_like(index, strict=False)
-                                           and not is_dict_like(index))
+        non_mapping = is_scalar(index) or (is_list_like(index) and
+                                           not is_dict_like(index))
         if non_mapping:
             return self._set_name(index, inplace=kwargs.get('inplace'))
         return super(Series, self).rename(index=index, **kwargs)
@@ -4234,10 +4234,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             subarr = maybe_cast_to_datetime(arr, dtype)
             # Take care in creating object arrays (but iterators are not
             # supported):
-            if (is_object_dtype(dtype)
-                and (is_list_like(subarr, strict=False)
-                     and not (is_iterator(subarr)
-                              or isinstance(subarr, np.ndarray)))):
+            if is_object_dtype(dtype) and (is_list_like(subarr) and
+                                           not (is_iterator(subarr) or
+                                           isinstance(subarr, np.ndarray))):
                 subarr = construct_1d_object_array_from_listlike(subarr)
             elif not is_extension_type(subarr):
                 subarr = construct_1d_ndarray_preserving_na(subarr, dtype,

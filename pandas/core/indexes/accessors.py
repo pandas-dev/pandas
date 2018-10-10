@@ -63,7 +63,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if isinstance(result, np.ndarray):
             if is_integer_dtype(result):
                 result = result.astype('int64')
-        elif not is_list_like(result, strict=False):
+        elif not is_list_like(result):
             return result
 
         result = np.asarray(result)
@@ -97,7 +97,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         method = getattr(values, name)
         result = method(*args, **kwargs)
 
-        if not is_list_like(result, strict=False):
+        if not is_list_like(result):
             return result
 
         result = Series(result, index=self.index, name=self.name)

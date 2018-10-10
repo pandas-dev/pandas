@@ -2644,7 +2644,7 @@ class TestDataFramePlots(TestPlotBase):
             errs = [c.lines
                     for c in ax.containers if getattr(c, has_err, False)][0]
             for el in errs:
-                if is_list_like(el, strict=False):
+                if is_list_like(el):
                     lines.extend(el)
                 else:
                     lines.append(el)

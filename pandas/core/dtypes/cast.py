@@ -472,7 +472,7 @@ def infer_dtype_from_array(arr, pandas_dtype=False):
     if isinstance(arr, np.ndarray):
         return arr.dtype, arr
 
-    if not is_list_like(arr, strict=False):
+    if not is_list_like(arr):
         arr = [arr]
 
     if pandas_dtype and is_extension_type(arr):
@@ -518,7 +518,7 @@ def maybe_infer_dtype_type(element):
     tipo = None
     if hasattr(element, 'dtype'):
         tipo = element.dtype
-    elif is_list_like(element, strict=False):
+    elif is_list_like(element):
         element = np.asarray(element)
         tipo = element.dtype
     return tipo
@@ -914,7 +914,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
 
     v = value
 
-    if not is_list_like(v, strict=False):
+    if not is_list_like(v):
         v = [v]
     v = np.array(v, copy=False)
 

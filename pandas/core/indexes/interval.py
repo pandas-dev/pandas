@@ -560,7 +560,7 @@ class IntervalIndex(IntervalMixin, Index):
             Int64Index if converted list-like.
         """
         original = key
-        if is_list_like(key, strict=False):
+        if is_list_like(key):
             key = ensure_index(key)
 
         if not self._needs_i8_conversion(key):
@@ -734,7 +734,7 @@ class IntervalIndex(IntervalMixin, Index):
     def get_value(self, series, key):
         if com.is_bool_indexer(key):
             loc = key
-        elif is_list_like(key, strict=False):
+        elif is_list_like(key):
             loc = self.get_indexer(key)
         elif isinstance(key, slice):
 

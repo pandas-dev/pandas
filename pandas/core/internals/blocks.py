@@ -910,7 +910,7 @@ class Block(PandasObject):
         def _is_empty_indexer(indexer):
             # return a boolean if we have an empty indexer
 
-            if is_list_like(indexer, strict=False) and not len(indexer):
+            if is_list_like(indexer) and not len(indexer):
                 return True
             if arr_value.ndim == 1:
                 if not isinstance(indexer, tuple):
@@ -978,8 +978,7 @@ class Block(PandasObject):
         mask = getattr(mask, 'values', mask)
 
         # if we are passed a scalar None, convert it here
-        if (not is_list_like(new, strict=False)
-                and isna(new) and not self.is_object):
+        if not is_list_like(new) and isna(new) and not self.is_object:
             new = self.fill_value
 
         if self._can_hold_element(new):
@@ -1003,7 +1002,7 @@ class Block(PandasObject):
             #
             # TODO: this prob needs some better checking
             # for 2D cases
-            if ((is_list_like(new, strict=False) and
+            if ((is_list_like(new) and
                  np.any(mask[mask]) and
                  getattr(new, 'ndim', 1) == 1)):
 
@@ -1379,8 +1378,7 @@ class Block(PandasObject):
 
             # avoid numpy warning of elementwise comparisons
             elif func.__name__ == 'eq':
-                if (is_list_like(other, strict=False)
-                        and not isinstance(other, np.ndarray)):
+                if is_list_like(other) and not isinstance(other, np.ndarray):
                     other = np.asarray(other)
 
                     # if we can broadcast, then ok
@@ -1436,8 +1434,7 @@ class Block(PandasObject):
 
                 # differentiate between an invalid ndarray-ndarray comparison
                 # and an invalid type comparison
-                if (isinstance(values, np.ndarray)
-                        and is_list_like(other, strict=False)):
+                if isinstance(values, np.ndarray) and is_list_like(other):
                     raise ValueError(
                         'Invalid broadcasting comparison [{other!r}] with '
                         'block values'.format(other=other))
@@ -1651,7 +1648,7 @@ class Block(PandasObject):
 
         from pandas import Float64Index
         is_empty = values.shape[axis] == 0
-        if is_list_like(qs, strict=False):
+        if is_list_like(qs):
             ax = Float64Index(qs)
 
             if is_empty:
@@ -2487,8 +2484,8 @@ class ObjectBlock(Block):
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True, mgr=None):
-        to_rep_is_list = is_list_like(to_replace, strict=False)
-        value_is_list = is_list_like(value, strict=False)
+        to_rep_is_list = is_list_like(to_replace)
+        value_is_list = is_list_like(value)
         both_lists = to_rep_is_list and value_is_list
         either_list = to_rep_is_list or value_is_list
 
@@ -3476,7 +3473,7 @@ def _putmask_smart(v, m, n):
     # that numpy does when numeric are mixed with strings
 
     # n should be the length of the mask or a scalar here
-    if not is_list_like(n, strict=False):
+    if not is_list_like(n):
         n = np.repeat(n, len(m))
     elif isinstance(n, np.ndarray) and n.ndim == 0:  # numpy scalar
         n = np.repeat(np.array(n, ndmin=1), len(m))
@@ -3508,7 +3505,7 @@ def _putmask_smart(v, m, n):
              is_integer_dtype(nn_at.dtype))):
 
             comp = (nn == nn_at)
-            if is_list_like(comp, strict=False) and comp.all():
+            if is_list_like(comp) and comp.all():
                 nv = v.copy()
                 nv[m] = nn_at
                 return nv

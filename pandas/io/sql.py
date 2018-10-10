@@ -748,7 +748,7 @@ class SQLTable(PandasObject):
                    for name, typ, is_index in column_names_and_types]
 
         if self.keys is not None:
-            if not is_list_like(self.keys, strict=False):
+            if not is_list_like(self.keys):
                 keys = [self.keys]
             else:
                 keys = self.keys
@@ -1289,7 +1289,7 @@ class SQLiteTable(SQLTable):
                             for cname, ctype, _ in column_names_and_types]
 
         if self.keys is not None and len(self.keys):
-            if not is_list_like(self.keys, strict=False):
+            if not is_list_like(self.keys):
                 keys = [self.keys]
             else:
                 keys = self.keys

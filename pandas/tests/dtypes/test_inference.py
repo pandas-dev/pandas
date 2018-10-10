@@ -6,7 +6,7 @@ related to inference and not otherwise tested in types/test_common.py
 
 """
 from warnings import catch_warnings, simplefilter
-import collections
+from collections import namedtuple, OrderedDict
 import re
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal
@@ -21,7 +21,7 @@ from pandas import (Series, Index, DataFrame, Timedelta,
                     Panel, Period, Categorical, isna, Interval,
                     DateOffset)
 from pandas import compat
-from pandas.compat import u, PY2, StringIO, lrange
+from pandas.compat import u, PY2, PY36, StringIO, lrange
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
@@ -66,25 +66,40 @@ def test_is_sequence():
 @pytest.mark.parametrize(
     "ll",
     [
-        [], [1], (1, ), (1, 2), {'a': 1},
-        Series([1]),
-        Series([]), Series(['a']).str,
-        np.array([2])
+        [], [1], tuple(), (1, ), (1, 2), {'a': 1}, {1, 'a'}, np.array([2]),
+        Series([1]), Series([]), Series(['a']).str, Index([]), Index([1]),
+        DataFrame(), DataFrame([[1]]), iter([1, 2]), (x for x in [1, 2]),
+        np.ndarray((2,) * 2), np.ndarray((2,) * 3), np.ndarray((2,) * 4)
     ])
 def test_is_list_like_passes(ll):
-    assert inference.is_list_like(ll, strict=False)
+    assert inference.is_list_like(ll)
 
 
-def test_is_list_like_strict():
-    ll = {1, 'a'}
-    assert inference.is_list_like(ll, strict=False)
-    assert not inference.is_list_like(ll, strict=True)
+@pytest.mark.parametrize("ll", [1, '2', object(), str, np.array(2)])
+def test_is_list_like_fails(ll):
+    assert not inference.is_list_like(ll)
 
 
 @pytest.mark.parametrize(
-    "ll", [1, '2', object(), str, np.array(2)])
-def test_is_list_like_fails(ll):
-    assert not inference.is_list_like(ll, strict=False)
+    "ll",
+    [
+        [], [1], tuple(), (1, ), (1, 2), np.array([2]), OrderedDict({'a': 1}),
+        Series([1]), Series([]), Series(['a']).str, Index([]), Index([1]),
+        DataFrame(), DataFrame([[1]]), iter([1, 2]), (x for x in [1, 2]),
+        np.ndarray((2,) * 2), np.ndarray((2,) * 3), np.ndarray((2,) * 4)
+    ])
+def test_is_ordered_list_like_passes(ll):
+    assert inference.is_list_like(ll)
+
+
+@pytest.mark.parametrize("ll", [1, '2', object(), str, np.array(2),
+                                {1, 'a'}, frozenset({1, 'a'}), {1, 'a'}])
+def test_is_ordered_like_fails(ll):
+    # GH 23061
+    if PY36 and isinstance(ll, dict):
+        assert inference.is_ordered_list_like(ll)
+    else:
+        assert not inference.is_ordered_list_like(ll)
 
 
 def test_is_array_like():
@@ -113,7 +128,7 @@ def test_is_array_like():
 ])
 def test_is_nested_list_like_passes(inner, outer):
     result = outer([inner for _ in range(5)])
-    assert inference.is_list_like(result, strict=False)
+    assert inference.is_list_like(result)
 
 
 @pytest.mark.parametrize('obj', [
@@ -179,7 +194,7 @@ def test_is_file_like(mock):
 
 
 @pytest.mark.parametrize(
-    "ll", [collections.namedtuple('Test', list('abc'))(1, 2, 3)])
+    "ll", [namedtuple('Test', list('abc'))(1, 2, 3)])
 def test_is_names_tuple_passes(ll):
     assert inference.is_named_tuple(ll)
 

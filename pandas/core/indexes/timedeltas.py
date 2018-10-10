@@ -488,8 +488,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         -------
         loc : int
         """
-        if (is_list_like(key, strict=False)
-                or (isinstance(key, datetime) and key is not NaT)):
+        if is_list_like(key) or (isinstance(key, datetime) and key is not NaT):
             # GH#20464 datetime check here is to ensure we don't allow
             #   datetime objects to be incorrectly treated as timedelta
             #   objects; NaT is a special case because it plays a double role
@@ -699,7 +698,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             if loc in (0, -len(self), -1, len(self) - 1):
                 freq = self.freq
         else:
-            if is_list_like(loc, strict=False):
+            if is_list_like(loc):
                 loc = lib.maybe_indices_to_slice(
                     ensure_int64(np.array(loc)), len(self))
             if isinstance(loc, slice) and loc.step in (1, None):

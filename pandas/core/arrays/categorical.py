@@ -1017,7 +1017,7 @@ class Categorical(ExtensionArray, PandasObject):
         set_categories
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        if not is_list_like(new_categories, strict=False):
+        if not is_list_like(new_categories):
             new_categories = [new_categories]
         already_included = set(new_categories) & set(self.dtype.categories)
         if len(already_included) != 0:
@@ -1065,7 +1065,7 @@ class Categorical(ExtensionArray, PandasObject):
         set_categories
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        if not is_list_like(removals, strict=False):
+        if not is_list_like(removals):
             removals = [removals]
 
         removal_set = set(list(removals))
@@ -1981,7 +1981,7 @@ class Categorical(ExtensionArray, PandasObject):
                 raise ValueError("Cannot set a Categorical with another, "
                                  "without identical categories")
 
-        rvalue = value if is_list_like(value, strict=False) else [value]
+        rvalue = value if is_list_like(value) else [value]
 
         from pandas import Index
         to_add = Index(rvalue).difference(self.categories)
@@ -2350,7 +2350,7 @@ class Categorical(ExtensionArray, PandasObject):
         array([ True, False,  True, False,  True, False])
         """
         from pandas.core.series import _sanitize_array
-        if not is_list_like(values, strict=False):
+        if not is_list_like(values):
             raise TypeError("only list-like objects are allowed to be passed"
                             " to isin(), you passed a [{values_type}]"
                             .format(values_type=type(values).__name__))
@@ -2523,7 +2523,7 @@ def _factorize_from_iterable(values):
     """
     from pandas.core.indexes.category import CategoricalIndex
 
-    if not is_list_like(values, strict=False):
+    if not is_list_like(values):
         raise TypeError("Input must be list-like")
 
     if is_categorical(values):
