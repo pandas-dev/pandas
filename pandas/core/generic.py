@@ -6388,7 +6388,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if _maybe_transposed_self._data.get_dtype_counts().get(
                 'object') == len(_maybe_transposed_self.T):
-            raise TypeError("Cannot interpolate with all NaNs.")
+            raise TypeError("Cannot interpolate with all object-dtype columns "
+                            "in the DataFrame. Try setting at least one "
+                            "column to a numeric dtype.")
 
         # create/use the index
         if method == 'linear':

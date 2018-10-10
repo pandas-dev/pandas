@@ -814,6 +814,19 @@ class TestDataFrameInterpolate(TestData):
         with pytest.raises(TypeError):
             df.interpolate(axis=1)
 
+    def test_interp_raise_on_all_object_dtype(self):
+        # GH 22985
+        df = DataFrame({
+            'A': [1, 2, 3],
+            'B': [4, 5, 6]},
+            dtype='object')
+        with tm.assert_raises_regex(
+                TypeError,
+                "Cannot interpolate with all object-dtype columns "
+                "in the DataFrame. Try setting at least one "
+                "column to a numeric dtype."):
+            df.interpolate()
+
     def test_interp_inplace(self):
         df = DataFrame({'a': [1., 2., np.nan, 4.]})
         expected = DataFrame({'a': [1., 2., 3., 4.]})
