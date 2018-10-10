@@ -21,7 +21,7 @@ tables
 pytest-cov
 pytest-xdist
 s3fs
-scipy
+scipy>=0.18.1
 seaborn
 sqlalchemy
 statsmodels

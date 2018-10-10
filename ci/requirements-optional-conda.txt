@@ -19,7 +19,7 @@ pytables>=3.4.2
 pytest-cov
 pytest-xdist
 s3fs
-scipy
+scipy>=0.18.1
 seaborn
 sqlalchemy
 statsmodels
