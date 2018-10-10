@@ -10,6 +10,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_like,
     is_list_like,
+    is_ordered_list_like,
     is_scalar,
     is_integer,
     is_re)
