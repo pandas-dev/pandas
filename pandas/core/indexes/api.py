@@ -44,7 +44,8 @@ __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
 
 
 def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
-    """Extract combined index: return intersection or union (depending on the
+    """
+    Extract combined index: return intersection or union (depending on the
     value of "intersect") of indexes on given axis, or None if all objects
     lack indexes (e.g. they are numpy arrays)
 
@@ -72,7 +73,8 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
 
 
 def _get_combined_index(indexes, intersect=False, sort=False):
-    """Return the union or intersection of indexes
+    """
+    Return the union or intersection of indexes
 
     Parameters
     ----------
@@ -112,7 +114,8 @@ def _get_combined_index(indexes, intersect=False, sort=False):
 
 
 def _union_indexes(indexes, sort=True):
-    """Return the union of indexes
+    """
+    Return the union of indexes
 
     The behavior of sort and names is not consistent.
 
@@ -137,7 +140,8 @@ def _union_indexes(indexes, sort=True):
     indexes, kind = _sanitize_and_check(indexes)
 
     def _unique_indices(inds):
-        """Convert indexes to lists and concatenate them, removing duplicates
+        """
+        Convert indexes to lists and concatenate them, removing duplicates
 
         The final dtype is inferred.
 
@@ -187,7 +191,8 @@ def _union_indexes(indexes, sort=True):
 
 
 def _sanitize_and_check(indexes):
-    """Verify the type of indexes and convert lists to Index
+    """
+    Verify the type of indexes and convert lists to Index
 
     Cases:
 
@@ -224,7 +229,8 @@ def _sanitize_and_check(indexes):
 
 
 def _get_consensus_names(indexes):
-    """Give a consensus 'names' to indexes
+    """
+    Give a consensus 'names' to indexes
 
     If there's exactly one non-empty 'names', return this,
     otherwise, return empty.
@@ -249,7 +255,8 @@ def _get_consensus_names(indexes):
 
 
 def _all_indexes_same(indexes):
-    """Determine if all indexes contain the same elements
+    """
+    Determine if all indexes contain the same elements
 
     Parameters
     ----------
