@@ -11,11 +11,11 @@ jinja2
 lxml
 matplotlib>=2.0.0
 nbsphinx
-numexpr>=2.6.2
+numexpr>=2.6.1
 openpyxl=2.5.5
 pyarrow
 pymysql
-pytables>=3.4.2
+pytables>=3.2.2
 pytest-cov
 pytest-xdist
 s3fs
