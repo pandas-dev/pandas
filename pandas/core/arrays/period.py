@@ -254,6 +254,21 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         return cls._from_periods(data, freq=freq)
 
     @classmethod
+    def _simple_new(cls, values, freq=None, **kwargs):
+        """
+        Values can be any type that can be coerced to Periods.
+        Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
+        """
+        if not is_integer_dtype(values):
+            values = np.array(values, copy=False)
+            if len(values) > 0 and is_float_dtype(values):
+                raise TypeError("{cls} can't take floats"
+                                .format(cls=cls.__name__))
+            return cls(values, freq=freq)
+
+        return cls(values, freq=freq)
+
+    @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         # type: (Sequence[Optional[Period]], Dtype, bool) -> PeriodArray
         if dtype:
@@ -300,6 +315,118 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         data = dt64arr_to_periodarr(data, freq, tz)
         return cls._simple_new(data, freq=freq)
 
+    @classmethod
+    def _generate_range(cls, start, end, periods, freq, fields):
+        if freq is not None:
+            freq = Period._maybe_convert_freq(freq)
+
+        field_count = len(fields)
+        if com.count_not_none(start, end) > 0:
+            if field_count > 0:
+                raise ValueError('Can either instantiate from fields '
+                                 'or endpoints, but not both')
+            subarr, freq = _get_ordinal_range(start, end, periods, freq)
+        elif field_count > 0:
+            subarr, freq = _range_from_fields(freq=freq, **fields)
+        else:
+            raise ValueError('Not enough parameters to construct '
+                             'Period range')
+
+        return subarr, freq
+
+    @classmethod
+    def _concat_same_type(cls, to_concat):
+        freq = {x.freq for x in to_concat}
+        assert len(freq) == 1
+        freq = list(freq)[0]
+        values = np.concatenate([x._data for x in to_concat])
+        return cls._from_ordinals(values, freq=freq)
+
+    @property
+    def asi8(self):
+        return self._ndarray_values.view('i8')
+
+    # --------------------------------------------------------------------
+    # Data / Attributes
+    @property
+    def nbytes(self):
+        # TODO(DatetimeArray): remove
+        return self._data.nbytes
+
+    @cache_readonly
+    def dtype(self):
+        return PeriodDtype.construct_from_string(self.freq)
+
+    @property
+    def _ndarray_values(self):
+        # Ordinals
+        return self._data
+
+    @property
+    def freq(self):
+        """Return the frequency object if it is set, otherwise None"""
+        return self._freq
+
+    @freq.setter
+    def freq(self, value):
+        msg = ('Setting {cls}.freq has been deprecated and will be '
+               'removed in a future version; use {cls}.asfreq instead. '
+               'The {cls}.freq setter is not guaranteed to work.')
+        warnings.warn(msg.format(cls='PeriodIndex'),
+                      FutureWarning, stacklevel=3)
+        self._freq = value
+
+    @property
+    def flags(self):
+        """Deprecated"""
+        # Just here to support Index.flags deprecation.
+        # could also override PeriodIndex.flags if we don't want a
+        # version with PeriodArray.flags
+        return self.values.flags
+
+    @property
+    def base(self):
+        return self.values.base
+
+    @property
+    def data(self):
+        return self.astype(object).data
+
+    # --------------------------------------------------------------------
+    # Vectorized analogues of Period properties
+
+    year = _field_accessor('year', 0, "The year of the period")
+    month = _field_accessor('month', 3, "The month as January=1, December=12")
+    day = _field_accessor('day', 4, "The days of the period")
+    hour = _field_accessor('hour', 5, "The hour of the period")
+    minute = _field_accessor('minute', 6, "The minute of the period")
+    second = _field_accessor('second', 7, "The second of the period")
+    weekofyear = _field_accessor('week', 8, "The week ordinal of the year")
+    week = weekofyear
+    dayofweek = _field_accessor('dayofweek', 10,
+                                "The day of the week with Monday=0, Sunday=6")
+    weekday = dayofweek
+    dayofyear = day_of_year = _field_accessor('dayofyear', 9,
+                                              "The ordinal day of the year")
+    quarter = _field_accessor('quarter', 2, "The quarter of the date")
+    qyear = _field_accessor('qyear', 1)
+    days_in_month = _field_accessor('days_in_month', 11,
+                                    "The number of days in the month")
+    daysinmonth = days_in_month
+
+    @property
+    def is_leap_year(self):
+        """ Logical indicating if the date belongs to a leap year """
+        return isleapyear_arr(np.asarray(self.year))
+
+    @property
+    def start_time(self):
+        return self.to_timestamp(how='start')
+
+    @property
+    def end_time(self):
+        return self.to_timestamp(how='end')
+
     def __repr__(self):
         return '<{}>\n{}\nLength: {}, dtype: {}'.format(
             self.__class__.__name__,
@@ -310,47 +437,6 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
     def __len__(self):
         return len(self._data)
-
-    def isna(self):
-        return self._data == iNaT
-
-    def fillna(self, value=None, method=None, limit=None):
-        # TODO(#20300)
-        # To avoid converting to object, we re-implement here with the changes
-        # 1. Passing `_ndarray_values` to func instead of self.astype(object)
-        # 2. Re-boxing with `_from_ordinals`
-        # #20300 should let us do this kind of logic on ExtensionArray.fillna
-        # and we can use it.
-        from pandas.api.types import is_array_like
-        from pandas.util._validators import validate_fillna_kwargs
-        from pandas.core.missing import pad_1d, backfill_1d
-
-        if isinstance(value, ABCSeries):
-            value = value.values
-
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError("Length of 'value' does not match. Got ({}) "
-                                 " expected {}".format(len(value), len(self)))
-            value = value[mask]
-
-        if mask.any():
-            if method is not None:
-                func = pad_1d if method == 'pad' else backfill_1d
-                new_values = func(self._ndarray_values, limit=limit,
-                                  mask=mask)
-                new_values = self._from_ordinals(new_values, freq=self.freq)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
 
     def __setitem__(self, key, value):
         from pandas.core.dtypes.missing import isna
@@ -406,21 +492,49 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
         return self._from_ordinals(new_values, self.freq)
 
-    @property
-    def nbytes(self):
-        # TODO(DatetimeArray): remove
-        return self._data.nbytes
+    def isna(self):
+        return self._data == iNaT
+
+    def fillna(self, value=None, method=None, limit=None):
+        # TODO(#20300)
+        # To avoid converting to object, we re-implement here with the changes
+        # 1. Passing `_ndarray_values` to func instead of self.astype(object)
+        # 2. Re-boxing with `_from_ordinals`
+        # #20300 should let us do this kind of logic on ExtensionArray.fillna
+        # and we can use it.
+        from pandas.api.types import is_array_like
+        from pandas.util._validators import validate_fillna_kwargs
+        from pandas.core.missing import pad_1d, backfill_1d
+
+        if isinstance(value, ABCSeries):
+            value = value.values
+
+        value, method = validate_fillna_kwargs(value, method)
+
+        mask = self.isna()
+
+        if is_array_like(value):
+            if len(value) != len(self):
+                raise ValueError("Length of 'value' does not match. Got ({}) "
+                                 " expected {}".format(len(value), len(self)))
+            value = value[mask]
+
+        if mask.any():
+            if method is not None:
+                func = pad_1d if method == 'pad' else backfill_1d
+                new_values = func(self._ndarray_values, limit=limit,
+                                  mask=mask)
+                new_values = self._from_ordinals(new_values, freq=self.freq)
+            else:
+                # fill with value
+                new_values = self.copy()
+                new_values[mask] = value
+        else:
+            new_values = self.copy()
+        return new_values
 
     def copy(self, deep=False):
         return self._from_ordinals(self._data.copy(), freq=self.freq)
-
-    @classmethod
-    def _concat_same_type(cls, to_concat):
-        freq = {x.freq for x in to_concat}
-        assert len(freq) == 1
-        freq = list(freq)[0]
-        values = np.concatenate([x._data for x in to_concat])
-        return cls._from_ordinals(values, freq=freq)
 
     def value_counts(self, dropna=False):
         from pandas.core.algorithms import value_counts
@@ -439,105 +553,53 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
                             index=index,
                             name=result.name)
 
+    def shift(self, periods=1):
+        """
+        Shift values by desired number.
+
+        Newly introduced missing values are filled with
+        ``self.dtype.na_value``.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        periods : int, default 1
+            The number of periods to shift. Negative values are allowed
+            for shifting backwards.
+
+        Returns
+        -------
+        shifted : PeriodArray
+        """
+        # TODO(DatetimeArray): remove from DatetimeLikeArrayMixin
+        # The semantics for Index.shift differ from EA.shift
+        # then just call super.
+        return ExtensionArray.shift(self, periods)
+
+    def _time_shift(self, n, freq=None):
+        """
+        Shift each value by `periods`.
+
+        Note this is different from ExtensionArray.shift, which
+        shifts the *position* of each element, padding the end with
+        missing values.
+
+        Parameters
+        ----------
+        periods : int
+            Number of periods to shift by.
+        freq : pandas.DateOffset, pandas.Timedelta, or string
+            Frequency increment to shift by.
+        """
+        values = self.values + n * self.freq.n
+        if self.hasnans:
+            values[self._isnan] = iNaT
+        return self._simple_new(values, freq=self.freq)
+
     @property
     def _box_func(self):
         return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
-
-    @cache_readonly
-    def dtype(self):
-        return PeriodDtype.construct_from_string(self.freq)
-
-    @property
-    def _ndarray_values(self):
-        # Ordinals
-        return self._data
-
-    @property
-    def asi8(self):
-        return self._ndarray_values.view('i8')
-
-    @property
-    def freq(self):
-        """Return the frequency object if it is set, otherwise None"""
-        return self._freq
-
-    @freq.setter
-    def freq(self, value):
-        msg = ('Setting {cls}.freq has been deprecated and will be '
-               'removed in a future version; use {cls}.asfreq instead. '
-               'The {cls}.freq setter is not guaranteed to work.')
-        warnings.warn(msg.format(cls='PeriodIndex'),
-                      FutureWarning, stacklevel=3)
-        self._freq = value
-
-    @classmethod
-    def _simple_new(cls, values, freq=None, **kwargs):
-        """
-        Values can be any type that can be coerced to Periods.
-        Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
-        """
-        if not is_integer_dtype(values):
-            values = np.array(values, copy=False)
-            if len(values) > 0 and is_float_dtype(values):
-                raise TypeError("{cls} can't take floats"
-                                .format(cls=cls.__name__))
-            return cls(values, freq=freq)
-
-        return cls(values, freq=freq)
-
-    @classmethod
-    def _generate_range(cls, start, end, periods, freq, fields):
-        if freq is not None:
-            freq = Period._maybe_convert_freq(freq)
-
-        field_count = len(fields)
-        if com.count_not_none(start, end) > 0:
-            if field_count > 0:
-                raise ValueError('Can either instantiate from fields '
-                                 'or endpoints, but not both')
-            subarr, freq = _get_ordinal_range(start, end, periods, freq)
-        elif field_count > 0:
-            subarr, freq = _range_from_fields(freq=freq, **fields)
-        else:
-            raise ValueError('Not enough parameters to construct '
-                             'Period range')
-
-        return subarr, freq
-
-    # --------------------------------------------------------------------
-    # Vectorized analogues of Period properties
-
-    year = _field_accessor('year', 0, "The year of the period")
-    month = _field_accessor('month', 3, "The month as January=1, December=12")
-    day = _field_accessor('day', 4, "The days of the period")
-    hour = _field_accessor('hour', 5, "The hour of the period")
-    minute = _field_accessor('minute', 6, "The minute of the period")
-    second = _field_accessor('second', 7, "The second of the period")
-    weekofyear = _field_accessor('week', 8, "The week ordinal of the year")
-    week = weekofyear
-    dayofweek = _field_accessor('dayofweek', 10,
-                                "The day of the week with Monday=0, Sunday=6")
-    weekday = dayofweek
-    dayofyear = day_of_year = _field_accessor('dayofyear', 9,
-                                              "The ordinal day of the year")
-    quarter = _field_accessor('quarter', 2, "The quarter of the date")
-    qyear = _field_accessor('qyear', 1)
-    days_in_month = _field_accessor('days_in_month', 11,
-                                    "The number of days in the month")
-    daysinmonth = days_in_month
-
-    @property
-    def is_leap_year(self):
-        """ Logical indicating if the date belongs to a leap year """
-        return isleapyear_arr(np.asarray(self.year))
-
-    @property
-    def start_time(self):
-        return self.to_timestamp(how='start')
-
-    @property
-    def end_time(self):
-        return self.to_timestamp(how='end')
 
     def asfreq(self, freq=None, how='E'):
         """
@@ -642,7 +704,6 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
-
     _create_comparison_method = classmethod(_period_array_cmp)
 
     def _sub_datelike(self, other):
@@ -693,50 +754,6 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         ordinal_delta = self._maybe_convert_timedelta(other)
         return self._time_shift(ordinal_delta)
 
-    def shift(self, periods=1):
-        """
-        Shift values by desired number.
-
-        Newly introduced missing values are filled with
-        ``self.dtype.na_value``.
-
-        .. versionadded:: 0.24.0
-
-        Parameters
-        ----------
-        periods : int, default 1
-            The number of periods to shift. Negative values are allowed
-            for shifting backwards.
-
-        Returns
-        -------
-        shifted : PeriodArray
-        """
-        # TODO(DatetimeArray): remove from DatetimeLikeArrayMixin
-        # The semantics for Index.shift differ from EA.shift
-        # then just call super.
-        return ExtensionArray.shift(self, periods)
-
-    def _time_shift(self, n, freq=None):
-        """
-        Shift each value by `periods`.
-
-        Note this is different from ExtensionArray.shift, which
-        shifts the *position* of each element, padding the end with
-        missing values.
-
-        Parameters
-        ----------
-        periods : int
-            Number of periods to shift by.
-        freq : pandas.DateOffset, pandas.Timedelta, or string
-            Frequency increment to shift by.
-        """
-        values = self.values + n * self.freq.n
-        if self.hasnans:
-            values[self._isnan] = iNaT
-        return self._simple_new(values, freq=self.freq)
-
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
@@ -784,6 +801,8 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
                                                freqstr=self.freqstr))
 
+    # ------------------------------------------------------------------
+    # Formatting
     def _format_native_types(self, na_rep=u'NaT', date_format=None,
                              **kwargs):
         # TODO(DatetimeArray): remove
@@ -865,22 +884,6 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         # This is implemented just for astype
         from pandas.core.index import Index
         return Index(self._box_values(self.asi8), dtype=object)
-
-    @property
-    def flags(self):
-        """Deprecated"""
-        # Just here to support Index.flags deprecation.
-        # could also override PeriodIndex.flags if we don't want a
-        # version with PeriodArray.flags
-        return self.values.flags
-
-    @property
-    def base(self):
-        return self.values.base
-
-    @property
-    def data(self):
-        return self.astype(object).data
 
     def item(self):
         if len(self) == 1:
