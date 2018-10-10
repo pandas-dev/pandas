@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     is_number,
     is_integer, is_bool,
     is_bool_dtype,
-    is_categorical_dtype,
     is_numeric_dtype,
     is_datetime64_any_dtype,
     is_timedelta64_dtype,
@@ -28,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_re_compilable,
     is_period_arraylike,
     is_object_dtype,
+    is_extension_array_dtype,
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.inference import is_hashable
@@ -5259,8 +5259,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 else:
                     results.append(results.append(col.copy() if copy else col))
 
-        elif is_categorical_dtype(dtype) and self.ndim > 1:
+        elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099: columnwise conversion to categorical
+            # and extension dtype
             results = (self[col].astype(dtype, copy=copy) for col in self)
 
         else:
@@ -6390,7 +6391,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if _maybe_transposed_self._data.get_dtype_counts().get(
                 'object') == len(_maybe_transposed_self.T):
-            raise TypeError("Cannot interpolate with all NaNs.")
+            raise TypeError("Cannot interpolate with all object-dtype columns "
+                            "in the DataFrame. Try setting at least one "
+                            "column to a numeric dtype.")
 
         # create/use the index
         if method == 'linear':
