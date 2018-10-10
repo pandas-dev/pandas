@@ -588,9 +588,8 @@ class TestDataFrameConstructors(TestData):
         # list of periods
         df = pd.DataFrame({'a': a.astype(object).tolist(),
                            'b': b.astype(object).tolist()})
-        # TODO: should we infer these?
-        assert df['a'].dtype == 'object'
-        assert df['b'].dtype == 'object'
+        assert df['a'].dtype == a.dtype
+        assert df['b'].dtype == b.dtype
 
     def test_nested_dict_frame_constructor(self):
         rng = pd.period_range('1/1/2000', periods=5)

@@ -10,7 +10,9 @@ import numpy as np
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_list_like, is_bool_dtype,
-    needs_i8_conversion, is_sparse, is_object_dtype)
+    needs_i8_conversion, is_sparse, is_object_dtype,
+    is_period_dtype
+)
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.missing import notna
 
@@ -21,7 +23,7 @@ from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 from pandas.core.sparse.array import SparseArray
 from pandas._libs.sparse import IntIndex
 
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import Categorical, period_array
 from pandas.core.arrays.categorical import _factorize_from_iterable
 from pandas.core.sorting import (get_group_index, get_compressed_ids,
                                  compress_group_index, decons_obs_group_ids)
@@ -88,6 +90,7 @@ class _Unstacker(object):
 
         self.is_categorical = None
         self.is_sparse = is_sparse(values)
+        self.is_period = is_period_dtype(values)
         if values.ndim == 1:
             if isinstance(values, Categorical):
                 self.is_categorical = values
@@ -96,6 +99,9 @@ class _Unstacker(object):
                 # XXX: Makes SparseArray *dense*, but it's supposedly
                 # a single column at a time, so it's "doable"
                 values = values.values
+            elif self.is_period:
+                # XXX: let's solve this in general.
+                values = values.astype(object)
             values = values[:, np.newaxis]
         self.values = values
         self.value_columns = value_columns
@@ -185,6 +191,9 @@ class _Unstacker(object):
             values = [Categorical(values[:, i], categories=categories,
                                   ordered=ordered)
                       for i in range(values.shape[-1])]
+        elif self.is_period:
+            # XXX: solve this in general.
+            values = [period_array(v) for v in values]
 
         return self.constructor(values, index=index, columns=columns)
 

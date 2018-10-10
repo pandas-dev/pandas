@@ -13,7 +13,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import ExtensionArray, period_array
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_string_like,
@@ -154,8 +154,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         RangeIndex (0, 1, 2, ..., n) if not provided. If both a dict and index
         sequence are used, the index will override the keys found in the
         dict.
-    dtype : numpy.dtype or None
-        If None, dtype will be inferred
+    dtype : str, numpy.dtype, or ExtensionDtype, optional
+        dtype for the output Series. If not specified, this will be
+        inferred from `data`.
     copy : boolean, default False
         Copy input data
     """
@@ -4361,5 +4362,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             if not np.all(isna(data)):
                 data = np.array(data, dtype=dtype, copy=False)
             subarr = np.array(data, dtype=object, copy=copy)
+
+    if subarr.dtype == 'object' and dtype != 'object':
+        inferred = lib.infer_dtype(subarr)
+        if inferred == 'period':
+            try:
+                subarr = period_array(subarr)
+            except tslibs.period.IncompatibleFrequency:
+                pass
 
     return subarr

@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
 from pandas import (Index, Series, isna, date_range, Timestamp,
                     NaT, period_range, timedelta_range, MultiIndex,
                     IntervalIndex, Categorical, DataFrame)
-
+from pandas.core.arrays import period_array
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
 
@@ -856,6 +856,23 @@ class TestSeriesConstructors():
         result = Series(s.values, dtype=s.dtype)
         tm.assert_series_equal(result, s)
 
+    def test_constructor_infer_period(self):
+        data = [pd.Period('2000', 'D'), pd.Period('2001', 'D'), None]
+        result = pd.Series(data)
+        expected = pd.Series(period_array(data))
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == 'Period[D]'
+
+        data = np.asarray(data, dtype=object)
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == 'Period[D]'
+
+    def test_constructor_period_incompatible_frequency(self):
+        data = [pd.Period('2000', 'D'), pd.Period('2001', 'A')]
+        result = pd.Series(data)
+        assert result.dtype == object
+        assert result.tolist() == data
+
     def test_constructor_periodindex(self):
         # GH7932
         # converting a PeriodIndex when put in a Series
@@ -864,7 +881,7 @@ class TestSeriesConstructors():
         s = Series(pi)
         assert s.dtype == 'Period[D]'
         expected = Series(pi.astype(object))
-        assert_series_equal(s.astype(object), expected)
+        assert_series_equal(s, expected)
 
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}

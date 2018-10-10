@@ -19,11 +19,11 @@ class TestSeriesPeriod(object):
 
     def test_auto_conversion(self):
         series = Series(list(period_range('2000-01-01', periods=10, freq='D')))
-        assert series.dtype == 'object'
+        assert series.dtype == 'Period[D]'
 
         series = pd.Series([pd.Period('2011-01-01', freq='D'),
                             pd.Period('2011-02-01', freq='D')])
-        assert series.dtype == 'object'
+        assert series.dtype == 'Period[D]'
 
     def test_getitem(self):
         assert self.series[1] == pd.Period('2000-01-02', freq='D')
@@ -51,12 +51,13 @@ class TestSeriesPeriod(object):
         exp = Series([pd.Period('2011-01', freq='M'),
                       pd.Period('2012-01', freq='M')])
         tm.assert_series_equal(res, exp)
-        assert res.dtype == 'object'
+        assert res.dtype == 'Period[M]'
 
-        res = s.fillna('XXX')
-        exp = Series([pd.Period('2011-01', freq='M'), 'XXX'])
-        tm.assert_series_equal(res, exp)
-        assert res.dtype == 'object'
+        # We don't support upcasting to object on fillna.
+        # res = s.fillna('XXX')
+        # exp = Series([pd.Period('2011-01', freq='M'), 'XXX'])
+        # tm.assert_series_equal(res, exp)
+        # assert res.dtype == 'object'
 
     def test_dropna(self):
         # GH 13737

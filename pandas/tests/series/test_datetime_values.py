@@ -196,6 +196,14 @@ class TestSeriesDatetimeValues():
         tm.assert_almost_equal(
             results, list(sorted(set(ok_for_dt + ok_for_dt_methods))))
 
+        s = Series(period_range('20130101', periods=5,
+                                 freq='D', name='xxx').astype(object))
+        results = get_dir(s)
+        tm.assert_almost_equal(
+            results, list(sorted(set(ok_for_period + ok_for_period_methods))))
+
+
+
         # 11295
         # ambiguous time error on the conversions
         s = Series(pd.date_range('2015-01-01', '2016-01-01',
@@ -218,13 +226,6 @@ class TestSeriesDatetimeValues():
         with pd.option_context('chained_assignment', 'raise'):
             with pytest.raises(com.SettingWithCopyError):
                 s.dt.hour[0] = 5
-
-        # XXX: Series.dt no longer works for Series[object[Period]].
-        # I think that's OK, but want a +1.
-        s = Series(period_range('20130101', periods=5,
-                                freq='D', name='xxx').astype(object))
-        with tm.assert_raises_regex(AttributeError, "Can only use .dt"):
-            get_dir(s)
 
     @pytest.mark.parametrize('method, dates', [
         ['round', ['2012-01-02', '2012-01-02', '2012-01-01']],
