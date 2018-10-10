@@ -202,8 +202,6 @@ class TestSeriesDatetimeValues():
         tm.assert_almost_equal(
             results, list(sorted(set(ok_for_period + ok_for_period_methods))))
 
-
-
         # 11295
         # ambiguous time error on the conversions
         s = Series(pd.date_range('2015-01-01', '2016-01-01',
