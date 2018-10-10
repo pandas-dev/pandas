@@ -545,7 +545,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         else:
             values = self._data
 
-        result = value_counts(values)
+        result = value_counts(values, sort=False)
         index = PeriodIndex._from_ordinals(result.index,
                                            name=result.index.name,
                                            freq=self.freq)
