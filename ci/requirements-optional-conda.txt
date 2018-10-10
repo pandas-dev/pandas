@@ -15,7 +15,7 @@ numexpr>=2.6.2
 openpyxl=2.5.5
 pyarrow
 pymysql
-pytables
+pytables>=3.4.2
 pytest-cov
 pytest-xdist
 s3fs
