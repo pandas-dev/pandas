@@ -52,8 +52,8 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
     warning, when need to pass '2015-01-01 09:00:00'
     """
     # is_list_like
-    if hasattr(arr, '__iter__') and not \
-       isinstance(arr, string_and_binary_types):
+    if (hasattr(arr, '__iter__')
+            and not isinstance(arr, string_and_binary_types)):
         arr = [tz_replacer(s) for s in arr]
     else:
         arr = tz_replacer(arr)
