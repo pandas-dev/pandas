@@ -666,7 +666,7 @@ class Block(PandasObject):
 
             newb = make_block(values, placement=self.mgr_locs,
                               klass=klass, ndim=self.ndim)
-        except:
+        except Exception:  # noqa: E722
             if errors == 'raise':
                 raise
             newb = self.copy() if copy else self
@@ -675,11 +675,11 @@ class Block(PandasObject):
             if newb.shape != self.shape:
                 raise TypeError(
                     "cannot set astype for copy = [{copy}] for dtype "
-                    "({dtype} [{itemsize}]) with smaller itemsize than "
-                    "current ({newb_dtype} [{newb_size}])".format(
+                    "({dtype} [{shape}]) to different shape "
+                    "({newb_dtype} [{newb_shape}])".format(
                         copy=copy, dtype=self.dtype.name,
-                        itemsize=self.itemsize, newb_dtype=newb.dtype.name,
-                        newb_size=newb.itemsize))
+                        shape=self.shape, newb_dtype=newb.dtype.name,
+                        newb_shape=newb.shape))
         return newb
 
     def convert(self, copy=True, **kwargs):
@@ -1142,7 +1142,7 @@ class Block(PandasObject):
         # a fill na type method
         try:
             m = missing.clean_fill_method(method)
-        except:
+        except ValueError:
             m = None
 
         if m is not None:
@@ -1157,7 +1157,7 @@ class Block(PandasObject):
         # try an interp method
         try:
             m = missing.clean_interp_method(method, **kwargs)
-        except:
+        except ValueError:
             m = None
 
         if m is not None:
@@ -2438,7 +2438,7 @@ class ObjectBlock(Block):
             try:
                 if (self.values[locs] == values).all():
                     return
-            except:
+            except (IndexError, ValueError):
                 pass
         try:
             self.values[locs] = values
@@ -3172,7 +3172,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     def __len__(self):
         try:
             return self.sp_index.length
-        except:
+        except AttributeError:
             return 0
 
     def copy(self, deep=True, mgr=None):

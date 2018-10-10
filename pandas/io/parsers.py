@@ -459,7 +459,7 @@ def _read(filepath_or_buffer, kwds):
     if should_close:
         try:
             filepath_or_buffer.close()
-        except:  # noqa: flake8
+        except ValueError:
             pass
 
     return data
@@ -1808,7 +1808,7 @@ class CParserWrapper(ParserBase):
         # close additional handles opened by C parser (for compression)
         try:
             self._reader.close()
-        except:
+        except ValueError:
             pass
 
     def _set_noconvert_columns(self):
@@ -2727,9 +2727,6 @@ class PythonParser(ParserBase):
                            'cannot be processed in Python\'s '
                            'native csv library at the moment, '
                            'so please pass in engine=\'c\' instead')
-                elif 'newline inside string' in msg:
-                    msg = ('EOF inside string starting with '
-                           'line ' + str(row_num))
 
                 if self.skipfooter > 0:
                     reason = ('Error could possibly be due to '
@@ -3037,7 +3034,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
                     errors='ignore',
                     infer_datetime_format=infer_datetime_format
                 )
-            except:
+            except ValueError:
                 return tools.to_datetime(
                     parsing.try_parse_dates(strs, dayfirst=dayfirst))
         else:
@@ -3266,7 +3263,7 @@ def _floatify_na_values(na_values):
             v = float(v)
             if not np.isnan(v):
                 result.add(v)
-        except:
+        except (TypeError, ValueError, OverflowError):
             pass
     return result
 
@@ -3287,11 +3284,11 @@ def _stringify_na_values(na_values):
                 result.append(str(v))
 
             result.append(v)
-        except:
+        except (TypeError, ValueError, OverflowError):
             pass
         try:
             result.append(int(x))
-        except:
+        except (TypeError, ValueError, OverflowError):
             pass
     return set(result)
 

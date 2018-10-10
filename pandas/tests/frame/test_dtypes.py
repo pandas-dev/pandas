@@ -12,6 +12,7 @@ from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
 from pandas.compat import u
 from pandas import _np_version_under1p14
 
+from pandas.core.arrays import integer_array
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, CategoricalDtype
 from pandas.tests.frame.common import TestData
 from pandas.util.testing import (assert_series_equal,
@@ -666,6 +667,48 @@ class TestDataFrameDataTypes(TestData):
         with tm.assert_raises_regex(TypeError, xpr):
             df['A'].astype(cls)
 
+    @pytest.mark.parametrize("dtype", ['Int64', 'Int32', 'Int16'])
+    def test_astype_extension_dtypes(self, dtype):
+        # GH 22578
+        df = pd.DataFrame([[1., 2.], [3., 4.], [5., 6.]], columns=['a', 'b'])
+
+        expected1 = pd.DataFrame({'a': integer_array([1, 3, 5],
+                                                     dtype=dtype),
+                                  'b': integer_array([2, 4, 6],
+                                                     dtype=dtype)})
+        tm.assert_frame_equal(df.astype(dtype), expected1)
+        tm.assert_frame_equal(df.astype('int64').astype(dtype), expected1)
+        tm.assert_frame_equal(df.astype(dtype).astype('float64'), df)
+
+        df = pd.DataFrame([[1., 2.], [3., 4.], [5., 6.]], columns=['a', 'b'])
+        df['b'] = df['b'].astype(dtype)
+        expected2 = pd.DataFrame({'a': [1., 3., 5.],
+                                  'b': integer_array([2, 4, 6],
+                                                     dtype=dtype)})
+        tm.assert_frame_equal(df, expected2)
+
+        tm.assert_frame_equal(df.astype(dtype), expected1)
+        tm.assert_frame_equal(df.astype('int64').astype(dtype), expected1)
+
+    @pytest.mark.parametrize("dtype", ['Int64', 'Int32', 'Int16'])
+    def test_astype_extension_dtypes_1d(self, dtype):
+        # GH 22578
+        df = pd.DataFrame({'a': [1., 2., 3.]})
+
+        expected1 = pd.DataFrame({'a': integer_array([1, 2, 3],
+                                                     dtype=dtype)})
+        tm.assert_frame_equal(df.astype(dtype), expected1)
+        tm.assert_frame_equal(df.astype('int64').astype(dtype), expected1)
+
+        df = pd.DataFrame({'a': [1., 2., 3.]})
+        df['a'] = df['a'].astype(dtype)
+        expected2 = pd.DataFrame({'a': integer_array([1, 2, 3],
+                                                     dtype=dtype)})
+        tm.assert_frame_equal(df, expected2)
+
+        tm.assert_frame_equal(df.astype(dtype), expected1)
+        tm.assert_frame_equal(df.astype('int64').astype(dtype), expected1)
+
     @pytest.mark.parametrize('dtype', [
         {100: 'float64', 200: 'uint64'}, 'category', 'float64'])
     def test_astype_column_metadata(self, dtype):
@@ -836,8 +879,16 @@ class TestDataFrameDataTypes(TestData):
                     "B": pd.Categorical(['b', 'c'])}), False),
 
     ])
-    def test_is_homogeneous(self, data, expected):
-        assert data._is_homogeneous is expected
+    def test_is_homogeneous_type(self, data, expected):
+        assert data._is_homogeneous_type is expected
+
+    def test_asarray_homogenous(self):
+        df = pd.DataFrame({"A": pd.Categorical([1, 2]),
+                           "B": pd.Categorical([1, 2])})
+        result = np.asarray(df)
+        # may change from object in the future
+        expected = np.array([[1, 1], [2, 2]], dtype='object')
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestDataFrameDatetimeWithTZ(TestData):

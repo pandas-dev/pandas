@@ -2114,6 +2114,28 @@ class TestDatetimeIndex(Base):
                                            freq='H'))
         tm.assert_series_equal(result, expected)
 
+    def test_downsample_across_dst_weekly(self):
+        # GH 9119, GH 21459
+        df = DataFrame(index=DatetimeIndex([
+            '2017-03-25', '2017-03-26', '2017-03-27',
+            '2017-03-28', '2017-03-29'
+        ], tz='Europe/Amsterdam'),
+            data=[11, 12, 13, 14, 15])
+        result = df.resample('1W').sum()
+        expected = DataFrame([23, 42], index=pd.DatetimeIndex([
+            '2017-03-26', '2017-04-02'
+        ], tz='Europe/Amsterdam'))
+        tm.assert_frame_equal(result, expected)
+
+        idx = pd.date_range("2013-04-01", "2013-05-01", tz='Europe/London',
+                            freq='H')
+        s = Series(index=idx)
+        result = s.resample('W').mean()
+        expected = Series(index=pd.date_range(
+            '2013-04-07', freq='W', periods=5, tz='Europe/London'
+        ))
+        tm.assert_series_equal(result, expected)
+
     def test_resample_with_nat(self):
         # GH 13020
         index = DatetimeIndex([pd.NaT,
@@ -2484,6 +2506,22 @@ class TestPeriodIndex(Base):
                                           name='idx') - 1)
         expected = Series(1, index=expected_index)
         assert_series_equal(result, expected)
+
+    def test_resample_nonexistent_time_bin_edge(self):
+        # GH 19375
+        index = date_range('2017-03-12', '2017-03-12 1:45:00', freq='15T')
+        s = Series(np.zeros(len(index)), index=index)
+        expected = s.tz_localize('US/Pacific')
+        result = expected.resample('900S').mean()
+        tm.assert_series_equal(result, expected)
+
+    def test_resample_ambiguous_time_bin_edge(self):
+        # GH 10117
+        idx = pd.date_range("2014-10-25 22:00:00", "2014-10-26 00:30:00",
+                            freq="30T", tz="Europe/London")
+        expected = Series(np.zeros(len(idx)), index=idx)
+        result = expected.resample('30T').mean()
+        tm.assert_series_equal(result, expected)
 
     def test_fill_method_and_how_upsample(self):
         # GH2073
