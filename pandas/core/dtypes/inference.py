@@ -5,9 +5,9 @@ import numpy as np
 from numbers import Number
 from pandas import compat
 from pandas.compat import (PY2, PY36, string_types, text_type,
-                           string_and_binary_types, re_type)
+                           string_and_binary_types, re_type, Set)
 from pandas._libs import lib
-from collections import abc, OrderedDict
+from collections import OrderedDict
 
 is_bool = lib.is_bool
 
@@ -314,7 +314,7 @@ def is_ordered_list_like(obj):
     list_like = is_list_like(obj)
     unordered_dict = not PY36 and (isinstance(obj, dict)
                                    and not isinstance(obj, OrderedDict))
-    return list_like and not unordered_dict and not isinstance(obj, abc.Set)
+    return list_like and not unordered_dict and not isinstance(obj, Set)
 
 def is_array_like(obj):
     """
