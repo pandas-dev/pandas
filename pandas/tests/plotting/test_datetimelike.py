@@ -414,11 +414,15 @@ class TestTSPlot(TestPlotBase):
             ser.plot(ax=ax)
             xaxis = ax.get_xaxis()
             rs = xaxis.get_majorticklocs()[0]
+            if rs != xp:
+                print(self.plt.__version__, rs, xp)
             assert xp == rs
             xp = xpl2[i]
             vmin, vmax = ax.get_xlim()
             ax.set_xlim(vmin + 0.9, vmax)
             rs = xaxis.get_majorticklocs()[0]
+            if rs != xp:
+                print(self.plt.__version__, rs, xp)
             assert xp == rs
             self.plt.close(ax.get_figure())
 
@@ -437,11 +441,15 @@ class TestTSPlot(TestPlotBase):
             ser.plot(ax=ax)
             xaxis = ax.get_xaxis()
             rs = xaxis.get_majorticklocs()[0]
+            if rs != xp:
+                print(self.plt.__version__, rs, xp)
             assert rs == xp
             xp = xpl2[i]
             (vmin, vmax) = ax.get_xlim()
             ax.set_xlim(vmin + 0.9, vmax)
             rs = xaxis.get_majorticklocs()[0]
+            if rs != xp:
+                print(self.plt.__version__, rs, xp)
             assert xp == rs
             self.plt.close(ax.get_figure())
 
@@ -460,11 +468,15 @@ class TestTSPlot(TestPlotBase):
             ser.plot(ax=ax)
             xaxis = ax.get_xaxis()
             rs = xaxis.get_majorticklocs()[0]
+            if rs != xp:
+                print(self.plt.__version__, rs, xp)
             assert rs == xp
             xp = xpl2[i]
             vmin, vmax = ax.get_xlim()
             ax.set_xlim(vmin + 0.9, vmax)
             rs = xaxis.get_majorticklocs()[0]
+            if rs != xp:
+                print(self.plt.__version__, rs, xp)
             assert xp == rs
             self.plt.close(ax.get_figure())
 
@@ -489,7 +501,10 @@ class TestTSPlot(TestPlotBase):
             ser.plot(ax=ax)
             xaxis = ax.get_xaxis()
             rs = xaxis.get_majorticklocs()[0]
-            assert rs == Period(xp[i], freq='A').ordinal
+            xpp = Period(xp[i], freq='A').ordinal
+            if rs != xpp:
+                print(self.plt.__version__, rs, xpp)
+            assert rs == xpp
             self.plt.close(ax.get_figure())
 
     @pytest.mark.slow
@@ -502,6 +517,8 @@ class TestTSPlot(TestPlotBase):
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
         xp = Period('1998-12-29 12:00', freq='Min').ordinal
+        if rs != xp:
+            print(self.plt.__version__, rs, xp)
         assert rs == xp
 
     def test_finder_hourly(self):
@@ -513,6 +530,8 @@ class TestTSPlot(TestPlotBase):
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
         xp = Period('1998-12-31 22:00', freq='H').ordinal
+        if rs != xp:
+            print(self.plt.__version__, rs, xp)
         assert rs == xp
 
     @pytest.mark.slow
@@ -525,6 +544,8 @@ class TestTSPlot(TestPlotBase):
         assert len(lines) == 1
         l = lines[0]
         data = l.get_xydata()
+        if not isinstance(data, np.ma.core.MaskedArray):
+            print(self.plt.__version__, np.__version, type(data))
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         assert mask[5:25, 1].all()
@@ -540,6 +561,8 @@ class TestTSPlot(TestPlotBase):
         assert len(lines) == 1
         l = lines[0]
         data = l.get_xydata()
+        if not isinstance(data, np.ma.core.MaskedArray):
+            print(self.plt.__version__, np.__version, type(data))
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         assert mask[2:5, 1].all()
@@ -555,6 +578,8 @@ class TestTSPlot(TestPlotBase):
         assert len(lines) == 1
         l = lines[0]
         data = l.get_xydata()
+        if not isinstance(data, np.ma.core.MaskedArray):
+            print(self.plt.__version__, np.__version, type(data))
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         assert mask[2:5, 1].all()
@@ -575,6 +600,8 @@ class TestTSPlot(TestPlotBase):
         l = lines[0]
         data = l.get_xydata()
 
+        if not isinstance(data, np.ma.core.MaskedArray):
+            print(self.plt.__version__, np.__version, type(data))
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         assert mask[5:25, 1].all()
@@ -1352,6 +1379,8 @@ class TestTSPlot(TestPlotBase):
         df.plot(fontsize=2, ax=ax)
         fig.canvas.draw()
         labels = ax.get_xticklabels()
+        if len(labels) != len(expected_labels):
+            print(self.plt.__version__, labels, expected_labels)
         assert len(labels) == len(expected_labels)
         for l, l_expected in zip(labels, expected_labels):
             assert l.get_text() == l_expected
@@ -1381,6 +1410,8 @@ class TestTSPlot(TestPlotBase):
         ax = df.plot(fontsize=2, ax=ax)
         fig.canvas.draw()
         labels = ax.get_xticklabels()
+        if len(labels) != len(expected_labels):
+            print(self.plt.__version__, labels, expected_labels)
         assert len(labels) == len(expected_labels)
         for l, l_expected in zip(labels, expected_labels):
             assert l.get_text() == l_expected
