@@ -47,20 +47,20 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
     """
     Extract combined index: return intersection or union (depending on the
     value of "intersect") of indexes on given axis, or None if all objects
-    lack indexes (e.g. they are numpy arrays)
+    lack indexes (e.g. they are numpy arrays).
 
     Parameters
     ----------
     objs : list of objects
         Each object will only be considered if it has a _get_axis
-        attribute
+        attribute.
     intersect : boolean, default False
         If True, calculate the intersection between indexes. Otherwise,
-        calculate the union
+        calculate the union.
     axis : {0 or 'index', 1 or 'outer'}, default 0
-        The axis to extract indexes from
+        The axis to extract indexes from.
     sort : boolean, default True
-        Whether the result index should come out sorted or not
+        Whether the result index should come out sorted or not.
 
     Returns
     -------
@@ -74,17 +74,17 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
 
 def _get_combined_index(indexes, intersect=False, sort=False):
     """
-    Return the union or intersection of indexes
+    Return the union or intersection of indexes.
 
     Parameters
     ----------
     indexes : a list of Index or list objects
-        When intersect=True, do not accept list of lists
+        When intersect=True, do not accept list of lists.
     intersect : boolean, default False
         If True, calculate the intersection between indexes. Otherwise,
-        calculate the union
+        calculate the union.
     sort : boolean, default False
-        Whether the result index should come out sorted or not
+        Whether the result index should come out sorted or not.
 
     Returns
     -------
@@ -115,7 +115,7 @@ def _get_combined_index(indexes, intersect=False, sort=False):
 
 def _union_indexes(indexes, sort=True):
     """
-    Return the union of indexes
+    Return the union of indexes.
 
     The behavior of sort and names is not consistent.
 
@@ -123,7 +123,7 @@ def _union_indexes(indexes, sort=True):
     ----------
     indexes : a list of Index or list objects
     sort : boolean, default True
-        Whether the result index should come out sorted or not
+        Whether the result index should come out sorted or not.
 
     Returns
     -------
@@ -141,7 +141,7 @@ def _union_indexes(indexes, sort=True):
 
     def _unique_indices(inds):
         """
-        Convert indexes to lists and concatenate them, removing duplicates
+        Convert indexes to lists and concatenate them, removing duplicates.
 
         The final dtype is inferred.
 
@@ -192,15 +192,15 @@ def _union_indexes(indexes, sort=True):
 
 def _sanitize_and_check(indexes):
     """
-    Verify the type of indexes and convert lists to Index
+    Verify the type of indexes and convert lists to Index.
 
     Cases:
 
     - [list, list, ...]: Return ([list, list, ...], 'list')
     - [list, Index, ...]: Return _sanitize_and_check([Index, Index, ...])
-        Lists are sorted and converted to Index
+        Lists are sorted and converted to Index.
     - [Index, Index, ...]: Return ([Index, Index, ...], TYPE)
-        TYPE = 'special' if at least one special type, 'array' otherwise
+        TYPE = 'special' if at least one special type, 'array' otherwise.
 
     Parameters
     ----------
@@ -230,7 +230,7 @@ def _sanitize_and_check(indexes):
 
 def _get_consensus_names(indexes):
     """
-    Give a consensus 'names' to indexes
+    Give a consensus 'names' to indexes.
 
     If there's exactly one non-empty 'names', return this,
     otherwise, return empty.
@@ -242,7 +242,7 @@ def _get_consensus_names(indexes):
     Returns
     -------
     list
-        A list representing the consensus 'names' found
+        A list representing the consensus 'names' found.
     """
 
     # find the non-none names, need to tupleify to make
@@ -256,7 +256,7 @@ def _get_consensus_names(indexes):
 
 def _all_indexes_same(indexes):
     """
-    Determine if all indexes contain the same elements
+    Determine if all indexes contain the same elements.
 
     Parameters
     ----------
@@ -265,7 +265,7 @@ def _all_indexes_same(indexes):
     Returns
     -------
     boolean
-        True if all indexes contain the same elements, False otherwise
+        True if all indexes contain the same elements, False otherwise.
     """
     first = indexes[0]
     for index in indexes[1:]:
