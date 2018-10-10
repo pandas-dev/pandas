@@ -484,7 +484,7 @@ class TestTSPlot(TestPlotBase):
         if self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1:
             xpl1 = [216] * 4
             xpl2 = xpl1
-        if self.mpl_ge_2_0_1:
+        elif self.mpl_ge_2_0_1:
             xpl1 = [216, 216, 204, 204]
             xpl2 = [216, 216, 216, 204]
         else:
@@ -529,7 +529,7 @@ class TestTSPlot(TestPlotBase):
     def test_finder_annual(self):
         if self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1:
             xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
-        if self.mpl_ge_2_0_1:
+        elif self.mpl_ge_2_0_1:
             xp = [1986, 1986, 1990, 1990, 1995, 2020, 1970, 1970]
         else:
             xp = [1987, 1987, 1990, 1990, 1995, 2020, 1970, 1970]
