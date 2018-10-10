@@ -6,10 +6,6 @@ import pandas.util.testing as tm
 from pandas import Series, period_range, DataFrame, Period
 
 
-def _permute(obj):
-    return obj.take(np.random.permutation(len(obj)))
-
-
 class TestSeriesPeriod(object):
 
     def setup_method(self, method):

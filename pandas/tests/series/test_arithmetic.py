@@ -1,14 +1,60 @@
 # -*- coding: utf-8 -*-
+from datetime import timedelta
 import operator
 
 import pytest
 import numpy as np
 
-from pandas import Series
+from pandas import compat, Series
 from pandas.core.indexes.period import IncompatibleFrequency
 
 import pandas as pd
 import pandas.util.testing as tm
+
+
+def _permute(obj):
+    return obj.take(np.random.permutation(len(obj)))
+
+
+class TestSeriesFlexArithmetic(object):
+    @pytest.mark.parametrize(
+        'ts',
+        [
+            (lambda x: x, lambda x: x * 2, False),
+            (lambda x: x, lambda x: x[::2], False),
+            (lambda x: x, lambda x: 5, True),
+            (lambda x: tm.makeFloatSeries(),
+             lambda x: tm.makeFloatSeries(),
+             True)
+        ])
+    @pytest.mark.parametrize('opname', ['add', 'sub', 'mul', 'floordiv',
+                                        'truediv', 'div', 'pow'])
+    def test_flex_method_equivalence(self, opname, ts):
+        # check that Series.{opname} behaves like Series.__{opname}__,
+        tser = tm.makeTimeSeries().rename('ts')
+
+        series = ts[0](tser)
+        other = ts[1](tser)
+        check_reverse = ts[2]
+
+        if opname == 'div' and compat.PY3:
+            pytest.skip('div test only for Py3')
+
+        op = getattr(Series, opname)
+
+        if op == 'div':
+            alt = operator.truediv
+        else:
+            alt = getattr(operator, opname)
+
+        result = op(series, other)
+        expected = alt(series, other)
+        tm.assert_almost_equal(result, expected)
+        if check_reverse:
+            rop = getattr(Series, "r" + opname)
+            result = rop(series, other)
+            expected = alt(other, series)
+            tm.assert_almost_equal(result, expected)
 
 
 class TestSeriesArithmetic(object):
@@ -50,7 +96,7 @@ class TestSeriesArithmetic(object):
         dt1 = Series([pd.Timestamp('20111230'), pd.Timestamp('20120101'),
                       pd.Timestamp('20120103')])
         dt1.iloc[2] = np.nan
-        dt2 = Series([Timestamp('20111231'), pd.Timestamp('20120102'),
+        dt2 = Series([pd.Timestamp('20111231'), pd.Timestamp('20120102'),
                       pd.Timestamp('20120104')])
         dt1 - dt2
         dt2 - dt1
@@ -70,7 +116,45 @@ class TestSeriesArithmetic(object):
 # ------------------------------------------------------------------
 # Comparisons
 
+class TestSeriesFlexComparison(object):
+    def test_comparison_flex_basic(self):
+        left = pd.Series(np.random.randn(10))
+        right = pd.Series(np.random.randn(10))
+
+        tm.assert_series_equal(left.eq(right), left == right)
+        tm.assert_series_equal(left.ne(right), left != right)
+        tm.assert_series_equal(left.le(right), left < right)
+        tm.assert_series_equal(left.lt(right), left <= right)
+        tm.assert_series_equal(left.gt(right), left > right)
+        tm.assert_series_equal(left.ge(right), left >= right)
+
+        # axis
+        for axis in [0, None, 'index']:
+            tm.assert_series_equal(left.eq(right, axis=axis), left == right)
+            tm.assert_series_equal(left.ne(right, axis=axis), left != right)
+            tm.assert_series_equal(left.le(right, axis=axis), left < right)
+            tm.assert_series_equal(left.lt(right, axis=axis), left <= right)
+            tm.assert_series_equal(left.gt(right, axis=axis), left > right)
+            tm.assert_series_equal(left.ge(right, axis=axis), left >= right)
+
+        #
+        msg = 'No axis named 1 for object type'
+        for op in ['eq', 'ne', 'le', 'le', 'gt', 'ge']:
+            with tm.assert_raises_regex(ValueError, msg):
+                getattr(left, op)(right, axis=1)
+
+
 class TestSeriesComparison(object):
+    def test_comparison_different_length(self):
+        a = Series(['a', 'b', 'c'])
+        b = Series(['b', 'a'])
+        with pytest.raises(ValueError):
+            a < b
+
+        a = Series([1, 2])
+        b = Series([2, 3, 4])
+        with pytest.raises(ValueError):
+            a == b
 
     @pytest.mark.parametrize('opname', ['eq', 'ne', 'gt', 'lt', 'ge', 'le'])
     def test_ser_flex_cmp_return_dtypes(self, opname):
