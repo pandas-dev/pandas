@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
 import pandas.core.common as com
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
+from pandas.compat.numpy import _np_version_under1p11
 from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
 import re
@@ -57,9 +58,12 @@ def cat_core(all_cols, sep):
     list_of_columns = np.split(all_cols, all_cols.shape[1], axis=1)
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
-    # np.split splits into arrays of shape (N, 1); NOT (N,)
-    # need to reduce dimensionality of result
-    return np.sum(list_with_sep, axis=0)[:, 0]
+    res = np.sum(list_with_sep, axis=0)
+    if not (_np_version_under1p11 and len(res) == 0):
+        # np.split splits into arrays of shape (N, 1); NOT (N,)
+        # need to reduce dimensionality of result
+        res = res[:, 0]
+    return res
 
 
 def _na_map(f, arr, na_result=np.nan, dtype=object):
