@@ -4,7 +4,7 @@ import numpy as np
 from pandas import DataFrame, Panel, date_range, HDFStore, read_hdf
 import pandas.util.testing as tm
 
-from ..pandas_vb_common import BaseIO, setup  # noqa
+from ..pandas_vb_common import BaseIO
 
 
 class HDFStoreDataFrame(BaseIO):
@@ -149,3 +149,6 @@ class HDF(BaseIO):
 
     def time_write_hdf(self, format):
         self.df.to_hdf(self.fname, 'df', format=format)
+
+
+from ..pandas_vb_common import setup  # noqa: F401

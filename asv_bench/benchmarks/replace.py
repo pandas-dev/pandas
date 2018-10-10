@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
 
-from .pandas_vb_common import setup  # noqa
-
 
 class FillNa(object):
 
@@ -56,3 +54,6 @@ class Convert(object):
 
     def time_replace(self, constructor, replace_data):
         self.data.replace(self.to_replace)
+
+
+from .pandas_vb_common import setup  # noqa: F401

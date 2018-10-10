@@ -7,8 +7,6 @@ except ImportError:
 import matplotlib
 matplotlib.use('Agg')
 
-from .pandas_vb_common import setup  # noqa
-
 
 class Plotting(object):
 
@@ -62,3 +60,6 @@ class Misc(object):
 
     def time_plot_andrews_curves(self):
         andrews_curves(self.df, "Name")
+
+
+from .pandas_vb_common import setup  # noqa: F401

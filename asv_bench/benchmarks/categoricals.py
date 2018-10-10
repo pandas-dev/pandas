@@ -11,8 +11,6 @@ except ImportError:
     except ImportError:
         pass
 
-from .pandas_vb_common import setup # noqa
-
 
 class Concat(object):
 
@@ -245,3 +243,6 @@ class CategoricalSlicing(object):
 
     def time_getitem_bool_array(self, index):
         self.data[self.data == self.cat_scalar]
+
+
+from .pandas_vb_common import setup  # noqa: F401

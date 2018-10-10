@@ -5,8 +5,6 @@ try:
 except ImportError:
     import pandas.computation.expressions as expr
 
-from .pandas_vb_common import setup # noqa
-
 
 class Eval(object):
 
@@ -65,3 +63,6 @@ class Query(object):
 
     def time_query_with_boolean_selection(self):
         self.df.query('(a >= @self.min_val) & (a <= @self.max_val)')
+
+
+from .pandas_vb_common import setup  # noqa: F401

@@ -6,8 +6,6 @@ import pandas.util.testing as tm
 from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
                     isnull, NaT)
 
-from .pandas_vb_common import setup  # noqa
-
 
 class GetNumericData(object):
 
@@ -537,3 +535,6 @@ class Describe(object):
 
     def time_dataframe_describe(self):
         self.df.describe()
+
+
+from .pandas_vb_common import setup  # noqa: F401

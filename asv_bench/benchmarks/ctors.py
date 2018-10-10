@@ -2,8 +2,6 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import Series, Index, DatetimeIndex, Timestamp, MultiIndex
 
-from .pandas_vb_common import setup  # noqa
-
 
 class SeriesConstructors(object):
 
@@ -64,3 +62,6 @@ class MultiIndexConstructor(object):
 
     def time_multiindex_from_iterables(self):
         MultiIndex.from_product(self.iterables)
+
+
+from .pandas_vb_common import setup  # noqa: F401

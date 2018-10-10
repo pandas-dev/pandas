@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
 
-from .pandas_vb_common import setup  # noqa
-
 
 ops = ['mean', 'sum', 'median', 'std', 'skew', 'kurt', 'mad', 'prod', 'sem',
        'var']
@@ -112,3 +110,6 @@ class Correlation(object):
 
     def time_corr(self, method):
         self.df.corr(method=method)
+
+
+from .pandas_vb_common import setup  # noqa: F401

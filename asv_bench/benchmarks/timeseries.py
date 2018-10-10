@@ -8,8 +8,6 @@ try:
 except ImportError:
     from pandas.tseries.converter import DatetimeConverter
 
-from .pandas_vb_common import setup  # noqa
-
 
 class DatetimeIndex(object):
 
@@ -416,3 +414,6 @@ class DatetimeAccessor(object):
 
     def time_dt_accessor_normalize(self):
         self.series.dt.normalize()
+
+
+from .pandas_vb_common import setup  # noqa: F401

@@ -7,8 +7,6 @@ except ImportError:
     # For compatibility with older versions
     from pandas.core.datetools import * # noqa
 
-from .pandas_vb_common import setup # noqa
-
 
 class FromDicts(object):
 
@@ -99,3 +97,6 @@ class FromNDArray(object):
 
     def time_frame_from_ndarray(self):
         self.df = DataFrame(self.data)
+
+
+from .pandas_vb_common import setup  # noqa: F401

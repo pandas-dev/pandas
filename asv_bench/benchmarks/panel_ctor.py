@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from pandas import DataFrame, Panel, DatetimeIndex, date_range
 
-from .pandas_vb_common import setup  # noqa
+from .pandas_vb_common import Panel
 
 
 class DifferentIndexes(object):
@@ -58,3 +58,6 @@ class TwoIndexes(object):
     def time_from_dict(self):
         with warnings.catch_warnings(record=True):
             Panel.from_dict(self.data_frames)
+
+
+from .pandas_vb_common import setup  # noqa: F401

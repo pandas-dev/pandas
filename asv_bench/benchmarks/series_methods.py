@@ -4,8 +4,6 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import Series, date_range, NaT
 
-from .pandas_vb_common import setup  # noqa
-
 
 class SeriesConstructor(object):
 
@@ -192,3 +190,6 @@ class SeriesGetattr(object):
 
     def time_series_datetimeindex_repr(self):
         getattr(self.s, 'a', None)
+
+
+from .pandas_vb_common import setup  # noqa: F401

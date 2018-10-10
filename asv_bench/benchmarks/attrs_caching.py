@@ -5,8 +5,6 @@ try:
 except ImportError:
     from pandas.util.decorators import cache_readonly
 
-from .pandas_vb_common import setup  # noqa
-
 
 class DataFrameAttributes(object):
 
@@ -38,3 +36,6 @@ class CacheReadonly(object):
 
     def time_cache_readonly(self):
         self.obj.prop
+
+
+from .pandas_vb_common import setup  # noqa: F401

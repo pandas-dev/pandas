@@ -5,8 +5,6 @@ import numpy as np
 from pandas import DataFrame, MultiIndex, date_range, melt, wide_to_long
 import pandas as pd
 
-from .pandas_vb_common import setup  # noqa
-
 
 class Melt(object):
 
@@ -150,3 +148,6 @@ class GetDummies(object):
 
     def time_get_dummies_1d_sparse(self):
         pd.get_dummies(self.s, sparse=True)
+
+
+from .pandas_vb_common import setup  # noqa: F401
