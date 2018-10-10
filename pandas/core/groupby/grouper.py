@@ -594,14 +594,14 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         # create the Grouping
         # allow us to passing the actual Grouping as the gpr
         ping = (Grouping(group_axis,
-                        gpr,
-                        obj=obj,
-                        name=name,
-                        level=level,
-                        sort=sort,
-                        observed=observed,
-                        in_axis=in_axis)
-                 if not isinstance(gpr, Grouping) else gpr)
+                         gpr,
+                         obj=obj,
+                         name=name,
+                         level=level,
+                         sort=sort,
+                         observed=observed,
+                         in_axis=in_axis)
+                if not isinstance(gpr, Grouping) else gpr)
 
         groupings.append(ping)
 

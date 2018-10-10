@@ -884,14 +884,14 @@ class TextFileReader(BaseIterator):
         if engine == 'c':
             if options['skipfooter'] > 0:
                 fallback_reason = ("the 'c' engine does not support"
-                                  " skipfooter")
+                                   " skipfooter")
                 engine = 'python'
 
         encoding = sys.getfilesystemencoding() or 'utf-8'
         if sep is None and not delim_whitespace:
             if engine == 'c':
                 fallback_reason = ("the 'c' engine does not support"
-                                  " sep=None with delim_whitespace=False")
+                                   " sep=None with delim_whitespace=False")
                 engine = 'python'
         elif sep is not None and len(sep) > 1:
             if engine == 'c' and sep == r'\s+':
@@ -900,9 +900,9 @@ class TextFileReader(BaseIterator):
             elif engine not in ('python', 'python-fwf'):
                 # wait until regex engine integrated
                 fallback_reason = ("the 'c' engine does not support"
-                                  " regex separators (separators > 1 char and"
-                                  r" different from '\s+' are"
-                                  " interpreted as regex)")
+                                   " regex separators (separators > 1 char and"
+                                   r" different from '\s+' are"
+                                   " interpreted as regex)")
                 engine = 'python'
         elif delim_whitespace:
             if 'python' in engine:
@@ -916,9 +916,9 @@ class TextFileReader(BaseIterator):
                 encodeable = False
             if not encodeable and engine not in ('python', 'python-fwf'):
                 fallback_reason = ("the separator encoded in {encoding}"
-                                  " is > 1 char long, and the 'c' engine"
-                                  " does not support such separators"
-                                  .format(encoding=encoding))
+                                   " is > 1 char long, and the 'c' engine"
+                                   " does not support such separators"
+                                   .format(encoding=encoding))
                 engine = 'python'
 
         quotechar = options['quotechar']
