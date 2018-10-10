@@ -21,4 +21,5 @@ def _mpl_version(version, op):
 _mpl_ge_2_0_1 = _mpl_version('2.0.1', operator.ge)
 _mpl_ge_2_1_0 = _mpl_version('2.1.0', operator.ge)
 _mpl_ge_2_2_0 = _mpl_version('2.2.0', operator.ge)
+_mpl_ge_2_2_3 = _mpl_version('2.2.3', operator.ge)
 _mpl_ge_3_0_0 = _mpl_version('3.0.0', operator.ge)

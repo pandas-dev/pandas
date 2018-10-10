@@ -5,7 +5,10 @@ import pickle
 
 import pytest
 from pandas.compat import lrange, zip
-import matplotlib
+try:
+    import matplotlib
+except:
+    pass
 
 import numpy as np
 from pandas import Index, Series, DataFrame, NaT
@@ -405,8 +408,13 @@ class TestTSPlot(TestPlotBase):
         day_lst = [10, 40, 252, 400, 950, 2750, 10000]
 
         xpl1 = [7565, 7564, 7553, 7546, 7518, 7428, 7066]
-        xpl2 = [7566, 7564, 7554, 7546, 7519, 7429, 7066]
+        if self.mpl_ge_2_0_1:
+            xpl2 = [7566, 7564, 7554, 7546, 7519, 7429, 7066]
+        else:
+            xpl2 = xpl1
 
+        rs1 = []
+        rs2 = []
         for i, n in enumerate(day_lst):
             xp = xpl1[i]
             rng = bdate_range('1999-1-1', periods=n)
@@ -414,26 +422,34 @@ class TestTSPlot(TestPlotBase):
             _, ax = self.plt.subplots()
             ser.plot(ax=ax)
             xaxis = ax.get_xaxis()
-            rs = xaxis.get_majorticklocs()[0]
-            if rs != xp:
-                print(matplotlib.__version__, rs, xp)
-            assert xp == rs
+            rs1.append(xaxis.get_majorticklocs()[0])
             xp = xpl2[i]
             vmin, vmax = ax.get_xlim()
             ax.set_xlim(vmin + 0.9, vmax)
-            rs = xaxis.get_majorticklocs()[0]
-            if rs != xp:
-                print(matplotlib.__version__, rs, xp)
-            assert xp == rs
+            rs2.append(xaxis.get_majorticklocs()[0])
             self.plt.close(ax.get_figure())
+
+        if rs1 != xpl1 or rs2 != xpl2:
+            print(matplotlib.__version__, np.__version__,
+                  rs1, xpl1, rs2, xpl2)
+        for rs, xp in zip(rs1, xpl1):
+            assert rs == xp
+        for rs, xp in zip(rs2, xpl2):
+            assert rs == xp
 
     @pytest.mark.slow
     def test_finder_quarterly(self):
         yrs = [3.5, 11]
 
-        xpl1 = [68, 68]
-        xpl2 = [72, 68]
+        if self.mpl_ge_2_0_1:
+            xpl1 = [68, 68]
+            xpl2 = [72, 68]
+        else:
+            xpl1 = [72, 68]
+            xpl2 = xpl1
 
+        rs1 = []
+        rs2 = []
         for i, n in enumerate(yrs):
             xp = xpl1[i]
             rng = period_range('1987Q2', periods=int(n * 4), freq='Q')
@@ -441,26 +457,34 @@ class TestTSPlot(TestPlotBase):
             _, ax = self.plt.subplots()
             ser.plot(ax=ax)
             xaxis = ax.get_xaxis()
-            rs = xaxis.get_majorticklocs()[0]
-            if rs != xp:
-                print(matplotlib.__version__, rs, xp)
-            assert rs == xp
+            rs1.append(xaxis.get_majorticklocs()[0])
             xp = xpl2[i]
             (vmin, vmax) = ax.get_xlim()
             ax.set_xlim(vmin + 0.9, vmax)
-            rs = xaxis.get_majorticklocs()[0]
-            if rs != xp:
-                print(matplotlib.__version__, rs, xp)
-            assert xp == rs
+            rs2.append(xaxis.get_majorticklocs()[0])
             self.plt.close(ax.get_figure())
+
+        if rs1 != xpl1 or rs2 != xpl2:
+            print(matplotlib.__version__, np.__version__,
+                  rs1, xpl1, rs2, xpl2)
+        for rs, xp in zip(rs1, xpl1):
+            assert rs == xp
+        for rs, xp in zip(rs2, xpl2):
+            assert rs == xp
 
     @pytest.mark.slow
     def test_finder_monthly(self):
         yrs = [1.15, 2.5, 4, 11]
 
-        xpl1 = [216, 216, 204, 204]
-        xpl2 = [216, 216, 216, 204]
+        if self.mpl_ge_2_0_1:
+            xpl1 = [216, 216, 204, 204]
+            xpl2 = [216, 216, 216, 204]
+        else:
+            xpl1 = [216, 216, 216, 204]
+            xpl2 = [216, 216, 216, 204]
 
+        rs1 = []
+        rs2 = []
         for i, n in enumerate(yrs):
             xp = xpl1[i]
             rng = period_range('1987Q2', periods=int(n * 12), freq='M')
@@ -468,18 +492,20 @@ class TestTSPlot(TestPlotBase):
             _, ax = self.plt.subplots()
             ser.plot(ax=ax)
             xaxis = ax.get_xaxis()
-            rs = xaxis.get_majorticklocs()[0]
-            if rs != xp:
-                print(matplotlib.__version__, rs, xp)
-            assert rs == xp
+            rs1.append(xaxis.get_majorticklocs()[0])
             xp = xpl2[i]
             vmin, vmax = ax.get_xlim()
             ax.set_xlim(vmin + 0.9, vmax)
-            rs = xaxis.get_majorticklocs()[0]
-            if rs != xp:
-                print(matplotlib.__version__, rs, xp)
-            assert xp == rs
+            rs2.append(xaxis.get_majorticklocs()[0])
             self.plt.close(ax.get_figure())
+
+        if rs1 != xpl1 or rs2 != xpl2:
+            print(matplotlib.__version__, np.__version__,
+                  rs1, xpl1, rs2, xpl2)
+        for rs, xp in zip(rs1, xpl1):
+            assert rs == xp
+        for rs, xp in zip(rs2, xpl2):
+            assert rs == xp
 
     def test_finder_monthly_long(self):
         rng = period_range('1988Q1', periods=24 * 12, freq='M')
@@ -493,20 +519,27 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_finder_annual(self):
-        xp = [1986, 1986, 1990, 1990, 1995, 2020, 1970, 1970]
+        if self.mpl_ge_2_0_1:
+            xp = [1986, 1986, 1990, 1990, 1995, 2020, 1970, 1970]
+        else:
+            xp = [1987, 1987, 1990, 1990, 1995, 2020, 1970, 1970]
 
+        xp = [Period(x, freq='A').ordinal for x in xp]
+        rs = []
         for i, nyears in enumerate([5, 10, 19, 49, 99, 199, 599, 1001]):
             rng = period_range('1987', periods=nyears, freq='A')
             ser = Series(np.random.randn(len(rng)), rng)
             _, ax = self.plt.subplots()
             ser.plot(ax=ax)
             xaxis = ax.get_xaxis()
-            rs = xaxis.get_majorticklocs()[0]
-            xpp = Period(xp[i], freq='A').ordinal
-            if rs != xpp:
-                print(matplotlib.__version__, rs, xpp)
-            assert rs == xpp
+            rs.append(xaxis.get_majorticklocs()[0])
             self.plt.close(ax.get_figure())
+
+        if rs != xp:
+            print(matplotlib.__version__, np.__version__,
+                  rs, xp)
+        for res, exp in zip(rs1, xpl1):
+            assert res == exp
 
     @pytest.mark.slow
     def test_finder_minutely(self):
@@ -517,9 +550,12 @@ class TestTSPlot(TestPlotBase):
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        xp = Period('1998-12-29 12:00', freq='Min').ordinal
+        if self.mpl_ge_2_0_1:
+            xp = Period('1999-01-01 00:00', freq='Min').ordinal
+        else:
+            xp = Period('1998-12-29 12:00', freq='Min').ordinal
         if rs != xp:
-            print(matplotlib.__version__, rs, xp)
+            print(matplotlib.__version__, np.__version__, rs, xp)
         assert rs == xp
 
     def test_finder_hourly(self):
@@ -530,9 +566,12 @@ class TestTSPlot(TestPlotBase):
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        xp = Period('1998-12-31 22:00', freq='H').ordinal
+        if self.mpl_ge_2_2_3:
+            xp = Period('1999-01-01 00:00', freq='H').ordinal
+        else:
+            xp = Period('1998-12-31 22:00', freq='H').ordinal
         if rs != xp:
-            print(matplotlib.__version__, rs, xp)
+            print(matplotlib.__version__, np.__version__, rs, xp)
         assert rs == xp
 
     @pytest.mark.slow
@@ -546,7 +585,7 @@ class TestTSPlot(TestPlotBase):
         l = lines[0]
         data = l.get_xydata()
         if not isinstance(data, np.ma.core.MaskedArray):
-            print(matplotlib.__version__, np.__version, type(data))
+            print(matplotlib.__version__, np.__version__, type(data))
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         assert mask[5:25, 1].all()
@@ -563,7 +602,7 @@ class TestTSPlot(TestPlotBase):
         l = lines[0]
         data = l.get_xydata()
         if not isinstance(data, np.ma.core.MaskedArray):
-            print(matplotlib.__version__, np.__version, type(data))
+            print(matplotlib.__version__, np.__version__, type(data))
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         assert mask[2:5, 1].all()
@@ -580,7 +619,8 @@ class TestTSPlot(TestPlotBase):
         l = lines[0]
         data = l.get_xydata()
         if not isinstance(data, np.ma.core.MaskedArray):
-            print(matplotlib.__version__, np.__version, type(data))
+            print(matplotlib.__version__, np.__version__, type(data))
+            print(data)
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         assert mask[2:5, 1].all()
@@ -602,7 +642,8 @@ class TestTSPlot(TestPlotBase):
         data = l.get_xydata()
 
         if not isinstance(data, np.ma.core.MaskedArray):
-            print(matplotlib.__version__, np.__version, type(data))
+            print(matplotlib.__version__, np.__version__, type(data))
+            print(data)
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         assert mask[5:25, 1].all()
@@ -1365,7 +1406,10 @@ class TestTSPlot(TestPlotBase):
 
     def test_format_timedelta_ticks_narrow(self):
 
-        if self.mpl_ge_2_2_0:
+        if self.mpl_ge_2_2_3:
+            expected_labels = (['00:00:00.0000000{:0>2d}'.format(i)
+                                for i in range(10)])
+        elif self.mpl_ge_2_2_0:
             expected_labels = (['-1 days 23:59:59.999999998'] +
                                ['00:00:00.0000000{:0>2d}'.format(2 * i)
                                 for i in range(6)])
@@ -1381,13 +1425,13 @@ class TestTSPlot(TestPlotBase):
         fig.canvas.draw()
         labels = ax.get_xticklabels()
         if len(labels) != len(expected_labels):
-            print(matplotlib.__version__, [str(x) for x in labels], expected_labels)
+            print(matplotlib.__version__, np.__version__,
+                  [str(x) for x in labels], expected_labels)
         assert len(labels) == len(expected_labels)
         for l, l_expected in zip(labels, expected_labels):
             assert l.get_text() == l_expected
 
     def test_format_timedelta_ticks_wide(self):
-
         expected_labels = [
             '',
             '00:00:00',
@@ -1401,7 +1445,9 @@ class TestTSPlot(TestPlotBase):
             '9 days 06:13:20',
             ''
         ]
-        if self.mpl_ge_2_2_0:
+        if self.mpl_ge_2_2_3:
+            expected_labels = expected_labels[1:-1]
+        elif self.mpl_ge_2_2_0:
             expected_labels[0] = '-2 days 20:13:20'
             expected_labels[-1] = '10 days 10:00:00'
 
@@ -1412,7 +1458,8 @@ class TestTSPlot(TestPlotBase):
         fig.canvas.draw()
         labels = ax.get_xticklabels()
         if len(labels) != len(expected_labels):
-            print(matplotlib.__version__, [str(x) for x in labels], expected_labels)
+            print(matplotlib.__version__, np.__version__,
+                  [str(x) for x in labels], expected_labels)
         assert len(labels) == len(expected_labels)
         for l, l_expected in zip(labels, expected_labels):
             assert l.get_text() == l_expected
