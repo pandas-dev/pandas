@@ -12,10 +12,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_bool_dtype,
     pandas_dtype,
-    ensure_object
 )
-
-from pandas.tseries.frequencies import get_freq_code as _gfc
 
 from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
@@ -27,12 +24,10 @@ from pandas.core.tools.datetimes import parse_time_string
 from pandas._libs import tslib, index as libindex
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
                                         DIFFERENT_FREQ_INDEX)
-from pandas._libs.tslibs import resolution
 
 from pandas._libs.tslibs import resolution, period
 
-from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays.period import PeriodArray, dt64arr_to_periodarr
+from pandas.core.arrays.period import PeriodArray
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 
@@ -98,8 +93,7 @@ class PeriodDelegateMixin(PandasDelegate):
                 [x for x in PeriodArray._datetimelike_methods
                  if x not in {"asfreq", "to_timestamp"}],
                 typ="method",
-                overwrite=True,
-)
+                overwrite=True)
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                   Int64Index, PeriodDelegateMixin):
     """

@@ -203,6 +203,7 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_hashing_works(self, data):
         pass
 
+
 class TestCasting(BaseJSON, base.BaseCastingTests):
     @pytest.mark.skip(reason="failing on np.array(self, dtype=str)")
     def test_astype_str(self):

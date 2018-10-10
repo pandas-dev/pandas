@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex, PeriodArray
+from pandas.core.indexes.period import PeriodArray
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.algorithms import take_1d
 
