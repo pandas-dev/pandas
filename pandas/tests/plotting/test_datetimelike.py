@@ -11,7 +11,7 @@ except:
     pass
 
 import numpy as np
-from pandas import Index, Series, DataFrame, NaT
+from pandas import Index, Series, DataFrame, NaT, isna
 from pandas.compat import PY3
 from pandas.core.indexes.datetimes import date_range, bdate_range
 from pandas.core.indexes.timedeltas import timedelta_range
@@ -581,8 +581,6 @@ class TestTSPlot(TestPlotBase):
         assert rs == xp
 
     @pytest.mark.slow
-    @pytest.mark.xfail(_mpl_ge_3_0_0,
-                       reason="return type not a masked array anymore?")
     def test_gaps(self):
         ts = tm.makeTimeSeries()
         ts[5:25] = np.nan
@@ -592,6 +590,8 @@ class TestTSPlot(TestPlotBase):
         assert len(lines) == 1
         l = lines[0]
         data = l.get_xydata()
+        if _mpl_ge_3_0_0:
+            data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
         if not isinstance(data, np.ma.core.MaskedArray):
             print(matplotlib.__version__, np.__version__, type(data))
         assert isinstance(data, np.ma.core.MaskedArray)
@@ -609,6 +609,8 @@ class TestTSPlot(TestPlotBase):
         assert len(lines) == 1
         l = lines[0]
         data = l.get_xydata()
+        if _mpl_ge_3_0_0:
+            data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
         if not isinstance(data, np.ma.core.MaskedArray):
             print(matplotlib.__version__, np.__version__, type(data))
         assert isinstance(data, np.ma.core.MaskedArray)
@@ -626,6 +628,8 @@ class TestTSPlot(TestPlotBase):
         assert len(lines) == 1
         l = lines[0]
         data = l.get_xydata()
+        if _mpl_ge_3_0_0:
+            data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
         if not isinstance(data, np.ma.core.MaskedArray):
             print(matplotlib.__version__, np.__version__, type(data))
             print(data)
@@ -634,8 +638,6 @@ class TestTSPlot(TestPlotBase):
         assert mask[2:5, 1].all()
 
     @pytest.mark.slow
-    @pytest.mark.xfail(_mpl_ge_3_0_0,
-                       reason="return type not a masked array anymore?")
     def test_gap_upsample(self):
         low = tm.makeTimeSeries()
         low[5:25] = np.nan
@@ -650,6 +652,8 @@ class TestTSPlot(TestPlotBase):
         assert len(ax.right_ax.get_lines()) == 1
         l = lines[0]
         data = l.get_xydata()
+        if _mpl_ge_3_0_0:
+            data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         if not isinstance(data, np.ma.core.MaskedArray):
             print(matplotlib.__version__, np.__version__, type(data))
