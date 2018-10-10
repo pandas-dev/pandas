@@ -5,8 +5,6 @@ import pandas.util.testing as tm
 from pandas import DataFrame, date_range, read_sql_query, read_sql_table
 from sqlalchemy import create_engine
 
-from ..pandas_vb_common import setup  # noqa
-
 
 class SQL(object):
 
@@ -130,3 +128,6 @@ class ReadSQLTableDtypes(object):
 
     def time_read_sql_table_column(self, dtype):
         read_sql_table(self.table_name, self.con, columns=[dtype])
+
+
+from ..pandas_vb_common import setup  # noqa: F401
