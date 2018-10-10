@@ -847,7 +847,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_bar_colors(self):
         import matplotlib.pyplot as plt
-        default_colors = [v['color'] for v in plt.rcParams['axes.prop_cycle']]
+        default_colors = self._unpack_cycler(plt.rcParams)
 
         df = DataFrame(randn(5, 5))
         ax = df.plot.bar()
@@ -1218,8 +1218,7 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(TypeError):
             df.plot.scatter(x='a', y='b', c='c', color='green')
 
-        default_colors = [v['color']
-                          for v in self.plt.rcParams['axes.prop_cycle']]
+        default_colors = self._unpack_cycler(self.plt.rcParams)
 
         ax = df.plot.scatter(x='a', y='b', c='c')
         tm.assert_numpy_array_equal(
@@ -1883,8 +1882,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_line_colors_and_styles_subplots(self):
         # GH 9894
         from matplotlib import cm
-        default_colors = [v['color']
-                          for v in self.plt.rcParams['axes.prop_cycle']]
+        default_colors = self._unpack_cycler(self.plt.rcParams)
 
         df = DataFrame(randn(5, 5))
 
@@ -2004,8 +2002,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_hist_colors(self):
-        default_colors = [v['color']
-                          for v in self.plt.rcParams['axes.prop_cycle']]
+        default_colors = self._unpack_cycler(self.plt.rcParams)
 
         df = DataFrame(randn(5, 5))
         ax = df.plot.hist()
@@ -2066,8 +2063,7 @@ class TestDataFramePlots(TestPlotBase):
         _skip_if_no_scipy_gaussian_kde()
 
         from matplotlib import cm
-        default_colors = [v['color']
-                          for v in self.plt.rcParams['axes.prop_cycle']]
+        default_colors = self._unpack_cycler(self.plt.rcParams)
 
         df = DataFrame(randn(5, 5))
 
@@ -2138,8 +2134,7 @@ class TestDataFramePlots(TestPlotBase):
             self._check_colors(bp['caps'],
                                linecolors=[caps_c] * len(bp['caps']))
 
-        default_colors = [v['color']
-                          for v in self.plt.rcParams['axes.prop_cycle']]
+        default_colors = self._unpack_cycler(self.plt.rcParams)
 
         df = DataFrame(randn(5, 5))
         bp = df.plot.box(return_type='dict')
@@ -2195,7 +2190,7 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(randn(5, 3))
         ax = df.plot()
 
-        expected = [v['color'] for v in plt.rcParams['axes.prop_cycle']][:3]
+        expected = self._unpack_cycler(plt.rcParams)[:3]
         self._check_colors(ax.get_lines(), linecolors=expected)
 
     def test_unordered_ts(self):

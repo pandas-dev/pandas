@@ -493,6 +493,12 @@ class TestPlotBase(object):
                 obj.plot(kind=kind, grid=True, **kws)
                 assert is_grid_on()
 
+    def _unpack_cycler(self, rcParams, field='color'):
+        """
+        Auxiliary function for correctly unpacking cycler after MPL >= 1.5
+        """
+        return [v[field] for v in rcParams['axes.prop_cycle']]
+
 
 def _check_plot_works(f, filterwarnings='always', **kwargs):
     import matplotlib.pyplot as plt

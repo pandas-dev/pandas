@@ -849,7 +849,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_time_series_plot_color_with_empty_kwargs(self):
         import matplotlib as mpl
 
-        def_colors = [v['color'] for v in mpl.rcParams['axes.prop_cycle']]
+        def_colors = self._unpack_cycler(mpl.rcParams)
         index = date_range('1/1/2000', periods=12)
         s = Series(np.arange(1, 13), index=index)
 
