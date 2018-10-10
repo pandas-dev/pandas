@@ -6,7 +6,7 @@ related to inference and not otherwise tested in types/test_common.py
 
 """
 from warnings import catch_warnings, simplefilter
-from collections import namedtuple, OrderedDict
+import collections
 import re
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal
@@ -21,7 +21,7 @@ from pandas import (Series, Index, DataFrame, Timedelta,
                     Panel, Period, Categorical, isna, Interval,
                     DateOffset)
 from pandas import compat
-from pandas.compat import u, PY2, PY36, StringIO, lrange
+from pandas.compat import u, PY2, StringIO, lrange
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
@@ -191,7 +191,7 @@ def test_is_file_like(mock):
 
 
 @pytest.mark.parametrize(
-    "ll", [namedtuple('Test', list('abc'))(1, 2, 3)])
+    "ll", [collections.namedtuple('Test', list('abc'))(1, 2, 3)])
 def test_is_names_tuple_passes(ll):
     assert inference.is_named_tuple(ll)
 
