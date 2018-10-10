@@ -8,7 +8,7 @@ dependencies:
   - html5lib
   - jinja2
   - lxml
-  - matplotlib
+  - matplotlib=2.2.0
   - nomkl
   - numexpr
   - numpy=1.12.0
