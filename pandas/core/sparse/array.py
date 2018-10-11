@@ -546,6 +546,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             uniques.insert(fill_loc, self.fill_value)
         return type(self)._from_sequence(uniques, dtype=self.dtype)
 
+    def _values_for_factorize(self):
+        # Still override this for hash_pandas_object
+        return np.asarray(self), self.fill_value
+
     def factorize(self, na_sentinel=-1):
         # Currently, ExtensionArray.factorize -> Tuple[ndarray, EA]
         # The sparsity on this is backwards from what Sparse would want. Want
