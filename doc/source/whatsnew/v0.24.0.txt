@@ -685,6 +685,7 @@ Performance Improvements
   (:issue:`21372`)
 - Improved the performance of :func:`pandas.get_dummies` with ``sparse=True`` (:issue:`21997`)
 - Improved performance of :func:`IndexEngine.get_indexer_non_unique` for sorted, non-unique indexes (:issue:`9466`)
+- Improved performance of :func:`PeriodIndex.unique` (:issue:`23083`)
 
 
 .. _whatsnew_0240.docs:
