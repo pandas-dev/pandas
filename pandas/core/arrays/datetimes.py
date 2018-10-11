@@ -1013,7 +1013,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         "Logical indicating if first day of month (defined by frequency)")
     """
         Indicates whether the date is the first day of the month.
-        
+
         Returns
         -------
         Series of bool
@@ -1024,7 +1024,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         --------
         is_month_end : Return a boolean indicating whether the date is
             the last day of the month.
-        
+
         Examples
         --------
         >>> s = pd.Series(pd.date_range("2018-02-27", periods=3))
