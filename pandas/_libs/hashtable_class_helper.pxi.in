@@ -357,9 +357,9 @@ cdef class {{name}}HashTable(HashTable):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _unique_with_inverse(self, const {{dtype}}_t[:] values,
-                             {{name}}Vector uniques, Py_ssize_t count_prior=0,
-                             Py_ssize_t na_sentinel=-1, object na_value=None):
+    def _factorize(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
+                   Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
+                   object na_value=None):
         """
         Calculate unique values and labels (no sorting); ignores all NA-values
 
@@ -437,20 +437,20 @@ cdef class {{name}}HashTable(HashTable):
                     labels[i] = count
                     count += 1
 
-        return uniques.to_array(), np.asarray(labels)
+        return np.asarray(labels)
 
-    def factorize(self, {{dtype}}_t[:] values):
+    def factorize(self, const {{dtype}}_t[:] values, Py_ssize_t na_sentinel=-1,
+                  object na_value=None):
         uniques = {{name}}Vector()
-        return self._unique_with_inverse(values, uniques=uniques)
+        labels = self._factorize(values, uniques=uniques,
+                                 na_sentinel=na_sentinel, na_value=na_value)
+        return labels, uniques.to_array()
 
     def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
-        _, labels = self._unique_with_inverse(values, uniques,
-                                              count_prior=count_prior,
-                                              na_sentinel=na_sentinel,
-                                              na_value=na_value)
-        return labels
+        return self._factorize(values, uniques, count_prior=count_prior,
+                               na_sentinel=na_sentinel, na_value=na_value)
 
     @cython.boundscheck(False)
     def get_labels_groupby(self, const {{dtype}}_t[:] values):
@@ -727,9 +727,9 @@ cdef class StringHashTable(HashTable):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _unique_with_inverse(self, ndarray[object] values,
-                             ObjectVector uniques, Py_ssize_t count_prior=0,
-                             Py_ssize_t na_sentinel=-1, object na_value=None):
+    def _factorize(self, ndarray[object] values, ObjectVector uniques,
+                   Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
+                   object na_value=None):
         """
         Calculate unique values and labels (no sorting); ignores all NA-values
 
@@ -806,20 +806,20 @@ cdef class StringHashTable(HashTable):
         for i in range(count):
             uniques.append(values[uindexer[i]])
 
-        return uniques.to_array(), np.asarray(labels)
+        return np.asarray(labels)
 
-    def factorize(self, ndarray[object] values):
+    def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel=-1,
+                  object na_value=None):
         uniques = ObjectVector()
-        return self._unique_with_inverse(values, uniques=uniques)
+        labels = self._factorize(values, uniques=uniques,
+                                 na_sentinel=na_sentinel, na_value=na_value)
+        return labels, uniques.to_array()
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
-        _, labels = self._unique_with_inverse(values, uniques,
-                                              count_prior=count_prior,
-                                              na_sentinel=na_sentinel,
-                                              na_value=na_value)
-        return labels
+        return self._factorize(values, uniques, count_prior=count_prior,
+                               na_sentinel=na_sentinel, na_value=na_value)
 
 
 cdef class PyObjectHashTable(HashTable):
@@ -942,9 +942,9 @@ cdef class PyObjectHashTable(HashTable):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def _unique_with_inverse(self, ndarray[object] values,
-                             ObjectVector uniques, Py_ssize_t count_prior=0,
-                             Py_ssize_t na_sentinel=-1, object na_value=None):
+    def _factorize(self, ndarray[object] values, ObjectVector uniques,
+                   Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
+                   object na_value=None):
         """
         Calculate unique values and labels (no sorting); ignores all NA-values
 
@@ -1002,17 +1002,17 @@ cdef class PyObjectHashTable(HashTable):
                 labels[i] = count
                 count += 1
 
-        return uniques.to_array(), np.asarray(labels)
+        return np.asarray(labels)
 
-    def factorize(self, ndarray[object] values):
+    def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel=-1,
+                  object na_value=None):
         uniques = ObjectVector()
-        return self._unique_with_inverse(values, uniques=uniques)
+        labels = self._factorize(values, uniques=uniques,
+                                 na_sentinel=na_sentinel, na_value=na_value)
+        return labels, uniques.to_array()
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
-        _, labels = self._unique_with_inverse(values, uniques,
-                                              count_prior=count_prior,
-                                              na_sentinel=na_sentinel,
-                                              na_value=na_value)
-        return labels
+        return self._factorize(values, uniques, count_prior=count_prior,
+                               na_sentinel=na_sentinel, na_value=na_value)
