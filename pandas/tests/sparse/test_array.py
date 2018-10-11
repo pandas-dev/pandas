@@ -1057,3 +1057,29 @@ def test_unique_na_fill(arr, fill_value):
     assert isinstance(a, SparseArray)
     a = np.asarray(a)
     tm.assert_numpy_array_equal(a, b)
+
+
+def test_map():
+    arr = SparseArray([0, 1, 2])
+    expected = SparseArray([10, 11, 12], fill_value=10)
+
+    # dict
+    result = arr.map({0: 10, 1: 11, 2: 12})
+    tm.assert_sp_array_equal(result, expected)
+
+    # series
+    result = arr.map(pd.Series({0: 10, 1: 11, 2: 12}))
+    tm.assert_sp_array_equal(result, expected)
+
+    # function
+    result = arr.map(pd.Series({0: 10, 1: 11, 2: 12}))
+    expected = SparseArray([10, 11, 12], fill_value=10)
+    tm.assert_sp_array_equal(result, expected)
+
+
+def test_map_missing():
+    arr = SparseArray([0, 1, 2])
+    expected = SparseArray([10, 11, None], fill_value=10)
+
+    result = arr.map({0: 10, 1: 11})
+    tm.assert_sp_array_equal(result, expected)
