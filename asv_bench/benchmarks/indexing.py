@@ -2,10 +2,9 @@ import warnings
 
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (Series, DataFrame, MultiIndex, Int64Index, Float64Index,
-                    IntervalIndex, CategoricalIndex,
+from pandas import (Series, DataFrame, Panel, MultiIndex, Int64Index,
+                    Float64Index, IntervalIndex, CategoricalIndex,
                     IndexSlice, concat, date_range)
-from .pandas_vb_common import Panel
 
 
 class NumericSeriesIndexing(object):
