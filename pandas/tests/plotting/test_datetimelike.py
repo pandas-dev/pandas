@@ -555,7 +555,7 @@ class TestTSPlot(TestPlotBase):
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
         if self.mpl_ge_2_0_1:
-            xp = Period('1999-01-01 00:00', freq='H').ordinal
+            xp = Period('1/1/1999', freq='H').ordinal
         else:
             xp = Period('1998-12-31 22:00', freq='H').ordinal
         if rs != xp:
@@ -1414,7 +1414,7 @@ class TestTSPlot(TestPlotBase):
                                ['00:00:00.0000000{:0>2d}'.format(2 * i)
                                 for i in range(6)])
         elif self.mpl_ge_2_0_1:
-            # same as >= 2.2.3
+            # same as >= 2.2.2
             expected_labels = (['00:00:00.0000000{:0>2d}'.format(i)
                                 for i in range(10)])
         else:  # 2.0.0
