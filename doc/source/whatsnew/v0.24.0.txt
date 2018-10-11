@@ -373,6 +373,22 @@ is the case with :attr:`Period.end_time`, for example
 
    p.end_time
 
+.. _whatsnew_0240.api_breaking.frame_to_dict_index_orient:
+
+Raise ValueError in ``DataFrame.to_dict(orient='index')``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with 
+``orient='index'`` and a non-unique index instead of losing data (:issue:`22801`)
+
+.. ipython:: python
+    :okexcept:
+
+    df = pd.DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
+    df
+    
+    df.to_dict(orient='index')
+
 .. _whatsnew_0240.api.datetimelike.normalize:
 
 Tick DateOffset Normalize Restrictions
