@@ -280,20 +280,22 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if index is not None and not is_scalar(data):
             raise Exception("must only pass scalars with an index ")
 
-        # TODO: index feels strange... can we deprecate it?
-        elif index is not None:
-            if data is None:
-                data = np.nan
+        if is_scalar(data):
+            if index is not None:
+                if data is None:
+                    data = np.nan
+
+            if index is not None:
+                npoints = len(index)
+            elif sparse_index is None:
+                npoints = 1
+            else:
+                npoints = sparse_index.length
 
             dtype = infer_dtype_from_scalar(data)[0]
             data = construct_1d_arraylike_from_scalar(
-                data, len(index), dtype)
-
-        elif is_scalar(data):
-            if sparse_index is None:
-                data = [data]
-            else:
-                data = [data] * sparse_index.length
+                data, npoints, dtype
+            )
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
