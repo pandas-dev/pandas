@@ -114,6 +114,13 @@ class TestArithmeticOps(BaseOpsUtil):
         # compute expected
         mask = s.isna()
 
+        # if s is a DataFrame, squeeze to a Series
+        # for comparison
+        if isinstance(s, pd.DataFrame):
+            result = result.squeeze()
+            s = s.squeeze()
+            mask = mask.squeeze()
+
         # other array is an Integer
         if isinstance(other, IntegerArray):
             omask = getattr(other, 'mask', None)
@@ -215,7 +222,6 @@ class TestArithmeticOps(BaseOpsUtil):
         s = pd.Series(data)
         self._check_op(s, op, 1, exc=TypeError)
 
-    @pytest.mark.xfail(run=False, reason="_reduce needs implementation")
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op = all_arithmetic_operators
