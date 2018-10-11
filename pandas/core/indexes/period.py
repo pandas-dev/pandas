@@ -193,7 +193,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             else:
                 data, freq = cls._generate_range(start, end, periods,
                                                  freq, fields)
-            return cls._from_ordinals(data, name=name, freq=freq)
+            return cls._simple_new(data, name=name, freq=freq)
 
         if isinstance(data, PeriodIndex):
             if freq is None or freq == data.freq:  # no freq change
@@ -221,7 +221,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         # datetime other than period
         if is_datetime64_dtype(data.dtype):
             data = dt64arr_to_periodarr(data, freq, tz)
-            return cls._from_ordinals(data, name=name, freq=freq)
+            return cls._simple_new(data, name=name, freq=freq)
 
         # check not floats
         if infer_dtype(data) == 'floating' and len(data) > 0:
@@ -232,7 +232,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         data = ensure_object(data)
         freq = freq or period.extract_freq(data)
         data = period.extract_ordinals(data, freq)
-        return cls._from_ordinals(data, name=name, freq=freq)
+        return cls._simple_new(data, name=name, freq=freq)
 
     @cache_readonly
     def _engine(self):
@@ -676,8 +676,8 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
     def _apply_meta(self, rawarr):
         if not isinstance(rawarr, PeriodIndex):
-            rawarr = PeriodIndex._from_ordinals(rawarr, freq=self.freq,
-                                                name=self.name)
+            rawarr = PeriodIndex._simple_new(rawarr, freq=self.freq,
+                                             name=self.name)
         return rawarr
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
