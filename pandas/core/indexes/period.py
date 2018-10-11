@@ -29,6 +29,7 @@ from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
                                         DIFFERENT_FREQ_INDEX)
 from pandas._libs.tslibs import resolution, period
 
+from pandas.core.algorithms import unique1d
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.period import PeriodArrayMixin, dt64arr_to_periodarr
 from pandas.core.base import _shared_docs
@@ -538,6 +539,18 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         if dropna:
             res = res.dropna()
         return res
+
+    @Appender(Index.unique.__doc__)
+    def unique(self, level=None):
+        # override the Index.unique method for performance
+        if level is not None:
+            # this should never occur, but is retained to make the signature
+            # match Index.unique
+            self._validate_index_level(level)
+
+        values = self._ndarray_values
+        result = unique1d(values)
+        return self._shallow_copy(result)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
