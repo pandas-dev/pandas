@@ -13,6 +13,7 @@ from pandas._libs.tslibs.period import (
 
 from pandas.errors import NullFrequencyError, PerformanceWarning
 from pandas import compat
+from pandas.compat.numpy import function as nv
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
@@ -206,6 +207,18 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if is_object_dtype(dtype):
             return self._box_values(self.asi8)
         return super(DatetimeLikeArrayMixin, self).astype(dtype, copy)
+
+    def repeat(self, repeats, *args, **kwargs):
+        """
+        Analogous to ndarray.repeat
+        """
+        nv.validate_repeat(args, kwargs)
+        if is_period_dtype(self):
+            freq = self.freq
+        else:
+            freq = None
+        return self._shallow_copy(self.asi8.repeat(repeats),
+                                  freq=freq)
 
     # ------------------------------------------------------------------
     # Null Handling

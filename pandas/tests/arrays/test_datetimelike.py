@@ -67,6 +67,19 @@ class TestDatetimeArray(object):
         assert asobj.dtype == 'O'
         assert list(asobj) == list(dti)
 
+    # TODO: share this between Datetime/Timedelta/Period Array tests
+    def test_repeat(self, datetime_index):
+        dti = datetime_index
+        arr = DatetimeArrayMixin(dti)
+
+        expected = dti.repeat(3)
+        result = arr.repeat(3)
+        assert isinstance(result, DatetimeArrayMixin)
+
+        # placeholder until these become actual EA subclasses and we can use
+        #  an EA-specific tm.assert_ function
+        tm.assert_index_equal(pd.Index(result), pd.Index(expected))
+
     @pytest.mark.parametrize('freqstr', ['D', 'B', 'W', 'M', 'Q', 'Y'])
     def test_to_period(self, datetime_index, freqstr):
         dti = datetime_index
@@ -151,6 +164,19 @@ class TestPeriodArray(object):
         expected = DatetimeArrayMixin(pi.to_timestamp(how=how))
         result = arr.to_timestamp(how=how)
         assert isinstance(result, DatetimeArrayMixin)
+
+        # placeholder until these become actual EA subclasses and we can use
+        #  an EA-specific tm.assert_ function
+        tm.assert_index_equal(pd.Index(result), pd.Index(expected))
+
+    # TODO: share this between Datetime/Timedelta/Period Array tests
+    def test_repeat(self, period_index):
+        pi = period_index
+        arr = PeriodArrayMixin(pi)
+
+        expected = pi.repeat(3)
+        result = arr.repeat(3)
+        assert isinstance(result, PeriodArrayMixin)
 
         # placeholder until these become actual EA subclasses and we can use
         #  an EA-specific tm.assert_ function

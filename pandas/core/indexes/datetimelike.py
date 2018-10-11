@@ -613,18 +613,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         return algorithms.isin(self.asi8, values.asi8)
 
-    def repeat(self, repeats, *args, **kwargs):
-        """
-        Analogous to ndarray.repeat
-        """
-        nv.validate_repeat(args, kwargs)
-        if is_period_dtype(self):
-            freq = self.freq
-        else:
-            freq = None
-        return self._shallow_copy(self.asi8.repeat(repeats),
-                                  freq=freq)
-
     @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
         other = _ensure_datetimelike_to_i8(other, to_utc=True)
