@@ -4,8 +4,6 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import date_range, MultiIndex
 
-from .pandas_vb_common import setup  # noqa
-
 
 class GetLoc(object):
 
@@ -138,3 +136,6 @@ class Values(object):
 
     def time_datetime_level_values_sliced(self, mi):
         mi[:10].values
+
+
+from .pandas_vb_common import setup  # noqa: F401

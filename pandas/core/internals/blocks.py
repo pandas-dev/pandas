@@ -675,11 +675,11 @@ class Block(PandasObject):
             if newb.shape != self.shape:
                 raise TypeError(
                     "cannot set astype for copy = [{copy}] for dtype "
-                    "({dtype} [{itemsize}]) with smaller itemsize than "
-                    "current ({newb_dtype} [{newb_size}])".format(
+                    "({dtype} [{shape}]) to different shape "
+                    "({newb_dtype} [{newb_shape}])".format(
                         copy=copy, dtype=self.dtype.name,
-                        itemsize=self.itemsize, newb_dtype=newb.dtype.name,
-                        newb_size=newb.itemsize))
+                        shape=self.shape, newb_dtype=newb.dtype.name,
+                        newb_shape=newb.shape))
         return newb
 
     def convert(self, copy=True, **kwargs):
