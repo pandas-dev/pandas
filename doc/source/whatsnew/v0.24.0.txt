@@ -700,6 +700,10 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
+**Data-type specific**
+
+- Bug in :meth:`Series.interpolate()` where appropiate error was not raised when interpolating with a non-numeric index column (:issue:`21662`)
+
 Categorical
 ^^^^^^^^^^^
 
