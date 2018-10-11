@@ -464,6 +464,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return self.to_dense()
 
     def isna(self):
+        # from pandas import isna
+        # # If null fill value, we want SparseDtype[bool, true]
+        # # to preserve the same memory usage.
+        # dtype = SparseDtype(bool, self._null_fill_value)
+        # return type(self)._simple_new(isna(self.sp_values), self.sp_index, dtype)
         fill = self._null_fill_value
         indices = self.sp_index.to_int_index().indices
         out = np.full(self.shape, fill, dtype=bool)
@@ -501,16 +506,15 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         amount of memory used before and after filling.
 
         When ``self.fill_value`` is not NA, the result dtype will be
-        ``SparseDtype(..., fill_value=self.fill_value)``. Again, this
-        preserves the amount of memory used.
+        ``self.dtype``. Again, this preserves the amount of memory used.
         """
         if ((method is None and value is None) or
                 (method is not None and value is not None)):
             raise ValueError("Must specify one of 'method' or 'value'.")
 
         elif method is not None:
-            warnings.warn("Converting to dense in fillna with 'method'",
-                          PerformanceWarning)
+            msg = "fillna with 'method' requires high memory usage."
+            warnings.warn(msg, PerformanceWarning)
             filled = interpolate_2d(np.asarray(self), method=method,
                                     limit=limit)
             return type(self)(filled, fill_value=self.fill_value)
@@ -657,11 +661,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             if com.is_bool_indexer(key) and len(self) == len(key):
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             elif hasattr(key, '__len__'):
-                # This used to be len(self) != len(key). Why is that?
                 return self.take(key)
             else:
-                # TODO: this densifies!
-                data_slice = self.values[key]
+                raise ValueError("Cannot slice with '{}'".format(key))
+
 
         return type(self)(data_slice, kind=self.kind)
 
@@ -801,8 +804,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         else:
             values = self.sp_values
 
-        return type(self)(values, sparse_index=self.sp_index, copy=False,
-                          fill_value=self.fill_value)
+        return self._simple_new(values, self.sp_index, self.dtype)
 
     @classmethod
     def _concat_same_type(cls, to_concat):

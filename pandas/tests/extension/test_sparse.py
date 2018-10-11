@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas.core.sparse.dtype import SparseDtype
 from pandas import SparseArray
+from pandas.errors import PerformanceWarning
 from pandas.tests.extension import base
 import pandas.util.testing as tm
 
@@ -150,17 +151,18 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
 # Skipping TestSetitem, since we don't implement it.
 
 class TestMissing(BaseSparseTests, base.BaseMissingTests):
-    @pytest.mark.skip(reason="Unsupported")
-    def test_fillna_limit_pad(self):
-        pass
 
-    @pytest.mark.skip(reason="Unsupported")
-    def test_fillna_limit_backfill(self):
-        pass
+    def test_fillna_limit_pad(self, data_missing):
+        with tm.assert_produces_warning(PerformanceWarning):
+            super(TestMissing, self).test_fillna_limit_pad(data_missing)
 
-    @pytest.mark.skip(reason="Unsupported")
-    def test_fillna_series_method(self):
-        pass
+    def test_fillna_limit_backfill(self, data_missing):
+        with tm.assert_produces_warning(PerformanceWarning):
+            super(TestMissing, self).test_fillna_limit_backfill(data_missing)
+
+    def test_fillna_series_method(self, data_missing):
+        with tm.assert_produces_warning(PerformanceWarning):
+            super(TestMissing, self).test_fillna_limit_backfill(data_missing)
 
     @pytest.mark.skip(reason="Unsupported")
     def test_fillna_series(self):

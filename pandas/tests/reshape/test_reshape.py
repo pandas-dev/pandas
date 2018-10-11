@@ -107,7 +107,9 @@ class TestGetDummies(object):
         result = get_dummies(s_df, columns=s_df.columns,
                              sparse=sparse, dtype=dtype)
         if sparse:
-            dtype_name = 'Sparse[{}]'.format(self.effective_dtype(dtype).name)
+            dtype_name = 'Sparse[{}, 0]'.format(
+                self.effective_dtype(dtype).name
+            )
         else:
             dtype_name = self.effective_dtype(dtype).name
 
