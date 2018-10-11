@@ -382,7 +382,7 @@ Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with
 ``orient='index'`` and a non-unique index instead of losing data (:issue:`22801`)
 
 .. ipython:: python
-:okexcept:
+    :okexcept:
 
     df = pd.DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
     df
