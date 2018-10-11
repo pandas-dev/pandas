@@ -415,12 +415,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
                              'target index size')
         return tolerance
 
-    def tolist(self):
-        """
-        return a list of the underlying data
-        """
-        return list(self.astype(object))
-
     def min(self, axis=None, *args, **kwargs):
         """
         Return the minimum value of the Index or minimum along

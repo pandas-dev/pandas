@@ -220,6 +220,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return self._shallow_copy(self.asi8.repeat(repeats),
                                   freq=freq)
 
+    def tolist(self):
+        """
+        return a list of the underlying data
+        """
+        return list(self.astype(object))
+
     # ------------------------------------------------------------------
     # Null Handling
 
