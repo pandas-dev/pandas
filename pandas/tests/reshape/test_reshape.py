@@ -64,20 +64,14 @@ class TestGetDummies(object):
 
         result = get_dummies(s_series, sparse=sparse, dtype=dtype)
         if sparse:
-            tm.assert_sp_frame_equal(result,
-                                     expected.to_sparse(kind='integer',
-                                                        fill_value=0))
-        else:
-            assert_frame_equal(result, expected)
+            expected = expected.to_sparse(kind='integer', fill_value=0)
+        assert_frame_equal(result, expected)
 
         expected.index = list('ABC')
         result = get_dummies(s_series_index, sparse=sparse, dtype=dtype)
         if sparse:
-            tm.assert_sp_frame_equal(result,
-                                     expected.to_sparse(kind='integer',
-                                                        fill_value=0))
-        else:
-            assert_frame_equal(result, expected)
+            expected.to_sparse(kind='integer', fill_value=0)
+        assert_frame_equal(result, expected)
 
     def test_basic_types(self, sparse, dtype):
         # GH 10531
