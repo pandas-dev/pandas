@@ -2,7 +2,7 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import (DataFrame, Series, DatetimeIndex, MultiIndex, Index,
                     date_range)
-from .pandas_vb_common import setup, lib  # noqa
+from .pandas_vb_common import lib
 
 
 class Reindex(object):
@@ -170,3 +170,6 @@ class LibFastZip(object):
 
     def time_lib_fast_zip(self):
         lib.fast_zip(self.col_array_list)
+
+
+from .pandas_vb_common import setup  # noqa: F401
