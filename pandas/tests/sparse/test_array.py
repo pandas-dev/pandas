@@ -58,6 +58,18 @@ class TestSparseArray(object):
         assert arr.dtype == SparseDtype(np.int64, 0)
         assert arr.fill_value == 0
 
+    def test_constructor_sparse_dtype(self):
+        result = SparseArray([1, 0, 0, 1], dtype=SparseDtype('int64', -1))
+        expected = SparseArray([1, 0, 0, 1])
+        tm.assert_sp_array_equal(result, expected)
+        assert result.sp_values.dtype == np.dtype('int64')
+
+    def test_constructor_sparse_dtype_str(self):
+        result = SparseArray([1, 0, 0, 1], dtype='Sparse[int32]')
+        expected = SparseArray([1, 0, 0, 1], dtype=np.int32)
+        tm.assert_sp_array_equal(result, expected)
+        assert result.sp_values.dtype == np.dtype('int32')
+
     def test_constructor_object_dtype(self):
         # GH 11856
         arr = SparseArray(['A', 'A', np.nan, 'B'], dtype=np.object)
@@ -978,6 +990,12 @@ class TestSparseArrayAnalytics(object):
         # (2 * 8) + 4 + 4
         # sp_values, blocs, blenghts
         assert result == 24
+
+    def test_repr_datetime_in_series(self):
+        s = pd.Series(pd.SparseArray(
+            pd.to_datetime(['2012', None, None, '2013'])
+        ))
+        repr(s)
 
 
 def test_setting_fill_value_fillna_still_works():

@@ -10,6 +10,7 @@ import numpy as np
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_list_like, is_bool_dtype,
+    is_extension_array_dtype,
     needs_i8_conversion, is_sparse, is_object_dtype)
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.missing import notna
@@ -462,10 +463,12 @@ def stack(frame, level=-1, dropna=True):
 
     # For homogonoues EAs, self.values will coerce to object. So
     # we concatenate instead.
-    if frame._data.any_extension_types and frame._is_homogeneous_type:
-        arr = frame._data.blocks[0].dtype.construct_array_type()
+    dtypes = list(frame.dtypes.values)
+    dtype = dtypes[0]
+    if frame._data.any_extension_types and is_extension_array_dtype(dtype):
+        arr = dtype.construct_array_type()
         new_values = arr._concat_same_type([
-            blk.values for blk in frame._data.blocks
+            col for _, col in frame.iteritems()
         ])
     else:
         new_values = frame.values.ravel()

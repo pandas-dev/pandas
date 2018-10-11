@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -143,10 +145,10 @@ class SparseDtype(ExtensionDtype):
 
     @property
     def name(self):
-        return 'Sparse[{}]'.format(self.subtype.name)
+        return 'Sparse[{}, {}]'.format(self.subtype.name, self.fill_value)
 
     def __repr__(self):
-        return 'Sparse[{},{}]'.format(self.subtype.name, self.fill_value)
+        return self.name
 
     @classmethod
     def construct_array_type(cls):
@@ -156,9 +158,9 @@ class SparseDtype(ExtensionDtype):
     @classmethod
     def construct_from_string(cls, string):
         msg = "Could not construct SparseDtype from '{}'".format(string)
-        if string.startswith("Sparse"):
-            sub_type = cls._parse_subtype(string)
+        if string.startswith("Sparse["):
             try:
+                sub_type, _ = cls._parse_subtype(string)
                 return SparseDtype(sub_type)
             except Exception:
                 raise TypeError(msg)
@@ -167,20 +169,24 @@ class SparseDtype(ExtensionDtype):
 
     @staticmethod
     def _parse_subtype(dtype):
-        if dtype.startswith("Sparse["):
-            sub_type = dtype[7:-1]
+        xpr = re.compile(r"Sparse\[(?P<subtype>.*?),(?P<fill_value>.*?)\]$")
+        m = xpr.match(dtype)
+        if m:
+            subtype, fill_value = m.groups()
         elif dtype == "Sparse":
-            sub_type = 'float64'
+            subtype = 'float64'
+            fill_value = None
         else:
-            raise ValueError
-        return sub_type
+            raise ValueError("Cannot parse {}".format(dtype))
+        return subtype, fill_value
 
     @classmethod
     def is_dtype(cls, dtype):
         dtype = getattr(dtype, 'dtype', dtype)
         if (isinstance(dtype, compat.string_types) and
                 dtype.startswith("Sparse")):
-            dtype = np.dtype(cls._parse_subtype(dtype))
+            sub_type, _ = cls._parse_subtype(dtype)
+            dtype = np.dtype(sub_type)
         elif isinstance(dtype, cls):
             return True
         return isinstance(dtype, np.dtype) or dtype == 'Sparse'

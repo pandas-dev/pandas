@@ -375,20 +375,23 @@ is the case with :attr:`Period.end_time`, for example
 
 .. _whatsnew_0240.api_breaking.sparse_values:
 
-``SparseArray`` is now an ``ExtensionArray``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sparse Dat Structure Refactor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``SparseArray`` now implements the ``ExtensionArray`` interface (:issue:`21978`, :issue:`19056`, :issue:`22835`).
-To conform to this interface, and for consistency with the rest of pandas, some API breaking
+``SparseArray``, the array backing ``SparseSeries`` and the columns in a ``SparseDataFrame``,
+is now an extension array (:issue:`21978`, :issue:`19056`, :issue:`22835`).
+To conform to this interface and for consistency with the rest of pandas, some API breaking
 changes were made:
 
 - ``SparseArray`` is no longer a subclass of :class:`numpy.ndarray`. To convert a SparseArray to a NumPy array, use :meth:`numpy.asarray`.
 - ``SparseArray.dtype`` and ``SparseSeries.dtype`` are now instances of :class:`SparseDtype`, rather than ``np.dtype``. Access the underlying dtype with ``SparseDtype.subtype``.
 - :meth:`numpy.asarray(sparse_array)` now returns a dense array with all the values, not just the non-fill-value values (:issue:`14167`)
-- ``SparseArray.take`` now matches the API of :meth:`pandas.api.extensions.ExtensionArray.take` (:issue:`19506`).
+- ``SparseArray.take`` now matches the API of :meth:`pandas.api.extensions.ExtensionArray.take` (:issue:`19506`):
+
   * The default value of ``allow_fill`` has changed from ``False`` to ``True``.
   * The ``out`` and ``mode`` parameters are now longer accepted (previously, this raised if they were specified).
   * Passing a scalar for ``indices`` is no longer allowed.
+
 - The result of concatenating a mix of sparse and dense Series is a Series with sparse values, rather than a ``SparseSeries``.
 - ``SparseDataFrame.combine`` and ``DataFrame.combine_first`` no longer supports combining a sparse column with a dense column while preserving the sparse subtype. The result will be an object-dtype SparseArray.
 - Setting :attr:`SparseArray.fill_value` to a fill value with a different dtype is now allowed.

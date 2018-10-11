@@ -52,8 +52,23 @@ _sparray_doc_kwargs = dict(klass='SparseArray')
 
 def _get_fill(arr):
     # type: (SparseArray) -> ndarray
-    # coerce fill_value to arr dtype if possible
-    # int64 SparseArray can have NaN as fill_value if there is no missing
+    """
+    Create a 0-dim ndarray containing the fill value
+
+    Parameters
+    ----------
+    arr : SparseArray
+
+    Returns
+    -------
+    fill_value : ndarray
+        0-dim ndarray with just the fill value.
+
+    Notes
+    -----
+    coerce fill_value to arr dtype if possible
+    int64 SparseArray can have NaN as fill_value if there is no missing
+    """
     try:
         return np.asarray(arr.fill_value, dtype=arr.dtype.subtype)
     except ValueError:
@@ -91,8 +106,8 @@ def _sparse_array_op(left, right, op, name):
         ltype = SparseDtype(subtype, left.fill_value)
         rtype = SparseDtype(subtype, right.fill_value)
 
-        left = left.astype(ltype)
-        right = right.astype(rtype)
+        left = left.astype(ltype, copy=False)
+        right = right.astype(rtype, copy=False)
         dtype = ltype.subtype
     else:
         dtype = ltype
@@ -193,8 +208,15 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         timedelta64 ``pd.NaT``
         =========== ==========
 
-        When ``data`` is already a ``SparseArray``, ``data.fill_value``
-        is used unless specified, regardless of `data.dtype``.
+        The fill value is potentiall specified in three ways. In order of
+        precedence, these are
+
+        1. The `fill_value` argument
+        2. ``dtype.fill_value`` if `fill_value` is None and `dtype` is
+           a ``SparseDtype``
+        3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
+           is not a ``SparseDtype`` and `data` is a ``SparseArray``.
+
 
     kind : {'integer', 'block'}, default 'integer'
         The type of storage for sparse locations.

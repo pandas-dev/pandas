@@ -565,7 +565,7 @@ def _concat_sparse(to_concat, axis=0, typs=None):
         raise ValueError("Cannot concatenate SparseArrays with different "
                          "fill values")
 
-    fill_value = list(fill_values)[0]
+    fill_value = fill_values[0]
 
     # TODO: Fix join unit generation so we aren't passed this.
     to_concat = [x if isinstance(x, SparseArray)
