@@ -240,7 +240,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         return self._engine_type(lambda: self, len(self))
 
     @classmethod
-    def _from_ordinals(cls, values, freq=None, name=None):
+    def _from_ordinals(cls, values, freq=None, name=None, **kwargs):
         """
         Values should be int ordinals
         `__new__` & `_simple_new` cooerce to ordinals and call this method
