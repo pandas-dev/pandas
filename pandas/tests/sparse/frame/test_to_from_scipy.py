@@ -47,8 +47,7 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
         fill_value if fill_value is not None else np.nan)
 
     # Assert frame is as expected
-    # what is this test?
-    sdf_obj = sdf.astype(SparseDtype(object, fill_value))
+    sdf_obj = sdf.astype(object)
     tm.assert_sp_frame_equal(sdf_obj, expected)
     tm.assert_frame_equal(sdf_obj.to_dense(), expected.to_dense())
 
