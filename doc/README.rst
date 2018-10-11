@@ -110,7 +110,7 @@ development version ('master')::
 
     git remote add upstream https://github.com/pandas-dev/pandas.git
     git fetch upstream
-    git pull upstream master
+    git merge upstream/master
 
 Often it will be necessary to rebuild the C extension after updating::
 
