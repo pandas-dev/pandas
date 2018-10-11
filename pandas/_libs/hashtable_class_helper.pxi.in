@@ -514,12 +514,12 @@ cdef class {{name}}HashTable(HashTable):
             Unique values of input, not sorted
         """
         cdef:
-           Py_ssize_t i, n = len(values)
-           int ret = 0
-           {{dtype}}_t val
-           khiter_t k
-           {{name}}Vector uniques = {{name}}Vector()
-           {{name}}VectorData *ud
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            {{dtype}}_t val
+            khiter_t k
+            {{name}}Vector uniques = {{name}}Vector()
+            {{name}}VectorData *ud
 
         ud = uniques.data
 

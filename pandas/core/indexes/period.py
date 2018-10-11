@@ -17,7 +17,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     ensure_object)
 
-import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
@@ -25,13 +24,14 @@ from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.core.tools.datetimes import parse_time_string
 
 from pandas._libs.lib import infer_dtype
-from pandas._libs import tslib, index as libindex, Timedelta
+from pandas._libs import tslib, index as libindex
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
-                                        DIFFERENT_FREQ_INDEX,
-                                        _validate_end_alias)
+                                        DIFFERENT_FREQ_INDEX)
 from pandas._libs.tslibs import resolution, period
 
-from pandas.core.arrays.period import PeriodArrayMixin
+from pandas.core.algorithms import unique1d
+from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays.period import PeriodArrayMixin, dt64arr_to_periodarr
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 
@@ -55,14 +55,6 @@ def _wrap_field_accessor(name):
     f.__doc__ = fget.__doc__
     return property(f)
 
-
-def dt64arr_to_periodarr(data, freq, tz):
-    if data.dtype != np.dtype('M8[ns]'):
-        raise ValueError('Wrong dtype: %s' % data.dtype)
-
-    freq = Period._maybe_convert_freq(freq)
-    base, mult = _gfc(freq)
-    return period.dt64arr_to_periodarr(data.view('i8'), base, tz)
 
 # --- Period index sketch
 
@@ -185,12 +177,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             raise TypeError('__new__() got an unexpected keyword argument {}'.
                             format(list(set(fields) - valid_field_set)[0]))
 
-        if periods is not None:
-            if is_float(periods):
-                periods = int(periods)
-            elif not is_integer(periods):
-                msg = 'periods must be a number, got {periods}'
-                raise TypeError(msg.format(periods=periods))
+        periods = dtl.validate_periods(periods)
 
         if name is None and hasattr(data, 'name'):
             name = data.name
@@ -461,55 +448,23 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
     daysinmonth = days_in_month
 
     @property
+    @Appender(PeriodArrayMixin.start_time.__doc__)
     def start_time(self):
-        return self.to_timestamp(how='start')
+        return PeriodArrayMixin.start_time.fget(self)
 
     @property
+    @Appender(PeriodArrayMixin.end_time.__doc__)
     def end_time(self):
-        return self.to_timestamp(how='end')
+        return PeriodArrayMixin.end_time.fget(self)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return self.astype(object).values
 
+    @Appender(PeriodArrayMixin.to_timestamp.__doc__)
     def to_timestamp(self, freq=None, how='start'):
-        """
-        Cast to DatetimeIndex
-
-        Parameters
-        ----------
-        freq : string or DateOffset, optional
-            Target frequency. The default is 'D' for week or longer,
-            'S' otherwise
-        how : {'s', 'e', 'start', 'end'}
-
-        Returns
-        -------
-        DatetimeIndex
-        """
-        how = _validate_end_alias(how)
-
-        end = how == 'E'
-        if end:
-            if freq == 'B':
-                # roll forward to ensure we land on B date
-                adjust = Timedelta(1, 'D') - Timedelta(1, 'ns')
-                return self.to_timestamp(how='start') + adjust
-            else:
-                adjust = Timedelta(1, 'ns')
-                return (self + 1).to_timestamp(how='start') - adjust
-
-        if freq is None:
-            base, mult = _gfc(self.freq)
-            freq = frequencies.get_to_timestamp_base(base)
-        else:
-            freq = Period._maybe_convert_freq(freq)
-
-        base, mult = _gfc(freq)
-        new_data = self.asfreq(freq, how)
-
-        new_data = period.periodarr_to_dt64arr(new_data._ndarray_values, base)
-        return DatetimeIndex(new_data, freq='infer', name=self.name)
+        result = PeriodArrayMixin.to_timestamp(self, freq=freq, how=how)
+        return DatetimeIndex(result, name=self.name)
 
     @property
     def inferred_type(self):
@@ -584,6 +539,18 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         if dropna:
             res = res.dropna()
         return res
+
+    @Appender(Index.unique.__doc__)
+    def unique(self, level=None):
+        # override the Index.unique method for performance GH#23083
+        if level is not None:
+            # this should never occur, but is retained to make the signature
+            # match Index.unique
+            self._validate_index_level(level)
+
+        values = self._ndarray_values
+        result = unique1d(values)
+        return self._shallow_copy(result)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
