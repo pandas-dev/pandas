@@ -119,3 +119,6 @@ class Indexing(object):
 
     def time_intersection(self):
         self.index[:750].intersection(self.index[250:])
+
+    def time_unique(self):
+        self.index.unique()
