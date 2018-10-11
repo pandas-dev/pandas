@@ -5,10 +5,6 @@ import pickle
 
 import pytest
 from pandas.compat import lrange, zip
-try:
-    import matplotlib
-except:
-    pass
 
 import numpy as np
 from pandas import Index, Series, DataFrame, NaT, isna
@@ -429,9 +425,6 @@ class TestTSPlot(TestPlotBase):
             rs2.append(xaxis.get_majorticklocs()[0])
             self.plt.close(ax.get_figure())
 
-        if rs1 != xpl1 or rs2 != xpl2:
-            print(matplotlib.__version__, np.__version__,
-                  rs1, xpl1, rs2, xpl2)
         assert rs1 == xpl1
         assert rs2 == xpl2
 
@@ -461,9 +454,6 @@ class TestTSPlot(TestPlotBase):
             rs2.append(xaxis.get_majorticklocs()[0])
             self.plt.close(ax.get_figure())
 
-        if rs1 != xpl1 or rs2 != xpl2:
-            print(matplotlib.__version__, np.__version__,
-                  rs1, xpl1, rs2, xpl2)
         assert rs1 == xpl1
         assert rs2 == xpl2
 
@@ -493,9 +483,6 @@ class TestTSPlot(TestPlotBase):
             rs2.append(xaxis.get_majorticklocs()[0])
             self.plt.close(ax.get_figure())
 
-        if rs1 != xpl1 or rs2 != xpl2:
-            print(matplotlib.__version__, np.__version__,
-                  rs1, xpl1, rs2, xpl2)
         assert rs1 == xpl1
         assert rs2 == xpl2
 
@@ -528,8 +515,6 @@ class TestTSPlot(TestPlotBase):
             rs.append(xaxis.get_majorticklocs()[0])
             self.plt.close(ax.get_figure())
 
-        if rs != xp:
-            print(matplotlib.__version__, np.__version__, rs, xp)
         assert rs == xp
 
     @pytest.mark.slow
@@ -542,8 +527,7 @@ class TestTSPlot(TestPlotBase):
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
         xp = Period('1/1/1999', freq='Min').ordinal
-        if rs != xp:
-            print(matplotlib.__version__, np.__version__, rs, xp)
+
         assert rs == xp
 
     def test_finder_hourly(self):
@@ -556,10 +540,9 @@ class TestTSPlot(TestPlotBase):
         rs = xaxis.get_majorticklocs()[0]
         if self.mpl_ge_2_0_1:
             xp = Period('1/1/1999', freq='H').ordinal
-        else:
+        else:  # 2.0.0
             xp = Period('1998-12-31 22:00', freq='H').ordinal
-        if rs != xp:
-            print(matplotlib.__version__, np.__version__, rs, xp)
+
         assert rs == xp
 
     @pytest.mark.slow
@@ -575,8 +558,7 @@ class TestTSPlot(TestPlotBase):
         if self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1:
             # 2.0.0 or >= 3.0.0
             data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
-        if not isinstance(data, np.ma.core.MaskedArray):
-            print(matplotlib.__version__, np.__version__, type(data))
+
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         assert mask[5:25, 1].all()
@@ -595,8 +577,7 @@ class TestTSPlot(TestPlotBase):
         if self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1:
             # 2.0.0 or >= 3.0.0
             data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
-        if not isinstance(data, np.ma.core.MaskedArray):
-            print(matplotlib.__version__, np.__version__, type(data))
+
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         assert mask[2:5, 1].all()
@@ -615,9 +596,7 @@ class TestTSPlot(TestPlotBase):
         if self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1:
             # 2.0.0 or >= 3.0.0
             data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
-        if not isinstance(data, np.ma.core.MaskedArray):
-            print(matplotlib.__version__, np.__version__, type(data))
-            print(data)
+
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         assert mask[2:5, 1].all()
@@ -641,9 +620,6 @@ class TestTSPlot(TestPlotBase):
             # 2.0.0 or >= 3.0.0
             data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
-        if not isinstance(data, np.ma.core.MaskedArray):
-            print(matplotlib.__version__, np.__version__, type(data))
-            print(data)
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
         assert mask[5:25, 1].all()
@@ -1428,12 +1404,9 @@ class TestTSPlot(TestPlotBase):
         df.plot(fontsize=2, ax=ax)
         fig.canvas.draw()
         labels = ax.get_xticklabels()
-        if len(labels) != len(expected_labels):
-            print(matplotlib.__version__, np.__version__,
-                  [str(x) for x in labels], expected_labels)
+
         assert len(labels) == len(expected_labels)
-        for l, l_expected in zip(labels, expected_labels):
-            assert l.get_text() == l_expected
+        assert [x.get_text() for x in labels] == expected_labels
 
     def test_format_timedelta_ticks_wide(self):
         expected_labels = [
@@ -1464,12 +1437,9 @@ class TestTSPlot(TestPlotBase):
         ax = df.plot(fontsize=2, ax=ax)
         fig.canvas.draw()
         labels = ax.get_xticklabels()
-        if len(labels) != len(expected_labels):
-            print(matplotlib.__version__, np.__version__,
-                  [str(x) for x in labels], expected_labels)
+
         assert len(labels) == len(expected_labels)
-        for l, l_expected in zip(labels, expected_labels):
-            assert l.get_text() == l_expected
+        assert [x.get_text() for x in labels] == expected_labels
 
     def test_timedelta_plot(self):
         # test issue #8711
