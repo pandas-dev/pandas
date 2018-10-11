@@ -207,35 +207,7 @@ class TestCasting(base.BaseCastingTests):
 
 
 class TestGroupby(base.BaseGroupbyTests):
-
-    @pytest.mark.parametrize('as_index', [True, False])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4],
-                           "B": data_for_grouping})
-        result = df.groupby("B", as_index=as_index).A.mean()
-        _, index = pd.factorize(data_for_grouping, sort=True)
-
-        # TODO(ExtensionIndex): remove coercion to object
-        # we don't have an easy way to represent an EA as an Index object
-        index = pd.Index(index, name="B", dtype=object)
-        expected = pd.Series([3, 1, 4], index=index, name="A")
-        if as_index:
-            self.assert_series_equal(result, expected)
-        else:
-            expected = expected.reset_index()
-            self.assert_frame_equal(result, expected)
-
-    def test_groupby_extension_no_sort(self, data_for_grouping):
-        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4],
-                           "B": data_for_grouping})
-        result = df.groupby("B", sort=False).A.mean()
-        _, index = pd.factorize(data_for_grouping, sort=False)
-
-        # TODO(ExtensionIndex): remove coercion to object
-        # we don't have an easy way to represent an EA as an Index object
-        index = pd.Index(index, name="B", dtype=object)
-        expected = pd.Series([1, 3, 4], index=index, name="A")
-        self.assert_series_equal(result, expected)
+    pass
 
 
 class TestNumericReduce(base.BaseNumericReduceTests):
