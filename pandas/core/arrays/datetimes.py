@@ -1018,7 +1018,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         -------
         Series of bool
             Series of boolean values indicating whether the date is the first
-            day of the month
+            day of the month.
 
         See Also
         --------
