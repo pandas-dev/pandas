@@ -466,6 +466,11 @@ class ExtensionArray(object):
             as NA in the factorization routines, so it will be coded as
             `na_sentinal` and not included in `uniques`. By default,
             ``np.nan`` is used.
+
+        Notes
+        -----
+        The values returned by this method are also used in
+        :func:`pandas.util.hash_pandas_object`.
         """
         return self.astype(object), np.nan
 

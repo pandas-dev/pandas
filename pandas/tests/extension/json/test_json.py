@@ -199,6 +199,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_combine_add(self, data_repeated):
         pass
 
+    @unhashable
+    def test_hash_pandas_object_works(self, data, kind):
+        super().test_hash_pandas_object_works(data, kind)
+
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
     @pytest.mark.skip(reason="failing on np.array(self, dtype=str)")
