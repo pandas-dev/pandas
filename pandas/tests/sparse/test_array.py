@@ -58,6 +58,11 @@ class TestSparseArray(object):
         assert arr.dtype == SparseDtype(np.int64, 0)
         assert arr.fill_value == 0
 
+    def test_constructor_dtype_str(self):
+        result = SparseArray([1, 2, 3], dtype='int')
+        expected = SparseArray([1, 2, 3], dtype=int)
+        tm.assert_sp_array_equal(result, expected)
+
     def test_constructor_sparse_dtype(self):
         result = SparseArray([1, 0, 0, 1], dtype=SparseDtype('int64', -1))
         expected = SparseArray([1, 0, 0, 1], fill_value=-1, dtype=np.int64)

@@ -278,7 +278,7 @@ class TestSparseDataFrame(SharedWithSparse):
         sdf = df.to_sparse()
 
         result = sdf.get_dtype_counts()
-        expected = Series({'Sparse[float64]': 4})
+        expected = Series({'Sparse[float64, nan]': 4})
         tm.assert_series_equal(result, expected)
 
     def test_shape(self, float_frame, float_frame_int_kind,
@@ -1184,8 +1184,8 @@ class TestSparseDataFrame(SharedWithSparse):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             df_blocks = df.blocks
-        assert list(df_blocks.keys()) == ['Sparse[float64]']
-        tm.assert_frame_equal(df_blocks['Sparse[float64]'], df)
+        assert list(df_blocks.keys()) == ['Sparse[float64, nan]']
+        tm.assert_frame_equal(df_blocks['Sparse[float64, nan]'], df)
 
     @pytest.mark.xfail(reason='nan column names in _init_dict problematic '
                               '(GH#16894)',

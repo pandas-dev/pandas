@@ -97,6 +97,7 @@ def test_str_uses_object():
     ('Sparse[int]', SparseDtype(np.dtype('int'))),
     ('Sparse[str]', SparseDtype(np.dtype('str'))),
     ('Sparse[datetime64[ns]]', SparseDtype(np.dtype('datetime64[ns]'))),
+    ("Sparse", SparseDtype(np.dtype("float"), np.nan))
 ])
 def test_construct_from_string(string, expected):
     result = SparseDtype.construct_from_string(string)

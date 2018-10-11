@@ -158,7 +158,7 @@ class SparseDtype(ExtensionDtype):
     @classmethod
     def construct_from_string(cls, string):
         msg = "Could not construct SparseDtype from '{}'".format(string)
-        if string.startswith("Sparse["):
+        if string.startswith("Sparse"):
             try:
                 sub_type = cls._parse_subtype(string)
                 return SparseDtype(sub_type)

@@ -107,8 +107,9 @@ def _sparse_array_op(left, right, op, name):
         ltype = SparseDtype(subtype, left.fill_value)
         rtype = SparseDtype(subtype, right.fill_value)
 
-        left = left.astype(ltype, copy=False)
-        right = right.astype(rtype, copy=False)
+        # TODO(GH-23092): pass copy=False. Need to fix astype_nansafe
+        left = left.astype(ltype)
+        right = right.astype(rtype)
         dtype = ltype.subtype
     else:
         dtype = ltype
@@ -266,7 +267,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if isinstance(dtype, compat.string_types):
             # Two options: dtype='int', regular numpy dtype
             # or dtype='Sparse[int]', a sparse dtype
-            dtype = SparseDtype.construct_from_string(dtype)
+            try:
+                dtype = SparseDtype.construct_from_string(dtype)
+            except TypeError:
+                dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, SparseDtype):
             if fill_value is None:

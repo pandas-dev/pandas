@@ -405,7 +405,7 @@ class SharedWithSparse(object):
         if self.klass is DataFrame:
             expected = Series({'object': 10})
         else:
-            expected = Series({'Sparse[object]': 10})
+            expected = Series({'Sparse[object, nan]': 10})
         tm.assert_series_equal(result, expected)
 
 
