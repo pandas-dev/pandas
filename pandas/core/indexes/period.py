@@ -239,12 +239,8 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         return self._engine_type(lambda: self, len(self))
 
     @classmethod
-    def _from_ordinals(cls, values, freq=None, name=None, **kwargs):
-        """
-        Values should be int ordinals
-        `__new__` & `_simple_new` cooerce to ordinals and call this method
-        """
-        result = super(PeriodIndex, cls)._from_ordinals(values, freq)
+    def _simple_new(cls, values, freq=None, name=None, **kwargs):
+        result = super(PeriodIndex, cls)._simple_new(values, freq)
 
         result.name = name
         result._reset_identity()
