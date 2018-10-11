@@ -89,6 +89,19 @@ class TestDatetimeArray(object):
         assert expected == result
 
     @pytest.mark.parametrize('freqstr', ['D', 'B', 'W', 'M', 'Q', 'Y'])
+    def test_to_perioddelta(self, freqstr)
+        dti = datetime_index
+        arr = DatetimeArrayMixin(dti)
+
+        expected = dti.to_perioddelta(freq=freqstr)
+        result = arr.to_perioddelta(freq=freqstr)
+        assert isinstance(result, TimedeltaArrayMixin)
+
+        # placeholder until these become actual EA subclasses and we can use
+        #  an EA-specific tm.assert_ function
+        tm.assert_index_equal(pd.Index(result), pd.Index(expected))
+
+    @pytest.mark.parametrize('freqstr', ['D', 'B', 'W', 'M', 'Q', 'Y'])
     def test_to_period(self, datetime_index, freqstr):
         dti = datetime_index
         arr = DatetimeArrayMixin(dti)

@@ -752,22 +752,11 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                     result.freq = to_offset(result.inferred_freq)
             return result
 
+    @Appender(DatetimeArrayMixin.to_perioddelta.__doc__)
     def to_perioddelta(self, freq):
-        """
-        Calculate TimedeltaIndex of difference between index
-        values and index converted to periodIndex at specified
-        freq. Used for vectorized offsets
-
-        Parameters
-        ----------
-        freq: Period frequency
-
-        Returns
-        -------
-        y: TimedeltaIndex
-        """
-        return to_timedelta(self.asi8 - self.to_period(freq)
-                            .to_timestamp().asi8)
+        from pandas import TimedeltaIndex
+        result = DatetimeArrayMixin.to_perioddelta(self, freq)
+        return TimedeltaIndex(result)
 
     def union_many(self, others):
         """
