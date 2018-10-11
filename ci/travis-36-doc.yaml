@@ -15,7 +15,7 @@ dependencies:
   - ipython==6.5.0
   - ipywidgets
   - lxml
-  - matplotlib=2.2.0
+  - matplotlib
   - nbconvert
   - nbformat
   - nbsphinx

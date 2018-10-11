@@ -14,7 +14,7 @@ dependencies:
   - ipython
   - jinja2
   - lxml
-  - matplotlib=2.2.2
+  - matplotlib
   - nomkl
   - numexpr
   - numpy
