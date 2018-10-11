@@ -11,8 +11,6 @@ try:
 except ImportError:
     from pandas import ordered_merge as merge_ordered
 
-from .pandas_vb_common import Panel
-
 
 class Append(object):
 
