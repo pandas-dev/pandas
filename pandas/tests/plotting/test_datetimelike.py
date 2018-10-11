@@ -554,7 +554,7 @@ class TestTSPlot(TestPlotBase):
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        if self.mpl_ge_2_1_0:
+        if self.mpl_ge_2_0_1:
             xp = Period('1999-01-01 00:00', freq='H').ordinal
         else:
             xp = Period('1998-12-31 22:00', freq='H').ordinal
@@ -572,7 +572,8 @@ class TestTSPlot(TestPlotBase):
         assert len(lines) == 1
         l = lines[0]
         data = l.get_xydata()
-        if self.mpl_ge_3_0_0:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1:
+            # 2.0.0 or >= 3.0.0
             data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
         if not isinstance(data, np.ma.core.MaskedArray):
             print(matplotlib.__version__, np.__version__, type(data))
@@ -591,7 +592,8 @@ class TestTSPlot(TestPlotBase):
         assert len(lines) == 1
         l = lines[0]
         data = l.get_xydata()
-        if self.mpl_ge_3_0_0:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1:
+            # 2.0.0 or >= 3.0.0
             data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
         if not isinstance(data, np.ma.core.MaskedArray):
             print(matplotlib.__version__, np.__version__, type(data))
@@ -610,7 +612,8 @@ class TestTSPlot(TestPlotBase):
         assert len(lines) == 1
         l = lines[0]
         data = l.get_xydata()
-        if self.mpl_ge_3_0_0:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1:
+            # 2.0.0 or >= 3.0.0
             data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
         if not isinstance(data, np.ma.core.MaskedArray):
             print(matplotlib.__version__, np.__version__, type(data))
@@ -634,7 +637,8 @@ class TestTSPlot(TestPlotBase):
         assert len(ax.right_ax.get_lines()) == 1
         l = lines[0]
         data = l.get_xydata()
-        if self.mpl_ge_3_0_0:
+        if self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1:
+            # 2.0.0 or >= 3.0.0
             data = np.ma.MaskedArray(data, mask=isna(data), fill_value=np.nan)
 
         if not isinstance(data, np.ma.core.MaskedArray):
