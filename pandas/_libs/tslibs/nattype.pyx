@@ -565,6 +565,8 @@ class NaTType(_NaT):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
         nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time doesn't not exist in a particular timezone
+            where clocks moved forward due to DST.
             - 'shift' will shift the nonexistent time forward to the closest
               existing time
             - 'NaT' will return NaT where there are nonexistent times

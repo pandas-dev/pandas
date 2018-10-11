@@ -87,18 +87,16 @@ class TestTimestampTZOperations(object):
             ts.tz_localize(tz)
         # GH 22644
         with pytest.raises(NonExistentTimeError):
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
+            with tm.assert_produces_warning(FutureWarning):
                 ts.tz_localize(tz, errors='raise')
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             assert ts.tz_localize(tz, errors='coerce') is NaT
 
     def test_tz_localize_errors_ambiguous(self):
         # GH#13057
         ts = Timestamp('2015-11-1 01:00')
         with pytest.raises(AmbiguousTimeError):
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
+            with tm.assert_produces_warning(FutureWarning):
                 ts.tz_localize('US/Pacific', errors='coerce')
 
     @pytest.mark.filterwarnings('ignore::FutureWarning')
@@ -107,8 +105,7 @@ class TestTimestampTZOperations(object):
         tz = 'Europe/Warsaw'
         ts = Timestamp('2015-03-29 02:00:00')
         with pytest.raises(ValueError):
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
+            with tm.assert_produces_warning(FutureWarning):
                 ts.tz_localize(tz, errors='foo')
 
     def test_tz_localize_errors_coerce(self):
@@ -116,7 +113,7 @@ class TestTimestampTZOperations(object):
         # make sure errors='coerce' gets mapped correctly to nonexistent
         tz = 'Europe/Warsaw'
         ts = Timestamp('2015-03-29 02:00:00')
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = ts.tz_localize(tz, errors='coerce')
         expected = ts.tz_localize(tz, nonexistent='NaT')
         assert result is expected
