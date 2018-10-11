@@ -1,6 +1,7 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 import numpy as np
+import pandas as pd
 from pandas.core.sparse.dtype import SparseDtype
 import pandas.util.testing as tm
 
@@ -80,3 +81,27 @@ class TestSparseSeriesSubclassing(object):
         s2 = tm.SubclassedSparseSeries([1.0, 2.0, 3.0])
         exp = tm.SubclassedSparseSeries([5., 7., 9.])
         tm.assert_sp_series_equal(s1 + s2, exp)
+
+    def test_subclass_sparse_to_frame(self):
+        s = tm.SubclassedSparseSeries([1, 2], index=list('ab'), name='xxx')
+        res = s.to_frame()
+
+        exp_arr = pd.SparseArray([1, 2], dtype=np.int64, kind='block',
+                                 fill_value=0)
+        exp = tm.SubclassedSparseDataFrame({'xxx': exp_arr},
+                                           index=list('ab'),
+                                           default_fill_value=0)
+        tm.assert_sp_frame_equal(res, exp)
+
+        # create from int dict
+        res = tm.SubclassedSparseDataFrame({'xxx': [1, 2]},
+                                           index=list('ab'),
+                                           default_fill_value=0)
+        tm.assert_sp_frame_equal(res, exp)
+
+        s = tm.SubclassedSparseSeries([1.1, 2.1], index=list('ab'),
+                                      name='xxx')
+        res = s.to_frame()
+        exp = tm.SubclassedSparseDataFrame({'xxx': [1.1, 2.1]},
+                                           index=list('ab'))
+        tm.assert_sp_frame_equal(res, exp)
