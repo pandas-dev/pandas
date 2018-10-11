@@ -1007,11 +1007,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         'dim',
         "The number of days in the month")
     daysinmonth = days_in_month
-    is_month_start = _field_accessor(
-        'is_month_start',
-        'is_month_start',
-        "Logical indicating if first day of month (defined by frequency)")
-    """
+    _is_month_start_doc = """
         Indicates whether the date is the first day of the month.
 
         Returns
@@ -1039,6 +1035,11 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         2    True
         dtype: bool
     """
+    is_month_start = _field_accessor(
+        'is_month_start',
+        'is_month_start',
+        _is_month_start_doc)
+
     is_month_end = _field_accessor(
         'is_month_end',
         'is_month_end',
