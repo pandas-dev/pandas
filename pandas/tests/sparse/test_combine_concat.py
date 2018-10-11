@@ -138,8 +138,7 @@ class TestSparseSeriesConcat(object):
         dense = pd.Series(val2, name='y')
 
         res = pd.concat([sparse, dense])
-        exp = pd.concat([pd.Series(val1), dense])
-        exp = pd.SparseSeries(exp, kind=kind)
+        exp = pd.SparseSeries(pd.concat([pd.Series(val1), dense]), kind=kind)
         tm.assert_sp_series_equal(res, exp)
 
         res = pd.concat([dense, sparse, dense])
