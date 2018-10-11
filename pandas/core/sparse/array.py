@@ -22,6 +22,7 @@ from pandas.core.dtypes.generic import (
     ABCSparseSeries, ABCSeries, ABCIndexClass
 )
 from pandas.core.dtypes.common import (
+    is_datetime64_any_dtype,
     is_integer,
     is_object_dtype,
     is_array_like,
@@ -261,10 +262,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # TODO: make kind=None, and use data.kind?
             data = data.sp_values
 
+        # Handle use-provided dtype
+        if isinstance(dtype, compat.string_types):
+            # Two options: dtype='int', regular numpy dtype
+            # or dtype='Sparse[int]', a sparse dtype
+            dtype = SparseDtype.construct_from_string(dtype)
+
         if isinstance(dtype, SparseDtype):
-            dtype = dtype.subtype
             if fill_value is None:
                 fill_value = dtype.fill_value
+            dtype = dtype.subtype
 
         if index is not None and not is_scalar(data):
             raise Exception("must only pass scalars with an index ")
@@ -345,12 +352,27 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return new
 
     def __array__(self, dtype=None, copy=True):
+        fill_value = self.fill_value
+
         if self.sp_index.ngaps == 0:
             # Compat for na dtype and int values.
             return self.sp_values
         if dtype is None:
-            dtype = np.result_type(self.sp_values.dtype, self.fill_value)
-        out = np.full(self.shape, self.fill_value, dtype=dtype)
+            # Can NumPy represent this type?
+            # If not, `np.result_type` will raise. We catch that
+            # and return object.
+            if is_datetime64_any_dtype(self.sp_values.dtype):
+                # However, we *do* special-case the common case of
+                # a datetime64 with pandas NaT.
+                if fill_value is pd.NaT:
+                    # Can't put pd.NaT in a datetime64[ns]
+                    fill_value = np.datetime64('NaT')
+            try:
+                dtype = np.result_type(self.sp_values.dtype, fill_value)
+            except TypeError:
+                dtype = object
+
+        out = np.full(self.shape, fill_value, dtype=dtype)
         out[self.sp_index.to_int_index().indices] = self.sp_values
         return out
 

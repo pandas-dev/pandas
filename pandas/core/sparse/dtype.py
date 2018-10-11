@@ -160,7 +160,7 @@ class SparseDtype(ExtensionDtype):
         msg = "Could not construct SparseDtype from '{}'".format(string)
         if string.startswith("Sparse["):
             try:
-                sub_type, _ = cls._parse_subtype(string)
+                sub_type = cls._parse_subtype(string)
                 return SparseDtype(sub_type)
             except Exception:
                 raise TypeError(msg)
@@ -169,23 +169,42 @@ class SparseDtype(ExtensionDtype):
 
     @staticmethod
     def _parse_subtype(dtype):
-        xpr = re.compile(r"Sparse\[(?P<subtype>.*?),(?P<fill_value>.*?)\]$")
+        """
+        Parse a string to get the subtype
+
+        Parameters
+        ----------
+        dtype : str
+            A string like
+
+            * Sparse[subtype]
+            * Sparse[subtype, fill_value]
+
+        Returns
+        -------
+        subtype : str
+
+        Raises
+        ------
+        ValueError
+            When the subtype cannot be extracted.
+        """
+        xpr = re.compile(r"Sparse\[(?P<subtype>[^,]*)(, )?(.*?)?\]$")
         m = xpr.match(dtype)
         if m:
-            subtype, fill_value = m.groups()
+            subtype = m.groupdict()['subtype']
         elif dtype == "Sparse":
             subtype = 'float64'
-            fill_value = None
         else:
             raise ValueError("Cannot parse {}".format(dtype))
-        return subtype, fill_value
+        return subtype
 
     @classmethod
     def is_dtype(cls, dtype):
         dtype = getattr(dtype, 'dtype', dtype)
         if (isinstance(dtype, compat.string_types) and
                 dtype.startswith("Sparse")):
-            sub_type, _ = cls._parse_subtype(dtype)
+            sub_type = cls._parse_subtype(dtype)
             dtype = np.dtype(sub_type)
         elif isinstance(dtype, cls):
             return True

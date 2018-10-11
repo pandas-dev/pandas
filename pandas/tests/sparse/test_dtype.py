@@ -116,3 +116,15 @@ def test_hash_equal(a, b, expected):
 
     result = hash(a) == hash(b)
     assert result is expected
+
+
+@pytest.mark.parametrize('string, expected', [
+    ('Sparse[int]', 'int'),
+    ('Sparse[int, 0]', 'int'),
+    ('Sparse[int64]', 'int64'),
+    ('Sparse[int64, 0]', 'int64'),
+    ('Sparse[datetime64[ns], 0]', 'datetime64[ns]'),
+])
+def test_parse_subtype(string, expected):
+    subtype = SparseDtype._parse_subtype(string)
+    assert subtype == expected

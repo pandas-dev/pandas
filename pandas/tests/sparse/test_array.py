@@ -60,7 +60,7 @@ class TestSparseArray(object):
 
     def test_constructor_sparse_dtype(self):
         result = SparseArray([1, 0, 0, 1], dtype=SparseDtype('int64', -1))
-        expected = SparseArray([1, 0, 0, 1])
+        expected = SparseArray([1, 0, 0, 1], fill_value=-1, dtype=np.int64)
         tm.assert_sp_array_equal(result, expected)
         assert result.sp_values.dtype == np.dtype('int64')
 
@@ -991,11 +991,11 @@ class TestSparseArrayAnalytics(object):
         # sp_values, blocs, blenghts
         assert result == 24
 
-    def test_repr_datetime_in_series(self):
-        s = pd.Series(pd.SparseArray(
+    def test_asarray_datetime64(self):
+        s = pd.SparseArray(
             pd.to_datetime(['2012', None, None, '2013'])
-        ))
-        repr(s)
+        )
+        np.asarray(s)
 
 
 def test_setting_fill_value_fillna_still_works():
