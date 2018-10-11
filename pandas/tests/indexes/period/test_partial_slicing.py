@@ -68,9 +68,6 @@ class TestPeriodIndex(object):
         didx = DatetimeIndex(start='2013/01/01', freq='D', periods=400)
         pidx = PeriodIndex(start='2013/01/01', freq='D', periods=400)
 
-        # exception changed to TypeError in 1.12
-        # https://github.com/numpy/numpy/pull/6271
-
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
             values = ['2014', '2013/02', '2013/01/02', '2013/02/01 9H',
@@ -96,9 +93,6 @@ class TestPeriodIndex(object):
         didx = DatetimeIndex(start='2013/01/01 09:00:00', freq='S',
                              periods=4000)
         pidx = PeriodIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
-
-        # exception changed to TypeError in 1.12
-        # https://github.com/numpy/numpy/pull/6271
 
         for idx in [didx, pidx]:
             # slices against index should raise IndexError

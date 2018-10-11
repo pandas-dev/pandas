@@ -272,9 +272,6 @@ class TestExpressions(object):
                 for op, op_str in [('add', '+'), ('sub', '-'), ('mul', '*'),
                                    ('div', '/'), ('pow', '**')]:
 
-                    # numpy >= 1.11 doesn't handle integers
-                    # raised to integer powers
-                    # https://github.com/pandas-dev/pandas/issues/15363
                     if op == 'pow':
                         continue
 
