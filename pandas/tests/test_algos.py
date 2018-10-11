@@ -1356,7 +1356,8 @@ class TestHashTable(object):
         result_inverse, result_unique = htable().factorize(s_duplicated.values)
 
         # drop_duplicates has own cython code (hash_table_func_helper.pxi)
-        # and is tested separately; keeps first occurrence like ht.unique()
+        # and is tested separately; keeps first occurrence like ht.factorize()
+        # since factorize removes all NaNs, we do the same here
         expected_unique = s_duplicated.dropna().drop_duplicates(keep='first')
         expected_unique = expected_unique.values
         tm.assert_numpy_array_equal(result_unique, expected_unique)
