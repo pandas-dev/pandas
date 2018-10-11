@@ -465,7 +465,7 @@ def stack(frame, level=-1, dropna=True):
     # we concatenate instead.
     dtypes = list(frame.dtypes.values)
     dtype = dtypes[0]
-    if frame._data.any_extension_types and is_extension_array_dtype(dtype):
+    if frame._is_homogeneous_type and is_extension_array_dtype(dtype):
         arr = dtype.construct_array_type()
         new_values = arr._concat_same_type([
             col for _, col in frame.iteritems()
