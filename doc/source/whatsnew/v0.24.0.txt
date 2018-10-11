@@ -375,8 +375,8 @@ is the case with :attr:`Period.end_time`, for example
 
 .. _whatsnew_0240.api_breaking.sparse_values:
 
-Sparse Dat Structure Refactor
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sparse Data Structure Refactor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``SparseArray``, the array backing ``SparseSeries`` and the columns in a ``SparseDataFrame``,
 is now an extension array (:issue:`21978`, :issue:`19056`, :issue:`22835`).
@@ -403,6 +403,22 @@ Some new warnings are issued for operations that require or are likely to materi
 - A :class:`errors.PerformanceWarning` is now issued when concatenating sparse Series with differing fill values. The fill value from the first sparse array continues to be used.
 
 In addition to these API breaking changes, many :ref:`performance improvements and bug fixes have been made <whatsnew_0240.bug_fixes.sparse>`.
+
+.. _whatsnew_0240.api_breaking.frame_to_dict_index_orient:
+
+Raise ValueError in ``DataFrame.to_dict(orient='index')``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with 
+``orient='index'`` and a non-unique index instead of losing data (:issue:`22801`)
+
+.. ipython:: python
+    :okexcept:
+
+    df = pd.DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
+    df
+    
+    df.to_dict(orient='index')
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
