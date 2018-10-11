@@ -327,9 +327,9 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         """
         if isinstance(context, tuple) and len(context) > 0:
             func = context[0]
-            if (func is np.add):
+            if func is np.add:
                 pass
-            elif (func is np.subtract):
+            elif func is np.subtract:
                 name = self.name
                 left = context[1][0]
                 right = context[1][1]
