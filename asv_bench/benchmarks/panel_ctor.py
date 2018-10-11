@@ -3,8 +3,6 @@ from datetime import datetime, timedelta
 
 from pandas import DataFrame, Panel, DatetimeIndex, date_range
 
-from .pandas_vb_common import Panel
-
 
 class DifferentIndexes(object):
     goal_time = 0.2
