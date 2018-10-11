@@ -464,16 +464,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return self.to_dense()
 
     def isna(self):
-        # from pandas import isna
-        # # If null fill value, we want SparseDtype[bool, true]
-        # # to preserve the same memory usage.
-        # dtype = SparseDtype(bool, self._null_fill_value)
-        # return type(self)._simple_new(isna(self.sp_values), self.sp_index, dtype)
-        fill = self._null_fill_value
-        indices = self.sp_index.to_int_index().indices
-        out = np.full(self.shape, fill, dtype=bool)
-        out[indices] = pd.isna(self.sp_values)
-        return out
+        from pandas import isna
+        # If null fill value, we want SparseDtype[bool, true]
+        # to preserve the same memory usage.
+        dtype = SparseDtype(bool, self._null_fill_value)
+        return type(self)._simple_new(isna(self.sp_values),
+                                      self.sp_index, dtype)
 
     def fillna(self, value=None, method=None, limit=None):
         """
@@ -664,7 +660,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 return self.take(key)
             else:
                 raise ValueError("Cannot slice with '{}'".format(key))
-
 
         return type(self)(data_slice, kind=self.kind)
 
@@ -1013,6 +1008,19 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # Reductions
     # ------------------------------------------------------------------------
 
+    def _reduce(self, name, skipna=True, **kwargs):
+        method = getattr(self, name, None)
+
+        if method is None:
+            raise TypeError("cannot perform {name} with type {dtype}".format(
+                name=name, dtype=self.dtype))
+
+        if skipna:
+            arr = self
+        else:
+            arr = self.dropna()
+        return getattr(arr, name)()
+
     def all(self, axis=None, *args, **kwargs):
         """
         Tests whether all elements evaluate True
@@ -1053,7 +1061,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if len(values) != len(self) and np.any(self.fill_value):
             return True
 
-        return values.any()
+        return values.any().item()
 
     def sum(self, axis=0, *args, **kwargs):
         """
@@ -1404,7 +1412,7 @@ def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
             mask = arr != fill_value
 
     length = len(arr)
-    if length != mask.size:
+    if length != len(mask):
         # the arr is a SparseArray
         indices = mask.sp_index.indices
     else:

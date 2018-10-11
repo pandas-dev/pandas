@@ -3202,7 +3202,9 @@ def _block_shape(values, ndim=1, shape=None):
     if values.ndim < ndim:
         if shape is None:
             shape = values.shape
-        values = values.reshape(tuple((1, ) + shape))
+        if not is_extension_array_dtype(values):
+            # TODO: https://github.com/pandas-dev/pandas/issues/23023
+            values = values.reshape(tuple((1, ) + shape))
     return values
 
 

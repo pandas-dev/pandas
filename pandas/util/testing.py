@@ -1169,8 +1169,9 @@ def assert_extension_array_equal(left, right):
     """
     assert isinstance(left, ExtensionArray)
     assert left.dtype == right.dtype
-    left_na = left.isna()
-    right_na = right.isna()
+    left_na = np.asarray(left.isna())
+    right_na = np.asarray(right.isna())
+
     assert_numpy_array_equal(left_na, right_na)
 
     left_valid = np.asarray(left[~left_na].astype(object))
