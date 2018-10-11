@@ -350,7 +350,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             return result
         # the result is object dtype array of Period
         # cannot pass _simple_new as it is
-        return self._shallow_copy(result, freq=self.freq, name=self.name)
+        return type(self)(result, freq=self.freq, name=self.name)
 
     @property
     def size(self):
