@@ -692,6 +692,7 @@ class ExtensionArray(object):
             if True, skip NaN values
         kwargs : dict
             Additional keyword arguments passed to the reduction function
+            ddof is the only supported kwarg
 
         Returns
         -------
