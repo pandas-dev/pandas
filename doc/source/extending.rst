@@ -57,6 +57,13 @@ If you write a custom accessor, make a pull request adding it to our
 Extension Types
 ---------------
 
+.. versionadded:: 0.23.0
+
+.. warning::
+
+   The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs are new and
+   experimental. They may change between versions without warning.
+
 Pandas defines an interface for implementing data types and arrays that *extend*
 NumPy's type system. Pandas itself uses the extension system for some types
 that aren't built into NumPy (categorical, period, interval, datetime with
@@ -72,10 +79,10 @@ on :ref:`ecosystem.extensions`.
 
 The interface consists of two classes.
 
-``ExtensionDtype``
-^^^^^^^^^^^^^^^^^^
+:class:`~pandas.api.extensions.ExtensionDtype`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-An ``ExtensionDtype`` is similar to a ``numpy.dtype`` object. It describes the
+A :class:`pandas.api.extensions.ExtensionDtype` is similar to a ``numpy.dtype`` object. It describes the
 data type. Implementors are responsible for a few unique items like the name.
 
 One particularly important item is the ``type`` property. This should be the
@@ -84,8 +91,16 @@ extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 
 See the `extension dtype source`_ for interface definition.
 
-``ExtensionArray``
-^^^^^^^^^^^^^^^^^^
+.. versionadded:: 0.24.0
+
+:class:`pandas.api.extension.ExtensionDtype` can be registered to pandas to allow creation via a string dtype name.
+This allows one to instantiate ``Series`` and ``.astype()`` with a registered string name, for
+example ``'category'`` is a registered string accessor for the ``CategoricalDtype``.
+
+See the `extension dtype dtypes`_ for more on how to register dtypes.
+
+:class:`~pandas.api.extensions.ExtensionArray`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This class provides all the array-like functionality. ExtensionArrays are
 limited to 1 dimension. An ExtensionArray is linked to an ExtensionDtype via the
@@ -106,6 +121,82 @@ by some other storage type, like Python lists.
 See the `extension array source`_ for the interface definition. The docstrings
 and comments contain guidance for properly implementing the interface.
 
+.. _extending.extension.operator:
+
+:class:`~pandas.api.extensions.ExtensionArray` Operator Support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 0.24.0
+
+By default, there are no operators defined for the class :class:`~pandas.api.extensions.ExtensionArray`.
+There are two approaches for providing operator support for your ExtensionArray:
+
+1. Define each of the operators on your ``ExtensionArray`` subclass.
+2. Use an operator implementation from pandas that depends on operators that are already defined
+   on the underlying elements (scalars) of the ExtensionArray.
+
+For the first approach, you define selected operators, e.g., ``__add__``, ``__le__``, etc. that
+you want your ``ExtensionArray`` subclass to support.
+
+The second approach assumes that the underlying elements (i.e., scalar type) of the ``ExtensionArray``
+have the individual operators already defined.  In other words, if your ``ExtensionArray``
+named ``MyExtensionArray`` is implemented so that each element is an instance
+of the class ``MyExtensionElement``, then if the operators are defined
+for ``MyExtensionElement``, the second approach will automatically
+define the operators for ``MyExtensionArray``.
+
+A mixin class, :class:`~pandas.api.extensions.ExtensionScalarOpsMixin` supports this second
+approach.  If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
+can simply include ``ExtensionScalarOpsMixin`` as a parent class of ``MyExtensionArray``,
+and then call the methods :meth:`~MyExtensionArray._add_arithmetic_ops` and/or
+:meth:`~MyExtensionArray._add_comparison_ops` to hook the operators into
+your ``MyExtensionArray`` class, as follows:
+
+.. code-block:: python
+
+    class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin):
+        pass
+
+    MyExtensionArray._add_arithmetic_ops()
+    MyExtensionArray._add_comparison_ops()
+
+
+.. note::
+
+   Since ``pandas`` automatically calls the underlying operator on each
+   element one-by-one, this might not be as performant as implementing your own
+   version of the associated operators directly on the ``ExtensionArray``.
+
+For arithmetic operations, this implementation will try to reconstruct a new
+``ExtensionArray`` with the result of the element-wise operation. Whether
+or not that succeeds depends on whether the operation returns a result
+that's valid for the ``ExtensionArray``. If an ``ExtensionArray`` cannot
+be reconstructed, an ndarray containing the scalars returned instead.
+
+.. _extending.extension.testing:
+
+Testing Extension Arrays
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+We provide a test suite for ensuring that your extension arrays satisfy the expected
+behavior. To use the test suite, you must provide several pytest fixtures and inherit
+from the base test class. The required fixtures are found in
+https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/conftest.py.
+
+To use a test, subclass it:
+
+.. code-block:: python
+
+   from pandas.tests.extension import base
+
+   class TestConstructors(base.BaseConstructorsTests):
+       pass
+
+
+See https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/base/__init__.py
+for a list of all the tests available.
+
+.. _extension dtype dtypes: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/dtypes.py
 .. _extension dtype source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/base.py
 .. _extension array source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/arrays/base.py
 
@@ -142,18 +233,18 @@ you can retain subclasses through ``pandas`` data manipulations.
 
 There are 3 constructor properties to be defined:
 
-- ``_constructor``: Used when a manipulation result has the same dimesions as the original.
-- ``_constructor_sliced``: Used when a manipulation result has one lower dimension(s) as the original, such as ``DataFrame`` single columns slicing.
-- ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()`` and ``DataFrame.to_panel()``.
+* ``_constructor``: Used when a manipulation result has the same dimensions as the original.
+* ``_constructor_sliced``: Used when a manipulation result has one lower dimension(s) as the original, such as ``DataFrame`` single columns slicing.
+* ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()`` and ``DataFrame.to_panel()``.
 
 Following table shows how ``pandas`` data structures define constructor properties by default.
 
 ===========================  ======================= =============
-Property Attributes          ``Series``              ``DataFrame``      
+Property Attributes          ``Series``              ``DataFrame``
 ===========================  ======================= =============
-``_constructor``             ``Series``              ``DataFrame``      
-``_constructor_sliced``      ``NotImplementedError`` ``Series``         
-``_constructor_expanddim``   ``DataFrame``           ``Panel``          
+``_constructor``             ``Series``              ``DataFrame``
+``_constructor_sliced``      ``NotImplementedError`` ``Series``
+``_constructor_expanddim``   ``DataFrame``           ``Panel``
 ===========================  ======================= =============
 
 Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.

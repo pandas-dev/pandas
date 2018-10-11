@@ -6,8 +6,6 @@ import pandas.util.testing as tm
 from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
                     isnull, NaT)
 
-from .pandas_vb_common import setup  # noqa
-
 
 class GetNumericData(object):
 
@@ -501,14 +499,42 @@ class GetDtypeCounts(object):
 class NSort(object):
 
     goal_time = 0.2
-    params = ['first', 'last']
+    params = ['first', 'last', 'all']
     param_names = ['keep']
 
     def setup(self, keep):
-        self.df = DataFrame(np.random.randn(1000, 3), columns=list('ABC'))
+        self.df = DataFrame(np.random.randn(100000, 3),
+                            columns=list('ABC'))
 
-    def time_nlargest(self, keep):
+    def time_nlargest_one_column(self, keep):
         self.df.nlargest(100, 'A', keep=keep)
 
-    def time_nsmallest(self, keep):
+    def time_nlargest_two_columns(self, keep):
+        self.df.nlargest(100, ['A', 'B'], keep=keep)
+
+    def time_nsmallest_one_column(self, keep):
         self.df.nsmallest(100, 'A', keep=keep)
+
+    def time_nsmallest_two_columns(self, keep):
+        self.df.nsmallest(100, ['A', 'B'], keep=keep)
+
+
+class Describe(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame({
+            'a': np.random.randint(0, 100, int(1e6)),
+            'b': np.random.randint(0, 100, int(1e6)),
+            'c': np.random.randint(0, 100, int(1e6))
+        })
+
+    def time_series_describe(self):
+        self.df['a'].describe()
+
+    def time_dataframe_describe(self):
+        self.df.describe()
+
+
+from .pandas_vb_common import setup  # noqa: F401

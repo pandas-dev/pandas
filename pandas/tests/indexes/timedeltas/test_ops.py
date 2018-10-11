@@ -11,6 +11,8 @@ from pandas import (Series, Timedelta, Timestamp, TimedeltaIndex,
                     _np_version_under1p10)
 from pandas._libs.tslib import iNaT
 from pandas.tests.test_base import Ops
+from pandas.tseries.offsets import Day, Hour
+from pandas.core.dtypes.generic import ABCDateOffset
 
 
 class TestTimedeltaIndexOps(Ops):
@@ -305,6 +307,40 @@ class TestTimedeltaIndexOps(Ops):
         assert not idx.astype(object).equals(idx2.astype(object))
         assert not idx.equals(list(idx2))
         assert not idx.equals(pd.Series(idx2))
+
+    @pytest.mark.parametrize('values', [['0 days', '2 days', '4 days'], []])
+    @pytest.mark.parametrize('freq', ['2D', Day(2), '48H', Hour(48)])
+    def test_freq_setter(self, values, freq):
+        # GH 20678
+        idx = TimedeltaIndex(values)
+
+        # can set to an offset, converting from string if necessary
+        idx.freq = freq
+        assert idx.freq == freq
+        assert isinstance(idx.freq, ABCDateOffset)
+
+        # can reset to None
+        idx.freq = None
+        assert idx.freq is None
+
+    def test_freq_setter_errors(self):
+        # GH 20678
+        idx = TimedeltaIndex(['0 days', '2 days', '4 days'])
+
+        # setting with an incompatible freq
+        msg = ('Inferred frequency 2D from passed values does not conform to '
+               'passed frequency 5D')
+        with tm.assert_raises_regex(ValueError, msg):
+            idx.freq = '5D'
+
+        # setting with a non-fixed frequency
+        msg = r'<2 \* BusinessDays> is a non-fixed frequency'
+        with tm.assert_raises_regex(ValueError, msg):
+            idx.freq = '2B'
+
+        # setting with non-freq string
+        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+            idx.freq = 'foo'
 
 
 class TestTimedeltas(object):

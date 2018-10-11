@@ -2,7 +2,7 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, Series, to_numeric
 
-from .pandas_vb_common import numeric_dtypes, lib, setup  # noqa
+from .pandas_vb_common import numeric_dtypes, lib
 
 
 class NumericInferOps(object):
@@ -111,3 +111,6 @@ class MaybeConvertNumeric(object):
 
     def time_convert(self, data):
         lib.maybe_convert_numeric(data, set(), coerce_numeric=False)
+
+
+from .pandas_vb_common import setup  # noqa: F401

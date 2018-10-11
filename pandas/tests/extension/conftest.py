@@ -31,6 +31,27 @@ def all_data(request, data, data_missing):
 
 
 @pytest.fixture
+def data_repeated(data):
+    """
+    Generate many datasets.
+
+    Parameters
+    ----------
+    data : fixture implementing `data`
+
+    Returns
+    -------
+    Callable[[int], Generator]:
+        A callable that takes a `count` argument and
+        returns a generator yielding `count` datasets.
+    """
+    def gen(count):
+        for _ in range(count):
+            yield data
+    return gen
+
+
+@pytest.fixture
 def data_for_sorting():
     """Length-3 array with a known sort order.
 
@@ -57,7 +78,7 @@ def na_cmp():
     Should return a function of two arguments that returns
     True if both arguments are (scalar) NA for your type.
 
-    By default, uses ``operator.or``
+    By default, uses ``operator.is_``
     """
     return operator.is_
 

@@ -15,29 +15,28 @@ from pandas import compat
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
-from .common import TestData
 
+class TestSeriesCombine():
 
-class TestSeriesCombine(TestData):
-
-    def test_append(self):
-        appendedSeries = self.series.append(self.objSeries)
+    def test_append(self, datetime_series, string_series, object_series):
+        appendedSeries = string_series.append(object_series)
         for idx, value in compat.iteritems(appendedSeries):
-            if idx in self.series.index:
-                assert value == self.series[idx]
-            elif idx in self.objSeries.index:
-                assert value == self.objSeries[idx]
+            if idx in string_series.index:
+                assert value == string_series[idx]
+            elif idx in object_series.index:
+                assert value == object_series[idx]
             else:
-                self.fail("orphaned index!")
+                raise AssertionError("orphaned index!")
 
-        pytest.raises(ValueError, self.ts.append, self.ts,
+        pytest.raises(ValueError, datetime_series.append, datetime_series,
                       verify_integrity=True)
 
-    def test_append_many(self):
-        pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
+    def test_append_many(self, datetime_series):
+        pieces = [datetime_series[:5], datetime_series[5:10],
+                  datetime_series[10:]]
 
         result = pieces[0].append(pieces[1:])
-        assert_series_equal(result, self.ts)
+        assert_series_equal(result, datetime_series)
 
     def test_append_duplicates(self):
         # GH 13677
@@ -59,6 +58,19 @@ class TestSeriesCombine(TestData):
             s1.append(s2, verify_integrity=True)
         with tm.assert_raises_regex(ValueError, msg):
             pd.concat([s1, s2], verify_integrity=True)
+
+    def test_combine_scalar(self):
+        # GH 21248
+        # Note - combine() with another Series is tested elsewhere because
+        # it is used when testing operators
+        s = pd.Series([i * 10 for i in range(5)])
+        result = s.combine(3, lambda x, y: x + y)
+        expected = pd.Series([i * 10 + 3 for i in range(5)])
+        tm.assert_series_equal(result, expected)
+
+        result = s.combine(22, lambda x, y: min(x, y))
+        expected = pd.Series([min(i * 10, 22) for i in range(5)])
+        tm.assert_series_equal(result, expected)
 
     def test_combine_first(self):
         values = tm.makeIntIndex(20).values.astype(float)
@@ -122,19 +134,19 @@ class TestSeriesCombine(TestData):
                               Series(dtype=dtype)]).dtype == dtype
 
         def int_result_type(dtype, dtype2):
-            typs = set([dtype.kind, dtype2.kind])
-            if not len(typs - set(['i', 'u', 'b'])) and (dtype.kind == 'i' or
-                                                         dtype2.kind == 'i'):
+            typs = {dtype.kind, dtype2.kind}
+            if not len(typs - {'i', 'u', 'b'}) and (dtype.kind == 'i' or
+                                                    dtype2.kind == 'i'):
                 return 'i'
-            elif not len(typs - set(['u', 'b'])) and (dtype.kind == 'u' or
-                                                      dtype2.kind == 'u'):
+            elif not len(typs - {'u', 'b'}) and (dtype.kind == 'u' or
+                                                 dtype2.kind == 'u'):
                 return 'u'
             return None
 
         def float_result_type(dtype, dtype2):
-            typs = set([dtype.kind, dtype2.kind])
-            if not len(typs - set(['f', 'i', 'u'])) and (dtype.kind == 'f' or
-                                                         dtype2.kind == 'f'):
+            typs = {dtype.kind, dtype2.kind}
+            if not len(typs - {'f', 'i', 'u'}) and (dtype.kind == 'f' or
+                                                    dtype2.kind == 'f'):
                 return 'f'
             return None
 
@@ -156,6 +168,20 @@ class TestSeriesCombine(TestData):
                 result = pd.concat([Series(dtype=dtype), Series(dtype=dtype2)
                                     ]).dtype
                 assert result.kind == expected
+
+    def test_combine_first_dt_tz_values(self, tz_naive_fixture):
+        ser1 = pd.Series(pd.DatetimeIndex(['20150101', '20150102', '20150103'],
+                                          tz=tz_naive_fixture),
+                         name='ser1')
+        ser2 = pd.Series(pd.DatetimeIndex(['20160514', '20160515', '20160516'],
+                                          tz=tz_naive_fixture),
+                         index=[2, 3, 4], name='ser2')
+        result = ser1.combine_first(ser2)
+        exp_vals = pd.DatetimeIndex(['20150101', '20150102', '20150103',
+                                     '20160515', '20160516'],
+                                    tz=tz_naive_fixture)
+        exp = pd.Series(exp_vals, name='ser1')
+        assert_series_equal(exp, result)
 
     def test_concat_empty_series_dtypes(self):
 

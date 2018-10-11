@@ -9,13 +9,16 @@ https://support.sas.com/techsup/technote/ts140.pdf
 """
 
 from datetime import datetime
-import pandas as pd
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
-from pandas import compat
 import struct
-import numpy as np
-from pandas.util._decorators import Appender
 import warnings
+
+import numpy as np
+
+from pandas.util._decorators import Appender
+from pandas import compat
+
+from pandas.io.common import get_filepath_or_buffer, BaseIterator
+import pandas as pd
 
 _correct_line1 = ("HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
                   "000000000000000000000000000000  ")
@@ -68,11 +71,11 @@ Examples
 --------
 Read a SAS Xport file:
 
->>> df = pandas.read_sas('filename.XPT')
+>>> df = pd.read_sas('filename.XPT')
 
 Read a Xport file in 10,000 line chunks:
 
->>> itr = pandas.read_sas('filename.XPT', chunksize=10000)
+>>> itr = pd.read_sas('filename.XPT', chunksize=10000)
 >>> for chunk in itr:
 >>>     do_something(chunk)
 
@@ -178,10 +181,6 @@ def _parse_float_vec(vec):
     # number sans exponent
     ieee1 = xport1 & 0x00ffffff
 
-    # Get the second half of the ibm number into the second half of
-    # the ieee number
-    ieee2 = xport2
-
     # The fraction bit to the left of the binary point in the ieee
     # format was set and the number was shifted 0, 1, 2, or 3
     # places. This will tell us how to adjust the ibm exponent to be a
@@ -247,7 +246,7 @@ class XportReader(BaseIterator):
             contents = filepath_or_buffer.read()
             try:
                 contents = contents.encode(self._encoding)
-            except:
+            except UnicodeEncodeError:
                 pass
             self.filepath_or_buffer = compat.BytesIO(contents)
 

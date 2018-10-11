@@ -33,7 +33,7 @@ def load_reduce(self):
                 cls = args[0]
                 stack[-1] = object.__new__(cls)
                 return
-            except:
+            except TypeError:
                 pass
 
         # try to re-encode the arguments
@@ -44,7 +44,7 @@ def load_reduce(self):
             try:
                 stack[-1] = func(*args)
                 return
-            except:
+            except TypeError:
                 pass
 
         # unknown exception, re-raise
@@ -182,7 +182,7 @@ def load_newobj_ex(self):
 
 try:
     Unpickler.dispatch[pkl.NEWOBJ_EX[0]] = load_newobj_ex
-except:
+except (AttributeError, KeyError):
     pass
 
 
@@ -210,5 +210,5 @@ def load(fh, encoding=None, compat=False, is_verbose=False):
         up.is_verbose = is_verbose
 
         return up.load()
-    except:
+    except (ValueError, TypeError):
         raise

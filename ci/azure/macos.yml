@@ -1,0 +1,43 @@
+parameters:
+  name: ''
+  vmImage: ''
+
+jobs:
+- job: ${{ parameters.name }}
+  pool:
+    vmImage: ${{ parameters.vmImage }}
+  strategy:
+    maxParallel: 11
+    matrix:
+      py35_np_110:
+        ENV_FILE: ci/azure-macos-35.yaml
+        CONDA_PY: "35"
+        CONDA_ENV: pandas
+        TEST_ARGS: "--skip-slow --skip-network"
+
+  steps:
+    - script: |
+        if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386; fi
+        echo "Installing Miniconda"
+        ci/incremental/install_miniconda.sh
+        export PATH=$HOME/miniconda3/bin:$PATH
+        echo "Setting up Conda environment"
+        ci/incremental/setup_conda_environment.sh
+      displayName: 'Before Install'
+    - script: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        ci/incremental/build.sh
+      displayName: 'Build'
+    - script: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        ci/script_single.sh
+        ci/script_multi.sh
+        echo "[Test done]"
+      displayName: 'Test'
+    - script: |
+        export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: '/tmp/*.xml'
+        testRunTitle: 'MacOS-35'

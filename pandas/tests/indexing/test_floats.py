@@ -10,6 +10,9 @@ from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
 
+ignore_ix = pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+
+
 class TestFloatIndexers(object):
 
     def check(self, result, original, indexer, getitem):
@@ -50,13 +53,14 @@ class TestFloatIndexers(object):
             def f():
                 s.iloc[3.0]
             tm.assert_raises_regex(TypeError,
-                                   'cannot do positional indexing',
+                                   'Cannot index by location index',
                                    f)
 
             def f():
                 s.iloc[3.0] = 0
             pytest.raises(TypeError, f)
 
+    @ignore_ix
     def test_scalar_non_numeric(self):
 
         # GH 4892
@@ -145,6 +149,7 @@ class TestFloatIndexers(object):
             s[3]
             pytest.raises(TypeError, lambda: s[3.0])
 
+    @ignore_ix
     def test_scalar_with_mixed(self):
 
         s2 = Series([1, 2, 3], index=['a', 'b', 'c'])
@@ -202,6 +207,7 @@ class TestFloatIndexers(object):
         expected = 3
         assert result == expected
 
+    @ignore_ix
     def test_scalar_integer(self):
 
         # test how scalar float indexers work on int indexes
@@ -254,6 +260,7 @@ class TestFloatIndexers(object):
                 # coerce to equal int
                 assert 3.0 in s
 
+    @ignore_ix
     def test_scalar_float(self):
 
         # scalar float indexers work on a float index
@@ -269,8 +276,7 @@ class TestFloatIndexers(object):
                                   (lambda x: x, True)]:
 
                 # getting
-                with catch_warnings(record=True):
-                    result = idxr(s)[indexer]
+                result = idxr(s)[indexer]
                 self.check(result, s, 3, getitem)
 
                 # setting
@@ -305,6 +311,7 @@ class TestFloatIndexers(object):
                 s2.iloc[3.0] = 0
             pytest.raises(TypeError, g)
 
+    @ignore_ix
     def test_slice_non_numeric(self):
 
         # GH 4892
@@ -356,6 +363,7 @@ class TestFloatIndexers(object):
                                 idxr(s)[l] = 0
                         pytest.raises(TypeError, f)
 
+    @ignore_ix
     def test_slice_integer(self):
 
         # same as above, but for Integer based indexes
@@ -483,6 +491,7 @@ class TestFloatIndexers(object):
 
                 pytest.raises(TypeError, f)
 
+    @ignore_ix
     def test_slice_integer_frame_getitem(self):
 
         # similar to above, but on the getitem dim (of a DataFrame)
@@ -554,6 +563,7 @@ class TestFloatIndexers(object):
             with catch_warnings(record=True):
                 f(lambda x: x.ix)
 
+    @ignore_ix
     def test_slice_float(self):
 
         # same as above, but for floats
@@ -685,17 +695,23 @@ class TestFloatIndexers(object):
         assert_series_equal(result1, result3)
         assert_series_equal(result1, result4)
 
-        result1 = s[[1.6, 5, 10]]
-        result2 = s.loc[[1.6, 5, 10]]
-        result3 = s.loc[[1.6, 5, 10]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result1 = s[[1.6, 5, 10]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result2 = s.loc[[1.6, 5, 10]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result3 = s.loc[[1.6, 5, 10]]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
         assert_series_equal(result1, Series(
             [np.nan, 2, 4], index=[1.6, 5, 10]))
 
-        result1 = s[[0, 1, 2]]
-        result2 = s.loc[[0, 1, 2]]
-        result3 = s.loc[[0, 1, 2]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result1 = s[[0, 1, 2]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result2 = s.loc[[0, 1, 2]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result3 = s.loc[[0, 1, 2]]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
         assert_series_equal(result1, Series(

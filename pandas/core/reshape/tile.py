@@ -11,20 +11,21 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_timedelta64_dtype,
     is_datetime64tz_dtype,
-    _ensure_int64)
+    is_datetime_or_timedelta_dtype,
+    ensure_int64)
 
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
 from pandas._libs.lib import infer_dtype
 from pandas import (to_timedelta, to_datetime,
                     Categorical, Timestamp, Timedelta,
-                    Series, Interval, IntervalIndex)
+                    Series, Index, Interval, IntervalIndex)
 
 import numpy as np
 
 
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
-        include_lowest=False):
+        include_lowest=False, duplicates='raise'):
     """
     Bin values into discrete intervals.
 
@@ -65,6 +66,10 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         The precision at which to store and display the bins labels.
     include_lowest : bool, default False
         Whether the first interval should be left-inclusive or not.
+    duplicates : {default 'raise', 'drop'}, optional
+        If bin edges are not unique, raise ValueError or drop non-uniques.
+
+        .. versionadded:: 0.23.0
 
     Returns
     -------
@@ -85,7 +90,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     bins : numpy.ndarray or IntervalIndex.
         The computed or specified bins. Only returned when `retbins=True`.
         For scalar or sequence `bins`, this is an ndarray with the computed
-        bins. For an IntervalIndex `bins`, this is equal to `bins`.
+        bins. If set `duplicates=drop`, `bins` will drop non-unique bin. For
+        an IntervalIndex `bins`, this is equal to `bins`.
 
     See Also
     --------
@@ -144,6 +150,32 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     dtype: category
     Categories (3, interval[float64]): [(1.992, 4.667] < (4.667, ...
 
+    Passing a Series as an input returns a Series with mapping value.
+    It is used to map numerically to intervals based on bins.
+
+    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]),
+    ...               index=['a', 'b', 'c', 'd', 'e'])
+    >>> pd.cut(s, [0, 2, 4, 6, 8, 10], labels=False, retbins=True, right=False)
+    ... # doctest: +ELLIPSIS
+    (a    0.0
+     b    1.0
+     c    2.0
+     d    3.0
+     e    4.0
+     dtype: float64, array([0, 2, 4, 6, 8]))
+
+    Use `drop` optional when bins is not unique
+
+    >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
+    ...    right=False, duplicates='drop')
+    ... # doctest: +ELLIPSIS
+    (a    0.0
+     b    1.0
+     c    2.0
+     d    3.0
+     e    3.0
+     dtype: float64, array([0, 2, 4, 6, 8]))
+
     Passing an IntervalIndex for `bins` results in those categories exactly.
     Notice that values not covered by the IntervalIndex are set to NaN. 0
     is to the left of the first bin (which is closed on the right), and 1.5
@@ -199,10 +231,11 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     fac, bins = _bins_to_cuts(x, bins, right=right, labels=labels,
                               precision=precision,
                               include_lowest=include_lowest,
-                              dtype=dtype)
+                              dtype=dtype,
+                              duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                                series_index, name)
+                                series_index, name, dtype)
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
@@ -274,7 +307,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
                               dtype=dtype, duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                                series_index, name)
+                                series_index, name, dtype)
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None,
@@ -302,7 +335,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
             bins = unique_bins
 
     side = 'left' if right else 'right'
-    ids = _ensure_int64(bins.searchsorted(x, side=side))
+    ids = ensure_int64(bins.searchsorted(x, side=side))
 
     if include_lowest:
         # Numpy 1.9 support: ensure this mask is a Numpy array
@@ -396,6 +429,26 @@ def _convert_bin_to_numeric_type(bins, dtype):
     return bins
 
 
+def _convert_bin_to_datelike_type(bins, dtype):
+    """
+    Convert bins to a DatetimeIndex or TimedeltaIndex if the orginal dtype is
+    datelike
+
+    Parameters
+    ----------
+    bins : list-like of bins
+    dtype : dtype of data
+
+    Returns
+    -------
+    bins : Array-like of bins, DatetimeIndex or TimedeltaIndex if dtype is
+           datelike
+    """
+    if is_datetime64tz_dtype(dtype) or is_datetime_or_timedelta_dtype(dtype):
+        bins = Index(bins.astype(np.int64), dtype=dtype)
+    return bins
+
+
 def _format_labels(bins, precision, right=True,
                    include_lowest=False, dtype=None):
     """ based on the dtype, return our labels """
@@ -456,7 +509,7 @@ def _preprocess_for_cut(x):
 
 
 def _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                         series_index, name):
+                         series_index, name, dtype):
     """
     handles post processing for the cut method where
     we combine the index information if the originally passed
@@ -467,6 +520,8 @@ def _postprocess_for_cut(fac, bins, retbins, x_is_series,
 
     if not retbins:
         return fac
+
+    bins = _convert_bin_to_datelike_type(bins, dtype)
 
     return fac, bins
 

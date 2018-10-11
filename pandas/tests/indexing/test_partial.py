@@ -16,6 +16,8 @@ from pandas.util import testing as tm
 
 class TestPartialSetting(object):
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
     def test_partial_setting(self):
 
         # GH2578, allow ix and friends to partially set
@@ -156,8 +158,9 @@ class TestPartialSetting(object):
         df_orig = DataFrame(np.random.randn(8, 4), index=dates,
                             columns=['A', 'B', 'C', 'D'])
 
-        expected = pd.concat([df_orig, DataFrame(
-            {'A': 7}, index=[dates[-1] + 1])])
+        expected = pd.concat([df_orig,
+                              DataFrame({'A': 7}, index=[dates[-1] + 1])],
+                             sort=True)
         df = df_orig.copy()
         df.loc[dates[-1] + 1, 'A'] = 7
         tm.assert_frame_equal(df, expected)
@@ -403,6 +406,7 @@ class TestPartialSetting(object):
         result = ser.iloc[[1, 1, 0, 0]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
+    @pytest.mark.filterwarnings("ignore:\\n.ix")
     def test_partial_set_invalid(self):
 
         # GH 4940

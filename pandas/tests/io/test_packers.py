@@ -3,6 +3,7 @@ import pytest
 from warnings import catch_warnings
 import os
 import datetime
+import glob
 import numpy as np
 from distutils.version import LooseVersion
 
@@ -90,6 +91,7 @@ def check_arbitrary(a, b):
         assert(a == b)
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestPackers(object):
 
     def setup_method(self, method):
@@ -104,6 +106,7 @@ class TestPackers(object):
             return read_msgpack(p, **kwargs)
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestAPI(TestPackers):
 
     def test_string_io(self):
@@ -128,9 +131,8 @@ class TestAPI(TestPackers):
         with ensure_clean(self.path) as p:
 
             s = df.to_msgpack()
-            fh = open(p, 'wb')
-            fh.write(s)
-            fh.close()
+            with open(p, 'wb') as fh:
+                fh.write(s)
             result = read_msgpack(p)
             tm.assert_frame_equal(result, df)
 
@@ -464,6 +466,7 @@ class TestCategorical(TestPackers):
                 assert_categorical_equal(i, i_rec)
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestNDFrame(TestPackers):
 
     def setup_method(self, method):
@@ -486,10 +489,9 @@ class TestNDFrame(TestPackers):
             'int': DataFrame(dict(A=data['B'], B=Series(data['B']) + 1)),
             'mixed': DataFrame(data)}
 
-        with catch_warnings(record=True):
-            self.panel = {
-                'float': Panel(dict(ItemA=self.frame['float'],
-                                    ItemB=self.frame['float'] + 1))}
+        self.panel = {
+            'float': Panel(dict(ItemA=self.frame['float'],
+                                ItemB=self.frame['float'] + 1))}
 
     def test_basic_frame(self):
 
@@ -837,15 +839,16 @@ class TestEncoding(TestPackers):
             assert_frame_equal(result, frame)
 
 
-def legacy_packers_versions():
-    # yield the packers versions
-    path = tm.get_data_path('legacy_msgpack')
-    for v in os.listdir(path):
-        p = os.path.join(path, v)
-        if os.path.isdir(p):
-            yield v
+files = glob.glob(os.path.join(os.path.dirname(__file__), "data",
+                               "legacy_msgpack", "*", "*.msgpack"))
 
 
+@pytest.fixture(params=files)
+def legacy_packer(request, datapath):
+    return datapath(request.param)
+
+
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestMsgpack(object):
     """
     How to add msgpack tests:
@@ -920,24 +923,20 @@ TestPackers
         else:
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('version', legacy_packers_versions())
     def test_msgpacks_legacy(self, current_packers_data, all_packers_data,
-                             version):
+                             legacy_packer, datapath):
 
-        pth = tm.get_data_path('legacy_msgpack/{0}'.format(version))
-        n = 0
-        for f in os.listdir(pth):
-            # GH12142 0.17 files packed in P2 can't be read in P3
-            if (compat.PY3 and version.startswith('0.17.') and
-                    f.split('.')[-4][-1] == '2'):
-                continue
-            vf = os.path.join(pth, f)
-            try:
-                with catch_warnings(record=True):
-                    self.compare(current_packers_data, all_packers_data,
-                                 vf, version)
-            except ImportError:
-                # blosc not installed
-                continue
-            n += 1
-        assert n > 0, 'Msgpack files are not tested'
+        version = os.path.basename(os.path.dirname(legacy_packer))
+
+        # GH12142 0.17 files packed in P2 can't be read in P3
+        if (compat.PY3 and version.startswith('0.17.') and
+                legacy_packer.split('.')[-4][-1] == '2'):
+            msg = "Files packed in Py2 can't be read in Py3 ({})"
+            pytest.skip(msg.format(version))
+        try:
+            with catch_warnings(record=True):
+                self.compare(current_packers_data, all_packers_data,
+                             legacy_packer, version)
+        except ImportError:
+            # blosc not installed
+            pass

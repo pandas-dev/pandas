@@ -21,13 +21,11 @@ from pandas.util.testing import assert_series_equal, assert_frame_equal
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
-from .common import TestData
-
 try:
     import scipy
     _is_scipy_ge_0190 = (LooseVersion(scipy.__version__) >=
                          LooseVersion('0.19.0'))
-except:
+except ImportError:
     _is_scipy_ge_0190 = False
 
 
@@ -52,7 +50,7 @@ def _simple_ts(start, end, freq='D'):
     return Series(np.random.randn(len(rng)), index=rng)
 
 
-class TestSeriesMissingData(TestData):
+class TestSeriesMissingData():
 
     def test_remove_na_deprecation(self):
         # see gh-16971
@@ -489,7 +487,7 @@ class TestSeriesMissingData(TestData):
         tm.assert_series_equal(r, e)
         tm.assert_series_equal(dr, de)
 
-    def test_fillna(self):
+    def test_fillna(self, datetime_series):
         ts = Series([0., 1., 2., 3., 4.], index=tm.makeDateIndex(5))
 
         tm.assert_series_equal(ts, ts.fillna(method='ffill'))
@@ -506,7 +504,8 @@ class TestSeriesMissingData(TestData):
         tm.assert_series_equal(ts.fillna(value=5), exp)
 
         pytest.raises(ValueError, ts.fillna)
-        pytest.raises(ValueError, self.ts.fillna, value=0, method='ffill')
+        pytest.raises(ValueError, datetime_series.fillna, value=0,
+                      method='ffill')
 
         # GH 5703
         s1 = Series([np.nan])
@@ -576,9 +575,9 @@ class TestSeriesMissingData(TestData):
         expected = x.fillna(value=0)
         assert_series_equal(y, expected)
 
-    def test_fillna_invalid_method(self):
+    def test_fillna_invalid_method(self, datetime_series):
         try:
-            self.ts.fillna(method='ffil')
+            datetime_series.fillna(method='ffil')
         except ValueError as inst:
             assert 'ffil' in str(inst)
 
@@ -632,8 +631,8 @@ class TestSeriesMissingData(TestData):
 
         # def test_logical_range_select(self):
         #     np.random.seed(12345)
-        #     selector = -0.5 <= self.ts <= 0.5
-        #     expected = (self.ts >= -0.5) & (self.ts <= 0.5)
+        #     selector = -0.5 <= datetime_series <= 0.5
+        #     expected = (datetime_series >= -0.5) & (datetime_series <= 0.5)
         #     assert_series_equal(selector, expected)
 
     def test_dropna_empty(self):
@@ -688,8 +687,8 @@ class TestSeriesMissingData(TestData):
         expected = s.iloc[1:]
         assert_series_equal(result, expected)
 
-    def test_valid(self):
-        ts = self.ts.copy()
+    def test_valid(self, datetime_series):
+        ts = datetime_series.copy()
         ts[::2] = np.NaN
 
         result = ts.dropna()
@@ -734,12 +733,12 @@ class TestSeriesMissingData(TestData):
 
         pytest.raises(ValueError, rng2.get_indexer, rng, method='pad')
 
-    def test_dropna_preserve_name(self):
-        self.ts[:5] = np.nan
-        result = self.ts.dropna()
-        assert result.name == self.ts.name
-        name = self.ts.name
-        ts = self.ts.copy()
+    def test_dropna_preserve_name(self, datetime_series):
+        datetime_series[:5] = np.nan
+        result = datetime_series.dropna()
+        assert result.name == datetime_series.name
+        name = datetime_series.name
+        ts = datetime_series.copy()
         ts.dropna(inplace=True)
         assert ts.name == name
 
@@ -825,10 +824,11 @@ class TestSeriesMissingData(TestData):
         assert_series_equal(result, expected)
 
 
-class TestSeriesInterpolateData(TestData):
+class TestSeriesInterpolateData():
 
-    def test_interpolate(self):
-        ts = Series(np.arange(len(self.ts), dtype=float), self.ts.index)
+    def test_interpolate(self, datetime_series, string_series):
+        ts = Series(np.arange(len(datetime_series), dtype=float),
+                    datetime_series.index)
 
         ts_copy = ts.copy()
         ts_copy[5:10] = np.NaN
@@ -836,8 +836,8 @@ class TestSeriesInterpolateData(TestData):
         linear_interp = ts_copy.interpolate(method='linear')
         tm.assert_series_equal(linear_interp, ts)
 
-        ord_ts = Series([d.toordinal() for d in self.ts.index],
-                        index=self.ts.index).astype(float)
+        ord_ts = Series([d.toordinal() for d in datetime_series.index],
+                        index=datetime_series.index).astype(float)
 
         ord_ts_copy = ord_ts.copy()
         ord_ts_copy[5:10] = np.NaN
@@ -847,7 +847,7 @@ class TestSeriesInterpolateData(TestData):
 
         # try time interpolation on a non-TimeSeries
         # Only raises ValueError if there are NaNs.
-        non_ts = self.series.copy()
+        non_ts = string_series.copy()
         non_ts[0] = np.NaN
         pytest.raises(ValueError, non_ts.interpolate, method='time')
 
