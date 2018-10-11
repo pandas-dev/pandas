@@ -570,12 +570,14 @@ class MPLPlot(object):
             if convert_period and isinstance(index, ABCPeriodIndex):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
-            elif index.is_numeric():
+            elif (index.is_numeric() or
+                  index.inferred_type in ['string', 'unicode']):
                 """
                 Matplotlib supports numeric values or datetime objects as
                 xaxis values. Taking LBYL approach here, by the time
                 matplotlib raises exception when using non numeric/datetime
                 values for xaxis, several actions are already taken by plt.
+                Matplotlib also supports strings as xaxis values.
                 """
                 x = index._mpl_repr()
             elif is_datetype:

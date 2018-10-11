@@ -147,6 +147,28 @@ class TestDataFramePlots(TestPlotBase):
             result = ax.get_axes()  # deprecated
         assert result is axes[0]
 
+    # GH 18726
+    def test_two_plots_with_x_str(self):
+        x1, y1 = ['a', 'b'], [1, 2]
+        x2, y2 = ['b', 'a'], [4, 3]
+        df1 = pd.DataFrame(y1, index=x1)
+        df2 = pd.DataFrame(y2, index=x2)
+        ax = None
+        ax = df1.plot(ax=ax)
+        ax = df2.plot(ax=ax)
+
+        line1, line2 = ax.lines
+
+        # xdata should not be touched (Earlier it was [0, 1])
+        tm.assert_numpy_array_equal(line1.get_xdata(), np.array(x1),
+                                    check_dtype=False)
+        tm.assert_numpy_array_equal(line1.get_ydata(), np.array(y1),
+                                    check_dtype=False)
+        tm.assert_numpy_array_equal(line2.get_xdata(), np.array(x2),
+                                    check_dtype=False)
+        tm.assert_numpy_array_equal(line2.get_ydata(), np.array(y2),
+                                    check_dtype=False)
+
     # GH 15516
     def test_mpl2_color_cycle_str(self):
         # test CN mpl 2.0 color cycle
