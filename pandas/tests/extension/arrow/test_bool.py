@@ -20,6 +20,11 @@ def data():
                                        dtype=bool))
 
 
+@pytest.fixture
+def data_missing():
+    return ArrowBoolArray.from_scalars([None, True])
+
+
 class BaseArrowTests(object):
     pass
 

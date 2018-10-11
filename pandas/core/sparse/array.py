@@ -1057,7 +1057,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             arr = self
         else:
             arr = self.dropna()
-        return getattr(arr, name)()
+        return getattr(arr, name)(**kwargs)
 
     def all(self, axis=None, *args, **kwargs):
         """

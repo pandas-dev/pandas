@@ -72,7 +72,7 @@ class BaseInterfaceTests(BaseExtensionTests):
         result = pd.Series(data)
         assert result._data.blocks[0].is_numeric is data.dtype._is_numeric
 
-    def test_extension_array_na_implements_reduce(self, data_missing):
+    def test_isna_extension_array(self, data_missing):
         # If your `isna` returns an ExtensionArray, you must also implement
         # _reduce. At the *very* least, you must implement any and all
         na = data_missing.isna()
@@ -82,3 +82,5 @@ class BaseInterfaceTests(BaseExtensionTests):
 
             assert not na._reduce('all')
             assert not na.all()
+
+            assert na.dtype._is_boolean

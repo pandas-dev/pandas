@@ -67,7 +67,11 @@ class ArrowBoolArray(ExtensionArray):
         return cls.from_scalars(scalars)
 
     def __getitem__(self, item):
-        return self._data.to_pandas()[item]
+        if np.isscalar(item):
+            return self._data.to_pandas()[item]
+        else:
+            vals = self._data.to_pandas()[item]
+            return type(self).from_scalars(vals)
 
     def __len__(self):
         return len(self._data)
@@ -83,7 +87,8 @@ class ArrowBoolArray(ExtensionArray):
                    if x is not None)
 
     def isna(self):
-        return pd.isna(self._data.to_pandas())
+        nas = pd.isna(self._data.to_pandas())
+        return type(self).from_scalars(nas)
 
     def take(self, indices, allow_fill=False, fill_value=None):
         data = self._data.to_pandas()
@@ -106,3 +111,27 @@ class ArrowBoolArray(ExtensionArray):
                                                     for x in to_concat))
         arr = pa.chunked_array(chunks)
         return cls(arr)
+
+    def __invert__(self):
+        return type(self).from_scalars(
+            ~self._data.to_pandas()
+        )
+
+    def _reduce(self, method, skipna=True, **kwargs):
+        if skipna:
+            arr = self[~self.isna()]
+        else:
+            arr = self
+
+        op = getattr(arr, method)
+        return op(**kwargs)
+
+    def any(self, axis=0, out=None):
+        return self._data.to_pandas().any()
+
+    def all(self, axis=0, out=None):
+        return self._data.to_pandas().all()
+
+
+
+
