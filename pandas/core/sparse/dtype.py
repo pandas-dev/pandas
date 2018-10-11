@@ -169,7 +169,7 @@ class SparseDtype(ExtensionDtype):
             ================ ============================
             'int'            SparseDtype[np.int64, 0]
             'Sparse'         SparseDtype[np.float64, nan]
-            'Sparse[int]     SparseDtype[np.int64, 0]
+            'Sparse[int]'    SparseDtype[np.int64, 0]
             'Sparse[int, 1]' SparseDtype[np.int64, 0]
             ================ ============================
 
