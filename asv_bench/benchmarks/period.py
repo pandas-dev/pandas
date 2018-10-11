@@ -123,13 +123,17 @@ class Indexing(object):
         self.index[:750].intersection(self.index[250:])
 
     def time_unique(self):
+        # GH#23083
         self.index.unique()
 
     def time_dropna(self):
+        # GH#23095
         self.pi_with_nas.dropna()
 
     def time_difference(self):
+        # GH#23095
         self.pi_with_nas.difference(self.pi_diff)
 
     def time_symmetric_difference(self):
+        # GH#23095
         self.pi_with_nas.symmetric_difference(self.pi_diff)
