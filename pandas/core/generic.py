@@ -1171,7 +1171,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> df = pd.DataFrame({"num_legs": [4, 4, 2],
         ...                    "num_arms": [0, 0, 2]},
-        ...                    ["dog", "cat", "monkey"])
+        ...                   ["dog", "cat", "monkey"])
         >>> df
                 num_legs  num_arms
         dog            4         0
