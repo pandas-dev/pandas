@@ -588,7 +588,7 @@ def test_cross_type_arithmetic():
 
 
 @pytest.mark.parametrize('op', ['sum', 'min', 'max'])
-def test_preserve_groupby_dtypes(op):
+def test_preserve_dtypes(op):
     # TODO(#22346): preserve Int64 dtype
     # for ops that enable (mean would actually work here
     # but generally it is a float return value)
@@ -598,6 +598,11 @@ def test_preserve_groupby_dtypes(op):
         "C": integer_array([1, None, 3], dtype='Int64'),
     })
 
+    # op
+    result = getattr(df.C, op)()
+    assert isinstance(result, int)
+
+    # groupby
     result = getattr(df.groupby("A"), op)()
     expected = pd.DataFrame({
         "B": np.array([1.0, 3.0]),
