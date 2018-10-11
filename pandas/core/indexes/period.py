@@ -181,15 +181,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         if name is None and hasattr(data, 'name'):
             name = data.name
 
-        if dtype is not None:
-            dtype = pandas_dtype(dtype)
-            if not is_period_dtype(dtype):
-                raise ValueError('dtype must be PeriodDtype')
-            if freq is None:
-                freq = dtype.freq
-            elif freq != dtype.freq:
-                msg = 'specified freq and dtype are different'
-                raise IncompatibleFrequency(msg)
+        freq = dtl.validate_dtype_freq(dtype, freq)
 
         # coerce freq to freq object, otherwise it can be coerced elementwise
         # which is slow
@@ -218,7 +210,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         # not array / index
         if not isinstance(data, (np.ndarray, PeriodIndex,
                                  DatetimeIndex, Int64Index)):
-            if is_scalar(data) or isinstance(data, Period):
+            if is_scalar(data):
                 cls._scalar_data_error(data)
 
             # other iterable of some kind
@@ -248,21 +240,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         return self._engine_type(lambda: self, len(self))
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, **kwargs):
-        """
-        Values can be any type that can be coerced to Periods.
-        Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
-        """
-        if not is_integer_dtype(values):
-            values = np.array(values, copy=False)
-            if len(values) > 0 and is_float_dtype(values):
-                raise TypeError("PeriodIndex can't take floats")
-            return cls(values, name=name, freq=freq, **kwargs)
-
-        return cls._from_ordinals(values, name, freq, **kwargs)
-
-    @classmethod
-    def _from_ordinals(cls, values, name=None, freq=None, **kwargs):
+    def _from_ordinals(cls, values, freq=None, name=None):
         """
         Values should be int ordinals
         `__new__` & `_simple_new` cooerce to ordinals and call this method

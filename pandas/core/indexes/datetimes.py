@@ -294,10 +294,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         if data is None:
             # TODO: Remove this block and associated kwargs; GH#20535
-            if freq is None and com._any_none(periods, start, end):
-                raise ValueError('Must provide freq argument if no data is '
-                                 'supplied')
-            periods = dtl.validate_periods(periods)
             return cls._generate_range(start, end, periods, name, freq,
                                        tz=tz, normalize=normalize,
                                        closed=closed, ambiguous=ambiguous)
