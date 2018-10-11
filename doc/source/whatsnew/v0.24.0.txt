@@ -808,7 +808,8 @@ Numeric
 - Bug in :class:`Series` comparison against datetime-like scalars and arrays (:issue:`22074`)
 - Bug in :class:`DataFrame` multiplication between boolean dtype and integer returning ``object`` dtype instead of integer dtype (:issue:`22047`, :issue:`22163`)
 - Bug in :meth:`DataFrame.apply` where, when supplied with a string argument and additional positional or keyword arguments (e.g. ``df.apply('sum', min_count=1)``), a ``TypeError`` was wrongly raised (:issue:`22376`)
--
+- Bug in :meth:`DataFrame.astype` to extension dtype may raise ``AttributeError`` (:issue:`22578`)
+
 
 Strings
 ^^^^^^^
@@ -916,6 +917,7 @@ Reshaping
 - Bug in :func:`pandas.wide_to_long` when a string is passed to the stubnames argument and a column name is a substring of that stubname (:issue:`22468`)
 - Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
 - Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
+- Bug in :func:`pandas.concat` when concatenating a multicolumn DataFrame with tz-aware data against a DataFrame with a different number of columns (:issue`22796`)
 
 Build Changes
 ^^^^^^^^^^^^^
