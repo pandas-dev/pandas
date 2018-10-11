@@ -1208,6 +1208,7 @@ Sparse
 - Bug in ``DataFrame.groupby`` not including ``fill_value`` in the groups for non-NA ``fill_value`` when grouping by a sparse column (:issue:`5078`)
 - Bug in unary inversion operator (``~``) on a ``SparseSeries`` with boolean values. The performance of this has also been improved (:issue:`22835`)
 - Bug in :meth:`SparseArary.unique` not returning the unique values (:issue:`19595`)
+- Fixed :meth:`DataFrame.nsmallest` and :meth:`DataFrame.nlargest` for dataframes that have :class:`MultiIndex`ed columns (:issue:`23033`).
 
 Build Changes
 ^^^^^^^^^^^^^
