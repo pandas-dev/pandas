@@ -8,7 +8,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_float,
     is_integer_dtype,
-    is_float_dtype,
     is_scalar,
     is_datetime64_dtype,
     is_datetime64_any_dtype,
