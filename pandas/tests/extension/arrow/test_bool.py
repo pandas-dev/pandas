@@ -45,6 +45,10 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
 
 
 class TestReduce(base.BaseNoReduceTests):
+    def test_reduce_series_boolean(self):
+        pass
+
+class TestReduceBoolean(base.BaseBooleanReduceTests):
     pass
 
 

@@ -123,7 +123,10 @@ class ArrowBoolArray(ExtensionArray):
         else:
             arr = self
 
-        op = getattr(arr, method)
+        try:
+            op = getattr(arr, method)
+        except AttributeError:
+            raise TypeError
         return op(**kwargs)
 
     def any(self, axis=0, out=None):
