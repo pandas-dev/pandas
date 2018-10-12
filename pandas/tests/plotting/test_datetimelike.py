@@ -1405,7 +1405,6 @@ class TestTSPlot(TestPlotBase):
         fig.canvas.draw()
         labels = ax.get_xticklabels()
 
-        assert len(labels) == len(expected_labels)
         assert [x.get_text() for x in labels] == expected_labels
 
     def test_format_timedelta_ticks_wide(self):
@@ -1438,7 +1437,6 @@ class TestTSPlot(TestPlotBase):
         fig.canvas.draw()
         labels = ax.get_xticklabels()
 
-        assert len(labels) == len(expected_labels)
         assert [x.get_text() for x in labels] == expected_labels
 
     def test_timedelta_plot(self):
