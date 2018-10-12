@@ -73,7 +73,8 @@ class RangeIndex(Int64Index):
 
         if fastpath is not None:
             warnings.warn("The 'fastpath' keyword is deprecated, and will be "
-                          "removed in a future version.", FutureWarning)
+                          "removed in a future version.",
+                          FutureWarning, stacklevel=2)
             if fastpath:
                 return cls._simple_new(start, stop, step, name=name)
 
