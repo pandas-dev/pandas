@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_datetime64_ns_dtype,
     is_period_dtype,
-    is_bool_dtype,
     is_string_like,
     is_list_like,
     is_scalar,
@@ -34,11 +33,12 @@ from pandas.core.arrays.datetimes import DatetimeArrayMixin, _to_m8
 from pandas.core.arrays import datetimelike as dtl
 
 from pandas.core.indexes.base import Index, _index_shared_docs
-from pandas.core.indexes.numeric import Int64Index, Float64Index
+from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
-from pandas.tseries.frequencies import to_offset, get_period_alias, Resolution
+from pandas.tseries.frequencies import to_offset, Resolution
 from pandas.core.indexes.datetimelike import (
-    DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
+    DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
+    wrap_field_accessor, wrap_array_method)
 from pandas.tseries.offsets import (
     generate_range, CDay, prefix_mapping)
 
@@ -52,49 +52,6 @@ from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
                                  ccalendar)
-
-# -------- some conversion wrapper functions
-
-
-def _wrap_field_accessor(name):
-    fget = getattr(DatetimeArrayMixin, name).fget
-
-    def f(self):
-        result = fget(self)
-        if is_bool_dtype(result):
-            return result
-        return Index(result, name=self.name)
-
-    f.__name__ = name
-    f.__doc__ = fget.__doc__
-    return property(f)
-
-
-def _wrap_in_index(name):
-    meth = getattr(DatetimeArrayMixin, name)
-
-    def func(self, *args, **kwargs):
-        result = meth(self, *args, **kwargs)
-        return Index(result, name=self.name)
-
-    func.__doc__ = meth.__doc__
-    func.__name__ = name
-    return func
-
-
-def _dt_index_cmp(cls, op):
-    """
-    Wrap comparison operations to convert datetime-like to datetime64
-    """
-    opname = '__{name}__'.format(name=op.__name__)
-
-    def wrapper(self, other):
-        result = getattr(DatetimeArrayMixin, opname)(self, other)
-        if is_bool_dtype(result):
-            return result
-        return Index(result)
-
-    return compat.set_function_name(wrapper, opname, cls)
 
 
 def _new_DatetimeIndex(cls, d):
@@ -233,16 +190,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     _left_indexer_unique = _join_i8_wrapper(
         libjoin.left_join_indexer_unique_int64, with_indexers=False)
 
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-        cls.__eq__ = _dt_index_cmp(cls, operator.eq)
-        cls.__ne__ = _dt_index_cmp(cls, operator.ne)
-        cls.__lt__ = _dt_index_cmp(cls, operator.lt)
-        cls.__gt__ = _dt_index_cmp(cls, operator.gt)
-        cls.__le__ = _dt_index_cmp(cls, operator.le)
-        cls.__ge__ = _dt_index_cmp(cls, operator.ge)
-
     _engine_type = libindex.DatetimeEngine
 
     tz = None
@@ -302,7 +249,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                                        tz=tz, normalize=normalize,
                                        closed=closed, ambiguous=ambiguous)
 
-        if not isinstance(data, (np.ndarray, Index, ABCSeries)):
+        if not isinstance(data, (np.ndarray, Index, ABCSeries,
+                                 DatetimeArrayMixin)):
             if is_scalar(data):
                 raise ValueError('DatetimeIndex() must be called with a '
                                  'collection of some kind, %s was passed'
@@ -673,67 +621,12 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         return Series(values, index=index, name=name)
 
+    @Appender(DatetimeArrayMixin.to_period.__doc__)
     def to_period(self, freq=None):
-        """
-        Cast to PeriodIndex at a particular frequency.
-
-        Converts DatetimeIndex to PeriodIndex.
-
-        Parameters
-        ----------
-        freq : string or Offset, optional
-            One of pandas' :ref:`offset strings <timeseries.offset_aliases>`
-            or an Offset object. Will be inferred by default.
-
-        Returns
-        -------
-        PeriodIndex
-
-        Raises
-        ------
-        ValueError
-            When converting a DatetimeIndex with non-regular values, so that a
-            frequency cannot be inferred.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({"y": [1,2,3]},
-        ...                   index=pd.to_datetime(["2000-03-31 00:00:00",
-        ...                                         "2000-05-31 00:00:00",
-        ...                                         "2000-08-31 00:00:00"]))
-        >>> df.index.to_period("M")
-        PeriodIndex(['2000-03', '2000-05', '2000-08'],
-                    dtype='period[M]', freq='M')
-
-        Infer the daily frequency
-
-        >>> idx = pd.date_range("2017-01-01", periods=2)
-        >>> idx.to_period()
-        PeriodIndex(['2017-01-01', '2017-01-02'],
-                    dtype='period[D]', freq='D')
-
-        See also
-        --------
-        pandas.PeriodIndex: Immutable ndarray holding ordinal values
-        pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
-        """
         from pandas.core.indexes.period import PeriodIndex
 
-        if self.tz is not None:
-            warnings.warn("Converting to PeriodIndex representation will "
-                          "drop timezone information.", UserWarning)
-
-        if freq is None:
-            freq = self.freqstr or self.inferred_freq
-
-            if freq is None:
-                msg = ("You must pass a freq argument as "
-                       "current index has none.")
-                raise ValueError(msg)
-
-            freq = get_period_alias(freq)
-
-        return PeriodIndex(self.values, name=self.name, freq=freq)
+        result = DatetimeArrayMixin.to_period(self, freq=freq)
+        return PeriodIndex(result, name=self.name)
 
     def snap(self, freq='S'):
         """
@@ -758,6 +651,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         # we know it conforms; skip check
         return DatetimeIndex(snapped, freq=freq, verify_integrity=False)
+        # TODO: what about self.name?  if so, use shallow_copy?
 
     def unique(self, level=None):
         # Override here since IndexOpsMixin.unique uses self._values.unique
@@ -769,8 +663,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         else:
             naive = self
         result = super(DatetimeIndex, naive).unique(level=level)
-        return self._simple_new(result.values, name=self.name, tz=self.tz,
-                                freq=self.freq)
+        return self._shallow_copy(result.values)
 
     def union(self, other):
         """
@@ -1327,38 +1220,38 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             else:
                 raise
 
-    year = _wrap_field_accessor('year')
-    month = _wrap_field_accessor('month')
-    day = _wrap_field_accessor('day')
-    hour = _wrap_field_accessor('hour')
-    minute = _wrap_field_accessor('minute')
-    second = _wrap_field_accessor('second')
-    microsecond = _wrap_field_accessor('microsecond')
-    nanosecond = _wrap_field_accessor('nanosecond')
-    weekofyear = _wrap_field_accessor('weekofyear')
+    year = wrap_field_accessor(DatetimeArrayMixin.year)
+    month = wrap_field_accessor(DatetimeArrayMixin.month)
+    day = wrap_field_accessor(DatetimeArrayMixin.day)
+    hour = wrap_field_accessor(DatetimeArrayMixin.hour)
+    minute = wrap_field_accessor(DatetimeArrayMixin.minute)
+    second = wrap_field_accessor(DatetimeArrayMixin.second)
+    microsecond = wrap_field_accessor(DatetimeArrayMixin.microsecond)
+    nanosecond = wrap_field_accessor(DatetimeArrayMixin.nanosecond)
+    weekofyear = wrap_field_accessor(DatetimeArrayMixin.weekofyear)
     week = weekofyear
-    dayofweek = _wrap_field_accessor('dayofweek')
+    dayofweek = wrap_field_accessor(DatetimeArrayMixin.dayofweek)
     weekday = dayofweek
 
-    weekday_name = _wrap_field_accessor('weekday_name')
+    weekday_name = wrap_field_accessor(DatetimeArrayMixin.weekday_name)
 
-    dayofyear = _wrap_field_accessor('dayofyear')
-    quarter = _wrap_field_accessor('quarter')
-    days_in_month = _wrap_field_accessor('days_in_month')
+    dayofyear = wrap_field_accessor(DatetimeArrayMixin.dayofyear)
+    quarter = wrap_field_accessor(DatetimeArrayMixin.quarter)
+    days_in_month = wrap_field_accessor(DatetimeArrayMixin.days_in_month)
     daysinmonth = days_in_month
-    is_month_start = _wrap_field_accessor('is_month_start')
-    is_month_end = _wrap_field_accessor('is_month_end')
-    is_quarter_start = _wrap_field_accessor('is_quarter_start')
-    is_quarter_end = _wrap_field_accessor('is_quarter_end')
-    is_year_start = _wrap_field_accessor('is_year_start')
-    is_year_end = _wrap_field_accessor('is_year_end')
-    is_leap_year = _wrap_field_accessor('is_leap_year')
+    is_month_start = wrap_field_accessor(DatetimeArrayMixin.is_month_start)
+    is_month_end = wrap_field_accessor(DatetimeArrayMixin.is_month_end)
+    is_quarter_start = wrap_field_accessor(DatetimeArrayMixin.is_quarter_start)
+    is_quarter_end = wrap_field_accessor(DatetimeArrayMixin.is_quarter_end)
+    is_year_start = wrap_field_accessor(DatetimeArrayMixin.is_year_start)
+    is_year_end = wrap_field_accessor(DatetimeArrayMixin.is_year_end)
+    is_leap_year = wrap_field_accessor(DatetimeArrayMixin.is_leap_year)
 
-    @Appender(DatetimeArrayMixin.normalize.__doc__)
-    def normalize(self):
-        result = DatetimeArrayMixin.normalize(self)
-        result.name = self.name
-        return result
+    normalize = wrap_array_method(DatetimeArrayMixin.normalize, True)
+    to_julian_date = wrap_array_method(DatetimeArrayMixin.to_julian_date,
+                                       False)
+    month_name = wrap_array_method(DatetimeArrayMixin.month_name, True)
+    day_name = wrap_array_method(DatetimeArrayMixin.day_name, True)
 
     @Substitution(klass='DatetimeIndex')
     @Appender(_shared_docs['searchsorted'])
@@ -1421,8 +1314,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         try:
             new_dates = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
                                         self[loc:].asi8))
-            return DatetimeIndex(new_dates, name=self.name, freq=freq,
-                                 tz=self.tz)
+            return self._shallow_copy(new_dates, freq=freq)
         except (AttributeError, TypeError):
 
             # fall back to object index
@@ -1458,7 +1350,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 if (loc.start in (0, None) or loc.stop in (len(self), None)):
                     freq = self.freq
 
-        return DatetimeIndex(new_dates, name=self.name, freq=freq, tz=self.tz)
+        return self._shallow_copy(new_dates, freq=freq)
 
     def indexer_at_time(self, time, asof=False):
         """
@@ -1547,20 +1439,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         return mask.nonzero()[0]
 
-    def to_julian_date(self):
-        """
-        Convert DatetimeIndex to Float64Index of Julian Dates.
-        0 Julian date is noon January 1, 4713 BC.
-        http://en.wikipedia.org/wiki/Julian_day
-        """
-        result = DatetimeArrayMixin.to_julian_date(self)
-        return Float64Index(result)
 
-    month_name = _wrap_in_index("month_name")
-    day_name = _wrap_in_index("day_name")
-
-
-DatetimeIndex._add_comparison_methods()
+DatetimeIndex._add_comparison_ops()
 DatetimeIndex._add_numeric_methods_disabled()
 DatetimeIndex._add_logical_methods_disabled()
 DatetimeIndex._add_datetimelike_methods()

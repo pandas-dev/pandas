@@ -163,18 +163,20 @@ def read_pickle(path, compression='infer'):
                 # We want to silence any warnings about, e.g. moved modules.
                 warnings.simplefilter("ignore", Warning)
                 return read_wrapper(lambda f: pkl.load(f))
-        except Exception:
+        except Exception:  # noqa: E722
             # reg/patched pickle
+            # compat not used in pandas/compat/pickle_compat.py::load
+            # TODO: remove except block OR modify pc.load to use compat
             try:
                 return read_wrapper(
                     lambda f: pc.load(f, encoding=encoding, compat=False))
             # compat pickle
-            except:
+            except Exception:  # noqa: E722
                 return read_wrapper(
                     lambda f: pc.load(f, encoding=encoding, compat=True))
     try:
         return try_read(path)
-    except:
+    except Exception:  # noqa: E722
         if PY3:
             return try_read(path, encoding='latin1')
         raise

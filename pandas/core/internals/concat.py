@@ -184,8 +184,12 @@ class JoinUnit(object):
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if getattr(self.block, 'is_datetimetz', False) or \
-                        is_datetimetz(empty_dtype):
+                if (getattr(self.block, 'is_datetimetz', False) or
+                        is_datetimetz(empty_dtype)):
+                    if self.block is None:
+                        array = empty_dtype.construct_array_type()
+                        missing_arr = array([fill_value], dtype=empty_dtype)
+                        return missing_arr.repeat(self.shape[1])
                     pass
                 elif getattr(self.block, 'is_categorical', False):
                     pass

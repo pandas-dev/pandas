@@ -48,7 +48,7 @@ Pandas has gained the ability to hold integer dtypes with missing values. This l
 Here is an example of the usage.
 
 We can construct a ``Series`` with the specified dtype. The dtype string ``Int64`` is a pandas ``ExtensionDtype``. Specifying a list or array using the traditional missing value
-marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`, :issue:`22441`)
+marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`, :issue:`22441`, :issue:`21789`, :issue:`22346`)
 
 .. ipython:: python
 
@@ -90,6 +90,13 @@ These dtypes can be merged & reshaped & casted.
 
    pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
    df['A'].astype(float)
+
+Reduction and groupby operations such as 'sum' work.
+
+.. ipython:: python
+
+   df.sum()
+   df.groupby('B').A.sum()
 
 .. warning::
 
@@ -373,6 +380,22 @@ is the case with :attr:`Period.end_time`, for example
 
    p.end_time
 
+.. _whatsnew_0240.api_breaking.frame_to_dict_index_orient:
+
+Raise ValueError in ``DataFrame.to_dict(orient='index')``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with 
+``orient='index'`` and a non-unique index instead of losing data (:issue:`22801`)
+
+.. ipython:: python
+    :okexcept:
+
+    df = pd.DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
+    df
+    
+    df.to_dict(orient='index')
+
 .. _whatsnew_0240.api.datetimelike.normalize:
 
 Tick DateOffset Normalize Restrictions
@@ -488,10 +511,52 @@ Previous Behavior:
     0 NaT
 
 
+.. _whatsnew_0240.api.dataframe_arithmetic_broadcasting:
+
+DataFrame Arithmetic Operations Broadcasting Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:class:`DataFrame` arithmetic operations when operating with 2-dimensional
+``np.ndarray`` objects now broadcast in the same way as ``np.ndarray``s
+broadcast.  (:issue:`23000`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [3]: arr = np.arange(6).reshape(3, 2)
+   In [4]: df = pd.DataFrame(arr)
+   In [5]: df + arr[[0], :]   # 1 row, 2 columns
+   ...
+   ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (1, 2)
+   In [6]: df + arr[:, [1]]   # 1 column, 3 rows
+   ...
+   ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (3, 1)
+
+*Current Behavior*:
+
+.. ipython:: python
+   arr = np.arange(6).reshape(3, 2)
+   df = pd.DataFrame(arr)
+   df
+
+.. ipython:: python
+   df + arr[[0], :]   # 1 row, 2 columns
+   df + arr[:, [1]]   # 1 column, 3 rows
+
+
 .. _whatsnew_0240.api.extension:
 
 ExtensionType Changes
 ^^^^^^^^^^^^^^^^^^^^^
+
+**:class:`pandas.api.extensions.ExtensionDtype` Equality and Hashability**
+
+Pandas now requires that extension dtypes be hashable. The base class implements
+a default ``__eq__`` and ``__hash__``. If you have a parametrized dtype, you should
+update the ``ExtensionDtype._metadata`` tuple to match the signature of your
+``__init__`` method. See :class:`pandas.api.extensions.ExtensionDtype` for more (:issue:`22476`).
+
+**Other changes**
 
 - ``ExtensionArray`` has gained the abstract methods ``.dropna()`` (:issue:`21185`)
 - ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
@@ -506,7 +571,9 @@ ExtensionType Changes
 - :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
 - Slicing a single row of a ``DataFrame`` with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - Added :meth:`pandas.api.types.register_extension_dtype` to register an extension type with pandas (:issue:`22664`)
+- Series backed by an ``ExtensionArray`` now work with :func:`util.hash_pandas_object` (:issue:`23066`)
 - Updated the ``.type`` attribute for ``PeriodDtype``, ``DatetimeTZDtype``, and ``IntervalDtype`` to be instances of the dtype (``Period``, ``Timestamp``, and ``Interval`` respectively) (:issue:`22938`)
+- Support for reduction operations such as ``sum``, ``mean`` via opt-in base class method override (:issue:`22762`)
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -604,7 +671,7 @@ Deprecations
 - :meth:`Series.str.cat` has deprecated using arbitrary list-likes *within* list-likes. A list-like container may still contain
   many ``Series``, ``Index`` or 1-dimensional ``np.ndarray``, or alternatively, only scalar values. (:issue:`21950`)
 - :meth:`FrozenNDArray.searchsorted` has deprecated the ``v`` parameter in favor of ``value`` (:issue:`14645`)
-- :func:`DatetimeIndex.shift` now accepts ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`)
+- :func:`DatetimeIndex.shift` and :func:`PeriodIndex.shift` now accept ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`, :issue:`22912`)
 
 .. _whatsnew_0240.prior_deprecations:
 
@@ -642,6 +709,7 @@ Performance Improvements
   (:issue:`21372`)
 - Improved the performance of :func:`pandas.get_dummies` with ``sparse=True`` (:issue:`21997`)
 - Improved performance of :func:`IndexEngine.get_indexer_non_unique` for sorted, non-unique indexes (:issue:`9466`)
+- Improved performance of :func:`PeriodIndex.unique` (:issue:`23083`)
 
 
 .. _whatsnew_0240.docs:
@@ -742,7 +810,8 @@ Numeric
 - Bug in :class:`Series` comparison against datetime-like scalars and arrays (:issue:`22074`)
 - Bug in :class:`DataFrame` multiplication between boolean dtype and integer returning ``object`` dtype instead of integer dtype (:issue:`22047`, :issue:`22163`)
 - Bug in :meth:`DataFrame.apply` where, when supplied with a string argument and additional positional or keyword arguments (e.g. ``df.apply('sum', min_count=1)``), a ``TypeError`` was wrongly raised (:issue:`22376`)
--
+- Bug in :meth:`DataFrame.astype` to extension dtype may raise ``AttributeError`` (:issue:`22578`)
+
 
 Strings
 ^^^^^^^
@@ -757,7 +826,7 @@ Interval
 - Bug in the :class:`IntervalIndex` constructor where the ``closed`` parameter did not always override the inferred ``closed`` (:issue:`19370`)
 - Bug in the ``IntervalIndex`` repr where a trailing comma was missing after the list of intervals (:issue:`20611`)
 - Bug in :class:`Interval` where scalar arithmetic operations did not retain the ``closed`` value (:issue:`22313`)
--
+- Bug in :class:`IntervalIndex` where indexing with datetime-like values raised a ``KeyError`` (:issue:`20636`)
 
 Indexing
 ^^^^^^^^
@@ -850,6 +919,7 @@ Reshaping
 - Bug in :func:`pandas.wide_to_long` when a string is passed to the stubnames argument and a column name is a substring of that stubname (:issue:`22468`)
 - Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
 - Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
+- Bug in :func:`pandas.concat` when concatenating a multicolumn DataFrame with tz-aware data against a DataFrame with a different number of columns (:issue`22796`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -867,3 +937,4 @@ Other
 - :meth:`DataFrame.nlargest` and :meth:`DataFrame.nsmallest` now returns the correct n values when keep != 'all' also when tied on the first columns (:issue:`22752`)
 - :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax`` (:issue:`21548` and :issue:`21526`). ``NaN`` values are also handled properly.
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
+- Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)

@@ -63,6 +63,10 @@ class ExtensionArray(object):
     as they only compose abstract methods. Still, a more efficient
     implementation may be available, and these methods can be overridden.
 
+    One can implement methods to handle array reductions.
+
+    * _reduce
+
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
@@ -466,6 +470,11 @@ class ExtensionArray(object):
             as NA in the factorization routines, so it will be coded as
             `na_sentinal` and not included in `uniques`. By default,
             ``np.nan`` is used.
+
+        Notes
+        -----
+        The values returned by this method are also used in
+        :func:`pandas.util.hash_pandas_object`.
         """
         return self.astype(object), np.nan
 
@@ -670,6 +679,33 @@ class ExtensionArray(object):
         """
         return np.array(self)
 
+    def _reduce(self, name, skipna=True, **kwargs):
+        """
+        Return a scalar result of performing the reduction operation.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            { any, all, min, max, sum, mean, median, prod,
+            std, var, sem, kurt, skew }.
+        skipna : bool, default True
+            If True, skip NaN values.
+        **kwargs
+            Additional keyword arguments passed to the reduction function.
+            Currently, `ddof` is the only supported kwarg.
+
+        Returns
+        -------
+        scalar
+
+        Raises
+        ------
+        TypeError : subclass does not define reductions
+        """
+        raise TypeError("cannot perform {name} with type {dtype}".format(
+            name=name, dtype=self.dtype))
+
 
 class ExtensionOpsMixin(object):
     """
@@ -781,17 +817,24 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
             # a TypeError should be raised
             res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
 
-            if coerce_to_dtype:
-                try:
-                    res = self._from_sequence(res)
-                except Exception:
+            def _maybe_convert(arr):
+                if coerce_to_dtype:
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    res = np.asarray(res)
-            else:
-                res = np.asarray(res)
+                    try:
+                        res = self._from_sequence(arr)
+                    except Exception:
+                        res = np.asarray(arr)
+                else:
+                    res = np.asarray(arr)
+                return res
 
+            if op.__name__ in {'divmod', 'rdivmod'}:
+                a, b = zip(*res)
+                res = _maybe_convert(a), _maybe_convert(b)
+            else:
+                res = _maybe_convert(res)
             return res
 
         op_name = ops._get_op_name(op, True)
