@@ -315,7 +315,9 @@ class TestDatetimeIndexTimezones(object):
             with tm.assert_produces_warning(FutureWarning):
                 index.tz_localize(tz=tz, errors='raise')
 
-        with tm.assert_produces_warning(FutureWarning, clear=FutureWarning):
+        with tm.assert_produces_warning(FutureWarning,
+                                        clear=FutureWarning,
+                                        check_stacklevel=False):
             result = index.tz_localize(tz=tz, errors='coerce')
         test_times = ['2015-03-08 01:00-05:00', 'NaT',
                       '2015-03-08 03:00-04:00']
@@ -600,7 +602,7 @@ class TestDatetimeIndexTimezones(object):
         tz = 'Europe/Warsaw'
         n = 60
         dti = date_range(start='2015-03-29 02:00:00', periods=n, freq='min')
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             with pytest.raises(ValueError):
                 dti.tz_localize(tz, errors='foo')
             # make sure errors='coerce' gets mapped correctly to nonexistent

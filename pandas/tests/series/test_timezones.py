@@ -40,7 +40,7 @@ class TestSeriesTimezones(object):
         n = 60
         rng = date_range(start='2015-03-29 02:00:00', periods=n, freq='min')
         ts = Series(rng)
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             with pytest.raises(ValueError):
                 ts.dt.tz_localize(tz, errors='foo')
             # make sure errors='coerce' gets mapped correctly to nonexistent
