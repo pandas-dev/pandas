@@ -7,7 +7,7 @@ dependencies:
   - cython>=0.28.2
   - html5lib
   - lxml
-  - matplotlib
+  - matplotlib=2.2.0
   - numexpr
   - numpy
   - openpyxl=2.5.5
