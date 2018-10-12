@@ -274,8 +274,8 @@ def match(to_match, values, na_sentinel=-1):
         # replace but return a numpy array
         # use a Series because it handles dtype conversions properly
         from pandas import Series
-        result = Series(result.ravel()).replace(-1, na_sentinel).values.\
-            reshape(result.shape)
+        result = Series(result.ravel()).replace(-1, na_sentinel)
+        result = result.values.reshape(result.shape)
 
     return result
 

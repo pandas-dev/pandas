@@ -20,7 +20,9 @@ from pandas.core.dtypes.common import (
 from pandas.tseries.frequencies import get_freq_code as _gfc
 
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
-from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
+from pandas.core.indexes.datetimelike import (
+    DatelikeOps, DatetimeIndexOpsMixin,
+    wrap_array_method, wrap_field_accessor)
 from pandas.core.tools.datetimes import parse_time_string
 
 from pandas._libs.lib import infer_dtype
@@ -29,6 +31,7 @@ from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
                                         DIFFERENT_FREQ_INDEX)
 from pandas._libs.tslibs import resolution, period
 
+from pandas.core.algorithms import unique1d
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.period import PeriodArrayMixin, dt64arr_to_periodarr
 from pandas.core.base import _shared_docs
@@ -41,19 +44,6 @@ import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(target_klass='PeriodIndex or list of Periods'))
-
-
-def _wrap_field_accessor(name):
-    fget = getattr(PeriodArrayMixin, name).fget
-
-    def f(self):
-        result = fget(self)
-        return Index(result, name=self.name)
-
-    f.__name__ = name
-    f.__doc__ = fget.__doc__
-    return property(f)
-
 
 # --- Period index sketch
 
@@ -430,21 +420,23 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         values = self.asi8
         return ((values[1:] - values[:-1]) < 2).all()
 
-    year = _wrap_field_accessor('year')
-    month = _wrap_field_accessor('month')
-    day = _wrap_field_accessor('day')
-    hour = _wrap_field_accessor('hour')
-    minute = _wrap_field_accessor('minute')
-    second = _wrap_field_accessor('second')
-    weekofyear = _wrap_field_accessor('week')
+    year = wrap_field_accessor(PeriodArrayMixin.year)
+    month = wrap_field_accessor(PeriodArrayMixin.month)
+    day = wrap_field_accessor(PeriodArrayMixin.day)
+    hour = wrap_field_accessor(PeriodArrayMixin.hour)
+    minute = wrap_field_accessor(PeriodArrayMixin.minute)
+    second = wrap_field_accessor(PeriodArrayMixin.second)
+    weekofyear = wrap_field_accessor(PeriodArrayMixin.week)
     week = weekofyear
-    dayofweek = _wrap_field_accessor('dayofweek')
+    dayofweek = wrap_field_accessor(PeriodArrayMixin.dayofweek)
     weekday = dayofweek
-    dayofyear = day_of_year = _wrap_field_accessor('dayofyear')
-    quarter = _wrap_field_accessor('quarter')
-    qyear = _wrap_field_accessor('qyear')
-    days_in_month = _wrap_field_accessor('days_in_month')
+    dayofyear = day_of_year = wrap_field_accessor(PeriodArrayMixin.dayofyear)
+    quarter = wrap_field_accessor(PeriodArrayMixin.quarter)
+    qyear = wrap_field_accessor(PeriodArrayMixin.qyear)
+    days_in_month = wrap_field_accessor(PeriodArrayMixin.days_in_month)
     daysinmonth = days_in_month
+
+    to_timestamp = wrap_array_method(PeriodArrayMixin.to_timestamp, True)
 
     @property
     @Appender(PeriodArrayMixin.start_time.__doc__)
@@ -459,11 +451,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return self.astype(object).values
-
-    @Appender(PeriodArrayMixin.to_timestamp.__doc__)
-    def to_timestamp(self, freq=None, how='start'):
-        result = PeriodArrayMixin.to_timestamp(self, freq=freq, how=how)
-        return DatetimeIndex(result, name=self.name)
 
     @property
     def inferred_type(self):
@@ -538,6 +525,18 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         if dropna:
             res = res.dropna()
         return res
+
+    @Appender(Index.unique.__doc__)
+    def unique(self, level=None):
+        # override the Index.unique method for performance GH#23083
+        if level is not None:
+            # this should never occur, but is retained to make the signature
+            # match Index.unique
+            self._validate_index_level(level)
+
+        values = self._ndarray_values
+        result = unique1d(values)
+        return self._shallow_copy(result)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
