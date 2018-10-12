@@ -39,13 +39,11 @@ jobs:
     displayName: 'Installing cpplint'
     condition: true
 
-  # TODO update the script so flake8 uses:
-  # --format="##vso[task.logissue type=error;sourcepath=%(path)s;linenumber=%(row)s;columnnumber=%(col)s;code=%(code)s;]%(text)s"
-  - script: ci/code_checks.sh lint
+  - script: AZURE=true ci/code_checks.sh lint
     displayName: 'Linting'
     condition: true
 
-  - script: ci/code_checks.sh patterns
+  - script: AZURE=true ci/code_checks.sh patterns
     displayName: 'Looking for unwanted patterns'
     condition: true
 
