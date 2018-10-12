@@ -1403,7 +1403,6 @@ class TestTSPlot(TestPlotBase):
 
     def test_format_timedelta_ticks_wide(self):
         expected_labels = [
-            '',
             '00:00:00',
             '1 days 03:46:40',
             '2 days 07:33:20',
@@ -1412,13 +1411,9 @@ class TestTSPlot(TestPlotBase):
             '5 days 18:53:20',
             '6 days 22:40:00',
             '8 days 02:26:40',
-            '9 days 06:13:20',
-            ''
+            '9 days 06:13:20'
         ]
-        if self.mpl_ge_2_2_2:
-            expected_labels = expected_labels[1:-1]
-        elif self.mpl_ge_2_0_1:
-            expected_labels = expected_labels[1:-1]
+        if not self.mpl_ge_2_0_1:  # 2.0.0
             expected_labels[-1] = ''
 
         rng = timedelta_range('0', periods=10, freq='1 d')
