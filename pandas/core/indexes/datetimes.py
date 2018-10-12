@@ -42,7 +42,6 @@ from pandas.core.indexes.datetimelike import (
 from pandas.tseries.offsets import (
     generate_range, CDay, prefix_mapping)
 
-from pandas.core.tools.timedeltas import to_timedelta
 from pandas.util._decorators import Appender, cache_readonly, Substitution
 import pandas.core.common as com
 import pandas.tseries.offsets as offsets
