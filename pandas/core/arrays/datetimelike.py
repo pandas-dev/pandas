@@ -777,7 +777,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return result
 
 
-DatetimeLikeArrayMixin._add_comparison_methods()
+DatetimeLikeArrayMixin._add_comparison_ops()
 
 
 # -------------------------------------------------------------------

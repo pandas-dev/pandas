@@ -666,7 +666,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         return TimedeltaIndex(new_tds, name=self.name, freq=freq)
 
 
-TimedeltaIndex._add_comparison_methods()
+TimedeltaIndex._add_comparison_ops()
 TimedeltaIndex._add_numeric_methods()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
