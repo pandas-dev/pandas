@@ -131,15 +131,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
-        if values is None:
-            # TODO: Remove this block and associated kwargs; GH#20535
-            if freq is None and com._any_none(periods, start, end):
-                raise ValueError('Must provide freq argument if no data is '
-                                 'supplied')
-            periods = dtl.validate_periods(periods)
-            return cls._generate_range(start, end, periods, freq,
-                                       closed=closed)
-
         result = cls._simple_new(values, freq=freq)
         if freq_infer:
             inferred = result.inferred_freq
@@ -151,6 +142,12 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     @classmethod
     def _generate_range(cls, start, end, periods, freq, closed=None, **kwargs):
         # **kwargs are for compat with TimedeltaIndex, which includes `name`
+
+        periods = dtl.validate_periods(periods)
+        if freq is None and any(x is None for x in [periods, start, end]):
+            raise ValueError('Must provide freq argument if no data is '
+                             'supplied')
+
         if com.count_not_none(start, end, periods, freq) != 3:
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')

@@ -27,6 +27,7 @@ import pandas.core.common as com
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
 
+from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 
 
@@ -132,7 +133,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
             # TODO: what if it has tz?
             values = dt64arr_to_periodarr(values, freq)
 
-        return cls._simple_new(values, freq, **kwargs)
+        return cls._simple_new(values, freq=freq, **kwargs)
 
     @classmethod
     def _simple_new(cls, values, freq=None, **kwargs):
@@ -141,21 +142,27 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
         """
 
+        if is_period_dtype(values):
+            freq = dtl.validate_dtype_freq(values.dtype, freq)
+            values = values.asi8
+
         if not is_integer_dtype(values):
             values = np.array(values, copy=False)
             if len(values) > 0 and is_float_dtype(values):
                 raise TypeError("{cls} can't take floats"
                                 .format(cls=cls.__name__))
-            return cls(values, freq=freq)
+            return cls(values, freq=freq, **kwargs)
 
-        return cls._from_ordinals(values, freq)
+        return cls._from_ordinals(values, freq=freq, **kwargs)
 
     @classmethod
-    def _from_ordinals(cls, values, freq=None):
+    def _from_ordinals(cls, values, freq=None, **kwargs):
         """
         Values should be int ordinals
         `__new__` & `_simple_new` cooerce to ordinals and call this method
         """
+        # **kwargs are included so that the signature matches PeriodIndex,
+        #  letting us share _simple_new
 
         values = np.array(values, dtype='int64', copy=False)
 

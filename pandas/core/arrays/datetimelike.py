@@ -18,6 +18,7 @@ from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
 
 from pandas.core.dtypes.common import (
+    pandas_dtype,
     needs_i8_conversion,
     is_list_like,
     is_offsetlike,
@@ -901,3 +902,34 @@ def validate_tz_from_dtype(dtype, tz):
         except TypeError:
             pass
     return tz
+
+
+def validate_dtype_freq(dtype, freq):
+    """
+    If both a dtype and a freq are available, ensure they match.  If only
+    dtype is available, extract the implied freq.
+
+    Parameters
+    ----------
+    dtype : dtype
+    freq : DateOffset or None
+
+    Returns
+    -------
+    freq : DateOffset
+
+    Raises
+    ------
+    ValueError : non-period dtype
+    IncompatibleFrequency : mismatch between dtype and freq
+    """
+    if dtype is not None:
+        dtype = pandas_dtype(dtype)
+        if not is_period_dtype(dtype):
+            raise ValueError('dtype must be PeriodDtype')
+        if freq is None:
+            freq = dtype.freq
+        elif freq != dtype.freq:
+            raise IncompatibleFrequency('specified freq and dtype '
+                                        'are different')
+    return freq

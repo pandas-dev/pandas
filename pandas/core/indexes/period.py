@@ -8,7 +8,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_float,
     is_integer_dtype,
-    is_float_dtype,
     is_scalar,
     is_datetime64_dtype,
     is_datetime64_any_dtype,
@@ -171,15 +170,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         if name is None and hasattr(data, 'name'):
             name = data.name
 
-        if dtype is not None:
-            dtype = pandas_dtype(dtype)
-            if not is_period_dtype(dtype):
-                raise ValueError('dtype must be PeriodDtype')
-            if freq is None:
-                freq = dtype.freq
-            elif freq != dtype.freq:
-                msg = 'specified freq and dtype are different'
-                raise IncompatibleFrequency(msg)
+        freq = dtl.validate_dtype_freq(dtype, freq)
 
         # coerce freq to freq object, otherwise it can be coerced elementwise
         # which is slow
@@ -192,7 +183,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             else:
                 data, freq = cls._generate_range(start, end, periods,
                                                  freq, fields)
-            return cls._from_ordinals(data, name=name, freq=freq)
+            return cls._simple_new(data, name=name, freq=freq)
 
         if isinstance(data, PeriodIndex):
             if freq is None or freq == data.freq:  # no freq change
@@ -208,7 +199,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         # not array / index
         if not isinstance(data, (np.ndarray, PeriodIndex,
                                  DatetimeIndex, Int64Index)):
-            if is_scalar(data) or isinstance(data, Period):
+            if is_scalar(data):
                 cls._scalar_data_error(data)
 
             # other iterable of some kind
@@ -220,7 +211,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         # datetime other than period
         if is_datetime64_dtype(data.dtype):
             data = dt64arr_to_periodarr(data, freq, tz)
-            return cls._from_ordinals(data, name=name, freq=freq)
+            return cls._simple_new(data, name=name, freq=freq)
 
         # check not floats
         if infer_dtype(data) == 'floating' and len(data) > 0:
@@ -231,33 +222,15 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         data = ensure_object(data)
         freq = freq or period.extract_freq(data)
         data = period.extract_ordinals(data, freq)
-        return cls._from_ordinals(data, name=name, freq=freq)
+        return cls._simple_new(data, name=name, freq=freq)
 
     @cache_readonly
     def _engine(self):
         return self._engine_type(lambda: self, len(self))
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, **kwargs):
-        """
-        Values can be any type that can be coerced to Periods.
-        Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
-        """
-        if not is_integer_dtype(values):
-            values = np.array(values, copy=False)
-            if len(values) > 0 and is_float_dtype(values):
-                raise TypeError("PeriodIndex can't take floats")
-            return cls(values, name=name, freq=freq, **kwargs)
-
-        return cls._from_ordinals(values, name, freq, **kwargs)
-
-    @classmethod
-    def _from_ordinals(cls, values, name=None, freq=None, **kwargs):
-        """
-        Values should be int ordinals
-        `__new__` & `_simple_new` cooerce to ordinals and call this method
-        """
-        result = super(PeriodIndex, cls)._from_ordinals(values, freq)
+    def _simple_new(cls, values, freq=None, name=None, **kwargs):
+        result = super(PeriodIndex, cls)._simple_new(values, freq)
 
         result.name = name
         result._reset_identity()
@@ -702,8 +675,8 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
     def _apply_meta(self, rawarr):
         if not isinstance(rawarr, PeriodIndex):
-            rawarr = PeriodIndex._from_ordinals(rawarr, freq=self.freq,
-                                                name=self.name)
+            rawarr = PeriodIndex._simple_new(rawarr, freq=self.freq,
+                                             name=self.name)
         return rawarr
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
