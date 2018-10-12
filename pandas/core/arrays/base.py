@@ -680,19 +680,20 @@ class ExtensionArray(object):
         return np.array(self)
 
     def _reduce(self, name, skipna=True, **kwargs):
-        """Return a scalar result of performing the reduction operation.
+        """
+        Return a scalar result of performing the reduction operation.
 
         Parameters
         ----------
         name : str
-            name of the function, support values are:
-            {any, all, min, max, sum, mean, median, prod,
-             std, var, sem, kurt, skew}
+            Name of the function, supported values are:
+            { any, all, min, max, sum, mean, median, prod,
+            std, var, sem, kurt, skew }.
         skipna : bool, default True
-            if True, skip NaN values
-        kwargs : dict
-            Additional keyword arguments passed to the reduction function
-            ddof is the only supported kwarg
+            If True, skip NaN values.
+        **kwargs
+            Additional keyword arguments passed to the reduction function.
+            Currently, `ddof` is the only supported kwarg.
 
         Returns
         -------
