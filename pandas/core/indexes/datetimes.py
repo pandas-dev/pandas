@@ -38,7 +38,8 @@ from pandas.core.indexes.numeric import Int64Index, Float64Index
 import pandas.compat as compat
 from pandas.tseries.frequencies import to_offset, Resolution
 from pandas.core.indexes.datetimelike import (
-    DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
+    DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
+    wrap_field_accessor, wrap_array_method)
 from pandas.tseries.offsets import (
     generate_range, CDay, prefix_mapping)
 
@@ -52,34 +53,6 @@ from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
                                  ccalendar)
-
-# -------- some conversion wrapper functions
-
-
-def _wrap_field_accessor(name):
-    fget = getattr(DatetimeArrayMixin, name).fget
-
-    def f(self):
-        result = fget(self)
-        if is_bool_dtype(result):
-            return result
-        return Index(result, name=self.name)
-
-    f.__name__ = name
-    f.__doc__ = fget.__doc__
-    return property(f)
-
-
-def _wrap_in_index(name):
-    meth = getattr(DatetimeArrayMixin, name)
-
-    def func(self, *args, **kwargs):
-        result = meth(self, *args, **kwargs)
-        return Index(result, name=self.name)
-
-    func.__doc__ = meth.__doc__
-    func.__name__ = name
-    return func
 
 
 def _new_DatetimeIndex(cls, d):
@@ -1248,38 +1221,38 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             else:
                 raise
 
-    year = _wrap_field_accessor('year')
-    month = _wrap_field_accessor('month')
-    day = _wrap_field_accessor('day')
-    hour = _wrap_field_accessor('hour')
-    minute = _wrap_field_accessor('minute')
-    second = _wrap_field_accessor('second')
-    microsecond = _wrap_field_accessor('microsecond')
-    nanosecond = _wrap_field_accessor('nanosecond')
-    weekofyear = _wrap_field_accessor('weekofyear')
+    year = wrap_field_accessor(DatetimeArrayMixin.year)
+    month = wrap_field_accessor(DatetimeArrayMixin.month)
+    day = wrap_field_accessor(DatetimeArrayMixin.day)
+    hour = wrap_field_accessor(DatetimeArrayMixin.hour)
+    minute = wrap_field_accessor(DatetimeArrayMixin.minute)
+    second = wrap_field_accessor(DatetimeArrayMixin.second)
+    microsecond = wrap_field_accessor(DatetimeArrayMixin.microsecond)
+    nanosecond = wrap_field_accessor(DatetimeArrayMixin.nanosecond)
+    weekofyear = wrap_field_accessor(DatetimeArrayMixin.weekofyear)
     week = weekofyear
-    dayofweek = _wrap_field_accessor('dayofweek')
+    dayofweek = wrap_field_accessor(DatetimeArrayMixin.dayofweek)
     weekday = dayofweek
 
-    weekday_name = _wrap_field_accessor('weekday_name')
+    weekday_name = wrap_field_accessor(DatetimeArrayMixin.weekday_name)
 
-    dayofyear = _wrap_field_accessor('dayofyear')
-    quarter = _wrap_field_accessor('quarter')
-    days_in_month = _wrap_field_accessor('days_in_month')
+    dayofyear = wrap_field_accessor(DatetimeArrayMixin.dayofyear)
+    quarter = wrap_field_accessor(DatetimeArrayMixin.quarter)
+    days_in_month = wrap_field_accessor(DatetimeArrayMixin.days_in_month)
     daysinmonth = days_in_month
-    is_month_start = _wrap_field_accessor('is_month_start')
-    is_month_end = _wrap_field_accessor('is_month_end')
-    is_quarter_start = _wrap_field_accessor('is_quarter_start')
-    is_quarter_end = _wrap_field_accessor('is_quarter_end')
-    is_year_start = _wrap_field_accessor('is_year_start')
-    is_year_end = _wrap_field_accessor('is_year_end')
-    is_leap_year = _wrap_field_accessor('is_leap_year')
+    is_month_start = wrap_field_accessor(DatetimeArrayMixin.is_month_start)
+    is_month_end = wrap_field_accessor(DatetimeArrayMixin.is_month_end)
+    is_quarter_start = wrap_field_accessor(DatetimeArrayMixin.is_quarter_start)
+    is_quarter_end = wrap_field_accessor(DatetimeArrayMixin.is_quarter_end)
+    is_year_start = wrap_field_accessor(DatetimeArrayMixin.is_year_start)
+    is_year_end = wrap_field_accessor(DatetimeArrayMixin.is_year_end)
+    is_leap_year = wrap_field_accessor(DatetimeArrayMixin.is_leap_year)
 
-    @Appender(DatetimeArrayMixin.normalize.__doc__)
-    def normalize(self):
-        result = DatetimeArrayMixin.normalize(self)
-        result.name = self.name
-        return result
+    normalize = wrap_array_method(DatetimeArrayMixin.normalize, True)
+    to_julian_date = wrap_array_method(DatetimeArrayMixin.to_julian_date,
+                                       False)
+    month_name = wrap_array_method(DatetimeArrayMixin.month_name, True)
+    day_name = wrap_array_method(DatetimeArrayMixin.day_name, True)
 
     @Substitution(klass='DatetimeIndex')
     @Appender(_shared_docs['searchsorted'])
@@ -1466,18 +1439,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                        rop(time_micros, end_micros))
 
         return mask.nonzero()[0]
-
-    def to_julian_date(self):
-        """
-        Convert DatetimeIndex to Float64Index of Julian Dates.
-        0 Julian date is noon January 1, 4713 BC.
-        http://en.wikipedia.org/wiki/Julian_day
-        """
-        result = DatetimeArrayMixin.to_julian_date(self)
-        return Float64Index(result)
-
-    month_name = _wrap_in_index("month_name")
-    day_name = _wrap_in_index("day_name")
 
 
 DatetimeIndex._add_comparison_methods()
