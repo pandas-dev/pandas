@@ -805,11 +805,16 @@ class TestDataFrameOperators(TestData):
         result = df.values > b
         assert_numpy_array_equal(result, expected.values)
 
-        with pytest.raises(ValueError):
+        msg1d = 'Unable to coerce to Series, length must be 2: given 3'
+        msg2d = (r'Unable to coerce to DataFrame, '
+                 r'shape must be \(3, 2\): given \(2, 1\)')
+        msg2db = (r"operands could not be broadcast together "
+                  r"with shapes \(3,2\) \(2,1\)")
+        with tm.assert_raises_regex(ValueError, msg1d):
             # wrong shape
             df > l
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg1d):
             # wrong shape
             result = df > tup
 
@@ -820,10 +825,10 @@ class TestDataFrameOperators(TestData):
         result = df.values > b_r
         assert_numpy_array_equal(result, expected.values)
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg2d):
             df > b_c
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg2db):
             df.values > b_c
 
         # ==
@@ -831,10 +836,10 @@ class TestDataFrameOperators(TestData):
         result = df == b
         assert_frame_equal(result, expected)
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg1d):
             result = df == l
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg1d):
             result = df == tup
 
         # broadcasts like ndarray (GH#23000)
@@ -844,7 +849,7 @@ class TestDataFrameOperators(TestData):
         result = df.values == b_r
         assert_numpy_array_equal(result, expected.values)
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg2d):
             df == b_c
 
         assert df.values.shape != b_c.shape
@@ -855,10 +860,10 @@ class TestDataFrameOperators(TestData):
         expected.index = df.index
         expected.columns = df.columns
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg1d):
             result = df == l
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg1d):
             result = df == tup
 
     def test_combine_generic(self):

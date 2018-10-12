@@ -49,7 +49,8 @@ class TestFrameComparisons(object):
 
     def test_df_boolean_comparison_error(self):
         # GH#4576, GH#22880
-        # boolean comparisons with a tuple/list give unexpected results
+        # comparing DataFrame against list/tuple with len(obj) matching
+        #  len(df.columns) is supported as of GH#22800
         df = pd.DataFrame(np.arange(6).reshape((3, 2)))
 
         expected = pd.DataFrame([[False, False],

@@ -577,18 +577,18 @@ Previous Behavior:
    df = pd.DataFrame(arr)
 
 .. ipython:: python
-   # comparison and arithmetic both broadcast
+   # Comparison operations and arithmetic operations both broadcast.
    df == arr[[0], :]
    df + arr[[0], :]
 
 .. ipython:: python
-   # comparison and arithmetic broadcast the same way
+   # Comparison operations and arithmetic operations both broadcast.
    df == (1, 2)
    df + (1, 2)
 
 .. ipython:: python
    :okexcept:
-   # comparison and arithmetic both raise
+   # Comparison operations and arithmetic opeartions both raise ValueError.
    df == (1, 2, 3)
    df + (1, 2, 3)
 
