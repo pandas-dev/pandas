@@ -1041,7 +1041,7 @@ class TestMethods(object):
         with tm.assert_raises_regex(TypeError, msg):
             dt1 + dt2
 
-    boxes = [lambda x: x[0], pd.Series, pd.Index]
+    boxes = [lambda x: x, lambda x: pd.Series([x]), lambda x: pd.Index([x])]
     ids = ['identity', 'Series', 'Index']
 
     @pytest.mark.parametrize('lbox', boxes, ids=ids)
@@ -1057,13 +1057,13 @@ class TestMethods(object):
                r"can only operate on a|incompatible type|"
                r"ufunc add cannot use operands")
         with tm.assert_raises_regex(TypeError, msg):
-            lbox([ts]) + rbox(period_array([per]))
+            lbox(ts) + rbox(per)
 
         with tm.assert_raises_regex(TypeError, msg):
-            lbox(period_array([per])) + rbox([ts])
+            lbox(per) + rbox(ts)
 
         with tm.assert_raises_regex(TypeError, msg):
-            lbox([per]) + rbox([period_array(per)])
+            lbox(per) + rbox(per)
 
     def test_sub(self):
         dt1 = Period('2011-01-01', freq='D')
