@@ -280,6 +280,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         data[self._mask] = self._na_value
         return data
 
+    __array_priority__ = 1  # higher than ndarray so ops dispatch to us
+
     def __array__(self, dtype=None):
         """
         the array interface, return my values
@@ -288,12 +290,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return self._coerce_to_ndarray()
 
     def __iter__(self):
-        """Iterate over elements of the array.
-
-        """
-        # This needs to be implemented so that pandas recognizes extension
-        # arrays as list-like. The default implementation makes successive
-        # calls to ``__getitem__``, which may be slower than necessary.
         for i in range(len(self)):
             if self._mask[i]:
                 yield self.dtype.na_value
@@ -504,8 +500,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             op_name = op.__name__
             mask = None
+
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
+
+            elif getattr(other, 'ndim', None) == 0:
+                other = other.item()
+
             elif is_list_like(other):
                 other = np.asarray(other)
                 if other.ndim > 0 and len(self) != len(other):
@@ -586,14 +587,20 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             op_name = op.__name__
             mask = None
+
+            if getattr(other, 'ndim', 0) > 1:
+                raise NotImplementedError(
+                    "can only perform ops with 1-d structures")
+
             if isinstance(other, (ABCSeries, ABCIndexClass)):
                 other = getattr(other, 'values', other)
 
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
-            elif getattr(other, 'ndim', 0) > 1:
-                raise NotImplementedError(
-                    "can only perform ops with 1-d structures")
+
+            elif getattr(other, 'ndim', None) == 0:
+                other = other.item()
+
             elif is_list_like(other):
                 other = np.asarray(other)
                 if not other.ndim:
@@ -611,6 +618,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 mask = self._mask
             else:
                 mask = self._mask | mask
+
+            if op_name == 'rpow':
+                # 1 ** np.nan is 1. So we have to unmask those.
+                mask = np.where(other == 1, False, mask)
 
             with np.errstate(all='ignore'):
                 result = op(self._data, other)
