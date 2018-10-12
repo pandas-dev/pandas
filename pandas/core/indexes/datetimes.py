@@ -54,22 +54,6 @@ from pandas._libs import (lib, index as libindex, tslib as libts,
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
                                  ccalendar)
 
-# -------- some conversion wrapper functions
-
-
-# TODO: can we get away without this?  I think we still need to call compat.set_function_name
-def _dt_index_cmp(cls, op):
-    """
-    Wrap comparison operations to convert datetime-like to datetime64
-    """
-    opname = '__{name}__'.format(name=op.__name__)
-
-    def wrapper(self, other):
-        result = getattr(DatetimeArrayMixin, opname)(self, other)
-        return result
-
-    return compat.set_function_name(wrapper, opname, cls)
-
 
 def _new_DatetimeIndex(cls, d):
     """ This is called upon unpickling, rather than the default which doesn't
@@ -206,16 +190,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer_int64)
     _left_indexer_unique = _join_i8_wrapper(
         libjoin.left_join_indexer_unique_int64, with_indexers=False)
-
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-        cls.__eq__ = _dt_index_cmp(cls, operator.eq)
-        cls.__ne__ = _dt_index_cmp(cls, operator.ne)
-        cls.__lt__ = _dt_index_cmp(cls, operator.lt)
-        cls.__gt__ = _dt_index_cmp(cls, operator.gt)
-        cls.__le__ = _dt_index_cmp(cls, operator.le)
-        cls.__ge__ = _dt_index_cmp(cls, operator.ge)
 
     _engine_type = libindex.DatetimeEngine
 
@@ -1446,7 +1420,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     day_name = wrap_array_method(DatetimeArrayMixin.day_name, True)
 
 
-DatetimeIndex._add_comparison_methods()
+DatetimeIndex._add_comparison_ops()
 DatetimeIndex._add_numeric_methods_disabled()
 DatetimeIndex._add_logical_methods_disabled()
 DatetimeIndex._add_datetimelike_methods()

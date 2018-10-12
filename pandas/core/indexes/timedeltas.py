@@ -39,19 +39,6 @@ from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT)
 
 
-def _td_index_cmp(cls, op):
-    """
-    Wrap comparison operations to convert timedelta-like to timedelta64
-    """
-    opname = '__{name}__'.format(name=op.__name__)
-
-    def wrapper(self, other):
-        result = getattr(TimedeltaArrayMixin, opname)(self, other)
-        return result
-
-    return compat.set_function_name(wrapper, opname, cls)
-
-
 class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                      TimelikeOps, Int64Index):
     """
@@ -138,16 +125,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops
     _datetimelike_methods = ["to_pytimedelta", "total_seconds",
                              "round", "floor", "ceil"]
-
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-        cls.__eq__ = _td_index_cmp(cls, operator.eq)
-        cls.__ne__ = _td_index_cmp(cls, operator.ne)
-        cls.__lt__ = _td_index_cmp(cls, operator.lt)
-        cls.__gt__ = _td_index_cmp(cls, operator.gt)
-        cls.__le__ = _td_index_cmp(cls, operator.le)
-        cls.__ge__ = _td_index_cmp(cls, operator.ge)
 
     _engine_type = libindex.TimedeltaEngine
 
@@ -691,7 +668,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         return TimedeltaIndex(new_tds, name=self.name, freq=freq)
 
 
-TimedeltaIndex._add_comparison_methods()
+TimedeltaIndex._add_comparison_ops()
 TimedeltaIndex._add_numeric_methods()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
