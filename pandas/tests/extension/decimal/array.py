@@ -134,6 +134,18 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
 
+    def _reduce(self, name, skipna=True, **kwargs):
+
+        if skipna:
+            raise NotImplementedError("decimal does not support skipna=True")
+
+        try:
+            op = getattr(self.data, name)
+        except AttributeError:
+            raise NotImplementedError("decimal does not support "
+                                      "the {} operation".format(name))
+        return op(axis=0)
+
 
 def to_decimal(values, context=None):
     return DecimalArray([decimal.Decimal(x) for x in values], context=context)

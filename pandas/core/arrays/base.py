@@ -63,6 +63,10 @@ class ExtensionArray(object):
     as they only compose abstract methods. Still, a more efficient
     implementation may be available, and these methods can be overridden.
 
+    One can implement methods to handle array reductions.
+
+    * _reduce
+
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
@@ -689,6 +693,33 @@ class ExtensionArray(object):
         used for interacting with our indexers.
         """
         return np.array(self)
+
+    def _reduce(self, name, skipna=True, **kwargs):
+        """
+        Return a scalar result of performing the reduction operation.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            { any, all, min, max, sum, mean, median, prod,
+            std, var, sem, kurt, skew }.
+        skipna : bool, default True
+            If True, skip NaN values.
+        **kwargs
+            Additional keyword arguments passed to the reduction function.
+            Currently, `ddof` is the only supported kwarg.
+
+        Returns
+        -------
+        scalar
+
+        Raises
+        ------
+        TypeError : subclass does not define reductions
+        """
+        raise TypeError("cannot perform {name} with type {dtype}".format(
+            name=name, dtype=self.dtype))
 
 
 class ExtensionOpsMixin(object):

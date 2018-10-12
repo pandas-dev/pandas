@@ -48,7 +48,7 @@ Pandas has gained the ability to hold integer dtypes with missing values. This l
 Here is an example of the usage.
 
 We can construct a ``Series`` with the specified dtype. The dtype string ``Int64`` is a pandas ``ExtensionDtype``. Specifying a list or array using the traditional missing value
-marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`, :issue:`22441`)
+marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`, :issue:`22441`, :issue:`21789`, :issue:`22346`)
 
 .. ipython:: python
 
@@ -90,6 +90,13 @@ These dtypes can be merged & reshaped & casted.
 
    pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
    df['A'].astype(float)
+
+Reduction and groupby operations such as 'sum' work.
+
+.. ipython:: python
+
+   df.sum()
+   df.groupby('B').A.sum()
 
 .. warning::
 
@@ -598,6 +605,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - Series backed by an ``ExtensionArray`` now work with :func:`util.hash_pandas_object` (:issue:`23066`)
 - Updated the ``.type`` attribute for ``PeriodDtype``, ``DatetimeTZDtype``, and ``IntervalDtype`` to be instances of the dtype (``Period``, ``Timestamp``, and ``Interval`` respectively) (:issue:`22938`)
 - :func:`ExtensionArray.isna` is allowed to return an ``ExtensionArray`` (:issue:`22325`).
+- Support for reduction operations such as ``sum``, ``mean`` via opt-in base class method override (:issue:`22762`)
 
 .. _whatsnew_0240.api.incompatibilities:
 
