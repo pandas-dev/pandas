@@ -593,7 +593,7 @@ def test_cross_type_arithmetic():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize('op', ['sum', 'min', 'max'])
+@pytest.mark.parametrize('op', ['sum', 'min', 'max', 'prod'])
 def test_preserve_dtypes(op):
     # TODO(#22346): preserve Int64 dtype
     # for ops that enable (mean would actually work here

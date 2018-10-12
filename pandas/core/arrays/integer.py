@@ -548,7 +548,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         # if we have a preservable numeric op,
         # provide coercion back to an integer type if possible
-        elif name in ['sum', 'min', 'max'] and notna(result):
+        elif name in ['sum', 'min', 'max', 'prod'] and notna(result):
             int_result = int(result)
             if int_result == result:
                 result = int_result
