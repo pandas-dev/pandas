@@ -344,6 +344,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
     if isinstance(data, Series):
         dummy = data.copy()
         dummy.index = dummy_index
+
         unstacked = dummy.unstack('__placeholder__', fill_value=fill_value)
         new_levels = clevels
         new_names = cnames
@@ -399,6 +400,8 @@ def unstack(obj, level, fill_value=None):
         else:
             return obj.T.stack(dropna=False)
     else:
+        if is_extension_array_dtype(obj.dtype):
+            return unstack_extension_series(obj, level, fill_value)
         unstacker = _Unstacker(obj.values, obj.index, level=level,
                                fill_value=fill_value,
                                constructor=obj._constructor_expanddim)
@@ -947,3 +950,22 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     values = values.take(labels, axis=0)
 
     return DataFrame(values, columns=items, index=frame.index)
+
+
+def unstack_extension_series(series, level, fill_value):
+    from pandas.core.reshape.concat import concat
+
+    dummy_arr = np.arange(len(series))
+    # fill_value=-1, since we will do a series.values.take later
+    result = _Unstacker(dummy_arr, series.index,
+                        level=level, fill_value=-1).get_result()
+
+    out = []
+    values = series.values
+
+    for col, indicies in result.iteritems():
+        out.append(Series(values.take(indicies.values,
+                                      allow_fill=True,
+                                      fill_value=fill_value),
+                          name=col, index=result.index))
+    return concat(out, axis='columns')

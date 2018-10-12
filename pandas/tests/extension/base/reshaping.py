@@ -1,3 +1,4 @@
+import itertools
 import pytest
 import numpy as np
 
@@ -170,3 +171,40 @@ class BaseReshapingTests(BaseExtensionTests):
                  [data[0], data[0], data[1], data[2], na_value],
                  dtype=data.dtype)})
         self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
+
+    @pytest.mark.parametrize("index", [
+        pd.MultiIndex.from_product(([['A', 'B'], ['a', 'b']])),
+        pd.MultiIndex.from_product(([['A', 'B'], ['a', 'b'], ['x', 'y', 'z']])),
+
+        # non-uniform
+        pd.MultiIndex.from_tuples([('A', 'a'), ('A', 'b'), ('B', 'b')]),
+
+        # three levels, non-uniform
+        pd.MultiIndex.from_product([('A', 'B'), ('a', 'b', 'c'), (0, 1, 2)]),
+        pd.MultiIndex.from_tuples([
+            ('A', 'a', 1),
+            ('A', 'b', 0),
+            ('A', 'a', 0),
+            ('B', 'a', 0),
+            ('B', 'c', 1),
+        ]),
+    ])
+    def test_unstack(self, data, index):
+        data = data[:len(index)]
+        ser = pd.Series(data, index=index)
+
+        n = index.nlevels
+        levels = list(range(n))
+        # [0, 1, 2]
+        # -> [(0,), (1,), (2,) (0, 1), (1, 0)]
+        combinations = itertools.chain.from_iterable(
+            itertools.permutations(levels, i) for i in range(1, n)
+        )
+
+        for level in combinations:
+            result = ser.unstack(level=level)
+            assert all(isinstance(result[col].values, type(data)) for col in result.columns)
+            expected = ser.astype(object).unstack(level=level)
+            result = result.astype(object)
+
+            self.assert_frame_equal(result, expected)
