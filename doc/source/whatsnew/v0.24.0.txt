@@ -160,7 +160,7 @@ And for periods:
 
 Previously, these would be cast to a NumPy array with object dtype. In general,
 this should result in better performance when storing an array of intervals or periods
-in a :class:`Series`.
+in a :class:`Series` or column of a :class:`DataFrame`.
 
 Note that the ``.values`` of a ``Series`` containing one of these types is no longer a NumPy
 array, but rather an ``ExtensionArray``:

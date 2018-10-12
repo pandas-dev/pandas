@@ -145,19 +145,16 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     # --------------------------------------------------------------------
     # Constructors
     def __init__(self, values, freq=None):
-        # type: (np.ndarray[np.int64], Union[str, Tick]) -> None
-        # TODO: constructor discussion. The type above doesn't match what
-        # we handle right now (values can be PeriodArray or PeriodIndex
+        # type: (Union[PeriodArray, np.ndarray], Union[str, Tick]) -> None
         if isinstance(values, type(self)):
             values, freq = values._data, values.freq
-        elif isinstance(values, ABCPeriodIndex):
-            values, freq = values._ndarray_values, values.freq
 
         values = np.array(values, dtype='int64', copy=False)
         self._data = values
         if freq is None:
             raise ValueError('freq is not specified and cannot be inferred')
-        self._freq = Period._maybe_convert_freq(freq)
+        freq = Period._maybe_convert_freq(freq)
+        self._dtype = PeriodDtype(freq)
 
     @classmethod
     def _complex_new(cls, data=None, ordinal=None, freq=None, start=None,
@@ -271,14 +268,19 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         # type: (Sequence[Optional[Period]], Dtype, bool) -> PeriodArray
         if dtype:
-            dtype = dtype.freq
+            freq = dtype.freq
+        else:
+            freq = None
         scalars = np.asarray(scalars, dtype=object)
-        return cls._from_periods(scalars, freq=dtype)
+        return cls._from_periods(scalars, freq=freq)
+
+    def _values_for_factorize(self):
+        return self.values, iNaT
 
     @classmethod
     def _from_factorized(cls, values, original):
         # type: (Sequence[Optional[Period]], PeriodArray) -> PeriodArray
-        return cls._from_periods(values, freq=original.freq)
+        return cls._simple_new(values, freq=original.freq)
 
     @classmethod
     def _from_ordinals(cls, values, freq=None):
@@ -354,7 +356,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
     @cache_readonly
     def dtype(self):
-        return PeriodDtype.construct_from_string(self.freq)
+        return self._dtype
 
     @property
     def _ndarray_values(self):
@@ -363,8 +365,8 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
     @property
     def freq(self):
-        """Return the frequency object if it is set, otherwise None"""
-        return self._freq
+        """Return the frequency object for this PeriodArray."""
+        return self.dtype.freq
 
     @property
     def flags(self):
