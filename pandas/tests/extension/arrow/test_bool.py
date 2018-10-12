@@ -39,6 +39,10 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
         pytest.skip("GH-22666")
 
 
+class TestReduce(base.BaseNoReduceTests):
+    pass
+
+
 def test_is_bool_dtype(data):
     assert pd.api.types.is_bool_dtype(data)
     assert pd.core.common.is_bool_indexer(data)

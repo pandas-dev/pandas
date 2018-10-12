@@ -6,8 +6,6 @@ try:
 except ImportError:
     import pandas.computation.expressions as expr
 
-from .pandas_vb_common import setup # noqa
-
 
 class Ops(object):
 
@@ -149,3 +147,6 @@ class AddOverflowArray(object):
     def time_add_overflow_both_arg_nan(self):
         checked_add_with_arr(self.arr, self.arr_mixed, arr_mask=self.arr_nan_1,
                              b_mask=self.arr_nan_2)
+
+
+from .pandas_vb_common import setup  # noqa: F401

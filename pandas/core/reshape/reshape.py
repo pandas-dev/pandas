@@ -745,9 +745,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
             if is_list_like(item):
                 if not len(item) == data_to_encode.shape[1]:
-                    len_msg = \
-                        len_msg.format(name=name, len_item=len(item),
-                                       len_enc=data_to_encode.shape[1])
+                    len_msg = len_msg.format(name=name, len_item=len(item),
+                                             len_enc=data_to_encode.shape[1])
                     raise ValueError(len_msg)
 
         check_len(prefix, 'prefix')
