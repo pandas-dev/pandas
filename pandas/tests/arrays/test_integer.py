@@ -617,6 +617,29 @@ def test_preserve_dtypes(op):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize('op', ['mean'])
+def test_reduce_to_float(op):
+    # some reduce ops always return float, even if the result
+    # is a rounded number
+    df = pd.DataFrame({
+        "A": ['a', 'b', 'b'],
+        "B": [1, None, 3],
+        "C": integer_array([1, None, 3], dtype='Int64'),
+    })
+
+    # op
+    result = getattr(df.C, op)()
+    assert isinstance(result, float)
+
+    # groupby
+    result = getattr(df.groupby("A"), op)()
+    expected = pd.DataFrame({
+        "B": np.array([1.0, 3.0]),
+        "C": np.array([1, 3], dtype="float64")
+    }, index=pd.Index(['a', 'b'], name='A'))
+    tm.assert_frame_equal(result, expected)
+
+
 def test_astype_nansafe():
     # https://github.com/pandas-dev/pandas/pull/22343
     arr = integer_array([np.nan, 1, 2], dtype="Int8")
