@@ -1382,15 +1382,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_format_timedelta_ticks_narrow(self):
 
-        if self.mpl_ge_2_2_2:
-            expected_labels = (['00:00:00.0000000{:0>2d}'.format(i)
-                                for i in range(10)])
-        elif self.mpl_ge_2_2_0:
-            expected_labels = (['-1 days 23:59:59.999999998'] +
-                               ['00:00:00.0000000{:0>2d}'.format(2 * i)
-                                for i in range(6)])
-        elif self.mpl_ge_2_0_1:
-            # same as >= 2.2.2
+        if self.mpl_ge_2_0_1:
             expected_labels = (['00:00:00.0000000{:0>2d}'.format(i)
                                 for i in range(10)])
         else:  # 2.0.0
@@ -1405,7 +1397,9 @@ class TestTSPlot(TestPlotBase):
         fig.canvas.draw()
         labels = ax.get_xticklabels()
 
-        assert [x.get_text() for x in labels] == expected_labels
+        result_labels = [x.get_text() for x in labels]
+        assert len(result_labels) == len(expected_labels)
+        assert result_labels == expected_labels
 
     def test_format_timedelta_ticks_wide(self):
         expected_labels = [
@@ -1423,9 +1417,6 @@ class TestTSPlot(TestPlotBase):
         ]
         if self.mpl_ge_2_2_2:
             expected_labels = expected_labels[1:-1]
-        elif self.mpl_ge_2_2_0:
-            expected_labels[0] = '-2 days 20:13:20'
-            expected_labels[-1] = '10 days 10:00:00'
         elif self.mpl_ge_2_0_1:
             expected_labels = expected_labels[1:-1]
             expected_labels[-1] = ''
@@ -1437,7 +1428,9 @@ class TestTSPlot(TestPlotBase):
         fig.canvas.draw()
         labels = ax.get_xticklabels()
 
-        assert [x.get_text() for x in labels] == expected_labels
+        result_labels = [x.get_text() for x in labels]
+        assert len(result_labels) == len(expected_labels)
+        assert result_labels == expected_labels
 
     def test_timedelta_plot(self):
         # test issue #8711
