@@ -1310,7 +1310,7 @@ class TestHashTable(object):
         (ht.Float64HashTable, 'Float'),
         (ht.Int64HashTable, 'Int'),
         (ht.UInt64HashTable, 'UInt')])
-    def test_hashtable_unique(self, htable, tm_dtype):
+    def test_hashtable_unique(self, htable, tm_dtype, writable):
         # output of maker has guaranteed unique elements
         maker = getattr(tm, 'make' + tm_dtype + 'Index')
         s = Series(maker(1000))
@@ -1323,6 +1323,7 @@ class TestHashTable(object):
 
         # create duplicated selection
         s_duplicated = s.sample(frac=3, replace=True).reset_index(drop=True)
+        s_duplicated.values.setflags(write=writable)
 
         # drop_duplicates has own cython code (hash_table_func_helper.pxi)
         # and is tested separately; keeps first occurrence like ht.unique()
@@ -1330,14 +1331,15 @@ class TestHashTable(object):
         result_unique = htable().unique(s_duplicated.values)
         tm.assert_numpy_array_equal(result_unique, expected_unique)
 
-    @pytest.mark.parametrize('na_sentinel', [-1])
+    @pytest.mark.parametrize('na_sentinel', [-1, 1001])
     @pytest.mark.parametrize('htable, tm_dtype', [
         (ht.PyObjectHashTable, 'String'),
         (ht.StringHashTable, 'String'),
         (ht.Float64HashTable, 'Float'),
         (ht.Int64HashTable, 'Int'),
         (ht.UInt64HashTable, 'UInt')])
-    def test_hashtable_factorize(self, htable, tm_dtype, na_sentinel):
+    def test_hashtable_factorize(self, htable, tm_dtype,
+                                 na_sentinel, writable):
         # output of maker has guaranteed unique elements
         maker = getattr(tm, 'make' + tm_dtype + 'Index')
         s = Series(maker(1000))
@@ -1348,12 +1350,15 @@ class TestHashTable(object):
             # use different NaN types for object column
             s.loc[500:502] = [np.nan, None, pd.NaT]
 
-        # create duplicated selection
+        # create duplicated selection (with known indices per duplicate!)
         idx_duplicated = pd.Series(s.index).sample(frac=3, replace=True)
         s_duplicated = s[idx_duplicated.values].reset_index(drop=True)
+        s_duplicated.values.setflags(write=writable)
         na_mask = s_duplicated.isna().values
 
-        result_inverse, result_unique = htable().factorize(s_duplicated.values)
+        result_tuple = htable().factorize(s_duplicated.values,
+                                          na_sentinel=na_sentinel)
+        result_inverse, result_unique = result_tuple
 
         # drop_duplicates has own cython code (hash_table_func_helper.pxi)
         # and is tested separately; keeps first occurrence like ht.factorize()
@@ -1362,7 +1367,11 @@ class TestHashTable(object):
         expected_unique = expected_unique.values
         tm.assert_numpy_array_equal(result_unique, expected_unique)
 
-        # ignore NaNs for calculating inverse
+        # ignore NaNs for calculating inverse because factorize drops all NaNs!
+        # values2unique: mapping indices of original to indices of uniques
+        # unique2values: reduplication from array of uniques to original array
+        # this fits together in the way that values[values2unique] are the
+        # uniques (from np.unique!) and uniques[unique2values] == original
         _, values2unique, unique2values = np.unique(idx_duplicated[~na_mask],
                                                     return_inverse=True,
                                                     return_index=True)
