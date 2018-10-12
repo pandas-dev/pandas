@@ -208,7 +208,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_bar_log(self):
-        expected = np.array([.1, 1., 10., 100., 1000., 1e4])
+        expected = np.array([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
 
         _, ax = self.plt.subplots()
         ax = Series([200, 500]).plot.bar(log=True, ax=ax)
@@ -221,7 +221,7 @@ class TestSeriesPlots(TestPlotBase):
         tm.close()
 
         # GH 9905
-        expected = np.array([1.0e-05, 1.0e-4, 1.0e-3, 1.0e-2, 1.0e-1, 1., 10.])
+        expected = np.array([1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1])
 
         _, ax = self.plt.subplots()
         ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind='bar', ax=ax)
