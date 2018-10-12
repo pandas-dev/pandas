@@ -1370,12 +1370,11 @@ class TestHashTable(object):
         # drop_duplicates has own cython code (hash_table_func_helper.pxi)
         # and is tested separately; keeps first occurrence like ht.factorize()
         # since factorize removes all NaNs, we do the same here
-        expected_unique = s_duplicated.dropna().drop_duplicates(keep='first')
-        expected_unique = expected_unique.values
+        expected_unique = s_duplicated.dropna().drop_duplicates().values
         tm.assert_numpy_array_equal(result_unique, expected_unique)
 
-        # reconstruction can only succeed if the inverse is correct.
-        # Since factorize removes the NaNs, those have to be excluded
+        # reconstruction can only succeed if the inverse is correct. Since
+        # factorize removes the NaNs, those have to be excluded here as well
         result_reconstruct = result_unique[result_inverse[~na_mask]]
         expected_reconstruct = s_duplicated.dropna().values
         tm.assert_numpy_array_equal(result_reconstruct, expected_reconstruct)
