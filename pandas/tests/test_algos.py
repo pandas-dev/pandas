@@ -249,6 +249,17 @@ class TestFactorize(object):
         tm.assert_numpy_array_equal(labels, exp_labels)
         tm.assert_numpy_array_equal(uniques, exp_uniques)
 
+    def test_object_factorize(self, writable):
+        data = np.array(['a', 'c', None, np.nan, 'a', 'b', pd.NaT, 'c'],
+                        dtype=object)
+        data.setflags(write=writable)
+        exp_labels = np.array([0, 1, -1, -1, 0, 2, -1, 1], dtype=np.intp)
+        exp_uniques = np.array(['a', 'c', 'b'], dtype=object)
+
+        labels, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(labels, exp_labels)
+        tm.assert_numpy_array_equal(uniques, exp_uniques)
+
     def test_deprecate_order(self):
         # gh 19727 - check warning is raised for deprecated keyword, order.
         # Test not valid once order keyword is removed.
