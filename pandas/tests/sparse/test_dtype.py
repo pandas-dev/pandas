@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 
 import pandas as pd
+import pandas.util.testing as tm
 from pandas.core.sparse.api import SparseDtype
 
 
@@ -127,5 +128,15 @@ def test_hash_equal(a, b, expected):
     ('Sparse[datetime64[ns], 0]', 'datetime64[ns]'),
 ])
 def test_parse_subtype(string, expected):
-    subtype = SparseDtype._parse_subtype(string)
+    subtype, _ = SparseDtype._parse_subtype(string)
     assert subtype == expected
+
+
+@pytest.mark.parametrize("string", [
+    "Sparse[int, 1]",
+    "Sparse[float, 0.0]",
+    "Sparse[bool, True]",
+])
+def test_construct_from_string_raises(string):
+    with tm.assert_raises_regex(TypeError, 'fill_value in the string is not'):
+        SparseDtype.construct_from_string(string)

@@ -173,9 +173,10 @@ class SparseDtype(ExtensionDtype):
             'Sparse[int, 1]' SparseDtype[np.int64, 0]
             ================ ============================
 
-            Notice that any "fill value" in `string` is ignored. The
-            fill from from `construct_from_string` will always be
-            the default fill value for the dtype.
+            It is not possible to specify non-default fill values
+            with a string. An argument like ``'SparseDtype[int, 1]'``
+            will raise a ``TypeError`` because the default fill value
+            for integers is 0.
 
         Returns
         -------
@@ -184,10 +185,19 @@ class SparseDtype(ExtensionDtype):
         msg = "Could not construct SparseDtype from '{}'".format(string)
         if string.startswith("Sparse"):
             try:
-                sub_type = cls._parse_subtype(string)
-                return SparseDtype(sub_type)
+                sub_type, has_fill_value = cls._parse_subtype(string)
+                result = SparseDtype(sub_type)
             except Exception:
                 raise TypeError(msg)
+            else:
+                msg = ("Could not construct SparseDtype from '{}'.\n\nIt "
+                       "looks like the fill_value in the string is not "
+                       "the default for the dtype. Non-default fill_values "
+                       "are not supported. Use the 'SparseDtype()' "
+                       "constructor instead.")
+                if has_fill_value and str(result) != string:
+                    raise TypeError(msg.format(string))
+                return result
         else:
             raise TypeError(msg)
 
@@ -213,22 +223,26 @@ class SparseDtype(ExtensionDtype):
         ValueError
             When the subtype cannot be extracted.
         """
-        xpr = re.compile(r"Sparse\[(?P<subtype>[^,]*)(, )?(.*?)?\]$")
+        xpr = re.compile(
+            r"Sparse\[(?P<subtype>[^,]*)(, )?(?P<fill_value>.*?)?\]$"
+        )
         m = xpr.match(dtype)
+        has_fill_value = False
         if m:
             subtype = m.groupdict()['subtype']
+            has_fill_value = m.groupdict()['fill_value'] or has_fill_value
         elif dtype == "Sparse":
             subtype = 'float64'
         else:
             raise ValueError("Cannot parse {}".format(dtype))
-        return subtype
+        return subtype, has_fill_value
 
     @classmethod
     def is_dtype(cls, dtype):
         dtype = getattr(dtype, 'dtype', dtype)
         if (isinstance(dtype, compat.string_types) and
                 dtype.startswith("Sparse")):
-            sub_type = cls._parse_subtype(dtype)
+            sub_type, _ = cls._parse_subtype(dtype)
             dtype = np.dtype(sub_type)
         elif isinstance(dtype, cls):
             return True
