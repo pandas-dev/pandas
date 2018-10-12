@@ -48,7 +48,7 @@ Pandas has gained the ability to hold integer dtypes with missing values. This l
 Here is an example of the usage.
 
 We can construct a ``Series`` with the specified dtype. The dtype string ``Int64`` is a pandas ``ExtensionDtype``. Specifying a list or array using the traditional missing value
-marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`, :issue:`22441`)
+marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`, :issue:`22441`, :issue:`21789`, :issue:`22346`)
 
 .. ipython:: python
 
@@ -90,6 +90,13 @@ These dtypes can be merged & reshaped & casted.
 
    pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
    df['A'].astype(float)
+
+Reduction and groupby operations such as 'sum' work.
+
+.. ipython:: python
+
+   df.sum()
+   df.groupby('B').A.sum()
 
 .. warning::
 
@@ -373,6 +380,22 @@ is the case with :attr:`Period.end_time`, for example
 
    p.end_time
 
+.. _whatsnew_0240.api_breaking.frame_to_dict_index_orient:
+
+Raise ValueError in ``DataFrame.to_dict(orient='index')``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with 
+``orient='index'`` and a non-unique index instead of losing data (:issue:`22801`)
+
+.. ipython:: python
+    :okexcept:
+
+    df = pd.DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
+    df
+    
+    df.to_dict(orient='index')
+
 .. _whatsnew_0240.api.datetimelike.normalize:
 
 Tick DateOffset Normalize Restrictions
@@ -548,7 +571,9 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
 - Slicing a single row of a ``DataFrame`` with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - Added :meth:`pandas.api.types.register_extension_dtype` to register an extension type with pandas (:issue:`22664`)
+- Series backed by an ``ExtensionArray`` now work with :func:`util.hash_pandas_object` (:issue:`23066`)
 - Updated the ``.type`` attribute for ``PeriodDtype``, ``DatetimeTZDtype``, and ``IntervalDtype`` to be instances of the dtype (``Period``, ``Timestamp``, and ``Interval`` respectively) (:issue:`22938`)
+- Support for reduction operations such as ``sum``, ``mean`` via opt-in base class method override (:issue:`22762`)
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -684,6 +709,7 @@ Performance Improvements
   (:issue:`21372`)
 - Improved the performance of :func:`pandas.get_dummies` with ``sparse=True`` (:issue:`21997`)
 - Improved performance of :func:`IndexEngine.get_indexer_non_unique` for sorted, non-unique indexes (:issue:`9466`)
+- Improved performance of :func:`PeriodIndex.unique` (:issue:`23083`)
 
 
 .. _whatsnew_0240.docs:
@@ -784,7 +810,8 @@ Numeric
 - Bug in :class:`Series` comparison against datetime-like scalars and arrays (:issue:`22074`)
 - Bug in :class:`DataFrame` multiplication between boolean dtype and integer returning ``object`` dtype instead of integer dtype (:issue:`22047`, :issue:`22163`)
 - Bug in :meth:`DataFrame.apply` where, when supplied with a string argument and additional positional or keyword arguments (e.g. ``df.apply('sum', min_count=1)``), a ``TypeError`` was wrongly raised (:issue:`22376`)
--
+- Bug in :meth:`DataFrame.astype` to extension dtype may raise ``AttributeError`` (:issue:`22578`)
+
 
 Strings
 ^^^^^^^

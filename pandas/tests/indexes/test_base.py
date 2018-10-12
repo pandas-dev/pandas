@@ -1379,7 +1379,7 @@ class TestIndex(Base):
         index = pd.Index(arr, dtype=np.object)
         result = index.get_indexer([unique_nulls_fixture,
                                     unique_nulls_fixture2, 'Unknown'])
-        expected = np.array([0, 1, -1], dtype=np.int64)
+        expected = np.array([0, 1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("method", [None, 'pad', 'backfill', 'nearest'])
