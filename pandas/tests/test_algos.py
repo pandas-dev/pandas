@@ -1359,9 +1359,8 @@ class TestHashTable(object):
             # use different NaN types for object column
             s.loc[500:502] = [np.nan, None, pd.NaT]
 
-        # create duplicated selection (with known indices per duplicate!)
-        idx_duplicated = pd.Series(s.index).sample(frac=3, replace=True)
-        s_duplicated = s[idx_duplicated.values].reset_index(drop=True)
+        # create duplicated selection
+        s_duplicated = s.sample(frac=3, replace=True).reset_index(drop=True)
         s_duplicated.values.setflags(write=writable)
         na_mask = s_duplicated.isna().values
 
