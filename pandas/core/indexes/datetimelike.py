@@ -726,3 +726,59 @@ def wrap_arithmetic_op(self, other, result):
     res_name = ops.get_op_result_name(self, other)
     result.name = res_name
     return result
+
+
+def wrap_array_method(method, pin_name=False):
+    """
+    Wrap a DatetimeArray/TimedeltaArray/PeriodArray method so that the
+    returned object is an Index subclass instead of ndarray or ExtensionArray
+    subclass.
+
+    Parameters
+    ----------
+    method : method of Datetime/Timedelta/Period Array class
+    pin_name : bool
+        Whether to set name=self.name on the output Index
+
+    Returns
+    -------
+    method
+    """
+    def index_method(self, *args, **kwargs):
+        result = method(self, *args, **kwargs)
+
+        # Index.__new__ will choose the appropriate subclass to return
+        result = Index(result)
+        if pin_name:
+            result.name = self.name
+        return result
+
+    index_method.__name__ = method.__name__
+    index_method.__doc__ = method.__doc__
+    return index_method
+
+
+def wrap_field_accessor(prop):
+    """
+    Wrap a DatetimeArray/TimedeltaArray/PeriodArray array-returning property
+    to return an Index subclass instead of ndarray or ExtensionArray subclass.
+
+    Parameters
+    ----------
+    prop : property
+
+    Returns
+    -------
+    new_prop : property
+    """
+    fget = prop.fget
+
+    def f(self):
+        result = fget(self)
+        if is_bool_dtype(result):
+            return result
+        return Index(result, name=self.name)
+
+    f.__name__ = fget.__name__
+    f.__doc__ = fget.__doc__
+    return property(f)

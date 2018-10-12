@@ -31,23 +31,12 @@ import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 from pandas.util._decorators import Appender, Substitution
 from pandas.core.indexes.datetimelike import (
-    TimelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op)
+    TimelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op,
+    wrap_array_method, wrap_field_accessor)
 from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT)
-
-
-def _wrap_field_accessor(name):
-    fget = getattr(TimedeltaArrayMixin, name).fget
-
-    def f(self):
-        result = fget(self)
-        return Index(result, name=self.name)
-
-    f.__name__ = name
-    f.__doc__ = fget.__doc__
-    return property(f)
 
 
 def _td_index_cmp(cls, op):
@@ -58,10 +47,7 @@ def _td_index_cmp(cls, op):
 
     def wrapper(self, other):
         result = getattr(TimedeltaArrayMixin, opname)(self, other)
-        if is_bool_dtype(result):
-            # support of bool dtype indexers
-            return result
-        return Index(result)
+        return result
 
     return compat.set_function_name(wrapper, opname, cls)
 
@@ -269,15 +255,12 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                                     nat_rep=na_rep,
                                     justify='all').get_result()
 
-    days = _wrap_field_accessor("days")
-    seconds = _wrap_field_accessor("seconds")
-    microseconds = _wrap_field_accessor("microseconds")
-    nanoseconds = _wrap_field_accessor("nanoseconds")
+    days = wrap_field_accessor(TimedeltaArrayMixin.days)
+    seconds = wrap_field_accessor(TimedeltaArrayMixin.seconds)
+    microseconds = wrap_field_accessor(TimedeltaArrayMixin.microseconds)
+    nanoseconds = wrap_field_accessor(TimedeltaArrayMixin.nanoseconds)
 
-    @Appender(TimedeltaArrayMixin.total_seconds.__doc__)
-    def total_seconds(self):
-        result = TimedeltaArrayMixin.total_seconds(self)
-        return Index(result, name=self.name)
+    total_seconds = wrap_array_method(TimedeltaArrayMixin.total_seconds, True)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
