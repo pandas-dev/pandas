@@ -67,7 +67,7 @@ class ArrowBoolArray(ExtensionArray):
         return cls.from_scalars(scalars)
 
     def __getitem__(self, item):
-        if np.isscalar(item):
+        if pd.api.types.is_scalar(item):
             return self._data.to_pandas()[item]
         else:
             vals = self._data.to_pandas()[item]

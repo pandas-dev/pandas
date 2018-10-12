@@ -461,17 +461,25 @@ def stack(frame, level=-1, dropna=True):
                                names=[frame.index.name, frame.columns.name],
                                verify_integrity=False)
 
-    # For homogonoues EAs, self.values will coerce to object. So
-    # we concatenate instead.
-    dtypes = list(frame.dtypes.values)
-    dtype = dtypes[0]
-    if frame._is_homogeneous_type and is_extension_array_dtype(dtype):
-        arr = dtype.construct_array_type()
-        new_values = arr._concat_same_type([
-            col for _, col in frame.iteritems()
-        ])
+    if frame._is_homogeneous_type:
+        # For homogeneous EAs, frame.values will coerce to object. So
+        # we concatenate instead.
+        dtypes = list(frame.dtypes.values)
+        dtype = dtypes[0]
+
+        if is_extension_array_dtype(dtype):
+            arr = dtype.construct_array_type()
+            new_values = arr._concat_same_type([
+                col for _, col in frame.iteritems()
+            ])
+        else:
+            # homogeneous, non-EA
+            new_values = frame.values.ravel()
+
     else:
+        # non-homogeneous
         new_values = frame.values.ravel()
+
     if dropna:
         mask = notna(new_values)
         new_values = new_values[mask]

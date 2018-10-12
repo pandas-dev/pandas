@@ -648,6 +648,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             indices = np.arange(len(self), dtype=np.int32)[key]
             return self.take(indices)
         else:
+            # TODO: I think we can avoid densifying when masking a
+            # boolean SparseArray with another. Need to look at the
+            # key's fill_value for True / False, and then do an intersection
+            # on the indicies of the sp_values.
             if isinstance(key, SparseArray):
                 if is_bool_dtype(key):
                     key = key.to_dense()
