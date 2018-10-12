@@ -1,5 +1,4 @@
 """ implement the TimedeltaIndex """
-import operator
 from datetime import datetime
 
 import numpy as np
@@ -7,7 +6,6 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE,
     is_integer,
     is_float,
-    is_bool_dtype,
     is_list_like,
     is_scalar,
     is_timedelta64_dtype,
@@ -31,39 +29,12 @@ import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 from pandas.util._decorators import Appender, Substitution
 from pandas.core.indexes.datetimelike import (
-    TimelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op)
+    TimelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op,
+    wrap_array_method, wrap_field_accessor)
 from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT)
-
-
-def _wrap_field_accessor(name):
-    fget = getattr(TimedeltaArrayMixin, name).fget
-
-    def f(self):
-        result = fget(self)
-        return Index(result, name=self.name)
-
-    f.__name__ = name
-    f.__doc__ = fget.__doc__
-    return property(f)
-
-
-def _td_index_cmp(cls, op):
-    """
-    Wrap comparison operations to convert timedelta-like to timedelta64
-    """
-    opname = '__{name}__'.format(name=op.__name__)
-
-    def wrapper(self, other):
-        result = getattr(TimedeltaArrayMixin, opname)(self, other)
-        if is_bool_dtype(result):
-            # support of bool dtype indexers
-            return result
-        return Index(result)
-
-    return compat.set_function_name(wrapper, opname, cls)
 
 
 class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
@@ -152,16 +123,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops
     _datetimelike_methods = ["to_pytimedelta", "total_seconds",
                              "round", "floor", "ceil"]
-
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-        cls.__eq__ = _td_index_cmp(cls, operator.eq)
-        cls.__ne__ = _td_index_cmp(cls, operator.ne)
-        cls.__lt__ = _td_index_cmp(cls, operator.lt)
-        cls.__gt__ = _td_index_cmp(cls, operator.gt)
-        cls.__le__ = _td_index_cmp(cls, operator.le)
-        cls.__ge__ = _td_index_cmp(cls, operator.ge)
 
     _engine_type = libindex.TimedeltaEngine
 
@@ -269,15 +230,12 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                                     nat_rep=na_rep,
                                     justify='all').get_result()
 
-    days = _wrap_field_accessor("days")
-    seconds = _wrap_field_accessor("seconds")
-    microseconds = _wrap_field_accessor("microseconds")
-    nanoseconds = _wrap_field_accessor("nanoseconds")
+    days = wrap_field_accessor(TimedeltaArrayMixin.days)
+    seconds = wrap_field_accessor(TimedeltaArrayMixin.seconds)
+    microseconds = wrap_field_accessor(TimedeltaArrayMixin.microseconds)
+    nanoseconds = wrap_field_accessor(TimedeltaArrayMixin.nanoseconds)
 
-    @Appender(TimedeltaArrayMixin.total_seconds.__doc__)
-    def total_seconds(self):
-        result = TimedeltaArrayMixin.total_seconds(self)
-        return Index(result, name=self.name)
+    total_seconds = wrap_array_method(TimedeltaArrayMixin.total_seconds, True)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
@@ -708,7 +666,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         return TimedeltaIndex(new_tds, name=self.name, freq=freq)
 
 
-TimedeltaIndex._add_comparison_methods()
+TimedeltaIndex._add_comparison_ops()
 TimedeltaIndex._add_numeric_methods()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
