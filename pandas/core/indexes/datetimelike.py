@@ -776,6 +776,7 @@ def wrap_field_accessor(prop):
     def f(self):
         result = fget(self)
         if is_bool_dtype(result):
+            # return numpy array b/c there is no BoolIndex
             return result
         return Index(result, name=self.name)
 

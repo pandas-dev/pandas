@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_datetime64_ns_dtype,
     is_period_dtype,
-    is_bool_dtype,
     is_string_like,
     is_list_like,
     is_scalar,
@@ -34,12 +33,12 @@ from pandas.core.arrays.datetimes import DatetimeArrayMixin, _to_m8
 from pandas.core.arrays import datetimelike as dtl
 
 from pandas.core.indexes.base import Index, _index_shared_docs
-from pandas.core.indexes.numeric import Int64Index, Float64Index
+from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
 from pandas.tseries.frequencies import to_offset, Resolution
 from pandas.core.indexes.datetimelike import (
     DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
-    wrap_array_method, wrap_field_accessor)
+    wrap_field_accessor, wrap_array_method)
 from pandas.tseries.offsets import (
     generate_range, CDay, prefix_mapping)
 
@@ -1224,6 +1223,15 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     is_year_end = wrap_field_accessor(DatetimeArrayMixin.is_year_end)
     is_leap_year = wrap_field_accessor(DatetimeArrayMixin.is_leap_year)
 
+    to_perioddelta = wrap_array_method(DatetimeArrayMixin.to_perioddelta,
+                                       False)
+    to_period = wrap_array_method(DatetimeArrayMixin.to_period, True)
+    normalize = wrap_array_method(DatetimeArrayMixin.normalize, True)
+    to_julian_date = wrap_array_method(DatetimeArrayMixin.to_julian_date,
+                                       False)
+    month_name = wrap_array_method(DatetimeArrayMixin.month_name, True)
+    day_name = wrap_array_method(DatetimeArrayMixin.day_name, True)
+
     @Substitution(klass='DatetimeIndex')
     @Appender(_shared_docs['searchsorted'])
     def searchsorted(self, value, side='left', sorter=None):
@@ -1409,15 +1417,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                        rop(time_micros, end_micros))
 
         return mask.nonzero()[0]
-
-    to_perioddelta = wrap_array_method(DatetimeArrayMixin.to_perioddelta,
-                                       False)
-    to_period = wrap_array_method(DatetimeArrayMixin.to_period, True)
-    normalize = wrap_array_method(DatetimeArrayMixin.normalize, True)
-    to_julian_date = wrap_array_method(DatetimeArrayMixin.to_julian_date,
-                                       False)
-    month_name = wrap_array_method(DatetimeArrayMixin.month_name, True)
-    day_name = wrap_array_method(DatetimeArrayMixin.day_name, True)
 
 
 DatetimeIndex._add_comparison_ops()

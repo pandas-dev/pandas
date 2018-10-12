@@ -759,7 +759,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # --------------------------------------------------------------
     # Comparison Methods
 
-    # Called by ExtensionOpsMixin._add_comparison_ops
+    # Called by _add_comparison_methods defined in ExtensionOpsMixin
     _create_comparison_method = classmethod(_make_comparison_op)
 
     def _evaluate_compare(self, other, op):
