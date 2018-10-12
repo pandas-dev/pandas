@@ -79,17 +79,29 @@ class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
 
 
 class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
+    implements = {'__sub__', '__rsub__'}
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # we implement substitution...
-        op_name = all_arithmetic_operators
-        if op_name in ('__sub__', '__rsub__'):
+        if all_arithmetic_operators in self.implements:
             s = pd.Series(data)
-            self.check_opname(s, op_name, s.iloc[0], exc=None)
+            self.check_opname(s, all_arithmetic_operators, s.iloc[0],
+                              exc=None)
         else:
             # ... but not the rest.
             super().test_arith_series_with_scalar(data,
                                                   all_arithmetic_operators)
+
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
+        if all_arithmetic_operators in self.implements:
+            s = pd.Series(data)
+            self.check_opname(s, all_arithmetic_operators, s.iloc[0],
+                              exc=None)
+        else:
+            # ... but not the rest.
+            super().test_arith_series_with_scalar(data,
+                                                  all_arithmetic_operators)
+
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
         super(TestArithmeticOps, self)._check_divmod_op(
