@@ -41,7 +41,7 @@ from .base import ExtensionOpsMixin
 from pandas.util._decorators import deprecate_kwarg
 
 
-def _make_comparison_op(op, cls):
+def _make_comparison_op(cls, op):
     # TODO: share code with indexes.base version?  Main difference is that
     # the block for MultiIndex was removed here.
     def cmp_method(self, other):
@@ -739,6 +739,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # --------------------------------------------------------------
     # Comparison Methods
 
+    # Called by _add_comparison_methods defined in ExtensionOpsMixin
+    _create_comparison_method = classmethod(_make_comparison_op)
+
     def _evaluate_compare(self, other, op):
         """
         We have been called because a comparison between
@@ -786,6 +789,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
 
 DatetimeLikeArrayMixin._add_comparison_methods()
+DatetimeLikeArrayMixin._add_comparison_ops()
 
 
 # -------------------------------------------------------------------

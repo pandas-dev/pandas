@@ -14,10 +14,9 @@ try:
         PackageLoader, Environment, ChoiceLoader, FileSystemLoader
     )
 except ImportError:
-    msg = "pandas.Styler requires jinja2. "\
-          "Please install with `conda install Jinja2`\n"\
-          "or `pip install Jinja2`"
-    raise ImportError(msg)
+    raise ImportError("pandas.Styler requires jinja2. "
+                      "Please install with `conda install Jinja2`\n"
+                      "or `pip install Jinja2`")
 
 from pandas.core.dtypes.common import is_float, is_string_like
 

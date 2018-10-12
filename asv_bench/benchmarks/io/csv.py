@@ -6,7 +6,7 @@ import pandas.util.testing as tm
 from pandas import DataFrame, Categorical, date_range, read_csv
 from pandas.compat import cStringIO as StringIO
 
-from ..pandas_vb_common import setup, BaseIO  # noqa
+from ..pandas_vb_common import BaseIO
 
 
 class ToCSV(BaseIO):
@@ -225,3 +225,6 @@ class ReadCSVParseDates(StringIORewind):
         read_csv(self.data(self.StringIO_input), sep=',', header=None,
                  parse_dates=[1],
                  names=list(string.digits[:9]))
+
+
+from ..pandas_vb_common import setup  # noqa: F401

@@ -1755,14 +1755,14 @@ class _XlsxStyler(object):
                     props[k] = ['none', 'thin', 'medium', 'dashed', 'dotted',
                                 'thick', 'double', 'hair', 'mediumDashed',
                                 'dashDot', 'mediumDashDot', 'dashDotDot',
-                                'mediumDashDotDot', 'slantDashDot'].\
-                        index(props[k])
+                                'mediumDashDotDot',
+                                'slantDashDot'].index(props[k])
                 except ValueError:
                     props[k] = 2
 
         if isinstance(props.get('font_script'), string_types):
-            props['font_script'] = ['baseline', 'superscript', 'subscript'].\
-                index(props['font_script'])
+            props['font_script'] = ['baseline', 'superscript',
+                                    'subscript'].index(props['font_script'])
 
         if isinstance(props.get('underline'), string_types):
             props['underline'] = {'none': 0, 'single': 1, 'double': 2,

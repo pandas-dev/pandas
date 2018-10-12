@@ -165,6 +165,12 @@ class BaseMethodsTests(BaseExtensionTests):
 
         compare(result, expected)
 
-    def test_hashing_works(self, data):
-        pd.util.hash_pandas_object(pd.Series(data))
-        pd.util.hash_pandas_object(pd.DataFrame({"A": data}))
+    @pytest.mark.parametrize("as_frame", [True, False])
+    def test_hash_pandas_object_works(self, data, as_frame):
+        # https://github.com/pandas-dev/pandas/issues/23066
+        data = pd.Series(data)
+        if as_frame:
+            data = data.to_frame()
+        a = pd.util.hash_pandas_object(data)
+        b = pd.util.hash_pandas_object(data)
+        self.assert_equal(a, b)
