@@ -14,14 +14,35 @@
 #   $ ./ci/code_checks.sh patterns    # check for patterns that should not exist
 #   $ ./ci/code_checks.sh doctests    # run doctests
 
-echo "inside $0"
-[[ $LINT ]] || { echo "NOT Linting. To lint use: LINT=true $0 $1"; exit 0; }
 [[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" ]] || { echo "Unkown command $1. Usage: $0 [lint|patterns|doctests]"; exit 9999; }
 
 source activate pandas
 RET=0
 CHECK=$1
 
+function invgrep {
+    # grep with inverse exist status and formatting for azure-pipelines
+    #
+    # This function works exactly as grep, but with opposite exit status:
+    # - 0 (success) when no patterns are found
+    # - 1 (fail) when the patterns are found
+    #
+    # This is useful for the CI, as we want to fail if one of the patterns
+    # that we want to avoid is found by grep.
+    if [[ "$AZURE" == "true" ]]; then
+        set -o pipefail
+        grep -n "$@" | awk -F ":" '{print "##vso[task.logissue type=error;sourcepath=" $1 ";linenumber=" $2 ";] Found unwanted pattern: " $3}'
+    else
+        grep "$@"
+    fi
+    return $((! $?))
+}
+
+if [[ "$AZURE" == "true" ]]; then
+    FLAKE8_FORMAT="##vso[task.logissue type=error;sourcepath=%(path)s;linenumber=%(row)s;columnnumber=%(col)s;code=%(code)s;]%(text)s"
+else
+    FLAKE8_FORMAT="default"
+fi
 
 ### LINTING ###
 if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
@@ -33,15 +54,15 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # pandas/_libs/src is C code, so no need to search there.
     MSG='Linting .py code' ; echo $MSG
-    flake8 .
+    flake8 --format="$FLAKE8_FORMAT" .
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Linting .pyx code' ; echo $MSG
-    flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403,C400,C401,C402,C403,C404,C405,C406,C407,C408,C409,C410,C411
+    flake8 --format="$FLAKE8_FORMAT" pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403,C400,C401,C402,C403,C404,C405,C406,C407,C408,C409,C410,C411
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Linting .pxd and .pxi.in' ; echo $MSG
-    flake8 pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
+    flake8 --format="$FLAKE8_FORMAT" pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # readability/casting: Warnings about C casting instead of C++ casting
@@ -63,37 +84,37 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
     MSG='Check for non-standard imports' ; echo $MSG
-    ! grep -R --include="*.py*" -E "from pandas.core.common import " pandas
+    invgrep -R --include="*.py*" -E "from pandas.core.common import " pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for pytest warns' ; echo $MSG
-    ! grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
+    invgrep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check for the following code in testing: `np.testing` and `np.array_equal`
     MSG='Check for invalid testing' ; echo $MSG
-    ! grep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
+    invgrep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check for the following code in the extension array base tests: `tm.assert_frame_equal` and `tm.assert_series_equal`
     MSG='Check for invalid EA testing' ; echo $MSG
-    ! grep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base
+    invgrep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for deprecated messages without sphinx directive' ; echo $MSG
-    ! grep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
+    invgrep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for old-style classes' ; echo $MSG
-    ! grep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts
+    invgrep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for backticks incorrectly rendering because of missing spaces' ; echo $MSG
-    ! grep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
+    invgrep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for incorrect sphinx directives' ; echo $MSG
-    ! grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas ./doc/source
+    invgrep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas ./doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for modules that pandas should not import' ; echo $MSG
@@ -106,7 +127,7 @@ blacklist = {'bs4', 'gcsfs', 'html5lib', 'ipython', 'jinja2' 'hypothesis',
              'tables', 'xlrd', 'xlsxwriter', 'xlwt'}
 mods = blacklist & set(m.split('.')[0] for m in sys.modules)
 if mods:
-    sys.stderr.write('pandas should not import: {}\n'.format(', '.join(mods)))
+    sys.stderr.write('err: pandas should not import: {}\n'.format(', '.join(mods)))
     sys.exit(len(mods))
     "
     RET=$(($RET + $?)) ; echo $MSG "DONE"
