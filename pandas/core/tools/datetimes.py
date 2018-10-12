@@ -724,8 +724,9 @@ def _attempt_YYYYMMDD(arg, errors):
         result = np.empty(carg.shape, dtype='M8[ns]')
         iresult = result.view('i8')
         iresult[~mask] = tslibs.iNaT
-        result[mask] = calc(carg[mask].astype(np.float64).astype(np.int64)). \
-            astype('M8[ns]')
+
+        masked_result = calc(carg[mask].astype(np.float64).astype(np.int64))
+        result[mask] = masked_result.astype('M8[ns]')
         return result
 
     # try intlike / strings that are ints

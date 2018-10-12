@@ -430,8 +430,8 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         handles.append(f)
 
     # in Python 3, convert BytesIO or fileobjects passed with an encoding
-    if compat.PY3 and is_text and\
-            (compression or isinstance(f, need_text_wrapping)):
+    if (compat.PY3 and is_text and
+            (compression or isinstance(f, need_text_wrapping))):
         from io import TextIOWrapper
         f = TextIOWrapper(f, encoding=encoding)
         handles.append(f)

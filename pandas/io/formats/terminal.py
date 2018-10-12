@@ -40,9 +40,8 @@ def get_terminal_size():
         if tuple_xy is None:
             tuple_xy = _get_terminal_size_tput()
             # needed for window's python in cygwin's xterm!
-    if current_os == 'Linux' or \
-        current_os == 'Darwin' or \
-            current_os.startswith('CYGWIN'):
+    if (current_os == 'Linux' or current_os == 'Darwin' or
+            current_os.startswith('CYGWIN')):
         tuple_xy = _get_terminal_size_linux()
     if tuple_xy is None:
         tuple_xy = (80, 25)      # default value
