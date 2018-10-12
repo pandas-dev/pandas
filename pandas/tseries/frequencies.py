@@ -233,7 +233,6 @@ getOffset = get_offset
 
 
 def infer_freq(index, warn=True):
-    # type: (Union[Series, Index, PeriodArray]) -> Freq
     """
     Infer the most likely frequency given the input index. If the frequency is
     uncertain, a warning will be printed.

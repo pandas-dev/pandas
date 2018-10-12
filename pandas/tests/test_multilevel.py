@@ -16,7 +16,7 @@ from pandas import (Panel, DataFrame, Series, notna, isna, Timestamp, concat,
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.core.common as com
 import pandas.util.testing as tm
-from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import period_array
 from pandas.compat import (range, lrange, StringIO, lzip, u, product as
                            cart_product, zip)
 import pandas as pd
@@ -2320,10 +2320,11 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame(np.arange(9, dtype='int64').reshape(-1, 1),
                        index=idx, columns=['a'])
         expected = DataFrame({
-            'month': PeriodArray._from_periods(np.array(
+            'month': period_array(
                 [pd.Period('2013-01', freq='M')] * 3 +
                 [pd.Period('2013-02', freq='M')] * 3 +
-                [pd.Period('2013-03', freq='M')] * 3, dtype=object)),
+                [pd.Period('2013-03', freq='M')] * 3
+            ),
             'feature': ['a', 'b', 'c'] * 3,
             'a': np.arange(9, dtype='int64')
         }, columns=['month', 'feature', 'a'])
