@@ -2005,15 +2005,37 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
     _index_shared_docs['contains'] = """
-        return a boolean if this key is IN the index
+        Return a boolean if this key is in the index.
 
         Parameters
         ----------
-        key : object
+        key : label
+            The key requested. Immutable-like, 1-dimensional.
 
         Returns
         -------
-        boolean
+        bool
+            Result of the key search.
+
+        See Also
+        --------
+        CategoricalIndex : Returns a bool if the 1-dimensional, Categorical key
+            is in index.
+        Index.isin : Returns ndarray of boolean dtype if list-like key is in
+            index.
+
+        Examples
+        --------
+        >>> l1 = pd.Index([1, 2, (3, 4), 5])
+        >>> t = (3, 4)
+        >>> num1 = 1
+        >>> num2 = 6
+        >>> l1.contains(num1)
+        True
+        >>> l1.contains(num2)
+        False
+        >>> l1.contains(t)
+        True
         """
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
