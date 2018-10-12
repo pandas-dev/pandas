@@ -82,21 +82,6 @@ def _wrap_in_index(name):
     return func
 
 
-def _dt_index_cmp(cls, op):
-    """
-    Wrap comparison operations to convert datetime-like to datetime64
-    """
-    opname = '__{name}__'.format(name=op.__name__)
-
-    def wrapper(self, other):
-        result = getattr(DatetimeArrayMixin, opname)(self, other)
-        if is_bool_dtype(result):
-            return result
-        return Index(result)
-
-    return compat.set_function_name(wrapper, opname, cls)
-
-
 def _new_DatetimeIndex(cls, d):
     """ This is called upon unpickling, rather than the default which doesn't
     have arguments and breaks __new__ """
@@ -232,16 +217,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer_int64)
     _left_indexer_unique = _join_i8_wrapper(
         libjoin.left_join_indexer_unique_int64, with_indexers=False)
-
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-        cls.__eq__ = _dt_index_cmp(cls, operator.eq)
-        cls.__ne__ = _dt_index_cmp(cls, operator.ne)
-        cls.__lt__ = _dt_index_cmp(cls, operator.lt)
-        cls.__gt__ = _dt_index_cmp(cls, operator.gt)
-        cls.__le__ = _dt_index_cmp(cls, operator.le)
-        cls.__ge__ = _dt_index_cmp(cls, operator.ge)
 
     _engine_type = libindex.DatetimeEngine
 
