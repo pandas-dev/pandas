@@ -1620,6 +1620,12 @@ class Block(PandasObject):
         values, _, _, _ = self._try_coerce_args(values, values)
 
         def _nanpercentile1D(values, mask, q, **kw):
+            # mask is Union[ExtensionArray, ndarray]
+            # we convert to an ndarray for NumPy 1.9 compat, which didn't
+            # treat boolean-like arrays as boolean. This conversion would have
+            # been done inside ndarray.__getitem__ anyway, since values is
+            # an ndarray at this point.
+            mask = np.asarray(mask)
             values = values[~mask]
 
             if len(values) == 0:
