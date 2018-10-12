@@ -51,6 +51,7 @@ class TestPlotBase(object):
         mpl.rcdefaults()
 
         self.mpl_ge_2_0_1 = plotting._compat._mpl_ge_2_0_1()
+        self.mpl_ge_2_1_0 = plotting._compat._mpl_ge_2_1_0()
         self.mpl_ge_2_2_0 = plotting._compat._mpl_ge_2_2_0()
         self.mpl_ge_2_2_2 = plotting._compat._mpl_ge_2_2_2()
         self.mpl_ge_3_0_0 = plotting._compat._mpl_ge_3_0_0()
