@@ -98,6 +98,10 @@ class TestInterface(BaseInterval, base.BaseInterfaceTests):
     pass
 
 
+class TestReduce(base.BaseNoReduceTests):
+    pass
+
+
 class TestMethods(BaseInterval, base.BaseMethodsTests):
 
     @pytest.mark.skip(reason='addition is not defined for intervals')

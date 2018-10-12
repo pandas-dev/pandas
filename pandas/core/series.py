@@ -3392,16 +3392,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         """
         delegate = self._values
-        if isinstance(delegate, np.ndarray):
-            # Validate that 'axis' is consistent with Series's single axis.
-            if axis is not None:
-                self._get_axis_number(axis)
+
+        if axis is not None:
+            self._get_axis_number(axis)
+
+        # dispatch to ExtensionArray interface
+        if isinstance(delegate, ExtensionArray):
+            return delegate._reduce(name, skipna=skipna, **kwds)
+
+        # dispatch to numpy arrays
+        elif isinstance(delegate, np.ndarray):
             if numeric_only:
                 raise NotImplementedError('Series.{0} does not implement '
                                           'numeric_only.'.format(name))
             with np.errstate(all='ignore'):
                 return op(delegate, skipna=skipna, **kwds)
 
+        # TODO(EA) dispatch to Index
+        # remove once all internals extension types are
+        # moved to ExtensionArrays
         return delegate._reduce(op=op, name=name, axis=axis, skipna=skipna,
                                 numeric_only=numeric_only,
                                 filter_type=filter_type, **kwds)
