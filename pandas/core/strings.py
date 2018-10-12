@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
 import pandas.core.common as com
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
-from pandas.compat.numpy import _np_version_under1p11
 from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
 import re
@@ -38,15 +37,15 @@ _cpython_optimized_decoders = _cpython_optimized_encoders + (
 _shared_docs = dict()
 
 
-def cat_core(all_cols, sep):
+def cat_core(list_of_columns, sep):
     """
     Auxiliary function for :meth:`str.cat`
 
     Parameters
     ----------
-    all_cols : two-dimensional numpy array
-        array of columns to be concatenated with sep;
-        this array may not contain NaNs!
+    list_of_columns : list of numpy arrays
+        List of arrays to be concatenated with sep;
+        these arrays may not contain NaNs!
     sep : string
         The separator string for concatenating the columns
 
@@ -55,15 +54,9 @@ def cat_core(all_cols, sep):
     nd.array
         The concatenation of list_of_columns with sep
     """
-    list_of_columns = np.split(all_cols, all_cols.shape[1], axis=1)
     list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
-    res = np.sum(list_with_sep, axis=0)
-    if not (_np_version_under1p11 and len(res) == 0):
-        # np.split splits into arrays of shape (N, 1); NOT (N,)
-        # need to reduce dimensionality of result
-        res = res[:, 0]
-    return res
+    return np.sum(list_with_sep, axis=0)
 
 
 def _na_map(f, arr, na_result=np.nan, dtype=object):
@@ -2246,21 +2239,21 @@ class StringMethods(NoNewAttributesMixin):
                           "'outer'|'inner'|'right'`. The future default will "
                           "be `join='left'`.", FutureWarning, stacklevel=2)
 
-        # concatenate others into DataFrame; need to add keys for uniqueness in
-        # case of duplicate columns (for join is None, all indexes are already
-        # the same after _get_series_list, which forces alignment in this case)
-        others = concat(others, axis=1,
-                        join=(join if join == 'inner' else 'outer'),
-                        keys=range(len(others)), copy=False)
+        # if join is None, _get_series_list already force-aligned indexes
+        join = 'left' if join is None else join
 
         # align if required
-        if not data.index.equals(others.index):
+        if any(not data.index.equals(x.index) for x in others):
+            # Need to add keys for uniqueness in case of duplicate columns
+            others = concat(others, axis=1,
+                            join=(join if join == 'inner' else 'outer'),
+                            keys=range(len(others)), copy=False)
             data, others = data.align(others, join=join)
+            others = [others[x] for x in others]  # again list of Series
 
-        # collect all columns
-        all_cols = ensure_object(concat([data, others], axis=1, copy=False))
-        na_masks = isna(all_cols)
-        union_mask = np.logical_or.reduce(na_masks, axis=1)
+        all_cols = [ensure_object(x) for x in [data] + others]
+        na_masks = np.array([isna(x) for x in all_cols])
+        union_mask = np.logical_or.reduce(na_masks, axis=0)
 
         if na_rep is None and union_mask.any():
             # no na_rep means NaNs for all rows where any column has a NaN
@@ -2269,10 +2262,13 @@ class StringMethods(NoNewAttributesMixin):
             np.putmask(result, union_mask, np.nan)
 
             not_masked = ~union_mask
-            result[not_masked] = cat_core(all_cols[not_masked], sep)
+            result[not_masked] = cat_core([x[not_masked] for x in all_cols],
+                                          sep)
         elif na_rep is not None and union_mask.any():
             # fill NaNs with na_rep in case there are actually any NaNs
-            result = cat_core(np.where(na_masks, na_rep, all_cols), sep)
+            all_cols = [np.where(nm, na_rep, col)
+                        for nm, col in zip(na_masks, all_cols)]
+            result = cat_core(all_cols, sep)
         else:
             # no NaNs - can just concatenate
             result = cat_core(all_cols, sep)
