@@ -498,9 +498,10 @@ operations has been changed to match the arithmetic operations in these cases.
 (:issue:`22880`)
 
 The affected cases are:
-  - operating against a 2-dimensional ``np.ndarray`` with either 1 row or 1 column
-  - a list or tuple with length matching the number of rows in the :class:`DataFrame`
-  - a list or tuple with length matching the number of columns in the :class:`DataFrame`.
+
+- operating against a 2-dimensional ``np.ndarray`` with either 1 row or 1 column will now broadcast the same way a ``np.ndarray`` would (:issue:`23000`).
+- a list or tuple with length matching the number of rows in the :class:`DataFrame` will now raise ``ValueError`` instead of operating column-by-column (:issue:`22880`.
+- a list or tuple with length matching the number of columns in the :class:`DataFrame` will now operate row-by-row instead of raising ``ValueError`` (:issue:`22880`).
 
 Previous Behavior:
 
@@ -553,8 +554,7 @@ Previous Behavior:
    df = pd.DataFrame(arr)
 
 .. ipython:: python
-   :okexcept:
-   # comparison and arithmetic both raise
+   # comparison and arithmetic both broadcast
    df == arr[[0], :]
    df + arr[[0], :]
 
