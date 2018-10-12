@@ -211,6 +211,7 @@ def make_invalid_op(name):
     -------
     invalid_op : function
     """
+
     def invalid_op(self, other=None):
         raise TypeError("cannot perform {name} with this index type: "
                         "{typ}".format(name=name, typ=type(self).__name__))
@@ -486,66 +487,104 @@ d   2.0   NaN   0.0
 e   NaN  -4.0   NaN
 """
 
+_mul_example_SERIES = """
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.multiply(b, fill_value=0)
+a    1.0
+b    0.0
+c    0.0
+d    0.0
+e    NaN
+dtype: float64
+"""
+
 _op_descriptions = {
     # Arithmetic Operators
     'add': {'op': '+',
             'desc': 'Addition',
             'reverse': 'radd',
-            'df_examples': _add_example_FRAME},
+            'df_examples': _add_example_FRAME,
+            'series_examples': None},
     'sub': {'op': '-',
             'desc': 'Subtraction',
             'reverse': 'rsub',
-            'df_examples': _sub_example_FRAME},
+            'df_examples': _sub_example_FRAME,
+            'series_examples': None},
     'mul': {'op': '*',
             'desc': 'Multiplication',
             'reverse': 'rmul',
-            'df_examples': None},
+            'df_examples': None,
+            'series_examples': _mul_example_SERIES},
     'mod': {'op': '%',
             'desc': 'Modulo',
             'reverse': 'rmod',
-            'df_examples': _mod_example_FRAME},
+            'df_examples': _mod_example_FRAME,
+            'series_examples': None},
     'pow': {'op': '**',
             'desc': 'Exponential power',
             'reverse': 'rpow',
-            'df_examples': None},
+            'df_examples': None,
+            'series_examples': None},
     'truediv': {'op': '/',
                 'desc': 'Floating division',
                 'reverse': 'rtruediv',
-                'df_examples': None},
+                'df_examples': None,
+                'series_examples': None},
     'floordiv': {'op': '//',
                  'desc': 'Integer division',
                  'reverse': 'rfloordiv',
-                 'df_examples': None},
+                 'df_examples': None,
+                 'series_examples': None},
     'divmod': {'op': 'divmod',
                'desc': 'Integer division and modulo',
                'reverse': None,
-               'df_examples': None},
+               'df_examples': None,
+               'series_examples': None},
 
     # Comparison Operators
     'eq': {'op': '==',
            'desc': 'Equal to',
            'reverse': None,
-           'df_examples': None},
+           'df_examples': None,
+           'series_examples': None},
     'ne': {'op': '!=',
            'desc': 'Not equal to',
            'reverse': None,
-           'df_examples': None},
+           'df_examples': None,
+           'series_examples': None},
     'lt': {'op': '<',
            'desc': 'Less than',
            'reverse': None,
-           'df_examples': None},
+           'df_examples': None,
+           'series_examples': None},
     'le': {'op': '<=',
            'desc': 'Less than or equal to',
            'reverse': None,
-           'df_examples': None},
+           'df_examples': None,
+           'series_examples': None},
     'gt': {'op': '>',
            'desc': 'Greater than',
            'reverse': None,
-           'df_examples': None},
+           'df_examples': None,
+           'series_examples': None},
     'ge': {'op': '>=',
            'desc': 'Greater than or equal to',
            'reverse': None,
-           'df_examples': None}}
+           'df_examples': None,
+           'series_examples': None}}
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
@@ -580,31 +619,12 @@ result : Series
 
 Examples
 --------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> a
-a    1.0
-b    1.0
-c    1.0
-d    NaN
-dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
->>> b
-a    1.0
-b    NaN
-d    1.0
-e    NaN
-dtype: float64
->>> a.add(b, fill_value=0)
-a    2.0
-b    1.0
-c    1.0
-d    1.0
-e    NaN
-dtype: float64
+{series_examples}
 
 See also
 --------
 Series.{reverse}
+
 """
 
 _arith_doc_FRAME = """
@@ -690,7 +710,6 @@ See also
 Panel.{reverse}
 """
 
-
 _agg_doc_PANEL = """
 Wrapper method for {op_name}
 
@@ -732,7 +751,8 @@ def _make_flex_doc(op_name, typ):
     if typ == 'series':
         base_doc = _flex_doc_SERIES
         doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
-                              equiv=equiv, reverse=op_desc['reverse'])
+                              equiv=equiv, reverse=op_desc['reverse'],
+                              series_examples=op_desc['series_examples'])
     elif typ == 'dataframe':
         base_doc = _flex_doc_FRAME
         doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
@@ -1086,6 +1106,7 @@ def add_special_arithmetic_methods(cls):
     _, _, arith_method, comp_method, bool_method = _get_method_wrappers(cls)
     new_methods = _create_methods(cls, arith_method, comp_method, bool_method,
                                   special=True)
+
     # inplace operators (I feel like these should get passed an `inplace=True`
     # or just be removed
 
@@ -1296,7 +1317,7 @@ def _arith_method_SERIES(cls, op, special):
                             "{op}".format(typ=type(left).__name__, op=str_rep))
 
         elif (is_extension_array_dtype(left) or
-                (is_extension_array_dtype(right) and not is_scalar(right))):
+              (is_extension_array_dtype(right) and not is_scalar(right))):
             # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
             return dispatch_to_extension_op(op, left, right)
 
