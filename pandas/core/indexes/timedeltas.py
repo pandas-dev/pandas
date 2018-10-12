@@ -1,5 +1,4 @@
 """ implement the TimedeltaIndex """
-import operator
 from datetime import datetime
 
 import numpy as np
@@ -7,7 +6,6 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE,
     is_integer,
     is_float,
-    is_bool_dtype,
     is_list_like,
     is_scalar,
     is_timedelta64_dtype,
@@ -37,7 +35,6 @@ from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT)
-
 
 
 class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,

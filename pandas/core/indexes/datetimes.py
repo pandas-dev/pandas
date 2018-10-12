@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_datetime64_ns_dtype,
     is_period_dtype,
-    is_bool_dtype,
     is_string_like,
     is_list_like,
     is_scalar,
@@ -34,7 +33,7 @@ from pandas.core.arrays.datetimes import DatetimeArrayMixin, _to_m8
 from pandas.core.arrays import datetimelike as dtl
 
 from pandas.core.indexes.base import Index, _index_shared_docs
-from pandas.core.indexes.numeric import Int64Index, Float64Index
+from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
 from pandas.tseries.frequencies import to_offset, Resolution
 from pandas.core.indexes.datetimelike import (
