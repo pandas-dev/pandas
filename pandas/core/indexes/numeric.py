@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 from pandas._libs import (index as libindex,
                           join as libjoin)
@@ -35,10 +37,13 @@ class NumericIndex(Index):
     _is_numeric_dtype = True
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
-                fastpath=False):
+                fastpath=None):
 
-        if fastpath:
-            return cls._simple_new(data, name=name)
+        if fastpath is not None:
+            warnings.warn("The 'fastpath' keyword is deprecated, and will be "
+                          "removed in a future version.", FutureWarning)
+            if fastpath:
+                return cls._simple_new(data, name=name)
 
         # is_scalar, generators handled in coerce_to_ndarray
         data = cls._coerce_to_ndarray(data)

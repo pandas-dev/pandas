@@ -1,6 +1,7 @@
 import operator
 from datetime import timedelta
 from sys import getsizeof
+import warnings
 
 import numpy as np
 
@@ -68,10 +69,13 @@ class RangeIndex(Int64Index):
     _engine_type = libindex.Int64Engine
 
     def __new__(cls, start=None, stop=None, step=None,
-                dtype=None, copy=False, name=None, fastpath=False):
+                dtype=None, copy=False, name=None, fastpath=None):
 
-        if fastpath:
-            return cls._simple_new(start, stop, step, name=name)
+        if fastpath is not None:
+            warnings.warn("The 'fastpath' keyword is deprecated, and will be "
+                          "removed in a future version.", FutureWarning)
+            if fastpath:
+                return cls._simple_new(start, stop, step, name=name)
 
         cls._validate_dtype(dtype)
 
@@ -174,7 +178,7 @@ class RangeIndex(Int64Index):
 
     @cache_readonly
     def _int64index(self):
-        return Int64Index(self._data, name=self.name, fastpath=True)
+        return Int64Index._simple_new(self._data, name=self.name)
 
     def _get_data_as_items(self):
         """ return a list of tuples of start, stop, step """
@@ -262,8 +266,8 @@ class RangeIndex(Int64Index):
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
-            return RangeIndex(name=self.name, fastpath=True,
-                              **dict(self._get_data_as_items()))
+            return RangeIndex._simple_new(
+                name=self.name, **dict(self._get_data_as_items()))
         else:
             kwargs.setdefault('name', self.name)
             return self._int64index._shallow_copy(values, **kwargs)
@@ -273,8 +277,8 @@ class RangeIndex(Int64Index):
         self._validate_dtype(dtype)
         if name is None:
             name = self.name
-        return RangeIndex(name=name, fastpath=True,
-                          **dict(self._get_data_as_items()))
+        return RangeIndex._simple_new(
+            name=name, **dict(self._get_data_as_items()))
 
     def _minmax(self, meth):
         no_steps = len(self) - 1
@@ -374,7 +378,7 @@ class RangeIndex(Int64Index):
         tmp_start = first._start + (second._start - first._start) * \
             first._step // gcd * s
         new_step = first._step * second._step // gcd
-        new_index = RangeIndex(tmp_start, int_high, new_step, fastpath=True)
+        new_index = RangeIndex._simple_new(tmp_start, int_high, new_step)
 
         # adjust index to limiting interval
         new_index._start = new_index._min_fitting_element(int_low)
@@ -552,7 +556,7 @@ class RangeIndex(Int64Index):
             stop = self._start + self._step * stop
             step = self._step * step
 
-            return RangeIndex(start, stop, step, name=self.name, fastpath=True)
+            return RangeIndex._simple_new(start, stop, step, name=self.name)
 
         # fall back to Int64Index
         return super_getitem(key)
@@ -565,12 +569,12 @@ class RangeIndex(Int64Index):
                 start = self._start // other
                 step = self._step // other
                 stop = start + len(self) * step
-                return RangeIndex(start, stop, step, name=self.name,
-                                  fastpath=True)
+                return RangeIndex._simple_new(
+                    start, stop, step, name=self.name)
             if len(self) == 1:
                 start = self._start // other
-                return RangeIndex(start, start + 1, 1, name=self.name,
-                                  fastpath=True)
+                return RangeIndex._simple_new(
+                    start, start + 1, 1, name=self.name)
         return self._int64index // other
 
     @classmethod
