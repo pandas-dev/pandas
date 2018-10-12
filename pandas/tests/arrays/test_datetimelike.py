@@ -89,7 +89,7 @@ class TestDatetimeArray(object):
         assert expected == result
 
     @pytest.mark.parametrize('freqstr', ['D', 'B', 'W', 'M', 'Q', 'Y'])
-    def test_to_perioddelta(self, freqstr):
+    def test_to_perioddelta(self, datetime_index, freqstr):
         dti = datetime_index
         arr = DatetimeArrayMixin(dti)
 
