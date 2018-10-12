@@ -659,6 +659,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     key = np.asarray(key)
 
             if com.is_bool_indexer(key) and len(self) == len(key):
+                # TODO(numpy 1.11): Remove this asarray.
+                # Old NumPy didn't treat array-like as boolean masks.
+                key = np.asarray(key)
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             elif hasattr(key, '__len__'):
                 return self.take(key)
