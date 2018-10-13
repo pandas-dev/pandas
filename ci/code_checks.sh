@@ -13,11 +13,10 @@
 #   $ ./ci/code_checks.sh lint        # run linting only
 #   $ ./ci/code_checks.sh patterns    # check for patterns that should not exist
 #   $ ./ci/code_checks.sh doctests    # run doctests
-#   $ ./ci/code_checks.sh imports     # run isort on imports
 
 echo "inside $0"
 [[ $LINT ]] || { echo "NOT Linting. To lint use: LINT=true $0 $1"; exit 0; }
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" || "$1" == "imports" ]] || { echo "Unkown command $1. Usage: $0 [lint|patterns|doctests]"; exit 9999; }
+[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" ]] || { echo "Unkown command $1. Usage: $0 [lint|patterns|doctests]"; exit 9999; }
 
 source activate pandas
 RET=0
@@ -55,6 +54,11 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     # we can lint all header files since they aren't "generated" like C files are.
     MSG='Linting .c and .h' ; echo $MSG
     cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # Imports - Check formatting using isort see setup.cfg for settings
+    MSG='Check import format using isort ' ; echo $MSG
+    isort --recursive --check-only pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -139,15 +143,6 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         pandas/core/reshape/reshape.py \
         pandas/core/reshape/tile.py \
         -k"-crosstab -pivot_table -cut"
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-fi
-
-### IMPORTS ###
-if [[ -z "$CHECK" || "$CHECK" == imports ]]; then
-
-    MSG='Check import format using isort ' ; echo $MSG
-    isort --recursive --check-only pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
