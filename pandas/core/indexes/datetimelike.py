@@ -430,6 +430,10 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.min
         """
+        if axis is not None and axis >= self.ndim:
+            raise ValueError("`axis` must be fewer than the number of "
+                             "dimensions ({ndim})".format(ndim=self.ndim))
+
         nv.validate_min(args, kwargs)
 
         try:
@@ -458,6 +462,10 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.argmin
         """
+        if axis is not None and axis >= self.ndim:
+            raise ValueError("`axis` must be fewer than the number of "
+                             "dimensions ({ndim})".format(ndim=self.ndim))
+
         nv.validate_argmin(args, kwargs)
 
         i8 = self.asi8
@@ -478,6 +486,10 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.max
         """
+        if axis is not None and axis >= self.ndim:
+            raise ValueError("`axis` must be fewer than the number of "
+                             "dimensions ({ndim})".format(ndim=self.ndim))
+
         nv.validate_max(args, kwargs)
 
         try:
@@ -506,6 +518,10 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.argmax
         """
+        if axis is not None and axis >= self.ndim:
+            raise ValueError("`axis` must be fewer than the number of "
+                             "dimensions ({ndim})".format(ndim=self.ndim))
+
         nv.validate_argmax(args, kwargs)
 
         i8 = self.asi8
