@@ -165,8 +165,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             raise TypeError('__new__() got an unexpected keyword argument {}'.
                             format(list(set(fields) - valid_field_set)[0]))
 
-        periods = dtl.validate_periods(periods)
-
         if name is None and hasattr(data, 'name'):
             name = data.name
 
@@ -178,6 +176,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             freq = Period._maybe_convert_freq(freq)
 
         if data is None:
+            # TODO: Remove this block and associated kwargs; GH#20535
             if ordinal is not None:
                 data = np.asarray(ordinal, dtype=np.int64)
             else:

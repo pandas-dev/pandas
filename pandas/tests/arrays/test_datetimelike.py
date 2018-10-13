@@ -167,6 +167,20 @@ class TestTimedeltaArray(object):
 
 class TestPeriodArray(object):
 
+    def test_from_object_dtype(self, period_index):
+        pi = period_index
+        arr = PeriodArrayMixin(pd.Index(pi, dtype=object))
+        assert list(arr) == list(pi)
+
+        arr = PeriodArrayMixin(np.array(pi, dtype=object))
+        assert list(arr) == list(pi)
+
+        arr = PeriodArrayMixin(list(pi))
+        assert list(arr) == list(pi)
+
+        arr = PeriodArrayMixin(tuple(pi))
+        assert list(arr) == list(pi)
+
     def test_from_pi(self, period_index):
         pi = period_index
         arr = PeriodArrayMixin(pi)
