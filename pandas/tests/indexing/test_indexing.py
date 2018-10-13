@@ -768,34 +768,34 @@ class TestMisc(Base):
         # assigned to. covers both uniform data-type & multi-type cases
         def run_tests(df, rhs, right):
             # label, index, slice
-            r, i, s = list('bcd'), [1, 2, 3], slice(1, 4)
-            c, j, l = ['joe', 'jolie'], [1, 2], slice(1, 3)
+            label_one, index_one, slice_one = list('bcd'), [1, 2, 3], slice(1, 4)
+            label_two, index_two, slice_two = ['joe', 'jolie'], [1, 2], slice(1, 3)
 
             left = df.copy()
-            left.loc[r, c] = rhs
+            left.loc[label_one, label_two] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
-            left.iloc[i, j] = rhs
+            left.iloc[index_one, index_two] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
             with catch_warnings(record=True):
                 # XXX: finer-filter here.
                 simplefilter("ignore")
-                left.ix[s, l] = rhs
+                left.ix[slice_one, slice_two] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
             with catch_warnings(record=True):
                 simplefilter("ignore")
-                left.ix[i, j] = rhs
+                left.ix[index_one, index_two] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
             with catch_warnings(record=True):
                 simplefilter("ignore")
-                left.ix[r, c] = rhs
+                left.ix[label_one, label_two] = rhs
             tm.assert_frame_equal(left, right)
 
         xs = np.arange(20).reshape(5, 4)
