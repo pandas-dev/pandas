@@ -363,13 +363,10 @@ class TestTimedeltaArraylikeAddSubOps(object):
     @pytest.mark.parametrize('op', [operator.add, ops.radd,
                                     operator.sub, ops.rsub],
                              ids=lambda x: x.__name__)
-    def test_td64arr_add_sub_float(self, box, op, other):
+    def test_td64arr_add_sub_float(self, box_df_broadcast_failure, op, other):
+        box = box_df_broadcast_failure
         tdi = TimedeltaIndex(['-1 days', '-1 days'])
         tdi = tm.box_expected(tdi, box)
-
-        if box is pd.DataFrame and op in [operator.add, operator.sub]:
-            pytest.xfail(reason="Tries to align incorrectly, "
-                                "raises ValueError")
 
         with pytest.raises(TypeError):
             op(tdi, other)
