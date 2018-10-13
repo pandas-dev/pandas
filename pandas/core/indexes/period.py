@@ -176,7 +176,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             freq = Period._maybe_convert_freq(freq)
 
         if data is None:
-            # TODO: Remove this block and associated kwargs; GH#20535
             if ordinal is not None:
                 data = np.asarray(ordinal, dtype=np.int64)
             else:

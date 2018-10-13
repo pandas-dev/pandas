@@ -122,7 +122,15 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
     _attributes = ["freq"]
 
-    def __new__(cls, values, freq=None, **kwargs):
+    def __new__(cls, values, freq=None, dtype=None, **kwargs):
+
+        if freq is not None:
+            # coerce freq to freq object, otherwise it can be coerced
+            # elementwise, which is slow
+            freq = Period._maybe_convert_freq(freq)
+
+        freq = dtl.validate_dtype_freq(dtype, freq)
+
         if is_period_dtype(values):
             # PeriodArray, PeriodIndex
             freq = dtl.validate_dtype_freq(values.dtype, freq)
