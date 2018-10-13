@@ -513,21 +513,21 @@ class TestNDFrame(TestPackers):
             assert_frame_equal(self.frame[k], i_rec[k])
 
         packed_items = tuple([self.frame['float'], self.frame['float'].A,
-                   self.frame['float'].B, None])
+                              self.frame['float'].B, None])
         l_rec = self.encode_decode(packed_items)
         check_arbitrary(packed_items, l_rec)
 
         # this is an oddity in that packed lists will be returned as tuples
-        packed_items = [self.frame['float'], self.frame['float']
-             .A, self.frame['float'].B, None]
+        packed_items = [self.frame['float'], self.frame['float'].A,
+                        self.frame['float'].B, None]
         l_rec = self.encode_decode(packed_items)
         assert isinstance(l_rec, tuple)
         check_arbitrary(packed_items, l_rec)
 
     def test_iterator(self):
 
-        packed_items = [self.frame['float'], self.frame['float']
-             .A, self.frame['float'].B, None]
+        packed_items = [self.frame['float'], self.frame['float'].A,
+                        self.frame['float'].B, None]
 
         with ensure_clean(self.path) as path:
             to_msgpack(path, *packed_items)
