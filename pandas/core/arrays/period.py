@@ -179,7 +179,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
             freq = Period._maybe_convert_freq(freq)
 
         field_count = len(fields)
-        if com.count_not_none(start, end) > 0:
+        if start is not None or end is not None:
             if field_count > 0:
                 raise ValueError('Can either instantiate from fields '
                                  'or endpoints, but not both')
