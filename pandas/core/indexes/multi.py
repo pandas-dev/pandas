@@ -2796,8 +2796,14 @@ class MultiIndex(Index):
                               labels=[[]] * self.nlevels,
                               names=result_names, verify_integrity=False)
 
-        difference = set(self._ndarray_values) - set(other._ndarray_values)
+        this = self._get_unique_index()
 
+        indexer = this.get_indexer(other)
+        indexer = indexer.take((indexer != -1).nonzero()[0])
+
+        label_diff = np.setdiff1d(np.arange(this.size), indexer,
+                                  assume_unique=True)
+        difference = this.values.take(label_diff)
         if sort:
             difference = sorted(difference)
 
