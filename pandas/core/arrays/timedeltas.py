@@ -126,8 +126,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         result._freq = freq
         return result
 
-    def __new__(cls, values, freq=None, start=None, end=None, periods=None,
-                closed=None):
+    def __new__(cls, values, freq=None):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
