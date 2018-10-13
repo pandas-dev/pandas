@@ -48,20 +48,15 @@ class TestFrameComparisons(object):
         assert result.all().all()
 
     def test_df_boolean_comparison_error(self):
-        # GH#4576, GH#22880
-        # comparing DataFrame against list/tuple with len(obj) matching
-        #  len(df.columns) is supported as of GH#22800
+        # GH 4576
+        # boolean comparisons with a tuple/list give unexpected results
         df = pd.DataFrame(np.arange(6).reshape((3, 2)))
 
-        expected = pd.DataFrame([[False, False],
-                                 [True, False],
-                                 [False, False]])
-
-        result = df == (2, 2)
-        tm.assert_frame_equal(result, expected)
-
-        result = df == [2, 2]
-        tm.assert_frame_equal(result, expected)
+        # not shape compatible
+        with pytest.raises(ValueError):
+            df == (2, 2)
+        with pytest.raises(ValueError):
+            df == [2, 2]
 
     def test_df_float_none_comparison(self):
         df = pd.DataFrame(np.random.randn(8, 3), index=range(8),
