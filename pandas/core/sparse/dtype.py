@@ -29,7 +29,7 @@ class SparseDtype(ExtensionDtype):
         ========== ==========
         float      ``np.nan``
         int        ``0``
-        bool       False
+        bool       ``False``
         datetime64 ``pd.NaT``
         timedelta64 ``pd.NaT``
         ========== ==========
@@ -170,11 +170,11 @@ class SparseDtype(ExtensionDtype):
             'int'            SparseDtype[np.int64, 0]
             'Sparse'         SparseDtype[np.float64, nan]
             'Sparse[int]'    SparseDtype[np.int64, 0]
-            'Sparse[int, 1]' SparseDtype[np.int64, 0]
+            'Sparse[int, 0]' SparseDtype[np.int64, 0]
             ================ ============================
 
             It is not possible to specify non-default fill values
-            with a string. An argument like ``'SparseDtype[int, 1]'``
+            with a string. An argument like ``'Sparse[int, 1]'``
             will raise a ``TypeError`` because the default fill value
             for integers is 0.
 
