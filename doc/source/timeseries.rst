@@ -892,18 +892,14 @@ The key features of a ``DateOffset`` object are:
   :meth:`~pandas.DateOffset.rollback` methods for moving a date forward or
   backward to the next or previous "offset date".
 
-Beware that adding an offset to a ``DatetimeIndexes`` with consecutive values
-can produce a ``DatetimeIndexes`` with gaps, for example:
+.. note:: Beware that adding an offset to a ``DatetimeIndexes`` with
+consecutive values can produce a ``DatetimeIndexes`` with gaps, for example:
 
 .. ipython:: python
 
 index = pd.DatetimeIndex(start='2018-02-27', periods=3, freq='D')
 index
-
-.. ipython:: python
-
-new_index = index + pd.tseries.offsets.DateOffset(months=4, days=2)
-new_index
+index + pd.tseries.offsets.DateOffset(months=4, days=2)
 
 A way to achieve ``DatetimeIndexes`` without gaps is to shift the first date
 with ``DateOffset`` then construct the ``DatetimeIndexes`` using the original
