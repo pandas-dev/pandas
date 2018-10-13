@@ -806,10 +806,8 @@ class TestDataFrameOperators(TestData):
         assert_numpy_array_equal(result, expected.values)
 
         msg1d = 'Unable to coerce to Series, length must be 2: given 3'
-        msg2d = (r'Unable to coerce to DataFrame, '
-                 r'shape must be \(3, 2\): given \(2, 1\)')
-        msg2db = (r"operands could not be broadcast together "
-                  r"with shapes \(3,2\) \(2,1\)")
+        msg2d = 'Unable to coerce to DataFrame, shape must be'
+        msg2db = 'operands could not be broadcast together with shapes'
         with tm.assert_raises_regex(ValueError, msg1d):
             # wrong shape
             df > l
