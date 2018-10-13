@@ -270,13 +270,13 @@ class TestSeriesDtypes():
         tm.assert_frame_equal(exp_df, df)
 
         # with keywords
-        items = ["a", "b", "c", "a"]
-        s = Series(items)
-        exp = Series(Categorical(items, ordered=True))
+        lst = ["a", "b", "c", "a"]
+        s = Series(lst)
+        exp = Series(Categorical(lst, ordered=True))
         res = s.astype(CategoricalDtype(None, ordered=True))
         tm.assert_series_equal(res, exp)
 
-        exp = Series(Categorical(items, categories=list('abcdef'), ordered=True))
+        exp = Series(Categorical(lst, categories=list('abcdef'), ordered=True))
         res = s.astype(CategoricalDtype(list('abcdef'), ordered=True))
         tm.assert_series_equal(res, exp)
 
