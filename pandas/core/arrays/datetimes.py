@@ -222,6 +222,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     @classmethod
     def _generate_range(cls, start, end, periods, freq, tz=None,
                         normalize=False, ambiguous='raise', closed=None):
+
+        periods = dtl.validate_periods(periods)
+        if freq is None and any(x is None for x in [periods, start, end]):
+            raise ValueError('Must provide freq argument if no data is '
+                             'supplied')
+
         if com.count_not_none(start, end, periods, freq) != 3:
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')
@@ -264,7 +270,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         if freq is not None:
             if cls._use_cached_range(freq, _normalized, start, end):
                 # Currently always False; never hit
-                # Should be reimplemented as apart of GH 17914
+                # Should be reimplemented as a part of GH#17914
                 index = cls._cached_range(start, end, periods=periods,
                                           freq=freq)
             else:
