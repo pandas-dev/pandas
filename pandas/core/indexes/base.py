@@ -2010,7 +2010,8 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         key : label
-            The key requested. Immutable-like, 1-dimensional.
+            The key can be of the same type as the label of :class: `Index`,
+            hence immutable-like and 1-dimensional if it is a tuple.
 
         Returns
         -------
@@ -2019,23 +2020,20 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        CategoricalIndex : Returns a bool if the 1-dimensional, Categorical key
-            is in index.
         Index.isin : Returns ndarray of boolean dtype if list-like key is in
             index.
 
         Examples
         --------
-        >>> l1 = pd.Index([1, 2, (3, 4), 5])
-        >>> t = (3, 4)
-        >>> num1 = 1
-        >>> num2 = 6
-        >>> l1.contains(num1)
+        >>> idx = pd.Index([1, 2, (3, 4), 5])
+        >>> idx
+        Index([1, 2, (3, 4), 5], dtype='object')
+        >>> idx.contains((3,4))
         True
-        >>> l1.contains(num2)
+        >>> idx.contains(1)
+        True
+        >>> idx.contains(6)
         False
-        >>> l1.contains(t)
-        True
         """
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
