@@ -5,7 +5,7 @@ from .blocks import (  # noqa:F401
     make_block,     # io.pytables, io.packers
     FloatBlock, IntBlock, ComplexBlock, BoolBlock, ObjectBlock,
     TimeDeltaBlock, DatetimeBlock, DatetimeTZBlock,
-    CategoricalBlock, ExtensionBlock, SparseBlock, ScalarBlock,
+    CategoricalBlock, ExtensionBlock, ScalarBlock,
     Block)
 from .managers import (  # noqa:F401
     BlockManager, SingleBlockManager,

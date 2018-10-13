@@ -1,8 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
-
 import numpy as np
 import pandas as pd
+from pandas.core.sparse.dtype import SparseDtype
 import pandas.util.testing as tm
 
 
@@ -47,29 +47,29 @@ class TestSparseSeriesSubclassing(object):
         s = tm.SubclassedSparseSeries([1, 2, 3, 4, 5])
         exp = tm.SubclassedSparseSeries([2, 3, 4], index=[1, 2, 3])
         tm.assert_sp_series_equal(s.loc[1:3], exp)
-        assert s.loc[1:3].dtype == np.int64
+        assert s.loc[1:3].dtype == SparseDtype(np.int64)
 
         exp = tm.SubclassedSparseSeries([2, 3], index=[1, 2])
         tm.assert_sp_series_equal(s.iloc[1:3], exp)
-        assert s.iloc[1:3].dtype == np.int64
+        assert s.iloc[1:3].dtype == SparseDtype(np.int64)
 
         exp = tm.SubclassedSparseSeries([2, 3], index=[1, 2])
         tm.assert_sp_series_equal(s[1:3], exp)
-        assert s[1:3].dtype == np.int64
+        assert s[1:3].dtype == SparseDtype(np.int64)
 
         # float64
         s = tm.SubclassedSparseSeries([1., 2., 3., 4., 5.])
         exp = tm.SubclassedSparseSeries([2., 3., 4.], index=[1, 2, 3])
         tm.assert_sp_series_equal(s.loc[1:3], exp)
-        assert s.loc[1:3].dtype == np.float64
+        assert s.loc[1:3].dtype == SparseDtype(np.float64)
 
         exp = tm.SubclassedSparseSeries([2., 3.], index=[1, 2])
         tm.assert_sp_series_equal(s.iloc[1:3], exp)
-        assert s.iloc[1:3].dtype == np.float64
+        assert s.iloc[1:3].dtype == SparseDtype(np.float64)
 
         exp = tm.SubclassedSparseSeries([2., 3.], index=[1, 2])
         tm.assert_sp_series_equal(s[1:3], exp)
-        assert s[1:3].dtype == np.float64
+        assert s[1:3].dtype == SparseDtype(np.float64)
 
     def test_subclass_sparse_addition(self):
         s1 = tm.SubclassedSparseSeries([1, 3, 5])
@@ -83,25 +83,25 @@ class TestSparseSeriesSubclassing(object):
         tm.assert_sp_series_equal(s1 + s2, exp)
 
     def test_subclass_sparse_to_frame(self):
-        s = tm.SubclassedSparseSeries([1, 2], index=list('abcd'), name='xxx')
+        s = tm.SubclassedSparseSeries([1, 2], index=list('ab'), name='xxx')
         res = s.to_frame()
 
         exp_arr = pd.SparseArray([1, 2], dtype=np.int64, kind='block',
                                  fill_value=0)
         exp = tm.SubclassedSparseDataFrame({'xxx': exp_arr},
-                                           index=list('abcd'),
+                                           index=list('ab'),
                                            default_fill_value=0)
         tm.assert_sp_frame_equal(res, exp)
 
         # create from int dict
         res = tm.SubclassedSparseDataFrame({'xxx': [1, 2]},
-                                           index=list('abcd'),
+                                           index=list('ab'),
                                            default_fill_value=0)
         tm.assert_sp_frame_equal(res, exp)
 
-        s = tm.SubclassedSparseSeries([1.1, 2.1], index=list('abcd'),
+        s = tm.SubclassedSparseSeries([1.1, 2.1], index=list('ab'),
                                       name='xxx')
         res = s.to_frame()
         exp = tm.SubclassedSparseDataFrame({'xxx': [1.1, 2.1]},
-                                           index=list('abcd'))
+                                           index=list('ab'))
         tm.assert_sp_frame_equal(res, exp)

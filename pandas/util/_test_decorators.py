@@ -160,7 +160,6 @@ def skip_if_no(package, min_version=None):
 
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
-
 skip_if_np_lt_115 = pytest.mark.skipif(_np_version_under1p15,
                                        reason="NumPy 1.15 or greater required")
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(),

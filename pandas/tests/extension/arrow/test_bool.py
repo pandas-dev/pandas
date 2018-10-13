@@ -20,6 +20,11 @@ def data():
                                        dtype=bool))
 
 
+@pytest.fixture
+def data_missing():
+    return ArrowBoolArray.from_scalars([None, True])
+
+
 class BaseArrowTests(object):
     pass
 
@@ -40,6 +45,11 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
 
 
 class TestReduce(base.BaseNoReduceTests):
+    def test_reduce_series_boolean(self):
+        pass
+
+
+class TestReduceBoolean(base.BaseBooleanReduceTests):
     pass
 
 

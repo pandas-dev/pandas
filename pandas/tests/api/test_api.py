@@ -44,7 +44,7 @@ class TestPDApi(Base):
                'DatetimeIndex', 'ExcelFile', 'ExcelWriter', 'Float64Index',
                'Grouper', 'HDFStore', 'Index', 'Int64Index', 'MultiIndex',
                'Period', 'PeriodIndex', 'RangeIndex', 'UInt64Index',
-               'Series', 'SparseArray', 'SparseDataFrame',
+               'Series', 'SparseArray', 'SparseDataFrame', 'SparseDtype',
                'SparseSeries', 'Timedelta',
                'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
 

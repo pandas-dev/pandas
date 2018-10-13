@@ -499,6 +499,19 @@ def na_value_for_dtype(dtype, compat=True):
     Returns
     -------
     np.dtype or a pandas dtype
+
+    Examples
+    --------
+    >>> na_value_for_dtype(np.dtype('int64'))
+    0
+    >>> na_value_for_dtype(np.dtype('int64'), compat=False)
+    nan
+    >>> na_value_for_dtype(np.dtype('float64'))
+    nan
+    >>> na_value_for_dtype(np.dtype('bool'))
+    False
+    >>> na_value_for_dtype(np.dtype('datetime64[ns]'))
+    NaT
     """
     dtype = pandas_dtype(dtype)
 
