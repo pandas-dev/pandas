@@ -1934,6 +1934,9 @@ def _comp_method_FRAME(cls, func, special):
 
     @Appender('Wrapper for comparison method {name}'.format(name=op_name))
     def f(self, other):
+
+        other = _align_method_FRAME(self, other, axis=None)
+
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
             if not self._indexed_same(other):
