@@ -1189,11 +1189,8 @@ class MultiIndex(Index):
         else:
             idx_names = self.names
 
-        result = DataFrame({(name or level):
-                            self._get_level_values(level)
-                            for name, level in
-                            zip(idx_names, range(len(self.levels)))},
-                           copy=False)
+        result = DataFrame(list(self), columns=[n or i for i, n in enumerate(idx_names)])
+
         if index:
             result.index = self
         return result
