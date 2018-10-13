@@ -752,9 +752,8 @@ class TestDataFrameOperators(TestData):
             result = func(df1, df2)
             tm.assert_numpy_array_equal(result.values,
                                         func(df1.values, df2.values))
-
             with tm.assert_raises_regex(ValueError,
-                                        'dim must be <= 2'):
+                                        'Wrong number of dimensions'):
                 func(df1, ndim_5)
 
             result2 = func(self.simple, row)
@@ -805,28 +804,22 @@ class TestDataFrameOperators(TestData):
         result = df.values > b
         assert_numpy_array_equal(result, expected.values)
 
-        msg1d = 'Unable to coerce to Series, length must be 2: given 3'
-        msg2d = 'Unable to coerce to DataFrame, shape must be'
-        msg2db = 'operands could not be broadcast together with shapes'
-        with tm.assert_raises_regex(ValueError, msg1d):
-            # wrong shape
-            df > l
+        result = df > l
+        assert_frame_equal(result, expected)
 
-        with tm.assert_raises_regex(ValueError, msg1d):
-            # wrong shape
-            result = df > tup
+        result = df > tup
+        assert_frame_equal(result, expected)
 
-        # broadcasts like ndarray (GH#23000)
         result = df > b_r
         assert_frame_equal(result, expected)
 
         result = df.values > b_r
         assert_numpy_array_equal(result, expected.values)
 
-        with tm.assert_raises_regex(ValueError, msg2d):
+        with pytest.raises(ValueError):
             df > b_c
 
-        with tm.assert_raises_regex(ValueError, msg2db):
+        with pytest.raises(ValueError):
             df.values > b_c
 
         # ==
@@ -834,20 +827,19 @@ class TestDataFrameOperators(TestData):
         result = df == b
         assert_frame_equal(result, expected)
 
-        with tm.assert_raises_regex(ValueError, msg1d):
-            result = df == l
+        result = df == l
+        assert_frame_equal(result, expected)
 
-        with tm.assert_raises_regex(ValueError, msg1d):
-            result = df == tup
+        result = df == tup
+        assert_frame_equal(result, expected)
 
-        # broadcasts like ndarray (GH#23000)
         result = df == b_r
         assert_frame_equal(result, expected)
 
         result = df.values == b_r
         assert_numpy_array_equal(result, expected.values)
 
-        with tm.assert_raises_regex(ValueError, msg2d):
+        with pytest.raises(ValueError):
             df == b_c
 
         assert df.values.shape != b_c.shape
@@ -858,11 +850,11 @@ class TestDataFrameOperators(TestData):
         expected.index = df.index
         expected.columns = df.columns
 
-        with tm.assert_raises_regex(ValueError, msg1d):
-            result = df == l
+        result = df == l
+        assert_frame_equal(result, expected)
 
-        with tm.assert_raises_regex(ValueError, msg1d):
-            result = df == tup
+        result = df == tup
+        assert_frame_equal(result, expected)
 
     def test_combine_generic(self):
         df1 = self.frame
