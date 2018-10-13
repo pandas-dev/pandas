@@ -1190,7 +1190,7 @@ class MultiIndex(Index):
             idx_names = self.names
 
         result = DataFrame(
-            list(self), 
+            list(self),
             columns=[n or i for i, n in enumerate(idx_names)]
         )
 
