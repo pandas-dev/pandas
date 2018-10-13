@@ -363,8 +363,11 @@ class TestTimedeltaArraylikeAddSubOps(object):
     @pytest.mark.parametrize('op', [operator.add, ops.radd,
                                     operator.sub, ops.rsub],
                              ids=lambda x: x.__name__)
-    def test_td64arr_add_sub_float(self, box_df_broadcast_failure, op, other):
-        box = box_df_broadcast_failure
+    def test_td64arr_add_sub_float(self, box, op, other):
+        if box is pd.DataFrame and isinstance(other, np.ndarray):
+            pytest.xfail("Tries to broadcast, raising "
+                         "ValueError instead of TypeError")
+
         tdi = TimedeltaIndex(['-1 days', '-1 days'])
         tdi = tm.box_expected(tdi, box)
 
