@@ -1412,6 +1412,22 @@ class MultiIndex(Index):
         labels = cartesian_product(labels)
         return MultiIndex(levels, labels, sortorder=sortorder, names=names)
 
+    @classmethod
+    def from_frame(cls, df, squeeze=True):
+        """
+        :param df
+        :param squeeze
+            Squeeze single level multiindex to be a regular index
+        """
+        # just let column level names be the tuple of the meta df columns since they're not required to be strings
+        # columns = ['.'.join(col) for col in list(df)]
+        columns = list(df)
+        mi = cls.from_tuples(list(df.values), names=columns)
+        if squeeze:
+            return mi.squeeze()
+        else:
+            return mi
+
     def _sort_levels_monotonic(self):
         """
         .. versionadded:: 0.20.0
@@ -1473,6 +1489,16 @@ class MultiIndex(Index):
         return MultiIndex(new_levels, new_labels,
                           names=self.names, sortorder=self.sortorder,
                           verify_integrity=False)
+
+    def squeeze(self):
+        """
+        If multiindex is only composed of a single level, convert to a regular index.
+        Otherwise return a copy of the index.
+        """
+        if len(self.levels) == 1:
+            return self.levels[0][self.labels[0]]
+        else:
+            return self.copy()
 
     def remove_unused_levels(self):
         """
