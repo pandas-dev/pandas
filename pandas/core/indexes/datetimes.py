@@ -40,7 +40,7 @@ from pandas.core.indexes.datetimelike import (
     DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     wrap_field_accessor, wrap_array_method)
 from pandas.tseries.offsets import (
-    generate_range, CDay, prefix_mapping)
+    CDay, prefix_mapping)
 
 from pandas.core.tools.timedeltas import to_timedelta
 from pandas.util._decorators import Appender, cache_readonly, Substitution
