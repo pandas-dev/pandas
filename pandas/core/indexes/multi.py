@@ -1189,7 +1189,10 @@ class MultiIndex(Index):
         else:
             idx_names = self.names
 
-        result = DataFrame(list(self), columns=[n or i for i, n in enumerate(idx_names)])
+        result = DataFrame(
+            list(self), 
+            columns=[n or i for i, n in enumerate(idx_names)]
+        )
 
         if index:
             result.index = self
@@ -1416,8 +1419,8 @@ class MultiIndex(Index):
         :param squeeze
             Squeeze single level multiindex to be a regular index
         """
-        # just let column level names be the tuple of the meta df columns since they're not required to be strings
-        # columns = ['.'.join(col) for col in list(df)]
+        # just let column level names be the tuple of the meta df columns
+        # since they're not required to be strings
         columns = list(df)
         mi = cls.from_tuples(list(df.values), names=columns)
         if squeeze:
@@ -1489,7 +1492,7 @@ class MultiIndex(Index):
 
     def squeeze(self):
         """
-        If multiindex is only composed of a single level, convert to a regular index.
+        If multiindex is only composed of a single level, convert to an index.
         Otherwise return a copy of the index.
         """
         if len(self.levels) == 1:
