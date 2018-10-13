@@ -569,7 +569,7 @@ def linkcode_resolve(domain, info):
             return None
 
     try:
-        fn = inspect.getsourcefile(obj)
+        fn = inspect.getsourcefile(inspect.unwrap(obj))
     except:
         fn = None
     if not fn:
