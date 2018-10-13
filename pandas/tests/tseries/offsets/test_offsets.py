@@ -26,7 +26,7 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     BYearBegin, QuarterBegin, BQuarterBegin,
                                     BMonthBegin, DateOffset, Week, YearBegin,
                                     YearEnd, Day,
-                                    QuarterEnd, BusinessMonthEnd, FY5253,
+                                    QuarterEnd, FY5253,
                                     Nano, Easter, FY5253Quarter,
                                     LastWeekOfMonth, Tick, CalendarDay)
 import pandas.tseries.offsets as offsets
