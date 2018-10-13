@@ -181,7 +181,7 @@ Other Enhancements
 - :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
 - :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with :class:`MultiIndex` (:issue:`21115`)
 - :meth:`Series.droplevel` and :meth:`DataFrame.droplevel` are now implemented (:issue:`20342`)
-- Added support for reading from Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`)
+- Added support for reading from/writing to Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`, :issue:`23094`)
 - :func:`to_gbq` and :func:`read_gbq` signature and documentation updated to
   reflect changes from the `Pandas-GBQ library version 0.6.0
   <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-6-0>`__.
