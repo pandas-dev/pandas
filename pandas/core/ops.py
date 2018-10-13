@@ -1750,20 +1750,31 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
     -------
     result : DataFrame
     """
+
+    def wrap(res):
+        if fill_value is not None:
+            return res.fillna(fill_value)
+        else:
+            return res
+
     if fill_value is not None:
-        raise NotImplementedError("fill_value {fill} not supported."
-                                  .format(fill=fill_value))
+        if not is_scalar(fill_value):
+            raise NotImplementedError("fill_value is \
+            only supported for scalar values.")
+
+        self = self.fillna(fill_value)
+        other = other.fillna(fill_value)
 
     if axis is not None:
         axis = self._get_axis_number(axis)
         if axis == 0:
-            return self._combine_match_index(other, func, level=level)
+            return wrap(self._combine_match_index(other, func, level=level))
         else:
-            return self._combine_match_columns(other, func, level=level,
-                                               try_cast=try_cast)
+            return wrap(self._combine_match_columns(other, func, level=level,
+                                                    try_cast=try_cast))
     else:
         if not len(other):
-            return self * np.nan
+            return wrap(self * np.nan)
 
         if not len(self):
             # Ambiguous case, use _series so works with DataFrame
@@ -1771,8 +1782,8 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
                                      columns=self.columns)
 
         # default axis is columns
-        return self._combine_match_columns(other, func, level=level,
-                                           try_cast=try_cast)
+        return wrap(self._combine_match_columns(other, func, level=level,
+                                                try_cast=try_cast))
 
 
 def _align_method_FRAME(left, right, axis):
