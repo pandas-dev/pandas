@@ -1126,9 +1126,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
 
     def test_td64arr_rfloordiv_tdscalar(self, box, scalar_td):
         # GH#18831
-        if box is pd.DataFrame and isinstance(scalar_td, np.timedelta64):
-            pytest.xfail(reason="raises TypeError, not sure why")
-
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
 
