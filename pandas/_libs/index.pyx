@@ -294,14 +294,23 @@ cdef class IndexEngine:
         result = np.empty(n_alloc, dtype=np.int64)
         missing = np.empty(n_t, dtype=np.int64)
 
-        # form the set of the results (like ismember)
-        members = np.empty(n, dtype=np.uint8)
-        for i in range(n):
-            val = values[i]
-            if val in stargets:
-                if val not in d:
-                    d[val] = []
-                d[val].append(i)
+        # map each starget to its position in the index
+        if stargets and len(stargets) < 5 and self.is_monotonic_increasing:
+            # if there are few enough stargets and the index is monotonically
+            # increasing, then use binary search for each starget
+            for starget in stargets:
+                start = values.searchsorted(starget, side='left')
+                end = values.searchsorted(starget, side='right')
+                if start != end:
+                    d[starget] = list(range(start, end))
+        else:
+            # otherwise, map by iterating through all items in the index
+            for i in range(n):
+                val = values[i]
+                if val in stargets:
+                    if val not in d:
+                        d[val] = []
+                    d[val].append(i)
 
         for i in range(n_t):
             val = targets[i]

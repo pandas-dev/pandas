@@ -4,42 +4,30 @@ Template for each `dtype` helper function for join
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # left_join_indexer, inner_join_indexer, outer_join_indexer
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
-{{py:
+ctypedef fused join_t:
+    float64_t
+    float32_t
+    object
+    int32_t
+    int64_t
+    uint64_t
 
-# name, c_type, dtype
-dtypes = [('float64', 'float64_t', 'np.float64'),
-          ('float32', 'float32_t', 'np.float32'),
-          ('object', 'object', 'object'),
-          ('int32', 'int32_t', 'np.int32'),
-          ('int64', 'int64_t', 'np.int64'),
-          ('uint64', 'uint64_t', 'np.uint64')]
-
-def get_dispatch(dtypes):
-
-    for name, c_type, dtype in dtypes:
-        yield name, c_type, dtype
-
-}}
-
-{{for name, c_type, dtype in get_dispatch(dtypes)}}
 
 # Joins on ordered, unique indices
 
 # right might contain non-unique values
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def left_join_indexer_unique_{{name}}(ndarray[{{c_type}}] left,
-                                      ndarray[{{c_type}}] right):
+def left_join_indexer_unique(ndarray[join_t] left, ndarray[join_t] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t] indexer
-        {{c_type}} lval, rval
+        join_t lval, rval
 
     i = 0
     j = 0
@@ -76,6 +64,34 @@ def left_join_indexer_unique_{{name}}(ndarray[{{c_type}}] left,
             indexer[i] = -1
             i += 1
     return indexer
+
+
+left_join_indexer_unique_float64 = left_join_indexer_unique["float64_t"]
+left_join_indexer_unique_float32 = left_join_indexer_unique["float32_t"]
+left_join_indexer_unique_object = left_join_indexer_unique["object"]
+left_join_indexer_unique_int32 = left_join_indexer_unique["int32_t"]
+left_join_indexer_unique_int64 = left_join_indexer_unique["int64_t"]
+left_join_indexer_unique_uint64 = left_join_indexer_unique["uint64_t"]
+
+
+{{py:
+
+# name, c_type, dtype
+dtypes = [('float64', 'float64_t', 'np.float64'),
+          ('float32', 'float32_t', 'np.float32'),
+          ('object', 'object', 'object'),
+          ('int32', 'int32_t', 'np.int32'),
+          ('int64', 'int64_t', 'np.int64'),
+          ('uint64', 'uint64_t', 'np.uint64')]
+
+def get_dispatch(dtypes):
+
+    for name, c_type, dtype in dtypes:
+        yield name, c_type, dtype
+
+}}
+
+{{for name, c_type, dtype in get_dispatch(dtypes)}}
 
 
 # @cython.wraparound(False)

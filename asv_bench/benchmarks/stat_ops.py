@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
 
-from .pandas_vb_common import setup  # noqa
-
 
 ops = ['mean', 'sum', 'median', 'std', 'skew', 'kurt', 'mad', 'prod', 'sem',
        'var']
@@ -18,7 +16,7 @@ class FrameOps(object):
         df = pd.DataFrame(np.random.randn(100000, 4)).astype(dtype)
         try:
             pd.options.compute.use_bottleneck = use_bottleneck
-        except:
+        except TypeError:
             from pandas.core import nanops
             nanops._USE_BOTTLENECK = use_bottleneck
         self.df_func = getattr(df, op)
@@ -56,7 +54,7 @@ class SeriesOps(object):
         s = pd.Series(np.random.randn(100000)).astype(dtype)
         try:
             pd.options.compute.use_bottleneck = use_bottleneck
-        except:
+        except TypeError:
             from pandas.core import nanops
             nanops._USE_BOTTLENECK = use_bottleneck
         self.s_func = getattr(s, op)
@@ -112,3 +110,6 @@ class Correlation(object):
 
     def time_corr(self, method):
         self.df.corr(method=method)
+
+
+from .pandas_vb_common import setup  # noqa: F401

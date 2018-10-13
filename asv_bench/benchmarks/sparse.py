@@ -5,8 +5,6 @@ import scipy.sparse
 from pandas import (SparseSeries, SparseDataFrame, SparseArray, Series,
                     date_range, MultiIndex)
 
-from .pandas_vb_common import setup  # noqa
-
 
 def make_array(size, dense_proportion, fill_value, dtype):
     dense_size = int(size * dense_proportion)
@@ -160,3 +158,6 @@ class ArithmeticBlock(object):
 
     def time_division(self, fill_value):
         self.arr1 / self.arr2
+
+
+from .pandas_vb_common import setup  # noqa: F401
