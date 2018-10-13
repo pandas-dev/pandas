@@ -599,22 +599,17 @@ class TestDataFrameSortIndexKinds(TestData):
         result = result.columns.levels[1].categories
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("categories", [['A', 'B', 'C']])
-    @pytest.mark.parametrize("category_indices", [[0, 2, 4]])
-    @pytest.mark.parametrize("list_of_nans", [[np.nan, np.nan]])
-    @pytest.mark.parametrize("na_indices", [[1, 3]])
-    @pytest.mark.parametrize("na_position_first", ['first'])
-    @pytest.mark.parametrize("na_position_last", ['last'])
-    @pytest.mark.parametrize("column_name", ['c'])
-    def test_sort_index_na_position_with_categories(self, categories,
-                                                    category_indices,
-                                                    na_indices,
-                                                    list_of_nans,
-                                                    na_position_first,
-                                                    na_position_last,
-                                                    column_name):
+    def test_sort_index_na_position_with_categories(self):
         # GH 22556
         # Positioning missing value properly when column is Categorical.
+        categories = ['A', 'B', 'C']
+        category_indices = [0, 2, 4]
+        list_of_nans = [np.nan, np.nan]
+        na_indices = [1, 3]
+        na_position_first = 'first'
+        na_position_last = 'last'
+        column_name = 'c'
+
         reversed_categories = sorted(categories, reverse=True)
         reversed_category_indices = sorted(category_indices, reverse=True)
         reversed_na_indices = sorted(na_indices, reverse=True)
