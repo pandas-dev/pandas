@@ -360,3 +360,22 @@ def validate_resampler_func(method, args, kwargs):
                 "{func}() instead".format(func=method)))
         else:
             raise TypeError("too many arguments passed in")
+
+
+def validate_minmax_axis(axis):
+    """
+    Ensure that the axis argument passed to min, max, argmin, or argmax is
+    zero or None, as otherwise it will be incorrectly ignored.
+
+    Parameters
+    ----------
+    axis : int or None
+
+    Raises
+    ------
+    ValueError
+    """
+    ndim = 1  # hard-coded for Index
+    if axis is not None and axis >= ndim:
+        raise ValueError("`axis` must be fewer than the number of "
+                         "dimensions ({ndim})".format(ndim=ndim))

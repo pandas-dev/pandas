@@ -430,7 +430,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.min
         """
-        _validate_minmax_axis(axis)
+        nv.validate_minmax_axis(axis)
         nv.validate_min(args, kwargs)
 
         try:
@@ -459,7 +459,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.argmin
         """
-        _validate_minmax_axis(axis)
+        nv.validate_minmax_axis(axis)
         nv.validate_argmin(args, kwargs)
 
         i8 = self.asi8
@@ -480,7 +480,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.max
         """
-        _validate_minmax_axis(axis)
+        nv.validate_minmax_axis(axis)
         nv.validate_max(args, kwargs)
 
         try:
@@ -509,7 +509,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.argmax
         """
-        _validate_minmax_axis(axis)
+        nv.validate_minmax_axis(axis)
         nv.validate_argmax(args, kwargs)
 
         i8 = self.asi8
@@ -708,25 +708,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         result = DatetimeLikeArrayMixin._time_shift(self, periods, freq=freq)
         result.name = self.name
         return result
-
-
-def _validate_minmax_axis(axis):
-    """
-    Ensure that the axis argument passed to min, max, argmin, or argmax is
-    zero or None, as otherwise it will be incorrectly ignored.
-
-    Parameters
-    ----------
-    axis : int or None
-
-    Raises
-    ------
-    ValueError
-    """
-    ndim = 1  # hard-coded for Index
-    if axis is not None and axis >= ndim:
-        raise ValueError("`axis` must be fewer than the number of "
-                         "dimensions ({ndim})".format(ndim=ndim))
 
 
 def _ensure_datetimelike_to_i8(other, to_utc=False):
