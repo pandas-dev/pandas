@@ -1795,6 +1795,10 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Array Interface
 
+    # This is also set in IndexOpsMixin
+    # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
+    __array_priority__ = 1000
+
     def __array__(self, dtype=None):
         return com.values_from_object(self)
 

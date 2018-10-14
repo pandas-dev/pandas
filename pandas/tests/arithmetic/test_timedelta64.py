@@ -364,12 +364,12 @@ class TestTimedeltaArraylikeAddSubOps(object):
                                     operator.sub, ops.rsub],
                              ids=lambda x: x.__name__)
     def test_td64arr_add_sub_float(self, box, op, other):
+        if box is pd.DataFrame and isinstance(other, np.ndarray):
+            pytest.xfail("Tries to broadcast, raising "
+                         "ValueError instead of TypeError")
+
         tdi = TimedeltaIndex(['-1 days', '-1 days'])
         tdi = tm.box_expected(tdi, box)
-
-        if box is pd.DataFrame and op in [operator.add, operator.sub]:
-            pytest.xfail(reason="Tries to align incorrectly, "
-                                "raises ValueError")
 
         with pytest.raises(TypeError):
             op(tdi, other)
@@ -1126,9 +1126,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
 
     def test_td64arr_rfloordiv_tdscalar(self, box, scalar_td):
         # GH#18831
-        if box is pd.DataFrame and isinstance(scalar_td, np.timedelta64):
-            pytest.xfail(reason="raises TypeError, not sure why")
-
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
 

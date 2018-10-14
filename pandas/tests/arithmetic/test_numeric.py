@@ -156,7 +156,7 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
         if box is not pd.Index and broken:
             # np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
             raise pytest.xfail("timedelta64 not converted to nanos; "
-                               "Tick division not imlpemented")
+                               "Tick division not implemented")
 
         expected = TimedeltaIndex(['3 Days', '36 Hours'])
 
