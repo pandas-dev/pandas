@@ -1925,7 +1925,7 @@ class DataFrame(NDFrame):
             * Categorical label contains more than 32,000 characters
 
             .. versionadded:: 0.19.0
-            
+
         See Also
         --------
         read_stata : Import Stata data files.
