@@ -13,7 +13,7 @@ from pandas._libs.tslibs import (
     resolution as libresolution)
 
 from pandas.util._decorators import cache_readonly
-from pandas.errors import PerformanceWarning, AbstractMethodError
+from pandas.errors import PerformanceWarning
 from pandas import compat
 
 from pandas.core.dtypes.common import (
@@ -268,27 +268,22 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                 end, end.tz, start.tz, freq, tz
             )
         if freq is not None:
-            if cls._use_cached_range(freq, _normalized, start, end):
-                # Currently always False; never hit
-                # Should be reimplemented as a part of GH#17914
-                index = cls._cached_range(start, end, periods=periods,
-                                          freq=freq)
-            else:
-                index = _generate_regular_range(cls, start, end, periods, freq)
+            # TODO: consider re-implementing _cached_range; GH#17914
+            index = _generate_regular_range(cls, start, end, periods, freq)
 
-                if tz is not None and getattr(index, 'tz', None) is None:
-                    arr = conversion.tz_localize_to_utc(
-                        ensure_int64(index.values),
-                        tz, ambiguous=ambiguous)
+            if tz is not None and getattr(index, 'tz', None) is None:
+                arr = conversion.tz_localize_to_utc(
+                    ensure_int64(index.values),
+                    tz, ambiguous=ambiguous)
 
-                    index = cls(arr)
+                index = cls(arr)
 
-                    # index is localized datetime64 array -> have to convert
-                    # start/end as well to compare
-                    if start is not None:
-                        start = start.tz_localize(tz).asm8
-                    if end is not None:
-                        end = end.tz_localize(tz).asm8
+                # index is localized datetime64 array -> have to convert
+                # start/end as well to compare
+                if start is not None:
+                    start = start.tz_localize(tz).asm8
+                if end is not None:
+                    end = end.tz_localize(tz).asm8
         else:
             # Create a linearly spaced date_range in local time
             arr = np.linspace(start.value, end.value, periods)
@@ -302,16 +297,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             index = index[:-1]
 
         return cls._simple_new(index.values, freq=freq, tz=tz)
-
-    @classmethod
-    def _use_cached_range(cls, freq, _normalized, start, end):
-        # DatetimeArray is mutable, so is not cached
-        return False
-
-    @classmethod
-    def _cached_range(cls, start=None, end=None,
-                      periods=None, freq=None, **kwargs):
-        raise AbstractMethodError(cls)
 
     # -----------------------------------------------------------------
     # Descriptive Properties

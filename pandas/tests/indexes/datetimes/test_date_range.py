@@ -616,23 +616,6 @@ class TestBusinessDateRange(object):
         with tm.assert_raises_regex(TypeError, msg):
             aware.join(naive)
 
-    def test_cached_range(self):
-        DatetimeIndex._cached_range(START, END, freq=BDay())
-        DatetimeIndex._cached_range(START, periods=20, freq=BDay())
-        DatetimeIndex._cached_range(end=START, periods=20, freq=BDay())
-
-        with tm.assert_raises_regex(TypeError, "freq"):
-            DatetimeIndex._cached_range(START, END)
-
-        with tm.assert_raises_regex(TypeError, "specify period"):
-            DatetimeIndex._cached_range(START, freq=BDay())
-
-        with tm.assert_raises_regex(TypeError, "specify period"):
-            DatetimeIndex._cached_range(end=END, freq=BDay())
-
-        with tm.assert_raises_regex(TypeError, "start or end"):
-            DatetimeIndex._cached_range(periods=20, freq=BDay())
-
     def test_misc(self):
         end = datetime(2009, 5, 13)
         dr = bdate_range(end=end, periods=20)
@@ -692,29 +675,6 @@ class TestCustomDateRange(object):
 
         with tm.assert_raises_regex(TypeError, msg):
             bdate_range('2011-1-1', '2012-1-1', 'C')
-
-    def test_cached_range(self):
-        DatetimeIndex._cached_range(START, END, freq=CDay())
-        DatetimeIndex._cached_range(START, periods=20,
-                                    freq=CDay())
-        DatetimeIndex._cached_range(end=START, periods=20,
-                                    freq=CDay())
-
-        # with pytest.raises(TypeError):
-        with tm.assert_raises_regex(TypeError, "freq"):
-            DatetimeIndex._cached_range(START, END)
-
-        # with pytest.raises(TypeError):
-        with tm.assert_raises_regex(TypeError, "specify period"):
-            DatetimeIndex._cached_range(START, freq=CDay())
-
-        # with pytest.raises(TypeError):
-        with tm.assert_raises_regex(TypeError, "specify period"):
-            DatetimeIndex._cached_range(end=END, freq=CDay())
-
-        # with pytest.raises(TypeError):
-        with tm.assert_raises_regex(TypeError, "start or end"):
-            DatetimeIndex._cached_range(periods=20, freq=CDay())
 
     def test_misc(self):
         end = datetime(2009, 5, 13)

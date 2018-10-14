@@ -40,7 +40,7 @@ from pandas.core.indexes.datetimelike import (
     DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     wrap_field_accessor, wrap_array_method)
 from pandas.tseries.offsets import (
-    generate_range, CDay, prefix_mapping)
+    CDay, prefix_mapping)
 
 from pandas.core.tools.timedeltas import to_timedelta
 from pandas.util._decorators import Appender, cache_readonly, Substitution
@@ -326,13 +326,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         out.name = name
         return out
 
-    @classmethod
-    def _use_cached_range(cls, freq, _normalized, start, end):
-        # Note: This always returns False
-        return (freq._should_cache() and
-                not (freq._normalize_cache and not _normalized) and
-                _naive_in_cache_range(start, end))
-
     def _convert_for_op(self, value):
         """ Convert value to be insertable to ndarray """
         if self._has_same_tz(value):
@@ -409,71 +402,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         # Necessary to avoid recursion error since DTI._values is a DTI
         # for TZ-aware
         return self._ndarray_values.nbytes
-
-    @classmethod
-    def _cached_range(cls, start=None, end=None, periods=None, freq=None,
-                      name=None):
-        if start is None and end is None:
-            # I somewhat believe this should never be raised externally
-            raise TypeError('Must specify either start or end.')
-        if start is not None:
-            start = Timestamp(start)
-        if end is not None:
-            end = Timestamp(end)
-        if (start is None or end is None) and periods is None:
-            raise TypeError(
-                'Must either specify period or provide both start and end.')
-
-        if freq is None:
-            # This can't happen with external-facing code
-            raise TypeError('Must provide freq.')
-
-        drc = _daterange_cache
-        if freq not in _daterange_cache:
-            xdr = generate_range(offset=freq, start=_CACHE_START,
-                                 end=_CACHE_END)
-
-            arr = tools.to_datetime(list(xdr), box=False)
-
-            cachedRange = DatetimeIndex._simple_new(arr)
-            cachedRange.freq = freq
-            cachedRange = cachedRange.tz_localize(None)
-            cachedRange.name = None
-            drc[freq] = cachedRange
-        else:
-            cachedRange = drc[freq]
-
-        if start is None:
-            if not isinstance(end, Timestamp):
-                raise AssertionError('end must be an instance of Timestamp')
-
-            end = freq.rollback(end)
-
-            endLoc = cachedRange.get_loc(end) + 1
-            startLoc = endLoc - periods
-        elif end is None:
-            if not isinstance(start, Timestamp):
-                raise AssertionError('start must be an instance of Timestamp')
-
-            start = freq.rollforward(start)
-
-            startLoc = cachedRange.get_loc(start)
-            endLoc = startLoc + periods
-        else:
-            if not freq.onOffset(start):
-                start = freq.rollforward(start)
-
-            if not freq.onOffset(end):
-                end = freq.rollback(end)
-
-            startLoc = cachedRange.get_loc(start)
-            endLoc = cachedRange.get_loc(end) + 1
-
-        indexSlice = cachedRange[startLoc:endLoc]
-        indexSlice.name = name
-        indexSlice.freq = freq
-
-        return indexSlice
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
@@ -832,22 +760,19 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         else:
             left, right = other, self
 
-        left_start, left_end = left[0], left[-1]
+        left_end = left[-1]
         right_end = right[-1]
 
-        if not self.freq._should_cache():
-            # concatenate dates
-            if left_end < right_end:
-                loc = right.searchsorted(left_end, side='right')
-                right_chunk = right.values[loc:]
-                dates = _concat._concat_compat((left.values, right_chunk))
-                return self._shallow_copy(dates)
-            else:
-                return left
+        # TODO: consider re-implementing freq._should_cache for fastpath
+
+        # concatenate dates
+        if left_end < right_end:
+            loc = right.searchsorted(left_end, side='right')
+            right_chunk = right.values[loc:]
+            dates = _concat._concat_compat((left.values, right_chunk))
+            return self._shallow_copy(dates)
         else:
-            return type(self)(start=left_start,
-                              end=max(left_end, right_end),
-                              freq=left.freq)
+            return left
 
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None
@@ -1722,21 +1647,6 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
     return DatetimeIndex(start=start, end=end, periods=periods, freq=freq,
                          tz=tz, normalize=normalize, name=name,
                          closed=closed, **kwargs)
-
-
-_CACHE_START = Timestamp(datetime(1950, 1, 1))
-_CACHE_END = Timestamp(datetime(2030, 1, 1))
-
-_daterange_cache = {}
-
-
-def _naive_in_cache_range(start, end):
-    if start is None or end is None:
-        return False
-    else:
-        if start.tzinfo is not None or end.tzinfo is not None:
-            return False
-        return start > _CACHE_START and end < _CACHE_END
 
 
 def _time_to_micros(time):
