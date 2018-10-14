@@ -851,6 +851,19 @@ Sparse
    SparseSeries.to_coo
    SparseSeries.from_coo
 
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.sparse.npoints
+   Series.sparse.kind
+   Series.sparse.density
+   Series.sparse.fill_value
+   Series.sparse.sp_index
+   Series.sparse.sp_values
+   Series.sparse.from_coo
+   Series.sparse.to_coo
+
 .. _api.dataframe:
 
 DataFrame
