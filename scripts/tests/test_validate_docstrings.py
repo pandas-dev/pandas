@@ -352,7 +352,7 @@ class BadSeeAlso(object):
         """
         Return the first 5 elements of the Series.
 
-        see Also
+        See Also
         --------
         Series.tail : return the last 5 elements of the Series.
         Series.iloc : Return a slice of the elements in the Series,
@@ -593,9 +593,9 @@ class TestValidator(object):
     @pytest.mark.parametrize("klass,func,msgs", [
         # See Also tests
         ('BadSeeAlso', 'desc_no_period',
-         ('Missing period at end of description',)),
+         ('Missing period at end of description for See Also "Series.iloc"',)),
         ('BadSeeAlso', 'desc_first_letter_lowercase',
-         ('should be capitalized',)),
+         ('should be capitalized for See Also "Series.tail"',)),
         # Summary tests
         ('BadSummaries', 'wrong_line',
          ('should start in the line immediately after the opening quotes',)),
