@@ -505,12 +505,12 @@ cdef class {{name}}HashTable(HashTable):
 
         Parameters
         ----------
-        values : ndarray[object]
+        values : ndarray[{{dtype}}]
             Array of values of which unique will be calculated
 
         Returns
         -------
-        uniques : ndarray[object]
+        uniques : ndarray[{{dtype}}]
             Unique values of input, not sorted
         """
         cdef:
