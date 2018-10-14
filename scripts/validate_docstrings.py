@@ -591,11 +591,11 @@ def main(func_name, fd):
         fd.write('{}\n'.format(doc_info['docstring']))
         fd.write(header('Validation'))
         if doc_info['errors']:
-            fd.write('Errors found:\n')
+            fd.write('{} Errors found:\n'.format(len(doc_info['errors'])))
             for err in doc_info['errors']:
                 fd.write('\t{}\n'.format(err))
         if doc_info['warnings']:
-            fd.write('Warnings found:\n')
+            fd.write('{} Warnings found:\n'.format(len(doc_info['warnings'])))
             for wrn in doc_info['warnings']:
                 fd.write('\t{}\n'.format(wrn))
 
