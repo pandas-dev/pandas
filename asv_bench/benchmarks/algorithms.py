@@ -12,8 +12,6 @@ for imp in ['pandas.util', 'pandas.tools.hashing']:
     except (ImportError, TypeError, ValueError):
         pass
 
-from .pandas_vb_common import setup # noqa
-
 
 class Factorize(object):
 
@@ -126,3 +124,6 @@ class Hashing(object):
 
     def time_series_dates(self, df):
         hashing.hash_pandas_object(df['dates'])
+
+
+from .pandas_vb_common import setup  # noqa: F401

@@ -18,6 +18,7 @@ from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
 
 from pandas.core.dtypes.common import (
+    pandas_dtype,
     needs_i8_conversion,
     is_list_like,
     is_offsetlike,
@@ -41,7 +42,7 @@ from .base import ExtensionOpsMixin
 from pandas.util._decorators import deprecate_kwarg
 
 
-def _make_comparison_op(op, cls):
+def _make_comparison_op(cls, op):
     # TODO: share code with indexes.base version?  Main difference is that
     # the block for MultiIndex was removed here.
     def cmp_method(self, other):
@@ -552,6 +553,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         See Also
         --------
         Index.shift : Shift values of Index.
+        PeriodIndex.shift : Shift values of PeriodIndex.
         """
         return self._time_shift(periods=periods, freq=freq)
 
@@ -739,6 +741,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # --------------------------------------------------------------
     # Comparison Methods
 
+    # Called by _add_comparison_methods defined in ExtensionOpsMixin
+    _create_comparison_method = classmethod(_make_comparison_op)
+
     def _evaluate_compare(self, other, op):
         """
         We have been called because a comparison between
@@ -772,21 +777,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         result[mask] = filler
         return result
 
-    # TODO: get this from ExtensionOpsMixin
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-        # DatetimeArray and TimedeltaArray comparison methods will
-        # call these as their super(...) methods
-        cls.__eq__ = _make_comparison_op(operator.eq, cls)
-        cls.__ne__ = _make_comparison_op(operator.ne, cls)
-        cls.__lt__ = _make_comparison_op(operator.lt, cls)
-        cls.__gt__ = _make_comparison_op(operator.gt, cls)
-        cls.__le__ = _make_comparison_op(operator.le, cls)
-        cls.__ge__ = _make_comparison_op(operator.ge, cls)
 
-
-DatetimeLikeArrayMixin._add_comparison_methods()
+DatetimeLikeArrayMixin._add_comparison_ops()
 
 
 # -------------------------------------------------------------------
@@ -910,3 +902,34 @@ def validate_tz_from_dtype(dtype, tz):
         except TypeError:
             pass
     return tz
+
+
+def validate_dtype_freq(dtype, freq):
+    """
+    If both a dtype and a freq are available, ensure they match.  If only
+    dtype is available, extract the implied freq.
+
+    Parameters
+    ----------
+    dtype : dtype
+    freq : DateOffset or None
+
+    Returns
+    -------
+    freq : DateOffset
+
+    Raises
+    ------
+    ValueError : non-period dtype
+    IncompatibleFrequency : mismatch between dtype and freq
+    """
+    if dtype is not None:
+        dtype = pandas_dtype(dtype)
+        if not is_period_dtype(dtype):
+            raise ValueError('dtype must be PeriodDtype')
+        if freq is None:
+            freq = dtype.freq
+        elif freq != dtype.freq:
+            raise IncompatibleFrequency('specified freq and dtype '
+                                        'are different')
+    return freq

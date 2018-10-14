@@ -347,6 +347,7 @@ def group_last_{{name}}(ndarray[{{c_type}}, ndim=2] out,
                 else:
                     out[i, j] = resx[i, j]
 
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_nth_{{name}}(ndarray[{{c_type}}, ndim=2] out,
@@ -406,6 +407,8 @@ def group_nth_{{name}}(ndarray[{{c_type}}, ndim=2] out,
 
 
 {{if name != 'object'}}
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,

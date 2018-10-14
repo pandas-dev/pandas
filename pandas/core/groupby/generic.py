@@ -1027,8 +1027,9 @@ class SeriesGroupBy(GroupBy):
         try:
             sorter = np.lexsort((val, ids))
         except TypeError:  # catches object dtypes
-            assert val.dtype == object, \
-                'val.dtype must be object, got %s' % val.dtype
+            msg = ('val.dtype must be object, got {dtype}'
+                   .format(dtype=val.dtype))
+            assert val.dtype == object, msg
             val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
             _isna = lambda a: a == -1

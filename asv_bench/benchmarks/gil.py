@@ -23,7 +23,7 @@ except ImportError:
             return fname
         return wrapper
 
-from .pandas_vb_common import BaseIO, setup  # noqa
+from .pandas_vb_common import BaseIO
 
 
 class ParallelGroupbyMethods(object):
@@ -273,3 +273,6 @@ class ParallelFactorize(object):
     def time_loop(self, threads):
         for i in range(threads):
             self.loop()
+
+
+from .pandas_vb_common import setup  # noqa: F401

@@ -101,7 +101,6 @@ class PandasExtensionDtype(_DtypeOpsMixin):
     base = None
     isbuiltin = 0
     isnative = 0
-    _metadata = []
     _cache = {}
 
     def __unicode__(self):
@@ -209,7 +208,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     kind = 'O'
     str = '|O08'
     base = np.dtype('O')
-    _metadata = ['categories', 'ordered']
+    _metadata = ('categories', 'ordered')
     _cache = {}
 
     def __init__(self, categories=None, ordered=None):
@@ -485,7 +484,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     str = '|M8[ns]'
     num = 101
     base = np.dtype('M8[ns]')
-    _metadata = ['unit', 'tz']
+    _metadata = ('unit', 'tz')
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache = {}
 
@@ -548,6 +547,17 @@ class DatetimeTZDtype(PandasExtensionDtype):
             return u
 
     @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        from pandas import DatetimeIndex
+        return DatetimeIndex
+
+    @classmethod
     def construct_from_string(cls, string):
         """ attempt to construct this type from a string, raise a TypeError if
         it's not possible
@@ -589,7 +599,7 @@ class PeriodDtype(PandasExtensionDtype):
     str = '|O08'
     base = np.dtype('O')
     num = 102
-    _metadata = ['freq']
+    _metadata = ('freq',)
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache = {}
 
@@ -709,7 +719,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     str = '|O08'
     base = np.dtype('O')
     num = 103
-    _metadata = ['subtype']
+    _metadata = ('subtype',)
     _match = re.compile(r"(I|i)nterval\[(?P<subtype>.+)\]")
     _cache = {}
 
