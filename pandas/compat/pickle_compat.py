@@ -138,13 +138,8 @@ if compat.PY3:
 
         def find_class(self, module, name):
             # override superclass
-            print(module)
-            print(name)
             key = (module, name)
             module, name = _class_locations_map.get(key, key)
-            print(module)
-            print(name)
-            print("---")
             return super(Unpickler, self).find_class(module, name)
 
 else:
