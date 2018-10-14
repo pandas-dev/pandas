@@ -16,6 +16,7 @@ _np_version_under1p13 = _nlv < LooseVersion('1.13')
 _np_version_under1p14 = _nlv < LooseVersion('1.14')
 _np_version_under1p15 = _nlv < LooseVersion('1.15')
 
+
 if _nlv < '1.9':
     raise ImportError('this version of pandas is incompatible with '
                       'numpy < 1.9.0\n'
@@ -59,8 +60,8 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
     if not _np_version_under1p11:
 
         # is_list_like
-        if hasattr(arr, '__iter__') and not \
-           isinstance(arr, string_and_binary_types):
+        if (hasattr(arr, '__iter__') and
+                not isinstance(arr, string_and_binary_types)):
             arr = [tz_replacer(s) for s in arr]
         else:
             arr = tz_replacer(arr)

@@ -6,8 +6,6 @@ import pandas.util.testing as tm
 from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
                     isnull, NaT)
 
-from .pandas_vb_common import setup  # noqa
-
 
 class GetNumericData(object):
 
@@ -505,13 +503,20 @@ class NSort(object):
     param_names = ['keep']
 
     def setup(self, keep):
-        self.df = DataFrame(np.random.randn(1000, 3), columns=list('ABC'))
+        self.df = DataFrame(np.random.randn(100000, 3),
+                            columns=list('ABC'))
 
-    def time_nlargest(self, keep):
+    def time_nlargest_one_column(self, keep):
         self.df.nlargest(100, 'A', keep=keep)
 
-    def time_nsmallest(self, keep):
+    def time_nlargest_two_columns(self, keep):
+        self.df.nlargest(100, ['A', 'B'], keep=keep)
+
+    def time_nsmallest_one_column(self, keep):
         self.df.nsmallest(100, 'A', keep=keep)
+
+    def time_nsmallest_two_columns(self, keep):
+        self.df.nsmallest(100, ['A', 'B'], keep=keep)
 
 
 class Describe(object):
@@ -530,3 +535,6 @@ class Describe(object):
 
     def time_dataframe_describe(self):
         self.df.describe()
+
+
+from .pandas_vb_common import setup  # noqa: F401

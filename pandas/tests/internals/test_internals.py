@@ -845,23 +845,18 @@ class TestIndexing(object):
     MANAGERS = [
         create_single_mgr('f8', N),
         create_single_mgr('i8', N),
-        # create_single_mgr('sparse', N),
-        create_single_mgr('sparse_na', N),
 
         # 2-dim
         create_mgr('a,b,c,d,e,f: f8', item_shape=(N,)),
         create_mgr('a,b,c,d,e,f: i8', item_shape=(N,)),
         create_mgr('a,b: f8; c,d: i8; e,f: string', item_shape=(N,)),
         create_mgr('a,b: f8; c,d: i8; e,f: f8', item_shape=(N,)),
-        # create_mgr('a: sparse', item_shape=(N,)),
-        create_mgr('a: sparse_na', item_shape=(N,)),
 
         # 3-dim
         create_mgr('a,b,c,d,e,f: f8', item_shape=(N, N)),
         create_mgr('a,b,c,d,e,f: i8', item_shape=(N, N)),
         create_mgr('a,b: f8; c,d: i8; e,f: string', item_shape=(N, N)),
         create_mgr('a,b: f8; c,d: i8; e,f: f8', item_shape=(N, N)),
-        # create_mgr('a: sparse', item_shape=(1, N)),
     ]
 
     # MANAGERS = [MANAGERS[6]]
@@ -1285,7 +1280,7 @@ def test_deprecated_fastpath():
 def test_validate_ndim():
     values = np.array([1.0, 2.0])
     placement = slice(2)
-    msg = "Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
+    msg = r"Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
 
     with tm.assert_raises_regex(ValueError, msg):
         make_block(values, placement, ndim=2)

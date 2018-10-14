@@ -21,7 +21,7 @@ def detect_console_encoding():
     encoding = None
     try:
         encoding = sys.stdout.encoding or sys.stdin.encoding
-    except AttributeError:
+    except (AttributeError, IOError):
         pass
 
     # try again for something better
@@ -100,7 +100,7 @@ def in_interactive_session():
 
     try:
         return __IPYTHON__ or check_main()  # noqa
-    except:
+    except NameError:
         return check_main()
 
 
@@ -118,7 +118,7 @@ def in_qtconsole():
             ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
         if 'qtconsole' in front_end.lower():
             return True
-    except:
+    except NameError:
         return False
     return False
 
@@ -137,7 +137,7 @@ def in_ipnb():
             ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
         if 'notebook' in front_end.lower():
             return True
-    except:
+    except NameError:
         return False
     return False
 
@@ -149,7 +149,7 @@ def in_ipython_frontend():
     try:
         ip = get_ipython()  # noqa
         return 'zmq' in str(type(ip)).lower()
-    except:
+    except NameError:
         pass
 
     return False

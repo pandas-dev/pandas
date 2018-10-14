@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from itertools import product
 import pytest
 import warnings
@@ -153,6 +154,8 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
+            # using a dict with renaming
+            warnings.simplefilter("ignore", FutureWarning)
             result = r.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
         expected = concat([a_mean, a_sum], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
@@ -160,6 +163,7 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected, check_like=True)
 
         with catch_warnings(record=True):
+            warnings.simplefilter("ignore", FutureWarning)
             result = r.aggregate({'A': {'mean': 'mean',
                                         'sum': 'sum'},
                                   'B': {'mean2': 'mean',
@@ -223,11 +227,13 @@ class TestApi(Base):
         expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
             'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
         with catch_warnings(record=True):
+            warnings.simplefilter("ignore", FutureWarning)
             result = r[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
                                         'B': {'rb': ['mean', 'std']}})
         tm.assert_frame_equal(result, expected, check_like=True)
 
         with catch_warnings(record=True):
+            warnings.simplefilter("ignore", FutureWarning)
             result = r.agg({'A': {'ra': ['mean', 'std']},
                             'B': {'rb': ['mean', 'std']}})
         expected.columns = pd.MultiIndex.from_tuples([('A', 'ra', 'mean'), (
@@ -278,6 +284,7 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no_scipy
+    @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
     def test_window_with_args(self):
         # make sure that we are aggregating window functions correctly with arg
         r = Series(np.random.randn(100)).rolling(window=10, min_periods=1,
@@ -308,7 +315,55 @@ class TestApi(Base):
         assert s2.name == 'foo'
         assert s3.name == 'foo'
 
+    @pytest.mark.parametrize("func,window_size,expected_vals", [
+        ('rolling', 2, [[np.nan, np.nan, np.nan, np.nan],
+                        [15., 20., 25., 20.],
+                        [25., 30., 35., 30.],
+                        [np.nan, np.nan, np.nan, np.nan],
+                        [20., 30., 35., 30.],
+                        [35., 40., 60., 40.],
+                        [60., 80., 85., 80]]),
+        ('expanding', None, [[10., 10., 20., 20.],
+                             [15., 20., 25., 20.],
+                             [20., 30., 30., 20.],
+                             [10., 10., 30., 30.],
+                             [20., 30., 35., 30.],
+                             [26.666667, 40., 50., 30.],
+                             [40., 80., 60., 30.]])])
+    def test_multiple_agg_funcs(self, func, window_size, expected_vals):
+        # GH 15072
+        df = pd.DataFrame([
+            ['A', 10, 20],
+            ['A', 20, 30],
+            ['A', 30, 40],
+            ['B', 10, 30],
+            ['B', 30, 40],
+            ['B', 40, 80],
+            ['B', 80, 90]], columns=['stock', 'low', 'high'])
 
+        f = getattr(df.groupby('stock'), func)
+        if window_size:
+            window = f(window_size)
+        else:
+            window = f()
+
+        index = pd.MultiIndex.from_tuples([
+            ('A', 0), ('A', 1), ('A', 2),
+            ('B', 3), ('B', 4), ('B', 5), ('B', 6)], names=['stock', None])
+        columns = pd.MultiIndex.from_tuples([
+            ('low', 'mean'), ('low', 'max'), ('high', 'mean'),
+            ('high', 'min')])
+        expected = pd.DataFrame(expected_vals, index=index, columns=columns)
+
+        result = window.agg(OrderedDict((
+            ('low', ['mean', 'max']),
+            ('high', ['mean', 'min']),
+        )))
+
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestWindow(Base):
 
     def setup_method(self, method):
@@ -940,6 +995,7 @@ class TestDtype_datetime64UTC(DatetimeLike):
                     "datetime64[ns, UTC] is not supported ATM")
 
 
+@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestMoments(Base):
 
     def setup_method(self, method):
@@ -1901,6 +1957,7 @@ class TestPairwise(object):
         for (df, result) in zip(self.df1s, results):
             if result is not None:
                 with catch_warnings(record=True):
+                    warnings.simplefilter("ignore", RuntimeWarning)
                     # we can have int and str columns
                     expected_index = df.index.union(self.df2.index)
                     expected_columns = df.columns.union(self.df2.columns)

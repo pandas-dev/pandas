@@ -558,7 +558,10 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
 
     Returns
     -------
-    replaced : Series/Index of objects
+    Series or Index of object
+        A copy of the object with all matching occurrences of `pat` replaced by
+        `repl`.
+
 
     Raises
     ------
@@ -675,20 +678,42 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
 
 def str_repeat(arr, repeats):
     """
-    Duplicate each string in the Series/Index by indicated number
-    of times.
+    Duplicate each string in the Series or Index.
 
     Parameters
     ----------
-    repeats : int or array
-        Same value for all (int) or different value per (array)
+    repeats : int or sequence of int
+        Same value for all (int) or different value per (sequence).
 
     Returns
     -------
-    repeated : Series/Index of objects
+    Series or Index of object
+        Series or Index of repeated string objects specified by
+        input parameter repeats.
+
+    Examples
+    --------
+    >>> s = pd.Series(['a', 'b', 'c'])
+    >>> s
+    0    a
+    1    b
+    2    c
+
+    Single int repeats string in Series
+
+    >>> s.str.repeat(repeats=2)
+    0    aa
+    1    bb
+    2    cc
+
+    Sequence of int repeats corresponding string in Series
+
+    >>> s.str.repeat(repeats=[1, 2, 3])
+    0      a
+    1     bb
+    2    ccc
     """
     if is_scalar(repeats):
-
         def rep(x):
             try:
                 return compat.binary_type.__mul__(x, repeats)
@@ -709,7 +734,7 @@ def str_repeat(arr, repeats):
         return result
 
 
-def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
+def str_match(arr, pat, case=True, flags=0, na=np.nan):
     """
     Determine if each string matches a regular expression.
 
@@ -722,8 +747,6 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
-    as_indexer
-        .. deprecated:: 0.21.0
 
     Returns
     -------
@@ -740,17 +763,6 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
         flags |= re.IGNORECASE
 
     regex = re.compile(pat, flags=flags)
-
-    if (as_indexer is False) and (regex.groups > 0):
-        raise ValueError("as_indexer=False with a pattern with groups is no "
-                         "longer supported. Use '.str.extract(pat)' instead")
-    elif as_indexer is not None:
-        # Previously, this keyword was used for changing the default but
-        # deprecated behaviour. This keyword is now no longer needed.
-        warnings.warn("'as_indexer' keyword was specified but is ignored "
-                      "(match now returns a boolean indexer by default), "
-                      "and will be removed in a future version.",
-                      FutureWarning, stacklevel=3)
 
     dtype = bool
     f = lambda x: bool(regex.match(x))
@@ -854,8 +866,9 @@ def str_extract(arr, pat, flags=0, expand=True):
     pat : string
         Regular expression pattern with capturing groups.
     flags : int, default 0 (no flags)
-        ``re`` module flags, e.g. ``re.IGNORECASE``.
-        See :mod:`re`
+        Flags from the ``re`` module, e.g. ``re.IGNORECASE``, that
+        modify regular expression matching for things like case,
+        spaces, etc. For more details, see :mod:`re`.
     expand : bool, default True
         If True, return DataFrame with one column per capture group.
         If False, return a Series/Index if there is one capture group
@@ -865,13 +878,15 @@ def str_extract(arr, pat, flags=0, expand=True):
 
     Returns
     -------
-    DataFrame with one row for each subject string, and one column for
-    each group. Any capture group names in regular expression pat will
-    be used for column names; otherwise capture group numbers will be
-    used. The dtype of each result column is always object, even when
-    no match is found. If expand=False and pat has only one capture group,
-    then return a Series (if subject is a Series) or Index (if subject
-    is an Index).
+    DataFrame or Series or Index
+        A DataFrame with one row for each subject string, and one
+        column for each group. Any capture group names in regular
+        expression pat will be used for column names; otherwise
+        capture group numbers will be used. The dtype of each result
+        column is always object, even when no match is found. If
+        ``expand=False`` and pat has only one capture group, then
+        return a Series (if subject is a Series) or Index (if subject
+        is an Index).
 
     See Also
     --------
@@ -942,19 +957,23 @@ def str_extractall(arr, pat, flags=0):
 
     Parameters
     ----------
-    pat : string
-        Regular expression pattern with capturing groups
+    pat : str
+        Regular expression pattern with capturing groups.
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
+        A ``re`` module flag, for example ``re.IGNORECASE``. These allow
+        to modify regular expression matching for things like case, spaces,
+        etc. Multiple flags can be combined with the bitwise OR operator,
+        for example ``re.IGNORECASE | re.MULTILINE``.
 
     Returns
     -------
-    A DataFrame with one row for each match, and one column for each
-    group. Its rows have a MultiIndex with first levels that come from
-    the subject Series. The last level is named 'match' and indicates
-    the order in the subject. Any capture group names in regular
-    expression pat will be used for column names; otherwise capture
-    group numbers will be used.
+    DataFrame
+        A ``DataFrame`` with one row for each match, and one column for each
+        group. Its rows have a ``MultiIndex`` with first levels that come from
+        the subject ``Series``. The last level is named 'match' and indexes the
+        matches in each item of the ``Series``. Any capture group names in
+        regular expression pat will be used for column names; otherwise capture
+        group numbers will be used.
 
     See Also
     --------
@@ -1000,7 +1019,6 @@ def str_extractall(arr, pat, flags=0):
       1          a     2
     B 0          b     1
     C 0        NaN     1
-
     """
 
     regex = re.compile(pat, flags=flags)
@@ -1314,23 +1332,57 @@ def str_index(arr, sub, start=0, end=None, side='left'):
 
 def str_pad(arr, width, side='left', fillchar=' '):
     """
-    Pad strings in the Series/Index with an additional character to
-    specified side.
+    Pad strings in the Series/Index up to width.
 
     Parameters
     ----------
     width : int
         Minimum width of resulting string; additional characters will be filled
-        with spaces
+        with character defined in `fillchar`.
     side : {'left', 'right', 'both'}, default 'left'
-    fillchar : str
-        Additional character for filling, default is whitespace
+        Side from which to fill resulting string.
+    fillchar : str, default ' '
+        Additional character for filling, default is whitespace.
 
     Returns
     -------
-    padded : Series/Index of objects
-    """
+    Series or Index of object
+        Returns Series or Index with minimum number of char in object.
 
+    See Also
+    --------
+    Series.str.rjust: Fills the left side of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='left')``.
+    Series.str.ljust: Fills the right side of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='right')``.
+    Series.str.center: Fills boths sides of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='both')``.
+    Series.str.zfill:  Pad strings in the Series/Index by prepending '0'
+        character. Equivalent to ``Series.str.pad(side='left', fillchar='0')``.
+
+    Examples
+    --------
+    >>> s = pd.Series(["caribou", "tiger"])
+    >>> s
+    0    caribou
+    1      tiger
+    dtype: object
+
+    >>> s.str.pad(width=10)
+    0       caribou
+    1         tiger
+    dtype: object
+
+    >>> s.str.pad(width=10, side='right', fillchar='-')
+    0    caribou---
+    1    tiger-----
+    dtype: object
+
+    >>> s.str.pad(width=10, side='both', fillchar='-')
+    0    -caribou--
+    1    --tiger---
+    dtype: object
+    """
     if not isinstance(fillchar, compat.string_types):
         msg = 'fillchar must be a character, not {0}'
         raise TypeError(msg.format(type(fillchar).__name__))
@@ -1385,17 +1437,69 @@ def str_rsplit(arr, pat=None, n=None):
 
 def str_slice(arr, start=None, stop=None, step=None):
     """
-    Slice substrings from each element in the Series/Index
+    Slice substrings from each element in the Series or Index.
 
     Parameters
     ----------
-    start : int or None
-    stop : int or None
-    step : int or None
+    start : int, optional
+        Start position for slice operation.
+    stop : int, optional
+        Stop position for slice operation.
+    step : int, optional
+        Step size for slice operation.
 
     Returns
     -------
-    sliced : Series/Index of objects
+    Series or Index of object
+        Series or Index from sliced substring from original string object.
+
+    See Also
+    --------
+    Series.str.slice_replace : Replace a slice with a string.
+    Series.str.get : Return element at position.
+        Equivalent to `Series.str.slice(start=i, stop=i+1)` with `i`
+        being the position.
+
+    Examples
+    --------
+    >>> s = pd.Series(["koala", "fox", "chameleon"])
+    >>> s
+    0        koala
+    1          fox
+    2    chameleon
+    dtype: object
+
+    >>> s.str.slice(start=1)
+    0        oala
+    1          ox
+    2    hameleon
+    dtype: object
+
+    >>> s.str.slice(stop=2)
+    0    ko
+    1    fo
+    2    ch
+    dtype: object
+
+    >>> s.str.slice(step=2)
+    0      kaa
+    1       fx
+    2    caeen
+    dtype: object
+
+    >>> s.str.slice(start=0, stop=5, step=3)
+    0    kl
+    1     f
+    2    cm
+    dtype: object
+
+    Equivalent behaviour to:
+
+    >>> s.str[0:5:3]
+    0    kl
+    1     f
+    2    cm
+    dtype: object
     """
     obj = slice(start, stop, step)
     f = lambda x: x[obj]
@@ -1930,8 +2034,8 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        others : Series, DataFrame, np.ndarray, list-like or list-like of
-            objects that are either Series, np.ndarray (1-dim) or list-like
+        others : Series, Index, DataFrame, np.ndarray, list-like or list-like
+            of objects that are Series, Index or np.ndarray (1-dim)
         ignore_index : boolean, default False
             Determines whether to forcefully align others with index of caller
 
@@ -1941,7 +2045,7 @@ class StringMethods(NoNewAttributesMixin):
                  boolean whether FutureWarning should be raised)
         """
 
-        # once str.cat defaults to alignment, this function can be simplified;
+        # Once str.cat defaults to alignment, this function can be simplified;
         # will not need `ignore_index` and the second boolean output anymore
 
         from pandas import Index, Series, DataFrame
@@ -1986,11 +2090,20 @@ class StringMethods(NoNewAttributesMixin):
             # either one-dimensional list-likes or scalars
             if all(is_list_like(x) for x in others):
                 los = []
-                warn = False
+                join_warn = False
+                depr_warn = False
                 # iterate through list and append list of series for each
                 # element (which we check to be one-dimensional and non-nested)
                 while others:
                     nxt = others.pop(0)  # nxt is guaranteed list-like by above
+
+                    # GH 21950 - DeprecationWarning
+                    # only allowing Series/Index/np.ndarray[1-dim] will greatly
+                    # simply this function post-deprecation.
+                    if not (isinstance(nxt, (Series, Index)) or
+                            (isinstance(nxt, np.ndarray) and nxt.ndim == 1)):
+                        depr_warn = True
+
                     if not isinstance(nxt, (DataFrame, Series,
                                             Index, np.ndarray)):
                         # safety for non-persistent list-likes (e.g. iterators)
@@ -2013,8 +2126,14 @@ class StringMethods(NoNewAttributesMixin):
                     nxt, wnx = self._get_series_list(nxt,
                                                      ignore_index=ignore_index)
                     los = los + nxt
-                    warn = warn or wnx
-                return (los, warn)
+                    join_warn = join_warn or wnx
+
+                if depr_warn:
+                    warnings.warn('list-likes other than Series, Index, or '
+                                  'np.ndarray WITHIN another list-like are '
+                                  'deprecated and will be removed in a future '
+                                  'version.', FutureWarning, stacklevel=3)
+                return (los, join_warn)
             elif all(not is_list_like(x) for x in others):
                 return ([Series(others, index=idx)], False)
         raise TypeError(err_msg)
@@ -2037,8 +2156,8 @@ class StringMethods(NoNewAttributesMixin):
             Series/Index/DataFrame) if `join` is not None.
 
             If others is a list-like that contains a combination of Series,
-            np.ndarray (1-dim) or list-like, then all elements will be unpacked
-            and must satisfy the above criteria individually.
+            Index or np.ndarray (1-dim), then all elements will be unpacked and
+            must satisfy the above criteria individually.
 
             If others is None, the method returns the concatenation of all
             strings in the calling Series/Index.
@@ -2469,9 +2588,8 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @copy(str_match)
-    def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=None):
-        result = str_match(self._parent, pat, case=case, flags=flags, na=na,
-                           as_indexer=as_indexer)
+    def match(self, pat, case=True, flags=0, na=np.nan):
+        result = str_match(self._parent, pat, case=case, flags=flags, na=na)
         return self._wrap_result(result)
 
     @copy(str_replace)

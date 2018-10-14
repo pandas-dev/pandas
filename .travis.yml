@@ -30,12 +30,8 @@ matrix:
     exclude:
       # Exclude the default Python 3.5 build
       - python: 3.5
-    include:
-    - os: osx
-      language: generic
-      env:
-        - JOB="3.5, OSX" ENV_FILE="ci/travis-35-osx.yaml" TEST_ARGS="--skip-slow --skip-network"
 
+    include:
     - dist: trusty
       env:
         - JOB="3.7" ENV_FILE="ci/travis-37.yaml" TEST_ARGS="--skip-slow --skip-network"
@@ -49,26 +45,27 @@ matrix:
           - language-pack-zh-hans
     - dist: trusty
       env:
-        - JOB="2.7, lint" ENV_FILE="ci/travis-27.yaml" TEST_ARGS="--skip-slow" LINT=true
+        - JOB="2.7" ENV_FILE="ci/travis-27.yaml" TEST_ARGS="--skip-slow"
       addons:
         apt:
           packages:
           - python-gtk2
     - dist: trusty
       env:
-        - JOB="3.6, coverage" ENV_FILE="ci/travis-36.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true DOCTEST=true
-    # In allow_failures
+        - JOB="3.6, lint, coverage" ENV_FILE="ci/travis-36.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true LINT=true
     - dist: trusty
       env:
-        - JOB="3.6, slow" ENV_FILE="ci/travis-36-slow.yaml" SLOW=true
-    # In allow_failures
-    - dist: trusty
-      env:
-        - JOB="3.6, NumPy dev" ENV_FILE="ci/travis-36-numpydev.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
+        - JOB="3.7, NumPy dev" ENV_FILE="ci/travis-37-numpydev.yaml" TEST_ARGS="--skip-slow --skip-network -W error" PANDAS_TESTING_MODE="deprecate"
       addons:
         apt:
           packages:
           - xsel
+
+    # In allow_failures
+    - dist: trusty
+      env:
+        - JOB="3.6, slow" ENV_FILE="ci/travis-36-slow.yaml" SLOW=true
+
     # In allow_failures
     - dist: trusty
       env:
@@ -77,13 +74,6 @@ matrix:
       - dist: trusty
         env:
           - JOB="3.6, slow" ENV_FILE="ci/travis-36-slow.yaml" SLOW=true
-      - dist: trusty
-        env:
-          - JOB="3.6, NumPy dev" ENV_FILE="ci/travis-36-numpydev.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
-        addons:
-          apt:
-            packages:
-            - xsel
       - dist: trusty
         env:
           - JOB="3.6, doc" ENV_FILE="ci/travis-36-doc.yaml" DOC=true
@@ -118,11 +108,7 @@ script:
   - ci/run_build_docs.sh
   - ci/script_single.sh
   - ci/script_multi.sh
-  - ci/lint.sh
-  - ci/doctests.sh
-  - echo "checking imports"
-  - source activate pandas && python ci/check_imports.py
-  - echo "script done"
+  - ci/code_checks.sh
 
 after_success:
   -  ci/upload_coverage.sh

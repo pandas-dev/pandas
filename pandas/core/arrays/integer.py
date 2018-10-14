@@ -5,9 +5,10 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas.util._decorators import cache_readonly
-from pandas.compat import u, range
+from pandas.compat import u, range, string_types
 from pandas.compat import set_function_name
 
+from pandas.core import nanops
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import (
@@ -19,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.dtypes import registry
+from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.io.formats.printing import (
@@ -147,6 +148,11 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             dtype = values.dtype
 
     if dtype is not None:
+        if (isinstance(dtype, string_types) and
+                (dtype.startswith("Int") or dtype.startswith("UInt"))):
+            # Avoid DeprecationWarning from NumPy about np.dtype("Int64")
+            # https://github.com/numpy/numpy/pull/7476
+            dtype = dtype.lower()
         if not issubclass(type(dtype), _IntegerDtype):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]
@@ -507,7 +513,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             # numpy will show a DeprecationWarning on invalid elementwise
             # comparisons, this will raise in the future
-            with warnings.catch_warnings(record=True):
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
                 with np.errstate(all='ignore'):
                     result = op(self._data, other)
 
@@ -522,6 +529,31 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         name = '__{name}__'.format(name=op.__name__)
         return set_function_name(cmp_method, name, cls)
+
+    def _reduce(self, name, skipna=True, **kwargs):
+        data = self._data
+        mask = self._mask
+
+        # coerce to a nan-aware float if needed
+        if mask.any():
+            data = self._data.astype('float64')
+            data[mask] = self._na_value
+
+        op = getattr(nanops, 'nan' + name)
+        result = op(data, axis=0, skipna=skipna, mask=mask)
+
+        # if we have a boolean op, don't coerce
+        if name in ['any', 'all']:
+            pass
+
+        # if we have a preservable numeric op,
+        # provide coercion back to an integer type if possible
+        elif name in ['sum', 'min', 'max', 'prod'] and notna(result):
+            int_result = int(result)
+            if int_result == result:
+                result = int_result
+
+        return result
 
     def _maybe_mask_result(self, result, mask, other, op_name):
         """
@@ -614,9 +646,9 @@ for dtype in ['int8', 'int16', 'int32', 'int64',
     classname = "{}Dtype".format(name)
     attributes_dict = {'type': getattr(np, dtype),
                        'name': name}
-    dtype_type = type(classname, (_IntegerDtype, ), attributes_dict)
+    dtype_type = register_extension_dtype(
+        type(classname, (_IntegerDtype, ), attributes_dict)
+    )
     setattr(module, classname, dtype_type)
 
-    # register
-    registry.register(dtype_type)
     _dtypes[dtype] = dtype_type()

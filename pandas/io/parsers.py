@@ -459,7 +459,7 @@ def _read(filepath_or_buffer, kwds):
     if should_close:
         try:
             filepath_or_buffer.close()
-        except:  # noqa: flake8
+        except ValueError:
             pass
 
     return data
@@ -883,15 +883,15 @@ class TextFileReader(BaseIterator):
         # C engine not supported yet
         if engine == 'c':
             if options['skipfooter'] > 0:
-                fallback_reason = "the 'c' engine does not support"\
-                                  " skipfooter"
+                fallback_reason = ("the 'c' engine does not support"
+                                   " skipfooter")
                 engine = 'python'
 
         encoding = sys.getfilesystemencoding() or 'utf-8'
         if sep is None and not delim_whitespace:
             if engine == 'c':
-                fallback_reason = "the 'c' engine does not support"\
-                                  " sep=None with delim_whitespace=False"
+                fallback_reason = ("the 'c' engine does not support"
+                                   " sep=None with delim_whitespace=False")
                 engine = 'python'
         elif sep is not None and len(sep) > 1:
             if engine == 'c' and sep == r'\s+':
@@ -899,10 +899,10 @@ class TextFileReader(BaseIterator):
                 del result['delimiter']
             elif engine not in ('python', 'python-fwf'):
                 # wait until regex engine integrated
-                fallback_reason = "the 'c' engine does not support"\
-                                  " regex separators (separators > 1 char and"\
-                                  r" different from '\s+' are"\
-                                  " interpreted as regex)"
+                fallback_reason = ("the 'c' engine does not support"
+                                   " regex separators (separators > 1 char and"
+                                   r" different from '\s+' are"
+                                   " interpreted as regex)")
                 engine = 'python'
         elif delim_whitespace:
             if 'python' in engine:
@@ -915,10 +915,10 @@ class TextFileReader(BaseIterator):
             except UnicodeDecodeError:
                 encodeable = False
             if not encodeable and engine not in ('python', 'python-fwf'):
-                fallback_reason = "the separator encoded in {encoding}" \
-                                  " is > 1 char long, and the 'c' engine" \
-                                  " does not support such separators".format(
-                                      encoding=encoding)
+                fallback_reason = ("the separator encoded in {encoding}"
+                                   " is > 1 char long, and the 'c' engine"
+                                   " does not support such separators"
+                                   .format(encoding=encoding))
                 engine = 'python'
 
         quotechar = options['quotechar']
@@ -1632,19 +1632,17 @@ class ParserBase(object):
 
         if try_num_bool:
             try:
-                result = lib.maybe_convert_numeric(np.asarray(values),
-                                                   na_values, False)
+                result = lib.maybe_convert_numeric(values, na_values, False)
                 na_count = isna(result).sum()
             except Exception:
                 result = values
                 if values.dtype == np.object_:
-                    na_count = parsers.sanitize_objects(np.asarray(result),
+                    na_count = parsers.sanitize_objects(result,
                                                         na_values, False)
         else:
             result = values
             if values.dtype == np.object_:
-                na_count = parsers.sanitize_objects(np.asarray(values),
-                                                    na_values, False)
+                na_count = parsers.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
             result = libops.maybe_convert_bool(np.asarray(values),
@@ -1810,7 +1808,7 @@ class CParserWrapper(ParserBase):
         # close additional handles opened by C parser (for compression)
         try:
             self._reader.close()
-        except:
+        except ValueError:
             pass
 
     def _set_noconvert_columns(self):
@@ -2729,9 +2727,6 @@ class PythonParser(ParserBase):
                            'cannot be processed in Python\'s '
                            'native csv library at the moment, '
                            'so please pass in engine=\'c\' instead')
-                elif 'newline inside string' in msg:
-                    msg = ('EOF inside string starting with '
-                           'line ' + str(row_num))
 
                 if self.skipfooter > 0:
                     reason = ('Error could possibly be due to '
@@ -3034,12 +3029,12 @@ def _make_date_converter(date_parser=None, dayfirst=False,
                 return tools.to_datetime(
                     ensure_object(strs),
                     utc=None,
-                    box=True,
+                    box=False,
                     dayfirst=dayfirst,
                     errors='ignore',
                     infer_datetime_format=infer_datetime_format
                 )
-            except:
+            except ValueError:
                 return tools.to_datetime(
                     parsing.try_parse_dates(strs, dayfirst=dayfirst))
         else:
@@ -3208,8 +3203,8 @@ def _clean_index_names(columns, index_col):
             index_names.append(name)
 
     # hack
-    if isinstance(index_names[0], compat.string_types)\
-            and 'Unnamed' in index_names[0]:
+    if (isinstance(index_names[0], compat.string_types) and
+            'Unnamed' in index_names[0]):
         index_names[0] = None
 
     return index_names, columns, index_col
@@ -3268,7 +3263,7 @@ def _floatify_na_values(na_values):
             v = float(v)
             if not np.isnan(v):
                 result.add(v)
-        except:
+        except (TypeError, ValueError, OverflowError):
             pass
     return result
 
@@ -3289,11 +3284,11 @@ def _stringify_na_values(na_values):
                 result.append(str(v))
 
             result.append(v)
-        except:
+        except (TypeError, ValueError, OverflowError):
             pass
         try:
             result.append(int(x))
-        except:
+        except (TypeError, ValueError, OverflowError):
             pass
     return set(result)
 

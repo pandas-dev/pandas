@@ -77,7 +77,6 @@ _pxi_dep_template = {
               '_libs/algos_rank_helper.pxi.in'],
     'groupby': ['_libs/groupby_helper.pxi.in'],
     'join': ['_libs/join_helper.pxi.in', '_libs/join_func_helper.pxi.in'],
-    'reshape': ['_libs/reshape_helper.pxi.in'],
     'hashtable': ['_libs/hashtable_class_helper.pxi.in',
                   '_libs/hashtable_func_helper.pxi.in'],
     'index': ['_libs/index_class_helper.pxi.in'],
@@ -491,8 +490,7 @@ common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 ts_include = ['pandas/_libs/tslibs/src']
 
 
-lib_depends = ['pandas/_libs/src/numpy_helper.h',
-               'pandas/_libs/src/parse_helper.h',
+lib_depends = ['pandas/_libs/src/parse_helper.h',
                'pandas/_libs/src/compat_helper.h']
 
 np_datetime_headers = [
@@ -546,8 +544,7 @@ ext_data = {
     '_libs.parsers': {
         'pyxfile': '_libs/parsers',
         'depends': ['pandas/_libs/src/parser/tokenizer.h',
-                    'pandas/_libs/src/parser/io.h',
-                    'pandas/_libs/src/numpy_helper.h'],
+                    'pandas/_libs/src/parser/io.h'],
         'sources': ['pandas/_libs/src/parser/tokenizer.c',
                     'pandas/_libs/src/parser/io.c']},
     '_libs.reduction': {
@@ -559,7 +556,7 @@ ext_data = {
         'include': []},
     '_libs.reshape': {
         'pyxfile': '_libs/reshape',
-        'depends': _pxi_dep['reshape']},
+        'depends': []},
     '_libs.skiplist': {
         'pyxfile': '_libs/skiplist',
         'depends': ['pandas/_libs/src/skiplist.h']},

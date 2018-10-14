@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-import operator
-import sys
-
-cimport cython
+import cython
 
 import numpy as np
 cimport numpy as cnp
@@ -70,6 +67,10 @@ cdef class IntIndex(SparseIndex):
         output = 'IntIndex\n'
         output += 'Indices: %s\n' % repr(self.indices)
         return output
+
+    @property
+    def nbytes(self):
+        return self.indices.nbytes
 
     def check_integrity(self):
         """
@@ -361,6 +362,10 @@ cdef class BlockIndex(SparseIndex):
         output += 'Block lengths: %s' % repr(self.blengths)
 
         return output
+
+    @property
+    def nbytes(self):
+        return self.blocs.nbytes + self.blengths.nbytes
 
     @property
     def ngaps(self):

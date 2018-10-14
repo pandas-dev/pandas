@@ -6,6 +6,7 @@ from sys import getsizeof
 
 import numpy as np
 from pandas._libs import algos as libalgos, index as libindex, lib, Timestamp
+from pandas._libs import tslibs
 
 from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
@@ -27,7 +28,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 
-from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
+from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
@@ -288,6 +289,28 @@ class MultiIndex(Index):
     def levels(self):
         return self._levels
 
+    @property
+    def _is_homogeneous_type(self):
+        """Whether the levels of a MultiIndex all have the same dtype.
+
+        This looks at the dtypes of the levels.
+
+        See Also
+        --------
+        Index._is_homogeneous_type
+        DataFrame._is_homogeneous_type
+
+        Examples
+        --------
+        >>> MultiIndex.from_tuples([
+        ...     ('a', 'b'), ('a', 'c')])._is_homogeneous_type
+        True
+        >>> MultiIndex.from_tuples([
+        ...     ('a', 1), ('a', 2)])._is_homogeneous_type
+        False
+        """
+        return len({x.dtype for x in self.levels}) <= 1
+
     def _set_levels(self, levels, level=None, copy=False, validate=True,
                     verify_integrity=False):
         # This is NOT part of the levels property because it should be
@@ -533,7 +556,7 @@ class MultiIndex(Index):
         result._id = self._id
         return result
 
-    def _shallow_copy_with_infer(self, values=None, **kwargs):
+    def _shallow_copy_with_infer(self, values, **kwargs):
         # On equal MultiIndexes the difference is empty.
         # Therefore, an empty MultiIndex is returned GH13490
         if len(values) == 0:
@@ -978,14 +1001,15 @@ class MultiIndex(Index):
                     (compat.PY3 and isinstance(key, compat.string_types))):
                 try:
                     return _try_mi(key)
-                except (KeyError):
+                except KeyError:
                     raise
-                except:
+                except (IndexError, ValueError, TypeError):
                     pass
 
                 try:
                     return _try_mi(Timestamp(key))
-                except:
+                except (KeyError, TypeError,
+                        IndexError, ValueError, tslibs.OutOfBoundsDatetime):
                     pass
 
             raise InvalidIndexError(key)
@@ -1126,27 +1150,49 @@ class MultiIndex(Index):
         """ convert to object if we are a categorical """
         return self.set_levels([i._to_safe_for_reshape() for i in self.levels])
 
-    def to_frame(self, index=True):
+    def to_frame(self, index=True, name=None):
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
 
-        .. versionadded:: 0.20.0
+        Column ordering is determined by the DataFrame constructor with data as
+        a dict.
+
+        .. versionadded:: 0.24.0
 
         Parameters
         ----------
         index : boolean, default True
             Set the index of the returned DataFrame as the original MultiIndex.
 
+        name : list / sequence of strings, optional
+            The passed names should substitute index level names.
+
         Returns
         -------
         DataFrame : a DataFrame containing the original MultiIndex data.
+
+        See also
+        --------
+        DataFrame
         """
 
         from pandas import DataFrame
+        if name is not None:
+            if not is_list_like(name):
+                raise TypeError("'name' must be a list / sequence "
+                                "of column names.")
+
+            if len(name) != len(self.levels):
+                raise ValueError("'name' should have same length as "
+                                 "number of levels on index.")
+            idx_names = name
+        else:
+            idx_names = self.names
+
         result = DataFrame({(name or level):
                             self._get_level_values(level)
                             for name, level in
-                            zip(self.names, range(len(self.levels)))},
+                            zip(idx_names, range(len(self.levels)))},
                            copy=False)
         if index:
             result.index = self
@@ -1551,6 +1597,8 @@ class MultiIndex(Index):
 
     def __getitem__(self, key):
         if is_scalar(key):
+            key = com.cast_scalar_indexer(key)
+
             retval = []
             for lev, lab in zip(self.levels, self.labels):
                 if lab[key] == -1:
@@ -1640,13 +1688,12 @@ class MultiIndex(Index):
         # if all(isinstance(x, MultiIndex) for x in other):
         try:
             return MultiIndex.from_tuples(new_tuples, names=self.names)
-        except:
+        except (TypeError, IndexError):
             return Index(new_tuples)
 
     def argsort(self, *args, **kwargs):
         return self.values.argsort(*args, **kwargs)
 
-    @deprecate_kwarg(old_arg_name='n', new_arg_name='repeats')
     def repeat(self, repeats, *args, **kwargs):
         nv.validate_repeat(args, kwargs)
         return MultiIndex(levels=self.levels,
@@ -2270,7 +2317,7 @@ class MultiIndex(Index):
             for i in sorted(levels, reverse=True):
                 try:
                     new_index = new_index.droplevel(i)
-                except:
+                except ValueError:
 
                     # no dropping here
                     return orig_index
@@ -2773,7 +2820,7 @@ class MultiIndex(Index):
                 msg = 'other must be a MultiIndex or a list of tuples'
                 try:
                     other = MultiIndex.from_tuples(other)
-                except:
+                except TypeError:
                     raise TypeError(msg)
         else:
             result_names = self.names if self.names == other.names else None

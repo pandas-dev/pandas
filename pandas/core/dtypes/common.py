@@ -4,13 +4,15 @@ import numpy as np
 from pandas.compat import (string_types, text_type, binary_type,
                            PY3, PY36)
 from pandas._libs import algos, lib
-from pandas._libs.tslibs import conversion
+from pandas._libs.tslibs import conversion, Period, Timestamp
+from pandas._libs.interval import Interval
 
 from pandas.core.dtypes.dtypes import (
     registry, CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype,
-    DatetimeTZDtypeType, PeriodDtype, PeriodDtypeType, IntervalDtype,
-    IntervalDtypeType, PandasExtensionDtype, ExtensionDtype,
+    PeriodDtype, IntervalDtype,
+    PandasExtensionDtype, ExtensionDtype,
     _pandas_registry)
+from pandas.core.sparse.dtype import SparseDtype
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
     ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
@@ -90,6 +92,33 @@ def ensure_categorical(arr):
     return arr
 
 
+def ensure_int64_or_float64(arr, copy=False):
+    """
+    Ensure that an dtype array of some integer dtype
+    has an int64 dtype if possible
+    If it's not possible, potentially because of overflow,
+    convert the array to float64 instead.
+
+    Parameters
+    ----------
+    arr : array-like
+          The array whose data type we want to enforce.
+    copy: boolean
+          Whether to copy the original array or reuse
+          it in place, if possible.
+
+    Returns
+    -------
+    out_arr : The input array cast as int64 if
+              possible without overflow.
+              Otherwise the input array cast to float64.
+    """
+    try:
+        return arr.astype('int64', copy=copy, casting='safe')
+    except TypeError:
+        return arr.astype('float64', copy=copy)
+
+
 def is_object_dtype(arr_or_dtype):
     """
     Check whether an array-like or dtype is of the object dtype.
@@ -152,8 +181,10 @@ def is_sparse(arr):
     >>> is_sparse(bsr_matrix([1, 2, 3]))
     False
     """
+    from pandas.core.sparse.dtype import SparseDtype
 
-    return isinstance(arr, (ABCSparseArray, ABCSparseSeries))
+    dtype = getattr(arr, 'dtype', arr)
+    return isinstance(dtype, SparseDtype)
 
 
 def is_scipy_sparse(arr):
@@ -440,7 +471,7 @@ def is_timedelta64_dtype(arr_or_dtype):
         return False
     try:
         tipo = _get_dtype_type(arr_or_dtype)
-    except:
+    except (TypeError, ValueError, SyntaxError):
         return False
     return issubclass(tipo, np.timedelta64)
 
@@ -1592,6 +1623,11 @@ def is_bool_dtype(arr_or_dtype):
     -------
     boolean : Whether or not the array or dtype is of a boolean dtype.
 
+    Notes
+    -----
+    An ExtensionArray is considered boolean when the ``_is_boolean``
+    attribute is set to True.
+
     Examples
     --------
     >>> is_bool_dtype(str)
@@ -1608,8 +1644,11 @@ def is_bool_dtype(arr_or_dtype):
     False
     >>> is_bool_dtype(np.array([True, False]))
     True
+    >>> is_bool_dtype(pd.Categorical([True, False]))
+    True
+    >>> is_bool_dtype(pd.SparseArray([True, False]))
+    True
     """
-
     if arr_or_dtype is None:
         return False
     try:
@@ -1617,6 +1656,13 @@ def is_bool_dtype(arr_or_dtype):
     except ValueError:
         # this isn't even a dtype
         return False
+
+    if isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex)):
+        arr_or_dtype = arr_or_dtype.dtype
+
+    if isinstance(arr_or_dtype, CategoricalDtype):
+        arr_or_dtype = arr_or_dtype.categories
+        # now we use the special definition for Index
 
     if isinstance(arr_or_dtype, ABCIndexClass):
 
@@ -1626,6 +1672,9 @@ def is_bool_dtype(arr_or_dtype):
         # guess this
         return (arr_or_dtype.is_object and
                 arr_or_dtype.inferred_type == 'boolean')
+    elif is_extension_array_dtype(arr_or_dtype):
+        dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
+        return dtype._is_boolean
 
     return issubclass(tipo, np.bool_)
 
@@ -1706,6 +1755,8 @@ def is_extension_array_dtype(arr_or_dtype):
     array interface. In pandas, this includes:
 
     * Categorical
+    * Sparse
+    * Interval
 
     Third-party libraries may implement arrays or types satisfying
     this interface as well.
@@ -1828,7 +1879,8 @@ def _get_dtype(arr_or_dtype):
             return PeriodDtype.construct_from_string(arr_or_dtype)
         elif is_interval_dtype(arr_or_dtype):
             return IntervalDtype.construct_from_string(arr_or_dtype)
-    elif isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex)):
+    elif isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex,
+                                   ABCSparseArray, ABCSparseSeries)):
         return arr_or_dtype.dtype
 
     if hasattr(arr_or_dtype, 'dtype'):
@@ -1861,21 +1913,25 @@ def _get_dtype_type(arr_or_dtype):
     elif isinstance(arr_or_dtype, CategoricalDtype):
         return CategoricalDtypeType
     elif isinstance(arr_or_dtype, DatetimeTZDtype):
-        return DatetimeTZDtypeType
+        return Timestamp
     elif isinstance(arr_or_dtype, IntervalDtype):
-        return IntervalDtypeType
+        return Interval
     elif isinstance(arr_or_dtype, PeriodDtype):
-        return PeriodDtypeType
+        return Period
     elif isinstance(arr_or_dtype, string_types):
         if is_categorical_dtype(arr_or_dtype):
             return CategoricalDtypeType
         elif is_datetime64tz_dtype(arr_or_dtype):
-            return DatetimeTZDtypeType
+            return Timestamp
         elif is_period_dtype(arr_or_dtype):
-            return PeriodDtypeType
+            return Period
         elif is_interval_dtype(arr_or_dtype):
-            return IntervalDtypeType
+            return Interval
         return _get_dtype_type(np.dtype(arr_or_dtype))
+    elif isinstance(arr_or_dtype, (ABCSparseSeries, ABCSparseArray,
+                                   SparseDtype)):
+        dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
+        return dtype.type
     try:
         return arr_or_dtype.dtype.type
     except AttributeError:

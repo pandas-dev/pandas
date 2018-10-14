@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import sys
-from warnings import catch_warnings
 
 import pytest
 import pandas as pd
@@ -35,7 +34,7 @@ class TestPDApi(Base):
            'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = ['parser', 'json', 'lib', 'tslib']
+    deprecated_modules = ['parser', 'lib', 'tslib']
 
     # misc
     misc = ['IndexSlice', 'NaT']
@@ -45,7 +44,7 @@ class TestPDApi(Base):
                'DatetimeIndex', 'ExcelFile', 'ExcelWriter', 'Float64Index',
                'Grouper', 'HDFStore', 'Index', 'Int64Index', 'MultiIndex',
                'Period', 'PeriodIndex', 'RangeIndex', 'UInt64Index',
-               'Series', 'SparseArray', 'SparseDataFrame',
+               'Series', 'SparseArray', 'SparseDataFrame', 'SparseDtype',
                'SparseSeries', 'Timedelta',
                'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
 
@@ -173,32 +172,25 @@ class TestTopLevelDeprecations(object):
                 s.close()
 
 
-class TestJson(object):
-
-    def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.json.dumps([])
-
-
 class TestParser(object):
 
+    @pytest.mark.filterwarnings("ignore")
     def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.parser.na_values
+        pd.parser.na_values
 
 
 class TestLib(object):
 
+    @pytest.mark.filterwarnings("ignore")
     def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.lib.infer_dtype('foo')
+        pd.lib.infer_dtype('foo')
 
 
 class TestTSLib(object):
 
+    @pytest.mark.filterwarnings("ignore")
     def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.tslib.Timestamp('20160101')
+        pd.tslib.Timestamp('20160101')
 
 
 class TestTypes(object):

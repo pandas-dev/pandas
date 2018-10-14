@@ -798,25 +798,20 @@ class TestDataFrameConstructors(TestData):
             result = DataFrame(mrecs, index=[1, 2])
             assert_fr_equal(result, expected)
 
-    def test_constructor_corner(self):
+    def test_constructor_corner_shape(self):
         df = DataFrame(index=[])
         assert df.values.shape == (0, 0)
 
-        # empty but with specified dtype
-        df = DataFrame(index=lrange(10), columns=['a', 'b'], dtype=object)
-        assert df.values.dtype == np.object_
-
-        # does not error but ends up float
-        df = DataFrame(index=lrange(10), columns=['a', 'b'], dtype=int)
-        assert df.values.dtype == np.dtype('float64')
-
-        # #1783 empty dtype object
-        df = DataFrame({}, columns=['foo', 'bar'])
-        assert df.values.dtype == np.object_
-
-        df = DataFrame({'b': 1}, index=lrange(10), columns=list('abc'),
-                       dtype=int)
-        assert df.values.dtype == np.dtype('float64')
+    @pytest.mark.parametrize("data, index, columns, dtype, expected", [
+        (None, lrange(10), ['a', 'b'], object, np.object_),
+        (None, None, ['a', 'b'], 'int64', np.dtype('int64')),
+        (None, lrange(10), ['a', 'b'], int, np.dtype('float64')),
+        ({}, None, ['foo', 'bar'], None, np.object_),
+        ({'b': 1}, lrange(10), list('abc'), int, np.dtype('float64'))
+    ])
+    def test_constructor_dtype(self, data, index, columns, dtype, expected):
+        df = DataFrame(data, index, columns, dtype)
+        assert df.values.dtype == expected
 
     def test_constructor_scalar_inference(self):
         data = {'int': 1, 'bool': True,
@@ -916,9 +911,8 @@ class TestDataFrameConstructors(TestData):
     def test_constructor_sequence_like(self):
         # GH 3783
         # collections.Squence like
-        import collections
 
-        class DummyContainer(collections.Sequence):
+        class DummyContainer(compat.Sequence):
 
             def __init__(self, lst):
                 self._lst = lst

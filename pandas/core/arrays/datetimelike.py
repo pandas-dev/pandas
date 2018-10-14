@@ -18,6 +18,7 @@ from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
 
 from pandas.core.dtypes.common import (
+    pandas_dtype,
     needs_i8_conversion,
     is_list_like,
     is_offsetlike,
@@ -38,9 +39,10 @@ import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
 
 from .base import ExtensionOpsMixin
+from pandas.util._decorators import deprecate_kwarg
 
 
-def _make_comparison_op(op, cls):
+def _make_comparison_op(cls, op):
     # TODO: share code with indexes.base version?  Main difference is that
     # the block for MultiIndex was removed here.
     def cmp_method(self, other):
@@ -59,6 +61,7 @@ def _make_comparison_op(op, cls):
         # numpy will show a DeprecationWarning on invalid elementwise
         # comparisons, this will raise in the future
         with warnings.catch_warnings(record=True):
+            warnings.filterwarnings("ignore", "elementwise", FutureWarning)
             with np.errstate(all='ignore'):
                 result = op(self.values, np.asarray(other))
 
@@ -453,7 +456,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     def _addsub_int_array(self, other, op):
         """
         Add or subtract array-like of integers equivalent to applying
-        `shift` pointwise.
+        `_time_shift` pointwise.
 
         Parameters
         ----------
@@ -521,40 +524,72 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             kwargs['freq'] = 'infer'
         return type(self)(res_values, **kwargs)
 
-    def shift(self, n, freq=None):
+    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
+    def shift(self, periods, freq=None):
         """
-        Specialized shift which produces a Datetime/Timedelta Array/Index
+        Shift index by desired number of time frequency increments.
+
+        This method is for shifting the values of datetime-like indexes
+        by a specified time increment a given number of times.
 
         Parameters
         ----------
-        n : int
-            Periods to shift by
-        freq : DateOffset or timedelta-like, optional
+        periods : int
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+
+            .. versionchanged:: 0.24.0
+
+        freq : pandas.DateOffset, pandas.Timedelta or string, optional
+            Frequency increment to shift by.
+            If None, the index is shifted by its own `freq` attribute.
+            Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
 
         Returns
         -------
-        shifted : same type as self
+        pandas.DatetimeIndex
+            Shifted index.
+
+        See Also
+        --------
+        Index.shift : Shift values of Index.
+        PeriodIndex.shift : Shift values of PeriodIndex.
+        """
+        return self._time_shift(periods=periods, freq=freq)
+
+    def _time_shift(self, periods, freq=None):
+        """
+        Shift each value by `periods`.
+
+        Note this is different from ExtensionArray.shift, which
+        shifts the *position* of each element, padding the end with
+        missing values.
+
+        Parameters
+        ----------
+        periods : int
+            Number of periods to shift by.
+        freq : pandas.DateOffset, pandas.Timedelta, or string
+            Frequency increment to shift by.
         """
         if freq is not None and freq != self.freq:
             if isinstance(freq, compat.string_types):
                 freq = frequencies.to_offset(freq)
-            offset = n * freq
+            offset = periods * freq
             result = self + offset
-
             if hasattr(self, 'tz'):
                 result._tz = self.tz
-
             return result
 
-        if n == 0:
+        if periods == 0:
             # immutable so OK
-            return self
+            return self.copy()
 
         if self.freq is None:
             raise NullFrequencyError("Cannot shift with no freq")
 
-        start = self[0] + n * self.freq
-        end = self[-1] + n * self.freq
+        start = self[0] + periods * self.freq
+        end = self[-1] + periods * self.freq
         attribs = self._get_attributes_dict()
         return self._generate_range(start=start, end=end, periods=None,
                                     **attribs)
@@ -584,7 +619,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
-                result = self.shift(other)
+                result = self._time_shift(other)
 
             # array-like others
             elif is_timedelta64_dtype(other):
@@ -636,7 +671,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
-                result = self.shift(-other)
+                result = self._time_shift(-other)
             elif isinstance(other, Period):
                 result = self._sub_period(other)
 
@@ -706,6 +741,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # --------------------------------------------------------------
     # Comparison Methods
 
+    # Called by _add_comparison_methods defined in ExtensionOpsMixin
+    _create_comparison_method = classmethod(_make_comparison_op)
+
     def _evaluate_compare(self, other, op):
         """
         We have been called because a comparison between
@@ -739,21 +777,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         result[mask] = filler
         return result
 
-    # TODO: get this from ExtensionOpsMixin
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-        # DatetimeArray and TimedeltaArray comparison methods will
-        # call these as their super(...) methods
-        cls.__eq__ = _make_comparison_op(operator.eq, cls)
-        cls.__ne__ = _make_comparison_op(operator.ne, cls)
-        cls.__lt__ = _make_comparison_op(operator.lt, cls)
-        cls.__gt__ = _make_comparison_op(operator.gt, cls)
-        cls.__le__ = _make_comparison_op(operator.le, cls)
-        cls.__ge__ = _make_comparison_op(operator.ge, cls)
 
-
-DatetimeLikeArrayMixin._add_comparison_methods()
+DatetimeLikeArrayMixin._add_comparison_ops()
 
 
 # -------------------------------------------------------------------
@@ -877,3 +902,34 @@ def validate_tz_from_dtype(dtype, tz):
         except TypeError:
             pass
     return tz
+
+
+def validate_dtype_freq(dtype, freq):
+    """
+    If both a dtype and a freq are available, ensure they match.  If only
+    dtype is available, extract the implied freq.
+
+    Parameters
+    ----------
+    dtype : dtype
+    freq : DateOffset or None
+
+    Returns
+    -------
+    freq : DateOffset
+
+    Raises
+    ------
+    ValueError : non-period dtype
+    IncompatibleFrequency : mismatch between dtype and freq
+    """
+    if dtype is not None:
+        dtype = pandas_dtype(dtype)
+        if not is_period_dtype(dtype):
+            raise ValueError('dtype must be PeriodDtype')
+        if freq is None:
+            freq = dtype.freq
+        elif freq != dtype.freq:
+            raise IncompatibleFrequency('specified freq and dtype '
+                                        'are different')
+    return freq

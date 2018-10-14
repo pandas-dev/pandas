@@ -8,6 +8,8 @@ dependencies:
   - dask
   - fastparquet
   - feather-format
+  - flake8>=3.5
+  - flake8-comprehensions
   - gcsfs
   - geopandas
   - html5lib
@@ -18,7 +20,7 @@ dependencies:
   - nomkl
   - numexpr
   - numpy
-  - openpyxl
+  - openpyxl=2.5.5
   - psycopg2
   - pyarrow
   - pymysql
@@ -45,5 +47,6 @@ dependencies:
   - pip:
     - brotlipy
     - coverage
+    - cpplint
     - pandas-datareader
     - python-dateutil

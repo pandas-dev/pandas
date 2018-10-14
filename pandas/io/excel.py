@@ -824,8 +824,43 @@ class ExcelWriter(object):
 
     Notes
     -----
+    None of the methods and properties are considered public.
+
     For compatibility with CSV writers, ExcelWriter serializes lists
     and dicts to strings before writing.
+
+    Examples
+    --------
+    Default usage:
+
+    >>> with ExcelWriter('path_to_file.xlsx') as writer:
+    ...     df.to_excel(writer)
+
+    To write to separate sheets in a single file:
+
+    >>> with ExcelWriter('path_to_file.xlsx') as writer:
+    ...     df1.to_excel(writer, sheet_name='Sheet1')
+    ...     df2.to_excel(writer, sheet_name='Sheet2')
+
+    You can set the date format or datetime format:
+
+    >>> with ExcelWriter('path_to_file.xlsx',
+                          date_format='YYYY-MM-DD',
+                          datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
+    ...     df.to_excel(writer)
+
+    You can also append to an existing Excel file:
+
+    >>> with ExcelWriter('path_to_file.xlsx', mode='a') as writer:
+    ...     df.to_excel(writer, sheet_name='Sheet3')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     # Defining an ExcelWriter implementation (see abstract methods for more...)
 
@@ -1720,14 +1755,14 @@ class _XlsxStyler(object):
                     props[k] = ['none', 'thin', 'medium', 'dashed', 'dotted',
                                 'thick', 'double', 'hair', 'mediumDashed',
                                 'dashDot', 'mediumDashDot', 'dashDotDot',
-                                'mediumDashDotDot', 'slantDashDot'].\
-                        index(props[k])
+                                'mediumDashDotDot',
+                                'slantDashDot'].index(props[k])
                 except ValueError:
                     props[k] = 2
 
         if isinstance(props.get('font_script'), string_types):
-            props['font_script'] = ['baseline', 'superscript', 'subscript'].\
-                index(props['font_script'])
+            props['font_script'] = ['baseline', 'superscript',
+                                    'subscript'].index(props['font_script'])
 
         if isinstance(props.get('underline'), string_types):
             props['underline'] = {'none': 0, 'single': 1, 'double': 2,

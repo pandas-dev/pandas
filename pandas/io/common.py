@@ -386,6 +386,8 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         # ZIP Compression
         elif compression == 'zip':
             zf = BytesZipFile(path_or_buf, mode)
+            # Ensure the container is closed as well.
+            handles.append(zf)
             if zf.mode == 'w':
                 f = zf
             elif zf.mode == 'r':
@@ -428,8 +430,8 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         handles.append(f)
 
     # in Python 3, convert BytesIO or fileobjects passed with an encoding
-    if compat.PY3 and is_text and\
-            (compression or isinstance(f, need_text_wrapping)):
+    if (compat.PY3 and is_text and
+            (compression or isinstance(f, need_text_wrapping))):
         from io import TextIOWrapper
         f = TextIOWrapper(f, encoding=encoding)
         handles.append(f)

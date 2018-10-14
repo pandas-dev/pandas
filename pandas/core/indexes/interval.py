@@ -6,12 +6,14 @@ import numpy as np
 
 from pandas.compat import add_metaclass
 from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.cast import find_common_type, maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    find_common_type, maybe_downcast_to_dtype, infer_dtype_from_scalar)
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_list_like,
     is_datetime_or_timedelta_dtype,
     is_datetime64tz_dtype,
+    is_dtype_equal,
     is_integer_dtype,
     is_float_dtype,
     is_interval_dtype,
@@ -29,8 +31,8 @@ from pandas._libs.interval import (
     Interval, IntervalMixin, IntervalTree,
 )
 
-from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.timedeltas import timedelta_range
+from pandas.core.indexes.datetimes import date_range, DatetimeIndex
+from pandas.core.indexes.timedeltas import timedelta_range, TimedeltaIndex
 from pandas.core.indexes.multi import MultiIndex
 import pandas.core.common as com
 from pandas.util._decorators import cache_readonly, Appender
@@ -146,17 +148,13 @@ class IntervalIndex(IntervalMixin, Index):
     _mask = None
 
     def __new__(cls, data, closed=None, dtype=None, copy=False,
-                name=None, fastpath=False, verify_integrity=True):
-
-        if fastpath:
-            return cls._simple_new(data, name)
+                name=None, verify_integrity=True):
 
         if name is None and hasattr(data, 'name'):
             name = data.name
 
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray(data, closed=closed, copy=copy, dtype=dtype,
-                                  fastpath=fastpath,
                                   verify_integrity=verify_integrity)
 
         return cls._simple_new(array, name)
@@ -188,14 +186,6 @@ class IntervalIndex(IntervalMixin, Index):
         return self._simple_new(result, **attributes)
 
     @cache_readonly
-    def hasnans(self):
-        """
-        Return if the IntervalIndex has any nans; enables various performance
-        speedups
-        """
-        return self._isnan.any()
-
-    @cache_readonly
     def _isnan(self):
         """Return a mask indicating if each value is NA"""
         if self._mask is None:
@@ -204,11 +194,9 @@ class IntervalIndex(IntervalMixin, Index):
 
     @cache_readonly
     def _engine(self):
-        return IntervalTree(self.left, self.right, closed=self.closed)
-
-    @property
-    def _constructor(self):
-        return type(self)
+        left = self._maybe_convert_i8(self.left)
+        right = self._maybe_convert_i8(self.right)
+        return IntervalTree(left, right, closed=self.closed)
 
     def __contains__(self, key):
         """
@@ -394,18 +382,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     @cache_readonly
     def _ndarray_values(self):
-        left = self.left
-        right = self.right
-        mask = self._isnan
-        closed = self.closed
-
-        result = np.empty(len(left), dtype=object)
-        for i in range(len(left)):
-            if mask[i]:
-                result[i] = np.nan
-            else:
-                result[i] = Interval(left[i], right[i], closed)
-        return result
+        return np.array(self._data)
 
     def __array__(self, result=None):
         """ the array interface, return my values """
@@ -541,6 +518,78 @@ class IntervalIndex(IntervalMixin, Index):
 
         return key
 
+    def _needs_i8_conversion(self, key):
+        """
+        Check if a given key needs i8 conversion. Conversion is necessary for
+        Timestamp, Timedelta, DatetimeIndex, and TimedeltaIndex keys. An
+        Interval-like requires conversion if it's endpoints are one of the
+        aforementioned types.
+
+        Assumes that any list-like data has already been cast to an Index.
+
+        Parameters
+        ----------
+        key : scalar or Index-like
+            The key that should be checked for i8 conversion
+
+        Returns
+        -------
+        boolean
+        """
+        if is_interval_dtype(key) or isinstance(key, Interval):
+            return self._needs_i8_conversion(key.left)
+
+        i8_types = (Timestamp, Timedelta, DatetimeIndex, TimedeltaIndex)
+        return isinstance(key, i8_types)
+
+    def _maybe_convert_i8(self, key):
+        """
+        Maybe convert a given key to it's equivalent i8 value(s). Used as a
+        preprocessing step prior to IntervalTree queries (self._engine), which
+        expects numeric data.
+
+        Parameters
+        ----------
+        key : scalar or list-like
+            The key that should maybe be converted to i8.
+
+        Returns
+        -------
+        key: scalar or list-like
+            The original key if no conversion occured, int if converted scalar,
+            Int64Index if converted list-like.
+        """
+        original = key
+        if is_list_like(key):
+            key = ensure_index(key)
+
+        if not self._needs_i8_conversion(key):
+            return original
+
+        scalar = is_scalar(key)
+        if is_interval_dtype(key) or isinstance(key, Interval):
+            # convert left/right and reconstruct
+            left = self._maybe_convert_i8(key.left)
+            right = self._maybe_convert_i8(key.right)
+            constructor = Interval if scalar else IntervalIndex.from_arrays
+            return constructor(left, right, closed=self.closed)
+
+        if scalar:
+            # Timestamp/Timedelta
+            key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)
+        else:
+            # DatetimeIndex/TimedeltaIndex
+            key_dtype, key_i8 = key.dtype, Index(key.asi8)
+
+        # ensure consistency with IntervalIndex subtype
+        subtype = self.dtype.subtype
+        msg = ('Cannot index an IntervalIndex of subtype {subtype} with '
+               'values of dtype {other}')
+        if not is_dtype_equal(subtype, key_dtype):
+            raise ValueError(msg.format(subtype=subtype, other=key_dtype))
+
+        return key_i8
+
     def _check_method(self, method):
         if method is None:
             return
@@ -675,6 +724,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         else:
             # use the interval tree
+            key = self._maybe_convert_i8(key)
             if isinstance(key, Interval):
                 left, right = _get_interval_closed_bounds(key)
                 return self._engine.get_loc_interval(left, right)
@@ -738,8 +788,10 @@ class IntervalIndex(IntervalMixin, Index):
         """
 
         # find the left and right indexers
-        lindexer = self._engine.get_indexer(target.left.values)
-        rindexer = self._engine.get_indexer(target.right.values)
+        left = self._maybe_convert_i8(target.left)
+        right = self._maybe_convert_i8(target.right)
+        lindexer = self._engine.get_indexer(left.values)
+        rindexer = self._engine.get_indexer(right.values)
 
         # we want to return an indexer on the intervals
         # however, our keys could provide overlapping of multiple
@@ -892,18 +944,12 @@ class IntervalIndex(IntervalMixin, Index):
         return self._simple_new(result, **attributes)
 
     def __getitem__(self, value):
-        mask = self._isnan[value]
-        if is_scalar(mask) and mask:
-            return self._na_value
-
-        left = self.left[value]
-        right = self.right[value]
-
-        # scalar
-        if not isinstance(left, Index):
-            return Interval(left, right, self.closed)
-
-        return self._shallow_copy(left, right)
+        result = self._data[value]
+        if isinstance(result, IntervalArray):
+            return self._shallow_copy(result)
+        else:
+            # scalar
+            return result
 
     # __repr__ associated methods are based on MultiIndex
 
@@ -1052,7 +1098,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     freq : numeric, string, or DateOffset, default None
         The length of each interval. Must be consistent with the type of start
         and end, e.g. 2 for numeric, or '5H' for datetime-like.  Default is 1
-        for numeric and 'D' (calendar daily) for datetime-like.
+        for numeric and 'D' for datetime-like.
     name : string, default None
         Name of the resulting IntervalIndex
     closed : {'left', 'right', 'both', 'neither'}, default 'right'

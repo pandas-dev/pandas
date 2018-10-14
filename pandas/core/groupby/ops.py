@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_platform_int,
     ensure_int64,
+    ensure_int64_or_float64,
     ensure_object,
     needs_i8_conversion,
     is_integer_dtype,
@@ -471,7 +472,7 @@ class BaseGrouper(object):
             if (values == iNaT).any():
                 values = ensure_float64(values)
             else:
-                values = values.astype('int64', copy=False)
+                values = ensure_int64_or_float64(values)
         elif is_numeric and not is_complex_dtype(values):
             values = ensure_float64(values)
         else:
@@ -520,8 +521,8 @@ class BaseGrouper(object):
                 result = result.astype('float64')
                 result[mask] = np.nan
 
-        if kind == 'aggregate' and \
-           self._filter_empty_groups and not counts.all():
+        if (kind == 'aggregate' and
+                self._filter_empty_groups and not counts.all()):
             if result.ndim == 2:
                 try:
                     result = lib.row_bool_subset(
@@ -742,8 +743,9 @@ class BinGrouper(BaseGrouper):
         else:
             comp_ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
 
-        return comp_ids.astype('int64', copy=False), \
-            obs_group_ids.astype('int64', copy=False), ngroups
+        return (comp_ids.astype('int64', copy=False),
+                obs_group_ids.astype('int64', copy=False),
+                ngroups)
 
     @cache_readonly
     def ngroups(self):
