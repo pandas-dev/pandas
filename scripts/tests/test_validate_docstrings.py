@@ -505,6 +505,10 @@ class BadSeeAlso(object):
     def prefix_pandas(self):
         """
         Return  prefix with `pandas` from See Also sec
+
+        See Also
+        --------
+        pandas.Series.rename : Alter Series index labels or name
         """
         pass
 
@@ -609,7 +613,7 @@ class TestValidator(object):
                      marks=pytest.mark.xfail),
         # SeeAlso tests
         ('BadSeeAlso', 'prefix_pandas',
-         ('Should not start with pandas',)),
+         ('section does not need the `pandas` prefix',)),
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
