@@ -241,11 +241,11 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         if data is None:
             # TODO: Remove this block and associated kwargs; GH#20535
-            out = cls._generate_range(start, end, periods,
-                                      freq=freq, tz=tz, normalize=normalize,
-                                      closed=closed, ambiguous=ambiguous)
-            out.name = name
-            return out
+            result = cls._generate_range(start, end, periods,
+                                         freq=freq, tz=tz, normalize=normalize,
+                                         closed=closed, ambiguous=ambiguous)
+            result.name = name
+            return result
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries,
                                  DatetimeArrayMixin)):
