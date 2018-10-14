@@ -13,7 +13,7 @@ ctypedef fused sparse_t:
     int64_t
 
 
-cdef inline float64_t __div(sparse_t a, sparse_t b):
+cdef inline float64_t __div__(sparse_t a, sparse_t b):
     if b == 0:
         if a > 0:
             return INF
@@ -25,11 +25,11 @@ cdef inline float64_t __div(sparse_t a, sparse_t b):
         return float(a) / b
 
 
-cdef inline float64_t __truediv(sparse_t a, sparse_t b):
-    return __div(a, b)
+cdef inline float64_t __truediv__(sparse_t a, sparse_t b):
+    return __div__(a, b)
 
 
-cdef inline sparse_t __mod(sparse_t a, sparse_t b):
+cdef inline sparse_t __mod__(sparse_t a, sparse_t b):
     if b == 0:
         if sparse_t is float64_t:
             return NaN
@@ -39,7 +39,7 @@ cdef inline sparse_t __mod(sparse_t a, sparse_t b):
         return a % b
 
 
-cdef inline sparse_t __floordiv(sparse_t a, sparse_t b):
+cdef inline sparse_t __floordiv__(sparse_t a, sparse_t b):
     if b == 0:
         if sparse_t is float64_t:
             # numpy >= 1.11 returns NaN
@@ -78,10 +78,10 @@ def get_op(tup):
     ops_dict = {'add': '{0} + {1}',
                 'sub': '{0} - {1}',
                 'mul': '{0} * {1}',
-                'div': '__div({0}, {1})',
-                'mod': '__mod({0}, {1})',
-                'truediv': '__truediv({0}, {1})',
-                'floordiv': '__floordiv({0}, {1})',
+                'div': '__div__({0}, {1})',
+                'mod': '__mod__({0}, {1})',
+                'truediv': '__truediv__({0}, {1})',
+                'floordiv': '__floordiv__({0}, {1})',
                 'pow': '{0} ** {1}',
                 'eq': '{0} == {1}',
                 'ne': '{0} != {1}',
