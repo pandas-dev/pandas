@@ -811,7 +811,7 @@ Numeric
 - Bug in :class:`DataFrame` multiplication between boolean dtype and integer returning ``object`` dtype instead of integer dtype (:issue:`22047`, :issue:`22163`)
 - Bug in :meth:`DataFrame.apply` where, when supplied with a string argument and additional positional or keyword arguments (e.g. ``df.apply('sum', min_count=1)``), a ``TypeError`` was wrongly raised (:issue:`22376`)
 - Bug in :meth:`DataFrame.astype` to extension dtype may raise ``AttributeError`` (:issue:`22578`)
-
+- Bug in :class:`DataFrame` with ``timedelta64[ns]`` dtype arithmetic operations with ``ndarray`` with integer dtype incorrectly treating the narray as ``timedelta64[ns]`` dtype (:issue:`23114`)
 
 Strings
 ^^^^^^^
