@@ -334,6 +334,14 @@ class BadGenericDocStrings(object):
         pass
 
 
+class BadSeeAlso(object):
+
+    def prefix_pandas(self):
+        """
+        Return  prefix with `pandas` from See Also sec
+        """
+        pass
+
 class BadSummaries(object):
 
     def wrong_line(self):
@@ -564,6 +572,9 @@ class TestValidator(object):
         assert errors
 
     @pytest.mark.parametrize("klass,func,msgs", [
+        #SeeAlso tests
+        ('BadSeeAlso', 'prefix_pandas',
+         ('Should not start with pandas',)),
         # Summary tests
         ('BadSummaries', 'wrong_line',
          ('should start in the line immediately after the opening quotes',)),
