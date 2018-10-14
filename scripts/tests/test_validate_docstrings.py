@@ -592,8 +592,10 @@ class TestValidator(object):
 
     @pytest.mark.parametrize("klass,func,msgs", [
         # See Also tests
-        ('BadSeeAlso', 'desc_no_period', ('Missing period at end of description',)),
-        ('BadSeeAlso', 'desc_first_letter_lowercase', ('should be capitalized',)),
+        ('BadSeeAlso', 'desc_no_period',
+         ('Missing period at end of description',)),
+        ('BadSeeAlso', 'desc_first_letter_lowercase',
+         ('should be capitalized',)),
         # Summary tests
         ('BadSummaries', 'wrong_line',
          ('should start in the line immediately after the opening quotes',)),
