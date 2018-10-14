@@ -322,7 +322,10 @@ _sep_doc = r"""sep : str, default {default}
     will also force the use of the Python parsing engine. Note that regex
     delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``
 delimiter : str, default ``None``
-    Alternative argument name for sep."""
+    Alternative argument name for sep.
+    .. deprecated:: 0.23.4
+       Use sep argument instead.
+    """
 
 _read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame
