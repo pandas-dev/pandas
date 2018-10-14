@@ -323,7 +323,7 @@ _sep_doc = r"""sep : str, default {default}
     delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``
 delimiter : str, default ``None``
     Alternative argument name for sep.
-    .. deprecated:: 0.23.4
+    .. deprecated:: 0.24.0
        Use sep argument instead.
     """
 
@@ -640,7 +640,7 @@ def _make_parser_function(name, default_sep=','):
             delimiter = sep
         else:
             warnings.warn("delimiter is deprecated, please use sep instead.",
-                          DeprecationWarning, stacklevel=2)
+                          FutureWarning, stacklevel=2)
 
         if delim_whitespace and delimiter != default_sep:
             raise ValueError("Specified a delimiter with both sep and"
