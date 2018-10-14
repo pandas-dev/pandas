@@ -421,7 +421,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         """
         return list(self.astype(object))
 
-    def min(self, axis=None, *args, **kwargs):
+    def min(self, *args, **kwargs):
         """
         Return the minimum value of the Index or minimum along
         an axis.
@@ -448,7 +448,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         except ValueError:
             return self._na_value
 
-    def argmin(self, axis=None, *args, **kwargs):
+    def argmin(self, *args, **kwargs):
         """
         Returns the indices of the minimum values along an axis.
         See `numpy.ndarray.argmin` for more information on the
@@ -469,7 +469,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             i8[mask] = np.iinfo('int64').max
         return i8.argmin()
 
-    def max(self, axis=None, *args, **kwargs):
+    def max(self, *args, **kwargs):
         """
         Return the maximum value of the Index or maximum along
         an axis.
@@ -496,7 +496,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         except ValueError:
             return self._na_value
 
-    def argmax(self, axis=None, *args, **kwargs):
+    def argmax(self, *args, **kwargs):
         """
         Returns the indices of the maximum values along an axis.
         See `numpy.ndarray.argmax` for more information on the
