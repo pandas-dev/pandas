@@ -243,15 +243,15 @@ class TestSeriesDtypes():
         tm.assert_series_equal(result, expected)
 
     def test_astype_from_categorical(self):
-        l = ["a", "b", "c", "a"]
-        s = Series(l)
-        exp = Series(Categorical(l))
+        items = ["a", "b", "c", "a"]
+        s = Series(items)
+        exp = Series(Categorical(items))
         res = s.astype('category')
         tm.assert_series_equal(res, exp)
 
-        l = [1, 2, 3, 1]
-        s = Series(l)
-        exp = Series(Categorical(l))
+        items = [1, 2, 3, 1]
+        s = Series(items)
+        exp = Series(Categorical(items))
         res = s.astype('category')
         tm.assert_series_equal(res, exp)
 
@@ -270,13 +270,13 @@ class TestSeriesDtypes():
         tm.assert_frame_equal(exp_df, df)
 
         # with keywords
-        l = ["a", "b", "c", "a"]
-        s = Series(l)
-        exp = Series(Categorical(l, ordered=True))
+        lst = ["a", "b", "c", "a"]
+        s = Series(lst)
+        exp = Series(Categorical(lst, ordered=True))
         res = s.astype(CategoricalDtype(None, ordered=True))
         tm.assert_series_equal(res, exp)
 
-        exp = Series(Categorical(l, categories=list('abcdef'), ordered=True))
+        exp = Series(Categorical(lst, categories=list('abcdef'), ordered=True))
         res = s.astype(CategoricalDtype(list('abcdef'), ordered=True))
         tm.assert_series_equal(res, exp)
 

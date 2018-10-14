@@ -2182,14 +2182,14 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
 
-            l = [('date', datetime.date(2001, 1, 2))]
+            dtypes = [('date', datetime.date(2001, 1, 2))]
 
             # py3 ok for unicode
             if not compat.PY3:
-                l.append(('unicode', u('\\u03c3')))
+                dtypes.append(('unicode', u('\\u03c3')))
 
             # currently not supported dtypes ####
-            for n, f in l:
+            for n, f in dtypes:
                 df = tm.makeDataFrame()
                 df[n] = f
                 pytest.raises(

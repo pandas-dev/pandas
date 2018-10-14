@@ -2062,14 +2062,14 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame({"a": [1, 2, 3],
                         "b": [4, 5, 6],
                         "c": [7, 8, 9]}).set_index(["a", "b"])
-        l = list(df.index)
-        l[0] = ("faz", "boo")
-        df.index = l
+        index = list(df.index)
+        index[0] = ("faz", "boo")
+        df.index = index
         repr(df)
 
         # this travels an improper code path
-        l[0] = ["faz", "boo"]
-        df.index = l
+        index[0] = ["faz", "boo"]
+        df.index = index
         repr(df)
 
     def test_tuples_have_na(self):

@@ -539,9 +539,9 @@ class TestSeriesAnalytics(TestData):
             f(s)
 
             # 2888
-            l = [0]
-            l.extend(lrange(2 ** 40, 2 ** 40 + 1000))
-            s = Series(l, dtype='int64')
+            items = [0]
+            items.extend(lrange(2 ** 40, 2 ** 40 + 1000))
+            s = Series(items, dtype='int64')
             assert_almost_equal(float(f(s)), float(alternate(s.values)))
 
             # check date range
@@ -974,12 +974,12 @@ class TestSeriesAnalytics(TestData):
 
         for s in sers:
             thresh = s[2]
-            l = s.clip_lower(thresh)
-            u = s.clip_upper(thresh)
-            assert l[notna(l)].min() == thresh
-            assert u[notna(u)].max() == thresh
-            assert list(isna(s)) == list(isna(l))
-            assert list(isna(s)) == list(isna(u))
+            lower = s.clip_lower(thresh)
+            upper = s.clip_upper(thresh)
+            assert lower[notna(lower)].min() == thresh
+            assert upper[notna(upper)].max() == thresh
+            assert list(isna(s)) == list(isna(lower))
+            assert list(isna(s)) == list(isna(upper))
 
     def test_clip_with_na_args(self):
         """Should process np.nan argument as None """
