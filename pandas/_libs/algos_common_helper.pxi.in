@@ -27,11 +27,12 @@ dtypes = [('float64', 'float64_t', 'float64_t'),
 def get_dispatch(dtypes):
 
     for name, c_type, dest_type, in dtypes:
-        yield name, c_type, dest_type
+        dest_name = dest_type[:-2]  # i.e. strip "_t"
+        yield name, c_type, dest_type, dest_name
 
 }}
 
-{{for name, c_type, dest_type
+{{for name, c_type, dest_type, dest_name
       in get_dispatch(dtypes)}}
 
 
@@ -80,9 +81,9 @@ def diff_2d_{{name}}(ndarray[{{c_type}}, ndim=2] arr,
                     out[i, j] = arr[i, j] - arr[i, j - periods]
 
 
-def put2d_{{name}}_{{dest_type[:-2]}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
-                                      ndarray[int64_t] indexer, Py_ssize_t loc,
-                                      ndarray[{{dest_type}}] out):
+def put2d_{{name}}_{{dest_name}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
+                                 ndarray[int64_t] indexer, Py_ssize_t loc,
+                                 ndarray[{{dest_type}}] out):
     cdef:
         Py_ssize_t i, j, k
 

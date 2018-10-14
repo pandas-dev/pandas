@@ -594,6 +594,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
 # group_min, group_max
 # ----------------------------------------------------------------------
 
+# TODO: consider implementing for more dtypes
 ctypedef fused groupby_t:
     float64_t
     float32_t
@@ -624,6 +625,7 @@ def group_max(ndarray[groupby_t, ndim=2] out,
 
     maxx = np.empty_like(out)
     if groupby_t is int64_t:
+        # Note: evaluated at compile-time
         maxx.fill(-_int64_max)
         nan_val = iNaT
     else:
