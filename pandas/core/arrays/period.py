@@ -141,7 +141,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
         elif is_object_dtype(values) or isinstance(values, (list, tuple)):
             # e.g. array([Period(...), Period(...), NaT])
-            values = np.array(values)
+            values = np.array(values, dtype=object)
             if freq is None:
                 freq = libperiod.extract_freq(values)
             values = libperiod.extract_ordinals(values, freq)
