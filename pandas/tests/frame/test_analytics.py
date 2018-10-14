@@ -2042,8 +2042,11 @@ class TestDataFrameAnalytics():
 
         # np.array @ DataFrame
         result = operator.matmul(a.values, b)
+        assert isinstance(result, DataFrame)
+        assert result.columns.equals(b.columns)
+        assert result.index.equals(pd.Index(range(3)))
         expected = np.dot(a.values, b.values)
-        tm.assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result.values, expected)
 
         # nested list @ DataFrame (__rmatmul__)
         result = operator.matmul(a.values.tolist(), b)

@@ -557,8 +557,8 @@ class TestTSPlot(TestPlotBase):
         ts.plot(ax=ax)
         lines = ax.get_lines()
         assert len(lines) == 1
-        l = lines[0]
-        data = l.get_xydata()
+        line = lines[0]
+        data = line.get_xydata()
 
         if (self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1
                 or (self.mpl_ge_2_1_0 and not self.mpl_ge_2_2_2)):
@@ -578,8 +578,8 @@ class TestTSPlot(TestPlotBase):
         ax = ts.plot(ax=ax)
         lines = ax.get_lines()
         assert len(lines) == 1
-        l = lines[0]
-        data = l.get_xydata()
+        line = lines[0]
+        data = line.get_xydata()
 
         if (self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1
                 or (self.mpl_ge_2_1_0 and not self.mpl_ge_2_2_2)):
@@ -599,8 +599,8 @@ class TestTSPlot(TestPlotBase):
         ser.plot(ax=ax)
         lines = ax.get_lines()
         assert len(lines) == 1
-        l = lines[0]
-        data = l.get_xydata()
+        line = lines[0]
+        data = line.get_xydata()
         if (self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1
                 or (self.mpl_ge_2_1_0 and not self.mpl_ge_2_2_2)):
             # 2.0.0, 2.2.0 (exactly) or >= 3.0.0
@@ -623,8 +623,9 @@ class TestTSPlot(TestPlotBase):
         lines = ax.get_lines()
         assert len(lines) == 1
         assert len(ax.right_ax.get_lines()) == 1
-        l = lines[0]
-        data = l.get_xydata()
+
+        line = lines[0]
+        data = line.get_xydata()
         if (self.mpl_ge_3_0_0 or not self.mpl_ge_2_0_1
                 or (self.mpl_ge_2_1_0 and not self.mpl_ge_2_2_2)):
             # 2.0.0, 2.2.0 (exactly) or >= 3.0.0
@@ -643,8 +644,8 @@ class TestTSPlot(TestPlotBase):
         assert hasattr(ax, 'left_ax')
         assert not hasattr(ax, 'right_ax')
         axes = fig.get_axes()
-        l = ax.get_lines()[0]
-        xp = Series(l.get_ydata(), l.get_xdata())
+        line = ax.get_lines()[0]
+        xp = Series(line.get_ydata(), line.get_xdata())
         assert_series_equal(ser, xp)
         assert ax.get_yaxis().get_ticks_position() == 'right'
         assert not axes[0].get_yaxis().get_visible()
@@ -674,8 +675,8 @@ class TestTSPlot(TestPlotBase):
         assert hasattr(ax, 'left_ax')
         assert not hasattr(ax, 'right_ax')
         axes = fig.get_axes()
-        l = ax.get_lines()[0]
-        xp = Series(l.get_ydata(), l.get_xdata()).to_timestamp()
+        line = ax.get_lines()[0]
+        xp = Series(line.get_ydata(), line.get_xdata()).to_timestamp()
         assert_series_equal(ser, xp)
         assert ax.get_yaxis().get_ticks_position() == 'right'
         assert not axes[0].get_yaxis().get_visible()
@@ -983,25 +984,25 @@ class TestTSPlot(TestPlotBase):
                                   dtype=np.float64)
             expected_y = np.zeros(len(expected_x), dtype=np.float64)
             for i in range(3):
-                l = ax.lines[i]
-                assert PeriodIndex(l.get_xdata()).freq == idxh.freq
-                tm.assert_numpy_array_equal(l.get_xdata(orig=False),
+                line = ax.lines[i]
+                assert PeriodIndex(line.get_xdata()).freq == idxh.freq
+                tm.assert_numpy_array_equal(line.get_xdata(orig=False),
                                             expected_x)
                 # check stacked values are correct
                 expected_y += low[i].values
-                tm.assert_numpy_array_equal(l.get_ydata(orig=False),
+                tm.assert_numpy_array_equal(line.get_ydata(orig=False),
                                             expected_y)
 
             # check high dataframe result
             expected_x = idxh.to_period().asi8.astype(np.float64)
             expected_y = np.zeros(len(expected_x), dtype=np.float64)
             for i in range(3):
-                l = ax.lines[3 + i]
-                assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
-                tm.assert_numpy_array_equal(l.get_xdata(orig=False),
+                line = ax.lines[3 + i]
+                assert PeriodIndex(data=line.get_xdata()).freq == idxh.freq
+                tm.assert_numpy_array_equal(line.get_xdata(orig=False),
                                             expected_x)
                 expected_y += high[i].values
-                tm.assert_numpy_array_equal(l.get_ydata(orig=False),
+                tm.assert_numpy_array_equal(line.get_ydata(orig=False),
                                             expected_y)
 
         # high to low
@@ -1014,12 +1015,12 @@ class TestTSPlot(TestPlotBase):
             expected_x = idxh.to_period().asi8.astype(np.float64)
             expected_y = np.zeros(len(expected_x), dtype=np.float64)
             for i in range(3):
-                l = ax.lines[i]
-                assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
-                tm.assert_numpy_array_equal(l.get_xdata(orig=False),
+                line = ax.lines[i]
+                assert PeriodIndex(data=line.get_xdata()).freq == idxh.freq
+                tm.assert_numpy_array_equal(line.get_xdata(orig=False),
                                             expected_x)
                 expected_y += high[i].values
-                tm.assert_numpy_array_equal(l.get_ydata(orig=False),
+                tm.assert_numpy_array_equal(line.get_ydata(orig=False),
                                             expected_y)
 
             # check low dataframe result
@@ -1028,12 +1029,12 @@ class TestTSPlot(TestPlotBase):
                                   dtype=np.float64)
             expected_y = np.zeros(len(expected_x), dtype=np.float64)
             for i in range(3):
-                l = ax.lines[3 + i]
-                assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
-                tm.assert_numpy_array_equal(l.get_xdata(orig=False),
+                lines = ax.lines[3 + i]
+                assert PeriodIndex(data=lines.get_xdata()).freq == idxh.freq
+                tm.assert_numpy_array_equal(lines.get_xdata(orig=False),
                                             expected_x)
                 expected_y += low[i].values
-                tm.assert_numpy_array_equal(l.get_ydata(orig=False),
+                tm.assert_numpy_array_equal(lines.get_ydata(orig=False),
                                             expected_y)
 
     @pytest.mark.slow

@@ -241,8 +241,8 @@ class TestPlotBase(object):
         else:
             labels = [t.get_text() for t in texts]
             assert len(labels) == len(expected)
-            for l, e in zip(labels, expected):
-                assert l == e
+            for label, e in zip(labels, expected):
+                assert label == e
 
     def _check_ticks_props(self, axes, xlabelsize=None, xrot=None,
                            ylabelsize=None, yrot=None):
