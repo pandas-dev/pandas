@@ -794,8 +794,8 @@ class TestDataFrameOperators(TestData):
         b = np.array([2, 2])
         b_r = np.atleast_2d([2, 2])
         b_c = b_r.T
-        l = (2, 2, 2)
-        tup = tuple(l)
+        lst = [2, 2, 2]
+        tup = tuple(lst)
 
         # gt
         expected = DataFrame([[False, False], [False, True], [True, True]])
@@ -810,7 +810,7 @@ class TestDataFrameOperators(TestData):
         msg2db = 'operands could not be broadcast together with shapes'
         with tm.assert_raises_regex(ValueError, msg1d):
             # wrong shape
-            df > l
+            df > lst
 
         with tm.assert_raises_regex(ValueError, msg1d):
             # wrong shape
@@ -835,7 +835,7 @@ class TestDataFrameOperators(TestData):
         assert_frame_equal(result, expected)
 
         with tm.assert_raises_regex(ValueError, msg1d):
-            result = df == l
+            result = df == lst
 
         with tm.assert_raises_regex(ValueError, msg1d):
             result = df == tup
@@ -859,7 +859,7 @@ class TestDataFrameOperators(TestData):
         expected.columns = df.columns
 
         with tm.assert_raises_regex(ValueError, msg1d):
-            result = df == l
+            result = df == lst
 
         with tm.assert_raises_regex(ValueError, msg1d):
             result = df == tup
