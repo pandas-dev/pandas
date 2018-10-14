@@ -1856,12 +1856,15 @@ class DataFrame(NDFrame):
                  data_label=None, variable_labels=None, version=114,
                  convert_strl=None):
         """
-        Export Stata binary dta files.
+        Converting data frame object to Stata dta format.
+
+        Writes the Dataframe to a Stata dataset file.
+        "dta" files contain a Stata dataset.
 
         Parameters
         ----------
         fname : path (string), buffer or path object
-            string, path object (pathlib.Path or py._path.local.LocalPath) or
+            String, path object (pathlib.Path or py._path.local.LocalPath) or
             object implementing a binary write() functions. If using a buffer
             then the buffer will not be automatically closed after the file
             data has been written.
@@ -1921,27 +1924,27 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.read_stata : Import Stata data files.
-        pandas.io.stata.StataWriter : Low-level writer for Stata data files.
-        pandas.io.stata.StataWriter117 : Low-level writer for version 117
-            files.
+        read_stata : Import Stata data files.
+        io.stata.StataWriter : Low-level writer for Stata data files.
+        io.stata.StataWriter117 : Low-level writer for version 117 files.
 
         Examples
         --------
-        >>> data.to_stata('./data_file.dta')
+        Converting dataframe with date column to Stata dta file
+        using the to_stata method.
 
-        Or with dates
-
-        >>> data.to_stata('./date_data_file.dta', {2 : 'tw'})
+        >>> dates = pd.date_range(start='2018-01-01', periods=4)
+        >>> df = pd.DataFrame({'date': dates,
+        ...                    'animal': ['falcon', 'parrot', 'falcon',
+        ...                               'parrot'],
+        ...                    'speed': [350, 18, 361, 15]}).set_index(['date',
+        ...                                                    'animal'])
+        >>> df.to_stata('animals.dta')
 
         Alternatively you can create an instance of the StataWriter class
 
-        >>> writer = StataWriter('./data_file.dta', data)
-        >>> writer.write_file()
-
-        With dates:
-
-        >>> writer = StataWriter('./date_data_file.dta', data, {2 : 'tw'})
+        >>> StataWriter = pd.io.stata.StataWriter
+        >>> writer = StataWriter('animals.dta', df)
         >>> writer.write_file()
         """
         kwargs = {}
