@@ -415,6 +415,12 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
                              'target index size')
         return tolerance
 
+    def tolist(self):
+        """
+        return a list of the underlying data
+        """
+        return list(self.astype(object))
+
     def min(self, axis=None, *args, **kwargs):
         """
         Return the minimum value of the Index or minimum along
@@ -606,6 +612,18 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
                 return self.astype(object).isin(values)
 
         return algorithms.isin(self.asi8, values.asi8)
+
+    def repeat(self, repeats, *args, **kwargs):
+        """
+        Analogous to ndarray.repeat
+        """
+        nv.validate_repeat(args, kwargs)
+        if is_period_dtype(self):
+            freq = self.freq
+        else:
+            freq = None
+        return self._shallow_copy(self.asi8.repeat(repeats),
+                                  freq=freq)
 
     @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
