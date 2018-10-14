@@ -508,7 +508,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
             nanos = delta_to_nanoseconds(other)
 
         elif isinstance(other, np.ndarray):
-            # numpy timedelta64 array; return an integer array instead of int
+            # numpy timedelta64 array; all entries must be compatible
             assert other.dtype.kind == 'm'
             if other.dtype != _TD_DTYPE:
                 # i.e. non-nano unit
