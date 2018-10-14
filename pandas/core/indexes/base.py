@@ -519,7 +519,7 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
-            values = self.values
+            values = self._take_values
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
         if not len(values) and 'dtype' not in kwargs:
@@ -761,6 +761,17 @@ class Index(IndexOpsMixin, PandasObject):
         >>> midx.get_values().ndim
         1
         """
+        return self.values
+
+    @property
+    def _take_values(self):
+        """
+        Values to use in `take` operation, suitable to being passed back to
+        _shallow_copy/_simple_new.
+        """
+        if is_period_dtype(self):
+            # Avoid casting to object-dtype
+            return self._ndarray_values
         return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
@@ -2158,7 +2169,7 @@ class Index(IndexOpsMixin, PandasObject):
             if allow_fill and fill_value is not None:
                 msg = 'Unable to fill values because {0} cannot contain NA'
                 raise ValueError(msg.format(self.__class__.__name__))
-            taken = self.values.take(indices)
+            taken = self._take_values.take(indices)
         return self._shallow_copy(taken)
 
     def _assert_take_fillable(self, values, indices, allow_fill=True,
@@ -2929,7 +2940,8 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
 
         if self.equals(other):
-            return self._shallow_copy([])
+            # pass an empty array with the appropriate dtype
+            return self._shallow_copy(self[:0])
 
         other, result_name = self._convert_can_do_setop(other)
 
@@ -2940,12 +2952,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         label_diff = np.setdiff1d(np.arange(this.size), indexer,
                                   assume_unique=True)
-        the_diff = this.values.take(label_diff)
+        the_diff = this._take_values.take(label_diff)
         try:
             the_diff = sorting.safe_sort(the_diff)
         except TypeError:
             pass
 
+        if is_period_dtype(this):
+            return this._shallow_copy(the_diff, name=result_name)
         return this._shallow_copy(the_diff, name=result_name, freq=None)
 
     def symmetric_difference(self, other, result_name=None):
@@ -2994,11 +3008,11 @@ class Index(IndexOpsMixin, PandasObject):
         common_indexer = indexer.take((indexer != -1).nonzero()[0])
         left_indexer = np.setdiff1d(np.arange(this.size), common_indexer,
                                     assume_unique=True)
-        left_diff = this.values.take(left_indexer)
+        left_diff = this._take_values.take(left_indexer)
 
         # {other} minus {this}
         right_indexer = (indexer == -1).nonzero()[0]
-        right_diff = other.values.take(right_indexer)
+        right_diff = other._take_values.take(right_indexer)
 
         the_diff = _concat._concat_compat([left_diff, right_diff])
         try:
@@ -3008,7 +3022,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         attribs = self._get_attributes_dict()
         attribs['name'] = result_name
-        if 'freq' in attribs:
+        if 'freq' in attribs and not is_period_dtype(self):
             attribs['freq'] = None
         return self._shallow_copy_with_infer(the_diff, **attribs)
 
@@ -3028,7 +3042,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_unique and not dropna:
             return self
 
-        values = self.values
+        values = self._take_values
 
         if not self.is_unique:
             values = self.unique()
@@ -4678,7 +4692,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("invalid how option: {0}".format(how))
 
         if self.hasnans:
-            return self._shallow_copy(self.values[~self._isnan])
+            return self._shallow_copy(self._take_values[~self._isnan])
         return self._shallow_copy()
 
     def _evaluate_with_timedelta_like(self, other, op):

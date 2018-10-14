@@ -96,6 +96,8 @@ class Algorithms(object):
 class Indexing(object):
 
     goal_time = 0.2
+    pi_with_nas = PeriodIndex(['1985Q1', 'NaT', '1985Q2'] * 1000, freq='Q')
+    pi_diff = PeriodIndex(['1985Q1', 'NaT', '1985Q3'] * 1000, freq='Q')
 
     def setup(self):
         self.index = PeriodIndex(start='1985', periods=1000, freq='D')
@@ -121,4 +123,17 @@ class Indexing(object):
         self.index[:750].intersection(self.index[250:])
 
     def time_unique(self):
+        # GH#23083
         self.index.unique()
+
+    def time_dropna(self):
+        # GH#23095
+        self.pi_with_nas.dropna()
+
+    def time_difference(self):
+        # GH#23095
+        self.pi_with_nas.difference(self.pi_diff)
+
+    def time_symmetric_difference(self):
+        # GH#23095
+        self.pi_with_nas.symmetric_difference(self.pi_diff)

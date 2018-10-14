@@ -17,6 +17,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
+    is_period_dtype,
     is_categorical_dtype,
     is_object_dtype,
     is_hashable,
@@ -1036,7 +1037,14 @@ class MultiIndex(Index):
         labels = self.labels[level]
         if unique:
             labels = algos.unique(labels)
-        filled = algos.take_1d(values._values, labels,
+
+        if is_period_dtype(values):
+            take_vals = values._ndarray_values
+        else:
+            # TODO: Why is this _values where elsewhere it is values?
+            #  if it were values here we could use _take_values
+            take_vals = values._values
+        filled = algos.take_1d(take_vals, labels,
                                fill_value=values._na_value)
         values = values._shallow_copy(filled)
         return values
