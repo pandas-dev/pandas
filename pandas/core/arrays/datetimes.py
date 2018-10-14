@@ -34,7 +34,7 @@ from pandas.core import ops
 from pandas.tseries.frequencies import to_offset, get_period_alias
 from pandas.tseries.offsets import Tick, generate_range
 
-from pandas.core.arrays import datetimelike as dtl
+import pandas.core.arrays.datetimelike as dtl
 
 
 _midnight = time(0, 0)

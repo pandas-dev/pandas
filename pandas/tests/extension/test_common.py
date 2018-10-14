@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes import dtypes
 

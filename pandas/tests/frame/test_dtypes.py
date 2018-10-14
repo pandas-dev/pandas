@@ -12,7 +12,7 @@ from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
 from pandas.compat import u
 from pandas import _np_version_under1p14
 
-from pandas.core.arrays import integer_array
+from pandas.core.arrays.integer import integer_array
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, CategoricalDtype
 from pandas.tests.frame.common import TestData
 from pandas.util.testing import (assert_series_equal,

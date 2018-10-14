@@ -776,7 +776,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays import IntervalArray
+        from pandas.core.arrays.interval import IntervalArray
         return IntervalArray
 
     @classmethod

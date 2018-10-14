@@ -12,7 +12,8 @@ import numpy as np
 
 from pandas import (DataFrame, Series, Timestamp, date_range, compat,
                     option_context, Categorical)
-from pandas.core.arrays import IntervalArray, integer_array
+from pandas.core.arrays.interval import IntervalArray
+from pandas.core.arrays.integer import integer_array
 from pandas.compat import StringIO
 import pandas as pd
 

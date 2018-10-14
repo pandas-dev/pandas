@@ -18,7 +18,8 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
     is_list_like)
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays.base import (ExtensionArray,
+                                     ExtensionOpsMixin)
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, notna

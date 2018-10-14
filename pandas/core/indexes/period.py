@@ -31,7 +31,7 @@ from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
 from pandas._libs.tslibs import resolution, period
 
 from pandas.core.algorithms import unique1d
-from pandas.core.arrays import datetimelike as dtl
+import pandas.core.arrays.datetimelike as dtl
 from pandas.core.arrays.period import PeriodArrayMixin, dt64arr_to_periodarr
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index

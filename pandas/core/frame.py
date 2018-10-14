@@ -80,7 +80,8 @@ from pandas.core import common as com
 from pandas.core import nanops
 from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.arrays.categorical import Categorical
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.config import get_option
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, ensure_index,
@@ -1761,9 +1762,9 @@ class DataFrame(NDFrame):
         1  1.0  NaN
         2  NaN  1.0
         >>> type(sdf)
-        <class 'pandas.core.sparse.frame.SparseDataFrame'>
+        <class 'pandas.core.arrays.sparse.frame.SparseDataFrame'>
         """
-        from pandas.core.sparse.frame import SparseDataFrame
+        from pandas.core.arrays.sparse.frame import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns, default_kind=kind,
                                default_fill_value=fill_value)

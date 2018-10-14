@@ -57,6 +57,14 @@ def load_reduce(self):
 # If classes are moved, provide compat here.
 _class_locations_map = {
 
+    # 23123, fix sparse mapping
+    ('pandas.core.sparse.array', 'SparseArray'):
+        ('pandas.core.arrays.sparse.series', 'SparseArray'),
+    ('pandas.core.sparse.series', 'SparseSeries'):
+        ('pandas.core.arrays.sparse.series', 'SparseSeries'),
+    ('pandas.core.sparse.frame', 'SparseDataFrame'):
+        ('pandas.core.arrays.sparse.frame', 'SparseDataFrame'),
+
     # 15477
     ('pandas.core.base', 'FrozenNDArray'):
         ('pandas.core.indexes.frozen', 'FrozenNDArray'),
@@ -67,7 +75,7 @@ _class_locations_map = {
     ('pandas.core.series', 'TimeSeries'):
         ('pandas.core.series', 'Series'),
     ('pandas.sparse.series', 'SparseTimeSeries'):
-        ('pandas.core.sparse.series', 'SparseSeries'),
+        ('pandas.core.arrays.sparse.series', 'SparseSeries'),
 
     # 12588, extensions moving
     ('pandas._sparse', 'BlockIndex'):
@@ -88,11 +96,11 @@ _class_locations_map = {
 
     # 15998 top-level dirs moving
     ('pandas.sparse.array', 'SparseArray'):
-        ('pandas.core.sparse.array', 'SparseArray'),
+        ('pandas.core.arrays.sparse.array', 'SparseArray'),
     ('pandas.sparse.series', 'SparseSeries'):
-        ('pandas.core.sparse.series', 'SparseSeries'),
+        ('pandas.core.arrays.sparse.series', 'SparseSeries'),
     ('pandas.sparse.frame', 'SparseDataFrame'):
-        ('pandas.core.sparse.frame', 'SparseDataFrame'),
+        ('pandas.core.arrays.sparse.frame', 'SparseDataFrame'),
     ('pandas.indexes.base', '_new_Index'):
         ('pandas.core.indexes.base', '_new_Index'),
     ('pandas.indexes.base', 'Index'):
@@ -112,7 +120,7 @@ _class_locations_map = {
 
     # 19269, arrays moving
     ('pandas.core.categorical', 'Categorical'):
-        ('pandas.core.arrays', 'Categorical'),
+        ('pandas.core.arrays.categorical', 'Categorical'),
 
     # 19939, add timedeltaindex, float64index compat from 15998 move
     ('pandas.tseries.tdi', 'TimedeltaIndex'):
@@ -130,8 +138,13 @@ if compat.PY3:
 
         def find_class(self, module, name):
             # override superclass
+            print(module)
+            print(name)
             key = (module, name)
             module, name = _class_locations_map.get(key, key)
+            print(module)
+            print(name)
+            print("---")
             return super(Unpickler, self).find_class(module, name)
 
 else:

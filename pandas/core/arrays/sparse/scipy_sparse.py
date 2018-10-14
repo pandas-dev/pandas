@@ -1,6 +1,5 @@
 """
 Interaction with scipy.sparse matrices.
-
 Currently only includes SparseSeries.to_coo helpers.
 """
 from pandas.core.index import MultiIndex, Index

@@ -282,7 +282,7 @@ class TestSparseDataFrameConcat(object):
         tm.assert_sp_frame_equal(res, exp, check_kind=False)
 
     def test_concat_bug(self):
-        from pandas.core.sparse.api import SparseDtype
+        from pandas.core.arrays.sparse.api import SparseDtype
         x = pd.SparseDataFrame({"A": pd.SparseArray([np.nan, np.nan],
                                                     fill_value=0)})
         y = pd.SparseDataFrame({"B": []})

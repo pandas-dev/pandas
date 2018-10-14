@@ -1,5 +1,4 @@
 """ common type operations """
-
 import numpy as np
 from pandas.compat import (string_types, text_type, binary_type,
                            PY3, PY36)
@@ -12,7 +11,6 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype, IntervalDtype,
     PandasExtensionDtype, ExtensionDtype,
     _pandas_registry)
-from pandas.core.sparse.dtype import SparseDtype
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
     ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
@@ -22,7 +20,7 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_dict_like, is_scalar, is_string_like, is_list_like, is_number,
     is_file_like, is_re, is_re_compilable, is_sequence, is_nested_list_like,
     is_named_tuple, is_array_like, is_decimal, is_complex, is_interval)
-
+from pandas.core.arrays.sparse.dtype import SparseDtype
 
 _POSSIBLY_CAST_DTYPES = {np.dtype(t).name
                          for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
@@ -181,7 +179,7 @@ def is_sparse(arr):
     >>> is_sparse(bsr_matrix([1, 2, 3]))
     False
     """
-    from pandas.core.sparse.dtype import SparseDtype
+    from pandas.core.arrays.sparse.dtype import SparseDtype
 
     dtype = getattr(arr, 'dtype', arr)
     return isinstance(dtype, SparseDtype)

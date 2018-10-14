@@ -17,7 +17,7 @@ import pytest
 import numpy as np
 
 from pandas import Interval
-from pandas.core.arrays import IntervalArray
+from pandas.core.arrays.interval import IntervalArray
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.tests.extension import base
 import pandas.util.testing as tm

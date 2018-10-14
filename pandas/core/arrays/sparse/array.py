@@ -45,7 +45,7 @@ from pandas._libs import lib
 import pandas.core.algorithms as algos
 import pandas.io.formats.printing as printing
 
-from pandas.core.sparse.dtype import SparseDtype
+from pandas.core.arrays.sparse.dtype import SparseDtype
 
 
 _sparray_doc_kwargs = dict(klass='SparseArray')

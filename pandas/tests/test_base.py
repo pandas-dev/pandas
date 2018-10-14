@@ -1199,8 +1199,8 @@ class TestToIterable(object):
      'datetime64[ns, US/Central]'),
     (pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]'),
     (pd.PeriodIndex([2018, 2019], freq='A'), np.ndarray, 'object'),
-    (pd.IntervalIndex.from_breaks([0, 1, 2]), pd.core.arrays.IntervalArray,
-     'interval'),
+    (pd.IntervalIndex.from_breaks([0, 1, 2]),
+     pd.core.arrays.interval.IntervalArray, 'interval'),
 ])
 def test_values_consistent(array, expected_type, dtype):
     l_values = pd.Series(array)._values

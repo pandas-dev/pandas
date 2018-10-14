@@ -7,7 +7,7 @@ import pytest
 from pandas.api.types import is_integer, is_float, is_float_dtype, is_scalar
 from pandas.core.dtypes.generic import ABCIndexClass
 
-from pandas.core.arrays import (
+from pandas.core.arrays.integer import (
     integer_array, IntegerArray)
 from pandas.core.arrays.integer import (
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,

@@ -16,7 +16,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.timedeltas import (
     TimedeltaArrayMixin, _is_convertible_to_td, _to_m8)
-from pandas.core.arrays import datetimelike as dtl
+import pandas.core.arrays.datetimelike as dtl
 
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index

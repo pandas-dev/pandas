@@ -27,7 +27,7 @@ import pandas.core.common as com
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
 
-from pandas.core.arrays import datetimelike as dtl
+import pandas.core.arrays.datetimelike as dtl
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 
 

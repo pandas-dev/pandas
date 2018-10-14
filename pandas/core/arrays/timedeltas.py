@@ -230,7 +230,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     def _add_datelike(self, other):
         # adding a timedeltaindex to a datetimelike
-        from pandas.core.arrays import DatetimeArrayMixin
+        from pandas.core.arrays.datetimes import DatetimeArrayMixin
         if isinstance(other, (DatetimeArrayMixin, np.ndarray)):
             # if other is an ndarray, we assume it is datetime64-dtype
             # defer to implementation in DatetimeIndex

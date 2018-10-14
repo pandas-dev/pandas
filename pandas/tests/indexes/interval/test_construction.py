@@ -8,7 +8,7 @@ from pandas import (
     Interval, IntervalIndex, Index, Int64Index, Float64Index, Categorical,
     CategoricalIndex, date_range, timedelta_range, period_range, notna)
 from pandas.compat import lzip
-from pandas.core.arrays import IntervalArray
+from pandas.core.arrays.interval import IntervalArray
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
 import pandas.core.common as com

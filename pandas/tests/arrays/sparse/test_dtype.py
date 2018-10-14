@@ -3,7 +3,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.core.sparse.api import SparseDtype
+from pandas.core.arrays.sparse.api import SparseDtype
 
 
 @pytest.mark.parametrize("dtype, fill_value", [

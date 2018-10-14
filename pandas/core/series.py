@@ -13,7 +13,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_string_like,
@@ -344,7 +344,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                       "future version. Please use the pd.Series(..) "
                       "constructor instead.", FutureWarning, stacklevel=2)
         if isinstance(arr, ABCSparseArray):
-            from pandas.core.sparse.series import SparseSeries
+            from pandas.core.arrays.sparse.series import SparseSeries
             cls = SparseSeries
         return cls(arr, index=index, name=name, dtype=dtype,
                    copy=copy, fastpath=fastpath)
@@ -1383,8 +1383,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         sp : SparseSeries
         """
         # TODO: deprecate
-        from pandas.core.sparse.series import SparseSeries
-        from pandas.core.sparse.array import SparseArray
+        from pandas.core.arrays.sparse.series import SparseSeries
+        from pandas.core.arrays.sparse.array import SparseArray
 
         values = SparseArray(self, kind=kind, fill_value=fill_value)
         return SparseSeries(

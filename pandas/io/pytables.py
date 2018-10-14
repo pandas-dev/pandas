@@ -50,7 +50,7 @@ from pandas.core.index import ensure_index
 from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
-from pandas.core.sparse.array import BlockIndex, IntIndex
+from pandas.core.arrays.sparse.array import BlockIndex, IntIndex
 
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing

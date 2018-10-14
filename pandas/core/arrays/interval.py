@@ -23,7 +23,8 @@ from pandas.core.indexes.base import Index, ensure_index
 from pandas.util._decorators import Appender
 from pandas.util._doctools import _WritableDoc
 
-from . import ExtensionArray, Categorical
+from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.categorical import Categorical
 
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _interval_shared_docs = {}

@@ -187,7 +187,7 @@ def indexer_from_factorized(labels, shape, compress=True):
 
 
 def lexsort_indexer(keys, orders=None, na_position='last'):
-    from pandas.core.arrays import Categorical
+    from pandas.core.arrays.categorical import Categorical
 
     labels = []
     shape = []
