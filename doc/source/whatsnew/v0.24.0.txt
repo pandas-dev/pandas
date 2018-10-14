@@ -380,6 +380,37 @@ is the case with :attr:`Period.end_time`, for example
 
    p.end_time
 
+.. _whatsnew_0240.api_breaking.sparse_values:
+
+Sparse Data Structure Refactor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``SparseArray``, the array backing ``SparseSeries`` and the columns in a ``SparseDataFrame``,
+is now an extension array (:issue:`21978`, :issue:`19056`, :issue:`22835`).
+To conform to this interface and for consistency with the rest of pandas, some API breaking
+changes were made:
+
+- ``SparseArray`` is no longer a subclass of :class:`numpy.ndarray`. To convert a SparseArray to a NumPy array, use :meth:`numpy.asarray`.
+- ``SparseArray.dtype`` and ``SparseSeries.dtype`` are now instances of :class:`SparseDtype`, rather than ``np.dtype``. Access the underlying dtype with ``SparseDtype.subtype``.
+- :meth:`numpy.asarray(sparse_array)` now returns a dense array with all the values, not just the non-fill-value values (:issue:`14167`)
+- ``SparseArray.take`` now matches the API of :meth:`pandas.api.extensions.ExtensionArray.take` (:issue:`19506`):
+
+  * The default value of ``allow_fill`` has changed from ``False`` to ``True``.
+  * The ``out`` and ``mode`` parameters are now longer accepted (previously, this raised if they were specified).
+  * Passing a scalar for ``indices`` is no longer allowed.
+
+- The result of concatenating a mix of sparse and dense Series is a Series with sparse values, rather than a ``SparseSeries``.
+- ``SparseDataFrame.combine`` and ``DataFrame.combine_first`` no longer supports combining a sparse column with a dense column while preserving the sparse subtype. The result will be an object-dtype SparseArray.
+- Setting :attr:`SparseArray.fill_value` to a fill value with a different dtype is now allowed.
+
+
+Some new warnings are issued for operations that require or are likely to materialize a large dense array:
+
+- A :class:`errors.PerformanceWarning` is issued when using fillna with a ``method``, as a dense array is constructed to create the filled array. Filling with a ``value`` is the efficient way to fill a sparse array.
+- A :class:`errors.PerformanceWarning` is now issued when concatenating sparse Series with differing fill values. The fill value from the first sparse array continues to be used.
+
+In addition to these API breaking changes, many :ref:`performance improvements and bug fixes have been made <whatsnew_0240.bug_fixes.sparse>`.
+
 .. _whatsnew_0240.api_breaking.frame_to_dict_index_orient:
 
 Raise ValueError in ``DataFrame.to_dict(orient='index')``
@@ -573,6 +604,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - Added :meth:`pandas.api.types.register_extension_dtype` to register an extension type with pandas (:issue:`22664`)
 - Series backed by an ``ExtensionArray`` now work with :func:`util.hash_pandas_object` (:issue:`23066`)
 - Updated the ``.type`` attribute for ``PeriodDtype``, ``DatetimeTZDtype``, and ``IntervalDtype`` to be instances of the dtype (``Period``, ``Timestamp``, and ``Interval`` respectively) (:issue:`22938`)
+- :func:`ExtensionArray.isna` is allowed to return an ``ExtensionArray`` (:issue:`22325`).
 - Support for reduction operations such as ``sum``, ``mean`` via opt-in base class method override (:issue:`22762`)
 
 .. _whatsnew_0240.api.incompatibilities:
@@ -655,6 +687,7 @@ Other API Changes
 - :class:`pandas.io.formats.style.Styler` supports a ``number-format`` property when using :meth:`~pandas.io.formats.style.Styler.to_excel` (:issue:`22015`)
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now raise a ``ValueError`` along with a helpful error message instead of a ``KeyError`` when supplied with an invalid method (:issue:`22298`)
 - :meth:`shift` will now always return a copy, instead of the previous behaviour of returning self when shifting by 0 (:issue:`22397`)
+- Slicing a single row of a DataFrame with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - :class:`DateOffset` attribute `_cacheable` and method `_should_cache` have been removed (:issue:`23118`)
 
 .. _whatsnew_0240.deprecations:
@@ -812,7 +845,7 @@ Numeric
 - Bug in :class:`DataFrame` multiplication between boolean dtype and integer returning ``object`` dtype instead of integer dtype (:issue:`22047`, :issue:`22163`)
 - Bug in :meth:`DataFrame.apply` where, when supplied with a string argument and additional positional or keyword arguments (e.g. ``df.apply('sum', min_count=1)``), a ``TypeError`` was wrongly raised (:issue:`22376`)
 - Bug in :meth:`DataFrame.astype` to extension dtype may raise ``AttributeError`` (:issue:`22578`)
-
+- Bug in :class:`DataFrame` with ``timedelta64[ns]`` dtype arithmetic operations with ``ndarray`` with integer dtype incorrectly treating the narray as ``timedelta64[ns]`` dtype (:issue:`23114`)
 
 Strings
 ^^^^^^^
@@ -897,13 +930,6 @@ Groupby/Resample/Rolling
 - :func:`RollingGroupby.agg` and :func:`ExpandingGroupby.agg` now support multiple aggregation functions as parameters (:issue:`15072`)
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` when resampling by a weekly offset (``'W'``) across a DST transition (:issue:`9119`, :issue:`21459`)
 
-Sparse
-^^^^^^
-
--
--
--
-
 Reshaping
 ^^^^^^^^^
 
@@ -921,6 +947,19 @@ Reshaping
 - Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
 - Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
 - Bug in :func:`pandas.concat` when concatenating a multicolumn DataFrame with tz-aware data against a DataFrame with a different number of columns (:issue`22796`)
+
+.. _whatsnew_0240.bug_fixes.sparse:
+
+Sparse
+^^^^^^
+
+- Updating a boolean, datetime, or timedelta column to be Sparse now works (:issue:`22367`)
+- Bug in :meth:`Series.to_sparse` with Series already holding sparse data not constructing properly (:issue:`22389`)
+- Providing a ``sparse_index`` to the SparseArray constructor no longer defaults the na-value to ``np.nan`` for all dtypes. The correct na_value for ``data.dtype`` is now used.
+- Bug in ``SparseArray.nbytes`` under-reporting its memory usage by not including the size of its sparse index.
+- Improved performance of :meth:`Series.shift` for non-NA ``fill_value``, as values are no longer converted to a dense array.
+- Bug in ``DataFrame.groupby`` not including ``fill_value`` in the groups for non-NA ``fill_value`` when grouping by a sparse column (:issue:`5078`)
+- Bug in unary inversion operator (``~``) on a ``SparseSeries`` with boolean values. The performance of this has also been improved (:issue:`22835`)
 
 Build Changes
 ^^^^^^^^^^^^^
