@@ -635,6 +635,9 @@ def _make_parser_function(name, default_sep=','):
         # Alias sep -> delimiter.
         if delimiter is None:
             delimiter = sep
+        else:
+            warnings.warn("delimiter is deprecated, please use sep instead.",
+                          DeprecationWarning, stacklevel=2)
 
         if delim_whitespace and delimiter != default_sep:
             raise ValueError("Specified a delimiter with both sep and"
