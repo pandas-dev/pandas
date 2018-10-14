@@ -67,29 +67,6 @@ class TestDatetimeArray(object):
         assert asobj.dtype == 'O'
         assert list(asobj) == list(dti)
 
-    # TODO: share this between Datetime/Timedelta/Period Array tests
-    def test_repeat(self, datetime_index):
-        # GH#23113
-        dti = datetime_index
-        arr = DatetimeArrayMixin(dti)
-
-        expected = dti.repeat(3)
-        result = arr.repeat(3)
-        assert isinstance(result, DatetimeArrayMixin)
-
-        # placeholder until these become actual EA subclasses and we can use
-        #  an EA-specific tm.assert_ function
-        tm.assert_index_equal(pd.Index(result), pd.Index(expected))
-
-    def test_tolist(self, datetime_index):
-        # GH#23113
-        dti = datetime_index
-        arr = DatetimeArrayMixin(dti)
-
-        expected = dti.tolist()
-        result = arr.tolist()
-        assert expected == result
-
     @pytest.mark.parametrize('freqstr', ['D', 'B', 'W', 'M', 'Q', 'Y'])
     def test_to_perioddelta(self, datetime_index, freqstr):
         # GH#23113
@@ -194,29 +171,6 @@ class TestPeriodArray(object):
         # placeholder until these become actual EA subclasses and we can use
         #  an EA-specific tm.assert_ function
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
-
-    # TODO: share this between Datetime/Timedelta/Period Array tests
-    def test_repeat(self, period_index):
-        # GH#23113
-        pi = period_index
-        arr = PeriodArrayMixin(pi)
-
-        expected = pi.repeat(3)
-        result = arr.repeat(3)
-        assert isinstance(result, PeriodArrayMixin)
-
-        # placeholder until these become actual EA subclasses and we can use
-        #  an EA-specific tm.assert_ function
-        tm.assert_index_equal(pd.Index(result), pd.Index(expected))
-
-    def test_tolist(self, period_index):
-        # GH#23113
-        pi = period_index
-        arr = PeriodArrayMixin(pi)
-
-        expected = pi.tolist()
-        result = arr.tolist()
-        assert expected == result
 
     @pytest.mark.parametrize('propname', pd.PeriodIndex._bool_ops)
     def test_bool_properties(self, period_index, propname):
