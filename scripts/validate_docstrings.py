@@ -498,10 +498,10 @@ def validate_one(func_name):
         for rel_name, rel_desc in doc.see_also.items():
             if rel_desc:
                 if not rel_desc.endswith('.'):
-                    errs.append('Missing period at end of description'
+                    errs.append('Missing period at end of description for '
                                 'See Also "{}" reference'.format(rel_name))
                 if not rel_desc[0].isupper():
-                    errs.append('Description should be capitalized'
+                    errs.append('Description should be capitalized for '
                                 'See Also "{}" reference'.format(rel_name))
             else:
                 errs.append('Missing description for '
