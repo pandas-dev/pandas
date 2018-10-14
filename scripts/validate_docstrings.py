@@ -508,7 +508,8 @@ def validate_one(func_name):
             if not rel_desc:
                 errs.append('Missing description for '
                             'See Also "{}" reference'.format(rel_name))
-
+            if rel_name[:7].lower() == 'pandas.':
+                errs.append('{} should not have prefix `pandas`'.format(rel_name))
     for line in doc.raw_doc.splitlines():
         if re.match("^ *\t", line):
             errs.append('Tabs found at the start of line "{}", '
