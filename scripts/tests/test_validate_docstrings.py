@@ -333,15 +333,6 @@ class BadGenericDocStrings(object):
         """
         pass
 
-
-class BadSeeAlso(object):
-
-    def prefix_pandas(self):
-        """
-        Return  prefix with `pandas` from See Also sec
-        """
-        pass
-
 class BadSummaries(object):
 
     def wrong_line(self):
@@ -553,6 +544,13 @@ class BadReturns(object):
         """
         return "Hello world!"
 
+class BadSeeAlso(object):
+
+    def prefix_pandas(self):
+        """
+        Return  prefix with `pandas` from See Also sec
+        """
+        pass
 
 class TestValidator(object):
 
@@ -616,9 +614,6 @@ class TestValidator(object):
         assert errors
 
     @pytest.mark.parametrize("klass,func,msgs", [
-        #SeeAlso tests
-        ('BadSeeAlso', 'prefix_pandas',
-         ('Should not start with pandas',)),
         # Summary tests
         ('BadSummaries', 'wrong_line',
          ('should start in the line immediately after the opening quotes',)),
@@ -667,7 +662,10 @@ class TestValidator(object):
         pytest.param('BadReturns', 'no_description', ('foo',),
                      marks=pytest.mark.xfail),
         pytest.param('BadReturns', 'no_punctuation', ('foo',),
-                     marks=pytest.mark.xfail)
+                     marks=pytest.mark.xfail),
+        # SeeAlso tests
+        ('BadSeeAlso', 'prefix_pandas',
+         ('Should not start with pandas',)),
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
