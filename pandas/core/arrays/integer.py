@@ -280,7 +280,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         data[self._mask] = self._na_value
         return data
 
-    __array_priority__ = 1  # higher than ndarray so ops dispatch to us
+    __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
     def __array__(self, dtype=None):
         """
