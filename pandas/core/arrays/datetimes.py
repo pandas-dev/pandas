@@ -835,7 +835,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         return PeriodArrayMixin(self.values, freq=freq)
 
-    def to_perioddelta(self, freq):
+    def _to_perioddelta(self, freq):
         """
         Calculate TimedeltaArray of difference between index
         values and index converted to PeriodArray at specified

@@ -69,6 +69,7 @@ class TestDatetimeArray(object):
 
     # TODO: share this between Datetime/Timedelta/Period Array tests
     def test_repeat(self, datetime_index):
+        # GH#23113
         dti = datetime_index
         arr = DatetimeArrayMixin(dti)
 
@@ -81,6 +82,7 @@ class TestDatetimeArray(object):
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
 
     def test_tolist(self, datetime_index):
+        # GH#23113
         dti = datetime_index
         arr = DatetimeArrayMixin(dti)
 
@@ -90,11 +92,14 @@ class TestDatetimeArray(object):
 
     @pytest.mark.parametrize('freqstr', ['D', 'B', 'W', 'M', 'Q', 'Y'])
     def test_to_perioddelta(self, datetime_index, freqstr):
+        # GH#23113
         dti = datetime_index
         arr = DatetimeArrayMixin(dti)
 
+        # Note: _to_perioddelta is private on the PeriodArray class but
+        #  public on the PeriodIndex class
         expected = dti.to_perioddelta(freq=freqstr)
-        result = arr.to_perioddelta(freq=freqstr)
+        result = arr._to_perioddelta(freq=freqstr)
         assert isinstance(result, TimedeltaArrayMixin)
 
         # placeholder until these become actual EA subclasses and we can use
@@ -192,6 +197,7 @@ class TestPeriodArray(object):
 
     # TODO: share this between Datetime/Timedelta/Period Array tests
     def test_repeat(self, period_index):
+        # GH#23113
         pi = period_index
         arr = PeriodArrayMixin(pi)
 
@@ -204,6 +210,7 @@ class TestPeriodArray(object):
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
 
     def test_tolist(self, period_index):
+        # GH#23113
         pi = period_index
         arr = PeriodArrayMixin(pi)
 
