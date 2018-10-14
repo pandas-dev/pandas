@@ -70,9 +70,9 @@ pear:tomato
         exp = DataFrame({'a': [1], 'b': [2]})
 
         with tm.assert_produces_warning(None):
-            df = self.read_csv(StringIO(data), delimiter=',', dialect=dialect)
+            df = self.read_csv(StringIO(data), sep=',', dialect=dialect)
             tm.assert_frame_equal(df, exp)
 
         with tm.assert_produces_warning(ParserWarning):
-            df = self.read_csv(StringIO(data), delimiter='.', dialect=dialect)
+            df = self.read_csv(StringIO(data), sep='.', dialect=dialect)
             tm.assert_frame_equal(df, exp)
