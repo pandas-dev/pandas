@@ -1604,3 +1604,9 @@ j,-inF"""
             t = TextIOWrapper(t, encoding='ascii', errors='surrogateescape')
         with pytest.raises(UnicodeError):
             pd.read_csv(t, encoding='UTF-8')
+
+    def test_read_csv_depr_delimiter(self):
+        # GH 21996
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            self.read_csv(self.csv2, delimiter=',')
