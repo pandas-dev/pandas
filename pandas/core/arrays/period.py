@@ -27,7 +27,7 @@ import pandas.core.common as com
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
 
-import pandas.core.arrays.datetimelike as dtl
+from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 
 
@@ -301,7 +301,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         -------
         DatetimeArray/Index
         """
-        from pandas.core.arrays.datetimes import DatetimeArrayMixin
+        from pandas.core.arrays import DatetimeArrayMixin
 
         how = libperiod._validate_end_alias(how)
 

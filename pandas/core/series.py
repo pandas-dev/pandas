@@ -13,7 +13,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_string_like,

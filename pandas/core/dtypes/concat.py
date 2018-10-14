@@ -523,7 +523,7 @@ def _concat_index_asobject(to_concat, name=None):
     PeriodIndex are converted to object dtype before concatenation
     """
     from pandas import Index
-    from pandas.core.arrays.base import ExtensionArray
+    from pandas.core.arrays import ExtensionArray
 
     klasses = (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex,
                ExtensionArray)

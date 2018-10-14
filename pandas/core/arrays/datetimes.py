@@ -34,7 +34,7 @@ from pandas.core import ops
 from pandas.tseries.frequencies import to_offset, get_period_alias
 from pandas.tseries.offsets import Tick, generate_range
 
-import pandas.core.arrays.datetimelike as dtl
+from pandas.core.arrays import datetimelike as dtl
 
 
 _midnight = time(0, 0)
@@ -523,7 +523,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         The result's name is set outside of _add_delta by the calling
         method (__add__ or __sub__)
         """
-        from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
+        from pandas.core.arrays import TimedeltaArrayMixin
 
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
@@ -818,7 +818,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         pandas.PeriodIndex: Immutable ndarray holding ordinal values
         pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
         """
-        from pandas.core.arrays.period import PeriodArrayMixin
+        from pandas.core.arrays import PeriodArrayMixin
 
         if self.tz is not None:
             warnings.warn("Converting to PeriodArray/Index representation "

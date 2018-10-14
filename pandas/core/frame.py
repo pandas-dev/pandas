@@ -80,8 +80,8 @@ from pandas.core import common as com
 from pandas.core import nanops
 from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays.categorical import Categorical
-from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays import Categorical
+from pandas.core.arrays import ExtensionArray
 from pandas.core.config import get_option
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, ensure_index,

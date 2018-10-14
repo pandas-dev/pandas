@@ -64,7 +64,7 @@ import pandas.core.algorithms as algos
 import pandas.core.missing as missing
 from pandas.core.base import PandasObject
 
-from pandas.core.arrays.categorical import Categorical
+from pandas.core.arrays import Categorical
 
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex

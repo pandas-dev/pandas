@@ -20,7 +20,6 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_dict_like, is_scalar, is_string_like, is_list_like, is_number,
     is_file_like, is_re, is_re_compilable, is_sequence, is_nested_list_like,
     is_named_tuple, is_array_like, is_decimal, is_complex, is_interval)
-from pandas.core.arrays.sparse.dtype import SparseDtype
 
 _POSSIBLY_CAST_DTYPES = {np.dtype(t).name
                          for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
@@ -1926,10 +1925,12 @@ def _get_dtype_type(arr_or_dtype):
         elif is_interval_dtype(arr_or_dtype):
             return Interval
         return _get_dtype_type(np.dtype(arr_or_dtype))
-    elif isinstance(arr_or_dtype, (ABCSparseSeries, ABCSparseArray,
+    else:
+        from pandas.core.arrays.sparse.dtype import SparseDtype
+        if isinstance(arr_or_dtype, (ABCSparseSeries, ABCSparseArray,
                                    SparseDtype)):
-        dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
-        return dtype.type
+            dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
+            return dtype.type
     try:
         return arr_or_dtype.dtype.type
     except AttributeError:

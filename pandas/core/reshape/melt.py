@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 from pandas import compat
-from pandas.core.arrays.categorical import Categorical
+from pandas.core.arrays import Categorical
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 

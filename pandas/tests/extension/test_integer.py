@@ -20,7 +20,7 @@ import pytest
 from pandas.tests.extension import base
 from pandas.core.dtypes.common import is_extension_array_dtype
 
-from pandas.core.arrays.integer import integer_array
+from pandas.core.arrays import integer_array
 from pandas.core.arrays.integer import (
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,
     UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype)

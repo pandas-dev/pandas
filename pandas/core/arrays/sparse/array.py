@@ -16,7 +16,7 @@ from pandas import compat
 from pandas.errors import PerformanceWarning
 from pandas.compat.numpy import function as nv
 
-from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.dtypes.generic import (
     ABCSparseSeries, ABCSeries, ABCIndexClass

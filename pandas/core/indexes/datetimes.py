@@ -30,7 +30,7 @@ from pandas.core.dtypes.missing import isna
 
 import pandas.core.dtypes.concat as _concat
 from pandas.core.arrays.datetimes import DatetimeArrayMixin, _to_m8
-import pandas.core.arrays.datetimelike as dtl
+from pandas.core.arrays import datetimelike as dtl
 
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index

@@ -19,8 +19,8 @@ from numpy.random import randn, rand
 import numpy as np
 
 import pandas as pd
-from pandas.core.arrays.base import ExtensionArray
-from pandas.core.arrays.interval import IntervalArray
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import IntervalArray
 from pandas.core.dtypes.missing import array_equivalent
 from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,

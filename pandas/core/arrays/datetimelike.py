@@ -715,7 +715,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 # we need to wrap in DatetimeArray/Index and flip the operation
                 if not isinstance(other, DatetimeLikeArrayMixin):
                     # Avoid down-casting DatetimeIndex
-                    from pandas.core.arrays.datetimes import DatetimeArrayMixin
+                    from pandas.core.arrays import DatetimeArrayMixin
                     other = DatetimeArrayMixin(other)
                 return other - self
             elif (is_datetime64_any_dtype(self) and hasattr(other, 'dtype') and

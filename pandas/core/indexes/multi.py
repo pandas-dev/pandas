@@ -1858,7 +1858,7 @@ class MultiIndex(Index):
         for sorting, where we need to disambiguate that -1 is not
         a valid valid
         """
-        from pandas.core.arrays.categorical import Categorical
+        from pandas.core.arrays import Categorical
 
         def cats(label):
             return np.arange(np.array(label).max() + 1 if len(label) else 0,

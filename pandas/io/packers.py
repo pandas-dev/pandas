@@ -66,7 +66,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion, pandas_dtype)
 
 from pandas.core import internals
-from pandas.core.arrays.interval import IntervalArray
+from pandas.core.arrays import IntervalArray
 from pandas.core.generic import NDFrame
 from pandas.core.internals import BlockManager, make_block, _safe_reshape
 from pandas.core.arrays.sparse.api import SparseSeries, SparseDataFrame

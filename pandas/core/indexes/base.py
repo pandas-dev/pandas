@@ -14,7 +14,7 @@ from pandas.compat.numpy import function as nv
 from pandas import compat
 
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,

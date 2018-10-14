@@ -26,7 +26,7 @@ from pandas._libs.writers import max_len_string_array
 from pandas import compat, to_timedelta, to_datetime, isna, DatetimeIndex
 from pandas.compat import (lrange, lmap, lzip, text_type, string_types, range,
                            zip, BytesIO)
-from pandas.core.arrays.categorical import Categorical
+from pandas.core.arrays import Categorical
 from pandas.core.base import StringMixin
 from pandas.core.dtypes.common import (is_categorical_dtype, ensure_object,
                                        is_datetime64_dtype)

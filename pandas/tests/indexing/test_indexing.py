@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 from pandas.core.indexing import (_non_reducing_slice, _maybe_numeric_slice,
                                   validate_indices)
-from pandas.core.arrays.integer import integer_array
+from pandas.core.arrays import integer_array
 from pandas import NaT, DataFrame, Index, Series, MultiIndex
 import pandas.util.testing as tm
 from pandas.compat import PY2
