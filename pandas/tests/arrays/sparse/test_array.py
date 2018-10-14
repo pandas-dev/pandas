@@ -9,7 +9,9 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
-from pandas.core.arrays.sparse.api import SparseArray, SparseSeries, SparseDtype
+from pandas.core.arrays.sparse.api import (SparseArray,
+                                           SparseSeries,
+                                           SparseDtype)
 from pandas._libs.sparse import IntIndex
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm

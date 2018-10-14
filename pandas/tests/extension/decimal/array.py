@@ -7,7 +7,7 @@ import numpy as np
 
 import pandas as pd
 from pandas.core.arrays import (ExtensionArray,
-                                     ExtensionScalarOpsMixin)
+                                ExtensionScalarOpsMixin)
 from pandas.core.dtypes.base import ExtensionDtype
 
 

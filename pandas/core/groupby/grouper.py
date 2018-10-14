@@ -12,8 +12,7 @@ from pandas import compat
 from pandas.compat import zip, callable
 
 from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import ExtensionArray, Categorical
 from pandas.core.index import (
     Index, MultiIndex, CategoricalIndex)
 from pandas.core.dtypes.common import (

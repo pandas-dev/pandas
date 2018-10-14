@@ -1927,8 +1927,9 @@ def _get_dtype_type(arr_or_dtype):
         return _get_dtype_type(np.dtype(arr_or_dtype))
     else:
         from pandas.core.arrays.sparse.dtype import SparseDtype
-        if isinstance(arr_or_dtype, (ABCSparseSeries, ABCSparseArray,
-                                   SparseDtype)):
+        if isinstance(arr_or_dtype, (ABCSparseSeries,
+                                     ABCSparseArray,
+                                     SparseDtype)):
             dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
             return dtype.type
     try:
