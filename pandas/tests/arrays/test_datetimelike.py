@@ -58,7 +58,6 @@ def timedelta_index(request):
     return pd.TimedeltaIndex(['1 Day', '3 Hours', 'NaT'])
 
 
-
 class TestDatetimeArray(object):
 
     def test_from_dti(self, tz_naive_fixture):
