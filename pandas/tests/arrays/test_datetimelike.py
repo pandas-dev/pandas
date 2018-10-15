@@ -254,7 +254,7 @@ class TestPeriodArray(SharedTests):
         with pytest.raises(ValueError):
             # fill_value Period with mis-matched freq invalid
             arr.take([0, 1], allow_fill=True,
-                     fill_value=pd.Timestamp.now().to_period(2*pi.freq))
+                     fill_value=pd.Timestamp.now().to_period(2 * pi.freq))
 
         with pytest.raises(ValueError):
             # fill_value Timedelta invalid
