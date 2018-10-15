@@ -1805,12 +1805,7 @@ def _align_method_FRAME(left, right, axis):
 
             elif right.shape[0] == left.shape[0] and right.shape[1] == 1:
                 # Broadcast across columns
-                try:
-                    right = np.broadcast_to(right, left.shape)
-                except AttributeError:
-                    # numpy < 1.10.0
-                    right = np.tile(right, (1, left.shape[1]))
-
+                right = np.broadcast_to(right, left.shape)
                 right = left._constructor(right,
                                           index=left.index,
                                           columns=left.columns)
