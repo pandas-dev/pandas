@@ -153,6 +153,21 @@ Like ``cov``, ``corr`` also supports the optional ``min_periods`` keyword:
    frame.corr(min_periods=12)
 
 
+.. versionadded:: 0.24.0
+
+The ``method`` argument can also be a callable for a generic correlation
+calculation. In this case, it should be a single function
+that produces a single value from two ndarray inputs. Suppose we wanted to
+compute the correlation based on histogram intersection:
+
+.. ipython:: python
+
+   # histogram intersection
+   histogram_intersection = lambda a, b: np.minimum(
+       np.true_divide(a, a.sum()), np.true_divide(b, b.sum())
+   ).sum()
+   frame.corr(method=histogram_intersection)
+
 A related method :meth:`~DataFrame.corrwith` is implemented on DataFrame to 
 compute the correlation between another DataFrame or Series object.
 

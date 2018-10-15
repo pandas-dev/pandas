@@ -12,9 +12,6 @@ from pandas._libs import lib, internals as libinternals
 from pandas.util._validators import validate_bool_kwarg
 from pandas.compat import range, map, zip
 
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    PandasExtensionDtype)
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     is_datetimelike_v_numeric,
@@ -176,19 +173,10 @@ class BlockManager(PandasObject):
         axis : int
         copy : boolean, default True
         level : int, default None
-
         """
         obj = self.copy(deep=copy)
         obj.set_axis(axis, _transform_index(self.axes[axis], mapper, level))
         return obj
-
-    def add_prefix(self, prefix):
-        f = partial('{prefix}{}'.format, prefix=prefix)
-        return self.rename_axis(f, axis=0)
-
-    def add_suffix(self, suffix):
-        f = partial('{}{suffix}'.format, suffix=suffix)
-        return self.rename_axis(f, axis=0)
 
     @property
     def _is_single_block(self):
@@ -222,11 +210,9 @@ class BlockManager(PandasObject):
         self._blknos = new_blknos
         self._blklocs = new_blklocs
 
-    # make items read only for now
-    def _get_items(self):
+    @property
+    def items(self):
         return self.axes[0]
-
-    items = property(fget=_get_items)
 
     def _get_counts(self, f):
         """ return a dict of the counts of the function in BlockManager """
@@ -802,6 +788,11 @@ class BlockManager(PandasObject):
         """
         dtype = _interleaved_dtype(self.blocks)
 
+        if is_extension_array_dtype(dtype):
+            # TODO: https://github.com/pandas-dev/pandas/issues/22791
+            # Give EAs some input on what happens here. Sparse needs this.
+            dtype = 'object'
+
         result = np.empty(self.shape, dtype=dtype)
 
         if result.shape[0] == 0:
@@ -917,13 +908,24 @@ class BlockManager(PandasObject):
 
         # unique
         dtype = _interleaved_dtype(self.blocks)
+
         n = len(items)
-        result = np.empty(n, dtype=dtype)
+        if is_extension_array_dtype(dtype):
+            # we'll eventually construct an ExtensionArray.
+            result = np.empty(n, dtype=object)
+        else:
+            result = np.empty(n, dtype=dtype)
+
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
                 result[rl] = blk._try_coerce_result(blk.iget((i, loc)))
+
+        if is_extension_array_dtype(dtype):
+            result = dtype.construct_array_type()._from_sequence(
+                result, dtype=dtype
+            )
 
         return result
 
@@ -1866,16 +1868,22 @@ def _stack_arrays(tuples, dtype):
 
 
 def _interleaved_dtype(blocks):
+    # type: (List[Block]) -> Optional[Union[np.dtype, ExtensionDtype]]
+    """Find the common dtype for `blocks`.
+
+    Parameters
+    ----------
+    blocks : List[Block]
+
+    Returns
+    -------
+    dtype : Optional[Union[np.dtype, ExtensionDtype]]
+        None is returned when `blocks` is empty.
+    """
     if not len(blocks):
         return None
 
-    dtype = find_common_type([b.dtype for b in blocks])
-
-    # only numpy compat
-    if isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):
-        dtype = np.object
-
-    return dtype
+    return find_common_type([b.dtype for b in blocks])
 
 
 def _consolidate(blocks):

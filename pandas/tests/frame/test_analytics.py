@@ -116,8 +116,8 @@ class TestDataFrameAnalytics(TestData):
                              'a', 'b'], columns=['a', 'b'])
         for meth in ['pearson', 'kendall', 'spearman']:
 
-            # RuntimeWarning
             with warnings.catch_warnings(record=True):
+                warnings.simplefilter("ignore", RuntimeWarning)
                 result = df.corr(meth)
             tm.assert_frame_equal(result, expected)
 
@@ -591,6 +591,8 @@ class TestDataFrameAnalytics(TestData):
     def test_product(self):
         self._check_stat_op('product', np.prod)
 
+    # TODO: Ensure warning isn't emitted in the first place
+    @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
     def test_median(self):
         def wrapper(x):
             if isna(x).any():
@@ -601,6 +603,7 @@ class TestDataFrameAnalytics(TestData):
 
     def test_min(self):
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
             self._check_stat_op('min', np.min, check_dates=True)
         self._check_stat_op('min', np.min, frame=self.intframe)
 
@@ -652,6 +655,7 @@ class TestDataFrameAnalytics(TestData):
 
     def test_max(self):
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
             self._check_stat_op('max', np.max, check_dates=True)
         self._check_stat_op('max', np.max, frame=self.intframe)
 
@@ -1165,6 +1169,8 @@ class TestDataFrameAnalytics(TestData):
         self.mixed_frame.mean(1)
         self.mixed_frame.skew(1)
 
+    # TODO: Ensure warning isn't emitted in the first place
+    @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
     def test_median_corner(self):
         def wrapper(x):
             if isna(x).any():
@@ -2130,6 +2136,24 @@ class TestNLargestNSmallest(object):
         df = df_main_dtypes
         df.nsmallest(2, list(set(df) - {'category_string', 'string'}))
         df.nlargest(2, list(set(df) - {'category_string', 'string'}))
+
+    @pytest.mark.parametrize('method,expected', [
+        ('nlargest',
+         pd.DataFrame({'a': [2, 2, 2, 1], 'b': [3, 2, 1, 3]},
+                      index=[2, 1, 0, 3])),
+        ('nsmallest',
+         pd.DataFrame({'a': [1, 1, 1, 2], 'b': [1, 2, 3, 1]},
+                      index=[5, 4, 3, 0]))])
+    def test_duplicates_on_starter_columns(self, method, expected):
+        # regression test for #22752
+
+        df = pd.DataFrame({
+            'a': [2, 2, 2, 1, 1, 1],
+            'b': [1, 2, 3, 3, 2, 1]
+        })
+
+        result = getattr(df, method)(4, columns=['a', 'b'])
+        tm.assert_frame_equal(result, expected)
 
     def test_n_identical_values(self):
         # GH15297

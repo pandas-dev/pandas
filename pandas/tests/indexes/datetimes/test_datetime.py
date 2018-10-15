@@ -1,4 +1,3 @@
-import warnings
 import sys
 
 import pytest
@@ -201,7 +200,7 @@ class TestDatetimeIndex(object):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-02',
                              '2000-01-03', '2000-01-03', '2000-01-04'])
 
-        with warnings.catch_warnings(record=True):
+        with tm.assert_produces_warning(FutureWarning):
             # Deprecated - see GH20239
             result = idx.get_duplicates()
 
