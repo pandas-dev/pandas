@@ -4,7 +4,6 @@ import numpy as np
 from datetime import datetime
 
 import pandas as pd
-import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp,
                     date_range, _np_version_under1p10, Index,

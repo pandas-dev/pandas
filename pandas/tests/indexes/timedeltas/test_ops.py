@@ -9,7 +9,6 @@ from pandas import to_timedelta
 from pandas import (Series, Timedelta, Timestamp, TimedeltaIndex,
                     timedelta_range,
                     _np_version_under1p10)
-from pandas._libs.tslib import iNaT
 from pandas.tests.test_base import Ops
 from pandas.tseries.offsets import Day, Hour
 from pandas.core.dtypes.generic import ABCDateOffset
