@@ -58,10 +58,30 @@ class CompatValidator(object):
 
 
 ARGMINMAX_DEFAULTS = dict(out=None)
-validate_argmin = CompatValidator(ARGMINMAX_DEFAULTS, fname='argmin',
-                                  method='both', max_fname_arg_count=1)
-validate_argmax = CompatValidator(ARGMINMAX_DEFAULTS, fname='argmax',
-                                  method='both', max_fname_arg_count=1)
+_validate_argmin = CompatValidator(ARGMINMAX_DEFAULTS, fname='argmin',
+                                   method='both', max_fname_arg_count=1)
+_validate_argmax = CompatValidator(ARGMINMAX_DEFAULTS, fname='argmax',
+                                   method='both', max_fname_arg_count=1)
+
+
+def validate_argmin(args, kwargs, axis=None):
+    _validate_argmin(args, kwargs)
+    validate_minmax_axis(axis)
+
+
+def validate_argmax(args, kwargs, axis=None):
+    _validate_argmax(args, kwargs)
+    validate_minmax_axis(axis)
+
+
+def validate_min(args, kwargs, axis=None):
+    _validate_min(args, kwargs)
+    validate_minmax_axis(axis)
+
+
+def validate_max(args, kwargs, axis=None):
+    _validate_max(args, kwargs)
+    validate_minmax_axis(axis)
 
 
 def process_skipna(skipna, args):
@@ -196,10 +216,10 @@ LOGICAL_FUNC_DEFAULTS = dict(out=None)
 validate_logical_func = CompatValidator(LOGICAL_FUNC_DEFAULTS, method='kwargs')
 
 MINMAX_DEFAULTS = dict(out=None)
-validate_min = CompatValidator(MINMAX_DEFAULTS, fname='min',
-                               method='both', max_fname_arg_count=1)
-validate_max = CompatValidator(MINMAX_DEFAULTS, fname='max',
-                               method='both', max_fname_arg_count=1)
+_validate_min = CompatValidator(MINMAX_DEFAULTS, fname='min',
+                                method='both', max_fname_arg_count=1)
+_validate_max = CompatValidator(MINMAX_DEFAULTS, fname='max',
+                                method='both', max_fname_arg_count=1)
 
 RESHAPE_DEFAULTS = dict(order='C')
 validate_reshape = CompatValidator(RESHAPE_DEFAULTS, fname='reshape',

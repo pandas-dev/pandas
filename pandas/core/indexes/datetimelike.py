@@ -430,8 +430,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.min
         """
-        nv.validate_minmax_axis(axis)
-        nv.validate_min(args, kwargs)
+        nv.validate_min(args, kwargs, axis=axis)
 
         try:
             i8 = self.asi8
@@ -459,8 +458,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.argmin
         """
-        nv.validate_minmax_axis(axis)
-        nv.validate_argmin(args, kwargs)
+        nv.validate_argmin(args, kwargs, axis=axis)
 
         i8 = self.asi8
         if self.hasnans:
@@ -480,8 +478,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.max
         """
-        nv.validate_minmax_axis(axis)
-        nv.validate_max(args, kwargs)
+        nv.validate_max(args, kwargs, axis=axis)
 
         try:
             i8 = self.asi8
@@ -509,8 +506,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.argmax
         """
-        nv.validate_minmax_axis(axis)
-        nv.validate_argmax(args, kwargs)
+        nv.validate_argmax(args, kwargs, axis=axis)
 
         i8 = self.asi8
         if self.hasnans:
