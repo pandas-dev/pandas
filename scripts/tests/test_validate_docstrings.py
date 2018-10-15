@@ -550,11 +550,12 @@ class BadSeeAlso(object):
 
     def prefix_pandas(self):
         """
-        Return  prefix with `pandas` from See Also sec
+        Have `pandas` prefix in See Also section.
 
         See Also
         --------
-        pandas.Series.rename : Alter Series index labels or name
+        pandas.Series.rename : Alter Series index labels or name.
+        DataFrame.head : The first `n` rows of the caller object.
         """
         pass
 
@@ -670,9 +671,9 @@ class TestValidator(object):
                      marks=pytest.mark.xfail),
         pytest.param('BadReturns', 'no_punctuation', ('foo',),
                      marks=pytest.mark.xfail),
-        # SeeAlso tests
+        # See Also tests
         ('BadSeeAlso', 'prefix_pandas',
-         ('section does not need `pandas` prefix',)),
+         ('pandas.Series.rename in `See Also` section does not need `pandas` prefix',)),
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
