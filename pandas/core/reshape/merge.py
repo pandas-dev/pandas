@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_object,
     _get_dtype)
-from pandas.core.dtypes.missing import na_value_for_dtype
+from pandas.core.dtypes.missing import na_value_for_dtype, isnull
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util._decorators import Appender, Substitution
@@ -1389,6 +1389,10 @@ class _AsOfMerge(_OrderedMerge):
         right_values = (self.right.index.values if self.right_index else
                         self.right_join_keys[-1])
         tolerance = self.tolerance
+
+        # Check null values before merge
+        if isnull(left_values).sum() > 0 or isnull(right_values).sum() > 0:
+            raise MergeError('Merge keys cannot contain null values')
 
         # we required sortedness in the join keys
         msg = "{side} keys must be sorted"
