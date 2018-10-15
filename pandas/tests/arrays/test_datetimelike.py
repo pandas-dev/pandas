@@ -73,10 +73,8 @@ class TestDatetimeArray(object):
         dti = datetime_index
         arr = DatetimeArrayMixin(dti)
 
-        # Note: _to_perioddelta is private on the PeriodArray class but
-        #  public on the PeriodIndex class
         expected = dti.to_perioddelta(freq=freqstr)
-        result = arr._to_perioddelta(freq=freqstr)
+        result = arr.to_perioddelta(freq=freqstr)
         assert isinstance(result, TimedeltaArrayMixin)
 
         # placeholder until these become actual EA subclasses and we can use
