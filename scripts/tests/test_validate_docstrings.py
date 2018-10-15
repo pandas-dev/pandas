@@ -502,6 +502,20 @@ class BadReturns(object):
         return "Hello world!"
 
 
+class BadExamples(object):
+
+    def npPd_import(self):
+        """
+        Provide example with numpy and pandas import
+
+        Examples
+        --------
+        import numpy as np
+        import pandas as pd
+        """
+        pass
+
+
 class TestValidator(object):
 
     def _import_path(self, klass=None, func=None):
@@ -600,7 +614,11 @@ class TestValidator(object):
         pytest.param('BadReturns', 'no_description', ('foo',),
                      marks=pytest.mark.xfail),
         pytest.param('BadReturns', 'no_punctuation', ('foo',),
-                     marks=pytest.mark.xfail)
+                     marks=pytest.mark.xfail),
+        # Examples
+        ('BadExamples', 'npPd_import',
+         ('Examples should not have `import pandas as pd` ',
+          'Examples should not have `import numpy as np` ',))
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
