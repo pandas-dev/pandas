@@ -331,6 +331,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             # Frequency validation is not meaningful for Period Array/Index
             return None
 
+        # DatetimeArray may pass `ambiguous`, nothing else will be accepted
+        # by cls._generate_range below
+        assert all(key == 'ambiguous' for key in kwargs)
+
         inferred = index.inferred_freq
         if index.size == 0 or inferred == freq.freqstr:
             return None
@@ -594,9 +598,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         start = self[0] + periods * self.freq
         end = self[-1] + periods * self.freq
-        attribs = self._get_attributes_dict()
+
+        # Note: in the DatetimeTZ case, _generate_range will infer the
+        #  appropriate timezone from `start` and `end`, so tz does not need
+        #  to be passed explicitly.
         return self._generate_range(start=start, end=end, periods=None,
-                                    **attribs)
+                                    freq=self.freq)
 
     @classmethod
     def _add_datetimelike_methods(cls):
