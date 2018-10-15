@@ -740,6 +740,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
     def test_reset_index_with_drop(self):
         deleveled = self.ymd.reset_index(drop=True)
         assert len(deleveled.columns) == len(self.ymd.columns)
+        assert deleveled.index.name == self.ymd.index.name
 
         deleveled = self.series.reset_index()
         assert isinstance(deleveled, DataFrame)
