@@ -216,15 +216,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         """
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
-        elif isinstance(delta, TimedeltaArrayMixin):
-            new_values = self._add_delta_tdi(delta)
         elif is_timedelta64_dtype(delta):
             # ndarray[timedelta64] --> wrap in TimedeltaArray/Index
-            delta = type(self)(delta)
             new_values = self._add_delta_tdi(delta)
-        else:
-            raise TypeError("cannot add the type {0} to a TimedeltaIndex"
-                            .format(type(delta)))
 
         return type(self)(new_values, freq='infer')
 

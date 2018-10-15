@@ -403,13 +403,11 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         #  i8 view or _shallow_copy
         if isinstance(other, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(other)
-            return self._shallow_copy(new_values)
         elif is_timedelta64_dtype(other):
             # ndarray[timedelta64] or TimedeltaArray/index
             new_values = self._add_delta_tdi(other)
-            return self._shallow_copy(new_values)
-        else:  # pragma: no cover
-            raise TypeError(type(other).__name__)
+
+        return self._shallow_copy(new_values)
 
     @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
     def shift(self, periods):

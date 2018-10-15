@@ -361,7 +361,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         raise com.AbstractMethodError(self)
 
     def _add_delta(self, other):
-        return NotImplemented
+        raise com.AbstractMethodError(self)
 
     def _add_delta_td(self, other):
         """
@@ -380,7 +380,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         Add a delta of a TimedeltaIndex
         return the i8 result view
         """
-        if not len(self) == len(other):
+        if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
 
         if isinstance(other, np.ndarray):
@@ -441,7 +441,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                             .format(dtype=other.dtype,
                                     cls=type(self).__name__))
 
-        if not len(self) == len(other):
+        if len(self) != len(other):
             raise ValueError("cannot subtract arrays/indices of "
                              "unequal length")
         if self.freq != other.freq:
