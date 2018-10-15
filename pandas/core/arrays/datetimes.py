@@ -834,6 +834,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         -------
         TimedeltaArray/Index
         """
+        # TODO: consider privatizing (discussion in GH#23113)
         from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
         i8delta = self.asi8 - self.to_period(freq).to_timestamp().asi8
         return TimedeltaArrayMixin(i8delta)
