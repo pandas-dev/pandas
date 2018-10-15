@@ -11,7 +11,8 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.period import (
     Period, DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
-from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas.errors import (
+    NullFrequencyError, PerformanceWarning, AbstractMethodError)
 from pandas import compat
 
 from pandas.tseries import frequencies
@@ -77,12 +78,10 @@ class AttributesMixin(object):
     @property
     def _attributes(self):
         # Inheriting subclass should implement _attributes as a list of strings
-        from pandas.errors import AbstractMethodError
         raise AbstractMethodError(self)
 
     @classmethod
     def _simple_new(cls, values, **kwargs):
-        from pandas.errors import AbstractMethodError
         raise AbstractMethodError(cls)
 
     def _get_attributes_dict(self):
@@ -119,7 +118,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         """
         box function to get object from internal representation
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _box_values(self, values):
         """
@@ -352,13 +351,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                                 typ=type(other).__name__))
 
     def _sub_datelike(self, other):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _sub_period(self, other):
         return NotImplemented
 
     def _add_offset(self, offset):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _add_delta(self, other):
         return NotImplemented
