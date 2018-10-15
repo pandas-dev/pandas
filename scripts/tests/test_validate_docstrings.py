@@ -502,15 +502,16 @@ class BadReturns(object):
         return "Hello world!"
 
 
-class BadSeeAlso(object):
+class BadExamples(object):
 
-    def prefix_pandas(self):
+    def npPd_import(self):
         """
-        Return  prefix with `pandas` from See Also sec
+        Provide example with numpy and pandas import
 
-        See Also
+        Examples
         --------
-        pandas.Series.rename : Alter Series index labels or name
+        import numpy as np
+        import pandas as pd
         """
         pass
 
@@ -614,9 +615,10 @@ class TestValidator(object):
                      marks=pytest.mark.xfail),
         pytest.param('BadReturns', 'no_punctuation', ('foo',),
                      marks=pytest.mark.xfail),
-        # SeeAlso tests
-        ('BadSeeAlso', 'prefix_pandas',
-         ('section does not need `pandas` prefix',)),
+        # Examples
+        ('BadExamples', 'npPd_import',
+         ('Examples should not have `import pandas as pd` ',
+          'Examples should not have `import numpy as np` ',))
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821

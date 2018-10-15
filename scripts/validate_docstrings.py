@@ -499,10 +499,7 @@ def validate_one(func_name):
             if not rel_desc:
                 errs.append('Missing description for '
                             'See Also "{}" reference'.format(rel_name))
-            if rel_name.startswith('pandas.'):
-                errs.append('{} in `See Also` section does not '
-                            'need `pandas` prefix, use {} instead.'
-                            .format(rel_name, rel_name.replace('pandas.', '')))
+
     for line in doc.raw_doc.splitlines():
         if re.match("^ *\t", line):
             errs.append('Tabs found at the start of line "{}", '
@@ -512,6 +509,12 @@ def validate_one(func_name):
     if not doc.examples:
         wrns.append('No examples section found')
     else:
+        if 'import numpy as np' in ' '.join(doc.examples):
+            errs.append(' Examples should not have '
+                        '`import numpy as np` ')
+        if 'import pandas as pd' in ' '.join(doc.examples):
+            errs.append(' Examples should not have '
+                        '`import pandas as pd` ')
         examples_errs = doc.examples_errors
         if examples_errs:
             errs.append('Examples do not pass tests')
