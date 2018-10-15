@@ -6,7 +6,7 @@ import operator
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
-from pandas.core.sparse.array import IntIndex, BlockIndex, _make_index
+from pandas.core.arrays.sparse.array import IntIndex, BlockIndex, _make_index
 import pandas._libs.sparse as splib
 
 TEST_LENGTH = 20
