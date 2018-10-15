@@ -6,8 +6,7 @@ from datetime import datetime
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp,
-                    date_range, _np_version_under1p10, Index,
-                    bdate_range)
+                    date_range, bdate_range, Index)
 from pandas.tseries.offsets import BMonthEnd, CDay, BDay, Day, Hour
 from pandas.tests.test_base import Ops
 from pandas.core.dtypes.generic import ABCDateOffset
@@ -88,12 +87,11 @@ class TestDatetimeIndexOps(Ops):
         assert np.argmin(dr) == 0
         assert np.argmax(dr) == 5
 
-        if not _np_version_under1p10:
-            errmsg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmin, dr, out=0)
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmax, dr, out=0)
+        errmsg = "the 'out' parameter is not supported"
+        tm.assert_raises_regex(
+            ValueError, errmsg, np.argmin, dr, out=0)
+        tm.assert_raises_regex(
+            ValueError, errmsg, np.argmax, dr, out=0)
 
     def test_repeat_range(self, tz_naive_fixture):
         tz = tz_naive_fixture

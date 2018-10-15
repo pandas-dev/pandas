@@ -122,7 +122,7 @@ class TestSeriesPlots(TestPlotBase):
         subplot(122)
         y.hist()
         fig = gcf()
-        axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
+        axes = fig.axes
         assert len(axes) == 2
 
     @pytest.mark.slow
