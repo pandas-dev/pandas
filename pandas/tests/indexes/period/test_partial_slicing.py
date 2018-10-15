@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
 from pandas import (Series, period_range, DatetimeIndex, PeriodIndex,
-                    DataFrame, _np_version_under1p12, Period)
+                    DataFrame, Period)
 
 
 class TestPeriodIndex(object):
@@ -68,16 +68,12 @@ class TestPeriodIndex(object):
         didx = DatetimeIndex(start='2013/01/01', freq='D', periods=400)
         pidx = PeriodIndex(start='2013/01/01', freq='D', periods=400)
 
-        # changed to TypeError in 1.12
-        # https://github.com/numpy/numpy/pull/6271
-        exc = IndexError if _np_version_under1p12 else TypeError
-
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
             values = ['2014', '2013/02', '2013/01/02', '2013/02/01 9H',
                       '2013/02/01 09:00']
             for v in values:
-                with pytest.raises(exc):
+                with pytest.raises(TypeError):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)
@@ -89,7 +85,7 @@ class TestPeriodIndex(object):
 
             invalid = ['2013/02/01 9H', '2013/02/01 09:00']
             for v in invalid:
-                with pytest.raises(exc):
+                with pytest.raises(TypeError):
                     idx[v:]
 
     def test_range_slice_seconds(self):
@@ -98,16 +94,12 @@ class TestPeriodIndex(object):
                              periods=4000)
         pidx = PeriodIndex(start='2013/01/01 09:00:00', freq='S', periods=4000)
 
-        # changed to TypeError in 1.12
-        # https://github.com/numpy/numpy/pull/6271
-        exc = IndexError if _np_version_under1p12 else TypeError
-
         for idx in [didx, pidx]:
             # slices against index should raise IndexError
             values = ['2014', '2013/02', '2013/01/02', '2013/02/01 9H',
                       '2013/02/01 09:00']
             for v in values:
-                with pytest.raises(exc):
+                with pytest.raises(TypeError):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)
