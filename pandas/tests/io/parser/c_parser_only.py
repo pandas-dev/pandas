@@ -410,6 +410,7 @@ No,No,No"""
         tm.assert_frame_equal(result, expected)
 
     @tm.capture_stderr
+    @pytest.mark.filterwarnings('ignore::FutureWarning')
     def test_comment_whitespace_delimited(self):
         test_input = """\
 1 2

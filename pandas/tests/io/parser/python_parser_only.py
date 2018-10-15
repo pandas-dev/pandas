@@ -47,6 +47,7 @@ class PythonParserTests(object):
         with tm.assert_raises_regex(ValueError, msg):
             self.read_csv(StringIO(text), skipfooter=-1)
 
+    @pytest.mark.filterwarnings('ignore::FutureWarning')
     def test_sniff_delimiter(self):
         text = """index|A|B|C
 foo|1|2|3
