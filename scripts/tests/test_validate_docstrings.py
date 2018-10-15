@@ -673,7 +673,8 @@ class TestValidator(object):
                      marks=pytest.mark.xfail),
         # See Also tests
         ('BadSeeAlso', 'prefix_pandas',
-         ('pandas.Series.rename in `See Also` section does not need `pandas` prefix',)),
+         ('pandas.Series.rename in `See Also` section '
+          'does not need `pandas` prefix',))
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
