@@ -11,6 +11,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_like,
     is_list_like,
+    is_ordered_list_like,
     is_scalar,
     is_integer,
     is_re)
@@ -1996,12 +1997,12 @@ class StringMethods(NoNewAttributesMixin):
         elif isinstance(others, np.ndarray) and others.ndim == 2:
             others = DataFrame(others, index=idx)
             return ([others[x] for x in others], False)
-        elif is_list_like(others, strict=True):
+        elif is_ordered_list_like(others):
             others = list(others)  # ensure iterators do not get read twice etc
 
             # in case of list-like `others`, all elements must be
             # either one-dimensional list-likes or scalars
-            if all(is_list_like(x, strict=True) for x in others):
+            if all(is_ordered_list_like(x) for x in others):
                 los = []
                 join_warn = False
                 depr_warn = False
@@ -2029,7 +2030,7 @@ class StringMethods(NoNewAttributesMixin):
                     # nested list-likes are forbidden:
                     # -> elements of nxt must not be list-like
                     is_legal = ((no_deep and nxt.dtype == object)
-                                or all(not is_list_like(x, strict=True)
+                                or all(not is_ordered_list_like(x)
                                        for x in nxt))
 
                     # DataFrame is false positive of is_legal
@@ -2048,7 +2049,7 @@ class StringMethods(NoNewAttributesMixin):
                                   'deprecated and will be removed in a future '
                                   'version.', FutureWarning, stacklevel=3)
                 return (los, join_warn)
-            elif all(not is_list_like(x, strict=True) for x in others):
+            elif all(not is_ordered_list_like(x) for x in others):
                 return ([Series(others, index=idx)], False)
         raise TypeError(err_msg)
 

@@ -18,9 +18,9 @@ from pandas.core.dtypes.generic import (
     ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
     ABCDateOffset)
 from pandas.core.dtypes.inference import (  # noqa:F401
-    is_bool, is_integer, is_float, is_number, is_decimal, is_complex,
-    is_re, is_re_compilable, is_dict_like, is_string_like, is_file_like,
-    is_list_like, is_nested_list_like, is_sequence, is_named_tuple,
+    is_bool, is_integer, is_float, is_number, is_decimal, is_complex, is_re,
+    is_re_compilable, is_dict_like, is_string_like, is_file_like, is_list_like,
+    is_ordered_list_like, is_nested_list_like, is_sequence, is_named_tuple,
     is_hashable, is_iterator, is_array_like, is_scalar, is_interval)
 
 

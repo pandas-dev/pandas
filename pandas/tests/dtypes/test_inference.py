@@ -88,15 +88,15 @@ def test_is_list_like_fails(ll):
         DataFrame(), DataFrame([[1]]), iter([1, 2]), (x for x in [1, 2]),
         np.ndarray((2,) * 2), np.ndarray((2,) * 3), np.ndarray((2,) * 4)
     ])
-def test_is_list_like_strict_passes(ll):
-    assert inference.is_list_like(ll, strict=True)
+def test_is_ordered_list_like_strict_passes(ll):
+    assert inference.is_ordered_list_like(ll)
 
 
 @pytest.mark.parametrize("ll", [1, '2', object(), str, np.array(2),
                                 {1, 'a'}, frozenset({1, 'a'})])
-def test_is_list_like_strict_fails(ll):
+def test_is_ordered_list_like_fails(ll):
     # GH 23061
-    assert not inference.is_list_like(ll, strict=True)
+    assert not inference.is_ordered_list_like(ll)
 
 
 def test_is_array_like():
