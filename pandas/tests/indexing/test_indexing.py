@@ -18,7 +18,6 @@ import numpy as np
 import pandas as pd
 from pandas.core.indexing import (_non_reducing_slice, _maybe_numeric_slice,
                                   validate_indices)
-from pandas.core.arrays import integer_array
 from pandas import NaT, DataFrame, Index, Series, MultiIndex
 import pandas.util.testing as tm
 from pandas.compat import PY2
@@ -1085,10 +1084,10 @@ def test_validate_indices_empty():
 def test_extension_array_cross_section():
     # A cross-section of a homogeneous EA should be an EA
     df = pd.DataFrame({
-        "A": integer_array([1, 2]),
-        "B": integer_array([3, 4])
+        "A": pd.core.arrays.integer_array([1, 2]),
+        "B": pd.core.arrays.integer_array([3, 4])
     }, index=['a', 'b'])
-    expected = pd.Series(integer_array([1, 3]),
+    expected = pd.Series(pd.core.arrays.integer_array([1, 3]),
                          index=['A', 'B'], name='a')
     result = df.loc['a']
     tm.assert_series_equal(result, expected)
@@ -1099,7 +1098,7 @@ def test_extension_array_cross_section():
 
 def test_extension_array_cross_section_converts():
     df = pd.DataFrame({
-        "A": integer_array([1, 2]),
+        "A": pd.core.arrays.integer_array([1, 2]),
         "B": np.array([1, 2]),
     }, index=['a', 'b'])
     result = df.loc['a']

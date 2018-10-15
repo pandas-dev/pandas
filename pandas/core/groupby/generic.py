@@ -44,7 +44,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.base import SpecificationError, DataError
 from pandas.core.index import Index, MultiIndex, CategoricalIndex
-from pandas.core.arrays import Categorical
+from pandas.core.arrays.categorical import Categorical
 from pandas.core.internals import BlockManager, make_block
 from pandas.compat.numpy import _np_version_under1p13
 

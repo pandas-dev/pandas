@@ -5,9 +5,9 @@ import pytest
 import pandas as pd
 import pandas.util.testing as tm
 
-from pandas.core.arrays import DatetimeArrayMixin
-from pandas.core.arrays import TimedeltaArrayMixin
-from pandas.core.arrays import PeriodArrayMixin
+from pandas.core.arrays.datetimes import DatetimeArrayMixin
+from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
+from pandas.core.arrays.period import PeriodArrayMixin
 
 
 # TODO: more freq variants
