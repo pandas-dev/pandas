@@ -35,8 +35,6 @@ import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
 from pandas.core.indexes.period import Period, PeriodIndex
 
-from pandas.plotting._compat import _mpl_le_2_0_0
-
 # constants
 HOURS_PER_DAY = 24.
 MIN_PER_HOUR = 60.
@@ -370,13 +368,6 @@ class PandasAutoDateFormatter(dates.AutoDateFormatter):
         # matplotlib.dates._UTC has no _utcoffset called by pandas
         if self._tz is dates.UTC:
             self._tz._utcoffset = self._tz.utcoffset(None)
-
-        # For mpl > 2.0 the format strings are controlled via rcparams
-        # so do not mess with them.  For mpl < 2.0 change the second
-        # break point and add a musec break point
-        if _mpl_le_2_0_0():
-            self.scaled[1. / SEC_PER_DAY] = '%H:%M:%S'
-            self.scaled[1. / MUSEC_PER_DAY] = '%H:%M:%S.%f'
 
 
 class PandasAutoDateLocator(dates.AutoDateLocator):

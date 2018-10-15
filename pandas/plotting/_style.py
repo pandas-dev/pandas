@@ -4,14 +4,12 @@ from __future__ import division
 
 import warnings
 from contextlib import contextmanager
-import re
 
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.compat import lrange, lmap
 import pandas.compat as compat
-from pandas.plotting._compat import _mpl_ge_2_0_0
 
 
 def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
@@ -72,18 +70,9 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
         # check whether each character can be convertible to colors
         maybe_color_cycle = _maybe_valid_colors(list(colors))
         if maybe_single_color and maybe_color_cycle and len(colors) > 1:
-            # Special case for single str 'CN' match and convert to hex
-            # for supporting matplotlib < 2.0.0
-            if re.match(r'\AC[0-9]\Z', colors) and _mpl_ge_2_0_0():
-                hex_color = [c['color']
-                             for c in list(plt.rcParams['axes.prop_cycle'])]
-                colors = [hex_color[int(colors[1])]]
-            else:
-                # this may no longer be required
-                msg = ("'{0}' can be parsed as both single color and "
-                       "color cycle. Specify each color using a list "
-                       "like ['{0}'] or {1}")
-                raise ValueError(msg.format(colors, list(colors)))
+            hex_color = [c['color']
+                         for c in list(plt.rcParams['axes.prop_cycle'])]
+            colors = [hex_color[int(colors[1])]]
         elif maybe_single_color:
             colors = [colors]
         else:

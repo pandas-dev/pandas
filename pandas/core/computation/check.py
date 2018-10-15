@@ -2,7 +2,7 @@ import warnings
 from distutils.version import LooseVersion
 
 _NUMEXPR_INSTALLED = False
-_MIN_NUMEXPR_VERSION = "2.4.6"
+_MIN_NUMEXPR_VERSION = "2.6.1"
 
 try:
     import numexpr as ne

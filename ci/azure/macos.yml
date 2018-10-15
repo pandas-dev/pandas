@@ -9,7 +9,7 @@ jobs:
   strategy:
     maxParallel: 11
     matrix:
-      py35_np_110:
+      py35_np_120:
         ENV_FILE: ci/azure-macos-35.yaml
         CONDA_PY: "35"
         CONDA_ENV: pandas

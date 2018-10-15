@@ -39,7 +39,7 @@ def _ok_for_gaussian_kde(kind):
         except ImportError:
             return False
 
-    return plotting._compat._mpl_ge_1_5_0()
+    return True
 
 
 @td.skip_if_no_mpl
@@ -50,31 +50,16 @@ class TestPlotBase(object):
         import matplotlib as mpl
         mpl.rcdefaults()
 
-        self.mpl_le_1_2_1 = plotting._compat._mpl_le_1_2_1()
-        self.mpl_ge_1_3_1 = plotting._compat._mpl_ge_1_3_1()
-        self.mpl_ge_1_4_0 = plotting._compat._mpl_ge_1_4_0()
-        self.mpl_ge_1_5_0 = plotting._compat._mpl_ge_1_5_0()
-        self.mpl_ge_2_0_0 = plotting._compat._mpl_ge_2_0_0()
         self.mpl_ge_2_0_1 = plotting._compat._mpl_ge_2_0_1()
+        self.mpl_ge_2_1_0 = plotting._compat._mpl_ge_2_1_0()
         self.mpl_ge_2_2_0 = plotting._compat._mpl_ge_2_2_0()
+        self.mpl_ge_2_2_2 = plotting._compat._mpl_ge_2_2_2()
         self.mpl_ge_3_0_0 = plotting._compat._mpl_ge_3_0_0()
 
-        if self.mpl_ge_1_4_0:
-            self.bp_n_objects = 7
-        else:
-            self.bp_n_objects = 8
-        if self.mpl_ge_1_5_0:
-            # 1.5 added PolyCollections to legend handler
-            # so we have twice as many items.
-            self.polycollection_factor = 2
-        else:
-            self.polycollection_factor = 1
-
-        if self.mpl_ge_2_0_0:
-            self.default_figsize = (6.4, 4.8)
-        else:
-            self.default_figsize = (8.0, 6.0)
-        self.default_tick_position = 'left' if self.mpl_ge_2_0_0 else 'default'
+        self.bp_n_objects = 7
+        self.polycollection_factor = 2
+        self.default_figsize = (6.4, 4.8)
+        self.default_tick_position = 'left'
 
         n = 100
         with tm.RNGContext(42):
@@ -462,7 +447,7 @@ class TestPlotBase(object):
                     assert isinstance(value.lines, dict)
                 elif return_type == 'dict':
                     line = value['medians'][0]
-                    axes = line.axes if self.mpl_ge_1_5_0 else line.get_axes()
+                    axes = line.axes
                     if check_ax_title:
                         assert axes.get_title() == key
                 else:
@@ -510,19 +495,11 @@ class TestPlotBase(object):
                 obj.plot(kind=kind, grid=True, **kws)
                 assert is_grid_on()
 
-    def _maybe_unpack_cycler(self, rcParams, field='color'):
+    def _unpack_cycler(self, rcParams, field='color'):
         """
-        Compat layer for MPL 1.5 change to color cycle
-
-        Before: plt.rcParams['axes.color_cycle'] -> ['b', 'g', 'r'...]
-        After : plt.rcParams['axes.prop_cycle'] -> cycler(...)
+        Auxiliary function for correctly unpacking cycler after MPL >= 1.5
         """
-        if self.mpl_ge_1_5_0:
-            cyl = rcParams['axes.prop_cycle']
-            colors = [v[field] for v in cyl]
-        else:
-            colors = rcParams['axes.color_cycle']
-        return colors
+        return [v[field] for v in rcParams['axes.prop_cycle']]
 
 
 def _check_plot_works(f, filterwarnings='always', **kwargs):

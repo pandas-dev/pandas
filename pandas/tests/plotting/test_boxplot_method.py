@@ -3,7 +3,6 @@
 import pytest
 import itertools
 import string
-from distutils.version import LooseVersion
 
 from pandas import Series, DataFrame, MultiIndex
 from pandas.compat import range, lzip
@@ -19,15 +18,6 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 
 """ Test cases for .boxplot method """
-
-
-def _skip_if_mpl_14_or_dev_boxplot():
-    # GH 8382
-    # Boxplot failures on 1.4 and 1.4.1
-    # Don't need try / except since that's done at class level
-    import matplotlib
-    if LooseVersion(matplotlib.__version__) >= LooseVersion('1.4'):
-        pytest.skip("Matplotlib Regression in 1.4 and current dev.")
 
 
 @td.skip_if_no_mpl
@@ -71,12 +61,12 @@ class TestDataFramePlots(TestPlotBase):
         # passed ax should be used:
         fig, ax = self.plt.subplots()
         axes = df.boxplot('Col1', by='X', ax=ax)
-        ax_axes = ax.axes if self.mpl_ge_1_5_0 else ax.get_axes()
+        ax_axes = ax.axes
         assert ax_axes is axes
 
         fig, ax = self.plt.subplots()
         axes = df.groupby('Y').boxplot(ax=ax, return_type='axes')
-        ax_axes = ax.axes if self.mpl_ge_1_5_0 else ax.get_axes()
+        ax_axes = ax.axes
         assert ax_axes is axes['A']
 
         # Multiple columns with an ax argument should use same figure
@@ -155,7 +145,6 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_boxplot_empty_column(self):
-        _skip_if_mpl_14_or_dev_boxplot()
         df = DataFrame(np.random.randn(20, 4))
         df.loc[:, 0] = np.nan
         _check_plot_works(df.boxplot, return_type='axes')
