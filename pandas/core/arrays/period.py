@@ -5,7 +5,6 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._libs.tslib import NaT, iNaT
 from pandas._libs.tslibs.period import (
     Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX,
@@ -26,7 +25,7 @@ from pandas.core.dtypes.generic import ABCSeries
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import Tick, DateOffset
+from pandas.tseries.offsets import Tick
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
@@ -444,48 +443,6 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         if self.hasnans:
             values[self._isnan] = iNaT
         return self._shallow_copy(values=values)
-
-    def _maybe_convert_timedelta(self, other):
-        """
-        Convert timedelta-like input to an integer multiple of self.freq
-
-        Parameters
-        ----------
-        other : timedelta, np.timedelta64, DateOffset, int, np.ndarray
-
-        Returns
-        -------
-        converted : int, np.ndarray[int64]
-
-        Raises
-        ------
-        IncompatibleFrequency : if the input cannot be written as a multiple
-            of self.freq.  Note IncompatibleFrequency subclasses ValueError.
-        """
-        if isinstance(
-                other, (timedelta, np.timedelta64, Tick, np.ndarray)):
-            offset = frequencies.to_offset(self.freq.rule_code)
-            if isinstance(offset, Tick):
-                # _check_timedeltalike_freq_compat will raise if incompatible
-                delta = self._check_timedeltalike_freq_compat(other)
-                return delta
-        elif isinstance(other, DateOffset):
-            freqstr = other.rule_code
-            base = frequencies.get_base_alias(freqstr)
-            if base == self.freq.rule_code:
-                return other.n
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
-        elif lib.is_integer(other):
-            # integer is passed to .shift via
-            # _add_datetimelike_methods basically
-            # but ufunc may pass integer to _add_delta
-            return other
-
-        # raise when input doesn't have freq
-        msg = "Input has different freq from {cls}(freq={freqstr})"
-        raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
-                                               freqstr=self.freqstr))
 
     def _check_timedeltalike_freq_compat(self, other):
         """
