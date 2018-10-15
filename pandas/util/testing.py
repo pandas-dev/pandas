@@ -805,6 +805,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         Specify object name being compared, internally used to show appropriate
         assertion message
     """
+    __tracebackhide__ = True
 
     def _check_types(l, r, obj='Index'):
         if exact:
@@ -1048,6 +1049,8 @@ def assert_interval_array_equal(left, right, exact='equiv',
 
 
 def raise_assert_detail(obj, message, left, right, diff=None):
+    __tracebackhide__ = True
+
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
     elif is_categorical_dtype(left):
