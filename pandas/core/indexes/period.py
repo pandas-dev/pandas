@@ -28,6 +28,7 @@ from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
 from pandas._libs.tslibs import resolution, period
 
 from pandas.core.algorithms import unique1d
+from pandas.core.dtypes.generic import ABCIndexClass
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.period import PeriodArray, dt64arr_to_periodarr
 from pandas.core.base import _shared_docs
@@ -238,6 +239,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         Values can be any type that can be coerced to Periods.
         Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
         """
+        if isinstance(values, cls):
+            # TODO: don't do this
+            values = values.values
+        elif isinstance(values, (ABCIndexClass, np.ndarray)) and is_integer_dtype(values):
+            # TODO: don't do this.
+            values = PeriodArray._simple_new(values, freq)
+
         assert isinstance(values, PeriodArray)
         result = object.__new__(cls)
         result._data = values
@@ -868,6 +876,17 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     def repeat(self, repeats, *args, **kwargs):
         # TODO(DatetimeArray): Just use Index.repeat
         return Index.repeat(self, repeats, *args, **kwargs)
+
+    def view(self, dtype=None, type=None):
+        # TODO(DatetimeArray): remove
+        if dtype is None or dtype is  __builtins__['type'](self):
+            return self
+        return self._ndarray_values.view(dtype=dtype)
+
+    @property
+    def asi8(self):
+        # TODO(DatetimeArray): remove
+        return self.view('i8')
 
 
 PeriodIndex._add_comparison_ops()

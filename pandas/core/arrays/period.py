@@ -895,12 +895,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                                     .format(cls=type(self).__name__,
                                             freqstr=self.freqstr))
 
-    def view(self, dtype=None, type=None):
-        # This is to support things like `.asi8`
-        # PeriodIndex's parent does .values.view('i8').
-        # I don't like adding this,
-        return self._data.view(dtype=dtype)
-
     def repeat(self, repeats, *args, **kwargs):
         """
         Repeat elements of a Categorical.

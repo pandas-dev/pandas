@@ -271,21 +271,6 @@ class TestPeriodIndex(object):
         result = idx._simple_new(idx.astype('i8'), name='p', freq=idx.freq)
         tm.assert_index_equal(result, idx)
 
-        result = idx._simple_new([pd.Period('2007-01', freq='M'),
-                                  pd.Period('2007-02', freq='M')],
-                                 name='p', freq=idx.freq)
-        tm.assert_index_equal(result, idx)
-
-        result = idx._simple_new(np.array([pd.Period('2007-01', freq='M'),
-                                           pd.Period('2007-02', freq='M')]),
-                                 name='p', freq=idx.freq)
-        tm.assert_index_equal(result, idx)
-        # _simple_new has type: (PeriodArray, name, Optional[Freq])
-        # TODO: Add tests to PeriodArray._simple_new for
-        # - [ ] int
-        # - [ ] List[Period]
-        # - [ ] ndarray[Period]
-
     def test_constructor_simple_new_empty(self):
         # GH13079
         idx = PeriodIndex([], freq='M', name='p')
