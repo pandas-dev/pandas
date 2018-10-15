@@ -398,6 +398,6 @@ def validate_minmax_axis(axis):
     ndim = 1  # hard-coded for Index
     if axis is None:
         return
-    if axis >= ndim or (axis < 0 and ndim - axis < 0):
+    if axis >= ndim or (axis < 0 and ndim + axis < 0):
         raise ValueError("`axis` must be fewer than the number of "
                          "dimensions ({ndim})".format(ndim=ndim))
