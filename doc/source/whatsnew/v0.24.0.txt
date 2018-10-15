@@ -911,6 +911,7 @@ Deprecations
 - :meth:`FrozenNDArray.searchsorted` has deprecated the ``v`` parameter in favor of ``value`` (:issue:`14645`)
 - :func:`DatetimeIndex.shift` and :func:`PeriodIndex.shift` now accept ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`, :issue:`22912`)
 - The ``fastpath`` keyword of the different Index constructors is deprecated (:issue:`23110`).
+- :meth:`pandas.read_csv` has deprecated the redundant ``delimiter`` argument, please use ``sep`` (:issue:`21996`)
 
 .. _whatsnew_0240.prior_deprecations:
 
