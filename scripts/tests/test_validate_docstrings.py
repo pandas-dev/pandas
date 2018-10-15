@@ -333,6 +333,7 @@ class BadGenericDocStrings(object):
         """
         pass
 
+
 class BadSummaries(object):
 
     def wrong_line(self):
@@ -500,6 +501,7 @@ class BadReturns(object):
         """
         return "Hello world!"
 
+
 class BadSeeAlso(object):
 
     def prefix_pandas(self):
@@ -511,6 +513,7 @@ class BadSeeAlso(object):
         pandas.Series.rename : Alter Series index labels or name
         """
         pass
+
 
 class TestValidator(object):
 
@@ -613,7 +616,7 @@ class TestValidator(object):
                      marks=pytest.mark.xfail),
         # SeeAlso tests
         ('BadSeeAlso', 'prefix_pandas',
-         ('section does not need the `pandas` prefix',)),
+         ('section does not need `pandas` prefix',)),
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
