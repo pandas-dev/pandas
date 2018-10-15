@@ -487,32 +487,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                                           fill_value=iNaT)
         return result.view('timedelta64[ns]')
 
-    def _add_delta(self, delta):
-        """
-        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
-        to self.
-
-        Parameters
-        ----------
-        delta : {timedelta, np.timedelta64, DateOffset,
-                 TimedeltaIndex, ndarray[timedelta64]}
-
-        Returns
-        -------
-        result : same type as self
-
-        Notes
-        -----
-        The result's name is set outside of _add_delta by the calling
-        method (__add__ or __sub__)
-        """
-        if isinstance(delta, (Tick, timedelta, np.timedelta64)):
-            new_values = self._add_delta_td(delta)
-        elif is_timedelta64_dtype(delta):
-            new_values = self._add_delta_tdi(delta)
-
-        return type(self)(new_values, tz=self.tz, freq='infer')
-
     # -----------------------------------------------------------------
     # Timezone Conversion and Localization Methods
 

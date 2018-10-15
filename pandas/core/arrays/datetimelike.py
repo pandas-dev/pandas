@@ -101,6 +101,15 @@ class AttributesMixin(object):
             attributes['dtype'] = self.dtype
         return self._simple_new(values, **attributes)
 
+    def _semi_shallow_copy(self, values):
+        # similar to shallow_copy, but with freq="infer"
+        if is_period_dtype(self):
+            return self._shallow_copy(values)
+        elif is_timedelta64_dtype(self):
+            return type(self)(values, freq='infer')
+        else:
+            return type(self)(values, tz=self.tz, freq="infer")
+
 
 class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     """
@@ -339,8 +348,38 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     def _add_offset(self, offset):
         raise com.AbstractMethodError(self)
 
-    def _add_delta(self, other):
-        raise com.AbstractMethodError(self)
+    def _add_delta(self, delta):
+        """
+        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
+        to self.
+
+        Parameters
+        ----------
+        delta : {timedelta, np.timedelta64, DateOffset,
+                 TimedeltaIndex, ndarray[timedelta64]}
+
+        Returns
+        -------
+        result : same type as self
+
+        Notes
+        -----
+        The result's name is set outside of _add_delta by the calling
+        method (__add__ or __sub__)
+        """
+        if is_period_dtype(self) and not isinstance(self.freq, Tick):
+            # We cannot add timedelta-like to non-tick PeriodArray
+            raise IncompatibleFrequency("Input has different freq from "
+                                        "{cls}(freq={freqstr})"
+                                        .format(cls=type(self).__name__,
+                                                freqstr=self.freqstr))
+
+        if isinstance(delta, (Tick, timedelta, np.timedelta64)):
+            new_values = self._add_delta_td(delta)
+        elif is_timedelta64_dtype(delta):
+            new_values = self._add_delta_tdi(delta)
+
+        return self._semi_shallow_copy(new_values)
 
     def _add_delta_td(self, other):
         """
@@ -350,8 +389,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         inc = delta_to_nanoseconds(other)
         new_values = checked_add_with_arr(self.asi8, inc,
                                           arr_mask=self._isnan).view('i8')
-        if self.hasnans:
-            new_values[self._isnan] = iNaT
+        new_values = self._maybe_mask_results(new_values, fill_value=iNaT)
         return new_values.view('i8')
 
     def _add_delta_tdi(self, other):
@@ -462,7 +500,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             res_values = checked_add_with_arr(self.asi8, other,
                                               arr_mask=self._isnan)
             res_values = res_values.view('i8')
-            res_values[self._isnan] = iNaT
+            res_values = self._maybe_mask_results(res_values, fill_value=iNaT)
             return self._from_ordinals(res_values, freq=self.freq)
 
         elif self.freq is None:
