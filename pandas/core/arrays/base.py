@@ -9,6 +9,7 @@ import numpy as np
 
 import operator
 
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.errors import AbstractMethodError
 from pandas.compat.numpy import function as nv
 from pandas.compat import set_function_name, PY3
@@ -825,6 +826,11 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                 else:  # Assume its an object
                     ovalues = [param] * len(self)
                 return ovalues
+
+            if isinstance(other, (ABCSeries, ABCIndexClass)):
+                # rely on pandas to unbox and dispatch to us
+                return NotImplemented
+
             lvalues = self
             rvalues = convert_values(other)
 

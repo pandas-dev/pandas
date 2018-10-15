@@ -174,16 +174,14 @@ that's valid for the ``ExtensionArray``. If an ``ExtensionArray`` cannot
 be reconstructed, an ndarray containing the scalars returned instead.
 
 For ease of implementation and consistency with operations between pandas
-and NumPy ndarrays, we recommend *not* handling Series and DataFrame in
-your binary ops. Instead, you should detect these cases and return ``NotImplemented``.
+and NumPy ndarrays, we recommend *not* handling Series and Indexes in your binary ops.
+Instead, you should detect these cases and return ``NotImplemented``.
 When pandas encounters an operation like ``op(Series, ExtensionArray)``, pandas
 will
 
 1. unbox the array from the ``Series`` (roughly ``Series.values``)
 2. call ``result = op(values, ExtensionArray)``
 3. re-box the result in a ``Series``
-
-Similar for DataFrame.
 
 .. _extending.extension.testing:
 

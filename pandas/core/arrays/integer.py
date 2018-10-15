@@ -501,6 +501,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             op_name = op.__name__
             mask = None
 
+            if isinstance(other, (ABCSeries, ABCIndexClass)):
+                # Rely on pandas to unbox and dispatch to us.
+                return NotImplemented
+
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
 
@@ -588,12 +592,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             op_name = op.__name__
             mask = None
 
+            if isinstance(other, (ABCSeries, ABCIndexClass)):
+                # Rely on pandas to unbox and dispatch to us.
+                return NotImplemented
+
             if getattr(other, 'ndim', 0) > 1:
                 raise NotImplementedError(
                     "can only perform ops with 1-d structures")
-
-            if isinstance(other, (ABCSeries, ABCIndexClass)):
-                other = getattr(other, 'values', other)
 
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
