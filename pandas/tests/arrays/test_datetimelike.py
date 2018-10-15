@@ -119,6 +119,17 @@ class SharedTests(object):
             arr.take([0, 1], allow_fill=True,
                      fill_value=pd.Timestamp.now().time)
 
+    def test_concat_same_type(self):
+        data = np.arange(10, dtype='i8')
+
+        idx = self.index_cls._simple_new(data, freq='D').insert(0, pd.NaT)
+        arr = index_to_array(idx)
+
+        result = arr._concat_same_type([arr[:-1], arr[1:], arr])
+        expected = idx._concat_same_dtype([idx[:-1], idx[1:], idx], None)
+
+        tm.assert_index_equal(self.index_cls(result), expected)
+
 
 class TestDatetimeArray(SharedTests):
     index_cls = pd.DatetimeIndex
@@ -200,6 +211,19 @@ class TestDatetimeArray(SharedTests):
 
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_concat_same_type_invalid(self, datetime_index):
+        # different timezones
+        dti = datetime_index
+        arr = DatetimeArrayMixin(dti)
+
+        if arr.tz is None:
+            other = arr.tz_localize('UTC')
+        else:
+            other = arr.tz_localize(None)
+
+        with pytest.raises(AssertionError):
+            arr._concat_same_type([arr, other])
+
 
 class TestTimedeltaArray(SharedTests):
     index_cls = pd.TimedeltaIndex
@@ -238,6 +262,19 @@ class TestTimedeltaArray(SharedTests):
         assert isinstance(asobj, np.ndarray)
         assert asobj.dtype == 'O'
         assert list(asobj) == list(tdi)
+
+    def test_concat_same_type_invalid(self, timedelta_index):
+        # different freqs
+        tdi = timedelta_index
+        arr = TimedeltaArrayMixin(tdi)
+
+        other = pd.timedelta_range('1D', periods=5, freq='2D')
+        # FIXME: TimedeltaArray should inherit freq='2D' without specifying it
+        other = TimedeltaArrayMixin(other, freq='2D')
+        assert other.freq != arr.freq
+
+        with pytest.raises(AssertionError):
+            arr._concat_same_type([arr, other])
 
 
 class TestPeriodArray(SharedTests):
@@ -315,3 +352,15 @@ class TestPeriodArray(SharedTests):
         expected = np.array(getattr(pi, propname))
 
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_concat_same_type_invalid(self, period_index):
+        # different freqs
+        pi = period_index
+        arr = PeriodArrayMixin(pi)
+
+        other = pd.period_range('2016Q3', periods=5, freq='3Q')
+        other = PeriodArrayMixin(other)
+        assert other.freq != arr.freq
+
+        with pytest.raises(AssertionError):
+            arr._concat_same_type([arr, other])
