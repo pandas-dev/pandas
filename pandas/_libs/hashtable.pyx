@@ -124,8 +124,7 @@ cdef class Int64Factorizer:
             uniques.extend(self.uniques.to_array())
             self.uniques = uniques
         labels = self.table.get_labels(values, self.uniques,
-                                       self.count, na_sentinel,
-                                       na_value=na_value)
+                                       self.count, na_sentinel, na_value)
 
         # sort on
         if sort:

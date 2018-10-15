@@ -1318,7 +1318,7 @@ class TestHashTable(object):
         uniques = uniques()
 
         # get_labels may append to uniques
-        htable.get_labels(vals[:nvals], uniques, 0, -1)
+        htable.get_labels(vals[:nvals], uniques, 0, -1, None)
         # to_array() sets an external_view_exists flag on uniques.
         tmp = uniques.to_array()
         oldshape = tmp.shape
@@ -1326,10 +1326,10 @@ class TestHashTable(object):
         # subsequent get_labels() calls can no longer append to it
         # (except for StringHashTables + ObjectVector)
         if safely_resizes:
-            htable.get_labels(vals, uniques, 0, -1)
+            htable.get_labels(vals, uniques, 0, -1, None)
         else:
             with tm.assert_raises_regex(ValueError, 'external reference.*'):
-                htable.get_labels(vals, uniques, 0, -1)
+                htable.get_labels(vals, uniques, 0, -1, None)
 
         uniques.to_array()   # should not raise here
         assert tmp.shape == oldshape
@@ -1358,8 +1358,17 @@ class TestHashTable(object):
         # drop_duplicates has own cython code (hash_table_func_helper.pxi)
         # and is tested separately; keeps first occurrence like ht.unique()
         expected_unique = s_duplicated.drop_duplicates(keep='first').values
-        result_unique = htable().unique(s_duplicated.values)
+        return_inverse = False
+        result_unique = htable().unique(s_duplicated.values, return_inverse)
         tm.assert_numpy_array_equal(result_unique, expected_unique)
+
+        # test with inverse
+        return_inverse = True
+        result_unique, result_inverse = htable().unique(s_duplicated.values,
+                                                        return_inverse)
+        tm.assert_numpy_array_equal(result_unique, expected_unique)
+        reconstr = result_unique[result_inverse]
+        tm.assert_numpy_array_equal(reconstr, s_duplicated.values)
 
     @pytest.mark.parametrize('htable, tm_dtype', [
         (ht.PyObjectHashTable, 'String'),
@@ -1383,7 +1392,10 @@ class TestHashTable(object):
         s_duplicated.values.setflags(write=writable)
         na_mask = s_duplicated.isna().values
 
-        result_inverse, result_unique = htable().factorize(s_duplicated.values)
+        na_sentinel = -1
+        na_value = None
+        result = htable().factorize(s_duplicated.values, na_sentinel, na_value)
+        result_inverse, result_unique = result
 
         # drop_duplicates has own cython code (hash_table_func_helper.pxi)
         # and is tested separately; keeps first occurrence like ht.factorize()
