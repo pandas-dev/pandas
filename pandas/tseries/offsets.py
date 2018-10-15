@@ -2,7 +2,6 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
-import warnings
 
 from pandas.compat import range
 from pandas import compat
@@ -289,12 +288,11 @@ class DateOffset(BaseOffset):
 
             weeks = (kwds.get('weeks', 0)) * self.n
             if weeks:
-                with warnings.catch_warnings(record=True):
-                    # integer-array addition on PeriodIndex is deprecated,
-                    #  but still used internally for performance
-                    warnings.simplefilter("ignore", FutureWarning)
-                    i = (i.to_period('W') + weeks).to_timestamp() + \
-                        i.to_perioddelta('W')
+                # integer addition on PeriodIndex is deprecated,
+                #   so we directly use _time_shift instead
+                asper = i.to_period('W')
+                shifted = asper._time_shift(weeks)
+                i = shifted.to_timestamp() + i.to_perioddelta('W')
 
             timedelta_kwds = {k: v for k, v in kwds.items()
                               if k in ['days', 'hours', 'minutes',
@@ -543,15 +541,17 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         # reduce n where it does when rolling forward
         shifted = (i.to_perioddelta('B') - time).asi8 != 0
         if self.n > 0:
+            # Integer-array addition is deprecated, so we use
+            # _time_shift directly
             roll = np.where(shifted, self.n - 1, self.n)
+            asper = i.to_period('B')
+            shifted = asper._addsub_int_array(roll, operator.add,
+                                              suppress=True)
+            result = shifted.to_timestamp() + time
         else:
+            # Integer addition is deprecated, so we use _time_shift directly
             roll = self.n
-
-        with warnings.catch_warnings(record=True):
-            # integer-array addition on PeriodIndex is deprecated,
-            #  but still used internally for performance
-            warnings.simplefilter("ignore", FutureWarning)
-            result = (i.to_period('B') + roll).to_timestamp() + time
+            result = (i.to_period('B')._time_shift(roll)).to_timestamp() + time
 
         return result
 
@@ -1118,11 +1118,13 @@ class SemiMonthOffset(DateOffset):
         time = i.to_perioddelta('D')
 
         # apply the correct number of months
-        with warnings.catch_warnings(record=True):
-            # integer-array addition on PeriodIndex is deprecated,
-            #  but still used internally for performance
-            warnings.simplefilter("ignore", FutureWarning)
-            i = (i.to_period('M') + (roll // 2)).to_timestamp()
+
+        # integer-array addition on PeriodIndex is deprecated,
+        #  so we use _addsub_int_array directly
+        asper = i.to_period('M')
+        shifted = asper._addsub_int_array(roll // 2, operator.add,
+                                          suppress=True)
+        i = shifted.to_timestamp()
 
         # apply the correct day
         i = self._apply_index_days(i, roll)
@@ -1303,11 +1305,9 @@ class Week(DateOffset):
     @apply_index_wraps
     def apply_index(self, i):
         if self.weekday is None:
-            with warnings.catch_warnings(record=True):
-                # integer addition on PeriodIndex is deprecated,
-                #  but still used internally for performance
-                warnings.simplefilter("ignore", FutureWarning)
-                shifted = i.to_period('W') + self.n
+            # integer addition on PeriodIndex is deprecated,
+            #  so we use _time_shift directly
+            shifted = i.to_period('W')._time_shift(self.n)
             return shifted.to_timestamp() + i.to_perioddelta('W')
         else:
             return self._end_apply_index(i)
@@ -1333,14 +1333,16 @@ class Week(DateOffset):
             normed = dtindex - off + Timedelta(1, 'D') - Timedelta(1, 'ns')
             roll = np.where(base_period.to_timestamp(how='end') == normed,
                             self.n, self.n - 1)
-        else:
-            roll = self.n
-
-        with warnings.catch_warnings(record=True):
             # integer-array addition on PeriodIndex is deprecated,
-            #  but still used internally for performance
-            warnings.simplefilter("ignore", FutureWarning)
-            base = (base_period + roll).to_timestamp(how='end')
+            #  so we use _addsub_int_array directly
+            shifted = base_period._addsub_int_array(roll, operator.add,
+                                                    suppress=True)
+            base = shifted.to_timestamp(how='end')
+        else:
+            # integer addition on PeriodIndex is deprecated,
+            #  so we use _time_shift directly
+            roll = self.n
+            base = base_period._time_shift(roll).to_timestamp(how='end')
 
         return base + off + Timedelta(1, 'ns') - Timedelta(1, 'D')
 

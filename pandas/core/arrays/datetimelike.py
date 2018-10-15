@@ -458,7 +458,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             new_values[mask] = NaT
         return new_values
 
-    def _addsub_int_array(self, other, op):
+    def _addsub_int_array(self, other, op, suppress=False):
         """
         Add or subtract array-like of integers equivalent to applying
         `_time_shift` pointwise.
@@ -468,6 +468,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         other : Index, ExtensionArray, np.ndarray
             integer-dtype
         op : {operator.add, operator.sub}
+        suppress : bool, default False
+            Whether to suppress a deprecation warning
 
         Returns
         -------
@@ -475,7 +477,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         """
         assert op in [operator.add, operator.sub]
 
-        if self.freq is not None:
+        if self.freq is not None and not suppress:
             # case with freq of None will raise
             # we need to use a different stacklevel for Index vs Array
             lvl = 3 + 1 * isinstance(self, ABCIndexClass)
