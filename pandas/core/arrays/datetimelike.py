@@ -155,6 +155,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     #   factorize
     #   _formatting_values
     #   _reduce
+    #   copy
 
     def _validate_fill_value(self, fill_value):
         """
@@ -195,10 +196,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         freq = list(freqs)[0]
         values = np.concatenate([x._data for x in to_concat])
         return cls._simple_new(values, freq=freq)
-
-    def copy(self, deep=False):
-        # TODO: ignoring `deep`?
-        return self._shallow_copy(self._data.copy())
 
     # ------------------------------------------------------------------
     # Array-like Methods
