@@ -465,8 +465,8 @@ def validate_one(func_name):
                     param_errs.append('Parameter "{}" type should '
                                       'not finish with "."'.format(param))
                 common_type_errors = [('integer', 'int'),
-                                     ('boolean', 'bool'),
-                                     ('string', 'str')]
+                                      ('boolean', 'bool'),
+                                      ('string', 'str')]
                 for incorrect_type, correct_type in common_type_errors:
                     if incorrect_type in doc.parameter_type(param):
                         param_errs.append('Parameter "{}" type should be '
