@@ -18,6 +18,20 @@ def float_frame():
 
 
 @pytest.fixture
+def float_frame_with_na():
+    """
+    Fixture for DataFrame of floats with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D']; some entries are missing
+    """
+    df = DataFrame(tm.getSeriesData())
+    # set some NAs
+    df.loc[5:10] = np.nan
+    df.loc[15:20, -2:] = np.nan
+    return df
+
+
+@pytest.fixture
 def float_frame2():
     """
     Fixture for DataFrame of floats with index of unique strings
@@ -25,6 +39,21 @@ def float_frame2():
     Columns are ['D', 'C', 'B', 'A']
     """
     return DataFrame(tm.getSeriesData(), columns=['D', 'C', 'B', 'A'])
+
+
+@pytest.fixture
+def bool_frame_with_na():
+    """
+    Fixture for DataFrame of booleans with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D']; some entries are missing
+    """
+    df = DataFrame(tm.getSeriesData()) > 0
+    df = df.astype(object)
+    # set some NAs
+    df.loc[5:10] = np.nan
+    df.loc[15:20, -2:] = np.nan
+    return df
 
 
 @pytest.fixture
@@ -70,9 +99,10 @@ def mixed_float_frame():
     Columns are ['A', 'B', 'C', 'D'].
     """
     df = DataFrame(tm.getSeriesData())
-    df.A = df.A.astype('float16')
+    df.A = df.A.astype('float32')
     df.B = df.B.astype('float32')
-    df.C = df.C.astype('float64')
+    df.C = df.C.astype('float16')
+    df.D = df.D.astype('float64')
     return df
 
 
@@ -84,9 +114,10 @@ def mixed_float_frame2():
     Columns are ['A', 'B', 'C', 'D'].
     """
     df = DataFrame(tm.getSeriesData())
-    df.D = df.D.astype('float16')
+    df.D = df.D.astype('float32')
     df.C = df.C.astype('float32')
-    df.B = df.B.astype('float64')
+    df.B = df.B.astype('float16')
+    df.D = df.D.astype('float64')
     return df
 
 
@@ -99,10 +130,10 @@ def mixed_int_frame():
     """
     df = DataFrame({k: v.astype(int)
                    for k, v in compat.iteritems(tm.getSeriesData())})
-    df.A = df.A.astype('uint8')
-    df.B = df.B.astype('int32')
-    df.C = df.C.astype('int64')
-    df.D = np.ones(len(df.D), dtype='uint64')
+    df.A = df.A.astype('int32')
+    df.B = np.ones(len(df.B), dtype='uint64')
+    df.C = df.C.astype('uint8')
+    df.D = df.C.astype('int64')
     return df
 
 

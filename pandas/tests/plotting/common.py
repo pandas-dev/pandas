@@ -57,6 +57,7 @@ class TestPlotBase(object):
         self.mpl_ge_2_0_0 = plotting._compat._mpl_ge_2_0_0()
         self.mpl_ge_2_0_1 = plotting._compat._mpl_ge_2_0_1()
         self.mpl_ge_2_2_0 = plotting._compat._mpl_ge_2_2_0()
+        self.mpl_ge_3_0_0 = plotting._compat._mpl_ge_3_0_0()
 
         if self.mpl_ge_1_4_0:
             self.bp_n_objects = 7
@@ -255,8 +256,8 @@ class TestPlotBase(object):
         else:
             labels = [t.get_text() for t in texts]
             assert len(labels) == len(expected)
-            for l, e in zip(labels, expected):
-                assert l == e
+            for label, e in zip(labels, expected):
+                assert label == e
 
     def _check_ticks_props(self, axes, xlabelsize=None, xrot=None,
                            ylabelsize=None, yrot=None):

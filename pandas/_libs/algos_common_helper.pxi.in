@@ -2,7 +2,6 @@
 Template for each `dtype` helper function using 1-d template
 
 # 1-d template
-- map_indices
 - pad
 - pad_1d
 - pad_2d
@@ -149,6 +148,7 @@ def get_dispatch(dtypes):
 }}
 
 {{for name, c_type, dtype in get_dispatch(dtypes)}}
+
 
 def ensure_{{name}}(object arr, copy=True):
     if util.is_array(arr):

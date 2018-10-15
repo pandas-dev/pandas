@@ -15,29 +15,28 @@ from pandas import compat
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
-from .common import TestData
 
+class TestSeriesCombine():
 
-class TestSeriesCombine(TestData):
-
-    def test_append(self):
-        appendedSeries = self.series.append(self.objSeries)
+    def test_append(self, datetime_series, string_series, object_series):
+        appendedSeries = string_series.append(object_series)
         for idx, value in compat.iteritems(appendedSeries):
-            if idx in self.series.index:
-                assert value == self.series[idx]
-            elif idx in self.objSeries.index:
-                assert value == self.objSeries[idx]
+            if idx in string_series.index:
+                assert value == string_series[idx]
+            elif idx in object_series.index:
+                assert value == object_series[idx]
             else:
                 raise AssertionError("orphaned index!")
 
-        pytest.raises(ValueError, self.ts.append, self.ts,
+        pytest.raises(ValueError, datetime_series.append, datetime_series,
                       verify_integrity=True)
 
-    def test_append_many(self):
-        pieces = [self.ts[:5], self.ts[5:10], self.ts[10:]]
+    def test_append_many(self, datetime_series):
+        pieces = [datetime_series[:5], datetime_series[5:10],
+                  datetime_series[10:]]
 
         result = pieces[0].append(pieces[1:])
-        assert_series_equal(result, self.ts)
+        assert_series_equal(result, datetime_series)
 
     def test_append_duplicates(self):
         # GH 13677
@@ -215,20 +214,23 @@ class TestSeriesCombine(TestData):
                           Series(dtype='object')]).dtype == 'object'
 
         # sparse
+        # TODO: move?
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(
             dtype='float64').to_sparse()])
-        assert result.dtype == np.float64
+        assert result.dtype == 'Sparse[float64]'
         assert result.ftype == 'float64:sparse'
 
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(
             dtype='float64')])
-        assert result.dtype == np.float64
+        # TODO: release-note: concat sparse dtype
+        assert result.dtype == pd.core.sparse.dtype.SparseDtype(np.float64)
         assert result.ftype == 'float64:sparse'
 
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(
             dtype='object')])
-        assert result.dtype == np.object_
-        assert result.ftype == 'object:dense'
+        # TODO: release-note: concat sparse dtype
+        assert result.dtype == pd.core.sparse.dtype.SparseDtype('object')
+        assert result.ftype == 'object:sparse'
 
     def test_combine_first_dt64(self):
         from pandas.core.tools.datetimes import to_datetime
