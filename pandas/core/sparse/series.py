@@ -24,13 +24,13 @@ import pandas.core.ops as ops
 import pandas._libs.index as libindex
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.arrays.sparse.array import (
+from pandas.core.arrays import (
     SparseArray,
 )
 from pandas._libs.sparse import BlockIndex, IntIndex
 import pandas._libs.sparse as splib
 
-from pandas.core.arrays.sparse.scipy_sparse import (
+from pandas.core.sparse.scipy_sparse import (
     _sparse_series_to_coo,
     _coo_to_sparse_series)
 
@@ -205,7 +205,7 @@ class SparseSeries(Series):
 
     @property
     def _constructor_expanddim(self):
-        from pandas.core.arrays.sparse.api import SparseDataFrame
+        from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
 
     @property

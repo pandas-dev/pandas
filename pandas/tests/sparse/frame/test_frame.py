@@ -14,10 +14,10 @@ from pandas.tseries.offsets import BDay
 from pandas.util import testing as tm
 from pandas.compat import lrange
 from pandas import compat
-from pandas.core.arrays.sparse import frame as spf
+from pandas.core.sparse import frame as spf
 
 from pandas._libs.sparse import BlockIndex, IntIndex
-from pandas.core.arrays.sparse.api import (
+from pandas.core.sparse.api import (
     SparseSeries, SparseDataFrame, SparseArray, SparseDtype
 )
 from pandas.tests.frame.test_api import SharedWithSparse

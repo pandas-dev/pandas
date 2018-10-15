@@ -18,11 +18,10 @@ import pandas.util._test_decorators as td
 from pandas.compat import range, PY36
 from pandas.core.reshape.util import cartesian_product
 
-from pandas.core.arrays.sparse.api import SparseDtype
-import pandas.core.arrays.sparse.frame as spf
+import pandas.core.sparse.frame as spf
 
 from pandas._libs.sparse import BlockIndex, IntIndex
-from pandas.core.arrays.sparse.api import SparseSeries
+from pandas import SparseSeries, SparseDtype
 from pandas.tests.series.test_api import SharedWithSparse
 
 

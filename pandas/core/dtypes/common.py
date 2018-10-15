@@ -178,7 +178,7 @@ def is_sparse(arr):
     >>> is_sparse(bsr_matrix([1, 2, 3]))
     False
     """
-    from pandas.core.arrays.sparse.dtype import SparseDtype
+    from pandas.core.arrays.sparse import SparseDtype
 
     dtype = getattr(arr, 'dtype', arr)
     return isinstance(dtype, SparseDtype)
@@ -1926,7 +1926,7 @@ def _get_dtype_type(arr_or_dtype):
             return Interval
         return _get_dtype_type(np.dtype(arr_or_dtype))
     else:
-        from pandas.core.arrays.sparse.dtype import SparseDtype
+        from pandas.core.arrays.sparse import SparseDtype
         if isinstance(arr_or_dtype, (ABCSparseSeries,
                                      ABCSparseArray,
                                      SparseDtype)):

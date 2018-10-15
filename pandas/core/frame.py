@@ -1761,9 +1761,9 @@ class DataFrame(NDFrame):
         1  1.0  NaN
         2  NaN  1.0
         >>> type(sdf)
-        <class 'pandas.core.arrays.sparse.frame.SparseDataFrame'>
+        <class 'pandas.core.sparse.frame.SparseDataFrame'>
         """
-        from pandas.core.arrays.sparse.frame import SparseDataFrame
+        from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns, default_kind=kind,
                                default_fill_value=fill_value)

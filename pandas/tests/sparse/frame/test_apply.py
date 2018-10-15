@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from pandas import SparseDataFrame, DataFrame, Series, bdate_range
-from pandas.core.arrays.sparse.api import SparseDtype
+from pandas.core.sparse.api import SparseDtype
 from pandas.core import nanops
 from pandas.util import testing as tm
 

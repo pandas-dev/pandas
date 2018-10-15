@@ -76,7 +76,7 @@ def _get_series_result_type(result, objs=None):
     if isinstance(result, dict):
         # concat Series with axis 1
         if all(is_sparse(c) for c in compat.itervalues(result)):
-            from pandas.core.arrays.sparse.api import SparseDataFrame
+            from pandas.core.sparse.api import SparseDataFrame
             return SparseDataFrame
         else:
             from pandas.core.frame import DataFrame
@@ -84,7 +84,7 @@ def _get_series_result_type(result, objs=None):
 
     # otherwise it is a SingleBlockManager (axis = 0)
     if result._block.is_sparse:
-        from pandas.core.arrays.sparse.api import SparseSeries
+        from pandas.core.sparse.api import SparseSeries
         return SparseSeries
     else:
         return objs[0]._constructor
@@ -100,7 +100,7 @@ def _get_frame_result_type(result, objs):
     if (result.blocks and (
             all(is_sparse(b) for b in result.blocks) or
             all(isinstance(obj, ABCSparseDataFrame) for obj in objs))):
-        from pandas.core.arrays.sparse.api import SparseDataFrame
+        from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:
         return next(obj for obj in objs if not isinstance(obj,
@@ -123,7 +123,7 @@ def _get_sliced_frame_result_type(data, obj):
     Series or SparseSeries
     """
     if is_sparse(data):
-        from pandas.core.arrays.sparse.api import SparseSeries
+        from pandas.core.sparse.api import SparseSeries
         return SparseSeries
     return obj._constructor_sliced
 
@@ -556,7 +556,7 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     a single array, preserving the combined dtypes
     """
 
-    from pandas.core.arrays.sparse.array import SparseArray
+    from pandas.core.arrays import SparseArray
 
     fill_values = [x.fill_value for x in to_concat
                    if isinstance(x, SparseArray)]

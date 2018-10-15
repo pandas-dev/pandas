@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     _coerce_to_dtype,
     is_bool_dtype,
 )
-from pandas.core.arrays.sparse.api import SparseDtype
+from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 

@@ -29,7 +29,7 @@ from pandas.core.dtypes.generic import ABCSeries, ABCExtensionArray
 
 from pandas.core.base import PandasObject
 import pandas.core.algorithms as algos
-from pandas.core.arrays.sparse.array import _maybe_to_sparse
+from pandas.core.arrays.sparse import _maybe_to_sparse
 
 from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.indexing import maybe_convert_indices

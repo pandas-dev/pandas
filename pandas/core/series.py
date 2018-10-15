@@ -344,7 +344,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                       "future version. Please use the pd.Series(..) "
                       "constructor instead.", FutureWarning, stacklevel=2)
         if isinstance(arr, ABCSparseArray):
-            from pandas.core.arrays.sparse.series import SparseSeries
+            from pandas.core.sparse.series import SparseSeries
             cls = SparseSeries
         return cls(arr, index=index, name=name, dtype=dtype,
                    copy=copy, fastpath=fastpath)
@@ -1383,8 +1383,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         sp : SparseSeries
         """
         # TODO: deprecate
-        from pandas.core.arrays.sparse.series import SparseSeries
-        from pandas.core.arrays.sparse.array import SparseArray
+        from pandas.core.sparse.series import SparseSeries
+        from pandas.core.arrays import SparseArray
 
         values = SparseArray(self, kind=kind, fill_value=fill_value)
         return SparseSeries(

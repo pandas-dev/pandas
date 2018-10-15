@@ -6,7 +6,7 @@ import pandas as pd
 
 from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
                                        CategoricalDtype, IntervalDtype)
-from pandas.core.arrays.sparse.api import SparseDtype
+from pandas.core.sparse.api import SparseDtype
 
 import pandas.core.dtypes.common as com
 import pandas.util.testing as tm

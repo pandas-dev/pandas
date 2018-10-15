@@ -5,7 +5,7 @@ import pytest
 from collections import OrderedDict
 
 from pandas import DataFrame, Series
-from pandas.core.arrays.sparse.api import SparseDtype, SparseArray
+from pandas.core.sparse.api import SparseDtype, SparseArray
 import pandas as pd
 
 from numpy import nan

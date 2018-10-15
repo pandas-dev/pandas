@@ -2066,7 +2066,7 @@ def _cast_sparse_series_op(left, right, opname):
     left : SparseArray
     right : SparseArray
     """
-    from pandas.core.arrays.sparse.api import SparseDtype
+    from pandas.core.sparse.api import SparseDtype
 
     opname = opname.strip('_')
 
@@ -2116,7 +2116,7 @@ def _sparse_series_op(left, right, op, name):
     new_index = left.index
     new_name = get_op_result_name(left, right)
 
-    from pandas.core.arrays.sparse.array import _sparse_array_op
+    from pandas.core.arrays.sparse import _sparse_array_op
     lvalues, rvalues = _cast_sparse_series_op(left.values, right.values, name)
     result = _sparse_array_op(lvalues, rvalues, op, name)
     return left._constructor(result, index=new_index, name=new_name)

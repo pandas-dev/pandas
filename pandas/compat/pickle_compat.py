@@ -56,14 +56,8 @@ def load_reduce(self):
 
 # If classes are moved, provide compat here.
 _class_locations_map = {
-
-    # 23123, fix sparse mapping
     ('pandas.core.sparse.array', 'SparseArray'):
-        ('pandas.core.arrays.sparse.series', 'SparseArray'),
-    ('pandas.core.sparse.series', 'SparseSeries'):
-        ('pandas.core.arrays.sparse.series', 'SparseSeries'),
-    ('pandas.core.sparse.frame', 'SparseDataFrame'):
-        ('pandas.core.arrays.sparse.frame', 'SparseDataFrame'),
+        ('pandas.core.arrays', 'SparseArray'),
 
     # 15477
     ('pandas.core.base', 'FrozenNDArray'):
@@ -75,7 +69,7 @@ _class_locations_map = {
     ('pandas.core.series', 'TimeSeries'):
         ('pandas.core.series', 'Series'),
     ('pandas.sparse.series', 'SparseTimeSeries'):
-        ('pandas.core.arrays.sparse.series', 'SparseSeries'),
+        ('pandas.core.sparse.series', 'SparseSeries'),
 
     # 12588, extensions moving
     ('pandas._sparse', 'BlockIndex'):
@@ -96,11 +90,11 @@ _class_locations_map = {
 
     # 15998 top-level dirs moving
     ('pandas.sparse.array', 'SparseArray'):
-        ('pandas.core.arrays.sparse.array', 'SparseArray'),
+        ('pandas.core.arrays.sparse', 'SparseArray'),
     ('pandas.sparse.series', 'SparseSeries'):
-        ('pandas.core.arrays.sparse.series', 'SparseSeries'),
+        ('pandas.core.sparse.series', 'SparseSeries'),
     ('pandas.sparse.frame', 'SparseDataFrame'):
-        ('pandas.core.arrays.sparse.frame', 'SparseDataFrame'),
+        ('pandas.core.sparse.frame', 'SparseDataFrame'),
     ('pandas.indexes.base', '_new_Index'):
         ('pandas.core.indexes.base', '_new_Index'),
     ('pandas.indexes.base', 'Index'):

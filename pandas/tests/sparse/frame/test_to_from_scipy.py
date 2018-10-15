@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from pandas.util import testing as tm
 from pandas import SparseDataFrame, SparseSeries
-from pandas.core.arrays.sparse.api import SparseDtype
+from pandas.core.sparse.api import SparseDtype
 from distutils.version import LooseVersion
 from pandas.core.dtypes.common import (
     is_bool_dtype,
