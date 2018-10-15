@@ -526,7 +526,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         Parameters
         ----------
         delta : {timedelta, np.timedelta64, DateOffset,
-                 TimedelaIndex, ndarray[timedelta64]}
+                 TimedeltaIndex, ndarray[timedelta64]}
 
         Returns
         -------
