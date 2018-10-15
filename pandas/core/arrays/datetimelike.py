@@ -332,8 +332,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             return None
 
         # DatetimeArray may pass `ambiguous`, nothing else will be accepted
-        # by cls._generate_range below
-        assert all(key == 'ambiguous' for key in kwargs)
+        #  by cls._generate_range below
+        acceptable = {'ambiguous'} if index.dtype.kind == 'M' else {}
+        assert all(key in acceptable for key in kwargs)
 
         inferred = index.inferred_freq
         if index.size == 0 or inferred == freq.freqstr:
