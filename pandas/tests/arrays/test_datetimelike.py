@@ -45,7 +45,105 @@ def datetime_index(request):
     return pi
 
 
-class TestDatetimeArray(object):
+@pytest.fixture
+def timedelta_index(request):
+    """
+    A fixture to provide TimedeltaIndex objects with different frequencies.
+     Most TimedeltaArray behavior is already tested in TimedeltaIndex tests,
+    so here we just test that the TimedeltaArray behavior matches
+    the TimedeltaIndex behavior.
+    """
+    # TODO: flesh this out
+    return pd.TimedeltaIndex(['1 Day', '3 Hours', 'NaT'])
+
+
+def index_to_array(index):
+    """
+    Helper function to construct a Datetime/Timedelta/Period Array from an
+    instance of the corresponding Index subclass.
+    """
+    if isinstance(index, pd.DatetimeIndex):
+        return DatetimeArrayMixin(index)
+    elif isinstance(index, pd.TimedeltaIndex):
+        return TimedeltaArrayMixin(index)
+    elif isinstance(index, pd.PeriodIndex):
+        return PeriodArrayMixin(index)
+    else:
+        raise TypeError(type(index))
+
+
+class SharedTests(object):
+    index_cls = None
+
+    def test_take(self):
+        data = np.arange(100, dtype='i8')
+        np.random.shuffle(data)
+
+        idx = self.index_cls._simple_new(data, freq='D')
+        arr = index_to_array(idx)
+
+        takers = [1, 4, 94]
+        result = arr.take(takers)
+        expected = idx.take(takers)
+
+        tm.assert_index_equal(self.index_cls(result), expected)
+
+        takers = np.array([1, 4, 94])
+        result = arr.take(takers)
+        expected = idx.take(takers)
+
+        tm.assert_index_equal(self.index_cls(result), expected)
+
+    def test_take_fill(self):
+        data = np.arange(10, dtype='i8')
+
+        idx = self.index_cls._simple_new(data, freq='D')
+        arr = index_to_array(idx)
+
+        result = arr.take([-1, 1], allow_fill=True, fill_value=None)
+        assert result[0] is pd.NaT
+
+        result = arr.take([-1, 1], allow_fill=True, fill_value=np.nan)
+        assert result[0] is pd.NaT
+
+        result = arr.take([-1, 1], allow_fill=True, fill_value=pd.NaT)
+        assert result[0] is pd.NaT
+
+        with pytest.raises(ValueError):
+            arr.take([0, 1], allow_fill=True, fill_value=2)
+
+        with pytest.raises(ValueError):
+            arr.take([0, 1], allow_fill=True, fill_value=2.0)
+
+        with pytest.raises(ValueError):
+            arr.take([0, 1], allow_fill=True,
+                     fill_value=pd.Timestamp.now().time)
+
+
+class TestDatetimeArray(SharedTests):
+    index_cls = pd.DatetimeIndex
+
+    def test_take_fill_valid(self, datetime_index, tz_naive_fixture):
+        dti = datetime_index.tz_localize(tz_naive_fixture)
+        arr = index_to_array(dti)
+
+        now = pd.Timestamp.now().tz_localize(dti.tz)
+        result = arr.take([-1, 1], allow_fill=True, fill_value=now)
+        assert result[0] == now
+
+        with pytest.raises(ValueError):
+            # fill_value Timedelta invalid
+            arr.take([-1, 1], allow_fill=True, fill_value=now - now)
+
+        with pytest.raises(ValueError):
+            # fill_value Period invalid
+            arr.take([-1, 1], allow_fill=True, fill_value=now.to_period('D'))
+
+        tz = None if dti.tz is not None else 'US/Eastern'
+        now = pd.Timestamp.now().tz_localize(tz)
+        with pytest.raises(TypeError):
+            # Timestamp with mismatched tz-awareness
+            arr.take([-1, 1], allow_fill=True, fill_value=now)
 
     def test_from_dti(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -103,7 +201,26 @@ class TestDatetimeArray(object):
         tm.assert_numpy_array_equal(result, expected)
 
 
-class TestTimedeltaArray(object):
+class TestTimedeltaArray(SharedTests):
+    index_cls = pd.TimedeltaIndex
+
+    def test_take_fill_valid(self, timedelta_index):
+        tdi = timedelta_index
+        arr = index_to_array(tdi)
+
+        td1 = pd.Timedelta(days=1)
+        result = arr.take([-1, 1], allow_fill=True, fill_value=td1)
+        assert result[0] == td1
+
+        now = pd.Timestamp.now()
+        with pytest.raises(ValueError):
+            # fill_value Timestamp invalid
+            arr.take([0, 1], allow_fill=True, fill_value=now)
+
+        with pytest.raises(ValueError):
+            # fill_value Period invalid
+            arr.take([0, 1], allow_fill=True, fill_value=now.to_period('D'))
+
     def test_from_tdi(self):
         tdi = pd.TimedeltaIndex(['1 Day', '3 Hours'])
         arr = TimedeltaArrayMixin(tdi)
@@ -123,7 +240,29 @@ class TestTimedeltaArray(object):
         assert list(asobj) == list(tdi)
 
 
-class TestPeriodArray(object):
+class TestPeriodArray(SharedTests):
+    index_cls = pd.PeriodIndex
+
+    def test_take_fill_valid(self, period_index):
+        pi = period_index
+        arr = index_to_array(pi)
+
+        now = pd.Timestamp.now().to_period(pi.freq)
+        result = arr.take([-1, 1], allow_fill=True, fill_value=now)
+        assert result[0] == now
+
+        with pytest.raises(ValueError):
+            # fill_value Period with mis-matched freq invalid
+            arr.take([0, 1], allow_fill=True,
+                     fill_value=pd.Timestamp.now().to_period(2*pi.freq))
+
+        with pytest.raises(ValueError):
+            # fill_value Timedelta invalid
+            arr.take([0, 1], allow_fill=True, fill_value=pd.Timedelta(days=1))
+
+        with pytest.raises(ValueError):
+            # fill_value Timestamp invalid
+            arr.take([0, 1], allow_fill=True, fill_value=now.to_timestamp())
 
     def test_from_pi(self, period_index):
         pi = period_index

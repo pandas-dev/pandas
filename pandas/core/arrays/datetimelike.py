@@ -11,7 +11,8 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.period import (
     Period, DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
-from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas.errors import (
+    NullFrequencyError, PerformanceWarning, AbstractMethodError)
 from pandas import compat
 
 from pandas.tseries import frequencies
@@ -34,9 +35,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype)
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame, ABCIndexClass
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
-from pandas.core.algorithms import checked_add_with_arr
+from pandas.core.algorithms import checked_add_with_arr, take
 
 from .base import ExtensionOpsMixin
 from pandas.util._decorators import deprecate_kwarg
@@ -77,12 +79,10 @@ class AttributesMixin(object):
     @property
     def _attributes(self):
         # Inheriting subclass should implement _attributes as a list of strings
-        from pandas.errors import AbstractMethodError
         raise AbstractMethodError(self)
 
     @classmethod
     def _simple_new(cls, values, **kwargs):
-        from pandas.errors import AbstractMethodError
         raise AbstractMethodError(cls)
 
     def _get_attributes_dict(self):
@@ -119,7 +119,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         """
         box function to get object from internal representation
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _box_values(self, values):
         """
@@ -139,6 +139,67 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     def asi8(self):
         # do not cache or you'll create a memory leak
         return self.values.view('i8')
+
+    # ------------------------------------------------------------------
+    # Extension Array Interface
+    # TODO:
+    #   _from_sequence
+    #   _from_factorized
+    #   __setitem__
+    #   _values_for_argsort
+    #   argsort
+    #   fillna
+    #   dropna
+    #   shift
+    #   unique
+    #   _values_for_factorize
+    #   factorize
+    #   _formatting_values
+    #   _reduce
+
+    def _validate_fill_value(self, fill_value):
+        """
+        If a fill_value is passed to `take` convert it to an i8 representation,
+        raising ValueError if this is not possible.
+
+        Parameters
+        ----------
+        fill_value : object
+
+        Returns
+        -------
+        fill_value : np.int64
+
+        Raises
+        ------
+        ValueError
+        """
+        raise AbstractMethodError(self)
+
+    def take(self, indices, allow_fill=False, fill_value=None):
+
+        if allow_fill:
+            fill_value = self._validate_fill_value(fill_value)
+
+        new_values = take(self._data,
+                          indices,
+                          allow_fill=allow_fill,
+                          fill_value=fill_value)
+
+        return self._shallow_copy(new_values)
+
+    @classmethod
+    def _concat_same_type(cls, to_concat):
+        # for TimedeltaArray and PeriodArray; DatetimeArray overrides
+        freqs = {x.freq for x in to_concat}
+        assert len(freqs) == 1
+        freq = list(freqs)[0]
+        values = np.concatenate([x._data for x in to_concat])
+        return cls._simple_new(values, freq=freq)
+
+    def copy(self, deep=False):
+        # TODO: ignoring `deep`?
+        return self._shallow_copy(self._data.copy())
 
     # ------------------------------------------------------------------
     # Array-like Methods
@@ -210,6 +271,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     # ------------------------------------------------------------------
     # Null Handling
+
+    def isna(self):
+        # EA Interface
+        return self._isnan
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _isnan(self):
@@ -352,13 +417,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                                 typ=type(other).__name__))
 
     def _sub_datelike(self, other):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _sub_period(self, other):
         return NotImplemented
 
     def _add_offset(self, offset):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _add_delta(self, other):
         return NotImplemented
@@ -380,7 +445,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         Add a delta of a TimedeltaIndex
         return the i8 result view
         """
-        if not len(self) == len(other):
+        if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
 
         self_i8 = self.asi8

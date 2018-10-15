@@ -14,13 +14,14 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.fields import isleapyear_arr
 
 from pandas import compat
-from pandas.util._decorators import (cache_readonly, deprecate_kwarg)
+from pandas.util._decorators import cache_readonly, deprecate_kwarg, Appender
 
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype, is_period_dtype,
     is_datetime64_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
 
@@ -191,6 +192,23 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
                              'Period range')
 
         return subarr, freq
+
+    # --------------------------------------------------------------------
+    # ExtensionArray Interface
+
+    @Appender(DatetimeLikeArrayMixin._validate_fill_value.__doc__)
+    def _validate_fill_value(self, fill_value):
+        if isna(fill_value):
+            fill_value = iNaT
+        elif isinstance(fill_value, Period):
+            if fill_value.freq != self.freq:
+                raise ValueError("'fill_value' freq must match own "
+                                 "freq ({freq})".format(freq=self.freq))
+            fill_value = fill_value.ordinal
+        else:
+            raise ValueError("'fill_value' should be a Period. "
+                             "Got '{got}'.".format(got=fill_value))
+        return fill_value
 
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
