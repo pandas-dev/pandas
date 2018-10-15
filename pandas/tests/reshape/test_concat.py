@@ -15,7 +15,7 @@ from pandas import (DataFrame, concat,
                     read_csv, isna, Series, date_range,
                     Index, Panel, MultiIndex, Timestamp,
                     DatetimeIndex, Categorical)
-from pandas.compat import Iterable
+from pandas.compat import Iterable, PY2
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.util import testing as tm
 from pandas.util.testing import (assert_frame_equal,
@@ -2363,6 +2363,7 @@ bar2,12,13,14,15
                                 index=idx1.append(idx1))
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(PY2, reason="Unhashable Decimal dtype")
     def test_concat_different_extension_dtypes_upcasts(self):
         a = pd.Series(pd.core.arrays.integer_array([1, 2]))
         b = pd.Series(to_decimal([1, 2]))
