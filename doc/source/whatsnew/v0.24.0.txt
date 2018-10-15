@@ -206,8 +206,32 @@ Other Enhancements
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 - A newly constructed empty :class:`DataFrame` with integer as the ``dtype`` will now only be cast to ``float64`` if ``index`` is specified (:issue:`22858`)
 
+.. _whatsnew_0240.api_breaking.deps:
+
+Dependencies have increased minimum versions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have updated our minimum supported versions of dependencies (:issue:`21242`).
+If installed, we now require:
+
++-----------------+-----------------+----------+
+| Package         | Minimum Version | Required |
++=================+=================+==========+
+| numpy           | 1.12.0          |    X     |
++-----------------+-----------------+----------+
+| bottleneck      | 1.2.0           |          |
++-----------------+-----------------+----------+
+| matplotlib      | 2.0.0           |          |
++-----------------+-----------------+----------+
+| numexpr         | 2.6.1           |          |
++-----------------+-----------------+----------+
+| pytables        | 3.4.2           |          |
++-----------------+-----------------+----------+
+| scipy           | 0.18.1          |          |
++-----------------+-----------------+----------+
 
 .. _whatsnew_0240.api_breaking.interval_values:
 
@@ -688,6 +712,7 @@ Other API Changes
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now raise a ``ValueError`` along with a helpful error message instead of a ``KeyError`` when supplied with an invalid method (:issue:`22298`)
 - :meth:`shift` will now always return a copy, instead of the previous behaviour of returning self when shifting by 0 (:issue:`22397`)
 - Slicing a single row of a DataFrame with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
+- :class:`DateOffset` attribute `_cacheable` and method `_should_cache` have been removed (:issue:`23118`)
 
 .. _whatsnew_0240.deprecations:
 
@@ -788,6 +813,7 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` where frequency was being set if original frequency was ``None`` (:issue:`22150`)
 - Bug in rounding methods of :class:`DatetimeIndex` (:meth:`~DatetimeIndex.round`, :meth:`~DatetimeIndex.ceil`, :meth:`~DatetimeIndex.floor`) and :class:`Timestamp` (:meth:`~Timestamp.round`, :meth:`~Timestamp.ceil`, :meth:`~Timestamp.floor`) could give rise to loss of precision (:issue:`22591`)
 - Bug in :func:`to_datetime` with an :class:`Index` argument that would drop the ``name`` from the result (:issue:`21697`)
+- Bug in :class:`PeriodIndex` where adding or subtracting a :class:`timedelta` or :class:`Tick` object produced incorrect results (:issue:`22988`)
 
 Timedelta
 ^^^^^^^^^
