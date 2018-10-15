@@ -185,8 +185,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                           indices,
                           allow_fill=allow_fill,
                           fill_value=fill_value)
-
-        return self._shallow_copy(new_values)
+        freq = self.freq if is_period_dtype(self) else None  # TODO: use "infer"?
+        return self._shallow_copy(new_values, freq=freq)
 
     @classmethod
     def _concat_same_type(cls, to_concat):
