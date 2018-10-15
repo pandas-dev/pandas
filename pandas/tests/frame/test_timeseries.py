@@ -182,7 +182,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         df = DataFrame({'A': np.random.randn(len(rng)), 'B': dates})
         assert np.issubdtype(df['B'].dtype, np.dtype('M8[ns]'))
 
-    def test_frame_add_datetime64_column(self):
+    def test_frame_append_datetime64_column(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50', freq='10s')
         df = DataFrame(index=np.arange(len(rng)))
 
@@ -195,7 +195,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         # it works!
         repr(df)
 
-    def test_frame_add_datetime64_col_other_units(self):
+    def test_frame_append_datetime64_col_other_units(self):
         n = 100
 
         units = ['h', 'm', 's', 'ms', 'D', 'M', 'Y']

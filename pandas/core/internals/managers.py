@@ -37,7 +37,7 @@ from pandas.core.indexing import maybe_convert_indices
 from pandas.io.formats.printing import pprint_thing
 
 from .blocks import (
-    Block, DatetimeTZBlock, CategoricalBlock, ExtensionBlock, SparseBlock,
+    Block, DatetimeTZBlock, CategoricalBlock, ExtensionBlock,
     _extend_blocks, _merge_blocks, _safe_reshape,
     make_block, get_block_type)
 from .concat import (  # all for concatenate_block_managers
@@ -737,7 +737,6 @@ class BlockManager(PandasObject):
         -------
         copy : BlockManager
         """
-
         # this preserves the notion of view copying of axes
         if deep:
             if deep == 'all':
@@ -786,11 +785,14 @@ class BlockManager(PandasObject):
         Return ndarray from blocks with specified item order
         Items must be contained in the blocks
         """
+        from pandas.core.dtypes.common import is_sparse
         dtype = _interleaved_dtype(self.blocks)
 
-        if is_extension_array_dtype(dtype):
-            # TODO: https://github.com/pandas-dev/pandas/issues/22791
-            # Give EAs some input on what happens here. Sparse needs this.
+        # TODO: https://github.com/pandas-dev/pandas/issues/22791
+        # Give EAs some input on what happens here. Sparse needs this.
+        if is_sparse(dtype):
+            dtype = dtype.subtype
+        elif is_extension_array_dtype(dtype):
             dtype = 'object'
 
         result = np.empty(self.shape, dtype=dtype)
@@ -1834,7 +1836,7 @@ def _sparse_blockify(tuples, dtype=None):
     new_blocks = []
     for i, names, array in tuples:
         array = _maybe_to_sparse(array)
-        block = make_block(array, klass=SparseBlock, placement=[i])
+        block = make_block(array, placement=[i])
         new_blocks.append(block)
 
     return new_blocks
@@ -2044,10 +2046,9 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
     copy : bool
 
     """
-    concat_plan = combine_concat_plans(
-        [get_mgr_concatenation_plan(mgr, indexers)
-         for mgr, indexers in mgrs_indexers], concat_axis)
-
+    concat_plans = [get_mgr_concatenation_plan(mgr, indexers)
+                    for mgr, indexers in mgrs_indexers]
+    concat_plan = combine_concat_plans(concat_plans, concat_axis)
     blocks = []
 
     for placement, join_units in concat_plan:

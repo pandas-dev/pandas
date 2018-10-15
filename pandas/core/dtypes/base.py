@@ -22,14 +22,17 @@ class _DtypeOpsMixin(object):
     # of the NA value, not the physical NA vaalue for storage.
     # e.g. for JSONArray, this is an empty dictionary.
     na_value = np.nan
+    _metadata = ()
 
     def __eq__(self, other):
         """Check whether 'other' is equal to self.
 
-        By default, 'other' is considered equal if
+        By default, 'other' is considered equal if either
 
         * it's a string matching 'self.name'.
-        * it's an instance of this type.
+        * it's an instance of this type and all of the
+          the attributes in ``self._metadata`` are equal between
+          `self` and `other`.
 
         Parameters
         ----------
@@ -40,11 +43,19 @@ class _DtypeOpsMixin(object):
         bool
         """
         if isinstance(other, compat.string_types):
-            return other == self.name
-        elif isinstance(other, type(self)):
-            return True
-        else:
-            return False
+            try:
+                other = self.construct_from_string(other)
+            except TypeError:
+                return False
+        if isinstance(other, type(self)):
+            return all(
+                getattr(self, attr) == getattr(other, attr)
+                for attr in self._metadata
+            )
+        return False
+
+    def __hash__(self):
+        return hash(tuple(getattr(self, attr) for attr in self._metadata))
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -160,6 +171,26 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     The `na_value` class attribute can be used to set the default NA value
     for this type. :attr:`numpy.nan` is used by default.
+
+    ExtensionDtypes are required to be hashable. The base class provides
+    a default implementation, which relies on the ``_metadata`` class
+    attribute. ``_metadata`` should be a tuple containing the strings
+    that define your data type. For example, with ``PeriodDtype`` that's
+    the ``freq`` attribute.
+
+    **If you have a parametrized dtype you should set the ``_metadata``
+    class property**.
+
+    Ideally, the attributes in ``_metadata`` will match the
+    parameters to your ``ExtensionDtype.__init__`` (if any). If any of
+    the attributes in ``_metadata`` don't implement the standard
+    ``__eq__`` or ``__hash__``, the default implementations here will not
+    work.
+
+    .. versionchanged:: 0.24.0
+
+       Added ``_metadata``, ``__hash__``, and changed the default definition
+       of ``__eq__``.
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise

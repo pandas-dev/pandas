@@ -13,7 +13,7 @@ from pandas._libs.tslibs import (
     resolution as libresolution)
 
 from pandas.util._decorators import cache_readonly
-from pandas.errors import PerformanceWarning, AbstractMethodError
+from pandas.errors import PerformanceWarning
 from pandas import compat
 
 from pandas.core.dtypes.common import (
@@ -31,7 +31,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core import ops
 
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import to_offset, get_period_alias
 from pandas.tseries.offsets import Tick, generate_range
 
 from pandas.core.arrays import datetimelike as dtl
@@ -200,6 +200,10 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             # e.g. DatetimeIndex
             tz = values.tz
 
+        if freq is None and hasattr(values, "freq"):
+            # i.e. DatetimeArray, DatetimeIndex
+            freq = values.freq
+
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         # if dtype has an embedded tz, capture it
@@ -218,6 +222,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     @classmethod
     def _generate_range(cls, start, end, periods, freq, tz=None,
                         normalize=False, ambiguous='raise', closed=None):
+
+        periods = dtl.validate_periods(periods)
+        if freq is None and any(x is None for x in [periods, start, end]):
+            raise ValueError('Must provide freq argument if no data is '
+                             'supplied')
+
         if com.count_not_none(start, end, periods, freq) != 3:
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')
@@ -258,27 +268,22 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                 end, end.tz, start.tz, freq, tz
             )
         if freq is not None:
-            if cls._use_cached_range(freq, _normalized, start, end):
-                # Currently always False; never hit
-                # Should be reimplemented as apart of GH 17914
-                index = cls._cached_range(start, end, periods=periods,
-                                          freq=freq)
-            else:
-                index = _generate_regular_range(cls, start, end, periods, freq)
+            # TODO: consider re-implementing _cached_range; GH#17914
+            index = _generate_regular_range(cls, start, end, periods, freq)
 
-                if tz is not None and getattr(index, 'tz', None) is None:
-                    arr = conversion.tz_localize_to_utc(
-                        ensure_int64(index.values),
-                        tz, ambiguous=ambiguous)
+            if tz is not None and getattr(index, 'tz', None) is None:
+                arr = conversion.tz_localize_to_utc(
+                    ensure_int64(index.values),
+                    tz, ambiguous=ambiguous)
 
-                    index = cls(arr)
+                index = cls(arr)
 
-                    # index is localized datetime64 array -> have to convert
-                    # start/end as well to compare
-                    if start is not None:
-                        start = start.tz_localize(tz).asm8
-                    if end is not None:
-                        end = end.tz_localize(tz).asm8
+                # index is localized datetime64 array -> have to convert
+                # start/end as well to compare
+                if start is not None:
+                    start = start.tz_localize(tz).asm8
+                if end is not None:
+                    end = end.tz_localize(tz).asm8
         else:
             # Create a linearly spaced date_range in local time
             arr = np.linspace(start.value, end.value, periods)
@@ -292,16 +297,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             index = index[:-1]
 
         return cls._simple_new(index.values, freq=freq, tz=tz)
-
-    @classmethod
-    def _use_cached_range(cls, freq, _normalized, start, end):
-        # DatetimeArray is mutable, so is not cached
-        return False
-
-    @classmethod
-    def _cached_range(cls, start=None, end=None,
-                      periods=None, freq=None, **kwargs):
-        raise AbstractMethodError(cls)
 
     # -----------------------------------------------------------------
     # Descriptive Properties
@@ -502,7 +497,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         Parameters
         ----------
         delta : {timedelta, np.timedelta64, DateOffset,
-                 TimedelaIndex, ndarray[timedelta64]}
+                 TimedeltaIndex, ndarray[timedelta64]}
 
         Returns
         -------
@@ -763,6 +758,67 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         """
         new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
         return type(self)(new_values, freq='infer').tz_localize(self.tz)
+
+    def to_period(self, freq=None):
+        """
+        Cast to PeriodArray/Index at a particular frequency.
+
+        Converts DatetimeArray/Index to PeriodArray/Index.
+
+        Parameters
+        ----------
+        freq : string or Offset, optional
+            One of pandas' :ref:`offset strings <timeseries.offset_aliases>`
+            or an Offset object. Will be inferred by default.
+
+        Returns
+        -------
+        PeriodArray/Index
+
+        Raises
+        ------
+        ValueError
+            When converting a DatetimeArray/Index with non-regular values,
+            so that a frequency cannot be inferred.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"y": [1,2,3]},
+        ...                   index=pd.to_datetime(["2000-03-31 00:00:00",
+        ...                                         "2000-05-31 00:00:00",
+        ...                                         "2000-08-31 00:00:00"]))
+        >>> df.index.to_period("M")
+        PeriodIndex(['2000-03', '2000-05', '2000-08'],
+                    dtype='period[M]', freq='M')
+
+        Infer the daily frequency
+
+        >>> idx = pd.date_range("2017-01-01", periods=2)
+        >>> idx.to_period()
+        PeriodIndex(['2017-01-01', '2017-01-02'],
+                    dtype='period[D]', freq='D')
+
+        See also
+        --------
+        pandas.PeriodIndex: Immutable ndarray holding ordinal values
+        pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
+        """
+        from pandas.core.arrays.period import PeriodArrayMixin
+
+        if self.tz is not None:
+            warnings.warn("Converting to PeriodArray/Index representation "
+                          "will drop timezone information.", UserWarning)
+
+        if freq is None:
+            freq = self.freqstr or self.inferred_freq
+
+            if freq is None:
+                raise ValueError("You must pass a freq argument as "
+                                 "current index has none.")
+
+            freq = get_period_alias(freq)
+
+        return PeriodArrayMixin(self.values, freq=freq)
 
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods

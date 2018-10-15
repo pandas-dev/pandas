@@ -131,8 +131,7 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
 
-    # TODO: Should this be pytest.mark.skip?
-    @pytest.mark.xfail(reason="not implemented constructor from dtype")
+    @pytest.mark.skip(reason="not implemented constructor from dtype")
     def test_from_dtype(self, data):
         # construct from our dtype & string dtype
         pass
@@ -147,13 +146,11 @@ class TestGetitem(BaseJSON, base.BaseGetitemTests):
 
 
 class TestMissing(BaseJSON, base.BaseMissingTests):
-    # TODO: Should this be pytest.mark.skip?
-    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    @pytest.mark.skip(reason="Setting a dict as a scalar")
     def test_fillna_series(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
 
-    # TODO: Should this be pytest.mark.skip?
-    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    @pytest.mark.skip(reason="Setting a dict as a scalar")
     def test_fillna_frame(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
 
@@ -161,6 +158,10 @@ class TestMissing(BaseJSON, base.BaseMissingTests):
 unhashable = pytest.mark.skip(reason="Unhashable")
 unstable = pytest.mark.skipif(not PY36,  # 3.6 or higher
                               reason="Dictionary order unstable")
+
+
+class TestReduce(base.BaseNoReduceTests):
+    pass
 
 
 class TestMethods(BaseJSON, base.BaseMethodsTests):
@@ -202,10 +203,13 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_combine_add(self, data_repeated):
         pass
 
+    @unhashable
+    def test_hash_pandas_object_works(self, data, kind):
+        super().test_hash_pandas_object_works(data, kind)
+
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
-    # TODO: Should this be pytest.mark.skip?
-    @pytest.mark.xfail(reason="failing on np.array(self, dtype=str)")
+    @pytest.mark.skip(reason="failing on np.array(self, dtype=str)")
     def test_astype_str(self):
         """This currently fails in NumPy on np.array(self, dtype=str) with
 
@@ -256,6 +260,11 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
         ser = pd.Series(data)
         with tm.assert_raises_regex(TypeError, "unsupported"):
             ser + data
+
+    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
+        return super(TestArithmeticOps, self)._check_divmod_op(
+            s, op, other, exc=TypeError
+        )
 
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
