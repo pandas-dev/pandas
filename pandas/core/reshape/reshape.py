@@ -10,9 +10,8 @@ import numpy as np
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_list_like, is_bool_dtype,
-    needs_i8_conversion, is_sparse, is_object_dtype,
-    is_period_dtype
-)
+    is_extension_array_dtype,
+    needs_i8_conversion, is_sparse, is_object_dtype)
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.missing import notna
 
@@ -90,7 +89,6 @@ class _Unstacker(object):
 
         self.is_categorical = None
         self.is_sparse = is_sparse(values)
-        self.is_period = is_period_dtype(values)
         if values.ndim == 1:
             if isinstance(values, Categorical):
                 self.is_categorical = values
@@ -99,9 +97,6 @@ class _Unstacker(object):
                 # XXX: Makes SparseArray *dense*, but it's supposedly
                 # a single column at a time, so it's "doable"
                 values = values.values
-            elif self.is_period:
-                # XXX: let's solve this in general.
-                values = values.astype(object)
             values = values[:, np.newaxis]
         self.values = values
         self.value_columns = value_columns
@@ -191,9 +186,6 @@ class _Unstacker(object):
             values = [Categorical(values[:, i], categories=categories,
                                   ordered=ordered)
                       for i in range(values.shape[-1])]
-        elif self.is_period:
-            # XXX: solve this in general.
-            values = [period_array(v) for v in values]
 
         return self.constructor(values, index=index, columns=columns)
 
@@ -436,7 +428,6 @@ def stack(frame, level=-1, dropna=True):
     -------
     stacked : Series
     """
-
     def factorize(index):
         if index.is_unique:
             return index, np.arange(len(index))
@@ -470,7 +461,25 @@ def stack(frame, level=-1, dropna=True):
                                names=[frame.index.name, frame.columns.name],
                                verify_integrity=False)
 
-    new_values = frame.values.ravel()
+    if frame._is_homogeneous_type:
+        # For homogeneous EAs, frame.values will coerce to object. So
+        # we concatenate instead.
+        dtypes = list(frame.dtypes.values)
+        dtype = dtypes[0]
+
+        if is_extension_array_dtype(dtype):
+            arr = dtype.construct_array_type()
+            new_values = arr._concat_same_type([
+                col for _, col in frame.iteritems()
+            ])
+        else:
+            # homogeneous, non-EA
+            new_values = frame.values.ravel()
+
+    else:
+        # non-homogeneous
+        new_values = frame.values.ravel()
+
     if dropna:
         mask = notna(new_values)
         new_values = new_values[mask]

@@ -896,8 +896,7 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_list_of_lists(self):
         # GH #484
-        l = [[1, 'a'], [2, 'b']]
-        df = DataFrame(data=l, columns=["num", "str"])
+        df = DataFrame(data=[[1, 'a'], [2, 'b']], columns=["num", "str"])
         assert is_integer_dtype(df['num'])
         assert df['str'].dtype == np.object_
 
@@ -923,9 +922,9 @@ class TestDataFrameConstructors(TestData):
             def __len__(self, n):
                 return self._lst.__len__()
 
-        l = [DummyContainer([1, 'a']), DummyContainer([2, 'b'])]
+        lst_containers = [DummyContainer([1, 'a']), DummyContainer([2, 'b'])]
         columns = ["num", "str"]
-        result = DataFrame(l, columns=columns)
+        result = DataFrame(lst_containers, columns=columns)
         expected = DataFrame([[1, 'a'], [2, 'b']], columns=columns)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -1744,14 +1743,14 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_categorical_series(self):
 
-        l = [1, 2, 3, 1]
-        exp = Series(l).astype('category')
-        res = Series(l, dtype='category')
+        items = [1, 2, 3, 1]
+        exp = Series(items).astype('category')
+        res = Series(items, dtype='category')
         tm.assert_series_equal(res, exp)
 
-        l = ["a", "b", "c", "a"]
-        exp = Series(l).astype('category')
-        res = Series(l, dtype='category')
+        items = ["a", "b", "c", "a"]
+        exp = Series(items).astype('category')
+        res = Series(items, dtype='category')
         tm.assert_series_equal(res, exp)
 
         # insert into frame with different index

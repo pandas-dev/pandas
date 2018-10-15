@@ -18,6 +18,7 @@ from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
 
 from pandas.core.dtypes.common import (
+    pandas_dtype,
     needs_i8_conversion,
     is_list_like,
     is_offsetlike,
@@ -382,6 +383,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if not len(self) == len(other):
             raise ValueError("cannot add indices of unequal length")
 
+        if isinstance(other, np.ndarray):
+            # ndarray[timedelta64]; wrap in TimedeltaIndex for op
+            from pandas import TimedeltaIndex
+            other = TimedeltaIndex(other)
+
         self_i8 = self.asi8
         other_i8 = other.asi8
         new_values = checked_add_with_arr(self_i8, other_i8,
@@ -631,11 +637,17 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 return self._add_datelike(other)
             elif is_integer_dtype(other):
                 result = self._addsub_int_array(other, operator.add)
-            elif is_float_dtype(other) or is_period_dtype(other):
+            elif is_float_dtype(other):
                 # Explicitly catch invalid dtypes
                 raise TypeError("cannot add {dtype}-dtype to {cls}"
                                 .format(dtype=other.dtype,
                                         cls=type(self).__name__))
+            elif is_period_dtype(other):
+                # if self is a TimedeltaArray and other is a PeriodArray with
+                #  a timedelta-like (i.e. Tick) freq, this operation is valid.
+                #  Defer to the PeriodArray implementation.
+                # In remaining cases, this will end up raising TypeError.
+                return NotImplemented
             elif is_extension_array_dtype(other):
                 # Categorical op will raise; defer explicitly
                 return NotImplemented
@@ -913,3 +925,34 @@ def validate_tz_from_dtype(dtype, tz):
         except TypeError:
             pass
     return tz
+
+
+def validate_dtype_freq(dtype, freq):
+    """
+    If both a dtype and a freq are available, ensure they match.  If only
+    dtype is available, extract the implied freq.
+
+    Parameters
+    ----------
+    dtype : dtype
+    freq : DateOffset or None
+
+    Returns
+    -------
+    freq : DateOffset
+
+    Raises
+    ------
+    ValueError : non-period dtype
+    IncompatibleFrequency : mismatch between dtype and freq
+    """
+    if dtype is not None:
+        dtype = pandas_dtype(dtype)
+        if not is_period_dtype(dtype):
+            raise ValueError('dtype must be PeriodDtype')
+        if freq is None:
+            freq = dtype.freq
+        elif freq != dtype.freq:
+            raise IncompatibleFrequency('specified freq and dtype '
+                                        'are different')
+    return freq

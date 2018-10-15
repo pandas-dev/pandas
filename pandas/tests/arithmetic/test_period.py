@@ -446,25 +446,35 @@ class TestPeriodIndexArithmetic(object):
         with pytest.raises(period.IncompatibleFrequency):
             tdarr - rng
 
-    @pytest.mark.xfail(reason='op with TimedeltaIndex raises, with ndarray OK',
-                       strict=True)
     def test_pi_add_sub_td64_array_tick(self):
-        rng = pd.period_range('1/1/2000', freq='Q', periods=3)
+        # PeriodIndex + Timedelta-like is allowed only with
+        #   tick-like frequencies
+        rng = pd.period_range('1/1/2000', freq='90D', periods=3)
         tdi = pd.TimedeltaIndex(['-1 Day', '-1 Day', '-1 Day'])
         tdarr = tdi.values
 
-        expected = rng + tdi
+        expected = pd.period_range('12/31/1999', freq='90D', periods=3)
+        result = rng + tdi
+        tm.assert_index_equal(result, expected)
         result = rng + tdarr
+        tm.assert_index_equal(result, expected)
+        result = tdi + rng
         tm.assert_index_equal(result, expected)
         result = tdarr + rng
         tm.assert_index_equal(result, expected)
 
-        expected = rng - tdi
+        expected = pd.period_range('1/2/2000', freq='90D', periods=3)
+
+        result = rng - tdi
+        tm.assert_index_equal(result, expected)
         result = rng - tdarr
         tm.assert_index_equal(result, expected)
 
         with pytest.raises(TypeError):
             tdarr - rng
+
+        with pytest.raises(TypeError):
+            tdi - rng
 
     # -----------------------------------------------------------------
     # operations with array/Index of DateOffset objects
@@ -595,6 +605,56 @@ class TestPeriodIndexArithmetic(object):
     # ---------------------------------------------------------------
     # Timedelta-like (timedelta, timedelta64, Timedelta, Tick)
     # TODO: Some of these are misnomers because of non-Tick DateOffsets
+
+    def test_pi_add_timedeltalike_minute_gt1(self, three_days):
+        # GH#23031 adding a time-delta-like offset to a PeriodArray that has
+        # minute frequency with n != 1.  A more general case is tested below
+        # in test_pi_add_timedeltalike_tick_gt1, but here we write out the
+        # expected result more explicitly.
+        other = three_days
+        rng = pd.period_range('2014-05-01', periods=3, freq='2D')
+
+        expected = pd.PeriodIndex(['2014-05-04', '2014-05-06', '2014-05-08'],
+                                  freq='2D')
+
+        result = rng + other
+        tm.assert_index_equal(result, expected)
+
+        result = other + rng
+        tm.assert_index_equal(result, expected)
+
+        # subtraction
+        expected = pd.PeriodIndex(['2014-04-28', '2014-04-30', '2014-05-02'],
+                                  freq='2D')
+        result = rng - other
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            other - rng
+
+    @pytest.mark.parametrize('freqstr', ['5ns', '5us', '5ms',
+                                         '5s', '5T', '5h', '5d'])
+    def test_pi_add_timedeltalike_tick_gt1(self, three_days, freqstr):
+        # GH#23031 adding a time-delta-like offset to a PeriodArray that has
+        # tick-like frequency with n != 1
+        other = three_days
+        rng = pd.period_range('2014-05-01', periods=6, freq=freqstr)
+
+        expected = pd.period_range(rng[0] + other, periods=6, freq=freqstr)
+
+        result = rng + other
+        tm.assert_index_equal(result, expected)
+
+        result = other + rng
+        tm.assert_index_equal(result, expected)
+
+        # subtraction
+        expected = pd.period_range(rng[0] - other, periods=6, freq=freqstr)
+        result = rng - other
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            other - rng
 
     def test_pi_add_iadd_timedeltalike_daily(self, three_days):
         # Tick

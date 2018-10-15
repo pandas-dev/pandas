@@ -287,10 +287,25 @@ class ExtensionArray(object):
         return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self):
-        # type: () -> np.ndarray
-        """Boolean NumPy array indicating if each value is missing.
+        # type: () -> Union[ExtensionArray, np.ndarray]
+        """
+        A 1-D array indicating if each value is missing.
 
-        This should return a 1-D array the same length as 'self'.
+        Returns
+        -------
+        na_values : Union[np.ndarray, ExtensionArray]
+            In most cases, this should return a NumPy ndarray. For
+            exceptional cases like ``SparseArray``, where returning
+            an ndarray would be expensive, an ExtensionArray may be
+            returned.
+
+        Notes
+        -----
+        If returning an ExtensionArray, then
+
+        * ``na_values._is_boolean`` should be True
+        * `na_values` should implement :func:`ExtensionArray._reduce`
+        * ``na_values.any`` and ``na_values.all`` should be implemented
         """
         raise AbstractMethodError(self)
 

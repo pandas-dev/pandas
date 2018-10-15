@@ -785,8 +785,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     def _apply_meta(self, rawarr):
         if not isinstance(rawarr, PeriodIndex):
-            rawarr = PeriodIndex._from_ordinals(rawarr, freq=self.freq,
-                                                name=self.name)
+            rawarr = PeriodIndex._simple_new(rawarr, freq=self.freq,
+                                             name=self.name)
         return rawarr
 
     def __setstate__(self, state):
