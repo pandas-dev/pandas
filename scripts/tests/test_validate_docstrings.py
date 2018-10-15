@@ -208,7 +208,7 @@ class GoodDocStrings(object):
 
             .. versionchanged:: 0.1.2
 
-        numeric_only : boolean
+        numeric_only : bool
             Sentence ending in period, followed by multiple directives.
 
             .. versionadded:: 0.1.2
@@ -455,6 +455,39 @@ class BadParameters(object):
         """
         pass
 
+    def integer_parameter(self, kind):
+        """
+        Uses integer instead of int.
+
+        Parameters
+        ----------
+        kind : integer
+            Foo bar baz.
+        """
+        pass
+
+    def string_parameter(self, kind):
+        """
+        Uses string instead of str.
+
+        Parameters
+        ----------
+        kind : string
+            Foo bar baz.
+        """
+        pass
+
+    def boolean_parameter(self, kind):
+        """
+        Uses boolean instead of bool.
+
+        Parameters
+        ----------
+        kind : boolean
+            Foo bar baz.
+        """
+        pass
+
 
 class BadReturns(object):
 
@@ -590,6 +623,12 @@ class TestValidator(object):
          ('Parameter "kind" description should finish with "."',)),
         ('BadParameters', 'parameter_capitalization',
          ('Parameter "kind" description should start with a capital letter',)),
+        ('BadParameters', 'integer_parameter',
+         ('Parameter "kind" type should be "int" instead of "integer"',)),
+        ('BadParameters', 'string_parameter',
+         ('Parameter "kind" type should be "str" instead of "string"',)),
+        ('BadParameters', 'boolean_parameter',
+         ('Parameter "kind" type should be "bool" instead of "boolean"',)),
         pytest.param('BadParameters', 'blank_lines', ('No error yet?',),
                      marks=pytest.mark.xfail),
         # Returns tests
