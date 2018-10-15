@@ -9,13 +9,12 @@ import numpy as np
 from numpy.random import randn
 
 from datetime import datetime
-from pandas.compat import StringIO, iteritems, PY2
+from pandas.compat import Iterable, StringIO, iteritems, PY2
 import pandas as pd
 from pandas import (DataFrame, concat,
                     read_csv, isna, Series, date_range,
                     Index, Panel, MultiIndex, Timestamp,
                     DatetimeIndex, Categorical)
-from pandas.compat import Iterable, PY2
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.util import testing as tm
 from pandas.util.testing import (assert_frame_equal,
