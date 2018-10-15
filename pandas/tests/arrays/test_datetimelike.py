@@ -137,7 +137,7 @@ class TestDatetimeArray(SharedTests):
 
         with pytest.raises(ValueError):
             # fill_value Period invalid
-            arr.take([-1, 1], allow_fill=True, fill_value=now.to_period('D'))
+            arr.take([-1, 1], allow_fill=True, fill_value=pd.Period('2014Q1'))
 
         tz = None if dti.tz is not None else 'US/Eastern'
         now = pd.Timestamp.now().tz_localize(tz)
