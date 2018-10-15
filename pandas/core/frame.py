@@ -6961,10 +6961,10 @@ class DataFrame(NDFrame):
         if how == 'all':
             corr = np.zeros((this.shape[1], other.shape[1]))
 
-            for i, col1 in enumerate(this.columns):
-                for j, col2 in enumerate(other.columns):
-                    corr[i, j] = this.loc[:, col1].corr(
-                        other.loc[:, col2],
+            for i in range(len(this.columns)):
+                for j in range(len(other.columns)):
+                    corr[i, j] = this.iloc[:, i].corr(
+                        other.iloc[:, j],
                         method=method, min_periods=min_periods)
             return DataFrame(data=corr, index=this.columns,
                              columns=other.columns)
@@ -6972,10 +6972,10 @@ class DataFrame(NDFrame):
         elif how == 'pairwise':
             index = []
             corr = []
-            for col in this.columns:
+            for i, col in enumerate(this.columns):
                 if col in other.columns:
                     index.append(col)
-                    corr.append(this.loc[:, col].corr(other.loc[:, col],
+                    corr.append(this.iloc[:, i].corr(other.loc[:, col],
                                 method=method, min_periods=min_periods))
 
             correl = Series(data=corr, index=index)
