@@ -512,6 +512,12 @@ def validate_one(func_name):
         examples_errs = doc.examples_errors
         if examples_errs:
             errs.append('Examples do not pass tests')
+        if 'import numpy as np' in ' '.join(doc.examples):
+            errs.append(' Examples should not have '
+                        '`import numpy as np` ')
+        if 'import pandas as pd' in ' '.join(doc.examples):
+            errs.append(' Examples should not have '
+                        '`import pandas as pd` ')
 
     return {'type': doc.type,
             'docstring': doc.clean_doc,
