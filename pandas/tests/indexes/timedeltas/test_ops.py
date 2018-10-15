@@ -239,17 +239,6 @@ class TestTimedeltaIndexOps(Ops):
         tm.assert_index_equal(idx, result)
         assert result.freq == freq
 
-    def test_nat_new(self):
-
-        idx = pd.timedelta_range('1', freq='D', periods=5, name='x')
-        result = idx._nat_new()
-        exp = pd.TimedeltaIndex([pd.NaT] * 5, name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx._nat_new(box=False)
-        exp = np.array([iNaT] * 5, dtype=np.int64)
-        tm.assert_numpy_array_equal(result, exp)
-
     def test_shift(self):
         pass  # handled in test_arithmetic.py
 
