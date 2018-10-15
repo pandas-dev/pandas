@@ -256,6 +256,28 @@ class TestDataFrameAnalytics(TestData):
         expected = pd.Series(data=corrs, index=['a', 'b'])
         tm.assert_series_equal(result, expected)
 
+    def test_corrwith_multindex(self):
+        # PR #22622
+        df = pd.DataFrame(np.random.random((4,4)))
+        df.columns = pd.MultiIndex.from_product([[1,2],['A','B']])
+
+        # must raise an exception if columns use MultiIndex
+        try:
+            df.corrwith(df)
+            assert False
+        except ValueError:
+            pass
+
+    def test_corrwith_non_unique_columns(self):
+        # PR #22622
+        df = pd.DataFrame(np.random.randn(10,2), columns=['a']*2)
+
+        try:
+            df.corrwith(df)
+            assert False
+        except ValueError:
+            pass
+
     def test_corrwith_how_all(self):
         # PR #22622
         df = DataFrame({'a': np.random.randn(10000),
@@ -266,7 +288,7 @@ class TestDataFrameAnalytics(TestData):
         tm.assert_almost_equal(c1, c2)
         assert c1 < 1
 
-        # must raise exception if other is not a DataFrame
+        # must raise an exception if other is not a DataFrame
         try:
             df.corrwith(df.values)
             assert False
@@ -285,18 +307,6 @@ class TestDataFrameAnalytics(TestData):
 
         tm.assert_almost_equal(c1, c2)
         assert c1 < 1
-
-    def test_corrwith_multindex(self):
-        # PR #22622
-        df = pd.DataFrame(np.random.random((4,4)))
-        df.columns = pd.MultiIndex.from_product([[1,2],['A','B']])
-
-        # must raise exception if columns use MultiIndex
-        try:
-            df.corrwith(df)
-            assert False
-        except TypeError:
-            pass
 
     def test_bool_describe_in_mixed_frame(self):
         df = DataFrame({

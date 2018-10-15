@@ -6909,24 +6909,24 @@ class DataFrame(NDFrame):
               the same name/index,
             * 'all' to compute correlation between all possible pairs of rows
               or columns
+
             .. versionadded:: 0.24.0
         drop : boolean, default False
             Drop missing indices from result, default returns union of all
         method : {'pearson', 'kendall', 'spearman'} or callable
-            * pearson : standard correlation coefficient
-            * kendall : Kendall Tau correlation coefficient
-            * spearman : Spearman rank correlation
+            * 'pearson' : standard correlation coefficient
+            * 'kendall' : Kendall Tau correlation coefficient
+            * 'spearman' : Spearman rank correlation
             * callable : callable with input two 1d ndarrays
                  and returning a float
+
             .. versionadded:: 0.24.0
         min_periods : int, optional
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for pearson
             and spearman correlation
+
             .. versionadded:: 0.24.0
-        Returns
-        -------
-        y : DataFrame
 
         Returns
         -------
@@ -6948,11 +6948,15 @@ class DataFrame(NDFrame):
 
         if isinstance(this.columns, MultiIndex) \
                 or isinstance(other.columns, MultiIndex):
-            raise TypeError("MultiIndex is not supported")
+            raise ValueError("MultiIndex is not supported")
 
         if axis == 1:
             this = this.transpose()
             other = other.transpose()
+
+        if (len(set(this.columns)) != len(this.columns)) \
+                or (len(set(other.columns)) != len(other.columns)):
+            raise ValueError("Non-unique columns are not supported")
 
         if how == 'all':
             corr = np.zeros((this.shape[1], other.shape[1]))
