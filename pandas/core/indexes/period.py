@@ -1,5 +1,5 @@
 # pylint: disable=E1101,E1103,W0232
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 import warnings
 
@@ -16,6 +16,8 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     ensure_object)
 
+from pandas.tseries.offsets import DateOffset, Tick
+from pandas.tseries import frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
@@ -725,6 +727,48 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
+
+    def _maybe_convert_timedelta(self, other):
+        """
+        Convert timedelta-like input to an integer multiple of self.freq
+
+        Parameters
+        ----------
+        other : timedelta, np.timedelta64, DateOffset, int, np.ndarray
+
+        Returns
+        -------
+        converted : int, np.ndarray[int64]
+
+        Raises
+        ------
+        IncompatibleFrequency : if the input cannot be written as a multiple
+            of self.freq.  Note IncompatibleFrequency subclasses ValueError.
+        """
+        if isinstance(
+                other, (timedelta, np.timedelta64, Tick, np.ndarray)):
+            offset = frequencies.to_offset(self.freq.rule_code)
+            if isinstance(offset, Tick):
+                # _check_timedeltalike_freq_compat will raise if incompatible
+                delta = self._check_timedeltalike_freq_compat(other)
+                return delta
+        elif isinstance(other, DateOffset):
+            freqstr = other.rule_code
+            base = frequencies.get_base_alias(freqstr)
+            if base == self.freq.rule_code:
+                return other.n
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+        elif is_integer(other):
+            # integer is passed to .shift via
+            # _add_datetimelike_methods basically
+            # but ufunc may pass integer to _add_delta
+            return other
+
+        # raise when input doesn't have freq
+        msg = "Input has different freq from {cls}(freq={freqstr})"
+        raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
+                                               freqstr=self.freqstr))
 
 
 PeriodIndex._add_comparison_ops()
