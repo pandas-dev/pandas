@@ -440,7 +440,7 @@ In addition to these API breaking changes, many :ref:`performance improvements a
 Raise ValueError in ``DataFrame.to_dict(orient='index')``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with 
+Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with
 ``orient='index'`` and a non-unique index instead of losing data (:issue:`22801`)
 
 .. ipython:: python
@@ -448,7 +448,7 @@ Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with
 
     df = pd.DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
     df
-    
+
     df.to_dict(orient='index')
 
 .. _whatsnew_0240.api.datetimelike.normalize:
@@ -922,6 +922,41 @@ MultiIndex
 
 I/O
 ^^^
+
+.. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
+
+Proper handling of `np.NaN` in a string data-typed column with the Python engine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+There was bug in :func:`read_excel` and :func:`read_csv` with the Python
+engine, where missing values turned to ``'nan'`` with ``dtype=str`` and
+``na_filter=True``. Now, these missing values are converted to the string
+missing indicator, ``np.nan``. (:issue `20377`)
+
+.. ipython:: python
+   :suppress:
+
+   from pandas.compat import StringIO
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [5]: data = 'a,b,c\n1,,3\n4,5,6'
+   In [6]: df = pd.read_csv(StringIO(data), engine='python', dtype=str, na_filter=True)
+   In [7]: df.loc[0, 'b']
+   Out[7]:
+   'nan'
+
+Current Behavior:
+
+.. ipython:: python
+
+   data = 'a,b,c\n1,,3\n4,5,6'
+   df = pd.read_csv(StringIO(data), engine='python', dtype=str, na_filter=True)
+   df.loc[0, 'b']
+
+Notice how we now instead output ``np.nan`` itself instead of a stringified form of it.
 
 - :func:`read_html()` no longer ignores all-whitespace ``<tr>`` within ``<thead>`` when considering the ``skiprows`` and ``header`` arguments. Previously, users had to decrease their ``header`` and ``skiprows`` values on such tables to work around the issue. (:issue:`21641`)
 - :func:`read_excel()` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
