@@ -1390,21 +1390,16 @@ class _AsOfMerge(_OrderedMerge):
                         self.right_join_keys[-1])
         tolerance = self.tolerance
 
-        # we required sortedness and non-missingness in the join keys
-        msg_sorted = "{side} keys must be sorted"
-        msg_missings = "Merge keys contain null values on {side} side"
+        # Check null values before merge
+        if isnull(left_values).sum() > 0 or isnull(right_values).sum() > 0:
+            raise MergeError('Merge keys cannot contain null values')
 
+        # we required sortedness in the join keys
+        msg = "{side} keys must be sorted"
         if not Index(left_values).is_monotonic:
-            if isnull(left_values).sum() > 0:
-                raise ValueError(msg_missings.format(side='left'))
-            else:
-                raise ValueError(msg_sorted.format(side='left'))
-
+            raise ValueError(msg.format(side='left'))
         if not Index(right_values).is_monotonic:
-            if isnull(right_values).sum() > 0:
-                raise ValueError(msg_missings.format(side='right'))
-            else:
-                raise ValueError(msg_sorted.format(side='right'))
+            raise ValueError(msg.format(side='right'))
 
         # initial type conversion as needed
         if needs_i8_conversion(left_values):
