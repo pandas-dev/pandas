@@ -883,15 +883,15 @@ class TextFileReader(BaseIterator):
         # C engine not supported yet
         if engine == 'c':
             if options['skipfooter'] > 0:
-                fallback_reason = "the 'c' engine does not support"\
-                                  " skipfooter"
+                fallback_reason = ("the 'c' engine does not support"
+                                   " skipfooter")
                 engine = 'python'
 
         encoding = sys.getfilesystemencoding() or 'utf-8'
         if sep is None and not delim_whitespace:
             if engine == 'c':
-                fallback_reason = "the 'c' engine does not support"\
-                                  " sep=None with delim_whitespace=False"
+                fallback_reason = ("the 'c' engine does not support"
+                                   " sep=None with delim_whitespace=False")
                 engine = 'python'
         elif sep is not None and len(sep) > 1:
             if engine == 'c' and sep == r'\s+':
@@ -899,10 +899,10 @@ class TextFileReader(BaseIterator):
                 del result['delimiter']
             elif engine not in ('python', 'python-fwf'):
                 # wait until regex engine integrated
-                fallback_reason = "the 'c' engine does not support"\
-                                  " regex separators (separators > 1 char and"\
-                                  r" different from '\s+' are"\
-                                  " interpreted as regex)"
+                fallback_reason = ("the 'c' engine does not support"
+                                   " regex separators (separators > 1 char and"
+                                   r" different from '\s+' are"
+                                   " interpreted as regex)")
                 engine = 'python'
         elif delim_whitespace:
             if 'python' in engine:
@@ -915,10 +915,10 @@ class TextFileReader(BaseIterator):
             except UnicodeDecodeError:
                 encodeable = False
             if not encodeable and engine not in ('python', 'python-fwf'):
-                fallback_reason = "the separator encoded in {encoding}" \
-                                  " is > 1 char long, and the 'c' engine" \
-                                  " does not support such separators".format(
-                                      encoding=encoding)
+                fallback_reason = ("the separator encoded in {encoding}"
+                                   " is > 1 char long, and the 'c' engine"
+                                   " does not support such separators"
+                                   .format(encoding=encoding))
                 engine = 'python'
 
         quotechar = options['quotechar']
@@ -3203,8 +3203,8 @@ def _clean_index_names(columns, index_col):
             index_names.append(name)
 
     # hack
-    if isinstance(index_names[0], compat.string_types)\
-            and 'Unnamed' in index_names[0]:
+    if (isinstance(index_names[0], compat.string_types) and
+            'Unnamed' in index_names[0]):
         index_names[0] = None
 
     return index_names, columns, index_col

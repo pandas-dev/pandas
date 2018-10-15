@@ -1,5 +1,6 @@
 import string
 import random
+import io
 import pytest
 import numpy as np
 
@@ -531,28 +532,36 @@ class TestValidator(object):
 
     @capture_stderr
     def test_good_class(self):
-        assert validate_one(self._import_path(
-            klass='GoodDocStrings')) == 0
+        errors = validate_one(self._import_path(
+            klass='GoodDocStrings'))['errors']
+        assert isinstance(errors, list)
+        assert not errors
 
     @capture_stderr
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
         'contains', 'mode'])
     def test_good_functions(self, func):
-        assert validate_one(self._import_path(
-            klass='GoodDocStrings', func=func)) == 0
+        errors = validate_one(self._import_path(
+            klass='GoodDocStrings', func=func))['errors']
+        assert isinstance(errors, list)
+        assert not errors
 
     @capture_stderr
     def test_bad_class(self):
-        assert validate_one(self._import_path(
-            klass='BadGenericDocStrings')) > 0
+        errors = validate_one(self._import_path(
+            klass='BadGenericDocStrings'))['errors']
+        assert isinstance(errors, list)
+        assert errors
 
     @capture_stderr
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method'])
     def test_bad_generic_functions(self, func):
-        assert validate_one(self._import_path(  # noqa:F821
-            klass='BadGenericDocStrings', func=func)) > 0
+        errors = validate_one(self._import_path(  # noqa:F821
+            klass='BadGenericDocStrings', func=func))['errors']
+        assert isinstance(errors, list)
+        assert errors
 
     @pytest.mark.parametrize("klass,func,msgs", [
         # Summary tests
@@ -594,7 +603,82 @@ class TestValidator(object):
                      marks=pytest.mark.xfail)
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
-        validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
-        err = capsys.readouterr().err
+        result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
         for msg in msgs:
-            assert msg in err
+            assert msg in ' '.join(result['errors'])
+
+
+class ApiItems(object):
+    @property
+    def api_doc(self):
+        return io.StringIO('''
+.. currentmodule:: itertools
+
+Itertools
+---------
+
+Infinite
+~~~~~~~~
+
+.. autosummary::
+
+    cycle
+    count
+
+Finite
+~~~~~~
+
+.. autosummary::
+
+    chain
+
+.. currentmodule:: random
+
+Random
+------
+
+All
+~~~
+
+.. autosummary::
+
+    seed
+    randint
+''')
+
+    @pytest.mark.parametrize('idx,name', [(0, 'itertools.cycle'),
+                                          (1, 'itertools.count'),
+                                          (2, 'itertools.chain'),
+                                          (3, 'random.seed'),
+                                          (4, 'random.randint')])
+    def test_item_name(self, idx, name):
+        result = list(validate_docstrings.get_api_items(self.api_doc))
+        assert result[idx][0] == name
+
+    @pytest.mark.parametrize('idx,func', [(0, 'cycle'),
+                                          (1, 'count'),
+                                          (2, 'chain'),
+                                          (3, 'seed'),
+                                          (4, 'randint')])
+    def test_item_function(self, idx, func):
+        result = list(validate_docstrings.get_api_items(self.api_doc))
+        assert callable(result[idx][1])
+        assert result[idx][1].__name__ == func
+
+    @pytest.mark.parametrize('idx,section', [(0, 'Itertools'),
+                                             (1, 'Itertools'),
+                                             (2, 'Itertools'),
+                                             (3, 'Random'),
+                                             (4, 'Random')])
+    def test_item_section(self, idx, section):
+        result = list(validate_docstrings.get_api_items(self.api_doc))
+        assert result[idx][2] == section
+
+    @pytest.mark.parametrize('idx,subsection', [(0, 'Infinite'),
+                                                (1, 'Infinite'),
+                                                (2, 'Finite'),
+                                                (3, 'All'),
+                                                (4, 'All')])
+    def test_item_subsection(self, idx, subsection):
+        result = list(validate_docstrings.get_api_items(self.api_doc))
+        assert result[idx][3] == subsection

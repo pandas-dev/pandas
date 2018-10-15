@@ -521,8 +521,8 @@ class BaseGrouper(object):
                 result = result.astype('float64')
                 result[mask] = np.nan
 
-        if kind == 'aggregate' and \
-           self._filter_empty_groups and not counts.all():
+        if (kind == 'aggregate' and
+                self._filter_empty_groups and not counts.all()):
             if result.ndim == 2:
                 try:
                     result = lib.row_bool_subset(
@@ -743,8 +743,9 @@ class BinGrouper(BaseGrouper):
         else:
             comp_ids = np.repeat(np.r_[-1, np.arange(ngroups)], rep)
 
-        return comp_ids.astype('int64', copy=False), \
-            obs_group_ids.astype('int64', copy=False), ngroups
+        return (comp_ids.astype('int64', copy=False),
+                obs_group_ids.astype('int64', copy=False),
+                ngroups)
 
     @cache_readonly
     def ngroups(self):
