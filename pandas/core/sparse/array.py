@@ -1236,6 +1236,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             'le': '__ge__',
             'gt': '__lt__',
             'ge': '__le__',
+            'eq': '__eq__',
+            'ne': '__ne__',
         }
 
         op_name = ufunc.__name__
