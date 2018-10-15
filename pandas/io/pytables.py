@@ -1804,8 +1804,8 @@ class IndexCol(StringMixin):
         if self.meta == 'category':
             new_metadata = self.metadata
             cur_metadata = handler.read_metadata(self.cname)
-            if new_metadata is not None and cur_metadata is not None \
-                    and not array_equivalent(new_metadata, cur_metadata):
+            if (new_metadata is not None and cur_metadata is not None and
+                    not array_equivalent(new_metadata, cur_metadata)):
                 raise ValueError("cannot append a categorical with "
                                  "different categories to the existing")
 
@@ -2476,7 +2476,7 @@ class GenericFixed(Fixed):
         if klass == DatetimeIndex:
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
-                result = DatetimeIndex._simple_new(values.values, None,
+                result = DatetimeIndex._simple_new(values.values, name=None,
                                                    freq=freq)
                 if tz is not None:
                     result = result.tz_localize('UTC').tz_convert(tz)
@@ -2484,7 +2484,7 @@ class GenericFixed(Fixed):
             return f
         elif klass == PeriodIndex:
             def f(values, freq=None, tz=None):
-                return PeriodIndex._simple_new(values, None, freq=freq)
+                return PeriodIndex._simple_new(values, name=None, freq=freq)
             return f
 
         return klass

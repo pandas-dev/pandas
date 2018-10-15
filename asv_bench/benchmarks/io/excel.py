@@ -3,7 +3,7 @@ from pandas import DataFrame, date_range, ExcelWriter, read_excel
 from pandas.compat import BytesIO
 import pandas.util.testing as tm
 
-from ..pandas_vb_common import BaseIO, setup  # noqa
+from ..pandas_vb_common import BaseIO
 
 
 class Excel(object):
@@ -34,3 +34,6 @@ class Excel(object):
         writer_write = ExcelWriter(bio_write, engine=engine)
         self.df.to_excel(writer_write, sheet_name='Sheet1')
         writer_write.save()
+
+
+from ..pandas_vb_common import setup  # noqa: F401

@@ -245,6 +245,15 @@ Top-level evaluation
 
    eval
 
+Hashing
+~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   util.hash_array
+   util.hash_pandas_object
+
 Testing
 ~~~~~~~
 

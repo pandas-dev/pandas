@@ -63,6 +63,10 @@ class ExtensionArray(object):
     as they only compose abstract methods. Still, a more efficient
     implementation may be available, and these methods can be overridden.
 
+    One can implement methods to handle array reductions.
+
+    * _reduce
+
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
@@ -283,10 +287,25 @@ class ExtensionArray(object):
         return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self):
-        # type: () -> np.ndarray
-        """Boolean NumPy array indicating if each value is missing.
+        # type: () -> Union[ExtensionArray, np.ndarray]
+        """
+        A 1-D array indicating if each value is missing.
 
-        This should return a 1-D array the same length as 'self'.
+        Returns
+        -------
+        na_values : Union[np.ndarray, ExtensionArray]
+            In most cases, this should return a NumPy ndarray. For
+            exceptional cases like ``SparseArray``, where returning
+            an ndarray would be expensive, an ExtensionArray may be
+            returned.
+
+        Notes
+        -----
+        If returning an ExtensionArray, then
+
+        * ``na_values._is_boolean`` should be True
+        * `na_values` should implement :func:`ExtensionArray._reduce`
+        * ``na_values.any`` and ``na_values.all`` should be implemented
         """
         raise AbstractMethodError(self)
 
@@ -466,6 +485,11 @@ class ExtensionArray(object):
             as NA in the factorization routines, so it will be coded as
             `na_sentinal` and not included in `uniques`. By default,
             ``np.nan`` is used.
+
+        Notes
+        -----
+        The values returned by this method are also used in
+        :func:`pandas.util.hash_pandas_object`.
         """
         return self.astype(object), np.nan
 
@@ -669,6 +693,33 @@ class ExtensionArray(object):
         used for interacting with our indexers.
         """
         return np.array(self)
+
+    def _reduce(self, name, skipna=True, **kwargs):
+        """
+        Return a scalar result of performing the reduction operation.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            { any, all, min, max, sum, mean, median, prod,
+            std, var, sem, kurt, skew }.
+        skipna : bool, default True
+            If True, skip NaN values.
+        **kwargs
+            Additional keyword arguments passed to the reduction function.
+            Currently, `ddof` is the only supported kwarg.
+
+        Returns
+        -------
+        scalar
+
+        Raises
+        ------
+        TypeError : subclass does not define reductions
+        """
+        raise TypeError("cannot perform {name} with type {dtype}".format(
+            name=name, dtype=self.dtype))
 
 
 class ExtensionOpsMixin(object):

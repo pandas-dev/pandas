@@ -68,6 +68,10 @@ cdef class IntIndex(SparseIndex):
         output += 'Indices: %s\n' % repr(self.indices)
         return output
 
+    @property
+    def nbytes(self):
+        return self.indices.nbytes
+
     def check_integrity(self):
         """
         Checks the following:
@@ -358,6 +362,10 @@ cdef class BlockIndex(SparseIndex):
         output += 'Block lengths: %s' % repr(self.blengths)
 
         return output
+
+    @property
+    def nbytes(self):
+        return self.blocs.nbytes + self.blengths.nbytes
 
     @property
     def ngaps(self):

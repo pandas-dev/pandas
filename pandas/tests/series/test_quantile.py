@@ -152,6 +152,16 @@ class TestSeriesQuantile(TestData):
         res = Series([pd.NaT, pd.NaT]).quantile([0.5])
         tm.assert_series_equal(res, pd.Series([pd.NaT], index=[0.5]))
 
+    @pytest.mark.parametrize('values, dtype', [
+        ([0, 0, 0, 1, 2, 3], 'Sparse[int]'),
+        ([0., None, 1., 2.], 'Sparse[float]'),
+    ])
+    def test_quantile_sparse(self, values, dtype):
+        ser = pd.Series(values, dtype=dtype)
+        result = ser.quantile([0.5])
+        expected = pd.Series(np.asarray(ser)).quantile([0.5])
+        tm.assert_series_equal(result, expected)
+
     def test_quantile_empty(self):
 
         # floats

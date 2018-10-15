@@ -1805,12 +1805,7 @@ def _align_method_FRAME(left, right, axis):
 
             elif right.shape[0] == left.shape[0] and right.shape[1] == 1:
                 # Broadcast across columns
-                try:
-                    right = np.broadcast_to(right, left.shape)
-                except AttributeError:
-                    # numpy < 1.10.0
-                    right = np.tile(right, (1, left.shape[1]))
-
+                right = np.broadcast_to(right, left.shape)
                 right = left._constructor(right,
                                           index=left.index,
                                           columns=left.columns)
@@ -2066,16 +2061,19 @@ def _cast_sparse_series_op(left, right, opname):
     left : SparseArray
     right : SparseArray
     """
+    from pandas.core.sparse.api import SparseDtype
+
     opname = opname.strip('_')
 
+    # TODO: This should be moved to the array?
     if is_integer_dtype(left) and is_integer_dtype(right):
         # series coerces to float64 if result should have NaN/inf
         if opname in ('floordiv', 'mod') and (right.values == 0).any():
-            left = left.astype(np.float64)
-            right = right.astype(np.float64)
+            left = left.astype(SparseDtype(np.float64, left.fill_value))
+            right = right.astype(SparseDtype(np.float64, right.fill_value))
         elif opname in ('rfloordiv', 'rmod') and (left.values == 0).any():
-            left = left.astype(np.float64)
-            right = right.astype(np.float64)
+            left = left.astype(SparseDtype(np.float64, left.fill_value))
+            right = right.astype(SparseDtype(np.float64, right.fill_value))
 
     return left, right
 
