@@ -218,6 +218,18 @@ class GoodDocStrings(object):
         """
         pass
 
+    def good_import(self):
+        """
+        Ensure import other than numpy and pandas are fine.
+
+        Examples
+        --------
+        This example does not import pandas or import numpy.
+        >>> import time
+        >>> import datetime
+        """
+        pass
+
 
 class BadGenericDocStrings(object):
     """Everything here has a bad docstring
@@ -504,14 +516,27 @@ class BadReturns(object):
 
 class BadExamples(object):
 
-    def npPd_import(self):
+    def numpy_import(self):
         """
-        Provide example with numpy and pandas import
+        Provide example with numpy import.
 
         Examples
         --------
-        import numpy as np
-        import pandas as pd
+        This example does not import pandas.
+        >>> import numpy as np
+        >>> import datetime
+        """
+        pass
+
+    def pandas_import(self):
+        """
+        Provide example with pandas import.
+
+        Examples
+        --------
+        This example does not import numpy.
+        >>> import pandas as pd
+        >>> import pickle
         """
         pass
 
@@ -615,10 +640,11 @@ class TestValidator(object):
                      marks=pytest.mark.xfail),
         pytest.param('BadReturns', 'no_punctuation', ('foo',),
                      marks=pytest.mark.xfail),
-        # Examples
-        ('BadExamples', 'npPd_import',
-         ('Examples should not have `import pandas as pd` ',
-          'Examples should not have `import numpy as np` ',))
+        # Examples tests
+        ('BadExamples', 'numpy_import',
+         ('Examples should not have `import numpy` ',)),
+        ('BadExamples', 'pandas_import',
+         ('Examples should not have `import pandas` ',))
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
