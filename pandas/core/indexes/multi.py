@@ -1419,9 +1419,10 @@ class MultiIndex(Index):
         :param squeeze
             Squeeze single level multiindex to be a regular index
         """
+        from pandas import DataFrame
         # just let column level names be the tuple of the meta df columns
         # since they're not required to be strings
-        if not isinstance(df, pd.DataFrame):
+        if not isinstance(df, DataFrame):
             raise TypeError("Input must be a DataFrame")
         columns = list(df)
         mi = cls.from_tuples(list(df.values), names=columns)
