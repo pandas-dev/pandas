@@ -12,6 +12,7 @@ dependencies:
   - numexpr
   - numpy=1.14*
   - openpyxl=2.5.5
+  - parquet-cpp
   - pyarrow
   - pytables
   - python-dateutil
