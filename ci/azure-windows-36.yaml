@@ -5,6 +5,7 @@ channels:
 dependencies:
   - blosc
   - bottleneck
+  - boost-cpp<1.67
   - fastparquet
   - feather-format
   - matplotlib
