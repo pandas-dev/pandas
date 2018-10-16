@@ -29,8 +29,11 @@ from . import ExtensionArray, Categorical
 
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _interval_shared_docs = {}
+
+# TODO(jschendel) remove constructor key when IntervalArray is public (GH22860)
 _shared_docs_kwargs = dict(
     klass='IntervalArray',
+    constructor='pd.core.arrays.IntervalArray',
     name=''
 )
 
@@ -1017,7 +1020,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right_repeat = self.right.repeat(repeats, **kwargs)
         return self._shallow_copy(left=left_repeat, right=right_repeat)
 
-    _interval_shared_docs['overlaps'] = """\
+    _interval_shared_docs['overlaps'] = """
         Check elementwise if an Interval overlaps the values in the %(klass)s.
 
         Two intervals overlap if they share a common point, including closed
@@ -1038,23 +1041,23 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Examples
         --------
-        >>> intervals = %(klass)s.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals = %(constructor)s.from_tuples([(0, 1), (1, 3), (2, 4)])
         >>> intervals
         %(klass)s([(0, 1], (1, 3], (2, 4]],
               closed='right',
               dtype='interval[int64]')
-        >>> intervals.overlaps(Interval(0.5, 1.5))
+        >>> intervals.overlaps(pd.Interval(0.5, 1.5))
         array([ True,  True, False])
 
         Intervals that share closed endpoints overlap:
 
-        >>> intervals.overlaps(Interval(1, 3, closed='left'))
+        >>> intervals.overlaps(pd.Interval(1, 3, closed='left'))
         array([ True,  True, True])
 
         Intervals that only have an open endpoint in common do not overlap:
 
-        >>> intervals.overlaps(Interval(1, 2, closed='right'))
-        array([ False,  True, False])
+        >>> intervals.overlaps(pd.Interval(1, 2, closed='right'))
+        array([False,  True, False])
 
         See Also
         --------
