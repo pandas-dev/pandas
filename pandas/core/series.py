@@ -65,14 +65,6 @@ from pandas.util._validators import validate_bool_kwarg
 # pylint: disable=W0703,W0622,W0613,W0201
 
 
-
-
-
-
-
-
-
-
 __all__ = ['Series']
 
 _shared_doc_kwargs = dict(
