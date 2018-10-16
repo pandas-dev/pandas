@@ -7366,6 +7366,8 @@ class NDFrame(PandasObject, SelectionMixin):
                  label=None, convention='start', kind=None, loffset=None,
                  limit=None, base=0, on=None, level=None):
         """
+        Resample a time series by changing the frequency of the index.
+
         Convenience method for frequency conversion and resampling of time
         series.  Object must have a datetime-like index (DatetimeIndex,
         PeriodIndex, or TimedeltaIndex), or pass datetime-like values
@@ -7374,8 +7376,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         rule : string
-            the offset string or object representing target conversion
+            The offset string or object representing target conversion.
         axis : int, optional, default 0
+            
         closed : {'right', 'left'}
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
@@ -7386,17 +7389,17 @@ class NDFrame(PandasObject, SelectionMixin):
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {'start', 'end', 's', 'e'}
             For PeriodIndex only, controls whether to use the start or end of
-            `rule`
-        kind: {'timestamp', 'period'}, optional
+            `rule`.
+        kind : {'timestamp', 'period'} optional
             Pass 'timestamp' to convert the resulting index to a
             ``DateTimeIndex`` or 'period' to convert it to a ``PeriodIndex``.
             By default the input representation is retained.
         loffset : timedelta
-            Adjust the resampled time labels
+            Adjust the resampled time labels.
         base : int, default 0
             For frequencies that evenly subdivide 1 day, the "origin" of the
             aggregated intervals. For example, for '5min' frequency, base could
-            range from 0 through 4. Defaults to 0
+            range from 0 through 4. Defaults to 0.
         on : string, optional
             For a DataFrame, column to use instead of index for resampling.
             Column must be datetime-like.
@@ -7522,9 +7525,10 @@ class NDFrame(PandasObject, SelectionMixin):
         For a Series with a PeriodIndex, the keyword `convention` can be
         used to control whether to use the start or end of `rule`.
 
-        >>> s = pd.Series([1, 2], index=pd.period_range('2012-01-01',
-                                                        freq='A',
-                                                        periods=2))
+        >>> s = pd.Series([1, 2], index=pd.period_range(
+        ...                                             '2012-01-01',
+        ...                                             freq='A',
+        ...                                             periods=2))
         >>> s
         2012    1
         2013    2
@@ -7577,9 +7581,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> time = pd.date_range('1/1/2000', periods=5, freq='T')
         >>> df2 = pd.DataFrame(data=10*[range(4)],
-                               columns=['a', 'b', 'c', 'd'],
-                               index=pd.MultiIndex.from_product([time, [1, 2]])
-                               )
+        ...                    columns=['a', 'b', 'c', 'd'],
+        ...                    index=pd.MultiIndex.from_product([time, [1, 2]])
+        ...                    )
         >>> df2.resample('3T', level=0).sum()
                              a  b   c   d
         2000-01-01 00:00:00  0  6  12  18
