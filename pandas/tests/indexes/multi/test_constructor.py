@@ -506,7 +506,7 @@ def test_from_frame_with_squeeze():
 def test_from_frame_with_no_squeeze():
     df = pd.DataFrame([['a'], ['a'], ['b'], ['b']], columns=['L1'])
     expected = pd.MultiIndex.from_tuples([('a',), ('a',), ('b',), ('b',)],
-                                         names=['L1',])
+                                         names=['L1'])
     result = pd.MultiIndex.from_frame(df, squeeze=False)
     tm.assert_index_equal(expected, result)
 
