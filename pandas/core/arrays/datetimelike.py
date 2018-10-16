@@ -185,7 +185,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                           indices,
                           allow_fill=allow_fill,
                           fill_value=fill_value)
-        freq = self.freq if is_period_dtype(self) else None  # TODO: use "infer"?
+
+        # TODO: use "infer"?  Why does not passing freq cause
+        #  failures in py37 but not py27?
+        freq = self.freq if is_period_dtype(self) else None
         return self._shallow_copy(new_values, freq=freq)
 
     @classmethod
