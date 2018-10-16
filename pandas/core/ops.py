@@ -2114,7 +2114,7 @@ def _sparse_series_op(left, right, op, name):
     new_index = left.index
     new_name = get_op_result_name(left, right)
 
-    from pandas.core.sparse.array import _sparse_array_op
+    from pandas.core.arrays.sparse import _sparse_array_op
     lvalues, rvalues = _cast_sparse_series_op(left.values, right.values, name)
     result = _sparse_array_op(lvalues, rvalues, op, name)
     return left._constructor(result, index=new_index, name=new_name)
@@ -2128,7 +2128,7 @@ def _arith_method_SPARSE_ARRAY(cls, op, special):
     op_name = _get_op_name(op, special)
 
     def wrapper(self, other):
-        from pandas.core.sparse.array import (
+        from pandas.core.arrays.sparse.array import (
             SparseArray, _sparse_array_op, _wrap_result, _get_fill)
         if isinstance(other, np.ndarray):
             if len(self) != len(other):
