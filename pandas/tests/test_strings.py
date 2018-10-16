@@ -301,7 +301,15 @@ class TestStringMethods(object):
         with tm.assert_raises_regex(TypeError, rgx):
             s.str.cat([u, [u, d]])
 
-        # forbidden input type, e.g. int
+        # forbidden input type: set
+        with tm.assert_raises_regex(TypeError, rgx):
+            s.str.cat(set(u))
+
+        # forbidden input type: set in list
+        with tm.assert_raises_regex(TypeError, rgx):
+            s.str.cat([u, set(u)])
+
+        # other forbidden input type, e.g. int
         with tm.assert_raises_regex(TypeError, rgx):
             s.str.cat(1)
 

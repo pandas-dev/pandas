@@ -976,7 +976,7 @@ Numeric
 Strings
 ^^^^^^^
 
--
+- Bug in :meth:`Series.str.cat` which falsely did not raise if `others` was a `set` (:issue:`23009`)
 -
 -
 
