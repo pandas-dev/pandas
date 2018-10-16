@@ -247,7 +247,7 @@ def is_re_compilable(obj):
         return True
 
 
-def is_list_like(obj, strict=False):
+def is_list_like(obj, allow_sets=True):
     """
     Check if the object is list-like.
 
@@ -259,8 +259,8 @@ def is_list_like(obj, strict=False):
     Parameters
     ----------
     obj : The object to check.
-    strict : boolean, default False
-        If this parameter is True, sets will not be considered list-like
+    allow_sets : boolean, default True
+        If this parameter is False, sets will not be considered list-like
 
     Returns
     -------
@@ -290,8 +290,8 @@ def is_list_like(obj, strict=False):
             and not isinstance(obj, string_and_binary_types)
             # exclude zero-dimensional numpy arrays, effectively scalars
             and not (isinstance(obj, np.ndarray) and obj.ndim == 0)
-            # exclude sets if ordered_only
-            and not (strict and isinstance(obj, Set)))
+            # exclude sets if allow_sets is False
+            and not (allow_sets is False and isinstance(obj, Set)))
 
 
 def is_array_like(obj):
