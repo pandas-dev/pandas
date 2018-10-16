@@ -6823,7 +6823,8 @@ class DataFrame(NDFrame):
 
     def pearson_with(self, other, min_periods=1):
         """
-        Compute pairwise correlation of two dataframes, excluding NA/null values
+        Compute pairwise correlation of two dataframes, excluding NA/null
+        values
 
         Parameters
         ----------
@@ -6858,7 +6859,8 @@ class DataFrame(NDFrame):
         mat1 = numeric_df1.values
         mat2 = numeric_df2.values
 
-        correl = libalgos.nancorr_2(ensure_float64(mat1), ensure_float64(mat2), minp=min_periods)
+        correl = libalgos.nancorr_2(ensure_float64(mat1), ensure_float64(mat2),
+                                    minp=min_periods)
 
         return self._constructor(correl, index=idx, columns=cols)
 
