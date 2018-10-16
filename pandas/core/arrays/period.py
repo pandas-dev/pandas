@@ -175,6 +175,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
+        periods = dtl.validate_periods(periods)
         if freq is not None:
             freq = Period._maybe_convert_freq(freq)
 
