@@ -122,7 +122,7 @@ class ExtensionArray(object):
         Parameters
         ----------
         values : ndarray
-            An integer ndarray with the factorized values.
+            An ndarray with the unique factorized values.
         original : ExtensionArray
             The original ExtensionArray that factorize was called on.
 

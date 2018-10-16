@@ -229,7 +229,7 @@ class Index(IndexOpsMixin, PandasObject):
     _outer_indexer = libjoin.outer_join_indexer_object
 
     _typ = 'index'
-    _data = None
+    _data = None  # type: Union[np.ndarray, ExtensionArray]
     _id = None
     name = None
     asi8 = None
@@ -261,7 +261,6 @@ class Index(IndexOpsMixin, PandasObject):
             return cls._simple_new(data, name)
 
         from .range import RangeIndex
-
         # range
         if isinstance(data, RangeIndex):
             return RangeIndex(start=data, copy=copy, dtype=dtype, name=name)
