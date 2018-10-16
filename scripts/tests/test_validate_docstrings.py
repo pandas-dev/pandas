@@ -488,6 +488,17 @@ class BadParameters(object):
         """
         pass
 
+    def list_incorrect_parameter_type(self, kind):
+        """
+        Uses list of boolean instead of list of bool.
+
+        Parameters
+        ----------
+        kind : list of boolean, integer, float or string
+            Foo bar baz.
+        """
+        pass
+
 
 class BadReturns(object):
 
@@ -624,11 +635,17 @@ class TestValidator(object):
         ('BadParameters', 'parameter_capitalization',
          ('Parameter "kind" description should start with a capital letter',)),
         ('BadParameters', 'integer_parameter',
-         ('Parameter "kind" type should be "int" instead of "integer"',)),
+         ('Parameter "kind" type should use "int" instead of "integer"',)),
         ('BadParameters', 'string_parameter',
-         ('Parameter "kind" type should be "str" instead of "string"',)),
+         ('Parameter "kind" type should use "str" instead of "string"',)),
         ('BadParameters', 'boolean_parameter',
-         ('Parameter "kind" type should be "bool" instead of "boolean"',)),
+         ('Parameter "kind" type should use "bool" instead of "boolean"',)),
+        ('BadParameters', 'list_incorrect_parameter_type',
+         ('Parameter "kind" type should use "bool" instead of "boolean"',)),
+        ('BadParameters', 'list_incorrect_parameter_type',
+         ('Parameter "kind" type should use "int" instead of "integer"',)),
+        ('BadParameters', 'list_incorrect_parameter_type',
+         ('Parameter "kind" type should use "str" instead of "string"',)),
         pytest.param('BadParameters', 'blank_lines', ('No error yet?',),
                      marks=pytest.mark.xfail),
         # Returns tests

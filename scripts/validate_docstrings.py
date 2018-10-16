@@ -469,7 +469,7 @@ def validate_one(func_name):
                                       ('string', 'str')]
                 for incorrect_type, correct_type in common_type_errors:
                     if incorrect_type in doc.parameter_type(param):
-                        param_errs.append('Parameter "{}" type should be '
+                        param_errs.append('Parameter "{}" type should use '
                                           '"{}" instead of "{}"'
                                           .format(param,
                                                   correct_type,
