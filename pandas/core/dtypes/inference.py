@@ -247,7 +247,7 @@ def is_re_compilable(obj):
         return True
 
 
-def is_list_like(obj):
+def is_list_like(obj, strict=False):
     """
     Check if the object is list-like.
 
@@ -259,6 +259,8 @@ def is_list_like(obj):
     Parameters
     ----------
     obj : The object to check.
+    strict : boolean, default False
+        If this parameter is True, sets will not be considered list-like
 
     Returns
     -------
@@ -287,28 +289,9 @@ def is_list_like(obj):
             # we do not count strings/unicode/bytes as list-like
             and not isinstance(obj, string_and_binary_types)
             # exclude zero-dimensional numpy arrays, effectively scalars
-            and not (isinstance(obj, np.ndarray) and obj.ndim == 0))
-
-
-def is_ordered_list_like(obj):
-    """
-    Check if the object is list-like and has a defined order
-
-    Works like :meth:`is_list_like` but excludes sets. Note that iterators can
-    not be inspected for order - this check will return True but it is up to
-    the user to make sure that their iterators are generated in an ordered way.
-
-    Parameters
-    ----------
-    obj : The object to check.
-
-    Returns
-    -------
-    is_ordered_list_like : bool
-        Whether `obj` is an ordered list-like
-    """
-    list_like = is_list_like(obj)
-    return list_like and not isinstance(obj, Set)
+            and not (isinstance(obj, np.ndarray) and obj.ndim == 0)
+            # exclude sets if ordered_only
+            and not (strict and isinstance(obj, Set)))
 
 
 def is_array_like(obj):

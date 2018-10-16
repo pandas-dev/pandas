@@ -2030,7 +2030,6 @@ class StringMethods(NoNewAttributesMixin):
                     # -> elements of nxt must not be list-like
                     is_legal = ((no_deep and nxt.dtype == object)
                                 or all(not is_list_like(x) for x in nxt))
-
                     # DataFrame is false positive of is_legal
                     # because "x in df" returns column names
                     if not is_legal or isinstance(nxt, DataFrame):
