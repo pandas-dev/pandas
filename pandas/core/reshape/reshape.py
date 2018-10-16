@@ -19,7 +19,7 @@ from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
 from pandas.core.sparse.api import SparseDataFrame, SparseSeries
-from pandas.core.sparse.array import SparseArray
+from pandas.core.arrays import SparseArray
 from pandas._libs.sparse import IntIndex
 
 from pandas.core.arrays import Categorical

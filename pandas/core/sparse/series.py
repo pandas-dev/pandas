@@ -24,7 +24,7 @@ import pandas.core.ops as ops
 import pandas._libs.index as libindex
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.sparse.array import (
+from pandas.core.arrays import (
     SparseArray,
 )
 from pandas._libs.sparse import BlockIndex, IntIndex
