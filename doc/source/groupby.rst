@@ -941,11 +941,15 @@ that is itself a series, and possibly upcast the result to a DataFrame:
 
 .. warning::
 
-    In the current implementation apply calls func twice on the
+    * In the current implementation ``apply`` calls func twice on the
     first group to decide whether it can take a fast or slow code
     path. This can lead to unexpected behavior if func has
     side-effects, as they will take effect twice for the first
     group.
+    
+    * For predictable results and performance, func should **not** mutate 
+    any of the group chunks. Group chunks should be treated as immutable 
+    since changes to a group chunk may produce unexpected results.
 
     .. ipython:: python
 
