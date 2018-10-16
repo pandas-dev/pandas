@@ -1392,7 +1392,7 @@ class _AsOfMerge(_OrderedMerge):
 
         # we required sortedness and non-missingness in the join keys
         msg_sorted = "{side} keys must be sorted"
-        msg_missings = "Merge keys contain null values in {side} side"
+        msg_missings = "Merge keys contain null values on {side} side"
 
         if not Index(left_values).is_monotonic:
             if isnull(left_values).sum() > 0:
