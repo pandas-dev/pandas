@@ -1007,3 +1007,26 @@ class TestAsOfMerge(object):
 
         with tm.assert_raises_regex(MergeError, msg):
             merge_asof(left, right, on='a')
+
+    def test_merge_on_nans_int(self):
+        """ Test merging on integer columns with nans throws a merge error """
+        left = pd.DataFrame({'a': [1, 5, 10, 12, np.nan],
+                             'left_val': ['a', 'b', 'c', 'd', 'e']})
+        right = pd.DataFrame({'a': [1, 5, 10, 12, np.nan],
+                              'right_val': [1, 6, 11, 15, 16]})
+
+        with pytest.raises(ValueError):
+            merge_asof(left, right, on='a')
+
+    def test_merge_on_nans_datetime(self):
+        """ Test merging on datetime columns with nans throws a merge error """
+        top_left = pd.DataFrame(pd.date_range('20130101', periods=5), columns=['A'])
+        bottom_left = pd.DataFrame([np.nan], columns=['A'])
+        left = pd.concat([top_left, bottom_left])
+
+        top_right = pd.DataFrame(pd.date_range('20150601', periods=5), columns=['A'])
+        bottom_right = pd.DataFrame([np.nan], columns=['A'])
+        right = pd.concat([bottom_right, top_right])
+
+        with pytest.raises(ValueError):
+            merge_asof(left, right, on='A')
