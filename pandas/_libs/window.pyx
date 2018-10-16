@@ -381,7 +381,7 @@ def roll_count(ndarray[double_t] input, int64_t win, int64_t minp,
                 count_x = 0.0
                 for j in range(s, e):
                     val = input[j]
-                    if val == val:
+                    if not isnan(val):
                         count_x += 1.0
 
             else:
@@ -389,13 +389,13 @@ def roll_count(ndarray[double_t] input, int64_t win, int64_t minp,
                 # calculate deletes
                 for j in range(start[i - 1], s):
                     val = input[j]
-                    if val == val:
+                    if not isnan(val):
                         count_x -= 1.0
 
                 # calculate adds
                 for j in range(end[i - 1], e):
                     val = input[j]
-                    if val == val:
+                    if not isnan(val):
                         count_x += 1.0
 
             if count_x >= minp:
@@ -424,7 +424,7 @@ cdef inline void add_sum(double val, int64_t *nobs, double *sum_x) nogil:
     """ add a value from the sum calc """
 
     # Not NaN
-    if val == val:
+    if not isnan(val):
         nobs[0] = nobs[0] + 1
         sum_x[0] = sum_x[0] + val
 
@@ -432,7 +432,7 @@ cdef inline void add_sum(double val, int64_t *nobs, double *sum_x) nogil:
 cdef inline void remove_sum(double val, int64_t *nobs, double *sum_x) nogil:
     """ remove a value from the sum calc """
 
-    if val == val:
+    if not isnan(val):
         nobs[0] = nobs[0] - 1
         sum_x[0] = sum_x[0] - val
 
@@ -538,7 +538,7 @@ cdef inline void add_mean(double val, Py_ssize_t *nobs, double *sum_x,
     """ add a value from the mean calc """
 
     # Not NaN
-    if val == val:
+    if not isnan(val):
         nobs[0] = nobs[0] + 1
         sum_x[0] = sum_x[0] + val
         if signbit(val):
@@ -549,7 +549,7 @@ cdef inline void remove_mean(double val, Py_ssize_t *nobs, double *sum_x,
                              Py_ssize_t *neg_ct) nogil:
     """ remove a value from the mean calc """
 
-    if val == val:
+    if not isnan(val):
         nobs[0] = nobs[0] - 1
         sum_x[0] = sum_x[0] - val
         if signbit(val):
@@ -671,8 +671,7 @@ cdef inline void remove_var(double val, double *nobs, double *mean_x,
     """ remove a value from the var calc """
     cdef double delta
 
-    # Not NaN
-    if val == val:
+    if not isnan(val):
         nobs[0] = nobs[0] - 1
         if nobs[0]:
             # a part of Welford's method for the online variance-calculation
@@ -760,7 +759,7 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
                 val = input[i]
                 prev = input[i - win]
 
-                if val == val:
+                if not isnan(val):
                     if prev == prev:
 
                         # Adding one observation and removing another one
@@ -822,7 +821,7 @@ cdef inline void add_skew(double val, int64_t *nobs, double *x, double *xx,
     """ add a value from the skew calc """
 
     # Not NaN
-    if val == val:
+    if not isnan(val):
         nobs[0] = nobs[0] + 1
 
         # seriously don't ask me why this is faster
@@ -836,7 +835,7 @@ cdef inline void remove_skew(double val, int64_t *nobs, double *x, double *xx,
     """ remove a value from the skew calc """
 
     # Not NaN
-    if val == val:
+    if not isnan(val):
         nobs[0] = nobs[0] - 1
 
         # seriously don't ask me why this is faster
@@ -959,7 +958,7 @@ cdef inline void add_kurt(double val, int64_t *nobs, double *x, double *xx,
     """ add a value from the kurotic calc """
 
     # Not NaN
-    if val == val:
+    if not isnan(val):
         nobs[0] = nobs[0] + 1
 
         # seriously don't ask me why this is faster
@@ -974,7 +973,7 @@ cdef inline void remove_kurt(double val, int64_t *nobs, double *x, double *xx,
     """ remove a value from the kurotic calc """
 
     # Not NaN
-    if val == val:
+    if not isnan(val):
         nobs[0] = nobs[0] - 1
 
         # seriously don't ask me why this is faster
@@ -1089,7 +1088,7 @@ def roll_median_c(ndarray[float64_t] input, int64_t win, int64_t minp,
 
                 # setup
                 val = input[i]
-                if val == val:
+                if not isnan(val):
                     nobs += 1
                     err = skiplist_insert(sl, val) != 1
                     if err:
@@ -1100,14 +1099,14 @@ def roll_median_c(ndarray[float64_t] input, int64_t win, int64_t minp,
                 # calculate deletes
                 for j in range(start[i - 1], s):
                     val = input[j]
-                    if val == val:
+                    if not isnan(val):
                         skiplist_remove(sl, val)
                         nobs -= 1
 
                 # calculate adds
                 for j in range(end[i - 1], e):
                     val = input[j]
-                    if val == val:
+                    if not isnan(val):
                         nobs += 1
                         err = skiplist_insert(sl, val) != 1
                         if err:
@@ -1472,7 +1471,7 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
 
                 # setup
                 val = input[i]
-                if val == val:
+                if not isnan(val):
                     nobs += 1
                     skiplist_insert(skiplist, val)
 
@@ -1481,14 +1480,14 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
                 # calculate deletes
                 for j in range(start[i - 1], s):
                     val = input[j]
-                    if val == val:
+                    if not isnan(val):
                         skiplist_remove(skiplist, val)
                         nobs -= 1
 
                 # calculate adds
                 for j in range(end[i - 1], e):
                     val = input[j]
-                    if val == val:
+                    if not isnan(val):
                         nobs += 1
                         skiplist_insert(skiplist, val)
 
