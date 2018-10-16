@@ -6,7 +6,6 @@ dependencies:
   - blosc
   - bottleneck
   - fastparquet
-  - feather-format
   - matplotlib
   - numexpr
   - numpy=1.14*
@@ -17,7 +16,6 @@ dependencies:
   - python=3.6.*
   - pytz
   - scipy
-  - thrift=0.10*
   - xlrd
   - xlsxwriter
   - xlwt
