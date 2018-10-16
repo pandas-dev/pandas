@@ -97,6 +97,7 @@ qcut : Bin values into equal-sized Intervals based on rank or sample quantiles
 """
 
 
+# TODO(jschendel) use a more direct call in Examples when made public (GH22860)
 @Appender(_interval_shared_docs['class'] % dict(
     klass="IntervalArray",
     summary="Pandas array for interval data that are closed on the same side.",
