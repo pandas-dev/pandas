@@ -405,7 +405,7 @@ class Docstring(object):
     @property
     def examples_codes(self):
         codes = doctest.DocTestParser().get_examples(self.raw_doc)
-        codes = [line.source.rstrip() for line in codes]
+        codes = [line.source for line in codes]
         return ' '.join(codes)
 
 
