@@ -1009,7 +1009,8 @@ class TestAsOfMerge(object):
             merge_asof(left, right, on='a')
 
     def test_merge_on_nans_int(self):
-        """ Test merging on integer columns with nans throws a merge error """
+        """ Test merging on integer columns with nans throws a correct ValueError """
+        # 23189
         msg = "Merge keys contain null values on left side"
         left = pd.DataFrame({'a': [1.0, 5.0, 10.0, 12.0, np.nan],
                              'left_val': ['a', 'b', 'c', 'd', 'e']})
@@ -1020,8 +1021,8 @@ class TestAsOfMerge(object):
             merge_asof(left, right, on='a')
 
     def test_merge_on_nans_datetime(self):
-        """ Test merging on datetime columns with nans throws a merge error """
-
+        """ Test merging on datetime columns with nans throws correct ValueError """
+        # 23189
         msg = "Merge keys contain null values on right side"
         left = pd.DataFrame(pd.date_range('20130101', periods=5), columns=['a'])
         right = pd.DataFrame(pd.date_range('20130102', periods=5).append(pd.Index([None])), columns=['a'])
