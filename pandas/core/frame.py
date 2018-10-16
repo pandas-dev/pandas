@@ -6821,6 +6821,48 @@ class DataFrame(NDFrame):
 
         return self._constructor(correl, index=idx, columns=cols)
 
+    def pearson_with(self, other, min_periods=1):
+        """
+        Compute pairwise correlation of two dataframes, excluding NA/null values
+
+        Parameters
+        ----------
+        other : DataFrame
+            another dataframe
+
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result. Currently only available for pearson
+            and spearman correlation
+
+        Returns
+        -------
+        y : DataFrame
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> df1 = pd.DataFrame([(.2, .3), (.0, .6), (.6, .0), (.2, .1)],
+        ...                   columns=['A', 'B'])
+        >>> df2 = pd.DataFrame([(.2, .2), (.1, .5), (.8, .3), (.1, .2)],
+        ...                   columns=['C', 'D'])
+        >>> df1.pearson_with(df2)
+                C       D
+        A   0.944  -0.375
+        B  -0.636   0.712
+        """
+        numeric_df1 = self._get_numeric_data()
+        numeric_df2 = other._get_numeric_data()
+        idx = numeric_df1.columns
+        cols = numeric_df2.columns
+        mat1 = numeric_df1.values
+        mat2 = numeric_df2.values
+
+        correl = libalgos.nancorr_2(ensure_float64(mat1), ensure_float64(mat2), minp=min_periods)
+
+        return self._constructor(correl, index=idx, columns=cols)
+
+
     def cov(self, min_periods=None):
         """
         Compute pairwise covariance of columns, excluding NA/null values.
