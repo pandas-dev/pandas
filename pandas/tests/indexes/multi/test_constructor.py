@@ -472,3 +472,45 @@ def test_from_tuples_with_tuple_label():
     idx = pd.MultiIndex.from_tuples([(2, 1), (4, (1, 2))], names=('a', 'b'))
     result = pd.DataFrame([2, 3], columns=['c'], index=idx)
     tm.assert_frame_equal(expected, result)
+
+
+def test_from_frame():
+    expected = pd.MultiIndex.from_tuples([('a', 'a'), ('a', 'b'), ('a', 'c'),
+                                          ('b', 'a'), ('b', 'b'), ('c', 'a'),
+                                          ('c', 'b')],
+                                          names=['L1', 'L2'])
+    df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['a', 'c'], ['b', 'a'], 
+                       ['b', 'b'], ['c', 'a'], ['c', 'b']],
+                       columns=['L1', 'L2'])
+    result = pd.MultiIndex.from_frame(df)
+    tm.assert_index_equal(expected, result)
+
+
+def test_from_frame():
+    df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
+                      columns=['L1', 'L2'])
+    expected = pd.MultiIndex.from_tuples([('a', 'a'), ('a', 'b'),
+                                          ('b', 'a'), ('b', 'b')],
+                                          names=['L1', 'L2'])
+    result = pd.MultiIndex.from_frame(df)
+    tm.assert_index_equal(expected, result)
+
+
+def test_from_frame_with_squeeze():
+    df = pd.DataFrame([['a',], ['a',], ['b',], ['b',]], columns=['L1',])
+    expected = pd.Index(['a', 'a', 'b', 'b'], name='L1')
+    result = pd.MultiIndex.from_frame(df)
+    tm.assert_index_equal(expected, result)
+
+
+def test_from_frame_with_no_squeeze():
+    df = pd.DataFrame([['a'], ['a'], ['b'], ['b']], columns=['L1',])
+    expected = pd.MultiIndex.from_tuples([('a',), ('a',), ('b',), ('b',)],
+                                         names=['L1',])
+    result = pd.MultiIndex.from_frame(df, squeeze=False)
+    tm.assert_index_equal(expected, result)
+
+
+def test_from_frame_non_frame():
+    with pytest.raises(TypeError):
+        pd.MultiIndex.from_frame([1,2,3,4])
