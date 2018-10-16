@@ -727,7 +727,7 @@ Examples
 --------
 >>> df = pd.DataFrame({{'cost': [250, 150, 100],
 ...                    'revenue': [100, 250, 300]}},
-...                    index=['A', 'B', 'C'])
+...                   index=['A', 'B', 'C'])
 >>> df
    cost  revenue
 A   250      100
@@ -780,7 +780,7 @@ C  True     True  True  True  True
 Compare to a DataFrame of different shape.
 
 >>> other = pd.DataFrame({{'revenue': [300, 250, 100, 150]}},
-...                       index=['A', 'B', 'C', 'D'])
+...                      index=['A', 'B', 'C', 'D'])
 >>> other
    revenue
 A      300
@@ -799,8 +799,8 @@ Compare to a MultiIndex by level.
 
 >>> df_multindex = pd.DataFrame({{'cost': [250, 150, 100, 150, 300, 220],
 ...                              'revenue': [100, 250, 300, 200, 175, 225]}},
-...                              index=[['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
-...                                     ['A', 'B', 'C', 'A', 'B' ,'C']])
+...                             index=[['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
+...                                    ['A', 'B', 'C', 'A', 'B' ,'C']])
 >>> df_multindex
       cost  revenue
 Q1 A   250      100
