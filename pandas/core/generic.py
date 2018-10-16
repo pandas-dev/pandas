@@ -4236,10 +4236,15 @@ class NDFrame(PandasObject, SelectionMixin):
         ValueError
             When `raise_conflict` is True and there's overlapping non-NA data.
 
+        Returns
+        -------
+        Nothing, the object is modified inplace.
+
         See Also
         --------
-        dict.update : Similar method for dictionaries.
+        Series.update : Similar method for `Series`.
         DataFrame.merge : For column(s)-on-columns(s) operations.
+        dict.update : Similar method for `dict`.
 
         Examples
         --------

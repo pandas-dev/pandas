@@ -2415,6 +2415,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             If True, will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
 
+        See Also
+        --------
+        DataFrame.update : Similar method for `DataFrame`.
+        dict.update : Similar method for `dict`
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
@@ -2447,10 +2452,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s = pd.Series([1, 2, 3])
         >>> s.update(pd.Series([4, np.nan, 6]))
         >>> s
-        0    4
-        1    2
-        2    6
-        dtype: int64
+        0    4.0
+        1    2.0
+        2    6.0
+        dtype: float64
         """
         super(Series, self).update(other, join=join, overwrite=overwrite,
                                    filter_func=filter_func,
