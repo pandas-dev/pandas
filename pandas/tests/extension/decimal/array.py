@@ -15,14 +15,10 @@ class DecimalDtype(ExtensionDtype):
     type = decimal.Decimal
     name = 'decimal'
     na_value = decimal.Decimal('NaN')
+    _metadata = ('context',)
 
     def __init__(self, context=None):
         self.context = context or decimal.getcontext()
-
-    def __eq__(self, other):
-        if isinstance(other, type(self)):
-            return self.context == other.context
-        return super(DecimalDtype, self).__eq__(other)
 
     def __repr__(self):
         return 'DecimalDtype(context={})'.format(self.context)
@@ -137,6 +133,18 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     @classmethod
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
+
+    def _reduce(self, name, skipna=True, **kwargs):
+
+        if skipna:
+            raise NotImplementedError("decimal does not support skipna=True")
+
+        try:
+            op = getattr(self.data, name)
+        except AttributeError:
+            raise NotImplementedError("decimal does not support "
+                                      "the {} operation".format(name))
+        return op(axis=0)
 
 
 def to_decimal(values, context=None):
