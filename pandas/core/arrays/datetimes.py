@@ -12,7 +12,7 @@ from pandas._libs.tslibs import (
     conversion, fields, timezones,
     resolution as libresolution)
 
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly, Appender
 from pandas.errors import PerformanceWarning
 from pandas import compat
 
@@ -297,6 +297,35 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             index = index[:-1]
 
         return cls._simple_new(index.values, freq=freq, tz=tz)
+
+    # ----------------------------------------------------------------
+    # Extension Array Interface
+
+    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
+    def _validate_fill_value(self, fill_value):
+        if isna(fill_value):
+            fill_value = iNaT
+        elif isinstance(fill_value, (datetime, np.datetime64)):
+            self._assert_tzawareness_compat(fill_value)
+            fill_value = Timestamp(fill_value).value
+        else:
+            raise ValueError("'fill_value' should be a Timestamp. "
+                             "Got '{got}'.".format(got=fill_value))
+        return fill_value
+
+    @classmethod
+    def _concat_same_type(cls, to_concat):
+        # for TimedeltaArray and PeriodArray; DatetimeArray requires tz
+        freqs = {x.freq for x in to_concat}
+        assert len(freqs) == 1
+        freq = list(freqs)[0]
+
+        tzs = {x.tz for x in to_concat}
+        assert len(tzs) == 1
+        tz = list(tzs)[0]
+
+        values = np.concatenate([x._data for x in to_concat])
+        return cls._simple_new(values, freq=freq, tz=tz)
 
     # -----------------------------------------------------------------
     # Descriptive Properties
