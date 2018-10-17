@@ -262,6 +262,8 @@ def is_list_like(obj, allow_sets=True):
     allow_sets : boolean, default True
         If this parameter is False, sets will not be considered list-like
 
+        .. versionadded:: 0.24.0
+
     Returns
     -------
     is_list_like : bool
@@ -288,8 +290,10 @@ def is_list_like(obj, allow_sets=True):
     return (isinstance(obj, compat.Iterable)
             # we do not count strings/unicode/bytes as list-like
             and not isinstance(obj, string_and_binary_types)
+
             # exclude zero-dimensional numpy arrays, effectively scalars
             and not (isinstance(obj, np.ndarray) and obj.ndim == 0)
+
             # exclude sets if allow_sets is False
             and not (allow_sets is False and isinstance(obj, Set)))
 

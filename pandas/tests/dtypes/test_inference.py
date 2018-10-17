@@ -64,39 +64,30 @@ def test_is_sequence():
 
 
 @pytest.mark.parametrize(
-    "ll",
-    [
+    "obj, expected",
+    list(zip([
         [], [1], tuple(), (1, ), (1, 2), {'a': 1}, {1, 'a'}, np.array([2]),
         Series([1]), Series([]), Series(['a']).str, Index([]), Index([1]),
         DataFrame(), DataFrame([[1]]), iter([1, 2]), (x for x in [1, 2]),
         np.ndarray((2,) * 2), np.ndarray((2,) * 3), np.ndarray((2,) * 4)
-    ])
-def test_is_list_like_passes(ll):
-    assert inference.is_list_like(ll)
-
-
-@pytest.mark.parametrize("ll", [1, '2', object(), str, np.array(2)])
-def test_is_list_like_fails(ll):
-    assert not inference.is_list_like(ll)
+    ], [True] * 30))
+    + list(zip([1, '2', object(), str, np.array(2)], [False] * 10)))
+def test_is_list_like(obj, expected):
+    assert inference.is_list_like(obj) == expected
 
 
 @pytest.mark.parametrize(
-    "ll",
-    [
+    "obj, expected",
+    list(zip([
         [], [1], tuple(), (1, ), (1, 2), {'a': 1}, np.array([2]),
         Series([1]), Series([]), Series(['a']).str, Index([]), Index([1]),
         DataFrame(), DataFrame([[1]]), iter([1, 2]), (x for x in [1, 2]),
         np.ndarray((2,) * 2), np.ndarray((2,) * 3), np.ndarray((2,) * 4)
-    ])
-def test_is_list_like_disallow_sets_passes(ll):
-    assert inference.is_list_like(ll, allow_sets=False)
-
-
-@pytest.mark.parametrize("ll", [1, '2', object(), str, np.array(2),
-                                {1, 'a'}, frozenset({1, 'a'})])
-def test_is_list_like_disallow_sets_fails(ll):
-    # GH 23061
-    assert not inference.is_list_like(ll, allow_sets=False)
+    ], [True] * 30))
+    + list(zip([1, '2', object(), str, np.array(2),
+                {1, 'a'}, frozenset({1, 'a'})], [False] * 10)))
+def test_is_list_like_disallow_sets(obj, expected):
+    assert inference.is_list_like(obj, allow_sets=False) == expected
 
 
 def test_is_array_like():
