@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_object,
     _get_dtype)
-from pandas.core.dtypes.missing import na_value_for_dtype
+from pandas.core.dtypes.missing import na_value_for_dtype, isnull
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util._decorators import Appender, Substitution
@@ -1390,12 +1390,21 @@ class _AsOfMerge(_OrderedMerge):
                         self.right_join_keys[-1])
         tolerance = self.tolerance
 
-        # we required sortedness in the join keys
-        msg = "{side} keys must be sorted"
+        # we required sortedness and non-missingness in the join keys
+        msg_sorted = "{side} keys must be sorted"
+        msg_missings = "Merge keys contain null values on {side} side"
+
         if not Index(left_values).is_monotonic:
-            raise ValueError(msg.format(side='left'))
+            if isnull(left_values).sum() > 0:
+                raise ValueError(msg_missings.format(side='left'))
+            else:
+                raise ValueError(msg_sorted.format(side='left'))
+
         if not Index(right_values).is_monotonic:
-            raise ValueError(msg.format(side='right'))
+            if isnull(right_values).sum() > 0:
+                raise ValueError(msg_missings.format(side='right'))
+            else:
+                raise ValueError(msg_sorted.format(side='right'))
 
         # initial type conversion as needed
         if needs_i8_conversion(left_values):
