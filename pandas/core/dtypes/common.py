@@ -1,5 +1,4 @@
 """ common type operations """
-
 import numpy as np
 from pandas.compat import (string_types, text_type, binary_type,
                            PY3, PY36)
@@ -21,7 +20,6 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_dict_like, is_scalar, is_string_like, is_list_like, is_number,
     is_file_like, is_re, is_re_compilable, is_sequence, is_nested_list_like,
     is_named_tuple, is_array_like, is_decimal, is_complex, is_interval)
-
 
 _POSSIBLY_CAST_DTYPES = {np.dtype(t).name
                          for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
@@ -180,8 +178,10 @@ def is_sparse(arr):
     >>> is_sparse(bsr_matrix([1, 2, 3]))
     False
     """
+    from pandas.core.arrays.sparse import SparseDtype
 
-    return isinstance(arr, (ABCSparseArray, ABCSparseSeries))
+    dtype = getattr(arr, 'dtype', arr)
+    return isinstance(dtype, SparseDtype)
 
 
 def is_scipy_sparse(arr):
@@ -1643,8 +1643,9 @@ def is_bool_dtype(arr_or_dtype):
     True
     >>> is_bool_dtype(pd.Categorical([True, False]))
     True
+    >>> is_bool_dtype(pd.SparseArray([True, False]))
+    True
     """
-
     if arr_or_dtype is None:
         return False
     try:
@@ -1751,6 +1752,8 @@ def is_extension_array_dtype(arr_or_dtype):
     array interface. In pandas, this includes:
 
     * Categorical
+    * Sparse
+    * Interval
 
     Third-party libraries may implement arrays or types satisfying
     this interface as well.
@@ -1873,7 +1876,8 @@ def _get_dtype(arr_or_dtype):
             return PeriodDtype.construct_from_string(arr_or_dtype)
         elif is_interval_dtype(arr_or_dtype):
             return IntervalDtype.construct_from_string(arr_or_dtype)
-    elif isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex)):
+    elif isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex,
+                                   ABCSparseArray, ABCSparseSeries)):
         return arr_or_dtype.dtype
 
     if hasattr(arr_or_dtype, 'dtype'):
@@ -1921,6 +1925,13 @@ def _get_dtype_type(arr_or_dtype):
         elif is_interval_dtype(arr_or_dtype):
             return Interval
         return _get_dtype_type(np.dtype(arr_or_dtype))
+    else:
+        from pandas.core.arrays.sparse import SparseDtype
+        if isinstance(arr_or_dtype, (ABCSparseSeries,
+                                     ABCSparseArray,
+                                     SparseDtype)):
+            dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
+            return dtype.type
     try:
         return arr_or_dtype.dtype.type
     except AttributeError:

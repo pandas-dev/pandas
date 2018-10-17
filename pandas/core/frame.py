@@ -1,3 +1,5 @@
+# pylint: disable=E1101
+# pylint: disable=W0212,W0703,W0622
 """
 DataFrame
 ---------
@@ -9,11 +11,9 @@ alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
 from __future__ import division
-# pylint: disable=E1101,E1103
-# pylint: disable=W0212,W0231,W0703,W0622
 
-import functools
 import collections
+import functools
 import itertools
 import sys
 import warnings
@@ -22,7 +22,20 @@ from textwrap import dedent
 import numpy as np
 import numpy.ma as ma
 
-from pandas.core.accessor import CachedAccessor
+from pandas._libs import lib, algos as libalgos
+
+from pandas.util._decorators import (Appender, Substitution,
+                                     rewrite_axis_style_signature,
+                                     deprecate_kwarg)
+from pandas.util._validators import (validate_bool_kwarg,
+                                     validate_axis_style_args)
+
+from pandas import compat
+from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
+                           OrderedDict, PY36, raise_with_traceback,
+                           string_and_binary_types)
+from pandas.compat.numpy import function as nv
+
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -62,46 +75,32 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import _get_sliced_frame_result_type
 from pandas.core.dtypes.missing import isna, notna
 
-
+from pandas.core import algorithms
+from pandas.core import common as com
+from pandas.core import nanops
+from pandas.core import ops
+from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.config import get_option
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, ensure_index,
                                ensure_index_from_sequences)
+from pandas.core.indexes import base as ibase
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
                                   check_bool_indexer)
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
-from pandas.core.arrays import Categorical, ExtensionArray
-import pandas.core.algorithms as algorithms
-from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
-                           OrderedDict, raise_with_traceback,
-                           string_and_binary_types)
-from pandas import compat
-from pandas.compat import PY36
-from pandas.compat.numpy import function as nv
-from pandas.util._decorators import (Appender, Substitution,
-                                     rewrite_axis_style_signature,
-                                     deprecate_kwarg)
-from pandas.util._validators import (validate_bool_kwarg,
-                                     validate_axis_style_args)
 
-from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
-import pandas.core.indexes.base as ibase
-
-import pandas.core.common as com
-import pandas.core.nanops as nanops
-import pandas.core.ops as ops
-import pandas.io.formats.console as console
-import pandas.io.formats.format as fmt
+from pandas.io.formats import console
+from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
+
 import pandas.plotting._core as gfx
-
-from pandas._libs import lib, algos as libalgos
-
-from pandas.core.config import get_option
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -1003,7 +1002,7 @@ class DataFrame(NDFrame):
             rvals = np.asarray(other)
             if lvals.shape[1] != rvals.shape[0]:
                 raise ValueError('Dot product shape mismatch, '
-                                 '{l} vs {r}'.format(l=lvals.shape,
+                                 '{s} vs {r}'.format(s=lvals.shape,
                                                      r=rvals.shape))
 
         if isinstance(other, DataFrame):
@@ -1147,51 +1146,53 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        result : collections.Mapping like {column -> {index -> value}}
+        dict, list or collections.Mapping
+            Return a collections.Mapping object representing the DataFrame.
+            The resulting transformation depends on the `orient` parameter.
 
         See Also
         --------
-        DataFrame.from_dict: create a DataFrame from a dictionary
-        DataFrame.to_json: convert a DataFrame to JSON format
+        DataFrame.from_dict: Create a DataFrame from a dictionary.
+        DataFrame.to_json: Convert a DataFrame to JSON format.
 
         Examples
         --------
         >>> df = pd.DataFrame({'col1': [1, 2],
         ...                    'col2': [0.5, 0.75]},
-        ...                   index=['a', 'b'])
+        ...                   index=['row1', 'row2'])
         >>> df
-           col1  col2
-        a     1   0.50
-        b     2   0.75
+              col1  col2
+        row1     1  0.50
+        row2     2  0.75
         >>> df.to_dict()
-        {'col1': {'a': 1, 'b': 2}, 'col2': {'a': 0.5, 'b': 0.75}}
+        {'col1': {'row1': 1, 'row2': 2}, 'col2': {'row1': 0.5, 'row2': 0.75}}
 
         You can specify the return orientation.
 
         >>> df.to_dict('series')
-        {'col1': a    1
-                 b    2
-                 Name: col1, dtype: int64,
-         'col2': a    0.50
-                 b    0.75
-                 Name: col2, dtype: float64}
+        {'col1': row1    1
+                 row2    2
+        Name: col1, dtype: int64,
+        'col2': row1    0.50
+                row2    0.75
+        Name: col2, dtype: float64}
 
         >>> df.to_dict('split')
-        {'index': ['a', 'b'], 'columns': ['col1', 'col2'],
+        {'index': ['row1', 'row2'], 'columns': ['col1', 'col2'],
          'data': [[1.0, 0.5], [2.0, 0.75]]}
 
         >>> df.to_dict('records')
         [{'col1': 1.0, 'col2': 0.5}, {'col1': 2.0, 'col2': 0.75}]
 
         >>> df.to_dict('index')
-        {'a': {'col1': 1.0, 'col2': 0.5}, 'b': {'col1': 2.0, 'col2': 0.75}}
+        {'row1': {'col1': 1, 'col2': 0.5}, 'row2': {'col1': 2, 'col2': 0.75}}
 
         You can also specify the mapping type.
 
         >>> from collections import OrderedDict, defaultdict
         >>> df.to_dict(into=OrderedDict)
-        OrderedDict([('col1', OrderedDict([('a', 1), ('b', 2)])),
-                     ('col2', OrderedDict([('a', 0.5), ('b', 0.75)]))])
+        OrderedDict([('col1', OrderedDict([('row1', 1), ('row2', 2)])),
+                     ('col2', OrderedDict([('row1', 0.5), ('row2', 0.75)]))])
 
         If you want a `defaultdict`, you need to initialize it:
 
@@ -1225,6 +1226,10 @@ class DataFrame(NDFrame):
                            for k, v in zip(self.columns, np.atleast_1d(row)))
                     for row in self.values]
         elif orient.lower().startswith('i'):
+            if not self.index.is_unique:
+                raise ValueError(
+                    "DataFrame index must be unique for orient='index'."
+                )
             return into_c((t[0], dict(zip(self.columns, t[1:])))
                           for t in self.itertuples())
         else:
@@ -1760,7 +1765,7 @@ class DataFrame(NDFrame):
         >>> type(sdf)
         <class 'pandas.core.sparse.frame.SparseDataFrame'>
         """
-        from pandas.core.sparse.frame import SparseDataFrame
+        from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns, default_kind=kind,
                                default_fill_value=fill_value)
@@ -5095,9 +5100,17 @@ class DataFrame(NDFrame):
                 series[this_mask] = fill_value
                 otherSeries[other_mask] = fill_value
 
-            # if we have different dtypes, possibly promote
-            new_dtype = this_dtype
-            if not is_dtype_equal(this_dtype, other_dtype):
+            if col not in self.columns:
+                # If self DataFrame does not have col in other DataFrame,
+                # try to promote series, which is all NaN, as other_dtype.
+                new_dtype = other_dtype
+                try:
+                    series = series.astype(new_dtype, copy=False)
+                except ValueError:
+                    # e.g. new_dtype is integer types
+                    pass
+            else:
+                # if we have different dtypes, possibly promote
                 new_dtype = find_common_type([this_dtype, other_dtype])
                 if not is_dtype_equal(this_dtype, new_dtype):
                     series = series.astype(new_dtype)
@@ -5175,6 +5188,11 @@ class DataFrame(NDFrame):
                 y_values = y_values.view('i8')
             else:
                 mask = isna(x_values)
+
+            # If the column y in other DataFrame is not in first DataFrame,
+            # just return y_values.
+            if y.name not in self.columns:
+                return y_values
 
             return expressions.where(mask, y_values, x_values)
 
