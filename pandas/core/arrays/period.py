@@ -153,8 +153,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             values = values.values
 
         if isinstance(values, type(self)):
-            if freq is not None:
-                raise TypeError("Cannot pass 'freq' and a 'PeriodArray'.")
+            if freq is not None and freq != values.freq:
+                raise TypeError("freq does not match")
             values, freq = values._data, values.freq
 
         values = np.array(values, dtype='int64', copy=copy)
@@ -163,100 +163,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             raise ValueError('freq is not specified and cannot be inferred')
         freq = Period._maybe_convert_freq(freq)
         self._dtype = PeriodDtype(freq)
-
-    @classmethod
-    def _complex_new(cls, data=None, ordinal=None, freq=None, start=None,
-                     end=None, periods=None, tz=None, dtype=None, copy=False,
-                     **fields):
-        from pandas import PeriodIndex, DatetimeIndex, Int64Index
-
-        # copy-pase from PeriodIndex.__new__ with slight adjustments.
-        #
-        # - removed all uses of name
-
-        # TODO: move fields validation to range init
-        valid_field_set = {'year', 'month', 'day', 'quarter',
-                           'hour', 'minute', 'second'}
-
-        if not set(fields).issubset(valid_field_set):
-            raise TypeError('__new__() got an unexpected keyword argument {}'.
-                            format(list(set(fields) - valid_field_set)[0]))
-
-        if periods is not None:
-            if is_float(periods):
-                periods = int(periods)
-            elif not is_integer(periods):
-                msg = 'periods must be a number, got {periods}'
-                raise TypeError(msg.format(periods=periods))
-
-            periods = dtl.validate_periods(periods)
-
-        if dtype is not None:
-            dtype = pandas_dtype(dtype)
-            if not is_period_dtype(dtype):
-                raise ValueError('dtype must be PeriodDtype')
-            if freq is None:
-                freq = dtype.freq
-            elif freq != dtype.freq:
-                msg = 'specified freq and dtype are different'
-                raise IncompatibleFrequency(msg)
-
-        # coerce freq to freq object, otherwise it can be coerced elementwise
-        # which is slow
-        if freq:
-            freq = Period._maybe_convert_freq(freq)
-
-        if data is None:
-            if ordinal is not None:
-                data = np.asarray(ordinal, dtype=np.int64)
-            else:
-                data, freq = cls._generate_range(start, end, periods,
-                                                 freq, fields)
-            return cls(data, freq=freq)
-
-        if isinstance(data, (cls, PeriodIndex)):
-            if freq is None or freq == data.freq:  # no freq change
-                freq = data.freq
-                data = data._ndarray_values
-            else:
-                base1, _ = _gfc(data.freq)
-                base2, _ = _gfc(freq)
-                data = libperiod.period_asfreq_arr(data._ndarray_values,
-                                                   base1, base2, 1)
-            if copy:
-                data = data.copy()
-            return cls(data, freq=freq)
-
-        # not array / index
-        if not isinstance(data, (np.ndarray, PeriodIndex,
-                                 DatetimeIndex, Int64Index)):
-            if is_scalar(data):
-                raise TypeError('{0}(...) must be called with a '
-                                'collection of some '
-                                'kind, {1} was passed'.format(cls.__name__,
-                                                              repr(data)))
-
-            # other iterable of some kind
-            if not isinstance(data, (list, tuple)):
-                data = list(data)
-
-            data = np.asarray(data)
-
-        # datetime other than period
-        if is_datetime64_dtype(data.dtype):
-            data = dt64arr_to_periodarr(data, freq, tz)
-            return cls(data, freq=freq)
-
-        # check not floats
-        if lib.infer_dtype(data) == 'floating' and len(data) > 0:
-            raise TypeError("PeriodIndex does not allow "
-                            "floating point in construction")
-
-        # anything else, likely an array of strings or periods
-        data = ensure_object(data)
-        if dtype is None and freq:
-            dtype = PeriodDtype(freq)
-        return cls._from_sequence(data, dtype=dtype)
 
     @classmethod
     def _simple_new(cls, values, freq=None, **kwargs):
@@ -408,7 +314,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             if len(key) == 0:
                 return
 
-            value = type(self)._complex_new(value)
+            value = period_array(value)
+
             if self.freqstr != value.freqstr:
                 msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, value.freqstr)
                 raise IncompatibleFrequency(msg)
@@ -618,7 +525,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         if self.hasnans:
             new_data[self._isnan] = iNaT
 
-        return self._shallow_copy(new_data, freq=freq)
+        return type(self)(new_data, freq=freq)
 
     def to_timestamp(self, freq=None, how='start'):
         """
@@ -703,7 +610,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # Note: when calling parent class's _add_delta_td, it will call
         #  delta_to_nanoseconds(delta).  Because delta here is an integer,
         #  delta_to_nanoseconds will return it unchanged.
-        return type(self)._add_delta_td(self, delta)
+        ordinals = super(PeriodArray, self)._add_delta_td(delta)
+        return type(self)(ordinals, self.freq)
+
 
     def _add_delta_tdi(self, other):
         assert isinstance(self.freq, Tick)  # checked by calling function
@@ -736,11 +645,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         #  i8 view or _shallow_copy
         if isinstance(other, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(other)
-            return self._shallow_copy(new_values)
+            return type(self)(new_values)
         elif is_timedelta64_dtype(other):
             # ndarray[timedelta64] or TimedeltaArray/index
             new_values = self._add_delta_tdi(other)
-            return self._shallow_copy(new_values)
+            return type(self)(new_values)
         else:  # pragma: no cover
             raise TypeError(type(other).__name__)
 
@@ -924,7 +833,7 @@ PeriodArray._add_datetimelike_methods()
 # -------------------------------------------------------------------
 # Constructor Helpers
 
-def period_array(data, freq=None):
+def period_array(data, freq=None, ordinal=None, copy=False):
     # type: (Sequence[Optional[Period]], Optional[Tick]) -> PeriodArray
     """
     Construct a new PeriodArray from a sequence of Period scalars.
@@ -938,6 +847,8 @@ def period_array(data, freq=None):
     freq : str, Tick, or Offset
         The frequency of every element of the array. This can be specified
         to avoid inferring the `freq` from `data`.
+    copy : bool, default False
+        Whether to ensure a copy of the data is made.
 
     Returns
     -------
@@ -963,10 +874,37 @@ def period_array(data, freq=None):
     ['2017', '2018', 'NaT']
     Length: 3, dtype: period[A-DEC]
     """
+
+    if data is None and ordinal is None:
+        raise ValueError("range!")
+    elif data is None:
+        data = np.asarray(ordinal, dtype=np.int64)
+        if copy:
+            data = data.copy()
+        return PeriodArray(data, freq=freq)
+    else:
+        if isinstance(data, (ABCPeriodIndex, ABCSeries, PeriodArray)):
+            return PeriodArray(data, freq)
+        elif is_datetime64_dtype(data):
+            return PeriodArray._from_datetime64(data, freq)
+
+        # other iterable of some kind
+        if not isinstance(data, (np.ndarray, list, tuple)):
+            data = list(data)
+
     if freq:
         dtype = PeriodDtype(freq)
     else:
         dtype = None
+
+    if lib.infer_dtype(data) == 'floating' and len(data) > 0:
+        # Can we avoid infer_dtype? Why pay that tax every time?
+        raise TypeError("PeriodIndex does not allow "
+                        "floating point in construction")
+
+    data = ensure_object(data)
+
+
     return PeriodArray._from_sequence(data, dtype=dtype)
 
 

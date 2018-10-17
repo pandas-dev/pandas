@@ -28,8 +28,9 @@ from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
 from pandas._libs.tslibs import resolution
 
 from pandas.core.algorithms import unique1d
+from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndexClass
-from pandas.core.arrays.period import PeriodArray
+from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 
@@ -190,13 +191,54 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                 periods=None, tz=None, dtype=None, copy=False, name=None,
                 **fields):
 
+        valid_field_set = {'year', 'month', 'day', 'quarter',
+                           'hour', 'minute', 'second'}
+
+        if not set(fields).issubset(valid_field_set):
+            raise TypeError('__new__() got an unexpected keyword argument {}'.
+                            format(list(set(fields) - valid_field_set)[0]))
+
         if name is None and hasattr(data, 'name'):
             name = data.name
 
-        data = PeriodArray._complex_new(data=data, ordinal=ordinal, freq=freq,
-                                        start=start, end=end, periods=periods,
-                                        tz=tz, dtype=dtype, copy=copy,
-                                        **fields)
+        if data is None and ordinal is None:
+            # range-based.
+            if periods is not None:
+                if is_float(periods):
+                    periods = int(periods)
+
+                elif not is_integer(periods):
+                    msg = 'periods must be a number, got {periods}'
+                    raise TypeError(msg.format(periods=periods))
+
+            data, freq = PeriodArray._generate_range(start, end, periods,
+                                                     freq, fields)
+            data = PeriodArray(data, freq=freq)
+        else:
+            if freq is None and dtype is not None:
+                freq = PeriodDtype(dtype).freq
+            elif freq and dtype:
+                freq = PeriodDtype(freq).freq
+                dtype = PeriodDtype(dtype).freq
+
+                if freq != dtype:
+                    msg = "specified freq and dtype are different"
+                    raise IncompatibleFrequency(msg)
+
+            # PeriodIndex allow PeriodIndex(period_index, freq=different)
+            # Let's not encourage that kind of behavior in PeriodArray.
+
+            if freq and isinstance(data, cls) and data.freq != freq:
+                # TODO: We can do some of these with no-copy / coercion?
+                # e.g. D -> 2D seems to be OK
+                data = data.asfreq(freq)
+
+            data = period_array(data=data, ordinal=ordinal, freq=freq,
+                                copy=copy)
+
+        if copy:
+            data = data.copy()
+
         return cls._simple_new(data, name=name)
 
     # ------------------------------------------------------------------------
@@ -268,18 +310,22 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         # TODO: simplify, figure out type of values
         if values is None:
             values = self._values
+
+        if isinstance(values, type(self)):
+            values = values.values
+
         if not isinstance(values, PeriodArray):
             if (isinstance(values, np.ndarray) and
                     is_integer_dtype(values.dtype)):
                 values = PeriodArray(values, freq=self.freq)
             else:
-                # in particular, I would like to avoid complex_new here.
+                # in particular, I would like to avoid period_array here.
                 # Some people seem to be calling use with unexpected types
                 # Index.difference -> ndarray[Period]
                 # DatetimelikeIndexOpsMixin.repeat -> ndarray[ordinal]
                 # I think that once all of Datetime* are EAs, we can simplify
                 # this quite a bit.
-                values = PeriodArray._complex_new(values, freq=self.freq)
+                values = period_array(values, freq=self.freq)
 
         # I don't like overloading shallow_copy with freq changes.
         # See if it's used anywhere outside of test_resample_empty_dataframe
