@@ -1008,24 +1008,19 @@ class TestAsOfMerge(object):
         with tm.assert_raises_regex(MergeError, msg):
             merge_asof(left, right, on='a')
 
-    def test_merge_on_nans_int(self):
-        # 23189
-        msg = "Merge keys contain null values on left side"
-        left = pd.DataFrame({'a': [1.0, 5.0, 10.0, 12.0, np.nan],
-                             'left_val': ['a', 'b', 'c', 'd', 'e']})
-        right = pd.DataFrame({'a': [1.0, 5.0, 10.0, 12.0],
-                              'right_val': [1, 6, 11, 15]})
+    @pytest.mark.parametrize('func', [lambda x: x, lambda x: to_datetime(x)],
+                             ids=['numeric', 'datetime'])
+    @pytest.mark.parametrize('side', ['left', 'right'])
+    def test_merge_on_nans(self, func, side):
+        # GH 23189
+        msg = "Merge keys contain null values on {} side".format(side)
+        nulls = func([1.0, 5.0, np.nan])
+        non_nulls = func([1.0, 5.0, 10.])
+        df_null = pd.DataFrame({'a': nulls, 'left_val': ['a', 'b', 'c']})
+        df = pd.DataFrame({'a': non_nulls, 'right_val': [1, 6, 11]})
 
         with tm.assert_raises_regex(ValueError, msg):
-            merge_asof(left, right, on='a')
-
-    def test_merge_on_nans_datetime(self):
-        # 23189
-        msg = "Merge keys contain null values on right side"
-        left = pd.DataFrame({"a": pd.date_range('20130101', periods=5)})
-        date_vals = pd.date_range('20130102', periods=5)\
-            .append(pd.Index([None]))
-        right = pd.DataFrame({"a": date_vals})
-
-        with tm.assert_raises_regex(ValueError, msg):
-            merge_asof(left, right, on='a')
+            if side == 'left':
+                merge_asof(df_null, df, on='a')
+            else:
+                merge_asof(df, df_null, on='a')
