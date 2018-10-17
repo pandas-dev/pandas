@@ -388,6 +388,7 @@ class TestPeriodIndexArithmetic(object):
         expected = pd.Index([pd.NaT, 0 * off, 0 * off, 0 * off, 0 * off])
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.xfail(reason="GH-23155", strict=False)
     def test_parr_sub_pi_mismatched_freq(self, box_df_broadcast_failure):
         box = box_df_broadcast_failure
 
@@ -797,7 +798,7 @@ class TestPeriodSeriesArithmetic(object):
         # GH 13043
         ser = pd.Series([pd.Period('2015-01-01', freq='D'),
                          pd.Period('2015-01-02', freq='D')], name='xxx')
-        assert ser.dtype == object
+        assert ser.dtype == 'Period[D]'
 
         expected = pd.Series([pd.Period('2015-01-02', freq='D'),
                               pd.Period('2015-01-03', freq='D')], name='xxx')
@@ -814,11 +815,12 @@ class TestPeriodSeriesArithmetic(object):
         result = pd.tseries.offsets.Day() + ser
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(reason="GH-23155", strict=True)
     def test_ops_series_period(self):
         # GH 13043
         ser = pd.Series([pd.Period('2015-01-01', freq='D'),
                          pd.Period('2015-01-02', freq='D')], name='xxx')
-        assert ser.dtype == object
+        assert ser.dtype == "Period[D]"
 
         per = pd.Period('2015-01-10', freq='D')
         off = per.freq
@@ -829,7 +831,7 @@ class TestPeriodSeriesArithmetic(object):
 
         s2 = pd.Series([pd.Period('2015-01-05', freq='D'),
                         pd.Period('2015-01-04', freq='D')], name='xxx')
-        assert s2.dtype == object
+        assert s2.dtype == "Period[D]"
 
         expected = pd.Series([4 * off, 2 * off], name='xxx', dtype=object)
         tm.assert_series_equal(s2 - ser, expected)

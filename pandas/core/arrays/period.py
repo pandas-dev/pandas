@@ -817,13 +817,22 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         else:
             return np.asarray(self, dtype=dtype)
 
-    def item(self):
+    def _item(self):
         if len(self) == 1:
             # IndexOpsMixin will catch and re-raise IndexErrors
             return Period._from_ordinal(self.values[0], self.freq)
         else:
             raise ValueError('can only convert an array of size 1 to a '
                              'Python scalar')
+
+    @property
+    def flags(self):
+        # TODO: remove
+        # We need this since reduction.SeriesBinGrouper uses values.flags
+        # Ideally, we wouldn't be passing objects down there in the first
+        # place.
+        return self._ndarray_values.flags
+
 
 
 PeriodArray._add_comparison_ops()

@@ -947,12 +947,32 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         """ return the first element of the underlying data as a python
         scalar
         """
+        # TODO(DatetimeArray): remove
+        # override to use _item
         try:
             return self.values._item()
         except IndexError:
             # copy numpy's message here because Py26 raises an IndexError
             raise ValueError('can only convert an array of size 1 to a '
                              'Python scalar')
+
+    @property
+    def data(self):
+        """ return the data pointer of the underlying data """
+        warnings.warn("{obj}.data is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
+        return np.asarray(self.values).data
+
+    @property
+    def base(self):
+        """ return the base object if the memory of the underlying data is
+        shared
+        """
+        warnings.warn("{obj}.base is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
+        return np.asarray(self.values)
 
 
 PeriodIndex._add_comparison_ops()

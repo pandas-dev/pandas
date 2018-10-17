@@ -1179,11 +1179,11 @@ class TestToIterable(object):
             assert isinstance(res, Timedelta)
             assert res == exp
 
-        # period (object dtype, not boxed)
+        # period
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
         s = Series(vals)
-        assert s.dtype == 'object'
+        assert s.dtype == 'Period[M]'
         for res, exp in zip(s, vals):
             assert isinstance(res, pd.Period)
             assert res.freq == 'M'
