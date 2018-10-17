@@ -122,6 +122,30 @@ class TestTimedeltaArray(object):
         assert asobj.dtype == 'O'
         assert list(asobj) == list(tdi)
 
+    def test_asm8(self):
+        tdi = pd.TimedeltaIndex(['1 Hour', '3 Hours'])
+        arr = TimedeltaArrayMixin(tdi)
+
+        expected = np.array([3600 * 1e9, 10800 * 1e9], dtype='M8[ns]')
+
+        result = tdi.asm8
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = arr.asm8
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_to_timedelta64(self):
+        tdi = pd.TimedeltaIndex(['1 Hour', '3 Hours'])
+        arr = TimedeltaArrayMixin(tdi)
+
+        expected = np.array([3600 * 1e9, 10800 * 1e9], dtype='M8[ns]')
+
+        result = tdi.to_timedelta64()
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = arr.to_timedelta64()
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestPeriodArray(object):
 
