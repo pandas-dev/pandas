@@ -1146,51 +1146,53 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        result : collections.Mapping like {column -> {index -> value}}
+        dict, list or collections.Mapping
+            Return a collections.Mapping object representing the DataFrame.
+            The resulting transformation depends on the `orient` parameter.
 
         See Also
         --------
-        DataFrame.from_dict: create a DataFrame from a dictionary
-        DataFrame.to_json: convert a DataFrame to JSON format
+        DataFrame.from_dict: Create a DataFrame from a dictionary.
+        DataFrame.to_json: Convert a DataFrame to JSON format.
 
         Examples
         --------
         >>> df = pd.DataFrame({'col1': [1, 2],
         ...                    'col2': [0.5, 0.75]},
-        ...                   index=['a', 'b'])
+        ...                   index=['row1', 'row2'])
         >>> df
-           col1  col2
-        a     1   0.50
-        b     2   0.75
+              col1  col2
+        row1     1  0.50
+        row2     2  0.75
         >>> df.to_dict()
-        {'col1': {'a': 1, 'b': 2}, 'col2': {'a': 0.5, 'b': 0.75}}
+        {'col1': {'row1': 1, 'row2': 2}, 'col2': {'row1': 0.5, 'row2': 0.75}}
 
         You can specify the return orientation.
 
         >>> df.to_dict('series')
-        {'col1': a    1
-                 b    2
-                 Name: col1, dtype: int64,
-         'col2': a    0.50
-                 b    0.75
-                 Name: col2, dtype: float64}
+        {'col1': row1    1
+                 row2    2
+        Name: col1, dtype: int64,
+        'col2': row1    0.50
+                row2    0.75
+        Name: col2, dtype: float64}
 
         >>> df.to_dict('split')
-        {'index': ['a', 'b'], 'columns': ['col1', 'col2'],
+        {'index': ['row1', 'row2'], 'columns': ['col1', 'col2'],
          'data': [[1.0, 0.5], [2.0, 0.75]]}
 
         >>> df.to_dict('records')
         [{'col1': 1.0, 'col2': 0.5}, {'col1': 2.0, 'col2': 0.75}]
 
         >>> df.to_dict('index')
-        {'a': {'col1': 1.0, 'col2': 0.5}, 'b': {'col1': 2.0, 'col2': 0.75}}
+        {'row1': {'col1': 1, 'col2': 0.5}, 'row2': {'col1': 2, 'col2': 0.75}}
 
         You can also specify the mapping type.
 
         >>> from collections import OrderedDict, defaultdict
         >>> df.to_dict(into=OrderedDict)
-        OrderedDict([('col1', OrderedDict([('a', 1), ('b', 2)])),
-                     ('col2', OrderedDict([('a', 0.5), ('b', 0.75)]))])
+        OrderedDict([('col1', OrderedDict([('row1', 1), ('row2', 2)])),
+                     ('col2', OrderedDict([('row1', 0.5), ('row2', 0.75)]))])
 
         If you want a `defaultdict`, you need to initialize it:
 
@@ -1224,6 +1226,10 @@ class DataFrame(NDFrame):
                            for k, v in zip(self.columns, np.atleast_1d(row)))
                     for row in self.values]
         elif orient.lower().startswith('i'):
+            if not self.index.is_unique:
+                raise ValueError(
+                    "DataFrame index must be unique for orient='index'."
+                )
             return into_c((t[0], dict(zip(self.columns, t[1:])))
                           for t in self.itertuples())
         else:
@@ -1759,7 +1765,7 @@ class DataFrame(NDFrame):
         >>> type(sdf)
         <class 'pandas.core.sparse.frame.SparseDataFrame'>
         """
-        from pandas.core.sparse.frame import SparseDataFrame
+        from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns, default_kind=kind,
                                default_fill_value=fill_value)

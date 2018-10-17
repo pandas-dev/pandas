@@ -214,20 +214,25 @@ class TestSeriesCombine():
                           Series(dtype='object')]).dtype == 'object'
 
         # sparse
+        # TODO: move?
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(
             dtype='float64').to_sparse()])
-        assert result.dtype == np.float64
+        assert result.dtype == 'Sparse[float64]'
         assert result.ftype == 'float64:sparse'
 
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(
             dtype='float64')])
-        assert result.dtype == np.float64
+        # TODO: release-note: concat sparse dtype
+        expected = pd.core.sparse.api.SparseDtype(np.float64)
+        assert result.dtype == expected
         assert result.ftype == 'float64:sparse'
 
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(
             dtype='object')])
-        assert result.dtype == np.object_
-        assert result.ftype == 'object:dense'
+        # TODO: release-note: concat sparse dtype
+        expected = pd.core.sparse.api.SparseDtype('object')
+        assert result.dtype == expected
+        assert result.ftype == 'object:sparse'
 
     def test_combine_first_dt64(self):
         from pandas.core.tools.datetimes import to_datetime

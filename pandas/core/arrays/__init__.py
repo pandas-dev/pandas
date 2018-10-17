@@ -8,3 +8,4 @@ from .period import PeriodArrayMixin  # noqa
 from .timedeltas import TimedeltaArrayMixin  # noqa
 from .integer import (  # noqa
     IntegerArray, integer_array)
+from .sparse import SparseArray  # noqa

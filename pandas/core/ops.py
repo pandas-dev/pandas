@@ -1805,12 +1805,7 @@ def _align_method_FRAME(left, right, axis):
 
             elif right.shape[0] == left.shape[0] and right.shape[1] == 1:
                 # Broadcast across columns
-                try:
-                    right = np.broadcast_to(right, left.shape)
-                except AttributeError:
-                    # numpy < 1.10.0
-                    right = np.tile(right, (1, left.shape[1]))
-
+                right = np.broadcast_to(right, left.shape)
                 right = left._constructor(right,
                                           index=left.index,
                                           columns=left.columns)
@@ -2066,16 +2061,19 @@ def _cast_sparse_series_op(left, right, opname):
     left : SparseArray
     right : SparseArray
     """
+    from pandas.core.sparse.api import SparseDtype
+
     opname = opname.strip('_')
 
+    # TODO: This should be moved to the array?
     if is_integer_dtype(left) and is_integer_dtype(right):
         # series coerces to float64 if result should have NaN/inf
         if opname in ('floordiv', 'mod') and (right.values == 0).any():
-            left = left.astype(np.float64)
-            right = right.astype(np.float64)
+            left = left.astype(SparseDtype(np.float64, left.fill_value))
+            right = right.astype(SparseDtype(np.float64, right.fill_value))
         elif opname in ('rfloordiv', 'rmod') and (left.values == 0).any():
-            left = left.astype(np.float64)
-            right = right.astype(np.float64)
+            left = left.astype(SparseDtype(np.float64, left.fill_value))
+            right = right.astype(SparseDtype(np.float64, right.fill_value))
 
     return left, right
 
@@ -2113,7 +2111,7 @@ def _sparse_series_op(left, right, op, name):
     new_index = left.index
     new_name = get_op_result_name(left, right)
 
-    from pandas.core.sparse.array import _sparse_array_op
+    from pandas.core.arrays.sparse import _sparse_array_op
     lvalues, rvalues = _cast_sparse_series_op(left.values, right.values, name)
     result = _sparse_array_op(lvalues, rvalues, op, name)
     return left._constructor(result, index=new_index, name=new_name)
@@ -2127,7 +2125,7 @@ def _arith_method_SPARSE_ARRAY(cls, op, special):
     op_name = _get_op_name(op, special)
 
     def wrapper(self, other):
-        from pandas.core.sparse.array import (
+        from pandas.core.arrays.sparse.array import (
             SparseArray, _sparse_array_op, _wrap_result, _get_fill)
         if isinstance(other, np.ndarray):
             if len(self) != len(other):
