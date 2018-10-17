@@ -25,12 +25,11 @@ from pandas._libs import tslib, index as libindex
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
                                         DIFFERENT_FREQ_INDEX)
 
-from pandas._libs.tslibs import resolution, period
+from pandas._libs.tslibs import resolution
 
 from pandas.core.algorithms import unique1d
 from pandas.core.dtypes.generic import ABCIndexClass
-from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays.period import PeriodArray, dt64arr_to_periodarr
+from pandas.core.arrays.period import PeriodArray
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 
@@ -242,7 +241,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         if isinstance(values, cls):
             # TODO: don't do this
             values = values.values
-        elif isinstance(values, (ABCIndexClass, np.ndarray)) and is_integer_dtype(values):
+        elif (isinstance(values, (ABCIndexClass, np.ndarray)) and
+                is_integer_dtype(values)):
             # TODO: don't do this.
             values = PeriodArray._simple_new(values, freq)
 
@@ -880,7 +880,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     def view(self, dtype=None, type=None):
         # TODO(DatetimeArray): remove
-        if dtype is None or dtype is  __builtins__['type'](self):
+        if dtype is None or dtype is __builtins__['type'](self):
             return self
         return self._ndarray_values.view(dtype=dtype)
 
