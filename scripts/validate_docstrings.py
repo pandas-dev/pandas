@@ -114,6 +114,7 @@ def get_api_items(api_doc_fd):
 
         previous_line = line
 
+
 class DocstringExampleChecker(Checker):
     def set_lines(self, lines):
         self.lines = lines
@@ -521,24 +522,23 @@ def validate_one(func_name):
             errs.append('Examples do not pass tests')
         example_checker = DocstringExampleChecker()
         example_list = doctest.DocTestParser().get_examples(doc.raw_doc)
-        #for ex in example_list:
-            #lint
         example_checker.set_lines([ex.source for ex in example_list])
 
-        #check_all will print the error to stdout, so we suppress this
+        # check_all will print the error to stdout, so we suppress this
         with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
             num_errs = example_checker.check_all()
         if num_errs > 0:
-            for line_number, offset, code, text, doc in example_checker.report._deferred_print:
+            # returns a tuple of error information
+            err_report = example_checker.report._deferred_print
+            for line_number, offset, code, text, doc in err_report:
+                # module level import not at top of file
                 if code == 'E402':
                     continue
-                elif len(example_list)-1 < line_number:
+                # multi-line assignments report E501 incorrectly
+                elif code == 'E501':
                     continue
-                # multi-line assignments report E501: line too long
-                elif code == 'E501' and '\n' in example_list[line_number].source:
-                    continue
-                flo = example_list[line_number-1].lineno
-                errs.append('{}: {} {}:{}:{}'.format(code, text, func_name, flo, offset))
+                errs.append('{}: {} {}:{}:{}'.format(
+                    code, text, func_name, line_number, offset))
 
     doc = Docstring(func_name)
     return {'type': doc.type,
