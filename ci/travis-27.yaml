@@ -14,7 +14,7 @@ dependencies:
   - jemalloc=4.5.0.post
   - jinja2=2.8
   - lxml
-  - matplotlib
+  - matplotlib=2.2.2
   - mock
   - nomkl
   - numexpr

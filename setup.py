@@ -24,7 +24,7 @@ def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 
 
-min_numpy_ver = '1.9.0'
+min_numpy_ver = '1.12.0'
 setuptools_kwargs = {
     'install_requires': [
         'python-dateutil >= 2.5.0',
@@ -76,7 +76,7 @@ _pxi_dep_template = {
               '_libs/algos_take_helper.pxi.in',
               '_libs/algos_rank_helper.pxi.in'],
     'groupby': ['_libs/groupby_helper.pxi.in'],
-    'join': ['_libs/join_helper.pxi.in', '_libs/join_func_helper.pxi.in'],
+    'join': ['_libs/join_func_helper.pxi.in'],
     'hashtable': ['_libs/hashtable_class_helper.pxi.in',
                   '_libs/hashtable_func_helper.pxi.in'],
     'index': ['_libs/index_class_helper.pxi.in'],

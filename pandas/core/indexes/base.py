@@ -222,11 +222,21 @@ class Index(IndexOpsMixin, PandasObject):
     # To hand over control to subclasses
     _join_precedence = 1
 
-    # Cython methods
-    _left_indexer_unique = libjoin.left_join_indexer_unique_object
-    _left_indexer = libjoin.left_join_indexer_object
-    _inner_indexer = libjoin.inner_join_indexer_object
-    _outer_indexer = libjoin.outer_join_indexer_object
+    # Cython methods; see github.com/cython/cython/issues/2647
+    #  for why we need to wrap these instead of making them class attributes
+    # Moreover, cython will choose the appropriate-dtyped sub-function
+    #  given the dtypes of the passed arguments
+    def _left_indexer_unique(self, left, right):
+        return libjoin.left_join_indexer_unique(left, right)
+
+    def _left_indexer(self, left, right):
+        return libjoin.left_join_indexer(left, right)
+
+    def _inner_indexer(self, left, right):
+        return libjoin.inner_join_indexer(left, right)
+
+    def _outer_indexer(self, left, right):
+        return libjoin.outer_join_indexer(left, right)
 
     _typ = 'index'
     _data = None  # type: Union[np.ndarray, ExtensionArray]

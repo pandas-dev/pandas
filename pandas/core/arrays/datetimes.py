@@ -508,7 +508,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         The result's name is set outside of _add_delta by the calling
         method (__add__ or __sub__)
         """
-        from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
+        from pandas.core.arrays import TimedeltaArrayMixin
 
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)

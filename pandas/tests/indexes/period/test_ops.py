@@ -5,8 +5,7 @@ import pytest
 import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
-from pandas import (DatetimeIndex, PeriodIndex, Series, Period,
-                    _np_version_under1p10, Index)
+from pandas import DatetimeIndex, PeriodIndex, Series, Period, Index
 
 from pandas.core.arrays import PeriodArray
 from pandas.tests.test_base import Ops
@@ -74,12 +73,11 @@ class TestPeriodIndexOps(Ops):
         assert np.argmin(pr) == 0
         assert np.argmax(pr) == 5
 
-        if not _np_version_under1p10:
-            errmsg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmin, pr, out=0)
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmax, pr, out=0)
+        errmsg = "the 'out' parameter is not supported"
+        tm.assert_raises_regex(
+            ValueError, errmsg, np.argmin, pr, out=0)
+        tm.assert_raises_regex(
+            ValueError, errmsg, np.argmax, pr, out=0)
 
     def test_resolution(self):
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H',

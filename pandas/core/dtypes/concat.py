@@ -558,7 +558,7 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     a single array, preserving the combined dtypes
     """
 
-    from pandas.core.sparse.array import SparseArray
+    from pandas.core.arrays import SparseArray
 
     fill_values = [x.fill_value for x in to_concat
                    if isinstance(x, SparseArray)]
