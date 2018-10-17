@@ -7,7 +7,7 @@
 #if defined(_MSC_VER) && (_MSC_VER >= 1900)
 #include <cmath>
 namespace std {
-  __inline int notnan(double x) { return not isnan(x); }
+  __inline int notnan(double x) { return !isnan(x); }
 }
 #else
 #include <cmath>
