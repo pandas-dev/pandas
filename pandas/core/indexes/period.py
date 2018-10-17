@@ -246,7 +246,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             # TODO: don't do this.
             values = PeriodArray._simple_new(values, freq)
 
-        assert isinstance(values, PeriodArray)
+        if not isinstance(values, PeriodArray):
+            raise TypeError("PeriodIndex._simple_new only accepts PeriodArray")
         result = object.__new__(cls)
         result._data = values
         result.name = name

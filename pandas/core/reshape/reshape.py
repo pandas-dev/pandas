@@ -22,7 +22,7 @@ from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 from pandas.core.arrays import SparseArray
 from pandas._libs.sparse import IntIndex
 
-from pandas.core.arrays import Categorical, period_array
+from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import _factorize_from_iterable
 from pandas.core.sorting import (get_group_index, get_compressed_ids,
                                  compress_group_index, decons_obs_group_ids)

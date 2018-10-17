@@ -471,8 +471,6 @@ def _concat_datetime(to_concat, axis=0, typs=None):
 
     elif any(typ.startswith('period') for typ in typs):
         assert len(typs) == 1
-        # TODO: Need a generic way to say "concatenate these by
-        # concatenating the underlying EA and wrapping.
         cls = to_concat[0]
         new_values = cls._concat_same_type(to_concat)
         return new_values

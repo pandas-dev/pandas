@@ -9,7 +9,6 @@ from pandas import Timedelta
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
 from pandas.compat import text_type, iteritems
-from pandas.core.arrays import period_array
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas._libs import tslib
@@ -1046,6 +1045,7 @@ class TestMethods(object):
 
     @pytest.mark.parametrize('lbox', boxes, ids=ids)
     @pytest.mark.parametrize('rbox', boxes, ids=ids)
+    @pytest.mark.xfail(reason="Gh-23155", strict=False)
     def test_add_timestamp_raises(self, rbox, lbox):
         # GH # 17983
         ts = pd.Timestamp('2017')

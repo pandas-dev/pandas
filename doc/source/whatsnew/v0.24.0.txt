@@ -271,7 +271,7 @@ New Behavior:
 This mirrors ``CategoricalIndex.values``, which returns a ``Categorical``.
 
 For situations where you need an ``ndarray`` of ``Interval`` objects, use
-:meth:`numpy.asarray` or ``idx.values.astype(object)``.
+:meth:`numpy.asarray`.
 
 .. ipython:: python
 

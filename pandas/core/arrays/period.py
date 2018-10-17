@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
-    ABCSeries, ABCIndexClass,
+    ABCSeries, ABCIndexClass, ABCPeriodIndex
 )
 
 import pandas.core.common as com
@@ -146,12 +146,22 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     # --------------------------------------------------------------------
     # Constructors
-    def __init__(self, values, freq=None):
+    def __init__(self, values, freq=None, copy=False):
         # type: (Union[PeriodArray, np.ndarray], Union[str, Tick]) -> None
+        if isinstance(values, ABCSeries):
+            values = values.values
+            if not isinstance(values, type(self)):
+                raise TypeError("Incorect dtype")
+
+        elif isinstance(values, ABCPeriodIndex):
+            values = values.values
+
         if isinstance(values, type(self)):
+            if freq is not None:
+                raise TypeError("Cannot pass 'freq' and a 'PeriodArray'.")
             values, freq = values._data, values.freq
 
-        values = np.array(values, dtype='int64', copy=False)
+        values = np.array(values, dtype='int64', copy=copy)
         self._data = values
         if freq is None:
             raise ValueError('freq is not specified and cannot be inferred')

@@ -53,12 +53,6 @@ class TestSeriesPeriod(object):
         tm.assert_series_equal(res, exp)
         assert res.dtype == 'Period[M]'
 
-        # We don't support upcasting to object on fillna.
-        # res = s.fillna('XXX')
-        # exp = Series([pd.Period('2011-01', freq='M'), 'XXX'])
-        # tm.assert_series_equal(res, exp)
-        # assert res.dtype == 'object'
-
     def test_dropna(self):
         # GH 13737
         s = Series([pd.Period('2011-01', freq='M'),

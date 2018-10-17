@@ -17,7 +17,6 @@ from pandas import (Categorical, CategoricalIndex, DataFrame, DatetimeIndex,
                     Series, UInt64Index)
 from pandas.api.types import CategoricalDtype as CDT
 from pandas.compat import lrange, lzip
-from pandas.core.arrays import period_array
 from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.reshape.concat import concat
@@ -662,11 +661,9 @@ class TestMerge(object):
 
         exp_x = pd.period_range('20151010', periods=2, freq='D')
         exp_y = pd.period_range('20151011', periods=2, freq='D')
-        expected = DataFrame({
-            'key': [1, 2, 3],
-            'value_x': period_array(list(exp_x) + [pd.NaT], freq="D"),
-            'value_y': period_array([pd.NaT] + list(exp_y), freq="D"),
-        })
+        expected = DataFrame({'key': [1, 2, 3],
+                              'value_x': list(exp_x) + [pd.NaT],
+                              'value_y': [pd.NaT] + list(exp_y)})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
         assert result['value_x'].dtype == 'Period[D]'

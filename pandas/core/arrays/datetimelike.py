@@ -524,8 +524,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         left = lib.values_from_object(self.astype('O'))
 
         res_values = op(left, np.array(other))
+        kwargs = {}
         if not is_period_dtype(self):
-            return type(self)(res_values, freq='infer')
+            kwargs['freq'] = 'infer'
+            return type(self)(res_values, **kwargs)
         return self._from_sequence(res_values)
 
     @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')

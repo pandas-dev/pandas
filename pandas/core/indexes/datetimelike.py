@@ -691,6 +691,11 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     def _maybe_box_as_values(self, values, **attribs):
         # TODO(DatetimeArray): remove
+        # This is a temporary shim while PeriodArray is an ExtensoinArray,
+        # but others are not. When everyone is an ExtensionArray, this can
+        # be removed. Currently used in
+        # - sort_values
+        # - _concat_same_dtype
         return values
 
     def astype(self, dtype, copy=True):

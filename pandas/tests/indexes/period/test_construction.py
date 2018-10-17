@@ -274,17 +274,16 @@ class TestPeriodIndex(object):
     def test_constructor_simple_new_empty(self):
         # GH13079
         idx = PeriodIndex([], freq='M', name='p')
-        result = idx._simple_new(idx.values, name='p', freq='M')
+        result = idx._simple_new(idx, name='p', freq='M')
         tm.assert_index_equal(result, idx)
 
-    # @pytest.mark.parametrize('floats', [[1.1, 2.1], np.array([1.1, 2.1])])
-    # def test_constructor_floats(self, floats):
-    #     # GH#13079
-    #     with pytest.raises(TypeError):
-    #         pd.PeriodIndex._simple_new(floats, freq='M')
-    #
-    #     with pytest.raises(TypeError):
-    #         pd.PeriodIndex(floats, freq='M')
+    @pytest.mark.parametrize('floats', [[1.1, 2.1], np.array([1.1, 2.1])])
+    def test_constructor_floats(self, floats):
+        with pytest.raises(TypeError):
+            pd.PeriodIndex._simple_new(floats, freq='M')
+
+        with pytest.raises(TypeError):
+            pd.PeriodIndex(floats, freq='M')
 
     def test_constructor_nat(self):
         pytest.raises(ValueError, period_range, start='NaT',

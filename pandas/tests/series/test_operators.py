@@ -15,7 +15,6 @@ from pandas import (Index, Series, DataFrame, isna, bdate_range,
 from pandas.core.indexes.datetimes import Timestamp
 import pandas.core.nanops as nanops
 from pandas.core import ops
-from pandas.core.arrays import period_array
 
 from pandas.compat import range
 from pandas import compat
@@ -554,9 +553,8 @@ class TestSeriesComparisons(object):
         ([pd.Timedelta('1 days'), NaT, pd.Timedelta('3 days')],
          [NaT, NaT, pd.Timedelta('3 days')]),
 
-        (period_array([pd.Period('2011-01', freq='M'), NaT,
-                       pd.Period('2011-03', freq='M')]),
-         period_array([NaT, NaT, pd.Period('2011-03', freq='M')]))])
+        ([pd.Period('2011-01', freq='M'), NaT, pd.Period('2011-03', freq='M')],
+         [NaT, NaT, pd.Period('2011-03', freq='M')])])
     @pytest.mark.parametrize('reverse', [True, False])
     @pytest.mark.parametrize('box', [Series, Index])
     @pytest.mark.parametrize('dtype', [None, object])

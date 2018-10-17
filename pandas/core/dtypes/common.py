@@ -499,6 +499,7 @@ def is_period_dtype(arr_or_dtype):
     >>> is_period_dtype(pd.PeriodIndex([], freq="A"))
     True
     """
+
     # TODO: Consider making Period an instance of PeriodDtype
     if arr_or_dtype is None:
         return False
@@ -636,6 +637,7 @@ def is_period_arraylike(arr):
     >>> is_period_arraylike(pd.PeriodIndex(["2017-01-01"], freq="D"))
     True
     """
+
     if isinstance(arr, (ABCPeriodIndex, ABCPeriodArray)):
         return True
     elif isinstance(arr, (np.ndarray, ABCSeries)):

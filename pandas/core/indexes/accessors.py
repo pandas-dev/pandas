@@ -47,7 +47,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         else:
             if is_period_arraylike(data):
                 # TODO: use to_period_array
-                return PeriodArray._complex_new(data, copy=False)
+                return PeriodArray(data, copy=False)
             if is_datetime_arraylike(data):
                 return DatetimeIndex(data, copy=False, name=self.name)
 
