@@ -302,7 +302,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         -------
         DatetimeArray/Index
         """
-        from pandas.core.arrays.datetimes import DatetimeArrayMixin
+        from pandas.core.arrays import DatetimeArrayMixin
 
         how = libperiod._validate_end_alias(how)
 
