@@ -147,7 +147,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         if isinstance(values, ABCSeries):
             values = values.values
             if not isinstance(values, type(self)):
-                raise TypeError("Incorect dtype")
+                raise TypeError("Incorrect dtype")
 
         elif isinstance(values, ABCPeriodIndex):
             values = values.values
