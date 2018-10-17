@@ -7366,7 +7366,7 @@ class NDFrame(PandasObject, SelectionMixin):
                  label=None, convention='start', kind=None, loffset=None,
                  limit=None, base=0, on=None, level=None):
         """
-        Resample a time series by changing the frequency of the index.
+        Resample time-series data.
 
         Convenience method for frequency conversion and resampling of time
         series.  Object must have a datetime-like index (``DatetimeIndex``,
