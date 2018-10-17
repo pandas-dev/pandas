@@ -181,7 +181,7 @@ class TestSeriesPeriod(object):
         # GH 17157
         # Check that the time part of the Period is adjusted by end_time
         # when using the dt accessor on a Series
-        input_vals = PeriodArray._from_periods(np.asarray(input_vals))
+        input_vals = PeriodArray._from_sequence(np.asarray(input_vals))
 
         s = Series(input_vals)
         result = s.dt.end_time

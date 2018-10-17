@@ -260,7 +260,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         Values should be int ordinals
         `__new__` & `_simple_new` cooerce to ordinals and call this method
         """
-        data = PeriodArray._from_ordinals(values, freq=freq)
+        data = PeriodArray(values, freq=freq)
         result = cls._simple_new(data, name=name)
         return result
 
@@ -271,7 +271,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         if not isinstance(values, PeriodArray):
             if (isinstance(values, np.ndarray) and
                     is_integer_dtype(values.dtype)):
-                values = PeriodArray._from_ordinals(values, freq=self.freq)
+                values = PeriodArray(values, freq=self.freq)
             else:
                 # in particular, I would like to avoid complex_new here.
                 # Some people seem to be calling use with unexpected types
@@ -319,7 +319,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         """
         # TODO(DatetimeArray): remove
         freq = attribs['freq']
-        return PeriodArray._from_ordinals(values, freq=freq)
+        return PeriodArray(values, freq=freq)
 
     # ------------------------------------------------------------------------
     # Dispatch and maybe box. Not done in delegate_names because we box
@@ -820,7 +820,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                 np.ndarray.__setstate__(self, state)
                 freq = None  # ?
 
-            data = PeriodArray._from_ordinals(data, freq=freq)
+            data = PeriodArray(data, freq=freq)
             self._data = data
 
         else:

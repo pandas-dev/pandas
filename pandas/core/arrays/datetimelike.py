@@ -482,7 +482,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                                               arr_mask=self._isnan)
             res_values = res_values.view('i8')
             res_values[self._isnan] = iNaT
-            return self._from_ordinals(res_values, freq=self.freq)
+            return type(self)(res_values, freq=self.freq)
 
         elif self.freq is None:
             # GH#19123
