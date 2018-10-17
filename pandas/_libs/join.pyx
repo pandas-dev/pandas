@@ -239,4 +239,420 @@ def ffill_indexer(ndarray[int64_t] indexer):
     return result
 
 
-include "join_helper.pxi"
+# ----------------------------------------------------------------------
+# left_join_indexer, inner_join_indexer, outer_join_indexer
+# ----------------------------------------------------------------------
+
+ctypedef fused join_t:
+    float64_t
+    float32_t
+    object
+    int32_t
+    int64_t
+    uint64_t
+
+
+# Joins on ordered, unique indices
+
+# right might contain non-unique values
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def left_join_indexer_unique(ndarray[join_t] left, ndarray[join_t] right):
+    cdef:
+        Py_ssize_t i, j, nleft, nright
+        ndarray[int64_t] indexer
+        join_t lval, rval
+
+    i = 0
+    j = 0
+    nleft = len(left)
+    nright = len(right)
+
+    indexer = np.empty(nleft, dtype=np.int64)
+    while True:
+        if i == nleft:
+            break
+
+        if j == nright:
+            indexer[i] = -1
+            i += 1
+            continue
+
+        rval = right[j]
+
+        while i < nleft - 1 and left[i] == rval:
+            indexer[i] = j
+            i += 1
+
+        if left[i] == right[j]:
+            indexer[i] = j
+            i += 1
+            while i < nleft - 1 and left[i] == rval:
+                indexer[i] = j
+                i += 1
+            j += 1
+        elif left[i] > rval:
+            indexer[i] = -1
+            j += 1
+        else:
+            indexer[i] = -1
+            i += 1
+    return indexer
+
+
+left_join_indexer_unique_float64 = left_join_indexer_unique["float64_t"]
+left_join_indexer_unique_float32 = left_join_indexer_unique["float32_t"]
+left_join_indexer_unique_object = left_join_indexer_unique["object"]
+left_join_indexer_unique_int32 = left_join_indexer_unique["int32_t"]
+left_join_indexer_unique_int64 = left_join_indexer_unique["int64_t"]
+left_join_indexer_unique_uint64 = left_join_indexer_unique["uint64_t"]
+
+
+# @cython.wraparound(False)
+# @cython.boundscheck(False)
+def left_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
+    """
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
+    """
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        join_t lval, rval
+        ndarray[int64_t] lindexer, rindexer
+        ndarray[join_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0:
+        while i < nleft:
+            if j == nright:
+                count += nleft - i
+                break
+
+            lval = left[i]
+            rval = right[j]
+
+            if lval == rval:
+                count += 1
+                if i < nleft - 1:
+                    if j < nright - 1 and right[j + 1] == rval:
+                        j += 1
+                    else:
+                        i += 1
+                        if left[i] != rval:
+                            j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                count += 1
+                i += 1
+            else:
+                j += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
+    result = np.empty(count, dtype=left.dtype)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0:
+        while i < nleft:
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = left[i]
+                    i += 1
+                    count += 1
+                break
+
+            lval = left[i]
+            rval = right[j]
+
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                count += 1
+                if i < nleft - 1:
+                    if j < nright - 1 and right[j + 1] == rval:
+                        j += 1
+                    else:
+                        i += 1
+                        if left[i] != rval:
+                            j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = left[i]
+                count += 1
+                i += 1
+            else:
+                j += 1
+
+    return result, lindexer, rindexer
+
+
+left_join_indexer_float64 = left_join_indexer["float64_t"]
+left_join_indexer_float32 = left_join_indexer["float32_t"]
+left_join_indexer_object = left_join_indexer["object"]
+left_join_indexer_int32 = left_join_indexer["int32_t"]
+left_join_indexer_int64 = left_join_indexer["int64_t"]
+left_join_indexer_uint64 = left_join_indexer["uint64_t"]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def inner_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
+    """
+    Two-pass algorithm for monotonic indexes. Handles many-to-one merges
+    """
+    cdef:
+        Py_ssize_t i, j, k, nright, nleft, count
+        join_t lval, rval
+        ndarray[int64_t] lindexer, rindexer
+        ndarray[join_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0 and nright > 0:
+        while True:
+            if i == nleft:
+                break
+            if j == nright:
+                break
+
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                count += 1
+                if i < nleft - 1:
+                    if j < nright - 1 and right[j + 1] == rval:
+                        j += 1
+                    else:
+                        i += 1
+                        if left[i] != rval:
+                            j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    # do it again now that result size is known
+
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
+    result = np.empty(count, dtype=left.dtype)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0 and nright > 0:
+        while True:
+            if i == nleft:
+                break
+            if j == nright:
+                break
+
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = rval
+                count += 1
+                if i < nleft - 1:
+                    if j < nright - 1 and right[j + 1] == rval:
+                        j += 1
+                    else:
+                        i += 1
+                        if left[i] != rval:
+                            j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                i += 1
+            else:
+                j += 1
+
+    return result, lindexer, rindexer
+
+
+inner_join_indexer_float64 = inner_join_indexer["float64_t"]
+inner_join_indexer_float32 = inner_join_indexer["float32_t"]
+inner_join_indexer_object = inner_join_indexer["object"]
+inner_join_indexer_int32 = inner_join_indexer["int32_t"]
+inner_join_indexer_int64 = inner_join_indexer["int64_t"]
+inner_join_indexer_uint64 = inner_join_indexer["uint64_t"]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def outer_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
+    cdef:
+        Py_ssize_t i, j, nright, nleft, count
+        join_t lval, rval
+        ndarray[int64_t] lindexer, rindexer
+        ndarray[join_t] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft == 0:
+        count = nright
+    elif nright == 0:
+        count = nleft
+    else:
+        while True:
+            if i == nleft:
+                count += nright - j
+                break
+            if j == nright:
+                count += nleft - i
+                break
+
+            lval = left[i]
+            rval = right[j]
+            if lval == rval:
+                count += 1
+                if i < nleft - 1:
+                    if j < nright - 1 and right[j + 1] == rval:
+                        j += 1
+                    else:
+                        i += 1
+                        if left[i] != rval:
+                            j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                count += 1
+                i += 1
+            else:
+                count += 1
+                j += 1
+
+    lindexer = np.empty(count, dtype=np.int64)
+    rindexer = np.empty(count, dtype=np.int64)
+    result = np.empty(count, dtype=left.dtype)
+
+    # do it again, but populate the indexers / result
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft == 0:
+        for j in range(nright):
+            lindexer[j] = -1
+            rindexer[j] = j
+            result[j] = right[j]
+    elif nright == 0:
+        for i in range(nleft):
+            lindexer[i] = i
+            rindexer[i] = -1
+            result[i] = left[i]
+    else:
+        while True:
+            if i == nleft:
+                while j < nright:
+                    lindexer[count] = -1
+                    rindexer[count] = j
+                    result[count] = right[j]
+                    count += 1
+                    j += 1
+                break
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = left[i]
+                    count += 1
+                    i += 1
+                break
+
+            lval = left[i]
+            rval = right[j]
+
+            if lval == rval:
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = lval
+                count += 1
+                if i < nleft - 1:
+                    if j < nright - 1 and right[j + 1] == rval:
+                        j += 1
+                    else:
+                        i += 1
+                        if left[i] != rval:
+                            j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if lval != right[j]:
+                        i += 1
+                else:
+                    # end of the road
+                    break
+            elif lval < rval:
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = lval
+                count += 1
+                i += 1
+            else:
+                lindexer[count] = -1
+                rindexer[count] = j
+                result[count] = rval
+                count += 1
+                j += 1
+
+    return result, lindexer, rindexer
+
+
+outer_join_indexer_float64 = outer_join_indexer["float64_t"]
+outer_join_indexer_float32 = outer_join_indexer["float32_t"]
+outer_join_indexer_object = outer_join_indexer["object"]
+outer_join_indexer_int32 = outer_join_indexer["int32_t"]
+outer_join_indexer_int64 = outer_join_indexer["int64_t"]
+outer_join_indexer_uint64 = outer_join_indexer["uint64_t"]
