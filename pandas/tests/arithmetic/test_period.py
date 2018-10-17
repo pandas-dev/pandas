@@ -415,6 +415,7 @@ class TestPeriodIndexArithmetic(object):
                                        pd.Timestamp.now().to_pydatetime(),
                                        pd.Timestamp.now().to_datetime64()])
     def test_pi_add_sub_datetime(self, other):
+        # GH#23215
         rng = pd.period_range('1/1/2000', freq='D', periods=3)
 
         with pytest.raises(TypeError):

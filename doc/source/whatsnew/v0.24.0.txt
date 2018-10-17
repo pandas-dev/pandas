@@ -825,8 +825,8 @@ Timedelta
 - Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 - Fixed bug where subtracting :class:`Timedelta` from an object-dtyped array would raise ``TypeError`` (:issue:`21980`)
 - Fixed bug in adding a :class:`DataFrame` with all-`timedelta64[ns]` dtypes to a :class:`DataFrame` with all-integer dtypes returning incorrect results instead of raising ``TypeError`` (:issue:`22696`)
-- Bug in :class:`TimedeltaIndex` where adding a timezone-aware datetime scalar incorrectly returned a timezone-naive :class:`DatetimeIndex` (:issue:`?????`)
-- Bug in :class:`TimedeltaIndex` where adding ``np.timedelta64('NaT')`` incorrectly returned an all-`NaT` :class:`DatetimeIndex` instead of an all-`NaT` :class:`TimedeltaIndex` (:issue:`?????`)
+- Bug in :class:`TimedeltaIndex` where adding a timezone-aware datetime scalar incorrectly returned a timezone-naive :class:`DatetimeIndex` (:issue:`23215`)
+- Bug in :class:`TimedeltaIndex` where adding ``np.timedelta64('NaT')`` incorrectly returned an all-`NaT` :class:`DatetimeIndex` instead of an all-`NaT` :class:`TimedeltaIndex` (:issue:`23215`)
 
 Timezones
 ^^^^^^^^^

@@ -416,6 +416,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
             idx - Timestamp('2011-01-01')
 
     def test_td64arr_add_timestamp(self, box, tz_naive_fixture):
+        # GH#23215
         # TODO: parametrize over scalar datetime types?
         tz = tz_naive_fixture
         other = Timestamp('2011-01-01', tz=tz)
@@ -490,6 +491,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
         tm.assert_equal(result, expected)
 
     def test_td64arr_add_datetime64_nat(self, box):
+        # GH#23215
         other = np.datetime64('NaT')
 
         tdi = timedelta_range('1 day', periods=3)
