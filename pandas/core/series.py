@@ -1384,7 +1384,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # TODO: deprecate
         from pandas.core.sparse.series import SparseSeries
-        from pandas.core.sparse.array import SparseArray
+        from pandas.core.arrays import SparseArray
 
         values = SparseArray(self, kind=kind, fill_value=fill_value)
         return SparseSeries(

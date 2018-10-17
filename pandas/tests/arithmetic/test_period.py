@@ -15,9 +15,7 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 
 import pandas.core.indexes.period as period
 from pandas.core import ops
-from pandas import (
-    Period, PeriodIndex, period_range, Series,
-    _np_version_under1p10)
+from pandas import Period, PeriodIndex, period_range, Series
 
 
 # ------------------------------------------------------------------
@@ -897,20 +895,14 @@ class TestPeriodIndexSeriesMethods(object):
             with pytest.raises(TypeError):
                 np.add(obj, ng)
 
-            if _np_version_under1p10:
-                assert np.add(ng, obj) is NotImplemented
-            else:
-                with pytest.raises(TypeError):
-                    np.add(ng, obj)
+            with pytest.raises(TypeError):
+                np.add(ng, obj)
 
             with pytest.raises(TypeError):
                 np.subtract(obj, ng)
 
-            if _np_version_under1p10:
-                assert np.subtract(ng, obj) is NotImplemented
-            else:
-                with pytest.raises(TypeError):
-                    np.subtract(ng, obj)
+            with pytest.raises(TypeError):
+                np.subtract(ng, obj)
 
     def test_pi_ops_nat(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-04'],
@@ -1014,10 +1006,7 @@ class TestPeriodIndexSeriesMethods(object):
         tm.assert_index_equal(result, exp)
 
         result = np.subtract(pd.Period('2012-01', freq='M'), idx)
-        if _np_version_under1p10:
-            assert result is NotImplemented
-        else:
-            tm.assert_index_equal(result, exp)
+        tm.assert_index_equal(result, exp)
 
         exp = pd.TimedeltaIndex([np.nan, np.nan, np.nan, np.nan], name='idx')
         tm.assert_index_equal(idx - pd.Period('NaT', freq='M'), exp)
