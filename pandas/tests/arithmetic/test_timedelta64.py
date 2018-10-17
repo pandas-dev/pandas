@@ -469,8 +469,8 @@ class TestTimedeltaArraylikeAddSubOps(object):
         tdser = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box)
 
-        tm.assert_equal(other + tdser, expected)
         tm.assert_equal(tdser + other, expected)
+        tm.assert_equal(other + tdser, expected)
 
     def test_tdi_sub_dt64_array(self, box_df_broadcast_failure):
         box = box_df_broadcast_failure
