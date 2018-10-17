@@ -553,8 +553,12 @@ class TestSeriesComparisons(object):
         ([pd.Timedelta('1 days'), NaT, pd.Timedelta('3 days')],
          [NaT, NaT, pd.Timedelta('3 days')]),
 
-        ([pd.Period('2011-01', freq='M'), NaT, pd.Period('2011-03', freq='M')],
-         [NaT, NaT, pd.Period('2011-03', freq='M')])])
+        pytest.param(
+            ([pd.Period('2011-01', freq='M'), NaT, pd.Period('2011-03', freq='M')],
+             [NaT, NaT, pd.Period('2011-03', freq='M')]),
+            marks=pytest.mark.xfail(reason="GH-23155", strict=False)
+        ),
+    ])
     @pytest.mark.parametrize('reverse', [True, False])
     @pytest.mark.parametrize('box', [Series, Index])
     @pytest.mark.parametrize('dtype', [None, object])
