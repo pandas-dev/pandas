@@ -885,9 +885,28 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         return self._ndarray_values.view(dtype=dtype)
 
     @property
+    def flags(self):
+        """ return the ndarray.flags for the underlying data """
+        warnings.warn("{obj}.flags is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
+        return self._ndarray_values.flags
+
+    @property
     def asi8(self):
         # TODO(DatetimeArray): remove
         return self.view('i8')
+
+    def item(self):
+        """ return the first element of the underlying data as a python
+        scalar
+        """
+        try:
+            return self.values._item()
+        except IndexError:
+            # copy numpy's message here because Py26 raises an IndexError
+            raise ValueError('can only convert an array of size 1 to a '
+                             'Python scalar')
 
 
 PeriodIndex._add_comparison_ops()

@@ -89,10 +89,6 @@ def _period_array_cmp(cls, op):
         elif other is NaT:
             result = np.empty(len(self._ndarray_values), dtype=bool)
             result.fill(nat_result)
-        elif isinstance(other, (list, np.ndarray)):
-            # XXX: is this correct? Why not convert the
-            # sequence to a PeriodArray?
-            return NotImplemented
         else:
             other = Period(other, freq=self.freq)
             result = op(other.ordinal)
@@ -355,10 +351,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         values = np.concatenate([x._data for x in to_concat])
         return cls._from_ordinals(values, freq=freq)
 
-    @property
-    def asi8(self):
-        return self._ndarray_values.view('i8')
-
     # --------------------------------------------------------------------
     # Data / Attributes
     @property
@@ -379,22 +371,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def freq(self):
         """Return the frequency object for this PeriodArray."""
         return self.dtype.freq
-
-    @property
-    def flags(self):
-        """Deprecated"""
-        # Just here to support Index.flags deprecation.
-        # could also override PeriodIndex.flags if we don't want a
-        # version with PeriodArray.flags
-        return self.values.flags
-
-    @property
-    def base(self):
-        return self.values.base
-
-    @property
-    def data(self):
-        return self.astype(object).data
 
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
@@ -650,7 +626,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         base1, mult1 = frequencies.get_freq_code(self.freq)
         base2, mult2 = frequencies.get_freq_code(freq)
 
-        asi8 = self.asi8
+        asi8 = self._ndarray_values.view('i8')
         # mult1 can't be negative or 0
         end = how == 'E'
         if end:
@@ -722,7 +698,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
 
-        asi8 = self.asi8
+        asi8 = self._ndarray_values.view('i8')
         new_data = asi8 - other.ordinal
         new_data = np.array([self.freq * x for x in new_data])
 
@@ -955,6 +931,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     def item(self):
         if len(self) == 1:
+            # IndexOpsMixin will catch and re-raise IndexErrors
             return Period._from_ordinal(self.values[0], self.freq)
         else:
             raise ValueError('can only convert an array of size 1 to a '
