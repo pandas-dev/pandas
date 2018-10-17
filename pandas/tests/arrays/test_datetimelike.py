@@ -126,7 +126,7 @@ class TestTimedeltaArray(object):
         tdi = pd.TimedeltaIndex(['1 Hour', '3 Hours'])
         arr = TimedeltaArrayMixin(tdi)
 
-        expected = np.array([3600 * 1e9, 10800 * 1e9], dtype='M8[ns]')
+        expected = np.array([3600, 10800], dtype='m8[ns]') * 1e9
 
         result = tdi.asm8
         tm.assert_numpy_array_equal(result, expected)
@@ -138,7 +138,7 @@ class TestTimedeltaArray(object):
         tdi = pd.TimedeltaIndex(['1 Hour', '3 Hours'])
         arr = TimedeltaArrayMixin(tdi)
 
-        expected = np.array([3600 * 1e9, 10800 * 1e9], dtype='M8[ns]')
+        expected = np.array([3600, 10800], dtype='m8[ns]') * 1e9
 
         result = tdi.to_timedelta64()
         tm.assert_numpy_array_equal(result, expected)
