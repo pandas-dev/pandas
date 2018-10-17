@@ -227,19 +227,42 @@ class TestFactorize(object):
 
         pytest.raises(TypeError, algos.factorize, x17[::-1], sort=True)
 
-    def test_uint64_factorize(self, writable):
-        data = np.array([2**63, 1, 2**63], dtype=np.uint64)
+    def test_float64_factorize(self, writable):
+        data = np.array([1.0, 1e8, 1.0, 1e-8, 1e8, 1.0], dtype=np.float64)
         data.setflags(write=writable)
-        exp_labels = np.array([0, 1, 0], dtype=np.intp)
-        exp_uniques = np.array([2**63, 1], dtype=np.uint64)
+        exp_labels = np.array([0, 1, 0, 2, 1, 0], dtype=np.intp)
+        exp_uniques = np.array([1.0, 1e8, 1e-8], dtype=np.float64)
 
         labels, uniques = algos.factorize(data)
         tm.assert_numpy_array_equal(labels, exp_labels)
         tm.assert_numpy_array_equal(uniques, exp_uniques)
 
-        data = np.array([2**63, -1, 2**63], dtype=object)
+    def test_uint64_factorize(self, writable):
+        data = np.array([2**64 - 1, 1, 2**64 - 1], dtype=np.uint64)
+        data.setflags(write=writable)
         exp_labels = np.array([0, 1, 0], dtype=np.intp)
-        exp_uniques = np.array([2**63, -1], dtype=object)
+        exp_uniques = np.array([2**64 - 1, 1], dtype=np.uint64)
+
+        labels, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(labels, exp_labels)
+        tm.assert_numpy_array_equal(uniques, exp_uniques)
+
+    def test_int64_factorize(self, writable):
+        data = np.array([2**63 - 1, -2**63, 2**63 - 1], dtype=np.int64)
+        data.setflags(write=writable)
+        exp_labels = np.array([0, 1, 0], dtype=np.intp)
+        exp_uniques = np.array([2**63 - 1, -2**63], dtype=np.int64)
+
+        labels, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(labels, exp_labels)
+        tm.assert_numpy_array_equal(uniques, exp_uniques)
+
+    def test_string_factorize(self, writable):
+        data = np.array(['a', 'c', 'a', 'b', 'c'],
+                        dtype=object)
+        data.setflags(write=writable)
+        exp_labels = np.array([0, 1, 0, 2, 1], dtype=np.intp)
+        exp_uniques = np.array(['a', 'c', 'b'], dtype=object)
 
         labels, uniques = algos.factorize(data)
         tm.assert_numpy_array_equal(labels, exp_labels)
