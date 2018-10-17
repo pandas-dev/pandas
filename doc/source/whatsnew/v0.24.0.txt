@@ -206,8 +206,32 @@ Other Enhancements
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 - A newly constructed empty :class:`DataFrame` with integer as the ``dtype`` will now only be cast to ``float64`` if ``index`` is specified (:issue:`22858`)
 
+.. _whatsnew_0240.api_breaking.deps:
+
+Dependencies have increased minimum versions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have updated our minimum supported versions of dependencies (:issue:`21242`).
+If installed, we now require:
+
++-----------------+-----------------+----------+
+| Package         | Minimum Version | Required |
++=================+=================+==========+
+| numpy           | 1.12.0          |    X     |
++-----------------+-----------------+----------+
+| bottleneck      | 1.2.0           |          |
++-----------------+-----------------+----------+
+| matplotlib      | 2.0.0           |          |
++-----------------+-----------------+----------+
+| numexpr         | 2.6.1           |          |
++-----------------+-----------------+----------+
+| pytables        | 3.4.2           |          |
++-----------------+-----------------+----------+
+| scipy           | 0.18.1          |          |
++-----------------+-----------------+----------+
 
 .. _whatsnew_0240.api_breaking.interval_values:
 
@@ -948,6 +972,7 @@ Reshaping
 - Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
 - Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
 - Bug in :func:`pandas.concat` when concatenating a multicolumn DataFrame with tz-aware data against a DataFrame with a different number of columns (:issue`22796`)
+- Bug in :func:`merge_asof` where confusing error message raised when attempting to merge with missing values (:issue:`23189`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
 

@@ -3,87 +3,67 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import division
 
-# pylint: disable=E1101,E1103
-# pylint: disable=W0703,W0622,W0613,W0201
-
 import warnings
 from textwrap import dedent
 
 import numpy as np
 import numpy.ma as ma
 
+import pandas.core.algorithms as algorithms
+import pandas.core.common as com
+import pandas.core.indexes.base as ibase
+import pandas.core.nanops as nanops
+import pandas.core.ops as ops
+import pandas.io.formats.format as fmt
+import pandas.plotting._core as gfx
+from pandas import compat
+from pandas._libs import iNaT, index as libindex, lib, tslibs
+from pandas.compat import (
+    PY36, OrderedDict, StringIO, get_range_parameters, range, u, zip
+)
+from pandas.compat.numpy import function as nv
+from pandas.core import base, generic
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_string_like,
-    is_bool,
-    is_integer, is_integer_dtype,
-    is_float_dtype,
-    is_extension_type,
-    is_extension_array_dtype,
-    is_datetimelike,
-    is_datetime64tz_dtype,
-    is_timedelta64_dtype,
-    is_object_dtype,
-    is_list_like,
-    is_hashable,
-    is_iterator,
-    is_dict_like,
-    is_scalar,
-    _is_unorderable_exception,
-    ensure_platform_int,
-    pandas_dtype)
-from pandas.core.dtypes.generic import (
-    ABCSparseArray, ABCDataFrame, ABCIndexClass,
-    ABCSeries, ABCSparseSeries)
-from pandas.core.dtypes.cast import (
-    maybe_upcast, infer_dtype_from_scalar,
-    maybe_convert_platform,
-    maybe_cast_to_datetime, maybe_castable,
-    construct_1d_arraylike_from_scalar,
-    construct_1d_ndarray_preserving_na,
-    construct_1d_object_array_from_listlike,
-    maybe_cast_to_integer_array)
-from pandas.core.dtypes.missing import (
-    isna,
-    notna,
-    remove_na_arraylike,
-    na_value_for_dtype)
-
-from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
-                               Float64Index, ensure_index)
-from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
-from pandas.core import generic, base
-from pandas.core.internals import SingleBlockManager
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
+from pandas.core.config import get_option
+from pandas.core.dtypes.cast import (
+    construct_1d_arraylike_from_scalar, construct_1d_ndarray_preserving_na,
+    construct_1d_object_array_from_listlike, infer_dtype_from_scalar,
+    maybe_cast_to_datetime, maybe_cast_to_integer_array, maybe_castable,
+    maybe_convert_platform, maybe_upcast
+)
+from pandas.core.dtypes.common import (
+    _is_unorderable_exception, ensure_platform_int, is_bool,
+    is_categorical_dtype, is_datetime64tz_dtype, is_datetimelike, is_dict_like,
+    is_extension_array_dtype, is_extension_type, is_float_dtype, is_hashable,
+    is_integer, is_integer_dtype, is_iterator, is_list_like, is_object_dtype,
+    is_scalar, is_string_like, is_timedelta64_dtype, pandas_dtype
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries
+)
+from pandas.core.dtypes.missing import (
+    isna, na_value_for_dtype, notna, remove_na_arraylike
+)
+from pandas.core.index import (
+    Float64Index, Index, InvalidIndexError, MultiIndex, ensure_index
+)
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
-from pandas import compat
-from pandas.io.formats.terminal import get_terminal_size
-from pandas.compat import (
-    zip, u, OrderedDict, StringIO, range, get_range_parameters, PY36)
-from pandas.compat.numpy import function as nv
-
-import pandas.core.ops as ops
-import pandas.core.algorithms as algorithms
-
-import pandas.core.common as com
-import pandas.core.nanops as nanops
-import pandas.core.indexes.base as ibase
-
-import pandas.io.formats.format as fmt
-from pandas.util._decorators import Appender, deprecate, Substitution
-from pandas.util._validators import validate_bool_kwarg
-
-from pandas._libs import index as libindex, tslibs, lib, iNaT
-from pandas.core.config import get_option
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
+from pandas.core.internals import SingleBlockManager
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
+from pandas.io.formats.terminal import get_terminal_size
+from pandas.util._decorators import Appender, Substitution, deprecate
+from pandas.util._validators import validate_bool_kwarg
 
-import pandas.plotting._core as gfx
+# pylint: disable=E1101,E1103
+# pylint: disable=W0703,W0622,W0613,W0201
+
 
 __all__ = ['Series']
 
@@ -1384,7 +1364,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # TODO: deprecate
         from pandas.core.sparse.series import SparseSeries
-        from pandas.core.sparse.array import SparseArray
+        from pandas.core.arrays import SparseArray
 
         values = SparseArray(self, kind=kind, fill_value=fill_value)
         return SparseSeries(
