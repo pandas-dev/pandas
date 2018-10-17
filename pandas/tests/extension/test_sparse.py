@@ -2,8 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from pandas.core.sparse.dtype import SparseDtype
-from pandas import SparseArray
+from pandas import SparseArray, SparseDtype
 from pandas.errors import PerformanceWarning
 from pandas.tests.extension import base
 import pandas.util.testing as tm
