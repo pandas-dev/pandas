@@ -1190,14 +1190,13 @@ class _OrderedMerge(_MergeOperation):
         return result
 
 
-def _asof_function(direction, on_type):
-    name = 'asof_join_{dir}_{on}'.format(dir=direction, on=on_type)
+def _asof_function(direction):
+    name = 'asof_join_{dir}'.format(dir=direction)
     return getattr(libjoin, name, None)
 
 
-def _asof_by_function(direction, on_type, by_type):
-    name = 'asof_join_{dir}_{on}_by_{by}'.format(
-        dir=direction, on=on_type, by=by_type)
+def _asof_by_function(direction):
+    name = 'asof_join_{dir}_on_X_by_Y'.format(dir=direction)
     return getattr(libjoin, name, None)
 
 
@@ -1439,7 +1438,7 @@ class _AsOfMerge(_OrderedMerge):
 
             # choose appropriate function by type
             on_type = _get_cython_type(left_values.dtype)
-            func = _asof_by_function(self.direction, on_type, by_type)
+            func = _asof_by_function(self.direction)
             return func(left_values,
                         right_values,
                         left_by_values,
@@ -1449,7 +1448,7 @@ class _AsOfMerge(_OrderedMerge):
         else:
             # choose appropriate function by type
             on_type = _get_cython_type(left_values.dtype)
-            func = _asof_function(self.direction, on_type)
+            func = _asof_function(self.direction)
             return func(left_values,
                         right_values,
                         self.allow_exact_matches,
