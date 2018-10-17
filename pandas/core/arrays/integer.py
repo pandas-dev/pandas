@@ -3,7 +3,8 @@ import warnings
 import copy
 import numpy as np
 
-from pandas._libs.lib import infer_dtype
+
+from pandas._libs import lib
 from pandas.util._decorators import cache_readonly
 from pandas.compat import u, range, string_types
 from pandas.compat import set_function_name
@@ -171,7 +172,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
 
     values = np.array(values, copy=copy)
     if is_object_dtype(values):
-        inferred_type = infer_dtype(values)
+        inferred_type = lib.infer_dtype(values)
         if inferred_type not in ['floating', 'integer',
                                  'mixed-integer', 'mixed-integer-float']:
             raise TypeError("{} cannot be converted to an IntegerDtype".format(
@@ -508,13 +509,12 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
 
-            elif getattr(other, 'ndim', None) == 0:
-                other = other.item()
-
             elif is_list_like(other):
                 other = np.asarray(other)
                 if other.ndim > 0 and len(self) != len(other):
                     raise ValueError('Lengths must match to compare')
+
+            other = lib.item_from_zerodim(other)
 
             # numpy will show a DeprecationWarning on invalid elementwise
             # comparisons, this will raise in the future
@@ -624,7 +624,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             else:
                 mask = self._mask | mask
 
-            if op_name == 'rpow':
+            if op_name == 'pow':
+                # 1 ** np.nan is 1. So we have to unmask those.
+                mask = np.where(self == 1, False, mask)
+
+            elif op_name == 'rpow':
                 # 1 ** np.nan is 1. So we have to unmask those.
                 mask = np.where(other == 1, False, mask)
 

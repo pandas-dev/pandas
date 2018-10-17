@@ -128,6 +128,9 @@ class TestArithmeticOps(BaseOpsUtil):
             if omask is not None:
                 mask |= omask
 
+        if op_name == '__rpow__':
+            mask = np.where(other == 1, False, mask)
+
         # float result type or float op
         if ((is_float_dtype(other) or is_float(other) or
              op_name in ['__rtruediv__', '__truediv__',
@@ -171,7 +174,6 @@ class TestArithmeticOps(BaseOpsUtil):
             else:
                 expected[(s.values == 0) &
                          ((expected == 0) | expected.isna())] = 0
-
         try:
             expected[(expected == np.inf) | (expected == -np.inf)] = fill_value
             original = expected
@@ -218,67 +220,24 @@ class TestArithmeticOps(BaseOpsUtil):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # scalar
         op = all_arithmetic_operators
-        if op == '__rpow__':
-            raise pytest.skip("__rpow__ tested separately.")
 
         s = pd.Series(data)
         self._check_op(s, op, 1, exc=TypeError)
-
-    def test_arith_series_with_scalar_rpow(self, data):
-        s = pd.Series(data)
-        # 1^x is 1.0 for all x, so test separately
-        result = 1 ** s
-        expected = pd.Series(1, index=s.index, dtype=data.dtype.numpy_dtype)
-        assert result.dtype == data.dtype
-        result = result.astype(data.dtype.numpy_dtype)
-        self.assert_series_equal(result, expected)
-
-        # test other bases regularly
-        self._check_op(s, '__rpow__', 2, exc=None)
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op = all_arithmetic_operators
 
-        if op == '__rpow__':
-            raise pytest.skip("__rpow__ tested separately.")
-
         df = pd.DataFrame({'A': data})
         self._check_op(df, op, 1, exc=TypeError)
-
-    def test_arith_frame_with_scalar_rpow(self, data):
-        df = pd.DataFrame({"A": data})
-        result = 1.0 ** df
-        expected = pd.DataFrame(1.0, index=df.index, columns=df.columns)
-        self.assert_frame_equal(result, expected)
-
-        # test other bases regularly
-        self._check_op(df, '__rpow__', 2, exc=TypeError)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op = all_arithmetic_operators
 
-        if op == '__rpow__':
-            raise pytest.skip("__rpow__ tested separately.")
-
         s = pd.Series(data)
         other = np.ones(len(s), dtype=s.dtype.type)
         self._check_op(s, op, other, exc=TypeError)
-
-    def test_arith_series_with_array_rpow(self, data):
-        s = pd.Series(data)
-        other = np.ones(len(s), dtype=data.dtype.numpy_dtype)
-        expected = pd.Series(1, index=s.index, dtype=data.dtype.numpy_dtype)
-        result = other ** s
-
-        assert result.dtype == data.dtype
-        result = result.astype(data.dtype.numpy_dtype)
-
-        self.assert_series_equal(result, expected)
-
-        other = 2 * np.ones(len(s), dtype=s.dtype.type)
-        self._check_op(s, '__rpow__', other, exc=TypeError)
 
     def test_arith_coerce_scalar(self, data, all_arithmetic_operators):
 
@@ -334,6 +293,13 @@ class TestArithmeticOps(BaseOpsUtil):
             opa(pd.DataFrame({'A': s}))
         with pytest.raises(NotImplementedError):
             opa(np.arange(len(s)).reshape(-1, len(s)))
+
+    def test_pow(self):
+        a = pd.core.arrays.integer_array([1, None, None, 1])
+        b = pd.core.arrays.integer_array([1, None, 1, None])
+        result = a ** b
+        expected = pd.core.arrays.integer_array([1, None, None, 1])
+        tm.assert_extension_array_equal(result, expected)
 
 
 class TestComparisonOps(BaseOpsUtil):
