@@ -239,7 +239,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         if end is not None:
             end = Timestamp(end)
 
-        if start is None and end is None:
+        if start is None or end is None:
             if closed is not None:
                 raise ValueError("Closed has to be None if not both of start"
                                  "and end are defined")
