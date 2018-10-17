@@ -2899,6 +2899,12 @@ class MultiIndex(Index):
             else:
                 return np.lib.arraysetops.in1d(labs, sought_labels)
 
+    def searchsorted(self, arr):
+        from functools import reduce
+        dtype = reduce(lambda x, y : x + y, [l.dtype.descr for l in self.levels], [])
+        return self.values.astype(dtype).searchsorted(np.asarray(arr, dtype=dtype))
+
+    
 
 MultiIndex._add_numeric_methods_disabled()
 MultiIndex._add_numeric_methods_add_sub_disabled()
@@ -2931,6 +2937,7 @@ def _sparsify(label_list, start=0, sentinel=''):
         prev = cur
 
     return lzip(*result)
+
 
 
 def _get_na_rep(dtype):
