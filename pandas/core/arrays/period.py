@@ -15,10 +15,10 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.fields import isleapyear_arr
 
 from pandas import compat
-from pandas.util._decorators import (cache_readonly, deprecate_kwarg)
+from pandas.util._decorators import cache_readonly, deprecate_kwarg, Appender
 
 from pandas.core.dtypes.common import (
-    is_integer_dtype, is_float_dtype, is_period_dtype, is_timedelta64_dtype,
+    is_integer_dtype, is_float_dtype, is_period_dtype,
     is_datetime64_dtype, _TD_DTYPE)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
@@ -334,10 +334,6 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
     _create_comparison_method = classmethod(_period_array_cmp)
 
-    def _sub_datelike(self, other):
-        assert other is not NaT
-        return NotImplemented
-
     def _sub_period(self, other):
         # If the operation is well-defined, we return an object-Index
         # of DateOffsets.  Null entries are filled with pd.NaT
@@ -349,9 +345,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         new_data = asi8 - other.ordinal
         new_data = np.array([self.freq * x for x in new_data])
 
-        if self.hasnans:
-            new_data[self._isnan] = NaT
-
+        new_data = self._maybe_mask_results(new_data, fill_value=NaT)
         return new_data
 
     def _add_offset(self, other):
@@ -379,20 +373,8 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         delta = self._check_timedeltalike_freq_compat(other)
         return self._addsub_int_array(delta, operator.add)
 
+    @Appender(DatetimeLikeArrayMixin._add_delta.__doc__)
     def _add_delta(self, other):
-        """
-        Add a timedelta-like, Tick, or TimedeltaIndex-like object
-        to self.
-
-        Parameters
-        ----------
-        other : {timedelta, np.timedelta64, Tick,
-                 TimedeltaIndex, ndarray[timedelta64]}
-
-        Returns
-        -------
-        result : same type as self
-        """
         if not isinstance(self.freq, Tick):
             # We cannot add timedelta-like to non-tick PeriodArray
             raise IncompatibleFrequency("Input has different freq from "
@@ -400,17 +382,9 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
                                         .format(cls=type(self).__name__,
                                                 freqstr=self.freqstr))
 
-        # TODO: standardize across datetimelike subclasses whether to return
-        #  i8 view or _shallow_copy
-        if isinstance(other, (Tick, timedelta, np.timedelta64)):
-            new_values = self._add_delta_td(other)
-            return self._shallow_copy(new_values)
-        elif is_timedelta64_dtype(other):
-            # ndarray[timedelta64] or TimedeltaArray/index
-            new_values = self._add_delta_tdi(other)
-            return self._shallow_copy(new_values)
-        else:  # pragma: no cover
-            raise TypeError(type(other).__name__)
+        new_values = DatetimeLikeArrayMixin._add_delta(self, other)
+
+        return self._shallow_copy(new_values)
 
     @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
     def shift(self, periods):

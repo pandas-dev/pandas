@@ -347,21 +347,59 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # Arithmetic Methods
 
     def _add_datelike(self, other):
+        # Overriden by TimedeltaArray
         raise TypeError("cannot add {cls} and {typ}"
                         .format(cls=type(self).__name__,
                                 typ=type(other).__name__))
 
+    _add_datelike_dti = _add_datelike
+
     def _sub_datelike(self, other):
-        raise com.AbstractMethodError(self)
+        # Overridden by DatetimeArray
+        assert other is not NaT
+        raise TypeError("cannot subtract a datelike from a {cls}"
+                        .format(cls=type(self).__name__))
+
+    _sub_datelike_dti = _sub_datelike
 
     def _sub_period(self, other):
-        return NotImplemented
+        # Overriden by PeriodArray
+        raise TypeError("cannot subtract Period from a {cls}"
+                        .format(cls=type(self).__name__))
 
     def _add_offset(self, offset):
         raise com.AbstractMethodError(self)
 
     def _add_delta(self, other):
-        return NotImplemented
+        """
+        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
+        to self.
+
+        Parameters
+        ----------
+        delta : {timedelta, np.timedelta64, DateOffset,
+                 TimedeltaIndex, ndarray[timedelta64]}
+
+        Returns
+        -------
+        result : same type as self
+
+        Notes
+        -----
+        The result's name is set outside of _add_delta by the calling
+        method (__add__ or __sub__), if necessary (i.e. for Indexes).
+        """
+        # Note: The docstring here says the return type is the same type
+        #   as self, which is inaccurate.  Once wrapped by the inheriting
+        #   Array classes, this will be accurate.
+
+        if isinstance(other, (Tick, timedelta, np.timedelta64)):
+            new_values = self._add_delta_td(other)
+        elif is_timedelta64_dtype(other):
+            # ndarray[timedelta64] or TimedeltaArray/index
+            new_values = self._add_delta_tdi(other)
+
+        return new_values
 
     def _add_delta_td(self, other):
         """
@@ -371,8 +409,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         inc = delta_to_nanoseconds(other)
         new_values = checked_add_with_arr(self.asi8, inc,
                                           arr_mask=self._isnan).view('i8')
-        if self.hasnans:
-            new_values[self._isnan] = iNaT
+        new_values = self._maybe_mask_results(new_values, fill_value=iNaT)
         return new_values.view('i8')
 
     def _add_delta_tdi(self, other):
@@ -380,7 +417,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         Add a delta of a TimedeltaIndex
         return the i8 result view
         """
-        if not len(self) == len(other):
+        if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
 
         if isinstance(other, np.ndarray):
@@ -441,7 +478,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                             .format(dtype=other.dtype,
                                     cls=type(self).__name__))
 
-        if not len(self) == len(other):
+        if len(self) != len(other):
             raise ValueError("cannot subtract arrays/indices of "
                              "unequal length")
         if self.freq != other.freq:
@@ -635,7 +672,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 result = self._addsub_offset_array(other, operator.add)
             elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
                 # DatetimeIndex, ndarray[datetime64]
-                return self._add_datelike(other)
+                return self._add_datelike_dti(other)
             elif is_integer_dtype(other):
                 result = self._addsub_int_array(other, operator.add)
             elif is_float_dtype(other):
@@ -695,7 +732,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 result = self._addsub_offset_array(other, operator.sub)
             elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
                 # DatetimeIndex, ndarray[datetime64]
-                result = self._sub_datelike(other)
+                result = self._sub_datelike_dti(other)
             elif is_period_dtype(other):
                 # PeriodIndex
                 result = self._sub_period_array(other)

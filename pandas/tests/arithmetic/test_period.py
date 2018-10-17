@@ -411,6 +411,21 @@ class TestPeriodIndexArithmetic(object):
         with pytest.raises(TypeError):
             op(pi, other)
 
+    @pytest.mark.parametrize('other', [pd.Timestamp.now(),
+                                       pd.Timestamp.now().to_pydatetime(),
+                                       pd.Timestamp.now().to_datetime64()])
+    def test_pi_add_sub_datetime(self, other):
+        rng = pd.period_range('1/1/2000', freq='D', periods=3)
+
+        with pytest.raises(TypeError):
+            rng + other
+        with pytest.raises(TypeError):
+            other + rng
+        with pytest.raises(TypeError):
+            rng - other
+        with pytest.raises(TypeError):
+            other - rng
+
     # -----------------------------------------------------------------
     # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, timedelta, time
+from datetime import datetime, time
 import warnings
 
 import numpy as np
@@ -12,7 +12,7 @@ from pandas._libs.tslibs import (
     conversion, fields, timezones,
     resolution as libresolution)
 
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly, Appender
 from pandas.errors import PerformanceWarning
 from pandas import compat
 
@@ -21,7 +21,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_datetime64tz_dtype,
     is_datetime64_dtype,
-    is_timedelta64_dtype,
     ensure_int64)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
@@ -425,9 +424,19 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     # Arithmetic Methods
 
     def _sub_datelike_dti(self, other):
-        """subtraction of two DatetimeIndexes"""
-        if not len(self) == len(other):
+        """subtract DatetimeArray/Index or ndarray[datetime64]"""
+        if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
+
+        if isinstance(other, np.ndarray):
+            # if other is an ndarray, we assume it is datetime64-dtype
+            other = type(self)(other)
+
+        if not self._has_same_tz(other):
+            # require tz compat
+            raise TypeError("{cls} subtraction must have the same "
+                            "timezones or no timezones"
+                            .format(cls=type(self).__name__))
 
         self_i8 = self.asi8
         other_i8 = other.asi8
@@ -458,72 +467,27 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     def _sub_datelike(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
-        if isinstance(other, (DatetimeArrayMixin, np.ndarray)):
-            if isinstance(other, np.ndarray):
-                # if other is an ndarray, we assume it is datetime64-dtype
-                other = type(self)(other)
-            if not self._has_same_tz(other):
-                # require tz compat
-                raise TypeError("{cls} subtraction must have the same "
-                                "timezones or no timezones"
-                                .format(cls=type(self).__name__))
-            result = self._sub_datelike_dti(other)
-        elif isinstance(other, (datetime, np.datetime64)):
-            assert other is not NaT
-            other = Timestamp(other)
-            if other is NaT:
-                return self - NaT
+        assert isinstance(other, (datetime, np.datetime64))
+        assert other is not NaT
+        other = Timestamp(other)
+        if other is NaT:
+            return self - NaT
+
+        if not self._has_same_tz(other):
             # require tz compat
-            elif not self._has_same_tz(other):
-                raise TypeError("Timestamp subtraction must have the same "
-                                "timezones or no timezones")
-            else:
-                i8 = self.asi8
-                result = checked_add_with_arr(i8, -other.value,
-                                              arr_mask=self._isnan)
-                result = self._maybe_mask_results(result,
-                                                  fill_value=iNaT)
-        else:
-            raise TypeError("cannot subtract {cls} and {typ}"
-                            .format(cls=type(self).__name__,
-                                    typ=type(other).__name__))
+            raise TypeError("Timestamp subtraction must have the same "
+                            "timezones or no timezones")
+
+        i8 = self.asi8
+        result = checked_add_with_arr(i8, -other.value,
+                                      arr_mask=self._isnan)
+        result = self._maybe_mask_results(result, fill_value=iNaT)
         return result.view('timedelta64[ns]')
 
+    @Appender(dtl.DatetimeLikeArrayMixin._add_delta.__doc__)
     def _add_delta(self, delta):
-        """
-        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
-        to self.
-
-        Parameters
-        ----------
-        delta : {timedelta, np.timedelta64, DateOffset,
-                 TimedeltaIndex, ndarray[timedelta64]}
-
-        Returns
-        -------
-        result : same type as self
-
-        Notes
-        -----
-        The result's name is set outside of _add_delta by the calling
-        method (__add__ or __sub__)
-        """
-        from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
-
-        if isinstance(delta, (Tick, timedelta, np.timedelta64)):
-            new_values = self._add_delta_td(delta)
-        elif is_timedelta64_dtype(delta):
-            if not isinstance(delta, TimedeltaArrayMixin):
-                delta = TimedeltaArrayMixin(delta)
-            new_values = self._add_delta_tdi(delta)
-        else:
-            new_values = self.astype('O') + delta
-
-        tz = 'UTC' if self.tz is not None else None
-        result = type(self)(new_values, tz=tz, freq='infer')
-        if self.tz is not None and self.tz is not utc:
-            result = result.tz_convert(self.tz)
-        return result
+        new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
+        return type(self)(new_values, tz=self.tz, freq='infer')
 
     # -----------------------------------------------------------------
     # Timezone Conversion and Localization Methods
