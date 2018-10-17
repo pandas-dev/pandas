@@ -347,6 +347,7 @@ def test_get_indexer_categorical_time():
     result = midx.get_indexer(midx)
     tm.assert_numpy_array_equal(result, np.arange(9, dtype=np.intp))
 
+
 def test_searchsorted():
     i = MultiIndex.from_tuples([('a', 0), ('b', 1)]).searchsorted(('b', 0))
     assert i == 1
