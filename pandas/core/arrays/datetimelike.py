@@ -11,7 +11,8 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.period import (
     Period, DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
-from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas.errors import (
+    NullFrequencyError, PerformanceWarning, AbstractMethodError)
 from pandas import compat
 
 from pandas.tseries import frequencies
@@ -77,12 +78,10 @@ class AttributesMixin(object):
     @property
     def _attributes(self):
         # Inheriting subclass should implement _attributes as a list of strings
-        from pandas.errors import AbstractMethodError
         raise AbstractMethodError(self)
 
     @classmethod
     def _simple_new(cls, values, **kwargs):
-        from pandas.errors import AbstractMethodError
         raise AbstractMethodError(cls)
 
     def _get_attributes_dict(self):
@@ -119,7 +118,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         """
         box function to get object from internal representation
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _box_values(self, values):
         """
@@ -332,6 +331,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             # Frequency validation is not meaningful for Period Array/Index
             return None
 
+        # DatetimeArray may pass `ambiguous`, nothing else will be accepted
+        #  by cls._generate_range below
+        acceptable = {'ambiguous'} if index.dtype.kind == 'M' else {}
+        assert all(key in acceptable for key in kwargs)
+
         inferred = index.inferred_freq
         if index.size == 0 or inferred == freq.freqstr:
             return None
@@ -352,13 +356,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                                 typ=type(other).__name__))
 
     def _sub_datelike(self, other):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _sub_period(self, other):
         return NotImplemented
 
     def _add_offset(self, offset):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _add_delta(self, other):
         return NotImplemented
@@ -380,7 +384,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         Add a delta of a TimedeltaIndex
         return the i8 result view
         """
-        if not len(self) == len(other):
+        if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
 
         if isinstance(other, np.ndarray):
@@ -441,7 +445,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                             .format(dtype=other.dtype,
                                     cls=type(self).__name__))
 
-        if not len(self) == len(other):
+        if len(self) != len(other):
             raise ValueError("cannot subtract arrays/indices of "
                              "unequal length")
         if self.freq != other.freq:
@@ -595,9 +599,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         start = self[0] + periods * self.freq
         end = self[-1] + periods * self.freq
-        attribs = self._get_attributes_dict()
+
+        # Note: in the DatetimeTZ case, _generate_range will infer the
+        #  appropriate timezone from `start` and `end`, so tz does not need
+        #  to be passed explicitly.
         return self._generate_range(start=start, end=end, periods=None,
-                                    **attribs)
+                                    freq=self.freq)
 
     @classmethod
     def _add_datetimelike_methods(cls):

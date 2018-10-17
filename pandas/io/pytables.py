@@ -2469,8 +2469,7 @@ class GenericFixed(Fixed):
         if klass == DatetimeIndex:
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
-                result = DatetimeIndex._simple_new(values.values, name=None,
-                                                   freq=freq)
+                result = DatetimeIndex(values.values, name=None, freq=freq)
                 if tz is not None:
                     result = result.tz_localize('UTC').tz_convert(tz)
                 return result

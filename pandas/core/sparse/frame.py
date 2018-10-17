@@ -618,7 +618,7 @@ class SparseDataFrame(DataFrame):
             new_data, index=new_index, columns=self.columns,
             default_fill_value=fill_value).__finalize__(self)
 
-    def _combine_match_columns(self, other, func, level=None, try_cast=True):
+    def _combine_match_columns(self, other, func, level=None):
         # patched version of DataFrame._combine_match_columns to account for
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
         # where 3.0 is numpy.float64 and series is a SparseSeries. Still
