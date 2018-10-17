@@ -8,7 +8,7 @@
 namespace std {
   __inline int isnan(double x) { return _isnan(x); }
   __inline int signbit(double num) { return _copysign(1.0, num) < 0; }
-  __inline int notnan(double x) { return not isnan(x); }
+  __inline int notnan(double x) { return !isnan(x); }
 }
 #else
 #include <cmath>
