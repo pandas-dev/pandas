@@ -7369,9 +7369,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Resample a time series by changing the frequency of the index.
 
         Convenience method for frequency conversion and resampling of time
-        series.  Object must have a datetime-like index (DatetimeIndex,
-        PeriodIndex, or TimedeltaIndex), or pass datetime-like values
-        to the on or level keyword.
+        series.  Object must have a datetime-like index (``DatetimeIndex``,
+        ``PeriodIndex``, or ``TimedeltaIndex``), or pass datetime-like values
+        to the ``on`` or ``level`` keyword.
 
         Parameters
         ----------
@@ -7381,8 +7381,8 @@ class NDFrame(PandasObject, SelectionMixin):
             Method for down-/re-sampling, default to ‘mean’ for downsampling.
 
             .. deprecated:: 0.18.0
-               The new syntax is .resample(...).mean(), or
-               .resample(...).apply(<func>)
+               The new syntax is ``.resample(...).mean()``, or
+               ``.resample(...).apply(<func>)``
         axis : int, optional, default 0
             Which index to use for up- or down-sampling. Must be
             ``DatetimeIndex``, ``TimedeltaIndex`` or ``PeriodIndex``.
@@ -7390,8 +7390,8 @@ class NDFrame(PandasObject, SelectionMixin):
             Filling method for upsampling.
 
             .. deprecated:: 0.18.0
-               The new syntax is .resample(...).<func>(),
-               e.g. .resample(...).pad()
+               The new syntax is ``.resample(...).<func>()``,
+               e.g. ``.resample(...).pad()``
         closed : {'right', 'left'}
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
@@ -7401,8 +7401,8 @@ class NDFrame(PandasObject, SelectionMixin):
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {'start', 'end', 's', 'e'}
-            For PeriodIndex only, controls whether to use the start or end of
-            `rule`.
+            For ``PeriodIndex`` only, controls whether to use the start or
+            end of ``rule``.
         kind : {'timestamp', 'period'} optional
             Pass 'timestamp' to convert the resulting index to a
             ``DateTimeIndex`` or 'period' to convert it to a ``PeriodIndex``.
@@ -7425,7 +7425,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         level : string or int, optional
             For a MultiIndex, level (name or number) to use for
-            resampling.  Level must be datetime-like.
+            resampling. ``level`` must be datetime-like.
 
             .. versionadded:: 0.19.0
 
