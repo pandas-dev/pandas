@@ -23,6 +23,7 @@ import argparse
 import pydoc
 import inspect
 import importlib
+import contextlib
 import doctest
 try:
     from io import StringIO
@@ -39,6 +40,8 @@ from pandas.compat import signature
 sys.path.insert(1, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
 from numpydoc.docscrape import NumpyDocString
 from pandas.io.formats.printing import pprint_thing
+
+from pycodestyle import Checker
 
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
@@ -110,6 +113,10 @@ def get_api_items(api_doc_fd):
                    current_section, current_subsection)
 
         previous_line = line
+
+class DocstringExampleChecker(Checker):
+    def set_lines(self, lines):
+        self.lines = lines
 
 
 class Docstring(object):
@@ -512,7 +519,28 @@ def validate_one(func_name):
         examples_errs = doc.examples_errors
         if examples_errs:
             errs.append('Examples do not pass tests')
+        example_checker = DocstringExampleChecker()
+        example_list = doctest.DocTestParser().get_examples(doc.raw_doc)
+        #for ex in example_list:
+            #lint
+        example_checker.set_lines([ex.source for ex in example_list])
 
+        #check_all will print the error to stdout, so we suppress this
+        with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+            num_errs = example_checker.check_all()
+        if num_errs > 0:
+            for line_number, offset, code, text, doc in example_checker.report._deferred_print:
+                if code == 'E402':
+                    continue
+                elif len(example_list)-1 < line_number:
+                    continue
+                # multi-line assignments report E501: line too long
+                elif code == 'E501' and '\n' in example_list[line_number].source:
+                    continue
+                flo = example_list[line_number-1].lineno
+                errs.append('{}: {} {}:{}:{}'.format(code, text, func_name, flo, offset))
+
+    doc = Docstring(func_name)
     return {'type': doc.type,
             'docstring': doc.clean_doc,
             'deprecated': doc.deprecated,
