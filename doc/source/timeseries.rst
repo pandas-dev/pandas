@@ -903,14 +903,14 @@ The key features of a ``DateOffset`` object are:
     index
     index + pd.tseries.offsets.DateOffset(months=4, days=2)
 
-A way to achieve ``DatetimeIndexes`` without gaps is to shift the first date
-with ``DateOffset`` then construct the ``DatetimeIndexes`` using the original
-frequency:
+    A way to achieve ``DatetimeIndexes`` without gaps is to shift the first date
+    with ``DateOffset`` then construct the ``DatetimeIndexes`` using the original
+    frequency:
 
-.. ipython:: python
-start_date = index[0] + pd.tseries.offsets.DateOffset(months=4, days=2)
-new_index = pd.DatetimeIndex(start=start_date, periods=3, freq='D')
-new_index
+    .. ipython:: python
+    start_date = index[0] + pd.tseries.offsets.DateOffset(months=4, days=2)
+    new_index = pd.DatetimeIndex(start=start_date, periods=3, freq='D')
+    new_index
 
 Subclasses of ``DateOffset`` define the ``apply`` function which dictates
 custom date increment logic, such as adding business days:
