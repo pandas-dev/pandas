@@ -540,7 +540,6 @@ def validate_one(func_name):
                 errs.append('{}: {} {}:{}:{}'.format(
                     code, text, func_name, line_number, offset))
 
-    doc = Docstring(func_name)
     return {'type': doc.type,
             'docstring': doc.clean_doc,
             'deprecated': doc.deprecated,
