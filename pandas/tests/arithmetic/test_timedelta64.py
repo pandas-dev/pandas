@@ -460,18 +460,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with pytest.raises(TypeError):
             tdser - ts
 
-    def test_td64arr_add_datetime64_nat(self, box):
-        other = np.datetime64('NaT')
-
-        tdi = timedelta_range('1 day', periods=3)
-        expected = pd.DatetimeIndex(["NaT", "NaT", "NaT"])
-
-        tdser = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
-
-        tm.assert_equal(tdser + other, expected)
-        tm.assert_equal(other + tdser, expected)
-
     def test_tdi_sub_dt64_array(self, box_df_broadcast_failure):
         box = box_df_broadcast_failure
 
@@ -782,6 +770,18 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
         result = rng - two_hours
         tm.assert_equal(result, expected)
+
+    def test_td64arr_add_datetime64_nat(self, box):
+        other = np.datetime64('NaT')
+
+        tdi = timedelta_range('1 day', periods=3)
+        expected = pd.DatetimeIndex(["NaT", "NaT", "NaT"])
+
+        tdser = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        tm.assert_equal(tdser + other, expected)
+        tm.assert_equal(other + tdser, expected)
 
     # ------------------------------------------------------------------
     # __add__/__sub__ with DateOffsets and arrays of DateOffsets
