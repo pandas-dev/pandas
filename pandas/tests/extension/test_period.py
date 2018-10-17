@@ -107,6 +107,7 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
             s, op, other, exc=TypeError
         )
 
+    @pytest.mark.xfail(reason="GH-23155", strict=True)
     def test_add_series_with_extension_array(self, data):
         # we don't implement + for Period
         s = pd.Series(data)
