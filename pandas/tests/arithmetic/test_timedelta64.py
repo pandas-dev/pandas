@@ -415,25 +415,20 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with tm.assert_raises_regex(TypeError, msg):
             idx - Timestamp('2011-01-01')
 
-    def test_td64arr_add_timestamp(self, box):
-        idx = TimedeltaIndex(['1 day', '2 day'])
-        expected = DatetimeIndex(['2011-01-02', '2011-01-03'])
-
-        idx = tm.box_expected(idx, box)
-        expected = tm.box_expected(expected, box)
-
-        result = idx + Timestamp('2011-01-01')
-        tm.assert_equal(result, expected)
-
-    def test_td64_radd_timestamp(self, box):
-        idx = TimedeltaIndex(['1 day', '2 day'])
-        expected = DatetimeIndex(['2011-01-02', '2011-01-03'])
-
-        idx = tm.box_expected(idx, box)
-        expected = tm.box_expected(expected, box)
-
+    def test_td64arr_add_timestamp(self, box, tz_naive_fixture):
         # TODO: parametrize over scalar datetime types?
-        result = Timestamp('2011-01-01') + idx
+        tz = tz_naive_fixture
+        other = Timestamp('2011-01-01', tz=tz)
+
+        idx = TimedeltaIndex(['1 day', '2 day'])
+        expected = DatetimeIndex(['2011-01-02', '2011-01-03'], tz=tz)
+
+        idx = tm.box_expected(idx, box)
+        expected = tm.box_expected(expected, box)
+
+        result = idx + other
+        tm.assert_equal(result, expected)
+        result = other + idx
         tm.assert_equal(result, expected)
 
     def test_td64arr_add_sub_timestamp(self, box):
@@ -493,6 +488,18 @@ class TestTimedeltaArraylikeAddSubOps(object):
         tm.assert_equal(result, expected)
         result = dtarr + tdi
         tm.assert_equal(result, expected)
+
+    def test_td64arr_add_datetime64_nat(self, box):
+        other = np.datetime64('NaT')
+
+        tdi = timedelta_range('1 day', periods=3)
+        expected = pd.DatetimeIndex(["NaT", "NaT", "NaT"])
+
+        tdser = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        tm.assert_equal(tdser + other, expected)
+        tm.assert_equal(other + tdser, expected)
 
     # ------------------------------------------------------------------
     # Operations with int-like others
@@ -770,18 +777,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
         result = rng - two_hours
         tm.assert_equal(result, expected)
-
-    def test_td64arr_add_datetime64_nat(self, box):
-        other = np.datetime64('NaT')
-
-        tdi = timedelta_range('1 day', periods=3)
-        expected = pd.DatetimeIndex(["NaT", "NaT", "NaT"])
-
-        tdser = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
-
-        tm.assert_equal(tdser + other, expected)
-        tm.assert_equal(other + tdser, expected)
 
     # ------------------------------------------------------------------
     # __add__/__sub__ with DateOffsets and arrays of DateOffsets

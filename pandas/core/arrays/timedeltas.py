@@ -223,7 +223,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         result = checked_add_with_arr(i8, other.value,
                                       arr_mask=self._isnan)
         result = self._maybe_mask_results(result, fill_value=iNaT)
-        return DatetimeArrayMixin(result)
+        return DatetimeArrayMixin(result, tz=other.tz)  # FIXME: what about timezone?
 
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects
