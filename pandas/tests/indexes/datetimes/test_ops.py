@@ -337,16 +337,6 @@ class TestDatetimeIndexOps(Ops):
         tm.assert_index_equal(idx, result)
         assert result.freq == freq
 
-    def test_nat_new(self):
-        idx = pd.date_range('2011-01-01', freq='D', periods=5, name='x')
-        result = idx._nat_new()
-        exp = pd.DatetimeIndex([pd.NaT] * 5, name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx._nat_new(box=False)
-        exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
-        tm.assert_numpy_array_equal(result, exp)
-
     def test_nat(self, tz_naive_fixture):
         tz = tz_naive_fixture
         assert pd.DatetimeIndex._na_value is pd.NaT
