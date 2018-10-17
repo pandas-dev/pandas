@@ -767,7 +767,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         pandas.PeriodIndex: Immutable ndarray holding ordinal values
         pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
         """
-        from pandas.core.arrays.period import PeriodArrayMixin
+        from pandas.core.arrays import PeriodArrayMixin
 
         if self.tz is not None:
             warnings.warn("Converting to PeriodArray/Index representation "
