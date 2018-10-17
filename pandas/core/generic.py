@@ -7378,18 +7378,20 @@ class NDFrame(PandasObject, SelectionMixin):
         rule : string
             The offset string or object representing target conversion.
         how : string
-            Method for down- or re-sampling, default to ‘mean’ for downsampling.
+            Method for down-/re-sampling, default to ‘mean’ for downsampling.
 
             .. deprecated:: 0.18.0
-               The new syntax is .resample(...).mean(), or .resample(...).apply(<func>)
+               The new syntax is .resample(...).mean(), or
+               .resample(...).apply(<func>)
         axis : int, optional, default 0
-            Which index to use for up- or down-sampling. Must be ``DatetimeIndex``,
-            ``TimedeltaIndex`` or ``PeriodIndex``.
+            Which index to use for up- or down-sampling. Must be
+            ``DatetimeIndex``, ``TimedeltaIndex`` or ``PeriodIndex``.
         fill_method : string, default None
             Filling method for upsampling.
 
             .. deprecated:: 0.18.0
-               The new syntax is .resample(...).<func>(), e.g. .resample(...).pad()
+               The new syntax is .resample(...).<func>(),
+               e.g. .resample(...).pad()
         closed : {'right', 'left'}
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
