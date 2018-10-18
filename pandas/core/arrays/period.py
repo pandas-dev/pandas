@@ -334,8 +334,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
             value = value.ordinal
         elif isna(value):
-            # Previously we allowed setting np.nan on a Series[object]
-            # do we still want to allow that, or should we require None / NaT?
             value = iNaT
         else:
             msg = ("'value' should be a 'Period', 'NaT', or array of those. "

@@ -11,6 +11,7 @@ from pandas.core.arrays import PeriodArray, period_array
 @pytest.mark.parametrize('key, value, expected', [
     ([0], pd.Period("2000", "D"), [10957, 1, 2]),
     ([0], None, [iNaT, 1, 2]),
+    ([0], np.nan, [iNaT, 1, 2]),
     ([0, 1, 2], pd.Period("2000", "D"), [10957] * 3),
     ([0, 1, 2], [pd.Period("2000", "D"),
                  pd.Period("2001", "D"),
