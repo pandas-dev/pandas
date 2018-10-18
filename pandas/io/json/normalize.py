@@ -226,14 +226,13 @@ def json_normalize(data, record_path=None, meta=None,
 
     def _extract(obj, field, seen_meta, level):
         """
-        Extract field from obj.
-        The result is stored in `records`, `lengths`, and `meta_vals`.
+        Extract field from obj and update `records`, `lengths`, `meta_vals`.
 
         Parameters
         ----------
         obj : dict
-            Unserialized JSON object
-        field : string
+            Unserialized dict
+        field : str
             The field to extract from obj
         seen_meta : dict
             The dict of meta values that have been visited
