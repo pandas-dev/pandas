@@ -11,7 +11,7 @@ from pandas.core.tools.timedeltas import to_timedelta
 import numpy as np
 
 from pandas._libs import lib, iNaT, NaT
-from pandas._libs.tslibs.timestamps import round_ns
+from pandas._libs.tslibs.timestamps import round_nsint64, RoundTo
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_bool_dtype,
+    is_period_dtype,
     is_categorical_dtype,
     is_datetime_or_timedelta_dtype,
     is_float_dtype,
@@ -28,7 +29,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_dtype)
 from pandas.core.dtypes.generic import (
-    ABCIndex, ABCSeries, ABCPeriodIndex, ABCIndexClass)
+    ABCIndex, ABCSeries, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms, ops
 
@@ -180,10 +181,10 @@ class TimelikeOps(object):
         """
     )
 
-    def _round(self, freq, rounder, ambiguous):
+    def _round(self, freq, mode, ambiguous):
         # round the local times
         values = _ensure_datetimelike_to_i8(self)
-        result = round_ns(values, rounder, freq)
+        result = round_nsint64(values, mode, freq)
         result = self._maybe_mask_results(result, fill_value=NaT)
 
         attribs = self._get_attributes_dict()
@@ -197,15 +198,15 @@ class TimelikeOps(object):
 
     @Appender((_round_doc + _round_example).format(op="round"))
     def round(self, freq, ambiguous='raise'):
-        return self._round(freq, np.round, ambiguous)
+        return self._round(freq, RoundTo.NEAREST_HALF_EVEN, ambiguous)
 
     @Appender((_round_doc + _floor_example).format(op="floor"))
     def floor(self, freq, ambiguous='raise'):
-        return self._round(freq, np.floor, ambiguous)
+        return self._round(freq, RoundTo.MINUS_INFTY, ambiguous)
 
     @Appender((_round_doc + _ceil_example).format(op="ceil"))
     def ceil(self, freq, ambiguous='raise'):
-        return self._round(freq, np.ceil, ambiguous)
+        return self._round(freq, RoundTo.PLUS_INFTY, ambiguous)
 
 
 class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
@@ -239,9 +240,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             # have different timezone
             return False
 
-        # ToDo: Remove this when PeriodDtype is added
-        elif isinstance(self, ABCPeriodIndex):
-            if not isinstance(other, ABCPeriodIndex):
+        elif is_period_dtype(self):
+            if not is_period_dtype(other):
                 return False
             if self.freq != other.freq:
                 return False
@@ -277,7 +277,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         except TypeError:
             return result
 
-    def _ensure_localized(self, result, ambiguous='raise'):
+    def _ensure_localized(self, arg, ambiguous='raise', from_utc=False):
         """
         ensure that we are re-localized
 
@@ -286,9 +286,11 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         Parameters
         ----------
-        result : DatetimeIndex / i8 ndarray
-        ambiguous : str, bool, or bool-ndarray
-            default 'raise'
+        arg : DatetimeIndex / i8 ndarray
+        ambiguous : str, bool, or bool-ndarray, default 'raise'
+        from_utc : bool, default False
+            If True, localize the i8 ndarray to UTC first before converting to
+            the appropriate tz. If False, localize directly to the tz.
 
         Returns
         -------
@@ -297,10 +299,13 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         # reconvert to local tz
         if getattr(self, 'tz', None) is not None:
-            if not isinstance(result, ABCIndexClass):
-                result = self._simple_new(result)
-            result = result.tz_localize(self.tz, ambiguous=ambiguous)
-        return result
+            if not isinstance(arg, ABCIndexClass):
+                arg = self._simple_new(arg)
+            if from_utc:
+                arg = arg.tz_localize('UTC').tz_convert(self.tz)
+            else:
+                arg = arg.tz_localize(self.tz, ambiguous=ambiguous)
+        return arg
 
     def _box_values_as_index(self):
         """
@@ -354,7 +359,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             attribs = self._get_attributes_dict()
             freq = attribs['freq']
 
-            if freq is not None and not isinstance(self, ABCPeriodIndex):
+            if freq is not None and not is_period_dtype(self):
                 if freq.n > 0 and not ascending:
                     freq = freq * -1
                 elif freq.n < 0 and ascending:
@@ -381,8 +386,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
                                            fill_value=fill_value,
                                            na_value=iNaT)
 
-        # keep freq in PeriodIndex, reset otherwise
-        freq = self.freq if isinstance(self, ABCPeriodIndex) else None
+        # keep freq in PeriodArray/Index, reset otherwise
+        freq = self.freq if is_period_dtype(self) else None
         return self._shallow_copy(taken, freq=freq)
 
     _can_hold_na = True
@@ -613,7 +618,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         Analogous to ndarray.repeat
         """
         nv.validate_repeat(args, kwargs)
-        if isinstance(self, ABCPeriodIndex):
+        if is_period_dtype(self):
             freq = self.freq
         else:
             freq = None
@@ -622,11 +627,11 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
-        other = _ensure_datetimelike_to_i8(other)
-        values = _ensure_datetimelike_to_i8(self)
+        other = _ensure_datetimelike_to_i8(other, to_utc=True)
+        values = _ensure_datetimelike_to_i8(self, to_utc=True)
         result = np.where(cond, values, other).astype('i8')
 
-        result = self._ensure_localized(result)
+        result = self._ensure_localized(result, from_utc=True)
         return self._shallow_copy(result,
                                   **self._get_attributes_dict())
 
@@ -668,7 +673,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         attribs = self._get_attributes_dict()
         attribs['name'] = name
 
-        if not isinstance(self, ABCPeriodIndex):
+        if not is_period_dtype(self):
             # reset freq
             attribs['freq'] = None
 
@@ -695,23 +700,37 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         return super(DatetimeIndexOpsMixin, self).astype(dtype, copy=copy)
 
 
-def _ensure_datetimelike_to_i8(other):
-    """ helper for coercing an input scalar or array to i8 """
+def _ensure_datetimelike_to_i8(other, to_utc=False):
+    """
+    helper for coercing an input scalar or array to i8
+
+    Parameters
+    ----------
+    other : 1d array
+    to_utc : bool, default False
+        If True, convert the values to UTC before extracting the i8 values
+        If False, extract the i8 values directly.
+
+    Returns
+    -------
+    i8 1d array
+    """
     if is_scalar(other) and isna(other):
-        other = iNaT
+        return iNaT
     elif isinstance(other, ABCIndexClass):
         # convert tz if needed
         if getattr(other, 'tz', None) is not None:
-            other = other.tz_localize(None).asi8
-        else:
-            other = other.asi8
+            if to_utc:
+                other = other.tz_convert('UTC')
+            else:
+                other = other.tz_localize(None)
     else:
         try:
-            other = np.array(other, copy=False).view('i8')
+            return np.array(other, copy=False).view('i8')
         except TypeError:
             # period array cannot be coerces to int
-            other = Index(other).asi8
-    return other
+            other = Index(other)
+    return other.asi8
 
 
 def wrap_arithmetic_op(self, other, result):
@@ -725,3 +744,60 @@ def wrap_arithmetic_op(self, other, result):
     res_name = ops.get_op_result_name(self, other)
     result.name = res_name
     return result
+
+
+def wrap_array_method(method, pin_name=False):
+    """
+    Wrap a DatetimeArray/TimedeltaArray/PeriodArray method so that the
+    returned object is an Index subclass instead of ndarray or ExtensionArray
+    subclass.
+
+    Parameters
+    ----------
+    method : method of Datetime/Timedelta/Period Array class
+    pin_name : bool
+        Whether to set name=self.name on the output Index
+
+    Returns
+    -------
+    method
+    """
+    def index_method(self, *args, **kwargs):
+        result = method(self, *args, **kwargs)
+
+        # Index.__new__ will choose the appropriate subclass to return
+        result = Index(result)
+        if pin_name:
+            result.name = self.name
+        return result
+
+    index_method.__name__ = method.__name__
+    index_method.__doc__ = method.__doc__
+    return index_method
+
+
+def wrap_field_accessor(prop):
+    """
+    Wrap a DatetimeArray/TimedeltaArray/PeriodArray array-returning property
+    to return an Index subclass instead of ndarray or ExtensionArray subclass.
+
+    Parameters
+    ----------
+    prop : property
+
+    Returns
+    -------
+    new_prop : property
+    """
+    fget = prop.fget
+
+    def f(self):
+        result = fget(self)
+        if is_bool_dtype(result):
+            # return numpy array b/c there is no BoolIndex
+            return result
+        return Index(result, name=self.name)
+
+    f.__name__ = fget.__name__
+    f.__doc__ = fget.__doc__
+    return property(f)

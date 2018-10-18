@@ -1,14 +1,12 @@
 import random
-import timeit
 import string
 
 import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, Categorical, date_range, read_csv
-from pandas.compat import PY2
 from pandas.compat import cStringIO as StringIO
 
-from ..pandas_vb_common import setup, BaseIO  # noqa
+from ..pandas_vb_common import BaseIO
 
 
 class ToCSV(BaseIO):
@@ -181,8 +179,8 @@ class ReadCSVFloatPrecision(StringIORewind):
                  names=list('abc'), float_precision=float_precision)
 
     def time_read_csv_python_engine(self, sep, decimal, float_precision):
-        read_csv(self.data(self.StringIO_input), sep=sep, header=None, engine='python',
-                 float_precision=None, names=list('abc'))
+        read_csv(self.data(self.StringIO_input), sep=sep, header=None,
+                 engine='python', float_precision=None, names=list('abc'))
 
 
 class ReadCSVCategorical(BaseIO):
@@ -227,3 +225,6 @@ class ReadCSVParseDates(StringIORewind):
         read_csv(self.data(self.StringIO_input), sep=',', header=None,
                  parse_dates=[1],
                  names=list(string.digits[:9]))
+
+
+from ..pandas_vb_common import setup  # noqa: F401

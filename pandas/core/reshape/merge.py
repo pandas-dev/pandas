@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_integer_dtype,
     is_float_dtype,
+    is_number,
     is_numeric_dtype,
     is_integer,
     is_int_or_datetime_dtype,
@@ -35,7 +36,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_object,
     _get_dtype)
-from pandas.core.dtypes.missing import na_value_for_dtype
+from pandas.core.dtypes.missing import na_value_for_dtype, isnull
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util._decorators import Appender, Substitution
@@ -1356,8 +1357,14 @@ class _AsOfMerge(_OrderedMerge):
                 if self.tolerance < 0:
                     raise MergeError("tolerance must be positive")
 
+            elif is_float_dtype(lt):
+                if not is_number(self.tolerance):
+                    raise MergeError(msg)
+                if self.tolerance < 0:
+                    raise MergeError("tolerance must be positive")
+
             else:
-                raise MergeError("key must be integer or timestamp")
+                raise MergeError("key must be integer, timestamp or float")
 
         # validate allow_exact_matches
         if not is_bool(self.allow_exact_matches):
@@ -1383,12 +1390,21 @@ class _AsOfMerge(_OrderedMerge):
                         self.right_join_keys[-1])
         tolerance = self.tolerance
 
-        # we required sortedness in the join keys
-        msg = "{side} keys must be sorted"
+        # we require sortedness and non-null values in the join keys
+        msg_sorted = "{side} keys must be sorted"
+        msg_missings = "Merge keys contain null values on {side} side"
+
         if not Index(left_values).is_monotonic:
-            raise ValueError(msg.format(side='left'))
+            if isnull(left_values).any():
+                raise ValueError(msg_missings.format(side='left'))
+            else:
+                raise ValueError(msg_sorted.format(side='left'))
+
         if not Index(right_values).is_monotonic:
-            raise ValueError(msg.format(side='right'))
+            if isnull(right_values).any():
+                raise ValueError(msg_missings.format(side='right'))
+            else:
+                raise ValueError(msg_sorted.format(side='right'))
 
         # initial type conversion as needed
         if needs_i8_conversion(left_values):

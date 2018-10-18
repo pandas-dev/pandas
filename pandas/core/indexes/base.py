@@ -222,11 +222,21 @@ class Index(IndexOpsMixin, PandasObject):
     # To hand over control to subclasses
     _join_precedence = 1
 
-    # Cython methods
-    _left_indexer_unique = libjoin.left_join_indexer_unique_object
-    _left_indexer = libjoin.left_join_indexer_object
-    _inner_indexer = libjoin.inner_join_indexer_object
-    _outer_indexer = libjoin.outer_join_indexer_object
+    # Cython methods; see github.com/cython/cython/issues/2647
+    #  for why we need to wrap these instead of making them class attributes
+    # Moreover, cython will choose the appropriate-dtyped sub-function
+    #  given the dtypes of the passed arguments
+    def _left_indexer_unique(self, left, right):
+        return libjoin.left_join_indexer_unique(left, right)
+
+    def _left_indexer(self, left, right):
+        return libjoin.left_join_indexer(left, right)
+
+    def _inner_indexer(self, left, right):
+        return libjoin.inner_join_indexer(left, right)
+
+    def _outer_indexer(self, left, right):
+        return libjoin.outer_join_indexer(left, right)
 
     _typ = 'index'
     _data = None
@@ -530,7 +540,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._simple_new(values, **attributes)
 
-    def _shallow_copy_with_infer(self, values=None, **kwargs):
+    def _shallow_copy_with_infer(self, values, **kwargs):
         """
         create a new Index inferring the class with passed value, don't copy
         the data, use the same object attributes with passed in attributes
@@ -543,8 +553,6 @@ class Index(IndexOpsMixin, PandasObject):
         values : the values to create the new Index, optional
         kwargs : updates the default attributes for this Index
         """
-        if values is None:
-            values = self.values
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
         attributes['copy'] = False
@@ -1114,7 +1122,7 @@ class Index(IndexOpsMixin, PandasObject):
         if name is None:
             name = self.name
 
-        return Series(self._to_embed(), index=index, name=name)
+        return Series(self.values.copy(), index=index, name=name)
 
     def to_frame(self, index=True, name=None):
         """
@@ -1176,18 +1184,6 @@ class Index(IndexOpsMixin, PandasObject):
         if index:
             result.index = self
         return result
-
-    def _to_embed(self, keep_tz=False, dtype=None):
-        """
-        *this is an internal non-public method*
-
-        return an array repr of this object, potentially casting to object
-
-        """
-        if dtype is not None:
-            return self.astype(dtype)._to_embed(keep_tz=keep_tz)
-
-        return self.values.copy()
 
     _index_shared_docs['astype'] = """
         Create an Index with values cast to dtypes. The class of a new Index

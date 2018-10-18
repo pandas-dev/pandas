@@ -798,25 +798,20 @@ class TestDataFrameConstructors(TestData):
             result = DataFrame(mrecs, index=[1, 2])
             assert_fr_equal(result, expected)
 
-    def test_constructor_corner(self):
+    def test_constructor_corner_shape(self):
         df = DataFrame(index=[])
         assert df.values.shape == (0, 0)
 
-        # empty but with specified dtype
-        df = DataFrame(index=lrange(10), columns=['a', 'b'], dtype=object)
-        assert df.values.dtype == np.object_
-
-        # does not error but ends up float
-        df = DataFrame(index=lrange(10), columns=['a', 'b'], dtype=int)
-        assert df.values.dtype == np.dtype('float64')
-
-        # #1783 empty dtype object
-        df = DataFrame({}, columns=['foo', 'bar'])
-        assert df.values.dtype == np.object_
-
-        df = DataFrame({'b': 1}, index=lrange(10), columns=list('abc'),
-                       dtype=int)
-        assert df.values.dtype == np.dtype('float64')
+    @pytest.mark.parametrize("data, index, columns, dtype, expected", [
+        (None, lrange(10), ['a', 'b'], object, np.object_),
+        (None, None, ['a', 'b'], 'int64', np.dtype('int64')),
+        (None, lrange(10), ['a', 'b'], int, np.dtype('float64')),
+        ({}, None, ['foo', 'bar'], None, np.object_),
+        ({'b': 1}, lrange(10), list('abc'), int, np.dtype('float64'))
+    ])
+    def test_constructor_dtype(self, data, index, columns, dtype, expected):
+        df = DataFrame(data, index, columns, dtype)
+        assert df.values.dtype == expected
 
     def test_constructor_scalar_inference(self):
         data = {'int': 1, 'bool': True,
@@ -901,8 +896,7 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_list_of_lists(self):
         # GH #484
-        l = [[1, 'a'], [2, 'b']]
-        df = DataFrame(data=l, columns=["num", "str"])
+        df = DataFrame(data=[[1, 'a'], [2, 'b']], columns=["num", "str"])
         assert is_integer_dtype(df['num'])
         assert df['str'].dtype == np.object_
 
@@ -928,9 +922,9 @@ class TestDataFrameConstructors(TestData):
             def __len__(self, n):
                 return self._lst.__len__()
 
-        l = [DummyContainer([1, 'a']), DummyContainer([2, 'b'])]
+        lst_containers = [DummyContainer([1, 'a']), DummyContainer([2, 'b'])]
         columns = ["num", "str"]
-        result = DataFrame(l, columns=columns)
+        result = DataFrame(lst_containers, columns=columns)
         expected = DataFrame([[1, 'a'], [2, 'b']], columns=columns)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -1749,14 +1743,14 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_categorical_series(self):
 
-        l = [1, 2, 3, 1]
-        exp = Series(l).astype('category')
-        res = Series(l, dtype='category')
+        items = [1, 2, 3, 1]
+        exp = Series(items).astype('category')
+        res = Series(items, dtype='category')
         tm.assert_series_equal(res, exp)
 
-        l = ["a", "b", "c", "a"]
-        exp = Series(l).astype('category')
-        res = Series(l, dtype='category')
+        items = ["a", "b", "c", "a"]
+        exp = Series(items).astype('category')
+        res = Series(items, dtype='category')
         tm.assert_series_equal(res, exp)
 
         # insert into frame with different index

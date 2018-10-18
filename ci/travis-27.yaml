@@ -8,15 +8,13 @@ dependencies:
   - cython=0.28.2
   - fastparquet
   - feather-format
-  - flake8=3.4.1
-  - flake8-comprehensions
   - gcsfs
   - html5lib
   - ipython
   - jemalloc=4.5.0.post
   - jinja2=2.8
   - lxml
-  - matplotlib
+  - matplotlib=2.2.2
   - mock
   - nomkl
   - numexpr
@@ -44,10 +42,9 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
-  - moto
+  - moto==1.3.4
   - hypothesis>=3.58.0
   - pip:
     - backports.lzma
-    - cpplint
     - pandas-gbq
     - pathlib

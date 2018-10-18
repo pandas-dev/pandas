@@ -22,6 +22,7 @@ import numpy as np
 from pandas.api.types import CategoricalDtype
 from pandas import Categorical
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 
 def make_data():
@@ -43,15 +44,6 @@ def data():
 def data_missing():
     """Length 2 array with [NA, Valid]"""
     return Categorical([np.nan, 'A'])
-
-
-@pytest.fixture
-def data_repeated():
-    """Return different versions of data for count times"""
-    def gen(count):
-        for _ in range(count):
-            yield Categorical(make_data())
-    yield gen
 
 
 @pytest.fixture
@@ -148,11 +140,11 @@ class TestGetitem(base.BaseGetitemTests):
     def test_reindex_non_na_fill_value(self):
         pass
 
-    @pytest.mark.xfail(reason="Categorical.take buggy")
+    @pytest.mark.skip(reason="Categorical.take buggy")
     def test_take_empty(self):
         pass
 
-    @pytest.mark.xfail(reason="test not written correctly for categorical")
+    @pytest.mark.skip(reason="test not written correctly for categorical")
     def test_reindex(self):
         pass
 
@@ -170,6 +162,10 @@ class TestMissing(base.BaseMissingTests):
     @pytest.mark.skip(reason="Not implemented")
     def test_fillna_limit_backfill(self):
         pass
+
+
+class TestReduce(base.BaseNoReduceTests):
+    pass
 
 
 class TestMethods(base.BaseMethodsTests):
@@ -210,6 +206,16 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 data, op_name)
         else:
             pytest.skip('rmod never called when string is first argument')
+
+    def test_add_series_with_extension_array(self, data):
+        ser = pd.Series(data)
+        with tm.assert_raises_regex(TypeError, "cannot perform"):
+            ser + data
+
+    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
+        return super(TestArithmeticOps, self)._check_divmod_op(
+            s, op, other, exc=TypeError
+        )
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
