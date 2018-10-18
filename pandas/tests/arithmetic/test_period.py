@@ -932,7 +932,7 @@ class TestPeriodIndexSeriesMethods(object):
         self._check(idx + 3, lambda x: x - 3, idx)
         self._check(idx + 3, lambda x: np.subtract(x, 3), idx)
 
-    @pytest.mark.xfail(reason="TODO", strict=True)
+    @pytest.mark.xfail(reason="GH-22798", strict=True)
     def test_pi_ops_array_int(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-04'],
                           freq='M', name='idx')
