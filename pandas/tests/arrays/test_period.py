@@ -69,3 +69,10 @@ def test_asi8():
     result = period_array(['2000', '2001', None], freq='D').asi8
     expected = np.array([10957, 11323, iNaT])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_take_raises():
+    arr = period_array(['2000', '2001'], freq='D')
+    with tm.assert_raises_regex(ValueError, 'freq'):
+        arr.take([0, -1], allow_fill=True,
+                 fill_value=pd.Period('2000', freq='W'))

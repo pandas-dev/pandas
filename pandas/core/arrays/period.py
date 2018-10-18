@@ -347,6 +347,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             if isna(fill_value):
                 fill_value = iNaT
             elif isinstance(fill_value, Period):
+                if self.freq != fill_value.freq:
+                    msg = DIFFERENT_FREQ_INDEX.format(
+                        self.freq.freqstr,
+                        fill_value.freqstr
+                    )
+                    raise IncompatibleFrequency(msg)
+
                 fill_value = fill_value.ordinal
             else:
                 msg = "'fill_value' should be a Period. Got '{}'."
