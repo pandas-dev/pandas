@@ -861,6 +861,11 @@ Sparse
    Series.sparse.fill_value
    Series.sparse.sp_index
    Series.sparse.sp_values
+
+
+.. autosummary::
+   :toctree: generated/
+
    Series.sparse.from_coo
    Series.sparse.to_coo
 
