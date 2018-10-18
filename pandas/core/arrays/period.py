@@ -16,6 +16,7 @@ from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas.util._decorators import cache_readonly
+from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype, is_period_dtype,
     is_float, is_integer, pandas_dtype, is_scalar,
@@ -836,6 +837,20 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # Ideally, we wouldn't be passing objects down there in the first
         # place.
         return self._ndarray_values.flags
+
+    def _addsub_int_array(self, other, op):
+        assert op in [operator.add, operator.sub]
+        # easy case for PeriodIndex
+        if op is operator.sub:
+            other = -other
+        res_values = checked_add_with_arr(self.asi8, other,
+                                          arr_mask=self._isnan)
+        res_values = res_values.view('i8')
+        res_values[self._isnan] = iNaT
+        return type(self)(res_values, freq=self.freq)
+
+    # ------------------------------------------------------------------------
+    # Ops
 
 
 
