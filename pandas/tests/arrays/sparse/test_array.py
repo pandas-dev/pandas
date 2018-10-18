@@ -1065,6 +1065,14 @@ def test_unique_na_fill(arr, fill_value):
     tm.assert_numpy_array_equal(a, b)
 
 
+def test_unique_all_sparse():
+    # https://github.com/pandas-dev/pandas/issues/23168
+    arr = SparseArray([0, 0])
+    result = arr.unique()
+    expected = SparseArray([0])
+    tm.assert_sp_array_equal(result, expected)
+
+
 def test_map():
     arr = SparseArray([0, 1, 2])
     expected = SparseArray([10, 11, 12], fill_value=10)
