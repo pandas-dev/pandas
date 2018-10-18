@@ -332,11 +332,12 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
         # I don't like overloading shallow_copy with freq changes.
         # See if it's used anywhere outside of test_resample_empty_dataframe
+        attributes = self._get_attributes_dict()
         freq = kwargs.pop("freq", None)
         if freq:
             values = values.asfreq(freq)
+            attributes.pop("freq", None)
 
-        attributes = self._get_attributes_dict()
         attributes.update(kwargs)
         if not len(values) and 'dtype' not in kwargs:
             attributes['dtype'] = self.dtype
