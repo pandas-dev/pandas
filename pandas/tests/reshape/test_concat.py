@@ -416,7 +416,6 @@ class TestConcatAppendCommon(ConcatenateBase):
         res = pd.concat([ps1, ps2])
         tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
 
-    @pytest.mark.xfail(reason="GH-22994", strict=True)
     def test_concatlike_common_period_diff_freq_to_object(self):
         # GH 13221
         pi1 = pd.PeriodIndex(['2011-01', '2011-02'], freq='M')
@@ -2000,7 +1999,6 @@ bar2,12,13,14,15
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(reason="GH-22994", strict=True)
     def test_concat_period_multiple_freq_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='M'))
@@ -2009,7 +2007,6 @@ bar2,12,13,14,15
         tm.assert_series_equal(result, expected)
         assert result.dtype == 'object'
 
-    @pytest.mark.xfail(reason="GH-22994", strict=True)
     def test_concat_period_other_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='M'))
