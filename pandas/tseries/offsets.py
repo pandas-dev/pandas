@@ -807,7 +807,6 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
     """
-    _cacheable = False
     _prefix = 'C'
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])
@@ -959,7 +958,6 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
     """
-    _cacheable = False
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])
 

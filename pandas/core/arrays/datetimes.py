@@ -13,7 +13,7 @@ from pandas._libs.tslibs import (
     resolution as libresolution)
 
 from pandas.util._decorators import cache_readonly
-from pandas.errors import PerformanceWarning, AbstractMethodError
+from pandas.errors import PerformanceWarning
 from pandas import compat
 
 from pandas.core.dtypes.common import (
@@ -222,6 +222,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     @classmethod
     def _generate_range(cls, start, end, periods, freq, tz=None,
                         normalize=False, ambiguous='raise', closed=None):
+
+        periods = dtl.validate_periods(periods)
+        if freq is None and any(x is None for x in [periods, start, end]):
+            raise ValueError('Must provide freq argument if no data is '
+                             'supplied')
+
         if com.count_not_none(start, end, periods, freq) != 3:
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')
@@ -265,27 +271,22 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                 end, end.tz, start.tz, freq, tz
             )
         if freq is not None:
-            if cls._use_cached_range(freq, _normalized, start, end):
-                # Currently always False; never hit
-                # Should be reimplemented as apart of GH 17914
-                index = cls._cached_range(start, end, periods=periods,
-                                          freq=freq)
-            else:
-                index = _generate_regular_range(cls, start, end, periods, freq)
+            # TODO: consider re-implementing _cached_range; GH#17914
+            index = _generate_regular_range(cls, start, end, periods, freq)
 
-                if tz is not None and getattr(index, 'tz', None) is None:
-                    arr = conversion.tz_localize_to_utc(
-                        ensure_int64(index.values),
-                        tz, ambiguous=ambiguous)
+            if tz is not None and getattr(index, 'tz', None) is None:
+                arr = conversion.tz_localize_to_utc(
+                    ensure_int64(index.values),
+                    tz, ambiguous=ambiguous)
 
-                    index = cls(arr)
+                index = cls(arr)
 
-                    # index is localized datetime64 array -> have to convert
-                    # start/end as well to compare
-                    if start is not None:
-                        start = start.tz_localize(tz).asm8
-                    if end is not None:
-                        end = end.tz_localize(tz).asm8
+                # index is localized datetime64 array -> have to convert
+                # start/end as well to compare
+                if start is not None:
+                    start = start.tz_localize(tz).asm8
+                if end is not None:
+                    end = end.tz_localize(tz).asm8
         else:
             # Create a linearly spaced date_range in local time
             arr = np.linspace(start.value, end.value, periods)
@@ -302,16 +303,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         if isinstance(freq, _Day):
             freq = Day(freq.n)
         return cls._simple_new(index.values, freq=freq, tz=tz)
-
-    @classmethod
-    def _use_cached_range(cls, freq, _normalized, start, end):
-        # DatetimeArray is mutable, so is not cached
-        return False
-
-    @classmethod
-    def _cached_range(cls, start=None, end=None,
-                      periods=None, freq=None, **kwargs):
-        raise AbstractMethodError(cls)
 
     # -----------------------------------------------------------------
     # Descriptive Properties
@@ -512,7 +503,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         Parameters
         ----------
         delta : {timedelta, np.timedelta64, DateOffset,
-                 TimedelaIndex, ndarray[timedelta64]}
+                 TimedeltaIndex, ndarray[timedelta64]}
 
         Returns
         -------
@@ -523,7 +514,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         The result's name is set outside of _add_delta by the calling
         method (__add__ or __sub__)
         """
-        from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
+        from pandas.core.arrays import TimedeltaArrayMixin
 
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
@@ -818,7 +809,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         pandas.PeriodIndex: Immutable ndarray holding ordinal values
         pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
         """
-        from pandas.core.arrays.period import PeriodArrayMixin
+        from pandas.core.arrays import PeriodArrayMixin
 
         if self.tz is not None:
             warnings.warn("Converting to PeriodArray/Index representation "

@@ -224,10 +224,6 @@ class TestFactorize(object):
 
     def test_complex_sorting(self):
         # gh 12666 - check no segfault
-        # Test not valid numpy versions older than 1.11
-        if pd._np_version_under1p11:
-            pytest.skip("Test valid only for numpy 1.11+")
-
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
         pytest.raises(TypeError, algos.factorize, x17[::-1], sort=True)
@@ -372,8 +368,8 @@ class TestUnique(object):
         tm.assert_numpy_array_equal(algos.unique(s), exp)
 
     def test_nan_in_object_array(self):
-        l = ['a', np.nan, 'c', 'c']
-        result = pd.unique(l)
+        duplicated_items = ['a', np.nan, 'c', 'c']
+        result = pd.unique(duplicated_items)
         expected = np.array(['a', np.nan, 'c'], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 

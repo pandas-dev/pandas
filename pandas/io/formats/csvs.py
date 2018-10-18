@@ -22,10 +22,9 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex, ABCPeriodIndex, ABCDatetimeIndex, ABCIndexClass)
 
 from pandas.io.common import (
-    _expand_user,
     _get_handle,
     _infer_compression,
-    _stringify_path,
+    get_filepath_or_buffer,
     UnicodeWriter,
 )
 
@@ -45,7 +44,9 @@ class CSVFormatter(object):
         if path_or_buf is None:
             path_or_buf = StringIO()
 
-        self.path_or_buf = _expand_user(_stringify_path(path_or_buf))
+        self.path_or_buf, _, _, _ = get_filepath_or_buffer(
+            path_or_buf, encoding=encoding, compression=compression, mode=mode
+        )
         self.sep = sep
         self.na_rep = na_rep
         self.float_format = float_format
