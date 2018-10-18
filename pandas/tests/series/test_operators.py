@@ -554,7 +554,8 @@ class TestSeriesComparisons(object):
          [NaT, NaT, pd.Timedelta('3 days')]),
 
         pytest.param(
-            ([pd.Period('2011-01', freq='M'), NaT, pd.Period('2011-03', freq='M')],
+            ([pd.Period('2011-01', freq='M'), NaT,
+              pd.Period('2011-03', freq='M')],
              [NaT, NaT, pd.Period('2011-03', freq='M')]),
             marks=pytest.mark.xfail(reason="GH-23155", strict=False)
         ),
