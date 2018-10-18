@@ -178,7 +178,7 @@ array, but rather an ``ExtensionArray``:
    pser.values
 
 This is the same behavior as ``Series.values`` for categorical data. See
-:ref:`whatsnew_0240.api_breaking.interval_values` and :ref:`whatsnew_0240.api_breaking.period_values` for more.
+:ref:`whatsnew_0240.api_breaking.interval_values` for more.
 
 .. _whatsnew_0240.enhancements.other:
 
@@ -277,44 +277,6 @@ For situations where you need an ``ndarray`` of ``Interval`` objects, use
 
    np.asarray(idx)
    idx.values.astype(object)
-
-
-.. _whatsnew_0240.api_breaking.period_values:
-
-``PeriodIndex.values`` is now a ``PeriodArray``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``values`` attribute of a :class:`PeriodIndex` now returns a ``PeriodArray``
-rather than a NumPy array of :class:`Period` objects (:issue:`22862`).
-
-Previous Behavior:
-
-.. code-block:: ipython
-
-   In  [1]: idx = pd.period_range("2000", freq="D", periods=4)
-
-   In  [2]: idx.values
-   Out [2]:
-   array([Period('2000-01-01', 'D'), Period('2000-01-02', 'D'),
-          Period('2000-01-03', 'D'), Period('2000-01-04', 'D')], dtype=object)
-
-New Behavior:
-
-.. ipython:: python
-
-   idx = pd.period_range("2000", freq="D", periods=4)
-   idx.values
-
-This mirrors ``CategoricalIndex.values``, which returns a ``Categorical``.
-
-For situations where you need an ``ndarray`` of ``Period`` objects, use
-:meth:`numpy.asarray` or ``idx.values.astype(object)``.
-
-.. ipython:: python
-
-   np.asarray(idx)
-   idx.values.astype(object)
-
 
 .. _whatsnew_0240.api.timezone_offset_parsing:
 
