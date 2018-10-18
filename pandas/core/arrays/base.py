@@ -730,10 +730,9 @@ class ExtensionOpsMixin(object):
 
     .. note::
 
-       You may want to implement ``__array_ufunc__``
-       or set ``__array_priority__`` if you want your implementation
-       to be called when involved in binary operations with NumPy
-       arrays.
+       You may want to set ``__array_priority__`` if you want your
+       implementation to be called when involved in binary operations
+       with NumPy arrays.
     """
 
     @classmethod
@@ -790,10 +789,9 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
     .. note::
 
-       You may want to implement ``__array_ufunc__``
-       or set ``__array_priority__`` if you want your implementation
-       to be called when involved in binary operations with NumPy
-       arrays.
+       You may want to set ``__array_priority__`` if you want your
+       implementation to be called when involved in binary operations
+       with NumPy arrays.
     """
 
     @classmethod
