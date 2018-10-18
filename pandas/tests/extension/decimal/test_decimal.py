@@ -100,7 +100,9 @@ class TestDtype(BaseDecimal, base.BaseDtypeTests):
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):
-    pass
+
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
@@ -112,7 +114,8 @@ class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
 
 
 class TestReshaping(BaseDecimal, base.BaseReshapingTests):
-    pass
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestGetitem(BaseDecimal, base.BaseGetitemTests):
@@ -174,7 +177,8 @@ class TestCasting(BaseDecimal, base.BaseCastingTests):
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
-    pass
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestSetitem(BaseDecimal, base.BaseSetitemTests):
