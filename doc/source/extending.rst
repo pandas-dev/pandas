@@ -135,6 +135,14 @@ There are two approaches for providing operator support for your ExtensionArray:
 2. Use an operator implementation from pandas that depends on operators that are already defined
    on the underlying elements (scalars) of the ExtensionArray.
 
+.. note::
+
+   Regardless of the approach, you may want to implement ``__array_ufunc__``
+   or set ``__array_priority__`` if you want your implementation
+   to be called when involved in binary operations with NumPy
+   arrays. See the `numpy documentation <https://docs.scipy.org/doc/numpy-1.15.1/reference/arrays.classes.html#numpy.class.__array_ufunc__>`__
+   for more.
+
 For the first approach, you define selected operators, e.g., ``__add__``, ``__le__``, etc. that
 you want your ``ExtensionArray`` subclass to support.
 

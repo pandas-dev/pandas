@@ -110,6 +110,7 @@ class ExtensionArray(object):
             compatible with the ExtensionArray.
         copy : boolean, default False
             If True, copy the underlying data.
+
         Returns
         -------
         ExtensionArray
@@ -725,7 +726,14 @@ class ExtensionArray(object):
 
 class ExtensionOpsMixin(object):
     """
-    A base class for linking the operators to their dunder names
+    A base class for linking the operators to their dunder names.
+
+    .. note::
+
+       You may want to implement ``__array_ufunc__``
+       or set ``__array_priority__`` if you want your implementation
+       to be called when involved in binary operations with NumPy
+       arrays.
     """
 
     @classmethod
@@ -762,12 +770,14 @@ class ExtensionOpsMixin(object):
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
-    """A mixin for defining the arithmetic and logical operations on
-    an ExtensionArray class, where it is assumed that the underlying objects
-    have the operators already defined.
+    """
+    A mixin for defining  ops on an ExtensionArray.
 
-    Usage
-    ------
+    It is assumed that the underlying scalar objects have the operators
+    already defined.
+
+    Notes
+    -----
     If you have defined a subclass MyExtensionArray(ExtensionArray), then
     use MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin) to
     get the arithmetic operators.  After the definition of MyExtensionArray,
@@ -777,6 +787,13 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     MyExtensionArray._add_comparison_ops()
 
     to link the operators to your class.
+
+    .. note::
+
+       You may want to implement ``__array_ufunc__``
+       or set ``__array_priority__`` if you want your implementation
+       to be called when involved in binary operations with NumPy
+       arrays.
     """
 
     @classmethod
