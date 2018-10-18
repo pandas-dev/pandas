@@ -467,15 +467,13 @@ def _factorize_array(values, na_sentinel=-1, size_hint=None,
     -------
     labels, uniques : ndarray
     """
-    (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
+    (hash_klass, _), values = _get_data_algo(values, _hashtables)
 
     table = hash_klass(size_hint or len(values))
-    uniques = vec_klass()
-    labels = table.get_labels(values, uniques, 0, na_sentinel,
-                              na_value=na_value)
+    labels, uniques = table.factorize(values, na_sentinel=na_sentinel,
+                                      na_value=na_value)
 
     labels = ensure_platform_int(labels)
-    uniques = uniques.to_array()
     return labels, uniques
 
 

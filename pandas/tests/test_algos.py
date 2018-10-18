@@ -15,7 +15,6 @@ import pandas as pd
 from pandas import compat
 from pandas._libs import (groupby as libgroupby, algos as libalgos,
                           hashtable as ht)
-from pandas._libs.hashtable import unique_label_indices
 from pandas.compat import lrange, range
 import pandas.core.algorithms as algos
 import pandas.core.common as com
@@ -228,19 +227,53 @@ class TestFactorize(object):
 
         pytest.raises(TypeError, algos.factorize, x17[::-1], sort=True)
 
-    def test_uint64_factorize(self, writable):
-        data = np.array([2**63, 1, 2**63], dtype=np.uint64)
+    def test_float64_factorize(self, writable):
+        data = np.array([1.0, 1e8, 1.0, 1e-8, 1e8, 1.0], dtype=np.float64)
         data.setflags(write=writable)
-        exp_labels = np.array([0, 1, 0], dtype=np.intp)
-        exp_uniques = np.array([2**63, 1], dtype=np.uint64)
+        exp_labels = np.array([0, 1, 0, 2, 1, 0], dtype=np.intp)
+        exp_uniques = np.array([1.0, 1e8, 1e-8], dtype=np.float64)
 
         labels, uniques = algos.factorize(data)
         tm.assert_numpy_array_equal(labels, exp_labels)
         tm.assert_numpy_array_equal(uniques, exp_uniques)
 
-        data = np.array([2**63, -1, 2**63], dtype=object)
+    def test_uint64_factorize(self, writable):
+        data = np.array([2**64 - 1, 1, 2**64 - 1], dtype=np.uint64)
+        data.setflags(write=writable)
         exp_labels = np.array([0, 1, 0], dtype=np.intp)
-        exp_uniques = np.array([2**63, -1], dtype=object)
+        exp_uniques = np.array([2**64 - 1, 1], dtype=np.uint64)
+
+        labels, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(labels, exp_labels)
+        tm.assert_numpy_array_equal(uniques, exp_uniques)
+
+    def test_int64_factorize(self, writable):
+        data = np.array([2**63 - 1, -2**63, 2**63 - 1], dtype=np.int64)
+        data.setflags(write=writable)
+        exp_labels = np.array([0, 1, 0], dtype=np.intp)
+        exp_uniques = np.array([2**63 - 1, -2**63], dtype=np.int64)
+
+        labels, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(labels, exp_labels)
+        tm.assert_numpy_array_equal(uniques, exp_uniques)
+
+    def test_string_factorize(self, writable):
+        data = np.array(['a', 'c', 'a', 'b', 'c'],
+                        dtype=object)
+        data.setflags(write=writable)
+        exp_labels = np.array([0, 1, 0, 2, 1], dtype=np.intp)
+        exp_uniques = np.array(['a', 'c', 'b'], dtype=object)
+
+        labels, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(labels, exp_labels)
+        tm.assert_numpy_array_equal(uniques, exp_uniques)
+
+    def test_object_factorize(self, writable):
+        data = np.array(['a', 'c', None, np.nan, 'a', 'b', pd.NaT, 'c'],
+                        dtype=object)
+        data.setflags(write=writable)
+        exp_labels = np.array([0, 1, -1, -1, 0, 2, -1, 1], dtype=np.intp)
+        exp_uniques = np.array(['a', 'c', 'b'], dtype=object)
 
         labels, uniques = algos.factorize(data)
         tm.assert_numpy_array_equal(labels, exp_labels)
@@ -1262,41 +1295,107 @@ class TestHashTable(object):
         exp = np.array([1, 2, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(s.unique(), exp)
 
-    def test_vector_resize(self, writable):
+    @pytest.mark.parametrize('nvals', [0, 10])  # resizing to 0 is special case
+    @pytest.mark.parametrize('htable, uniques, dtype, safely_resizes', [
+        (ht.PyObjectHashTable, ht.ObjectVector, 'object', False),
+        (ht.StringHashTable, ht.ObjectVector, 'object', True),
+        (ht.Float64HashTable, ht.Float64Vector, 'float64', False),
+        (ht.Int64HashTable, ht.Int64Vector, 'int64', False),
+        (ht.UInt64HashTable, ht.UInt64Vector, 'uint64', False)])
+    def test_vector_resize(self, writable, htable, uniques, dtype,
+                           safely_resizes, nvals):
         # Test for memory errors after internal vector
-        # reallocations (pull request #7157)
+        # reallocations (GH 7157)
+        vals = np.array(np.random.randn(1000), dtype=dtype)
 
-        def _test_vector_resize(htable, uniques, dtype, nvals, safely_resizes):
-            vals = np.array(np.random.randn(1000), dtype=dtype)
-            # GH 21688 ensure we can deal with readonly memory views
-            vals.setflags(write=writable)
-            # get_labels may append to uniques
-            htable.get_labels(vals[:nvals], uniques, 0, -1)
-            # to_array() set an external_view_exists flag on uniques.
-            tmp = uniques.to_array()
-            oldshape = tmp.shape
-            # subsequent get_labels() calls can no longer append to it
-            # (for all but StringHashTables + ObjectVector)
-            if safely_resizes:
+        # GH 21688 ensures we can deal with read-only memory views
+        vals.setflags(write=writable)
+
+        # initialise instances; cannot initialise in parametrization,
+        # as otherwise external views would be held on the array (which is
+        # one of the things this test is checking)
+        htable = htable()
+        uniques = uniques()
+
+        # get_labels may append to uniques
+        htable.get_labels(vals[:nvals], uniques, 0, -1)
+        # to_array() sets an external_view_exists flag on uniques.
+        tmp = uniques.to_array()
+        oldshape = tmp.shape
+
+        # subsequent get_labels() calls can no longer append to it
+        # (except for StringHashTables + ObjectVector)
+        if safely_resizes:
+            htable.get_labels(vals, uniques, 0, -1)
+        else:
+            with tm.assert_raises_regex(ValueError, 'external reference.*'):
                 htable.get_labels(vals, uniques, 0, -1)
-            else:
-                with pytest.raises(ValueError) as excinfo:
-                    htable.get_labels(vals, uniques, 0, -1)
-                assert str(excinfo.value).startswith('external reference')
-            uniques.to_array()   # should not raise here
-            assert tmp.shape == oldshape
 
-        test_cases = [
-            (ht.PyObjectHashTable, ht.ObjectVector, 'object', False),
-            (ht.StringHashTable, ht.ObjectVector, 'object', True),
-            (ht.Float64HashTable, ht.Float64Vector, 'float64', False),
-            (ht.Int64HashTable, ht.Int64Vector, 'int64', False),
-            (ht.UInt64HashTable, ht.UInt64Vector, 'uint64', False)]
+        uniques.to_array()   # should not raise here
+        assert tmp.shape == oldshape
 
-        for (tbl, vect, dtype, safely_resizes) in test_cases:
-            # resizing to empty is a special case
-            _test_vector_resize(tbl(), vect(), dtype, 0, safely_resizes)
-            _test_vector_resize(tbl(), vect(), dtype, 10, safely_resizes)
+    @pytest.mark.parametrize('htable, tm_dtype', [
+        (ht.PyObjectHashTable, 'String'),
+        (ht.StringHashTable, 'String'),
+        (ht.Float64HashTable, 'Float'),
+        (ht.Int64HashTable, 'Int'),
+        (ht.UInt64HashTable, 'UInt')])
+    def test_hashtable_unique(self, htable, tm_dtype, writable):
+        # output of maker has guaranteed unique elements
+        maker = getattr(tm, 'make' + tm_dtype + 'Index')
+        s = Series(maker(1000))
+        if htable == ht.Float64HashTable:
+            # add NaN for float column
+            s.loc[500] = np.nan
+        elif htable == ht.PyObjectHashTable:
+            # use different NaN types for object column
+            s.loc[500:502] = [np.nan, None, pd.NaT]
+
+        # create duplicated selection
+        s_duplicated = s.sample(frac=3, replace=True).reset_index(drop=True)
+        s_duplicated.values.setflags(write=writable)
+
+        # drop_duplicates has own cython code (hash_table_func_helper.pxi)
+        # and is tested separately; keeps first occurrence like ht.unique()
+        expected_unique = s_duplicated.drop_duplicates(keep='first').values
+        result_unique = htable().unique(s_duplicated.values)
+        tm.assert_numpy_array_equal(result_unique, expected_unique)
+
+    @pytest.mark.parametrize('htable, tm_dtype', [
+        (ht.PyObjectHashTable, 'String'),
+        (ht.StringHashTable, 'String'),
+        (ht.Float64HashTable, 'Float'),
+        (ht.Int64HashTable, 'Int'),
+        (ht.UInt64HashTable, 'UInt')])
+    def test_hashtable_factorize(self, htable, tm_dtype, writable):
+        # output of maker has guaranteed unique elements
+        maker = getattr(tm, 'make' + tm_dtype + 'Index')
+        s = Series(maker(1000))
+        if htable == ht.Float64HashTable:
+            # add NaN for float column
+            s.loc[500] = np.nan
+        elif htable == ht.PyObjectHashTable:
+            # use different NaN types for object column
+            s.loc[500:502] = [np.nan, None, pd.NaT]
+
+        # create duplicated selection
+        s_duplicated = s.sample(frac=3, replace=True).reset_index(drop=True)
+        s_duplicated.values.setflags(write=writable)
+        na_mask = s_duplicated.isna().values
+
+        result_inverse, result_unique = htable().factorize(s_duplicated.values)
+
+        # drop_duplicates has own cython code (hash_table_func_helper.pxi)
+        # and is tested separately; keeps first occurrence like ht.factorize()
+        # since factorize removes all NaNs, we do the same here
+        expected_unique = s_duplicated.dropna().drop_duplicates().values
+        tm.assert_numpy_array_equal(result_unique, expected_unique)
+
+        # reconstruction can only succeed if the inverse is correct. Since
+        # factorize removes the NaNs, those have to be excluded here as well
+        result_reconstruct = result_unique[result_inverse[~na_mask]]
+        expected_reconstruct = s_duplicated.dropna().values
+        tm.assert_numpy_array_equal(result_reconstruct, expected_reconstruct)
 
 
 def test_quantile():
@@ -1311,14 +1410,14 @@ def test_unique_label_indices():
 
     a = np.random.randint(1, 1 << 10, 1 << 15).astype('i8')
 
-    left = unique_label_indices(a)
+    left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
 
     tm.assert_numpy_array_equal(left, right,
                                 check_dtype=False)
 
     a[np.random.choice(len(a), 10)] = -1
-    left = unique_label_indices(a)
+    left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1][1:]
     tm.assert_numpy_array_equal(left, right,
                                 check_dtype=False)
