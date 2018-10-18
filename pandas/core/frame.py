@@ -1766,7 +1766,7 @@ class DataFrame(NDFrame):
         >>> type(sdf)
         <class 'pandas.core.sparse.frame.SparseDataFrame'>
         """
-        from pandas.core.sparse.frame import SparseDataFrame
+        from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
                                columns=self.columns, default_kind=kind,
                                default_fill_value=fill_value)
