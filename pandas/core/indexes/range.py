@@ -1,7 +1,7 @@
 import operator
+import warnings
 from datetime import timedelta
 from sys import getsizeof
-import warnings
 
 import numpy as np
 
