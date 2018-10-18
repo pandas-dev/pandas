@@ -809,7 +809,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             return -1
 
         indices = self.sp_index.to_int_index().indices
-        if indices[0] > 0:
+        if not len(indices) or indices[0] > 0:
             return 0
 
         diff = indices[1:] - indices[:-1]
