@@ -47,6 +47,70 @@ def coerce(request):
     return request.param
 
 
+# collect all objects to be tested for list-like-ness; use tuples of objects,
+# whether they are list-like or not (special casing for sets), and their ID
+ll_params = [
+    ([1],                       True,  'list'),                 # noqa: E241
+    ([],                        True,  'list-empty'),           # noqa: E241
+    ((1, ),                     True,  'tuple'),                # noqa: E241
+    (tuple(),                   True,  'tuple-empty'),          # noqa: E241
+    ({'a': 1},                  True,  'dict'),                 # noqa: E241
+    (dict(),                    True,  'dict-empty'),           # noqa: E241
+    ({'a', 1},                  'set', 'set'),                  # noqa: E241
+    (set(),                     'set', 'set-empty'),            # noqa: E241
+    (frozenset({'a', 1}),       'set', 'frozenset'),            # noqa: E241
+    (frozenset([]),             'set', 'frozenset-empty'),      # noqa: E241
+    (iter([1, 2]),              True,  'iterator'),             # noqa: E241
+    (iter([]),                  True,  'iterator-empty'),       # noqa: E241
+    ((x for x in [1, 2]),       True,  'generator'),            # noqa: E241
+    ((x for x in []),           True,  'generator-empty'),      # noqa: E241
+    (Series([1]),               True,  'Series'),               # noqa: E241
+    (Series([]),                True,  'Series-empty'),         # noqa: E241
+    (Series(['a']).str,         True,  'StringMethods'),        # noqa: E241
+    (Series([], dtype='O').str, True,  'StringMethods-empty'),  # noqa: E241
+    (Index([1]),                True,  'Index'),                # noqa: E241
+    (Index([]),                 True,  'Index-empty'),          # noqa: E241
+    (DataFrame([[1]]),          True,  'DataFrame'),            # noqa: E241
+    (DataFrame(),               True,  'DataFrame-empty'),      # noqa: E241
+    (np.ndarray((2,) * 1),      True,  'ndarray-1d'),           # noqa: E241
+    (np.array([]),              True,  'ndarray-1d-empty'),     # noqa: E241
+    (np.ndarray((2,) * 2),      True,  'ndarray-2d'),           # noqa: E241
+    (np.array([[]]),            True,  'ndarray-2d-empty'),     # noqa: E241
+    (np.ndarray((2,) * 3),      True,  'ndarray-3d'),           # noqa: E241
+    (np.array([[[]]]),          True,  'ndarray-3d-empty'),     # noqa: E241
+    (np.ndarray((2,) * 4),      True,  'ndarray-4d'),           # noqa: E241
+    (np.array([[[[]]]]),        True,  'ndarray-4d-empty'),     # noqa: E241
+    (np.array(2),               False, 'ndarray-0d'),           # noqa: E241
+    (1,                         False, 'int'),                  # noqa: E241
+    (b'123',                    False, 'bytes'),                # noqa: E241
+    (b'',                       False, 'bytes-empty'),          # noqa: E241
+    ('123',                     False, 'string'),               # noqa: E241
+    ('',                        False, 'string-empty'),         # noqa: E241
+    (str,                       False, 'string-type'),          # noqa: E241
+    (object(),                  False, 'object'),               # noqa: E241
+    (np.nan,                    False, 'NaN'),                  # noqa: E241
+    (None,                      False, 'None')                  # noqa: E241
+]
+objs, expected, ids = zip(*ll_params)
+
+
+@pytest.fixture(params=zip(objs, expected), ids=ids)
+def maybe_list_like(request):
+    return request.param
+
+
+def test_is_list_like(maybe_list_like):
+    obj, expected = maybe_list_like
+    expected = True if expected == 'set' else expected
+    assert inference.is_list_like(obj) == expected
+
+
+def test_is_list_like_disallow_sets(maybe_list_like):
+    obj, expected = maybe_list_like
+    expected = False if expected == 'set' else expected
+    assert inference.is_list_like(obj, allow_sets=False) == expected
+
+
 def test_is_sequence():
     is_seq = inference.is_sequence
     assert (is_seq((1, 2)))
@@ -61,23 +125,6 @@ def test_is_sequence():
             return 1
 
     assert (not is_seq(A()))
-
-
-@pytest.mark.parametrize(
-    "ll",
-    [
-        [], [1], (1, ), (1, 2), {'a': 1},
-        {1, 'a'}, Series([1]),
-        Series([]), Series(['a']).str,
-        np.array([2])])
-def test_is_list_like_passes(ll):
-    assert inference.is_list_like(ll)
-
-
-@pytest.mark.parametrize(
-    "ll", [1, '2', object(), str, np.array(2)])
-def test_is_list_like_fails(ll):
-    assert not inference.is_list_like(ll)
 
 
 def test_is_array_like():
