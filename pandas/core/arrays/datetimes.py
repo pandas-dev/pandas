@@ -711,8 +711,13 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             elif errors == 'raise':
                 nonexistent = 'raise'
             else:
-                raise ValueError("The errors argument must be either coerce "
-                                 "or raise.")
+                raise ValueError("The errors argument must be either 'coerce' "
+                                 "or 'raise'.")
+
+        if nonexistent not in ('raise', 'NaT', 'shift'):
+            raise ValueError("The nonexistent argument must be one of 'raise',"
+                             " 'NaT' or 'shift'")
+
         if self.tz is not None:
             if tz is None:
                 new_dates = conversion.tz_convert(self.asi8, 'UTC', self.tz)

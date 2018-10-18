@@ -203,6 +203,8 @@ class TestTimestampTZOperations(object):
         ts = Timestamp('2015-03-29 02:20:00')
         with pytest.raises(pytz.NonExistentTimeError):
             ts.tz_localize(tz, nonexistent='raise')
+        with pytest.raises(ValueError):
+            ts.tz_localize(tz, nonexistent='foo')
 
     # ------------------------------------------------------------------
     # Timestamp.tz_convert

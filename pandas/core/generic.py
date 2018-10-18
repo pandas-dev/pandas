@@ -8679,6 +8679,10 @@ class NDFrame(PandasObject, SelectionMixin):
         TypeError
             If the TimeSeries is tz-aware and tz is not None.
         """
+        if nonexistent not in ('raise', 'NaT', 'shift'):
+            raise ValueError("The nonexistent argument must be one of 'raise',"
+                             " 'NaT' or 'shift'")
+
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
 

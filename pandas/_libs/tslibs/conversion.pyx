@@ -893,7 +893,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         shift = True
     else:
         assert nonexistent in ('raise', None), ("nonexistent must be one of"
-                                                "{'NaT', 'raise', 'shift'}")
+                                                " {'NaT', 'raise', 'shift'}")
 
     trans, deltas, typ = get_dst_info(tz)
 

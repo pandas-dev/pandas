@@ -79,7 +79,8 @@ class TestSeriesTimezones(object):
     @pytest.mark.parametrize('method, exp', [
         ['shift', '2015-03-29 03:00:00'],
         ['NaT', NaT],
-        ['raise', None]
+        ['raise', None],
+        ['foo', 'invalid']
     ])
     def test_series_tz_localize_nonexistent(self, tz, method, exp):
         # GH 8917
@@ -89,6 +90,9 @@ class TestSeriesTimezones(object):
         if method == 'raise':
             with pytest.raises(pytz.NonExistentTimeError):
                 s.tz_localize(tz, nonexistent=method)
+        elif exp == 'invalid':
+            with pytest.raises(ValueError):
+                dti.tz_localize(tz, nonexistent=method)
         else:
             result = s.tz_localize(tz, nonexistent=method)
             expected = Series(1, index=DatetimeIndex([exp] * n, tz=tz))

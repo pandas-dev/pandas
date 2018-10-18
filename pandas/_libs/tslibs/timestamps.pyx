@@ -1022,8 +1022,13 @@ class Timestamp(_Timestamp):
             elif errors == 'raise':
                 nonexistent = 'raise'
             else:
-                raise ValueError("The errors argument must be either coerce "
-                                 "or raise.")
+                raise ValueError("The errors argument must be either 'coerce' "
+                                 "or 'raise'.")
+
+        if nonexistent not in ('raise', 'NaT', 'shift'):
+            raise ValueError("The nonexistent argument must be one of 'raise',"
+                             " 'NaT' or 'shift'")
+
         if self.tzinfo is None:
             # tz naive, localize
             tz = maybe_get_tz(tz)

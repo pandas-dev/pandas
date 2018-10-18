@@ -582,7 +582,8 @@ class TestDatetimeIndexTimezones(object):
     @pytest.mark.parametrize('method, exp', [
         ['shift', '2015-03-29 03:00:00'],
         ['NaT', pd.NaT],
-        ['raise', None]
+        ['raise', None],
+        ['foo', 'invalid']
     ])
     def test_dti_tz_localize_nonexistent(self, tz, method, exp):
         # GH 8917
@@ -590,6 +591,9 @@ class TestDatetimeIndexTimezones(object):
         dti = date_range(start='2015-03-29 02:00:00', periods=n, freq='min')
         if method == 'raise':
             with pytest.raises(pytz.NonExistentTimeError):
+                dti.tz_localize(tz, nonexistent=method)
+        elif exp == 'invalid':
+            with pytest.raises(ValueError):
                 dti.tz_localize(tz, nonexistent=method)
         else:
             result = dti.tz_localize(tz, nonexistent=method)
