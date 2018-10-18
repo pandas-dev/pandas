@@ -1415,9 +1415,29 @@ class MultiIndex(Index):
     @classmethod
     def from_frame(cls, df, squeeze=True):
         """
-        :param df
-        :param squeeze
-            Squeeze single level multiindex to be a regular index
+        Make a MultiIndex from a dataframe
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            DataFrame to be converted to MultiIndex
+        squeeze : bool
+            If df is a single column, squeeze multiindex to be a regular index.
+
+        Returns
+        -------
+        index : MultiIndex
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[0, u'green'], [0, u'purple'], [1, u'green'],
+                               [1, u'purple'], [2, u'green'], [2, u'purple']],
+                              columns=[u'number', u'color'])
+        >>> pd.MultiIndex.from_frame(df)
+        MultiIndex(levels=[[0, 1, 2], [u'green', u'purple']],
+                   labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+                   names=[u'number', u'color'])
+
         """
         from pandas import DataFrame
         # just let column level names be the tuple of the meta df columns
@@ -1495,8 +1515,20 @@ class MultiIndex(Index):
 
     def squeeze(self):
         """
-        If multiindex is only composed of a single level, convert to an index.
-        Otherwise return a copy of the index.
+        Squeeze a single level multiindex to be a regular Index instane. If
+        the MultiIndex is more than a single level, return a copy of the
+        MultiIndex.
+
+        Returns
+        -------
+        index : Index | MultiIndex
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_tuples([('a',), ('b',), ('c',)])
+        >>> mi.squeeze()
+        Index(['a', 'b', 'c'], dtype='object')
+
         """
         if len(self.levels) == 1:
             return self.levels[0][self.labels[0]]
