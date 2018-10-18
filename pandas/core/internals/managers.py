@@ -1630,8 +1630,7 @@ class SingleBlockManager(BlockManager):
         # check if all series are of the same block type:
         if len(non_empties) > 0:
             blocks = [obj.blocks[0] for obj in non_empties]
-
-            if all(type(b) is type(blocks[0]) for b in blocks[1:]):  # noqa
+            if len({b.dtype for b in blocks}) == 1:
                 new_block = blocks[0].concat_same_type(blocks)
             else:
                 values = [x.values for x in blocks]
