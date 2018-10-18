@@ -45,6 +45,8 @@ from pandas.util._decorators import (
 
 import pandas.core.algorithms as algorithms
 
+from pandas.core.sorting import nargsort
+
 from pandas.io.formats import console
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
@@ -1605,32 +1607,15 @@ class Categorical(ExtensionArray, PandasObject):
             msg = 'invalid na_position: {na_position!r}'
             raise ValueError(msg.format(na_position=na_position))
 
-        codes = np.sort(self._codes)
-        if not ascending:
-            codes = codes[::-1]
+        sorted_idx = nargsort(self,
+                              ascending=ascending,
+                              na_position=na_position)
 
-        # NaN handling
-        na_mask = (codes == -1)
-        if na_mask.any():
-            n_nans = len(codes[na_mask])
-            if na_position == "first":
-                # in this case sort to the front
-                new_codes = codes.copy()
-                new_codes[0:n_nans] = -1
-                new_codes[n_nans:] = codes[~na_mask]
-                codes = new_codes
-            elif na_position == "last":
-                # ... and to the end
-                new_codes = codes.copy()
-                pos = len(codes) - n_nans
-                new_codes[0:pos] = codes[~na_mask]
-                new_codes[pos:] = -1
-                codes = new_codes
         if inplace:
-            self._codes = codes
-            return
+            self._codes = self._codes[sorted_idx]
         else:
-            return self._constructor(values=codes, dtype=self.dtype,
+            return self._constructor(values=self._codes[sorted_idx],
+                                     dtype=self.dtype,
                                      fastpath=True)
 
     def _values_for_rank(self):
