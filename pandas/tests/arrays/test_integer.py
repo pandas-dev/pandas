@@ -128,7 +128,11 @@ class TestArithmeticOps(BaseOpsUtil):
             if omask is not None:
                 mask |= omask
 
-        if op_name == '__rpow__':
+        # 1 ** na is na, so need to unmask those
+        if op_name == '__pow__':
+            mask = np.where(s == 1, False, mask)
+
+        elif op_name == '__rpow__':
             mask = np.where(other == 1, False, mask)
 
         # float result type or float op
@@ -295,8 +299,8 @@ class TestArithmeticOps(BaseOpsUtil):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
     def test_pow(self):
-        a = pd.core.arrays.integer_array([1, None, None, 1])
-        b = pd.core.arrays.integer_array([1, None, 1, None])
+        a = integer_array([1, None, None, 1])
+        b = integer_array([1, None, 1, None])
         result = a ** b
         expected = pd.core.arrays.integer_array([1, None, None, 1])
         tm.assert_extension_array_equal(result, expected)
@@ -519,6 +523,18 @@ def test_integer_array_constructor():
 
     with pytest.raises(TypeError):
         IntegerArray(values)
+
+
+@pytest.mark.parametrize('a, b', [
+    ([1, None], [1, np.nan]),
+    pytest.param([None], [np.nan],
+                 marks=pytest.mark.xfail(reason='infer object dtype.',
+                                         strict=True)),
+])
+def test_integer_array_constructor_none_is_nan(a, b):
+    result = integer_array(a)
+    expected = integer_array(b)
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_integer_array_constructor_copy():
