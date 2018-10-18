@@ -244,7 +244,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
             if format == '%Y%m%d':
                 try:
                     result = _attempt_YYYYMMDD(arg, errors=errors)
-                except:
+                except (ValueError, TypeError, tslibs.OutOfBoundsDatetime):
                     raise ValueError("cannot convert the input to "
                                      "'%Y%m%d' date format")
 
@@ -334,7 +334,7 @@ def _adjust_to_origin(arg, origin, unit):
             raise ValueError("unit must be 'D' for origin='julian'")
         try:
             arg = arg - j0
-        except:
+        except TypeError:
             raise ValueError("incompatible 'arg' type for given "
                              "'origin'='julian'")
 
@@ -724,28 +724,29 @@ def _attempt_YYYYMMDD(arg, errors):
         result = np.empty(carg.shape, dtype='M8[ns]')
         iresult = result.view('i8')
         iresult[~mask] = tslibs.iNaT
-        result[mask] = calc(carg[mask].astype(np.float64).astype(np.int64)). \
-            astype('M8[ns]')
+
+        masked_result = calc(carg[mask].astype(np.float64).astype(np.int64))
+        result[mask] = masked_result.astype('M8[ns]')
         return result
 
     # try intlike / strings that are ints
     try:
         return calc(arg.astype(np.int64))
-    except:
+    except ValueError:
         pass
 
     # a float with actual np.nan
     try:
         carg = arg.astype(np.float64)
         return calc_with_mask(carg, notna(carg))
-    except:
+    except ValueError:
         pass
 
     # string with NaN-like
     try:
         mask = ~algorithms.isin(arg, list(tslib.nat_strings))
         return calc_with_mask(arg, mask)
-    except:
+    except ValueError:
         pass
 
     return None

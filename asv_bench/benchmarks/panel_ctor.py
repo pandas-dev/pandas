@@ -1,9 +1,7 @@
 import warnings
 from datetime import datetime, timedelta
 
-from pandas import DataFrame, DatetimeIndex, date_range
-
-from .pandas_vb_common import Panel, setup  # noqa
+from pandas import DataFrame, Panel, DatetimeIndex, date_range
 
 
 class DifferentIndexes(object):
@@ -58,3 +56,6 @@ class TwoIndexes(object):
     def time_from_dict(self):
         with warnings.catch_warnings(record=True):
             Panel.from_dict(self.data_frames)
+
+
+from .pandas_vb_common import setup  # noqa: F401

@@ -63,6 +63,10 @@ class ExtensionArray(object):
     as they only compose abstract methods. Still, a more efficient
     implementation may be available, and these methods can be overridden.
 
+    One can implement methods to handle array reductions.
+
+    * _reduce
+
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
@@ -283,10 +287,25 @@ class ExtensionArray(object):
         return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self):
-        # type: () -> np.ndarray
-        """Boolean NumPy array indicating if each value is missing.
+        # type: () -> Union[ExtensionArray, np.ndarray]
+        """
+        A 1-D array indicating if each value is missing.
 
-        This should return a 1-D array the same length as 'self'.
+        Returns
+        -------
+        na_values : Union[np.ndarray, ExtensionArray]
+            In most cases, this should return a NumPy ndarray. For
+            exceptional cases like ``SparseArray``, where returning
+            an ndarray would be expensive, an ExtensionArray may be
+            returned.
+
+        Notes
+        -----
+        If returning an ExtensionArray, then
+
+        * ``na_values._is_boolean`` should be True
+        * `na_values` should implement :func:`ExtensionArray._reduce`
+        * ``na_values.any`` and ``na_values.all`` should be implemented
         """
         raise AbstractMethodError(self)
 
@@ -466,6 +485,11 @@ class ExtensionArray(object):
             as NA in the factorization routines, so it will be coded as
             `na_sentinal` and not included in `uniques`. By default,
             ``np.nan`` is used.
+
+        Notes
+        -----
+        The values returned by this method are also used in
+        :func:`pandas.util.hash_pandas_object`.
         """
         return self.astype(object), np.nan
 
@@ -670,6 +694,33 @@ class ExtensionArray(object):
         """
         return np.array(self)
 
+    def _reduce(self, name, skipna=True, **kwargs):
+        """
+        Return a scalar result of performing the reduction operation.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            { any, all, min, max, sum, mean, median, prod,
+            std, var, sem, kurt, skew }.
+        skipna : bool, default True
+            If True, skip NaN values.
+        **kwargs
+            Additional keyword arguments passed to the reduction function.
+            Currently, `ddof` is the only supported kwarg.
+
+        Returns
+        -------
+        scalar
+
+        Raises
+        ------
+        TypeError : subclass does not define reductions
+        """
+        raise TypeError("cannot perform {name} with type {dtype}".format(
+            name=name, dtype=self.dtype))
+
 
 class ExtensionOpsMixin(object):
     """
@@ -739,14 +790,22 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         ----------
         op : function
             An operator that takes arguments op(a, b)
-        coerce_to_dtype :  bool
+        coerce_to_dtype :  bool, default True
             boolean indicating whether to attempt to convert
-            the result to the underlying ExtensionArray dtype
-            (default True)
+            the result to the underlying ExtensionArray dtype.
+            If it's not possible to create a new ExtensionArray with the
+            values, an ndarray is returned instead.
 
         Returns
         -------
-        A method that can be bound to a method of a class
+        Callable[[Any, Any], Union[ndarray, ExtensionArray]]
+            A method that can be bound to a class. When used, the method
+            receives the two arguments, one of which is the instance of
+            this class, and should return an ExtensionArray or an ndarray.
+
+            Returning an ndarray may be necessary when the result of the
+            `op` cannot be stored in the ExtensionArray. The dtype of the
+            ndarray uses NumPy's normal inference rules.
 
         Example
         -------
@@ -757,7 +816,6 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         in the class definition of MyExtensionArray to create the operator
         for addition, that will be based on the operator implementation
         of the underlying elements of the ExtensionArray
-
         """
 
         def _binop(self, other):
@@ -774,12 +832,24 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
             # a TypeError should be raised
             res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
 
-            if coerce_to_dtype:
-                try:
-                    res = self._from_sequence(res)
-                except TypeError:
-                    pass
+            def _maybe_convert(arr):
+                if coerce_to_dtype:
+                    # https://github.com/pandas-dev/pandas/issues/22850
+                    # We catch all regular exceptions here, and fall back
+                    # to an ndarray.
+                    try:
+                        res = self._from_sequence(arr)
+                    except Exception:
+                        res = np.asarray(arr)
+                else:
+                    res = np.asarray(arr)
+                return res
 
+            if op.__name__ in {'divmod', 'rdivmod'}:
+                a, b = zip(*res)
+                res = _maybe_convert(a), _maybe_convert(b)
+            else:
+                res = _maybe_convert(res)
             return res
 
         op_name = ops._get_op_name(op, True)

@@ -3,14 +3,13 @@ import string
 
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (DataFrame, Series, MultiIndex, date_range, concat, merge,
-                    merge_asof)
+from pandas import (DataFrame, Series, Panel, MultiIndex,
+                    date_range, concat, merge, merge_asof)
+
 try:
     from pandas import merge_ordered
 except ImportError:
     from pandas import ordered_merge as merge_ordered
-
-from .pandas_vb_common import Panel, setup  # noqa
 
 
 class Append(object):
@@ -360,3 +359,6 @@ class Align(object):
 
     def time_series_align_left_monotonic(self):
         self.ts1.align(self.ts2, join='left')
+
+
+from .pandas_vb_common import setup  # noqa: F401

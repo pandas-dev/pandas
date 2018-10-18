@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_bool_dtype,
+    is_period_dtype,
     is_categorical_dtype,
     is_datetime_or_timedelta_dtype,
     is_float_dtype,
@@ -28,7 +29,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_dtype)
 from pandas.core.dtypes.generic import (
-    ABCIndex, ABCSeries, ABCPeriodIndex, ABCIndexClass)
+    ABCIndex, ABCSeries, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms, ops
 
@@ -239,9 +240,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             # have different timezone
             return False
 
-        # ToDo: Remove this when PeriodDtype is added
-        elif isinstance(self, ABCPeriodIndex):
-            if not isinstance(other, ABCPeriodIndex):
+        elif is_period_dtype(self):
+            if not is_period_dtype(other):
                 return False
             if self.freq != other.freq:
                 return False
@@ -359,7 +359,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             attribs = self._get_attributes_dict()
             freq = attribs['freq']
 
-            if freq is not None and not isinstance(self, ABCPeriodIndex):
+            if freq is not None and not is_period_dtype(self):
                 if freq.n > 0 and not ascending:
                     freq = freq * -1
                 elif freq.n < 0 and ascending:
@@ -386,8 +386,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
                                            fill_value=fill_value,
                                            na_value=iNaT)
 
-        # keep freq in PeriodIndex, reset otherwise
-        freq = self.freq if isinstance(self, ABCPeriodIndex) else None
+        # keep freq in PeriodArray/Index, reset otherwise
+        freq = self.freq if is_period_dtype(self) else None
         return self._shallow_copy(taken, freq=freq)
 
     _can_hold_na = True
@@ -431,6 +431,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         numpy.ndarray.min
         """
         nv.validate_min(args, kwargs)
+        nv.validate_minmax_axis(axis)
 
         try:
             i8 = self.asi8
@@ -459,6 +460,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         numpy.ndarray.argmin
         """
         nv.validate_argmin(args, kwargs)
+        nv.validate_minmax_axis(axis)
 
         i8 = self.asi8
         if self.hasnans:
@@ -479,6 +481,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         numpy.ndarray.max
         """
         nv.validate_max(args, kwargs)
+        nv.validate_minmax_axis(axis)
 
         try:
             i8 = self.asi8
@@ -507,6 +510,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         numpy.ndarray.argmax
         """
         nv.validate_argmax(args, kwargs)
+        nv.validate_minmax_axis(axis)
 
         i8 = self.asi8
         if self.hasnans:
@@ -618,7 +622,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         Analogous to ndarray.repeat
         """
         nv.validate_repeat(args, kwargs)
-        if isinstance(self, ABCPeriodIndex):
+        if is_period_dtype(self):
             freq = self.freq
         else:
             freq = None
@@ -673,7 +677,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         attribs = self._get_attributes_dict()
         attribs['name'] = name
 
-        if not isinstance(self, ABCPeriodIndex):
+        if not is_period_dtype(self):
             # reset freq
             attribs['freq'] = None
 
@@ -744,3 +748,60 @@ def wrap_arithmetic_op(self, other, result):
     res_name = ops.get_op_result_name(self, other)
     result.name = res_name
     return result
+
+
+def wrap_array_method(method, pin_name=False):
+    """
+    Wrap a DatetimeArray/TimedeltaArray/PeriodArray method so that the
+    returned object is an Index subclass instead of ndarray or ExtensionArray
+    subclass.
+
+    Parameters
+    ----------
+    method : method of Datetime/Timedelta/Period Array class
+    pin_name : bool
+        Whether to set name=self.name on the output Index
+
+    Returns
+    -------
+    method
+    """
+    def index_method(self, *args, **kwargs):
+        result = method(self, *args, **kwargs)
+
+        # Index.__new__ will choose the appropriate subclass to return
+        result = Index(result)
+        if pin_name:
+            result.name = self.name
+        return result
+
+    index_method.__name__ = method.__name__
+    index_method.__doc__ = method.__doc__
+    return index_method
+
+
+def wrap_field_accessor(prop):
+    """
+    Wrap a DatetimeArray/TimedeltaArray/PeriodArray array-returning property
+    to return an Index subclass instead of ndarray or ExtensionArray subclass.
+
+    Parameters
+    ----------
+    prop : property
+
+    Returns
+    -------
+    new_prop : property
+    """
+    fget = prop.fget
+
+    def f(self):
+        result = fget(self)
+        if is_bool_dtype(result):
+            # return numpy array b/c there is no BoolIndex
+            return result
+        return Index(result, name=self.name)
+
+    f.__name__ = fget.__name__
+    f.__doc__ = fget.__doc__
+    return property(f)
