@@ -299,15 +299,15 @@ class TestArithmeticOps(BaseOpsUtil):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
     def test_pow(self):
-        a = integer_array([1, None, None, 1])
-        b = integer_array([1, None, 1, None])
+        # https://github.com/pandas-dev/pandas/issues/22022
+        a = integer_array([1, np.nan, np.nan, 1])
+        b = integer_array([1, np.nan, 1, np.nan])
         result = a ** b
-        expected = pd.core.arrays.integer_array([1, None, None, 1])
+        expected = pd.core.arrays.integer_array([1, np.nan, np.nan, 1])
         tm.assert_extension_array_equal(result, expected)
 
     def test_rpow_one_to_na(self):
         # https://github.com/pandas-dev/pandas/issues/22022
-        # NumPy says 1 ** nan is 1.
         arr = integer_array([np.nan, np.nan])
         result = np.array([1.0, 2.0]) ** arr
         expected = np.array([1.0, np.nan])
@@ -528,7 +528,7 @@ def test_integer_array_constructor():
 @pytest.mark.parametrize('a, b', [
     ([1, None], [1, np.nan]),
     pytest.param([None], [np.nan],
-                 marks=pytest.mark.xfail(reason='infer object dtype.',
+                 marks=pytest.mark.xfail(reason='GH-23224',
                                          strict=True)),
 ])
 def test_integer_array_constructor_none_is_nan(a, b):
