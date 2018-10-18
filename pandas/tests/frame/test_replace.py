@@ -959,7 +959,6 @@ class TestDataFrameReplace(TestData):
         assert_frame_equal(res, expect)
 
     def test_replace_period(self):
-        # TODO: Implement this?
         d = {
             'fname': {
                 'out_augmented_AUG_2011.json':
@@ -985,8 +984,11 @@ class TestDataFrameReplace(TestData):
                            'out_augmented_AUG_2011.json',
                            'out_augmented_JAN_2011.json'], columns=['fname'])
         assert set(df.fname.values) == set(d['fname'].keys())
+        # We don't support converting object -> specialized EA in
+        # replace yet.
         expected = DataFrame({'fname': [d['fname'][k]
-                                        for k in df.fname.values]})
+                                        for k in df.fname.values]},
+                             dtype=object)
         result = df.replace(d)
         assert_frame_equal(result, expected)
 
