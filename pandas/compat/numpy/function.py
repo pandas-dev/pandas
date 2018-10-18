@@ -366,7 +366,13 @@ def validate_minmax_axis(axis):
     """
     Ensure that the axis argument passed to min, max, argmin, or argmax is
     zero or None, as otherwise it will be incorrectly ignored.
-     Parameters
+    Parameters
+    ----------
+    axis : int or None
+    
+    Raises
+    ------
+    ValueError
     ----------
     axis : int or None
      Raises
