@@ -1249,30 +1249,18 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return type(self)(sp_values, sparse_index=self.sp_index,
                           fill_value=fill_value)
 
-    def get_values(self, fill=None):
-        """ return a dense representation """
-        # TODO: deprecate for to_dense?
-        return self.to_dense(fill=fill)
-
-    def to_dense(self, fill=None):
+    def to_dense(self):
         """
         Convert SparseArray to a NumPy array.
-
-        Parameters
-        ----------
-        fill: float, default None
-            .. deprecated:: 0.20.0
-               This argument is not respected by this function.
 
         Returns
         -------
         arr : NumPy array
         """
-        if fill is not None:
-            warnings.warn(("The 'fill' parameter has been deprecated and "
-                           "will be removed in a future version."),
-                          FutureWarning, stacklevel=2)
         return np.asarray(self, dtype=self.sp_values.dtype)
+
+    # TODO: Look into deprecating this in favor of `to_dense`.
+    get_values = to_dense
 
     # ------------------------------------------------------------------------
     # IO
