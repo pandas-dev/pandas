@@ -682,11 +682,11 @@ ctypedef fused by_t:
 
 
 def asof_join_backward_on_X_by_Y(ndarray[asof_t] left_values,
-                                ndarray[asof_t] right_values,
-                                ndarray[by_t] left_by_values,
-                                ndarray[by_t] right_by_values,
-                                bint allow_exact_matches=1,
-                                tolerance=None):
+                                 ndarray[asof_t] right_values,
+                                 ndarray[by_t] left_by_values,
+                                 ndarray[by_t] right_by_values,
+                                 bint allow_exact_matches=1,
+                                 tolerance=None):
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos
