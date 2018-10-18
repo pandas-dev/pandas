@@ -19,6 +19,7 @@ from pandas.util._decorators import (cache_readonly, deprecate_kwarg)
 
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype, is_period_dtype, is_timedelta64_dtype,
+    is_object_dtype,
     is_datetime64_dtype, _TD_DTYPE)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
@@ -122,17 +123,29 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
     _attributes = ["freq"]
 
-    def __new__(cls, values, freq=None, **kwargs):
+    def __new__(cls, values, freq=None, dtype=None, **kwargs):
+
+        if freq is not None:
+            # coerce freq to freq object, otherwise it can be coerced
+            # elementwise, which is slow
+            freq = Period._maybe_convert_freq(freq)
+
+        freq = dtl.validate_dtype_freq(dtype, freq)
+
         if is_period_dtype(values):
             # PeriodArray, PeriodIndex
-            if freq is not None and values.freq != freq:
-                raise IncompatibleFrequency(freq, values.freq)
-            freq = values.freq
+            freq = dtl.validate_dtype_freq(values.dtype, freq)
             values = values.asi8
 
         elif is_datetime64_dtype(values):
-            # TODO: what if it has tz?
             values = dt64arr_to_periodarr(values, freq)
+
+        elif is_object_dtype(values) or isinstance(values, (list, tuple)):
+            # e.g. array([Period(...), Period(...), NaT])
+            values = np.array(values, dtype=object)
+            if freq is None:
+                freq = libperiod.extract_freq(values)
+            values = libperiod.extract_ordinals(values, freq)
 
         return cls._simple_new(values, freq=freq, **kwargs)
 
@@ -176,11 +189,13 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
+        periods = dtl.validate_periods(periods)
+
         if freq is not None:
             freq = Period._maybe_convert_freq(freq)
 
         field_count = len(fields)
-        if com.count_not_none(start, end) > 0:
+        if start is not None or end is not None:
             if field_count > 0:
                 raise ValueError('Can either instantiate from fields '
                                  'or endpoints, but not both')

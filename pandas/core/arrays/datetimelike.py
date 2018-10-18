@@ -11,6 +11,7 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.period import (
     Period, DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
+from pandas.util._decorators import deprecate_kwarg
 from pandas.errors import NullFrequencyError, PerformanceWarning
 from pandas import compat
 
@@ -39,7 +40,6 @@ import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
 
 from .base import ExtensionOpsMixin
-from pandas.util._decorators import deprecate_kwarg
 
 
 def _make_comparison_op(cls, op):
@@ -144,12 +144,20 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # Array-like Methods
 
     @property
+    def ndim(self):
+        return len(self.shape)
+
+    @property
     def shape(self):
         return (len(self),)
 
     @property
     def size(self):
         return np.prod(self.shape)
+
+    @property
+    def nbytes(self):
+        return self._ndarray_values.nbytes
 
     def __len__(self):
         return len(self._data)
@@ -210,6 +218,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     # ------------------------------------------------------------------
     # Null Handling
+
+    def isna(self):
+        # EA Interface
+        return self._isnan
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _isnan(self):
@@ -331,6 +343,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if is_period_dtype(cls):
             # Frequency validation is not meaningful for Period Array/Index
             return None
+
+        # DatetimeArray may pass `ambiguous`, nothing else will be accepted
+        # by cls._generate_range below
+        assert all(key == 'ambiguous' for key in kwargs)
 
         inferred = index.inferred_freq
         if index.size == 0 or inferred == freq.freqstr:
@@ -595,9 +611,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         start = self[0] + periods * self.freq
         end = self[-1] + periods * self.freq
-        attribs = self._get_attributes_dict()
+
+        # Note: in the DatetimeTZ case, _generate_range will infer the
+        #  appropriate timezone from `start` and `end`, so tz does not need
+        #  to be passed explicitly.
         return self._generate_range(start=start, end=end, periods=None,
-                                    **attribs)
+                                    freq=self.freq)
 
     @classmethod
     def _add_datetimelike_methods(cls):

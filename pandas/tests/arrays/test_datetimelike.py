@@ -34,7 +34,7 @@ def datetime_index(request):
     A fixture to provide DatetimeIndex objects with different frequencies.
 
     Most DatetimeArray behavior is already tested in DatetimeIndex tests,
-    so here we just test that the DatetimeIndex behavior matches
+    so here we just test that the DatetimeArray behavior matches
     the DatetimeIndex behavior.
     """
     freqstr = request.param
@@ -43,6 +43,19 @@ def datetime_index(request):
                        periods=100,
                        freq=freqstr)
     return pi
+
+
+@pytest.fixture
+def timedelta_index(request):
+    """
+    A fixture to provide TimedeltaIndex objects with different frequencies.
+
+    Most TimedeltaArray behavior is already tested in TimedeltaIndex tests,
+    so here we just test that the TimedeltaArray behavior matches
+    the TimedeltaIndex behavior.
+    """
+    # TODO: flesh this out
+    return pd.TimedeltaIndex(['1 Day', '3 Hours', 'NaT'])
 
 
 class TestDatetimeArray(object):
@@ -122,8 +135,50 @@ class TestTimedeltaArray(object):
         assert asobj.dtype == 'O'
         assert list(asobj) == list(tdi)
 
+    def test_to_pytimedelta(self, timedelta_index):
+        tdi = timedelta_index
+        arr = TimedeltaArrayMixin(tdi)
+
+        expected = tdi.to_pytimedelta()
+        result = arr.to_pytimedelta()
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_total_seconds(self, timedelta_index):
+        tdi = timedelta_index
+        arr = TimedeltaArrayMixin(tdi)
+
+        expected = tdi.total_seconds()
+        result = arr.total_seconds()
+
+        tm.assert_numpy_array_equal(result, expected.values)
+
+    @pytest.mark.parametrize('propname', pd.TimedeltaIndex._field_ops)
+    def test_int_properties(self, timedelta_index, propname):
+        tdi = timedelta_index
+        arr = TimedeltaArrayMixin(tdi)
+
+        result = getattr(arr, propname)
+        expected = np.array(getattr(tdi, propname), dtype=result.dtype)
+
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestPeriodArray(object):
+
+    def test_from_object_dtype(self, period_index):
+        pi = period_index
+        arr = PeriodArrayMixin(pd.Index(pi, dtype=object))
+        assert list(arr) == list(pi)
+
+        arr = PeriodArrayMixin(np.array(pi, dtype=object))
+        assert list(arr) == list(pi)
+
+        arr = PeriodArrayMixin(list(pi))
+        assert list(arr) == list(pi)
+
+        arr = PeriodArrayMixin(tuple(pi))
+        assert list(arr) == list(pi)
 
     def test_from_pi(self, period_index):
         pi = period_index

@@ -430,7 +430,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.min
         """
-        nv.validate_min(args, kwargs)
+        nv.validate_min(args, kwargs, axis=axis)
 
         try:
             i8 = self.asi8
@@ -458,7 +458,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.argmin
         """
-        nv.validate_argmin(args, kwargs)
+        nv.validate_argmin(args, kwargs, axis=axis)
 
         i8 = self.asi8
         if self.hasnans:
@@ -478,7 +478,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.max
         """
-        nv.validate_max(args, kwargs)
+        nv.validate_max(args, kwargs, axis=axis)
 
         try:
             i8 = self.asi8
@@ -506,7 +506,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         --------
         numpy.ndarray.argmax
         """
-        nv.validate_argmax(args, kwargs)
+        nv.validate_argmax(args, kwargs, axis=axis)
 
         i8 = self.asi8
         if self.hasnans:
@@ -698,6 +698,12 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             msg = 'Cannot cast {name} to dtype {dtype}'
             raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
         return super(DatetimeIndexOpsMixin, self).astype(dtype, copy=copy)
+
+    @Appender(DatetimeLikeArrayMixin._time_shift.__doc__)
+    def _time_shift(self, periods, freq=None):
+        result = DatetimeLikeArrayMixin._time_shift(self, periods, freq=freq)
+        result.name = self.name
+        return result
 
 
 def _ensure_datetimelike_to_i8(other, to_utc=False):
