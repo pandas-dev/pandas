@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from cython import Py_ssize_t
-
 # dateutil compat
 from dateutil.tz import (
     tzutc as _dateutil_tzutc,
     tzlocal as _dateutil_tzlocal,
-    tzfile as _dateutil_tzfile)
-
-from dateutil.tz import gettz as dateutil_gettz
-
+    tzfile as _dateutil_tzfile,
+    gettz as dateutil_gettz
+)
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
 import pytz
 UTC = pytz.utc
@@ -176,7 +173,7 @@ cdef inline bint is_fixed_offset(object tz):
     return 1
 
 
-cdef object get_utc_trans_times_from_dateutil_tz(object tz):
+cdef list get_utc_trans_times_from_dateutil_tz(object tz):
     """
     Transition times in dateutil timezones are stored in local non-dst
     time.  This code converts them to UTC. It's the reverse of the code
@@ -223,9 +220,11 @@ cdef object get_dst_info(object tz):
     """
     cdef:
         object cache_key
+        list trans_list
         str typ
         int num
-        int64_t[:] trans, deltas
+        int64_t[:] deltas, trans
+
     cache_key = tz_cache_key(tz)
     if cache_key is None:
         # e.g. pytz.FixedOffset, matplotlib.dates._UTC,
@@ -259,15 +258,14 @@ cdef object get_dst_info(object tz):
                 trans[0] = NPY_NAT + 1
 
                 # deltas
-                deltas = np.array([v.offset for v in (
+                deltas = np.array([v.offset * 1000000000 for v in (
                     tz._ttinfo_before,) + tz._trans_idx], dtype='i8')
-                deltas *= 1000000000
                 typ = 'dateutil'
 
             elif is_fixed_offset(tz):
                 trans = np.array([NPY_NAT + 1], dtype=np.int64)
-                deltas = np.array([tz._ttinfo_std.offset],
-                                  dtype='i8') * 1000000000
+                deltas = np.array([tz._ttinfo_std.offset * 1000000000],
+                                  dtype='i8')
                 typ = 'fixed'
             else:
                 # 2018-07-12 this is not reached in the tests, and this case
@@ -292,11 +290,14 @@ cdef object get_dst_info(object tz):
     return dst_cache[cache_key]
 
 
-def infer_tzinfo(start, end):
+def infer_tzinfo(object start, object end):
+    cdef:
+        str msg = 'Inputs must both have the same timezone, {tz1} != {tz2}'
+        object tz
+
     if start is not None and end is not None:
         tz = start.tzinfo
         if not tz_compare(tz, end.tzinfo):
-            msg = 'Inputs must both have the same timezone, {tz1} != {tz2}'
             raise AssertionError(msg.format(tz1=tz, tz2=end.tzinfo))
     elif start is not None:
         tz = start.tzinfo
@@ -336,7 +337,7 @@ cpdef bint tz_compare(object start, object end):
     return get_timezone(start) == get_timezone(end)
 
 
-cpdef tz_standardize(object tz):
+cpdef object tz_standardize(object tz):
     """
     If the passed tz is a pytz timezone object, "normalize" it to the a
     consistent version
