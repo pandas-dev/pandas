@@ -223,7 +223,6 @@ cdef object get_dst_info(object tz):
         list trans_list
         str typ
         int num
-        int64_t[:] deltas, trans
 
     cache_key = tz_cache_key(tz)
     if cache_key is None:
@@ -258,14 +257,15 @@ cdef object get_dst_info(object tz):
                 trans[0] = NPY_NAT + 1
 
                 # deltas
-                deltas = np.array([v.offset * 1000000000 for v in (
+                deltas = np.array([v.offset for v in (
                     tz._ttinfo_before,) + tz._trans_idx], dtype='i8')
+                deltas *= 1000000000
                 typ = 'dateutil'
 
             elif is_fixed_offset(tz):
                 trans = np.array([NPY_NAT + 1], dtype=np.int64)
-                deltas = np.array([tz._ttinfo_std.offset * 1000000000],
-                                  dtype='i8')
+                deltas = np.array([tz._ttinfo_std.offset],
+                                  dtype='i8') * 1000000000
                 typ = 'fixed'
             else:
                 # 2018-07-12 this is not reached in the tests, and this case
