@@ -68,7 +68,7 @@ def _period_array_cmp(cls, op):
         op = getattr(self._ndarray_values, opname)
         if isinstance(other, (ABCSeries, ABCIndexClass)):
             # TODO: return NotImplemented?
-            other = other.values
+            other = other._values
 
         if isinstance(other, Period):
             if other.freq != self.freq:
@@ -146,12 +146,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def __init__(self, values, freq=None, copy=False):
         # type: (Union[PeriodArray, np.ndarray], Union[str, Tick]) -> None
         if isinstance(values, ABCSeries):
-            values = values.values
+            values = values._values
             if not isinstance(values, type(self)):
                 raise TypeError("Incorrect dtype")
 
         elif isinstance(values, ABCPeriodIndex):
-            values = values.values
+            values = values._values
 
         if isinstance(values, type(self)):
             if freq is not None and freq != values.freq:
@@ -465,7 +465,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     @property
     def _box_func(self):
         # Used in DatelikeArray.__iter__
-        return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
+        # TODO: implement this in cython?
+        def func(x):
+            if isinstance(x, Period) or x is NaT:
+                return x
+            else:
+                return Period._from_ordinal(ordinal=x, freq=self.freq)
+        return func
 
     def asfreq(self, freq=None, how='E'):
         """

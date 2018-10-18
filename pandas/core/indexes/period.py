@@ -283,8 +283,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     @property
     def values(self):
-        # TODO: Discussion on what this should be.
-        return self._data
+        return np.asarray(self)
 
     @property
     def _values(self):
@@ -353,12 +352,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     @property
     def _box_func(self):
-        def func(x):
-            if isinstance(x, Period) or x is tslib.NaT:
-                return x
-            else:
-                return Period._from_ordinal(ordinal=x, freq=self.freq)
-        return func
+        return self._data._box_func
 
     def _maybe_box_as_values(self, values, **attribs):
         """Box an array of ordinals to a PeriodArray
@@ -542,7 +536,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         """
         # TODO(DatetimeArray): remove
         # Have to add our name.
-        return Index(self._data._box_values_as_index(), name=self.name)
+        return Index(self.values, name=self.name)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True, how='start'):

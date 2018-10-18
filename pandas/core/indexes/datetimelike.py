@@ -708,6 +708,9 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
             return Index(self.format(), name=self.name, dtype=object)
         elif is_integer_dtype(dtype):
+            # TODO(DatetimeArray): use self._values here.
+            # Can't use ._values currently, because that returns a
+            # DatetimeIndex, which throws us in an infinite loop.
             return Index(self.values.astype('i8', copy=copy), name=self.name,
                          dtype='i8')
         elif (is_datetime_or_timedelta_dtype(dtype) and

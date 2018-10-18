@@ -29,6 +29,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_float_dtype,
     is_integer_dtype,
+    is_object_dtype,
     is_list_like, is_sequence,
     is_scalar, is_iterator,
     is_dict_like)
@@ -2423,11 +2424,26 @@ def _get_codes_for_values(values, categories):
     utility routine to turn values into codes given the specified categories
     """
     from pandas.core.algorithms import _get_data_algo, _hashtables
-    if is_dtype_equal(values.dtype, categories.dtype):
+    dtype_equal = is_dtype_equal(values.dtype, categories.dtype)
+
+    if is_extension_array_dtype(categories.dtype) and is_object_dtype(values):
+        # Support inferring the correct extension dtype from an array of
+        # scalar objects. e.g.
+        # Categorical(array[Period, Period], categories=PeriodIndex(...))
+        try:
+            values = (
+                categories.dtype.construct_array_type()._from_sequence(values)
+            )
+        except Exception:
+            # but that may fail for any reason, so fall back to object
+            values = ensure_object(values)
+            categories = ensure_object(categories)
+
+    elif dtype_equal:
         # To prevent erroneous dtype coercion in _get_data_algo, retrieve
         # the underlying numpy array. gh-22702
-        values = getattr(values, 'values', values)
-        categories = getattr(categories, 'values', categories)
+        values = getattr(values, '_ndarray_values', values)
+        categories = getattr(categories, '_ndarray_values', categories)
     else:
         values = ensure_object(values)
         categories = ensure_object(categories)

@@ -93,7 +93,7 @@ class TestPeriodIndexOps(Ops):
         # GH 7735
         idx = pd.period_range('2011-01-01 09:00', freq='H', periods=10)
         # create repeated values, 'n'th element is repeated by n+1 times
-        idx = PeriodIndex(np.repeat(idx.values, range(1, len(idx) + 1)),
+        idx = PeriodIndex(np.repeat(idx._values, range(1, len(idx) + 1)),
                           freq='H')
 
         exp_idx = PeriodIndex(['2011-01-01 18:00', '2011-01-01 17:00',
@@ -392,7 +392,7 @@ class TestPeriodIndexOps(Ops):
 
         # same internal, different tz
         idx3 = pd.PeriodIndex._simple_new(
-            idx.values._simple_new(idx.values.asi8, freq="H")
+            idx._values._simple_new(idx._values.asi8, freq="H")
         )
         tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
         assert not idx.equals(idx3)
