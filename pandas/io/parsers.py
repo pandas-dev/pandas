@@ -342,14 +342,17 @@ Read general delimited file into DataFrame
                          _engine_doc))
 
 _fwf_widths = """\
-colspecs : list of pairs (int, int) or 'infer'. optional
+colspecs : list of pairs (int, int) or 'infer', default 'infer'
     A list of pairs (tuples) giving the extents of the fixed-width
-    fields of each line as half-open intervals (i.e.,  [from, to[ ).
+    fields of each line as half-open intervals (i.e.,  [from, to) ).
     String value 'infer' can be used to instruct the parser to try
-    detecting the column specifications from the first 100 rows of
-    the data which are not being skipped via skiprows (default='infer').
-widths : list of ints. optional
-    A list of field widths which can be used instead of 'colspecs' if
+    detecting the column specifications using the ``infer_nrows``
+    number of rows of the data which are not being skipped via skiprows.
+infer_nrows : int or 'all', default 100
+    The number of rows to consider when letting the parser determine the
+    ``colspecs``. If 'all', then all the rows will be used.
+widths : list of ints, optional
+    A list of field widths which can be used instead of ``colspecs`` if
     the intervals are contiguous.
 delimiter : str, default ``'\t' + ' '``
     Characters to consider as filler characters in the fixed-width file.
