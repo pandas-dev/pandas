@@ -3991,7 +3991,7 @@ class DataFrame(NDFrame):
                 # tuples that are not column keys are considered list-like,
                 # not considered missing
                 missing.append(col)
-            elif (not is_list_like(col) or isinstance(col, set)
+            elif (not is_list_like(col, allow_sets=False)
                   or getattr(col, 'ndim', 1) > 1):
                 raise TypeError('The parameter "keys" may only contain a '
                                 'combination of valid column keys and '
