@@ -426,6 +426,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         -------
         loc : int if unique index, slice if monotonic index, else mask
 
+        Raises
+        ------
+        KeyError : if the key is not in the index
+
         Examples
         ---------
         >>> unique_index = pd.CategoricalIndex(list('abc'))
@@ -440,10 +444,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
         """
-        codes = self.categories.get_loc(key)
-        if (codes == -1):
+        code = self.categories.get_loc(key)
+        try:
+            return self._engine.get_loc(code)
+        except KeyError:
             raise KeyError(key)
-        return self._engine.get_loc(codes)
 
     def get_value(self, series, key):
         """
