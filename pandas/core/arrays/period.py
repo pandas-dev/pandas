@@ -187,7 +187,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         return cls(ordinals, freq=freq)
 
     def _values_for_factorize(self):
-        return self.values, iNaT
+        return self._ndarray_values, iNaT
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -457,7 +457,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         freq : pandas.DateOffset, pandas.Timedelta, or string
             Frequency increment to shift by.
         """
-        values = self.values + n * self.freq.n
+        values = self._ndarray_values + n * self.freq.n
         if self.hasnans:
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)
@@ -819,7 +819,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def _item(self):
         if len(self) == 1:
             # IndexOpsMixin will catch and re-raise IndexErrors
-            return Period._from_ordinal(self.values[0], self.freq)
+            return Period._from_ordinal(self._ndarray_values[0], self.freq)
         else:
             raise ValueError('can only convert an array of size 1 to a '
                              'Python scalar')

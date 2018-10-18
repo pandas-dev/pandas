@@ -279,10 +279,15 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     # Data
     @property
     def _ndarray_values(self):
-        return self.values.values
+        return self._data._ndarray_values
 
     @property
     def values(self):
+        # TODO: Discussion on what this should be.
+        return self._data
+
+    @property
+    def _values(self):
         return self._data
 
     @property
@@ -307,7 +312,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     def _shallow_copy(self, values=None, **kwargs):
         # TODO: simplify, figure out type of values
         if values is None:
-            values = self._values
+            values = self._data
 
         if isinstance(values, type(self)):
             values = values.values
@@ -912,7 +917,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         """
         # TODO(DatetimeArray): move to base class.
         def wrapper(self, other):
-            return op(self.values, other)
+            return op(self._data, other)
 
         wrapper.__doc__ = op.__doc__
         wrapper.__name__ = '__{}__'.format(op.__name__)
@@ -948,7 +953,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         # TODO(DatetimeArray): remove
         # override to use _item
         try:
-            return self.values._item()
+            return self._data._item()
         except IndexError:
             # copy numpy's message here because Py26 raises an IndexError
             raise ValueError('can only convert an array of size 1 to a '
@@ -960,7 +965,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         warnings.warn("{obj}.data is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
-        return np.asarray(self.values).data
+        return np.asarray(self._data).data
 
     @property
     def base(self):
@@ -970,7 +975,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         warnings.warn("{obj}.base is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
-        return np.asarray(self.values)
+        return np.asarray(self._data)
 
 
 PeriodIndex._add_comparison_ops()
