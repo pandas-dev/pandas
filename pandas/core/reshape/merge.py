@@ -34,8 +34,7 @@ from pandas.core.dtypes.common import (
     is_datetimelike,
     ensure_int64,
     ensure_float64,
-    ensure_object,
-    _get_dtype)
+    ensure_object)
 from pandas.core.dtypes.missing import na_value_for_dtype, isnull
 from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
@@ -1190,14 +1189,13 @@ class _OrderedMerge(_MergeOperation):
         return result
 
 
-def _asof_function(direction, on_type):
-    name = 'asof_join_{dir}_{on}'.format(dir=direction, on=on_type)
+def _asof_function(direction):
+    name = 'asof_join_{dir}'.format(dir=direction)
     return getattr(libjoin, name, None)
 
 
-def _asof_by_function(direction, on_type, by_type):
-    name = 'asof_join_{dir}_{on}_by_{by}'.format(
-        dir=direction, on=on_type, by=by_type)
+def _asof_by_function(direction):
+    name = 'asof_join_{dir}_on_X_by_Y'.format(dir=direction)
     return getattr(libjoin, name, None)
 
 
@@ -1206,29 +1204,6 @@ _type_casters = {
     'double': ensure_float64,
     'object': ensure_object,
 }
-
-_cython_types = {
-    'uint8': 'uint8_t',
-    'uint32': 'uint32_t',
-    'uint16': 'uint16_t',
-    'uint64': 'uint64_t',
-    'int8': 'int8_t',
-    'int32': 'int32_t',
-    'int16': 'int16_t',
-    'int64': 'int64_t',
-    'float16': 'error',
-    'float32': 'float',
-    'float64': 'double',
-}
-
-
-def _get_cython_type(dtype):
-    """ Given a dtype, return a C name like 'int64_t' or 'double' """
-    type_name = _get_dtype(dtype).name
-    ctype = _cython_types.get(type_name, 'object')
-    if ctype == 'error':
-        raise MergeError('unsupported type: {type}'.format(type=type_name))
-    return ctype
 
 
 def _get_cython_type_upcast(dtype):
@@ -1438,8 +1413,7 @@ class _AsOfMerge(_OrderedMerge):
             right_by_values = by_type_caster(right_by_values)
 
             # choose appropriate function by type
-            on_type = _get_cython_type(left_values.dtype)
-            func = _asof_by_function(self.direction, on_type, by_type)
+            func = _asof_by_function(self.direction)
             return func(left_values,
                         right_values,
                         left_by_values,
@@ -1448,8 +1422,7 @@ class _AsOfMerge(_OrderedMerge):
                         tolerance)
         else:
             # choose appropriate function by type
-            on_type = _get_cython_type(left_values.dtype)
-            func = _asof_function(self.direction, on_type)
+            func = _asof_function(self.direction)
             return func(left_values,
                         right_values,
                         self.allow_exact_matches,
