@@ -166,6 +166,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     @classmethod
     def _simple_new(cls, values, freq=None, **kwargs):
+        # TODO(DatetimeArray): remove once all constructors are aligned.
         # alias from PeriodArray.__init__
         return cls(values, freq=freq, **kwargs)
 
@@ -256,6 +257,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def freq(self):
         """Return the frequency object for this PeriodArray."""
         return self.dtype.freq
+
+    @property
+    def asi8(self):
+        return self._ndarray_values
 
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
@@ -512,7 +517,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         base1, mult1 = frequencies.get_freq_code(self.freq)
         base2, mult2 = frequencies.get_freq_code(freq)
 
-        asi8 = self._ndarray_values.view('i8')
+        asi8 = self.asi8
         # mult1 can't be negative or 0
         end = how == 'E'
         if end:
@@ -584,7 +589,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
 
-        asi8 = self._ndarray_values.view('i8')
+        asi8 = self.asi8
         new_data = asi8 - other.ordinal
         new_data = np.array([self.freq * x for x in new_data])
 
@@ -644,12 +649,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # TODO: standardize across datetimelike subclasses whether to return
         #  i8 view or _shallow_copy
         if isinstance(other, (Tick, timedelta, np.timedelta64)):
-            new_values = self._add_delta_td(other)
-            return type(self)(new_values)
+            return self._add_delta_td(other)
         elif is_timedelta64_dtype(other):
             # ndarray[timedelta64] or TimedeltaArray/index
-            new_values = self._add_delta_tdi(other)
-            return type(self)(new_values)
+            return self._add_delta_tdi(other)
         else:  # pragma: no cover
             raise TypeError(type(other).__name__)
 
@@ -803,7 +806,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
             return self._format_native_types()
         elif is_integer_dtype(dtype):
-            return self.values.astype("i8", copy=copy)
+            values = self._ndarray_values
+            if copy:
+                values = values.copy()
+            return values
         elif (is_datetime_or_timedelta_dtype(dtype) and
               not is_dtype_equal(self.dtype, dtype)) or is_float_dtype(dtype):
             # disallow conversion between datetime/timedelta,

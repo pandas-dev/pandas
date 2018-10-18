@@ -62,3 +62,10 @@ def test_to_period_ok(data, freq, expected):
 def test_to_period_raises(data, freq, msg):
     with tm.assert_raises_regex(IncompatibleFrequency, msg):
         period_array(data, freq)
+
+
+def test_asi8():
+    result = period_array(['2000', '2001', None], freq='D').asi8
+    expected = np.array([10957, 11323, iNaT])
+    tm.assert_numpy_array_equal(result, expected)
+
