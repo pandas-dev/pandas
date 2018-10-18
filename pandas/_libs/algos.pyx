@@ -10,7 +10,8 @@ from libc.math cimport fabs, sqrt
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray,
-                    NPY_INT64, NPY_UINT64, NPY_INT32, NPY_INT16, NPY_INT8,
+                    NPY_INT64, NPY_INT32, NPY_INT16, NPY_INT8,
+                    NPY_UINT64, NPY_UINT32, NPY_UINT16, NPY_UINT8,
                     NPY_FLOAT32, NPY_FLOAT64,
                     NPY_OBJECT,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
@@ -359,8 +360,10 @@ ctypedef fused algos_t:
     float64_t
     float32_t
     object
-    int32_t
     int64_t
+    int32_t
+    int16_t
+    int8_t
     uint64_t
     uint8_t
 
@@ -866,6 +869,8 @@ is_monotonic_float32 = is_monotonic["float32_t"]
 is_monotonic_object = is_monotonic["object"]
 is_monotonic_int64 = is_monotonic["int64_t"]
 is_monotonic_int32 = is_monotonic["int32_t"]
+is_monotonic_int16 = is_monotonic["int16_t"]
+is_monotonic_int8 = is_monotonic["int8_t"]
 is_monotonic_uint64 = is_monotonic["uint64_t"]
 is_monotonic_bool = is_monotonic["uint8_t"]
 
