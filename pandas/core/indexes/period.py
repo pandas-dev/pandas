@@ -315,7 +315,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             values = self._data
 
         if isinstance(values, type(self)):
-            values = values.values
+            values = values._values
 
         if not isinstance(values, PeriodArray):
             if (isinstance(values, np.ndarray) and
