@@ -160,6 +160,10 @@ unstable = pytest.mark.skipif(not PY36,  # 3.6 or higher
                               reason="Dictionary order unstable")
 
 
+class TestReduce(base.BaseNoReduceTests):
+    pass
+
+
 class TestMethods(BaseJSON, base.BaseMethodsTests):
     @unhashable
     def test_value_counts(self, all_data, dropna):

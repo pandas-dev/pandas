@@ -2,7 +2,6 @@
 data hash pandas / numpy objects
 """
 import itertools
-
 import numpy as np
 from pandas._libs import hashing, tslibs
 from pandas.core.dtypes.generic import (

@@ -56,6 +56,11 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    # Imports - Check formatting using isort see setup.cfg for settings
+    MSG='Check import format using isort ' ; echo $MSG
+    isort --recursive --check-only pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
 fi
 
 ### PATTERNS ###
@@ -118,7 +123,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
     pytest --doctest-modules -v pandas/core/frame.py \
-        -k"-axes -combine -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_dict -to_stata"
+        -k"-axes -combine -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_stata"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG

@@ -131,6 +131,28 @@ class TestMissing(BaseDecimal, base.BaseMissingTests):
     pass
 
 
+class Reduce(object):
+
+    def check_reduce(self, s, op_name, skipna):
+
+        if skipna or op_name in ['median', 'skew', 'kurt']:
+            with pytest.raises(NotImplementedError):
+                getattr(s, op_name)(skipna=skipna)
+
+        else:
+            result = getattr(s, op_name)(skipna=skipna)
+            expected = getattr(np.asarray(s), op_name)()
+            tm.assert_almost_equal(result, expected)
+
+
+class TestNumericReduce(Reduce, base.BaseNumericReduceTests):
+    pass
+
+
+class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
+    pass
+
+
 class TestMethods(BaseDecimal, base.BaseMethodsTests):
     @pytest.mark.parametrize('dropna', [True, False])
     @pytest.mark.xfail(reason="value_counts not implemented yet.")

@@ -1795,6 +1795,10 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Array Interface
 
+    # This is also set in IndexOpsMixin
+    # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
+    __array_priority__ = 1000
+
     def __array__(self, dtype=None):
         return com.values_from_object(self)
 
@@ -5651,8 +5655,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 # fill in 2d chunks
                 result = {col: s.fillna(method=method, value=value)
                           for col, s in self.iteritems()}
-                new_obj = self._constructor.\
-                    from_dict(result).__finalize__(self)
+                prelim_obj = self._constructor.from_dict(result)
+                new_obj = prelim_obj.__finalize__(self)
                 new_data = new_obj._data
 
             else:
