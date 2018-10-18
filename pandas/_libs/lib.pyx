@@ -494,24 +494,70 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
     return result
 
 
-def astype_unicode(arr: ndarray) -> ndarray[object]:
+def astype_unicode(arr: ndarray,
+                   skipna: bool=False) -> ndarray[object]:
+    """
+    Convert all elements in an array to unicode.
+
+    Parameters
+    ----------
+    arr : ndarray
+        The array whose elements we are casting.
+    skipna : bool, default False
+        Whether or not to coerce nulls to their stringified form
+        (e.g. NaN becomes 'nan').
+
+    Returns
+    -------
+    casted_arr : ndarray
+        A new array with the input array's elements casted.
+    """
     cdef:
+        object arr_i
         Py_ssize_t i, n = arr.size
         ndarray[object] result = np.empty(n, dtype=object)
 
     for i in range(n):
-        result[i] = unicode(arr[i])
+        arr_i = arr[i]
+
+        if not (skipna and checknull(arr_i)):
+            arr_i = unicode(arr_i)
+
+        result[i] = arr_i
 
     return result
 
 
-def astype_str(arr: ndarray) -> ndarray[object]:
+def astype_str(arr: ndarray,
+               skipna: bool=False) -> ndarray[object]:
+    """
+    Convert all elements in an array to string.
+
+    Parameters
+    ----------
+    arr : ndarray
+        The array whose elements we are casting.
+    skipna : bool, default False
+        Whether or not to coerce nulls to their stringified form
+        (e.g. NaN becomes 'nan').
+
+    Returns
+    -------
+    casted_arr : ndarray
+        A new array with the input array's elements casted.
+    """
     cdef:
+        object arr_i
         Py_ssize_t i, n = arr.size
         ndarray[object] result = np.empty(n, dtype=object)
 
     for i in range(n):
-        result[i] = str(arr[i])
+        arr_i = arr[i]
+
+        if not (skipna and checknull(arr_i)):
+            arr_i = str(arr_i)
+
+        result[i] = arr_i
 
     return result
 
