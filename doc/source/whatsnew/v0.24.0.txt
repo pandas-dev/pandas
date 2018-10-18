@@ -626,6 +626,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
 - Slicing a single row of a ``DataFrame`` with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - Added :meth:`pandas.api.types.register_extension_dtype` to register an extension type with pandas (:issue:`22664`)
+- Bug when concatenating multiple ``Series`` with different extension dtypes not casting to object dtype (:issue:`22994`)
 - Series backed by an ``ExtensionArray`` now work with :func:`util.hash_pandas_object` (:issue:`23066`)
 - Updated the ``.type`` attribute for ``PeriodDtype``, ``DatetimeTZDtype``, and ``IntervalDtype`` to be instances of the dtype (``Period``, ``Timestamp``, and ``Interval`` respectively) (:issue:`22938`)
 - :func:`ExtensionArray.isna` is allowed to return an ``ExtensionArray`` (:issue:`22325`).
@@ -986,6 +987,7 @@ Sparse
 - Improved performance of :meth:`Series.shift` for non-NA ``fill_value``, as values are no longer converted to a dense array.
 - Bug in ``DataFrame.groupby`` not including ``fill_value`` in the groups for non-NA ``fill_value`` when grouping by a sparse column (:issue:`5078`)
 - Bug in unary inversion operator (``~``) on a ``SparseSeries`` with boolean values. The performance of this has also been improved (:issue:`22835`)
+- Bug in :meth:`SparseArary.unique` not returning the unique values (:issue:`19595`)
 
 Build Changes
 ^^^^^^^^^^^^^
