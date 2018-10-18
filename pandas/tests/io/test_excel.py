@@ -14,7 +14,7 @@ from numpy import nan
 import pandas as pd
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
-from pandas import DataFrame, Index, MultiIndex
+from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.compat import u, range, map, BytesIO, iteritems, PY36
 from pandas.core.config import set_option, get_option
 from pandas.io.common import URLError
@@ -371,7 +371,34 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(actual, expected)
 
         with pytest.raises(ValueError):
-            actual = self.get_exceldf(basename, ext, dtype={'d': 'int64'})
+            self.get_exceldf(basename, ext, dtype={'d': 'int64'})
+
+    @pytest.mark.parametrize("dtype,expected", [
+        (None,
+         DataFrame({
+             "a": [1, 2, 3, 4],
+             "b": [2.5, 3.5, 4.5, 5.5],
+             "c": [1, 2, 3, 4],
+             "d": [1.0, 2.0, np.nan, 4.0]
+         })),
+        ({"a": "float64",
+          "b": "float32",
+          "c": str,
+          "d": str
+          },
+         DataFrame({
+             "a": Series([1, 2, 3, 4], dtype="float64"),
+             "b": Series([2.5, 3.5, 4.5, 5.5], dtype="float32"),
+             "c": ["001", "002", "003", "004"],
+             "d": ["1", "2", np.nan, "4"]
+         })),
+    ])
+    def test_reader_dtype_str(self, ext, dtype, expected):
+        # see gh-20377
+        basename = "testdtype"
+
+        actual = self.get_exceldf(basename, ext, dtype=dtype)
+        tm.assert_frame_equal(actual, expected)
 
     def test_reading_all_sheets(self, ext):
         # Test reading all sheetnames by setting sheetname to None,

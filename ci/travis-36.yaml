@@ -14,6 +14,7 @@ dependencies:
   - geopandas
   - html5lib
   - ipython
+  - isort
   - jinja2
   - lxml
   - matplotlib
