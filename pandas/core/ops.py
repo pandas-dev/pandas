@@ -863,14 +863,15 @@ def masked_arith_op(x, y, op):
         result = np.empty(x.size, dtype=x.dtype)
         mask = notna(xrav)
 
+        # 1 ** np.nan is 1. So we have to unmask those.
+        if op == pow:
+            mask = np.where(x == 1, False, mask)
+        elif op == rpow:
+            mask = np.where(y == 1, False, mask)
+
         if mask.any():
             with np.errstate(all='ignore'):
                 result[mask] = op(xrav[mask], y)
-
-        if op == pow:
-            result = np.where(~mask, x, result)
-        elif op == rpow:
-            result = np.where(~mask, y, result)
 
     result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
     result = result.reshape(x.shape)  # 2D compat

@@ -624,12 +624,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             else:
                 mask = self._mask | mask
 
+            # 1 ** np.nan is 1. So we have to unmask those.
             if op_name == 'pow':
-                # 1 ** np.nan is 1. So we have to unmask those.
                 mask = np.where(self == 1, False, mask)
 
             elif op_name == 'rpow':
-                # 1 ** np.nan is 1. So we have to unmask those.
                 mask = np.where(other == 1, False, mask)
 
             with np.errstate(all='ignore'):
