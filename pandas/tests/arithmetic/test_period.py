@@ -307,14 +307,15 @@ class TestPeriodSeriesComparisons(object):
 
 class TestPeriodFrameArithmetic(object):
 
+    @pytest.mark.xfail(reason="GH-22922")
     def test_ops_frame_period(self):
         # GH#13043
         df = pd.DataFrame({'A': [pd.Period('2015-01', freq='M'),
                                  pd.Period('2015-02', freq='M')],
                            'B': [pd.Period('2014-01', freq='M'),
                                  pd.Period('2014-02', freq='M')]})
-        assert df['A'].dtype == object
-        assert df['B'].dtype == object
+        assert df['A'].dtype == 'Period[M]'
+        assert df['B'].dtype == 'Period[M]'
 
         p = pd.Period('2015-03', freq='M')
         off = p.freq
@@ -328,8 +329,8 @@ class TestPeriodFrameArithmetic(object):
                                   pd.Period('2015-06', freq='M')],
                             'B': [pd.Period('2015-05', freq='M'),
                                   pd.Period('2015-06', freq='M')]})
-        assert df2['A'].dtype == object
-        assert df2['B'].dtype == object
+        assert df2['A'].dtype == 'Period[M]'
+        assert df2['B'].dtype == 'Period[M]'
 
         exp = pd.DataFrame({'A': np.array([4 * off, 4 * off], dtype=object),
                             'B': np.array([16 * off, 16 * off], dtype=object)})

@@ -47,7 +47,7 @@ def test_setitem_raises():
 ])
 def test_to_period_ok(data, freq, expected):
     result = period_array(data, freq=freq).values
-    expected = np.asarray(expected)
+    expected = np.asarray(expected, dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
 

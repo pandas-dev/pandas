@@ -440,7 +440,7 @@ class TestParquetPyArrow(Base):
     def test_unsupported(self, pa):
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
-        self.check_error_on_write(df, pa, ValueError)
+        self.check_error_on_write(df, pa, TypeError)
 
         # timedelta
         df = pd.DataFrame({'a': pd.timedelta_range('1 day',
@@ -449,7 +449,7 @@ class TestParquetPyArrow(Base):
 
         # mixed python objects
         df = pd.DataFrame({'a': ['a', 1, 2.0]})
-        self.check_error_on_write(df, pa, ValueError)
+        self.check_error_on_write(df, pa, TypeError)
 
     def test_categorical(self, pa_ge_070):
         pa = pa_ge_070
