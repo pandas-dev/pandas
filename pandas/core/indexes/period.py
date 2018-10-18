@@ -8,6 +8,7 @@ from pandas.core import common as com
 from pandas.core.dtypes.common import (
     is_integer,
     is_float,
+    is_float_dtype,
     is_integer_dtype,
     is_datetime64_any_dtype,
     is_bool_dtype,
@@ -29,7 +30,6 @@ from pandas._libs.tslibs import resolution
 
 from pandas.core.algorithms import unique1d
 from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.generic import ABCIndexClass
 from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
@@ -63,7 +63,9 @@ def _new_PeriodIndex(cls, **d):
     # GH13277 for unpickling
     values = d.pop('data')
     if values.dtype == 'int64':
-        return cls._from_ordinals(values=values, **d)
+        freq = d.pop('freq', None)
+        data = PeriodArray(values, freq=freq)
+        return cls._simple_new(data, **d)
     else:
         return cls(values, **d)
 
@@ -187,6 +189,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     _engine_type = libindex.PeriodEngine
 
+    # ------------------------------------------------------------------------
+    # Index Constructors
+
     def __new__(cls, data=None, ordinal=None, freq=None, start=None, end=None,
                 periods=None, tz=None, dtype=None, copy=False, name=None,
                 **fields):
@@ -241,6 +246,35 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
         return cls._simple_new(data, name=name)
 
+    @classmethod
+    def _simple_new(cls, values, name=None, freq=None, **kwargs):
+        """
+        Create a new PeriodIndex.
+
+        Parameters
+        ----------
+        values : PeriodArray, PeriodIndex, Index[int64], ndarray[int64]
+            Values that can be converted to a PeriodArray without inference
+            or coercion.
+
+        """
+        # TODO: raising on floats is tested, but maybe not useful.
+        # Should the callers know not to pass floats?
+        # At the very least, I think we can ensure that lists aren't passed.
+        if isinstance(values, list):
+            values = np.asarray(values)
+        if is_float_dtype(values):
+            raise TypeError("PeriodIndex._simple_new does not accept floats.")
+        values = PeriodArray(values, freq=freq)
+
+        if not isinstance(values, PeriodArray):
+            raise TypeError("PeriodIndex._simple_new only accepts PeriodArray")
+        result = object.__new__(cls)
+        result._data = values
+        result.name = name
+        result._reset_identity()
+        return result
+
     # ------------------------------------------------------------------------
     # Data
     @property
@@ -269,42 +303,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         # PeriodArray._freq isn't actually mutable. We set the private _freq
         # here, but people shouldn't be doing this anyway.
         self._data._freq = value
-
-    # ------------------------------------------------------------------------
-    # Index Constructors
-
-    @classmethod
-    def _simple_new(cls, values, name=None, freq=None, **kwargs):
-        # type: (PeriodArray, Any, Any) -> PeriodIndex
-        """
-        Values can be any type that can be coerced to Periods.
-        Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
-        """
-        if isinstance(values, cls):
-            # TODO: don't do this
-            values = values.values
-        elif (isinstance(values, (ABCIndexClass, np.ndarray)) and
-                is_integer_dtype(values)):
-            # TODO: don't do this.
-            values = PeriodArray._simple_new(values, freq)
-
-        if not isinstance(values, PeriodArray):
-            raise TypeError("PeriodIndex._simple_new only accepts PeriodArray")
-        result = object.__new__(cls)
-        result._data = values
-        result.name = name
-        result._reset_identity()
-        return result
-
-    @classmethod
-    def _from_ordinals(cls, values, name=None, freq=None, **kwargs):
-        """
-        Values should be int ordinals
-        `__new__` & `_simple_new` cooerce to ordinals and call this method
-        """
-        data = PeriodArray(values, freq=freq)
-        result = cls._simple_new(data, name=name)
-        return result
 
     def _shallow_copy(self, values=None, **kwargs):
         # TODO: simplify, figure out type of values

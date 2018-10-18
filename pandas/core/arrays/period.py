@@ -16,7 +16,7 @@ from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas.util._decorators import cache_readonly
-from pandas.core.algorithms import checked_add_with_arr
+import pandas.core.algorithms as algos
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype, is_period_dtype,
     pandas_dtype,
@@ -35,6 +35,7 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCPeriodIndex
 )
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
 
@@ -342,9 +343,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         self._data[key] = value
 
     def take(self, indices, allow_fill=False, fill_value=None):
-        from pandas.core.algorithms import take
-        from pandas import isna
-
         if allow_fill:
             if isna(fill_value):
                 fill_value = iNaT
@@ -354,10 +352,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                 msg = "'fill_value' should be a Period. Got '{}'."
                 raise ValueError(msg.format(fill_value))
 
-        new_values = take(self._data,
-                          indices,
-                          allow_fill=allow_fill,
-                          fill_value=fill_value)
+        new_values = algos.take(self._data,
+                                indices,
+                                allow_fill=allow_fill,
+                                fill_value=fill_value)
 
         return type(self)(new_values, self.freq)
 
@@ -368,7 +366,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # TODO(#20300)
         # To avoid converting to object, we re-implement here with the changes
         # 1. Passing `_ndarray_values` to func instead of self.astype(object)
-        # 2. Re-boxing with `_from_ordinals`
+        # 2. Re-boxing output of 1.
         # #20300 should let us do this kind of logic on ExtensionArray.fillna
         # and we can use it.
         from pandas.api.types import is_array_like
@@ -376,7 +374,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         from pandas.core.missing import pad_1d, backfill_1d
 
         if isinstance(value, ABCSeries):
-            value = value.values
+            value = value._values
 
         value, method = validate_fillna_kwargs(value, method)
 
@@ -406,21 +404,19 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         return type(self)(self._data.copy(), freq=self.freq)
 
     def value_counts(self, dropna=False):
-        from pandas.core.algorithms import value_counts
-        from pandas.core.indexes.period import PeriodIndex
+        from pandas import Series, PeriodIndex
 
         if dropna:
             values = self[~self.isna()]._data
         else:
             values = self._data
 
-        result = value_counts(values, sort=False)
-        index = PeriodIndex._from_ordinals(result.index,
-                                           name=result.index.name,
-                                           freq=self.freq)
-        return type(result)(result.values,
-                            index=index,
-                            name=result.name)
+        cls = type(self)
+
+        result = algos.value_counts(values, sort=False)
+        index = PeriodIndex(cls(result.index, freq=self.freq),
+                            name=result.index.name)
+        return Series(result.values, index=index, name=result.name)
 
     def shift(self, periods=1):
         """
@@ -844,8 +840,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # easy case for PeriodIndex
         if op is operator.sub:
             other = -other
-        res_values = checked_add_with_arr(self.asi8, other,
-                                          arr_mask=self._isnan)
+        res_values = algos.checked_add_with_arr(self.asi8, other,
+                                                arr_mask=self._isnan)
         res_values = res_values.view('i8')
         res_values[self._isnan] = iNaT
         return type(self)(res_values, freq=self.freq)
