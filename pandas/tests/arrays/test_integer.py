@@ -301,6 +301,14 @@ class TestArithmeticOps(BaseOpsUtil):
         expected = pd.core.arrays.integer_array([1, None, None, 1])
         tm.assert_extension_array_equal(result, expected)
 
+    def test_rpow_one_to_na(self):
+        # https://github.com/pandas-dev/pandas/issues/22022
+        # NumPy says 1 ** nan is 1.
+        arr = integer_array([np.nan, np.nan])
+        result = np.array([1.0, 2.0]) ** arr
+        expected = np.array([1.0, np.nan])
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestComparisonOps(BaseOpsUtil):
 
@@ -338,14 +346,6 @@ class TestComparisonOps(BaseOpsUtil):
         s = pd.Series(data)
         other = pd.Series([0] * len(data))
         self._compare_other(s, data, op_name, other)
-
-    def test_rpow_one_to_na(self):
-        # https://github.com/pandas-dev/pandas/issues/22022
-        # NumPy says 1 ** nan is 1.
-        arr = integer_array([np.nan, np.nan])
-        result = np.array([1.0, 2.0]) ** arr
-        expected = np.array([1.0, np.nan])
-        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestCasting(object):
