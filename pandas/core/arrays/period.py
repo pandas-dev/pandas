@@ -19,7 +19,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype, is_period_dtype,
-    is_float, is_integer, pandas_dtype, is_scalar,
+    pandas_dtype,
     is_datetime64_dtype,
     is_categorical_dtype,
     is_timedelta64_dtype,
@@ -39,7 +39,6 @@ from pandas.core.dtypes.generic import (
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
-from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries.offsets import Tick, DateOffset
 
 from pandas.core.arrays import ExtensionArray
@@ -617,7 +616,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         ordinals = super(PeriodArray, self)._add_delta_td(delta)
         return type(self)(ordinals, self.freq)
 
-
     def _add_delta_tdi(self, other):
         assert isinstance(self.freq, Tick)  # checked by calling function
 
@@ -838,6 +836,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # place.
         return self._ndarray_values.flags
 
+    # ------------------------------------------------------------------------
+    # Ops
+
     def _addsub_int_array(self, other, op):
         assert op in [operator.add, operator.sub]
         # easy case for PeriodIndex
@@ -848,10 +849,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         res_values = res_values.view('i8')
         res_values[self._isnan] = iNaT
         return type(self)(res_values, freq=self.freq)
-
-    # ------------------------------------------------------------------------
-    # Ops
-
 
 
 PeriodArray._add_comparison_ops()
@@ -931,7 +928,6 @@ def period_array(data, freq=None, ordinal=None, copy=False):
                         "floating point in construction")
 
     data = ensure_object(data)
-
 
     return PeriodArray._from_sequence(data, dtype=dtype)
 
