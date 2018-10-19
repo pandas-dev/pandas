@@ -1055,7 +1055,7 @@ def assert_interval_array_equal(left, right, exact='equiv',
 def assert_period_array_equal(left, right, obj='PeriodArray'):
     _check_isinstance(left, right, PeriodArray)
 
-    assert_numpy_array_equal(left.values, right.values,
+    assert_numpy_array_equal(left._data, right._data,
                              obj='{obj}.values'.format(obj=obj))
     assert_attr_equal('freq', left, right, obj=obj)
 
