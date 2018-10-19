@@ -16,6 +16,7 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 import pandas.core.indexes.period as period
 from pandas.core import ops
 from pandas import Period, PeriodIndex, period_range, Series
+from pandas.tseries.frequencies import to_offset
 
 
 # ------------------------------------------------------------------
@@ -590,6 +591,38 @@ class TestPeriodIndexArithmetic(object):
 
         rng -= pd.offsets.MonthEnd(5)
         tm.assert_index_equal(rng, expected)
+
+    def test_pi_add_offset_n_gt1(self, box):
+        # GH#23215
+        # add offset to PeriodIndex with freq.n > 1
+        per = pd.Period('2016-01', freq='2M')
+        pi = pd.PeriodIndex([per])
+
+        expected = pd.PeriodIndex(['2016-03'], freq='2M')
+        pi = tm.box_expected(pi, box)
+        expected = tm.box_expected(expected, box)
+
+        result = pi + per.freq
+        tm.assert_equal(result, expected)
+
+        result = per.freq + pi
+        tm.assert_equal(result, expected)
+
+    def test_pi_add_offset_n_gt1_not_divisible(self, box):
+        # GH#23215
+        # PeriodIndex with freq.n > 1 add offset with offset.n % freq.n != 0
+
+        pi = pd.PeriodIndex(['2016-01'], freq='2M')
+        pi = tm.box_expected(pi, box)
+
+        expected = pd.PeriodIndex(['2016-04'], freq='2M')
+        expected = tm.box_expected(expected, box)
+
+        result = pi + to_offset('3M')
+        tm.assert_equal(result, expected)
+
+        result = to_offset('3M') + pi
+        tm.assert_equal(result, expected)
 
     # ---------------------------------------------------------------
     # __add__/__sub__ with integer arrays

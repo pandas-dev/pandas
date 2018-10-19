@@ -354,7 +354,12 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         if base != self.freq.rule_code:
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
-        return self._time_shift(other.n)
+
+        # Note: when calling parent class's _add_delta_td, it will call
+        #  delta_to_nanoseconds(delta).  Because delta here is an integer,
+        #  delta_to_nanoseconds will return it unchanged.
+        result = DatetimeLikeArrayMixin._add_delta_td(self, other.n)
+        return self._shallow_copy(result)
 
     def _add_delta_td(self, other):
         assert isinstance(self.freq, Tick)  # checked by calling function
