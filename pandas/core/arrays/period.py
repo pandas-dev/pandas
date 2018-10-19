@@ -164,6 +164,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     # --------------------------------------------------------------------
     # Constructors
     def __init__(self, values, freq=None, copy=False):
+        if freq is not None:
+            freq = Period._maybe_convert_freq(freq)
+
         if isinstance(values, ABCSeries):
             values = values._values
             if not isinstance(values, type(self)):
@@ -174,14 +177,15 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
         if isinstance(values, type(self)):
             if freq is not None and freq != values.freq:
-                raise TypeError("freq does not match")
+                msg = DIFFERENT_FREQ_INDEX.format(values.freq.freqstr,
+                                                  freq.freqstr)
+                raise IncompatibleFrequency(msg)
             values, freq = values._data, values.freq
 
         values = np.array(values, dtype='int64', copy=copy)
         self._data = values
         if freq is None:
             raise ValueError('freq is not specified and cannot be inferred')
-        freq = Period._maybe_convert_freq(freq)
         self._dtype = PeriodDtype(freq)
 
     @classmethod
