@@ -89,8 +89,9 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
                               exc=None)
         else:
             # ... but not the rest.
-            super().test_arith_series_with_scalar(data,
-                                                  all_arithmetic_operators)
+            super(TestArithmeticOps, self).test_arith_series_with_scalar(
+                data, all_arithmetic_operators
+            )
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         if all_arithmetic_operators in self.implements:
@@ -99,8 +100,9 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
                               exc=None)
         else:
             # ... but not the rest.
-            super().test_arith_series_with_scalar(data,
-                                                  all_arithmetic_operators)
+            super(TestArithmeticOps, self).test_arith_series_with_scalar(
+                data, all_arithmetic_operators
+            )
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
         super(TestArithmeticOps, self)._check_divmod_op(

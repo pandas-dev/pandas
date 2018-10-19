@@ -927,13 +927,14 @@ def period_array(data, freq=None, ordinal=None, copy=False):
         if not isinstance(data, (np.ndarray, list, tuple)):
             data = list(data)
 
+        data = np.asarray(data)
+
     if freq:
         dtype = PeriodDtype(freq)
     else:
         dtype = None
 
-    if lib.infer_dtype(data) == 'floating' and len(data) > 0:
-        # Can we avoid infer_dtype? Why pay that tax every time?
+    if is_float_dtype(data) and len(data) > 0:
         raise TypeError("PeriodIndex does not allow "
                         "floating point in construction")
 

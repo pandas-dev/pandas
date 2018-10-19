@@ -440,7 +440,9 @@ class TestParquetPyArrow(Base):
     def test_unsupported(self, pa):
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
-        self.check_error_on_write(df, pa, TypeError)
+        # pyarrow 0.11 raises ArrowTypeError
+        # older pyarrows raise ArrowInvalid
+        self.check_error_on_write(df, pa, (ValueError, TypeError))
 
         # timedelta
         df = pd.DataFrame({'a': pd.timedelta_range('1 day',
