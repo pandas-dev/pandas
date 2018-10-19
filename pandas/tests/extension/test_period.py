@@ -120,6 +120,12 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
     def test_error(self):
         pass
 
+    def test_direct_arith_with_series_returns_not_implemented(self, data):
+        # Override to use __sub__ instead of __add__
+        other = pd.Series(data)
+        result = data.__sub__(other)
+        assert result is NotImplemented
+
 
 class TestCasting(BasePeriodTests, base.BaseCastingTests):
     pass

@@ -64,8 +64,8 @@ def _new_PeriodIndex(cls, **d):
     values = d.pop('data')
     if values.dtype == 'int64':
         freq = d.pop('freq', None)
-        data = PeriodArray(values, freq=freq)
-        return cls._simple_new(data, **d)
+        values = PeriodArray(values, freq=freq)
+        return cls._simple_new(values, **d)
     else:
         return cls(values, **d)
 
@@ -536,14 +536,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                               self._ndarray_values[first])] = -1
 
         return result
-
-    def _box_values_as_index(self):
-        """
-        return object Index which contains boxed values
-        """
-        # TODO(DatetimeArray): remove
-        # Have to add our name.
-        return Index(self.values, name=self.name)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True, how='start'):

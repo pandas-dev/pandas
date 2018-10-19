@@ -114,12 +114,27 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     Users should use :func:`period_array` to create new instances.
 
+    Parameters
+    ----------
+    values : Union[PeriodArray, Series[period], ndarary[int], PeriodIndex
+        The data to store. These should be arrays that can be directly
+        converted to ordinals without inference or copy (PeriodArray,
+        ndarray[int64]), or a box around such an array (Series[period],
+        PeriodIndex).
+    freq : str or DateOffset
+        The `freq` to use for the array. Mostly applicable when `values`
+        is an ndarray of integers, when `freq` is required. When `values`
+        is a PeriodArray (or box around), it's checked that ``values.freq``
+        matches `freq`.
+    copy : bool, default False
+        Whether to copy the ordinals before storing.
+
     Notes
     -----
     There are two components to a PeriodArray
 
     - ordinals : integer ndarray
-    - freq : pd.tseries.offsets.Tick
+    - freq : pd.tseries.offsets.Offset
 
     The values are physically stored as a 1-D ndarray of integers. These are
     called "ordinals" and represent some kind of offset from a base.
@@ -149,7 +164,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     # --------------------------------------------------------------------
     # Constructors
     def __init__(self, values, freq=None, copy=False):
-        # type: (Union[PeriodArray, np.ndarray], Union[str, Tick]) -> None
         if isinstance(values, ABCSeries):
             values = values._values
             if not isinstance(values, type(self)):
@@ -317,6 +331,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             value  # type: Union[NaTType, Period, Sequence[Period]]
         ):
         # type: (...) -> None
+        # n.b. the type on `value` is a bit too restrictive.
+        # we also accept a sequence of stuff coercible to a PeriodArray
+        # by period_array, which includes things like ndarray[object],
+        # ndarray[datetime64ns]. I think ndarray[int] / ndarray[str] won't
+        # work, since the freq can't be inferred.
         if is_list_like(value):
             if len(key) != len(value) and not com.is_bool_indexer(key):
                 msg = ("shape mismatch: value array of length '{}' does not "
@@ -903,6 +922,19 @@ def period_array(data, freq=None, ordinal=None, copy=False):
     <PeriodArray>
     ['2017', '2018', 'NaT']
     Length: 3, dtype: period[A-DEC]
+
+    Integers that look like years are handled
+
+    >>> period_array([2000, 2001, 2002], freq='D')
+    ['2000-01-01', '2001-01-01', '2002-01-01']
+    Length: 3, dtype: period[D]
+
+    Datetime-like strings may also be passed
+
+    >>> period_array(['2000-Q1', '2000-Q2', '2000-Q3', '2000-Q4'], freq='Q')
+    <PeriodArray>
+    ['2000Q1', '2000Q2', '2000Q3', '2000Q4']
+    Length: 4, dtype: period[Q-DEC]
     """
 
     if data is None and ordinal is None:
