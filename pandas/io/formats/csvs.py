@@ -11,6 +11,7 @@ import csv as csvlib
 from zipfile import ZipFile
 
 import numpy as np
+import os
 
 from pandas._libs import writers as libwriters
 
@@ -73,7 +74,7 @@ class CSVFormatter(object):
         self.doublequote = doublequote
         self.escapechar = escapechar
 
-        self.line_terminator = line_terminator
+        self.line_terminator = line_terminator or os.linesep
 
         self.date_format = date_format
 
