@@ -442,7 +442,6 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
         # pyarrow 0.11 raises ArrowTypeError
         # older pyarrows raise ArrowInvalid
-        # But on Py2 catching both those doesn't work?
         self.check_error_on_write(df, pa, Exception)
 
         # timedelta
@@ -452,7 +451,9 @@ class TestParquetPyArrow(Base):
 
         # mixed python objects
         df = pd.DataFrame({'a': ['a', 1, 2.0]})
-        self.check_error_on_write(df, pa, TypeError)
+        # pyarrow 0.11 raises ArrowTypeError
+        # older pyarrows raise ArrowInvalid
+        self.check_error_on_write(df, pa, Exception)
 
     def test_categorical(self, pa_ge_070):
         pa = pa_ge_070
