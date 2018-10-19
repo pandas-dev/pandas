@@ -141,6 +141,17 @@ bar2,12,13,14,15
         expected = DataFrame([[123456, 456], [456789, 789]])
         tm.assert_frame_equal(result, expected)
 
+    def test_fwf_colspecs_infer_nrows(self):
+        # GH 15138
+        # infer_nrows = 1 should have colspec == [(2, 3), (5, 6)]
+        data = """\
+  1  2
+123 98
+"""
+        df = read_fwf(StringIO(data), header=None, infer_nrows=1)
+        expected = pd.DataFrame([[1, 2], [3, 8]])
+        tm.assert_frame_equal(df, expected)
+
     def test_fwf_regression(self):
         # GH 3594
         # turns out 'T060' is parsable as a datetime slice!
