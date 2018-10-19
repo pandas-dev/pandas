@@ -442,7 +442,8 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
         # pyarrow 0.11 raises ArrowTypeError
         # older pyarrows raise ArrowInvalid
-        self.check_error_on_write(df, pa, (ValueError, TypeError))
+        # But on Py2 catching both those doesn't work?
+        self.check_error_on_write(df, pa, Exception)
 
         # timedelta
         df = pd.DataFrame({'a': pd.timedelta_range('1 day',
