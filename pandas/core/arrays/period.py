@@ -284,7 +284,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     @property
     def asi8(self):
-        return self._ndarray_values
+        return self._data
 
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
@@ -400,7 +400,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def fillna(self, value=None, method=None, limit=None):
         # TODO(#20300)
         # To avoid converting to object, we re-implement here with the changes
-        # 1. Passing `_ndarray_values` to func instead of self.astype(object)
+        # 1. Passing `_data` to func instead of self.astype(object)
         # 2. Re-boxing output of 1.
         # #20300 should let us do this kind of logic on ExtensionArray.fillna
         # and we can use it.
@@ -421,7 +421,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = pad_1d if method == 'pad' else backfill_1d
-                new_values = func(self._ndarray_values, limit=limit,
+                new_values = func(self._data, limit=limit,
                                   mask=mask)
                 new_values = type(self)(new_values, freq=self.freq)
             else:
@@ -489,7 +489,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         freq : pandas.DateOffset, pandas.Timedelta, or string
             Frequency increment to shift by.
         """
-        values = self._ndarray_values + n * self.freq.n
+        values = self._data + n * self.freq.n
         if self.hasnans:
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)
@@ -595,8 +595,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         base, mult = frequencies.get_freq_code(freq)
         new_data = self.asfreq(freq, how=how)
 
-        new_data = libperiod.periodarr_to_dt64arr(new_data._ndarray_values,
-                                                  base)
+        new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
         return DatetimeArrayMixin(new_data, freq='infer')
 
     # ------------------------------------------------------------------
@@ -805,11 +804,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         --------
         numpy.ndarray.repeat
         """
-        # TODO: Share with Categorical.repeat?
-        # need to use ndarray_values in Categorical
-        # and some kind of _constructor (from_ordinals, from_codes).
+        # TODO(DatetimeArray): remove
         nv.validate_repeat(args, kwargs)
-        values = self._ndarray_values.repeat(repeats)
+        values = self._data.repeat(repeats)
         return type(self)(values, self.freq)
 
     # Delegation...
@@ -831,7 +828,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
             return self._format_native_types()
         elif is_integer_dtype(dtype):
-            values = self._ndarray_values
+            values = self._data
 
             if values.dtype != dtype:
                 # int32 vs. int64
@@ -857,7 +854,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def _item(self):
         if len(self) == 1:
             # IndexOpsMixin will catch and re-raise IndexErrors
-            return Period._from_ordinal(self._ndarray_values[0], self.freq)
+            return Period._from_ordinal(self._data[0], self.freq)
         else:
             raise ValueError('can only convert an array of size 1 to a '
                              'Python scalar')
@@ -868,7 +865,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # We need this since reduction.SeriesBinGrouper uses values.flags
         # Ideally, we wouldn't be passing objects down there in the first
         # place.
-        return self._ndarray_values.flags
+        return self._data.flags
 
     # ------------------------------------------------------------------------
     # Ops
