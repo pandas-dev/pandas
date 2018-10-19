@@ -1,12 +1,12 @@
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
 from pandas._libs.tslib import iNaT
-from pandas.tests.extension import base
-from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.arrays import PeriodArray
+from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.tests.extension import base
 
 
 @pytest.fixture
