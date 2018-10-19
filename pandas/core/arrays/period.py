@@ -329,7 +329,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             self,
             key,   # type: Union[int, Sequence[int], Sequence[bool]]
             value  # type: Union[NaTType, Period, Sequence[Period]]
-        ):
+    ):
         # type: (...) -> None
         # n.b. the type on `value` is a bit too restrictive.
         # we also accept a sequence of stuff coercible to a PeriodArray
