@@ -640,7 +640,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
               times
 
         nonexistent : 'shift', 'NaT' default 'raise'
-            A nonexistent time doesn't not exist in a particular timezone
+            A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
             - 'shift' will shift the nonexistent times forward to the closest
