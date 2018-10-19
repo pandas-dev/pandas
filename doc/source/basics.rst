@@ -1950,7 +1950,7 @@ NumPy's type-system for a few cases.
 * :ref:`Categorical <categorical>`
 * :ref:`Datetime with Timezone <timeseries.timezone_series>`
 * :ref:`Period <timeseries.periods>`
-* :ref:`Interval <advanced.indexing.intervallindex>`
+* :ref:`Interval <indexing.intervallindex>`
 
 Pandas uses the ``object`` dtype for storing strings.
 

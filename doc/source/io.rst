@@ -66,16 +66,13 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 CSV & Text files
 ----------------
 
-The two workhorse functions for reading text files (a.k.a. flat files) are
-:func:`read_csv` and :func:`read_table`. They both use the same parsing code to
-intelligently convert tabular data into a ``DataFrame`` object. See the
-:ref:`cookbook<cookbook.csv>` for some advanced strategies.
+The workhorse function for reading text files (a.k.a. flat files) is
+:func:`read_csv`. See the :ref:`cookbook<cookbook.csv>` for some advanced strategies.
 
 Parsing options
 '''''''''''''''
 
-The functions :func:`read_csv` and :func:`read_table` accept the following
-common arguments:
+:func:`read_csv` accepts the following common arguments:
 
 Basic
 +++++
@@ -780,8 +777,8 @@ Date Handling
 Specifying Date Columns
 +++++++++++++++++++++++
 
-To better facilitate working with datetime data, :func:`read_csv` and
-:func:`read_table` use the keyword arguments ``parse_dates`` and ``date_parser``
+To better facilitate working with datetime data, :func:`read_csv`
+uses the keyword arguments ``parse_dates`` and ``date_parser``
 to allow users to specify a variety of columns and date/time formats to turn the
 input text data into ``datetime`` objects.
 
@@ -1434,7 +1431,7 @@ Suppose you have data indexed by two columns:
 
    print(open('data/mindex_ex.csv').read())
 
-The ``index_col`` argument to ``read_csv`` and ``read_table`` can take a list of
+The ``index_col`` argument to ``read_csv`` can take a list of
 column numbers to turn multiple columns into a ``MultiIndex`` for the index of the
 returned object:
 
@@ -1505,8 +1502,8 @@ class of the csv module. For this, you have to specify ``sep=None``.
 
 .. ipython:: python
 
-    print(open('tmp2.sv').read())
-    pd.read_csv('tmp2.sv', sep=None, engine='python')
+   print(open('tmp2.sv').read())
+   pd.read_csv('tmp2.sv', sep=None, engine='python')
 
 .. _io.multiple_files:
 
@@ -1528,16 +1525,16 @@ rather than reading the entire file into memory, such as the following:
 .. ipython:: python
 
    print(open('tmp.sv').read())
-   table = pd.read_table('tmp.sv', sep='|')
+   table = pd.read_csv('tmp.sv', sep='|')
    table
 
 
-By specifying a ``chunksize`` to ``read_csv`` or ``read_table``, the return
+By specifying a ``chunksize`` to ``read_csv``, the return
 value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
 
-   reader = pd.read_table('tmp.sv', sep='|', chunksize=4)
+   reader = pd.read_csv('tmp.sv', sep='|', chunksize=4)
    reader
 
    for chunk in reader:
@@ -1548,7 +1545,7 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 
-   reader = pd.read_table('tmp.sv', sep='|', iterator=True)
+   reader = pd.read_csv('tmp.sv', sep='|', iterator=True)
    reader.get_chunk(5)
 
 .. ipython:: python
@@ -1606,7 +1603,7 @@ function takes a number of arguments. Only the first is required.
 * ``sep`` : Field delimiter for the output file (default ",")
 * ``na_rep``: A string representation of a missing value (default '')
 * ``float_format``: Format string for floating point numbers
-* ``cols``: Columns to write (default None)
+* ``columns``: Columns to write (default None)
 * ``header``: Whether to write out the column names (default True)
 * ``index``: whether to write row (index) names (default True)
 * ``index_label``: Column label(s) for index column(s) if desired. If None
@@ -3067,7 +3064,7 @@ Clipboard
 
 A handy way to grab data is to use the :meth:`~DataFrame.read_clipboard` method,
 which takes the contents of the clipboard buffer and passes them to the
-``read_table`` method. For instance, you can copy the following text to the
+``read_csv`` method. For instance, you can copy the following text to the
 clipboard (CTRL-C on many operating systems):
 
 .. code-block:: python

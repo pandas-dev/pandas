@@ -11,8 +11,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Series, Categorical, DataFrame, isna, notna,
-                    bdate_range, date_range, _np_version_under1p10,
-                    CategoricalIndex)
+                    bdate_range, date_range, CategoricalIndex)
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
@@ -539,9 +538,9 @@ class TestSeriesAnalytics(TestData):
             f(s)
 
             # 2888
-            l = [0]
-            l.extend(lrange(2 ** 40, 2 ** 40 + 1000))
-            s = Series(l, dtype='int64')
+            items = [0]
+            items.extend(lrange(2 ** 40, 2 ** 40 + 1000))
+            s = Series(items, dtype='int64')
             assert_almost_equal(float(f(s)), float(alternate(s.values)))
 
             # check date range
@@ -789,6 +788,38 @@ class TestSeriesAnalytics(TestData):
         with tm.assert_raises_regex(ValueError, msg):
             s1.corr(s2, method="____")
 
+    def test_corr_callable_method(self):
+        # simple correlation example
+        # returns 1 if exact equality, 0 otherwise
+        my_corr = lambda a, b: 1. if (a == b).all() else 0.
+
+        # simple example
+        s1 = Series([1, 2, 3, 4, 5])
+        s2 = Series([5, 4, 3, 2, 1])
+        expected = 0
+        tm.assert_almost_equal(
+            s1.corr(s2, method=my_corr),
+            expected)
+
+        # full overlap
+        tm.assert_almost_equal(
+            self.ts.corr(self.ts, method=my_corr), 1.)
+
+        # partial overlap
+        tm.assert_almost_equal(
+            self.ts[:15].corr(self.ts[5:], method=my_corr), 1.)
+
+        # No overlap
+        assert np.isnan(
+            self.ts[::2].corr(self.ts[1::2], method=my_corr))
+
+        # dataframe example
+        df = pd.DataFrame([s1, s2])
+        expected = pd.DataFrame([
+            {0: 1., 1: 0}, {0: 0, 1: 1.}])
+        tm.assert_almost_equal(
+            df.transpose().corr(method=my_corr), expected)
+
     def test_cov(self):
         # full overlap
         tm.assert_almost_equal(self.ts.cov(self.ts), self.ts.std() ** 2)
@@ -942,12 +973,12 @@ class TestSeriesAnalytics(TestData):
 
         for s in sers:
             thresh = s[2]
-            l = s.clip_lower(thresh)
-            u = s.clip_upper(thresh)
-            assert l[notna(l)].min() == thresh
-            assert u[notna(u)].max() == thresh
-            assert list(isna(s)) == list(isna(l))
-            assert list(isna(s)) == list(isna(u))
+            lower = s.clip_lower(thresh)
+            upper = s.clip_upper(thresh)
+            assert lower[notna(lower)].min() == thresh
+            assert upper[notna(upper)].max() == thresh
+            assert list(isna(s)) == list(isna(lower))
+            assert list(isna(s)) == list(isna(upper))
 
     def test_clip_with_na_args(self):
         """Should process np.nan argument as None """
@@ -1214,12 +1245,11 @@ class TestSeriesAnalytics(TestData):
 
         assert result == 1
 
-        if not _np_version_under1p10:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                msg = "the 'out' parameter is not supported"
-                tm.assert_raises_regex(ValueError, msg, np.argmin,
-                                       s, out=data)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            msg = "the 'out' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.argmin,
+                                   s, out=data)
 
     def test_idxmax(self):
         # test idxmax
@@ -1283,12 +1313,11 @@ class TestSeriesAnalytics(TestData):
 
         assert result == 10
 
-        if not _np_version_under1p10:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                msg = "the 'out' parameter is not supported"
-                tm.assert_raises_regex(ValueError, msg, np.argmax,
-                                       s, out=data)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            msg = "the 'out' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.argmax,
+                                   s, out=data)
 
     def test_ptp(self):
         # GH21614

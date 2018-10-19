@@ -1379,7 +1379,7 @@ class TestIndex(Base):
         index = pd.Index(arr, dtype=np.object)
         result = index.get_indexer([unique_nulls_fixture,
                                     unique_nulls_fixture2, 'Unknown'])
-        expected = np.array([0, 1, -1], dtype=np.int64)
+        expected = np.array([0, 1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("method", [None, 'pad', 'backfill', 'nearest'])
@@ -2530,3 +2530,32 @@ def test_index_subclass_constructor_wrong_kwargs(index_maker):
     # GH #19348
     with tm.assert_raises_regex(TypeError, 'unexpected keyword argument'):
         index_maker(foo='bar')
+
+
+def test_deprecated_fastpath():
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx = pd.Index(
+            np.array(['a', 'b'], dtype=object), name='test', fastpath=True)
+
+    expected = pd.Index(['a', 'b'], name='test')
+    tm.assert_index_equal(idx, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx = pd.Int64Index(
+            np.array([1, 2, 3], dtype='int64'), name='test', fastpath=True)
+
+    expected = pd.Index([1, 2, 3], name='test', dtype='int64')
+    tm.assert_index_equal(idx, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx = pd.RangeIndex(0, 5, 2, name='test', fastpath=True)
+
+    expected = pd.RangeIndex(0, 5, 2, name='test')
+    tm.assert_index_equal(idx, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx = pd.CategoricalIndex(['a', 'b', 'c'], name='test', fastpath=True)
+
+    expected = pd.CategoricalIndex(['a', 'b', 'c'], name='test')
+    tm.assert_index_equal(idx, expected)

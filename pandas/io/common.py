@@ -417,21 +417,22 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     elif is_path:
         if compat.PY2:
             # Python 2
+            mode = "wb" if mode == "w" else mode
             f = open(path_or_buf, mode)
         elif encoding:
             # Python 3 and encoding
-            f = open(path_or_buf, mode, encoding=encoding)
+            f = open(path_or_buf, mode, encoding=encoding, newline="")
         elif is_text:
             # Python 3 and no explicit encoding
-            f = open(path_or_buf, mode, errors='replace')
+            f = open(path_or_buf, mode, errors='replace', newline="")
         else:
             # Python 3 and binary mode
             f = open(path_or_buf, mode)
         handles.append(f)
 
     # in Python 3, convert BytesIO or fileobjects passed with an encoding
-    if compat.PY3 and is_text and\
-            (compression or isinstance(f, need_text_wrapping)):
+    if (compat.PY3 and is_text and
+            (compression or isinstance(f, need_text_wrapping))):
         from io import TextIOWrapper
         f = TextIOWrapper(f, encoding=encoding)
         handles.append(f)

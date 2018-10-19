@@ -12,9 +12,6 @@ from pandas._libs import lib, internals as libinternals
 from pandas.util._validators import validate_bool_kwarg
 from pandas.compat import range, map, zip
 
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    PandasExtensionDtype)
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     is_datetimelike_v_numeric,
@@ -32,7 +29,7 @@ from pandas.core.dtypes.generic import ABCSeries, ABCExtensionArray
 
 from pandas.core.base import PandasObject
 import pandas.core.algorithms as algos
-from pandas.core.sparse.array import _maybe_to_sparse
+from pandas.core.arrays.sparse import _maybe_to_sparse
 
 from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.indexing import maybe_convert_indices
@@ -40,7 +37,7 @@ from pandas.core.indexing import maybe_convert_indices
 from pandas.io.formats.printing import pprint_thing
 
 from .blocks import (
-    Block, DatetimeTZBlock, CategoricalBlock, ExtensionBlock, SparseBlock,
+    Block, DatetimeTZBlock, CategoricalBlock, ExtensionBlock,
     _extend_blocks, _merge_blocks, _safe_reshape,
     make_block, get_block_type)
 from .concat import (  # all for concatenate_block_managers
@@ -740,7 +737,6 @@ class BlockManager(PandasObject):
         -------
         copy : BlockManager
         """
-
         # this preserves the notion of view copying of axes
         if deep:
             if deep == 'all':
@@ -789,7 +785,15 @@ class BlockManager(PandasObject):
         Return ndarray from blocks with specified item order
         Items must be contained in the blocks
         """
+        from pandas.core.dtypes.common import is_sparse
         dtype = _interleaved_dtype(self.blocks)
+
+        # TODO: https://github.com/pandas-dev/pandas/issues/22791
+        # Give EAs some input on what happens here. Sparse needs this.
+        if is_sparse(dtype):
+            dtype = dtype.subtype
+        elif is_extension_array_dtype(dtype):
+            dtype = 'object'
 
         result = np.empty(self.shape, dtype=dtype)
 
@@ -906,13 +910,24 @@ class BlockManager(PandasObject):
 
         # unique
         dtype = _interleaved_dtype(self.blocks)
+
         n = len(items)
-        result = np.empty(n, dtype=dtype)
+        if is_extension_array_dtype(dtype):
+            # we'll eventually construct an ExtensionArray.
+            result = np.empty(n, dtype=object)
+        else:
+            result = np.empty(n, dtype=dtype)
+
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
                 result[rl] = blk._try_coerce_result(blk.iget((i, loc)))
+
+        if is_extension_array_dtype(dtype):
+            result = dtype.construct_array_type()._from_sequence(
+                result, dtype=dtype
+            )
 
         return result
 
@@ -1621,8 +1636,7 @@ class SingleBlockManager(BlockManager):
         # check if all series are of the same block type:
         if len(non_empties) > 0:
             blocks = [obj.blocks[0] for obj in non_empties]
-
-            if all(type(b) is type(blocks[0]) for b in blocks[1:]):  # noqa
+            if len({b.dtype for b in blocks}) == 1:
                 new_block = blocks[0].concat_same_type(blocks)
             else:
                 values = [x.values for x in blocks]
@@ -1821,7 +1835,7 @@ def _sparse_blockify(tuples, dtype=None):
     new_blocks = []
     for i, names, array in tuples:
         array = _maybe_to_sparse(array)
-        block = make_block(array, klass=SparseBlock, placement=[i])
+        block = make_block(array, placement=[i])
         new_blocks.append(block)
 
     return new_blocks
@@ -1855,16 +1869,22 @@ def _stack_arrays(tuples, dtype):
 
 
 def _interleaved_dtype(blocks):
+    # type: (List[Block]) -> Optional[Union[np.dtype, ExtensionDtype]]
+    """Find the common dtype for `blocks`.
+
+    Parameters
+    ----------
+    blocks : List[Block]
+
+    Returns
+    -------
+    dtype : Optional[Union[np.dtype, ExtensionDtype]]
+        None is returned when `blocks` is empty.
+    """
     if not len(blocks):
         return None
 
-    dtype = find_common_type([b.dtype for b in blocks])
-
-    # only numpy compat
-    if isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):
-        dtype = np.object
-
-    return dtype
+    return find_common_type([b.dtype for b in blocks])
 
 
 def _consolidate(blocks):
@@ -2025,10 +2045,9 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
     copy : bool
 
     """
-    concat_plan = combine_concat_plans(
-        [get_mgr_concatenation_plan(mgr, indexers)
-         for mgr, indexers in mgrs_indexers], concat_axis)
-
+    concat_plans = [get_mgr_concatenation_plan(mgr, indexers)
+                    for mgr, indexers in mgrs_indexers]
+    concat_plan = combine_concat_plans(concat_plans, concat_axis)
     blocks = []
 
     for placement, join_units in concat_plan:
