@@ -51,7 +51,7 @@ def test_setitem_raises():
     (pd.date_range("2017", periods=3), None, [17167, 17168, 17169]),
 ])
 def test_period_array_ok(data, freq, expected):
-    result = period_array(data, freq=freq).values
+    result = period_array(data, freq=freq).asi8
     expected = np.asarray(expected, dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
