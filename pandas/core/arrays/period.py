@@ -882,7 +882,7 @@ PeriodArray._add_datetimelike_methods()
 # -------------------------------------------------------------------
 # Constructor Helpers
 
-def period_array(data, freq=None, ordinal=None, copy=False):
+def period_array(data, freq=None, copy=False):
     # type: (Sequence[Optional[Period]], Optional[Tick]) -> PeriodArray
     """
     Construct a new PeriodArray from a sequence of Period scalars.
@@ -936,25 +936,16 @@ def period_array(data, freq=None, ordinal=None, copy=False):
     ['2000Q1', '2000Q2', '2000Q3', '2000Q4']
     Length: 4, dtype: period[Q-DEC]
     """
+    if is_datetime64_dtype(data):
+        return PeriodArray._from_datetime64(data, freq)
+    if isinstance(data, (ABCPeriodIndex, ABCSeries, PeriodArray)):
+        return PeriodArray(data, freq)
 
-    if data is None and ordinal is None:
-        raise ValueError("Must pass one of 'data' or 'ordinal'.")
-    elif data is None:
-        data = np.asarray(ordinal, dtype=np.int64)
-        if copy:
-            data = data.copy()
-        return PeriodArray(data, freq=freq)
-    else:
-        if is_datetime64_dtype(data):
-            return PeriodArray._from_datetime64(data, freq)
-        if isinstance(data, (ABCPeriodIndex, ABCSeries, PeriodArray)):
-            return PeriodArray(data, freq)
+    # other iterable of some kind
+    if not isinstance(data, (np.ndarray, list, tuple)):
+        data = list(data)
 
-        # other iterable of some kind
-        if not isinstance(data, (np.ndarray, list, tuple)):
-            data = list(data)
-
-        data = np.asarray(data)
+    data = np.asarray(data)
 
     if freq:
         dtype = PeriodDtype(freq)
@@ -968,6 +959,13 @@ def period_array(data, freq=None, ordinal=None, copy=False):
     data = ensure_object(data)
 
     return PeriodArray._from_sequence(data, dtype=dtype)
+
+
+def _ordinal_to_periodarr(ordinal, freq, copy=False):
+    data = np.asarray(ordinal, dtype=np.int64)
+    if copy:
+        data = data.copy()
+    return PeriodArray(data, freq=freq)
 
 
 def dt64arr_to_periodarr(data, freq, tz=None):

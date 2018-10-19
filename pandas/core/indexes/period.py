@@ -238,8 +238,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                 # e.g. D -> 2D seems to be OK
                 data = data.asfreq(freq)
 
-            data = period_array(data=data, ordinal=ordinal, freq=freq,
-                                copy=copy)
+            if data is None and ordinal is not None:
+                # we strangely ignore `ordinal` if data is passed.
+                ordinal = np.asarray(ordinal, dtype=np.int64)
+                data = PeriodArray(ordinal, freq)
+            else:
+                # don't pass copy here, since we copy later.
+                data = period_array(data=data, freq=freq)
 
         if copy:
             data = data.copy()

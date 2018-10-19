@@ -76,11 +76,6 @@ def test_period_array_raises(data, freq, msg):
         period_array(data, freq)
 
 
-def test_period_array_no_data():
-    with tm.assert_raises_regex(ValueError, "one of"):
-        period_array(None)
-
-
 def test_asi8():
     result = period_array(['2000', '2001', None], freq='D').asi8
     expected = np.array([10957, 11323, iNaT])
