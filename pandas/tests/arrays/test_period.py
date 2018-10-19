@@ -9,7 +9,6 @@ from pandas.core.arrays import PeriodArray, period_array
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import PeriodDtype
 
-
 # ----------------------------------------------------------------------------
 # Constructors
 
