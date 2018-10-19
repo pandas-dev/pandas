@@ -116,7 +116,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     Parameters
     ----------
-    values : Union[PeriodArray, Series[period], ndarary[int], PeriodIndex
+    values : Union[PeriodArray, Series[period], ndarary[int], PeriodIndex]
         The data to store. These should be arrays that can be directly
         converted to ordinals without inference or copy (PeriodArray,
         ndarray[int64]), or a box around such an array (Series[period],
