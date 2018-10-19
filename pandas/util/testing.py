@@ -1563,6 +1563,8 @@ def box_expected(expected, box_cls):
         expected = pd.Series(expected)
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
+    elif box_cls is np.ndarray:
+        expected = np.array(expected)
     else:
         raise NotImplementedError(box_cls)
     return expected

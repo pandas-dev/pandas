@@ -52,7 +52,7 @@ class TestTimedelta64ArrayComparisons(object):
         right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta('3 days')])
 
         lhs, rhs = left, right
-        if dtpye is object:
+        if dtype is object:
             lhs, rhs = left.astype(object), right.astype(object)
 
         result = rhs == lhs
