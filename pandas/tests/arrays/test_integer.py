@@ -527,9 +527,9 @@ def test_integer_array_constructor():
 
 @pytest.mark.parametrize('a, b', [
     ([1, None], [1, np.nan]),
-    pytest.param([None], [np.nan],
-                 marks=pytest.mark.xfail(reason='GH-23224',
-                                         strict=True)),
+    ([None], [np.nan]),
+    ([None, np.nan], [np.nan, np.nan]),
+    ([np.nan, np.nan], [np.nan, np.nan]),
 ])
 def test_integer_array_constructor_none_is_nan(a, b):
     result = integer_array(a)
@@ -599,16 +599,6 @@ def test_to_integer_array_float():
     # for float dtypes, the itemsize is not preserved
     result = integer_array(np.array([1., 2.], dtype='float32'))
     assert result.dtype == Int64Dtype()
-
-
-@pytest.mark.parametrize(
-    'result, expected',
-    [
-        (integer_array([None]), integer_array([np.nan])),
-        (integer_array([None, np.nan]), integer_array([np.nan, np.nan])),
-        (integer_array([np.nan, np.nan]), integer_array([np.nan, np.nan]))])
-def test_to_integer_array_none(result, expected):
-    tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
