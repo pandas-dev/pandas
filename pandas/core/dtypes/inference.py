@@ -5,7 +5,7 @@ import numpy as np
 from numbers import Number
 from pandas import compat
 from pandas.compat import (PY2, string_types, text_type,
-                           string_and_binary_types, re_type)
+                           string_and_binary_types, re_type, Set)
 from pandas._libs import lib
 
 is_bool = lib.is_bool
@@ -247,7 +247,7 @@ def is_re_compilable(obj):
         return True
 
 
-def is_list_like(obj):
+def is_list_like(obj, allow_sets=True):
     """
     Check if the object is list-like.
 
@@ -259,6 +259,10 @@ def is_list_like(obj):
     Parameters
     ----------
     obj : The object to check.
+    allow_sets : boolean, default True
+        If this parameter is False, sets will not be considered list-like
+
+        .. versionadded:: 0.24.0
 
     Returns
     -------
@@ -283,11 +287,15 @@ def is_list_like(obj):
     False
     """
 
-    return (isinstance(obj, compat.Iterable) and
+    return (isinstance(obj, compat.Iterable)
             # we do not count strings/unicode/bytes as list-like
-            not isinstance(obj, string_and_binary_types) and
+            and not isinstance(obj, string_and_binary_types)
+
             # exclude zero-dimensional numpy arrays, effectively scalars
-            not (isinstance(obj, np.ndarray) and obj.ndim == 0))
+            and not (isinstance(obj, np.ndarray) and obj.ndim == 0)
+
+            # exclude sets if allow_sets is False
+            and not (allow_sets is False and isinstance(obj, Set)))
 
 
 def is_array_like(obj):
