@@ -45,32 +45,35 @@ class TestTimedelta64ArrayComparisons(object):
             with pytest.raises(TypeError):
                 left != right
 
-    def test_comp_nat(self):
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_comp_nat(self, dtype):
         left = pd.TimedeltaIndex([pd.Timedelta('1 days'), pd.NaT,
                                   pd.Timedelta('3 days')])
         right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta('3 days')])
 
-        for lhs, rhs in [(left, right),
-                         (left.astype(object), right.astype(object))]:
-            result = rhs == lhs
-            expected = np.array([False, False, True])
-            tm.assert_numpy_array_equal(result, expected)
+        lhs, rhs = left, right
+        if dtpye is object:
+            lhs, rhs = left.astype(object), right.astype(object)
 
-            result = rhs != lhs
-            expected = np.array([True, True, False])
-            tm.assert_numpy_array_equal(result, expected)
+        result = rhs == lhs
+        expected = np.array([False, False, True])
+        tm.assert_numpy_array_equal(result, expected)
 
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
+        result = rhs != lhs
+        expected = np.array([True, True, False])
+        tm.assert_numpy_array_equal(result, expected)
 
-            expected = np.array([True, True, True])
-            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
+        expected = np.array([False, False, False])
+        tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
+        tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
 
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
+        expected = np.array([True, True, True])
+        tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
+        tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
+
+        expected = np.array([False, False, False])
+        tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
+        tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
 
     def test_comparisons_nat(self):
         tdidx1 = pd.TimedeltaIndex(['1 day', pd.NaT, '1 day 00:00:01', pd.NaT,
@@ -425,14 +428,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
         result = idx + Timestamp('2011-01-01')
         tm.assert_equal(result, expected)
 
-    def test_td64_radd_timestamp(self, box):
-        idx = TimedeltaIndex(['1 day', '2 day'])
-        expected = DatetimeIndex(['2011-01-02', '2011-01-03'])
-
-        idx = tm.box_expected(idx, box)
-        expected = tm.box_expected(expected, box)
-
-        # TODO: parametrize over scalar datetime types?
         result = Timestamp('2011-01-01') + idx
         tm.assert_equal(result, expected)
 
@@ -500,26 +495,16 @@ class TestTimedeltaArraylikeAddSubOps(object):
     def test_td64arr_add_int_series_invalid(self, box, tdser):
         tdser = tm.box_expected(tdser, box)
         err = TypeError if box is not pd.Index else NullFrequencyError
-        with pytest.raises(err):
-            tdser + Series([2, 3, 4])
+        int_ser = Series([2, 3, 4])
 
-    def test_td64arr_radd_int_series_invalid(self, box, tdser):
-        tdser = tm.box_expected(tdser, box)
-        err = TypeError if box is not pd.Index else NullFrequencyError
         with pytest.raises(err):
-            Series([2, 3, 4]) + tdser
-
-    def test_td64arr_sub_int_series_invalid(self, box, tdser):
-        tdser = tm.box_expected(tdser, box)
-        err = TypeError if box is not pd.Index else NullFrequencyError
+            tdser + int_ser
         with pytest.raises(err):
-            tdser - Series([2, 3, 4])
-
-    def test_td64arr_rsub_int_series_invalid(self, box, tdser):
-        tdser = tm.box_expected(tdser, box)
-        err = TypeError if box is not pd.Index else NullFrequencyError
+            int_ser + tdser
         with pytest.raises(err):
-            Series([2, 3, 4]) - tdser
+            tdser - int_ser
+        with pytest.raises(err):
+            int_ser - tdser
 
     def test_td64arr_add_intlike(self, box_df_broadcast_failure):
         # GH#19123

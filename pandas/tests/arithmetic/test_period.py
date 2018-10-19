@@ -803,11 +803,7 @@ class TestPeriodIndexSeriesMethods(object):
     def _check(self, values, func, expected):
         idx = pd.PeriodIndex(values)
         result = func(idx)
-        if isinstance(expected, pd.Index):
-            tm.assert_index_equal(result, expected)
-        else:
-            # comp op results in bool
-            tm.assert_numpy_array_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         ser = pd.Series(values)
         result = func(ser)
