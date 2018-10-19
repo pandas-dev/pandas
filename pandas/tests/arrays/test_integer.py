@@ -519,7 +519,8 @@ def test_integer_array_constructor_copy():
         1,
         1.0,
         pd.date_range('20130101', periods=2),
-        np.array(['foo'])])
+        np.array(['foo']),
+        [[1, 2], [3, 4]]])
 def test_to_integer_array_error(values):
     # error in converting existing arrays to IntegerArrays
     with pytest.raises(TypeError):
@@ -564,7 +565,8 @@ def test_to_integer_array_float():
     'result, expected',
     [
         (integer_array([None]), integer_array([np.nan])),
-        (integer_array([None, np.nan]), integer_array([np.nan, np.nan]))])
+        (integer_array([None, np.nan]), integer_array([np.nan, np.nan])),
+        (integer_array([np.nan, np.nan]), integer_array([np.nan, np.nan]))])
 def test_to_integer_array_none(result, expected):
     tm.assert_extension_array_equal(result, expected)
 
