@@ -235,6 +235,97 @@ If installed, we now require:
 | scipy           | 0.18.1          |          |
 +-----------------+-----------------+----------+
 
+.. _whatsnew_0240.api_breaking.csv_line_terminator:
+
+`os.linesep` is used for ``line_terminator`` of ``DataFrame.to_csv``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`DataFrame.to_csv` now uses :func:`os.linesep` rather than ``'\n'``
+ for the default line terminator (:issue:`20353`).
+This change only affects when running on Windows, where ``'\r\n'`` was used for line terminator
+even when ``'\n'`` was passed in ``line_terminator``.
+
+Previous Behavior on Windows:
+
+.. code-block:: ipython
+
+In [1]: data = pd.DataFrame({
+   ...:     "string_with_lf": ["a\nbc"],
+   ...:     "string_with_crlf": ["a\r\nbc"]
+   ...: })
+
+In [2]: # When passing file PATH to to_csv, line_terminator does not work, and csv is saved with '\r\n'.
+   ...: # Also, this converts all '\n's in the data to '\r\n'.
+   ...: data.to_csv("test.csv", index=False, line_terminator='\n')
+
+In [3]: with open("test.csv", mode='rb') as f:
+   ...:     print(f.read())
+b'string_with_lf,string_with_crlf\r\n"a\r\nbc","a\r\r\nbc"\r\n'
+
+In [4]: # When passing file OBJECT with newline option to to_csv, line_terminator works.
+   ...: with open("test2.csv", mode='w', newline='\n') as f:
+   ...:     data.to_csv(f, index=False, line_terminator='\n')
+
+In [5]: with open("test2.csv", mode='rb') as f:
+   ...:     print(f.read())
+b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
+
+
+New Behavior on Windows:
+
+- By passing ``line_terminator`` explicitly, line terminator is set to that character.
+- The value of ``line_terminator`` only affects the line terminator of CSV,
+  so it does not change the value inside the data.
+
+.. code-block:: ipython
+
+In [1]: data = pd.DataFrame({
+   ...:     "string_with_lf": ["a\nbc"],
+   ...:     "string_with_crlf": ["a\r\nbc"]
+   ...: })
+
+In [2]: data.to_csv("test.csv", index=False, line_terminator='\n')
+
+In [3]: with open("test.csv", mode='rb') as f:
+   ...:     print(f.read())
+b'string_with_lf,string_with_crlf\n"a\nbc","a\r\nbc"\n'
+
+
+- On Windows, the value of ``os.linesep`` is ``'\r\n'``,
+  so if ``line_terminator`` is not set, ``'\r\n'`` is used for line terminator.
+- Again, it does not affect the value inside the data.
+
+.. code-block:: ipython
+
+In [1]: data = pd.DataFrame({
+   ...: "string_with_lf": ["a\nbc"],
+   ...: "string_with_crlf": ["a\r\nbc"]
+   ...: })
+
+In [2]: data.to_csv("test.csv", index=False)
+
+In [3]: with open("test.csv", mode='rb') as f:
+   ...:     print(f.read())
+b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
+
+
+- For files objects, specifying ``newline`` is not sufficient to set the line terminator.
+  You must pass in the ``line_terminator`` explicitly, even in this case.
+
+.. code-block:: ipython
+
+In [1]: data = pd.DataFrame({
+   ...: "string_with_lf": ["a\nbc"],
+   ...: "string_with_crlf": ["a\r\nbc"]
+   ...: })
+
+In [2]: with open("test2.csv", mode='w', newline='\n') as f:
+   ...:     data.to_csv(f, index=False)
+
+In [3]: with open("test2.csv", mode='rb') as f:
+   ...:     print(f.read())
+b'string_with_lf,string_with_crlf\r\n"a\nbc","a\r\nbc"\r\n'
+
 .. _whatsnew_0240.api_breaking.interval_values:
 
 ``IntervalIndex.values`` is now an ``IntervalArray``
@@ -714,6 +805,8 @@ Other API Changes
 - :class:`pandas.io.formats.style.Styler` supports a ``number-format`` property when using :meth:`~pandas.io.formats.style.Styler.to_excel` (:issue:`22015`)
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now raise a ``ValueError`` along with a helpful error message instead of a ``KeyError`` when supplied with an invalid method (:issue:`22298`)
 - :meth:`shift` will now always return a copy, instead of the previous behaviour of returning self when shifting by 0 (:issue:`22397`)
+- :meth:`DataFrame.set_index` now allows all one-dimensional list-likes, raises a ``TypeError`` for incorrect types,
+  has an improved ``KeyError`` message, and will not fail on duplicate column names with ``drop=True``. (:issue:`22484`)
 - Slicing a single row of a DataFrame with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - :class:`DateOffset` attribute `_cacheable` and method `_should_cache` have been removed (:issue:`23118`)
 
@@ -880,6 +973,7 @@ Numeric
 - Bug in :meth:`DataFrame.apply` where, when supplied with a string argument and additional positional or keyword arguments (e.g. ``df.apply('sum', min_count=1)``), a ``TypeError`` was wrongly raised (:issue:`22376`)
 - Bug in :meth:`DataFrame.astype` to extension dtype may raise ``AttributeError`` (:issue:`22578`)
 - Bug in :class:`DataFrame` with ``timedelta64[ns]`` dtype arithmetic operations with ``ndarray`` with integer dtype incorrectly treating the narray as ``timedelta64[ns]`` dtype (:issue:`23114`)
+- Bug in :meth:`Series.rpow` with object dtype ``NaN`` for ``1 ** NA`` instead of ``1`` (:issue:`22922`).
 
 Strings
 ^^^^^^^
