@@ -351,12 +351,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     def _add_delta(self, other):
         """
-        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
+        Add a timedelta-like, Tick or TimedeltaIndex-like object
         to self.
 
         Parameters
         ----------
-        delta : {timedelta, np.timedelta64, DateOffset,
+        delta : {timedelta, np.timedelta64, Tick,
                  TimedeltaIndex, ndarray[timedelta64]}
 
         Returns
