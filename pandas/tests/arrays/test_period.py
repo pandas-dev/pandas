@@ -14,6 +14,7 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 
 # period_array
 
+
 @pytest.mark.parametrize("data, freq, expected", [
     ([pd.Period("2017", "D")], None, [17167]),
     ([pd.Period("2017", "D")], "D", [17167]),
