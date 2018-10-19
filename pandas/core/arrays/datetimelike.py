@@ -332,11 +332,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             # Frequency validation is not meaningful for Period Array/Index
             return None
 
-        # DatetimeArray may pass `ambiguous`, nothing else will be accepted
-        #  by cls._generate_range below
-        allowed = {'ambiguous'} if index.dtype.kind == 'M' else {}
-        assert all(key in allowed for key in kwargs)
-
         inferred = index.inferred_freq
         if index.size == 0 or inferred == freq.freqstr:
             return None
