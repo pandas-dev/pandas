@@ -471,14 +471,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     @property
     def _box_func(self):
-        # Used in DatelikeArray.__iter__
-        # TODO: implement this in cython?
-        def func(x):
-            if isinstance(x, Period) or x is NaT:
-                return x
-            else:
-                return Period._from_ordinal(ordinal=x, freq=self.freq)
-        return func
+        return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
 
     def asfreq(self, freq=None, how='E'):
         """

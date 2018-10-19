@@ -346,13 +346,20 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         """ we always want to return a PeriodIndex """
         return self._shallow_copy(values=values, **kwargs)
 
-    # ------------------------------------------------------------------------
-    # Boxing
-    # err. maybe not...
-
     @property
     def _box_func(self):
-        return self._data._box_func
+        """Maybe box an ordinal or Period"""
+        # TODO(DatetimeArray): Avoid double-boxing
+        # PeriodArray takes care of boxing already, so we need to check
+        # whether we're given an ordinal or a Period. It seems like some
+        # places outside of indexes/period.py are calling this _box_func,
+        # but passing data that's already boxed.
+        def func(x):
+            if isinstance(x, Period) or x is tslib.NaT:
+                return x
+            else:
+                return Period._from_ordinal(ordinal=x, freq=self.freq)
+        return func
 
     def _maybe_box_as_values(self, values, **attribs):
         """Box an array of ordinals to a PeriodArray
