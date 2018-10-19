@@ -37,6 +37,8 @@ def test_setitem_raises():
         arr[0] = 1
 
 
+# period_array
+
 @pytest.mark.parametrize("data, freq, expected", [
     ([pd.Period("2017", "D")], None, [17167]),
     ([pd.Period("2017", "D")], "D", [17167]),
@@ -44,11 +46,20 @@ def test_setitem_raises():
     (["2017"], "D", [17167]),
     ([pd.Period("2017", "D")], pd.tseries.offsets.Day(), [17167]),
     ([pd.Period("2017", "D"), None], None, [17167, iNaT]),
+    (pd.Series(pd.date_range("2017", periods=3)), None,
+     [17167, 17168, 17169]),
+    (pd.date_range("2017", periods=3), None, [17167, 17168, 17169]),
 ])
-def test_to_period_ok(data, freq, expected):
+def test_period_array_ok(data, freq, expected):
     result = period_array(data, freq=freq).values
     expected = np.asarray(expected, dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_from_datetime64_raises():
+    arr = pd.date_range("2017", periods=3, freq="D")
+    with tm.assert_raises_regex(IncompatibleFrequency, "freq"):
+        PeriodArray._from_datetime64(arr, freq="M")
 
 
 @pytest.mark.parametrize("data, freq, msg", [
@@ -60,9 +71,14 @@ def test_to_period_ok(data, freq, expected):
      "A",
      "Input has different freq"),
 ])
-def test_to_period_raises(data, freq, msg):
+def test_period_array_raises(data, freq, msg):
     with tm.assert_raises_regex(IncompatibleFrequency, msg):
         period_array(data, freq)
+
+
+def test_period_array_no_data():
+    with tm.assert_raises_regex(ValueError, "one of"):
+        period_array(None)
 
 
 def test_asi8():
@@ -73,6 +89,6 @@ def test_asi8():
 
 def test_take_raises():
     arr = period_array(['2000', '2001'], freq='D')
-    with tm.assert_raises_regex(ValueError, 'freq'):
+    with tm.assert_raises_regex(IncompatibleFrequency, 'freq'):
         arr.take([0, -1], allow_fill=True,
                  fill_value=pd.Period('2000', freq='W'))
