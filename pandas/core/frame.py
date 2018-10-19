@@ -82,6 +82,7 @@ from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.config import get_option
+
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, ensure_index,
                                ensure_index_from_sequences)
@@ -3914,22 +3915,32 @@ class DataFrame(NDFrame):
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
         """
-        Set the DataFrame index (row labels) using one or more existing
-        columns. By default yields a new object.
+        Set the DataFrame index (row labels) using one or more columns.
 
         Parameters
         ----------
         keys : column label or list of column labels / arrays
+            Either a column label, Series, Index, MultiIndex, list,
+            np.ndarray or a list containing only column labels, Series, Index,
+            MultiIndex, list, np.ndarray.
         drop : boolean, default True
-            Delete columns to be used as the new index
+            Delete columns to be used as the new index.
         append : boolean, default False
-            Whether to append columns to existing index
+            Whether to append columns to existing index.
         inplace : boolean, default False
-            Modify the DataFrame in place (do not create a new object)
+            Modify the DataFrame in place (do not create a new object).
         verify_integrity : boolean, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
-            method
+            method.
+
+        Returns
+        -------
+        reindexed : DataFrame if inplace is False, else None
+
+        See Also
+        --------
+        Series.set_index: Corresponding method for Series
 
         Returns
         -------
@@ -3939,24 +3950,25 @@ class DataFrame(NDFrame):
         --------
         >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
         ...                    'year': [2012, 2014, 2013, 2014],
-        ...                    'sale':[55, 40, 84, 31]})
-           month  sale  year
-        0  1      55    2012
-        1  4      40    2014
-        2  7      84    2013
-        3  10     31    2014
+        ...                    'sale': [55, 40, 84, 31]})
+        >>> df
+           month  year  sale
+        0      1  2012    55
+        1      4  2014    40
+        2      7  2013    84
+        3     10  2014    31
 
         Set the index to become the 'month' column:
 
         >>> df.set_index('month')
-               sale  year
+               year  sale
         month
-        1      55    2012
-        4      40    2014
-        7      84    2013
-        10     31    2014
+        1      2012    55
+        4      2014    40
+        7      2013    84
+        10     2014    31
 
-        Create a multi-index using columns 'year' and 'month':
+        Create a MultiIndex using columns 'year' and 'month':
 
         >>> df.set_index(['year', 'month'])
                     sale
@@ -3966,7 +3978,7 @@ class DataFrame(NDFrame):
         2013  7     84
         2014  10    31
 
-        Create a multi-index using a set of values and a column:
+        Create a MultiIndex using a set of values and a column:
 
         >>> df.set_index([[1, 2, 3, 4], 'year'])
                  month  sale
@@ -3976,7 +3988,6 @@ class DataFrame(NDFrame):
         3  2013  7      84
         4  2014  10     31
         """
-        inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(keys, list):
             keys = [keys]
 
@@ -3999,65 +4010,10 @@ class DataFrame(NDFrame):
         if missing:
             raise KeyError('{}'.format(missing))
 
-        if inplace:
-            frame = self
-        else:
-            frame = self.copy()
-
-        arrays = []
-        names = []
-        if append:
-            names = [x for x in self.index.names]
-            if isinstance(self.index, ABCMultiIndex):
-                for i in range(self.index.nlevels):
-                    arrays.append(self.index._get_level_values(i))
-            else:
-                arrays.append(self.index)
-
-        to_remove = []
-        for col in keys:
-            if isinstance(col, ABCMultiIndex):
-                for n in range(col.nlevels):
-                    arrays.append(col._get_level_values(n))
-                names.extend(col.names)
-            elif isinstance(col, (ABCIndexClass, ABCSeries)):
-                # if Index then not MultiIndex (treated above)
-                arrays.append(col)
-                names.append(col.name)
-            elif isinstance(col, (list, np.ndarray)):
-                arrays.append(col)
-                names.append(None)
-            elif (is_list_like(col)
-                  and not (isinstance(col, tuple) and col in self)):
-                # all other list-likes (but avoid valid column keys)
-                col = list(col)  # ensure iterator do not get read twice etc.
-                arrays.append(col)
-                names.append(None)
-            # from here, col can only be a column label
-            else:
-                arrays.append(frame[col]._values)
-                names.append(col)
-                if drop:
-                    to_remove.append(col)
-
-        index = ensure_index_from_sequences(arrays, names)
-
-        if verify_integrity and not index.is_unique:
-            duplicates = index[index.duplicated()].unique()
-            raise ValueError('Index has duplicate keys: {dup}'.format(
-                dup=duplicates))
-
-        # use set to handle duplicate column names gracefully in case of drop
-        for c in set(to_remove):
-            del frame[c]
-
-        # clear up memory usage
-        index._cleanup()
-
-        frame.index = index
-
-        if not inplace:
-            return frame
+        vi = verify_integrity
+        return super(DataFrame, self).set_index(keys=keys, drop=drop,
+                                                append=append, inplace=inplace,
+                                                verify_integrity=vi)
 
     def reset_index(self, level=None, drop=False, inplace=False, col_level=0,
                     col_fill=''):

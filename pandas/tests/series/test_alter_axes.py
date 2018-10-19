@@ -14,17 +14,132 @@ import pandas.util.testing as tm
 
 class TestSeriesAlterAxes(object):
 
-    def test_setindex(self, string_series):
-        # wrong type
-        pytest.raises(TypeError, setattr, string_series, 'index', None)
+    def test_set_index_directly(self, string_series):
+        idx = Index(np.arange(len(string_series))[::-1])
 
-        # wrong length
-        pytest.raises(Exception, setattr, string_series, 'index',
-                      np.arange(len(string_series) - 1))
+        string_series.index = idx
+        tm.assert_index_equal(string_series.index, idx)
+        with tm.assert_raises_regex(ValueError, 'Length mismatch'):
+            string_series.index = idx[::2]
 
-        # works
-        string_series.index = np.arange(len(string_series))
-        assert isinstance(string_series.index, Index)
+    # MultiIndex constructor does not work directly on Series -> lambda
+    @pytest.mark.parametrize('box', [Series, Index, np.array,
+                                     lambda x: MultiIndex.from_arrays([x])])
+    @pytest.mark.parametrize('inplace', [True, False])
+    def test_set_index(self, string_series, inplace, box):
+        idx = box(string_series.index[::-1])
+
+        expected = Index(string_series.index[::-1])
+
+        if inplace:
+            result = string_series.copy()
+            result.set_index(idx, inplace=True)
+        else:
+            result = string_series.set_index(idx)
+
+        tm.assert_index_equal(result.index, expected)
+        with tm.assert_raises_regex(ValueError, 'Length mismatch'):
+            string_series.set_index(idx[::2], inplace=inplace)
+
+    def test_set_index_cast(self):
+        # issue casting an index then set_index
+        s = Series([1.1, 2.2, 3.3], index=[2010, 2011, 2012])
+        s2 = s.set_index(s.index.astype(np.int32))
+        tm.assert_series_equal(s, s2)
+
+    # MultiIndex constructor does not work directly on Series -> lambda
+    # also test index name if append=True (name is duplicate here for B)
+    @pytest.mark.parametrize('box', [Series, Index, np.array,
+                                     lambda x: MultiIndex.from_arrays([x])])
+    @pytest.mark.parametrize('index_name', [None, 'B', 'test'])
+    def test_set_index_append(self, string_series, index_name, box):
+        string_series.index.name = index_name
+
+        arrays = box(string_series.index[::-1])
+        # np.array and list "forget" the name of series.index
+        names = [index_name, None if box in [np.array, list] else index_name]
+
+        idx = MultiIndex.from_arrays([string_series.index,
+                                      string_series.index[::-1]],
+                                     names=names)
+        expected = string_series.copy()
+        expected.index = idx
+
+        result = string_series.set_index(arrays, append=True)
+
+        tm.assert_series_equal(result, expected)
+
+    def test_set_index_append_to_multiindex(self, string_series):
+        s = string_series.set_index(string_series.index[::-1], append=True)
+
+        idx = np.random.randn(len(s))
+        expected = string_series.set_index([string_series.index[::-1], idx],
+                                           append=True)
+
+        result = s.set_index(idx, append=True)
+
+        tm.assert_series_equal(result, expected)
+
+    # MultiIndex constructor does not work directly on Series -> lambda
+    # also test index name if append=True (name is duplicate here for A & B)
+    @pytest.mark.parametrize('box', [Series, Index, np.array, list,
+                                     lambda x: MultiIndex.from_arrays([x])])
+    @pytest.mark.parametrize('append, index_name', [(True, None), (True, 'B'),
+                             (True, 'test'), (False, None)])
+    def test_set_index_pass_arrays(self, string_series, append,
+                                   index_name, box):
+        string_series.index.name = index_name
+
+        idx = string_series.index[::-1]
+        idx.name = 'B'
+        arrays = [box(idx), np.random.randn(len(string_series))]
+
+        result = string_series.set_index(arrays, append=append)
+
+        # to test against already-tested behavior, we add sequentially,
+        # hence second append always True
+        expected = string_series.set_index(arrays[0], append=append)
+        expected = expected.set_index(arrays[1], append=True)
+
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('append', [True, False])
+    def test_set_index_pass_multiindex(self, string_series, append):
+        arrays = MultiIndex.from_arrays([string_series.values,
+                                         string_series.index[::-1]],
+                                        names=['A', 'B'])
+
+        result = string_series.set_index(arrays, append=append)
+
+        expected = string_series.set_index([string_series.values,
+                                            string_series.index[::-1]],
+                                           append=append)
+        expected.index.names = [None, 'A', 'B'] if append else ['A', 'B']
+
+        tm.assert_series_equal(result, expected)
+
+    def test_set_index_verify_integrity(self, string_series):
+        idx = np.zeros(len(string_series))
+
+        with tm.assert_raises_regex(ValueError,
+                                    'Index has duplicate keys'):
+            string_series.set_index(idx, verify_integrity=True)
+        # with MultiIndex
+        with tm.assert_raises_regex(ValueError,
+                                    'Index has duplicate keys'):
+            string_series.set_index([idx, idx], verify_integrity=True)
+
+    def test_set_index_raise(self, string_series):
+        msg = 'The parameter "arrays" may only contain a combination.*'
+        # forbidden type, e.g. set
+        with tm.assert_raises_regex(TypeError, msg):
+            string_series.set_index(set(string_series.index),
+                                    verify_integrity=True)
+
+        # wrong type in list with arrays
+        with tm.assert_raises_regex(TypeError, msg):
+            string_series.set_index([string_series.index, 'X'],
+                                    verify_integrity=True)
 
     # Renaming
 

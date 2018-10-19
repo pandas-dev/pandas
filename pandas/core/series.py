@@ -1069,6 +1069,90 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self
     _set_value.__doc__ = set_value.__doc__
 
+    def set_index(self, arrays, append=False, inplace=False,
+                  verify_integrity=False):
+        """
+        Set the Series index (row labels) using one or more columns.
+
+        Parameters
+        ----------
+        arrays : array or list of arrays
+            Either a Series, Index, MultiIndex, list, np.ndarray or a list
+            containing only Series, Index, MultiIndex, list, np.ndarray.
+        append : boolean, default False
+            Whether to append columns to existing index.
+        inplace : boolean, default False
+            Modify the Series in place (do not create a new object).
+        verify_integrity : boolean, default False
+            Check the new index for duplicates. Otherwise defer the check until
+            necessary. Setting to False will improve the performance of this.
+            method.
+
+        Returns
+        -------
+        reindexed : Series if inplace is False, else None
+
+        See Also
+        --------
+        DataFrame.set_index: Corresponding method for DataFrame
+
+        Examples
+        --------
+        >>> s = pd.Series(range(10, 13))
+        >>> s
+        0    10
+        1    11
+        2    12
+        dtype: int64
+
+        Set the index to become `['a', 'b', 'c']`:
+
+        >>> s.set_index(['a', 'b', 'c'])
+        a    10
+        b    11
+        c    12
+        dtype: int64
+
+        Create a MultiIndex by appending to the existing index:
+
+        >>> s.set_index(['a', 'b', 'c'], append=True)
+        0  a    10
+        1  b    11
+        2  c    12
+        dtype: int64
+
+        Create a MultiIndex by passing a list of arrays:
+
+        >>> t = (s ** 2).set_index([['a', 'b', 'c'], ['I', 'II', 'III']])
+        >>> t
+        a  I      100
+        b  II     121
+        c  III    144
+        dtype: int64
+
+        Apply index from another object (of the same length!):
+
+        >>> s.set_index(t.index)
+        a  I      10
+        b  II     11
+        c  III    12
+        dtype: int64
+        """
+        if not isinstance(arrays, list):
+            arrays = [arrays]
+        elif all(is_scalar(x) for x in arrays):
+            arrays = [arrays]
+
+        if any(not is_list_like(x, allow_sets=False)
+               or getattr(x, 'ndim', 1) > 1 for x in arrays):
+            raise TypeError('The parameter "arrays" may only contain a '
+                            'combination of valid column keys and '
+                            'one-dimensional list-likes')
+
+        return super(Series, self).set_index(keys=arrays, drop=False,
+                                             append=append, inplace=inplace,
+                                             verify_integrity=verify_integrity)
+
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
         Generate a new DataFrame or Series with the index reset.

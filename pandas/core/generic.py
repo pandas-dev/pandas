@@ -34,11 +34,13 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
+from pandas.core.dtypes.generic import (ABCIndexClass, ABCMultiIndex, ABCPanel,
+                                        ABCSeries, ABCDataFrame)
 
 from pandas.core.base import PandasObject, SelectionMixin
-from pandas.core.index import (Index, MultiIndex, ensure_index,
-                               InvalidIndexError, RangeIndex)
+from pandas.core.index import (Index, MultiIndex,
+                               InvalidIndexError, RangeIndex,
+                               ensure_index, ensure_index_from_sequences)
 import pandas.core.indexing as indexing
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex, Period
@@ -647,6 +649,142 @@ class NDFrame(PandasObject, SelectionMixin):
     def _set_axis(self, axis, labels):
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
+
+    def set_index(self, keys, drop=True, append=False, inplace=False,
+                  verify_integrity=False):
+        """
+        Set the index (row labels) using one or more given arrays (or labels).
+
+        Parameters
+        ----------
+        keys : column label or list of column labels / arrays
+            Either a Series, Index, MultiIndex, list, np.ndarray or a list
+            containing only Series, Index, MultiIndex, list, np.ndarray.
+
+            For DataFrame, additionally column labels may be used.
+        drop : boolean, default True
+            Delete columns to be used as the new index (only for DataFrame).
+        append : boolean, default False
+            Whether to append columns to existing index.
+        inplace : boolean, default False
+            Modify the Series/DataFrame in place (do not create a new object).
+        verify_integrity : boolean, default False
+            Check the new index for duplicates. Otherwise defer the check until
+            necessary. Setting to False will improve the performance of this
+            method.
+
+        Returns
+        -------
+        reindexed : Series/DataFrame if inplace is False, else None
+
+        See Also
+        --------
+        DataFrame.set_index: method adapted for DataFrame
+        Series.set_index: method adapted for Series
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
+        ...                    'year': [2012, 2014, 2013, 2014],
+        ...                    'sale': [55, 40, 84, 31]})
+        >>> df
+           month  year  sale
+        0      1  2012    55
+        1      4  2014    40
+        2      7  2013    84
+        3     10  2014    31
+
+        Set the index to become the 'month' column:
+
+        >>> df.set_index('month')
+               year  sale
+        month
+        1      2012    55
+        4      2014    40
+        7      2013    84
+        10     2014    31
+
+        Create a MultiIndex using columns 'year' and 'month':
+
+        >>> df.set_index(['year', 'month'])
+                    sale
+        year  month
+        2012  1     55
+        2014  4     40
+        2013  7     84
+        2014  10    31
+
+        Create a MultiIndex using a set of values and a column:
+
+        >>> df.set_index([[1, 2, 3, 4], 'year'])
+                 month  sale
+           year
+        1  2012  1      55
+        2  2014  4      40
+        3  2013  7      84
+        4  2014  10     31
+        """
+        # parameter keys is checked in Series.set_index / DataFrame.set_index!
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+        if inplace:
+            obj = self
+        else:
+            obj = self.copy()
+
+        arrays = []
+        names = []
+        if append:
+            names = [x for x in self.index.names]
+            if isinstance(self.index, ABCMultiIndex):
+                for i in range(self.index.nlevels):
+                    arrays.append(self.index._get_level_values(i))
+            else:
+                arrays.append(self.index)
+
+        to_remove = []
+        for col in keys:
+            if isinstance(col, ABCMultiIndex):
+                for n in range(col.nlevels):
+                    arrays.append(col._get_level_values(n))
+                names.extend(col.names)
+            elif isinstance(col, (ABCIndexClass, ABCSeries)):
+                # if Index then not MultiIndex (treated above)
+                arrays.append(col)
+                names.append(col.name)
+            elif isinstance(col, (list, np.ndarray)):
+                arrays.append(col)
+                names.append(None)
+            elif (is_list_like(col)
+                  and not (isinstance(col, tuple) and col in self)):
+                # all other list-likes (but avoid valid column keys)
+                col = list(col)  # ensure iterator do not get read twice etc.
+                arrays.append(col)
+                names.append(None)
+            # from here, col can only be a column label
+            else:
+                arrays.append(obj[col]._values)
+                names.append(col)
+                if drop:
+                    to_remove.append(col)
+
+        index = ensure_index_from_sequences(arrays, names)
+
+        if verify_integrity and not index.is_unique:
+            duplicates = list(index[index.duplicated()])
+            raise ValueError('Index has duplicate keys: {dup}'.format(
+                dup=duplicates))
+
+        # use set to handle duplicate column names gracefully in case of drop
+        for c in set(to_remove):
+            del obj[c]
+
+        # clear up memory usage
+        index._cleanup()
+
+        obj.index = index
+
+        if not inplace:
+            return obj
 
     def transpose(self, *args, **kwargs):
         """

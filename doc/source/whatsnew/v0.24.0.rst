@@ -272,6 +272,7 @@ Other Enhancements
 - :meth:`DataFrame.to_sql` now supports writing ``TIMESTAMP WITH TIME ZONE`` types for supported databases. For databases that don't support timezones, datetime data will be stored as timezone unaware local timestamps. See the :ref:`io.sql_datetime_data` for implications (:issue:`9086`).
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
+- :class:`Series` has gained the method :meth:`Series.set_index`, which works like its :class:`DataFrame` counterpart :meth:`DataFrame.set_index` (:issue:`21684`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
 - :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support an ``ambiguous`` argument for handling datetimes that are rounded to ambiguous times (:issue:`18946`)
 - :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support a ``nonexistent`` argument for handling datetimes that are rounded to nonexistent times. See :ref:`timeseries.timezone_nonexistent` (:issue:`22647`)
