@@ -107,6 +107,18 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         with pytest.raises(AttributeError):
             getattr(data, op_name)
 
+    def test_direct_arith_with_series_returns_not_implemented(self, data):
+        # EAs should return NotImplemented for ops with Series.
+        # Pandas takes care of unboxing the series and calling the EA's op.
+        other = pd.Series(data)
+        if hasattr(data, '__add__'):
+            result = data.__add__(other)
+            assert result is NotImplemented
+        else:
+            raise pytest.skip(
+                "{} does not implement add".format(data.__class__.__name__)
+            )
+
 
 class BaseComparisonOpsTests(BaseOpsUtil):
     """Various Series and DataFrame comparison ops methods."""
@@ -140,3 +152,15 @@ class BaseComparisonOpsTests(BaseOpsUtil):
         s = pd.Series(data)
         other = pd.Series([data[0]] * len(data))
         self._compare_other(s, data, op_name, other)
+
+    def test_direct_arith_with_series_returns_not_implemented(self, data):
+        # EAs should return NotImplemented for ops with Series.
+        # Pandas takes care of unboxing the series and calling the EA's op.
+        other = pd.Series(data)
+        if hasattr(data, '__eq__'):
+            result = data.__eq__(other)
+            assert result is NotImplemented
+        else:
+            raise pytest.skip(
+                "{} does not implement __eq__".format(data.__class__.__name__)
+            )

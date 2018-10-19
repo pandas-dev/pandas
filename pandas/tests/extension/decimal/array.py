@@ -47,6 +47,7 @@ class DecimalDtype(ExtensionDtype):
 
 
 class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
+    __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False, context=None):
         for val in values:
