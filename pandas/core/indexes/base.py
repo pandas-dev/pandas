@@ -317,23 +317,14 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return result
 
-        elif is_extension_array_dtype(data):
+        elif (is_extension_array_dtype(data)
+                or is_extension_array_dtype(dtype)):
+            if dtype is not None and is_object_dtype(dtype):
+                data = np.asarray(data)
+                return Index(data, dtype=object, copy=copy, name=name,
+                             **kwargs)
             from pandas.core.indexes.extension import ExtensionIndex
-            return ExtensionIndex(data, name=name)
-
-        # extension dtype
-        elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
-            data = np.asarray(data)
-            if not (dtype is None or is_object_dtype(dtype)):
-
-                # coerce to the provided dtype
-                data = dtype.construct_array_type()._from_sequence(
-                    data, dtype=dtype, copy=False)
-
-            # coerce to the object dtype
-            data = data.astype(object)
-            return Index(data, dtype=object, copy=copy, name=name,
-                         **kwargs)
+            return ExtensionIndex(data, dtype=dtype, name=name)
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):

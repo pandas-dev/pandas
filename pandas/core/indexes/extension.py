@@ -9,9 +9,15 @@ from pandas.compat.numpy import function as nv
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.common import (
+    pandas_dtype,
     ensure_platform_int,
-    is_integer_dtype, is_float_dtype)
-
+    is_dtype_equal,
+    is_integer_dtype,
+    is_float_dtype,
+    is_extension_array_dtype)
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCIndex
+)
 from pandas.util._decorators import (
     Appender, cache_readonly)
 
@@ -55,18 +61,32 @@ class ExtensionIndex(Index):
     def __new__(cls, *args, **kwargs):
         return object.__new__(cls)
 
-    def __init__(self, array, name=None, copy=False, **kwargs):
+    def __init__(self, data, dtype=None, name=None, copy=False, **kwargs):
         # needs to accept and ignore kwargs eg for freq passed in
         # Index._shallow_copy_with_infer
 
-        if isinstance(array, ExtensionIndex):
-            array = array._data
+        # unbox containers that can contain ExtensionArray
+        if isinstance(data, (ABCSeries, ABCIndex)):
+            data = data._values
 
-        if not isinstance(array, ExtensionArray):
-            raise TypeError()
+        # check dtype and coerce data to dtype if needed
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+            if not is_extension_array_dtype(dtype):
+                raise ValueError(
+                    "The passed dtype should be an ExtensionDtype")
+            if not is_dtype_equal(getattr(data, 'dtype', None), dtype):
+                data = dtype.construct_array_type()._from_sequence(
+                    data, dtype=dtype, copy=False)
+
+        if not isinstance(data, ExtensionArray):
+            raise ValueError("passed data should be an ExtensionArray, or the "
+                             "passed dtype should be an ExtensionDtype")
+
         if copy:
-            array = array.copy()
-        self._data = array
+            data = data.copy()
+
+        self._data = data
         self.name = name
 
     def __len__(self):
