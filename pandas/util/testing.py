@@ -934,7 +934,6 @@ def assert_attr_equal(attr, left, right, obj='Attributes'):
         Specify object name being compared, internally used to show appropriate
         assertion message
     """
-    __tracebackhide__ = True
 
     left_attr = getattr(left, attr)
     right_attr = getattr(right, attr)
