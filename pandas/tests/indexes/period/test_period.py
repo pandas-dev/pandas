@@ -8,7 +8,6 @@ from pandas.util import testing as tm
 from pandas import (PeriodIndex, period_range, DatetimeIndex, NaT,
                     Index, Period, Series, DataFrame, date_range,
                     offsets)
-from pandas.core.arrays import PeriodArray
 
 from ..datetimelike import DatetimeLike
 
@@ -138,21 +137,20 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.view('i8'), exp)
         tm.assert_numpy_array_equal(idx.asi8, exp)
 
-    @pytest.mark.xfail(reason="XXX: Determine the desired behavior here.")
     def test_values(self):
         idx = pd.PeriodIndex([], freq='M')
-        exp = PeriodArray([], freq='M')
-        tm.assert_period_array_equal(idx.values, exp)
-        tm.assert_numpy_array_equal(idx.get_values(), exp.values)
 
+        exp = np.array([], dtype=np.object)
+        tm.assert_numpy_array_equal(idx.values, exp)
+        tm.assert_numpy_array_equal(idx.get_values(), exp)
         exp = np.array([], dtype=np.int64)
         tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 
         idx = pd.PeriodIndex(['2011-01', pd.NaT], freq='M')
 
-        exp = PeriodArray([pd.Period('2011-01', freq='M'), pd.NaT])
-        tm.assert_period_array_equal(idx.values, exp)
-        tm.assert_numpy_array_equal(idx.get_values(), exp.values)
+        exp = np.array([pd.Period('2011-01', freq='M'), pd.NaT], dtype=object)
+        tm.assert_numpy_array_equal(idx.values, exp)
+        tm.assert_numpy_array_equal(idx.get_values(), exp)
         exp = np.array([492, -9223372036854775808], dtype=np.int64)
         tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 
