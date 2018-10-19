@@ -311,10 +311,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             self.dtype
         )
 
-    def __len__(self):
-        return len(self._data)
-
-    def __setitem__(self, key, value):
+    def __setitem__(
+            self,
+            key,   # type: Union[int, Sequence[int], Sequence[bool]]
+            value  # type: Union[NaTType, Period, Sequence[Period]]
+        ):
+        # type: (...) -> None
         if is_list_like(value):
             if len(key) != len(value) and not com.is_bool_indexer(key):
                 msg = ("shape mismatch: value array of length '{}' does not "
