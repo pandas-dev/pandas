@@ -241,7 +241,19 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
 
     # specially handle Categorical
     if is_categorical_dtype(items):
-        return items.argsort(ascending=ascending, kind=kind)
+        if na_position not in {'first', 'last'}:
+            raise ValueError('invalid na_position: {!r}'.format(na_position))
+
+        mask = isna(items)
+        cnt_null = mask.sum()
+        sorted_idx = items.argsort(ascending=ascending, kind=kind)
+        if ascending and na_position == 'last':
+            # NaN is coded as -1 and is listed in front after sorting
+            sorted_idx = np.roll(sorted_idx, -cnt_null)
+        elif not ascending and na_position == 'first':
+            # NaN is coded as -1 and is listed in the end after sorting
+            sorted_idx = np.roll(sorted_idx, cnt_null)
+        return sorted_idx
 
     items = np.asanyarray(items)
     idx = np.arange(len(items))
