@@ -109,7 +109,6 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
             s, op, other, exc=TypeError
         )
 
-    @pytest.mark.xfail(reason="GH-23155", strict=True)
     def test_add_series_with_extension_array(self, data):
         # we don't implement + for Period
         s = pd.Series(data)
@@ -132,6 +131,15 @@ class TestComparisonOps(BasePeriodTests, base.BaseComparisonOpsTests):
         # the base test is not appropriate for us. We raise on comparison
         # with (some) integers, depending on the value.
         pass
+
+    @pytest.mark.xfail(reason="DatetimeArray", strict=True)
+    def test_direct_arith_with_series_returns_not_implemented(self, data):
+        # Investigate returning NotImplemented here once all Datetimelike
+        # are EAs
+        return (
+            super(TestComparisonOps, self)
+            .test_direct_arith_with_series_returns_not_implemented(data)
+        )
 
 
 class TestMissing(BasePeriodTests, base.BaseMissingTests):

@@ -307,7 +307,6 @@ class TestPeriodSeriesComparisons(object):
 
 class TestPeriodFrameArithmetic(object):
 
-    @pytest.mark.xfail(reason="GH-22922")
     def test_ops_frame_period(self):
         # GH#13043
         df = pd.DataFrame({'A': [pd.Period('2015-01', freq='M'),
@@ -389,7 +388,6 @@ class TestPeriodIndexArithmetic(object):
         expected = pd.Index([pd.NaT, 0 * off, 0 * off, 0 * off, 0 * off])
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.xfail(reason="GH-23155", strict=False)
     def test_parr_sub_pi_mismatched_freq(self, box_df_broadcast_failure):
         box = box_df_broadcast_failure
 
@@ -816,7 +814,6 @@ class TestPeriodSeriesArithmetic(object):
         result = pd.tseries.offsets.Day() + ser
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(reason="GH-23155", strict=True)
     def test_ops_series_period(self):
         # GH 13043
         ser = pd.Series([pd.Period('2015-01-01', freq='D'),
