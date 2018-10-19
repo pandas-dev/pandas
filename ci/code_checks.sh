@@ -122,22 +122,22 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
-    pytest --doctest-modules -v pandas/core/frame.py \
+    pytest -q --doctest-modules pandas/core/frame.py \
         -k"-axes -combine -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_stata"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
-    pytest --doctest-modules -v pandas/core/series.py \
+    pytest -q --doctest-modules pandas/core/series.py \
         -k"-nonzero -reindex -searchsorted -to_dict"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests generic.py' ; echo $MSG
-    pytest --doctest-modules -v pandas/core/generic.py \
+    pytest -q --doctest-modules pandas/core/generic.py \
         -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -to_json -transpose -values -xs"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests top-level reshaping functions' ; echo $MSG
-    pytest --doctest-modules -v \
+    pytest -q --doctest-modules \
         pandas/core/reshape/concat.py \
         pandas/core/reshape/pivot.py \
         pandas/core/reshape/reshape.py \
