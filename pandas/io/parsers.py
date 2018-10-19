@@ -348,9 +348,9 @@ colspecs : list of pairs (int, int) or 'infer', default 'infer'
     String value 'infer' can be used to instruct the parser to try
     detecting the column specifications using the ``infer_nrows``
     number of rows of the data which are not being skipped via skiprows.
-infer_nrows : int or 'all', default 100
+infer_nrows : int, default 100
     The number of rows to consider when letting the parser determine the
-    ``colspecs``. If 'all', then all the rows will be used.
+    ``colspecs``.
 widths : list of ints, optional
     A list of field widths which can be used instead of ``colspecs`` if
     the intervals are contiguous.
