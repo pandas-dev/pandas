@@ -118,9 +118,6 @@ def test_astype_period():
     tm.assert_period_array_equal(result, expected)
 
 
-def test_astype_bool():
-    arr = period_array([])
-
 @pytest.mark.parametrize('other', [
     'datetime64[ns]', 'timedelta64[ns]',
 ])
