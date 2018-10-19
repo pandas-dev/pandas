@@ -394,8 +394,7 @@ class Index(IndexOpsMixin, PandasObject):
             # maybe coerce to a sub-class
             from pandas.core.indexes.period import (
                 PeriodIndex, IncompatibleFrequency)
-            if isinstance(data, PeriodIndex):
-                return PeriodIndex(data, copy=copy, name=name, **kwargs)
+
             if is_signed_integer_dtype(data.dtype):
                 from .numeric import Int64Index
                 return Int64Index(data, copy=copy, dtype=dtype, name=name)

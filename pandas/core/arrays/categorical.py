@@ -343,7 +343,6 @@ class Categorical(ExtensionArray, PandasObject):
         #    a.) use categories, ordered
         #    b.) use values.dtype
         #    c.) infer from values
-
         if dtype is not None:
             # The dtype argument takes precedence over values.dtype (if any)
             if isinstance(dtype, compat.string_types):
@@ -2426,7 +2425,12 @@ def _get_codes_for_values(values, categories):
     from pandas.core.algorithms import _get_data_algo, _hashtables
     dtype_equal = is_dtype_equal(values.dtype, categories.dtype)
 
-    if is_extension_array_dtype(categories.dtype) and is_object_dtype(values):
+    if dtype_equal:
+        # To prevent erroneous dtype coercion in _get_data_algo, retrieve
+        # the underlying numpy array. gh-22702
+        values = getattr(values, '_ndarray_values', values)
+        categories = getattr(categories, '_ndarray_values', categories)
+    elif is_extension_array_dtype(categories.dtype) and is_object_dtype(values):
         # Support inferring the correct extension dtype from an array of
         # scalar objects. e.g.
         # Categorical(array[Period, Period], categories=PeriodIndex(...))
@@ -2438,12 +2442,6 @@ def _get_codes_for_values(values, categories):
             # but that may fail for any reason, so fall back to object
             values = ensure_object(values)
             categories = ensure_object(categories)
-
-    elif dtype_equal:
-        # To prevent erroneous dtype coercion in _get_data_algo, retrieve
-        # the underlying numpy array. gh-22702
-        values = getattr(values, '_ndarray_values', values)
-        categories = getattr(categories, '_ndarray_values', categories)
     else:
         values = ensure_object(values)
         categories = ensure_object(categories)
