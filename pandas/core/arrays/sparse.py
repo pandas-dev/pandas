@@ -1459,7 +1459,23 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             'power': 'pow',
             'remainder': 'mod',
             'divide': 'div',
+            'equal': 'eq',
+            'not_equal': 'ne',
+            'less': 'lt',
+            'less_equal': 'le',
+            'greater': 'gt',
+            'greater_equal': 'ge',
         }
+
+        flipped = {
+            'lt': '__gt__',
+            'le': '__ge__',
+            'gt': '__lt__',
+            'ge': '__le__',
+            'eq': '__eq__',
+            'ne': '__ne__',
+        }
+
         op_name = ufunc.__name__
         op_name = aliases.get(op_name, op_name)
 
@@ -1467,7 +1483,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             if isinstance(inputs[0], type(self)):
                 return getattr(self, '__{}__'.format(op_name))(inputs[1])
             else:
-                return getattr(self, '__r{}__'.format(op_name))(inputs[0])
+                name = flipped.get(op_name, '__r{}__'.format(op_name))
+                return getattr(self, name)(inputs[0])
 
         if len(inputs) == 1:
             # No alignment necessary.
@@ -1516,7 +1533,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             op_name = op.__name__
 
             if isinstance(other, (ABCSeries, ABCIndexClass)):
-                other = getattr(other, 'values', other)
+                # Rely on pandas to dispatch to us.
+                return NotImplemented
 
             if isinstance(other, SparseArray):
                 return _sparse_array_op(self, other, op, op_name)
@@ -1561,10 +1579,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 op_name = op_name[:-1]
 
             if isinstance(other, (ABCSeries, ABCIndexClass)):
-                other = getattr(other, 'values', other)
+                # Rely on pandas to unbox and dispatch to us.
+                return NotImplemented
 
             if not is_scalar(other) and not isinstance(other, type(self)):
-                # convert list-like to ndarary
+                # convert list-like to ndarray
                 other = np.asarray(other)
 
             if isinstance(other, np.ndarray):
