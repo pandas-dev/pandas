@@ -124,7 +124,7 @@ The following modules in pandas are considered PRIVATE:
 
 ::
 
-  * pandas.compat
+  * pandas.compat and all sub-modules
   
   * pandas.util
       -decorators
@@ -133,12 +133,7 @@ The following modules in pandas are considered PRIVATE:
       -validators
       -depr_module
       
-  * pandas.core
-      -computation
-      -indexes
-      -sparse
-      -reshape
-      -dtypes
+  * pandas.core and all sub-modules
   	      
 
 License
