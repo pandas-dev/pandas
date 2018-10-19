@@ -53,9 +53,23 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
         return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
 
 
+def _get_distinct_objs(objs):
+    """
+    Return a list with distinct elements of "objs" (different ids).
+    Preserves order.
+    """
+    ids = set()
+    res = []
+    for obj in objs:
+        if not id(obj) in ids:
+            ids.add(id(obj))
+            res.append(obj)
+    return res
+
+
 def _get_combined_index(indexes, intersect=False, sort=False):
     # TODO: handle index names!
-    indexes = com.get_distinct_objs(indexes)
+    indexes = _get_distinct_objs(indexes)
     if len(indexes) == 0:
         index = Index([])
     elif len(indexes) == 1:
