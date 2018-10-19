@@ -16,7 +16,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_extension_array_dtype)
 from pandas.core.dtypes.generic import (
-    ABCSeries, ABCIndex
+    ABCSeries, ABCIndexClass
 )
 from pandas.util._decorators import (
     Appender, cache_readonly)
@@ -65,8 +65,11 @@ class ExtensionIndex(Index):
         # needs to accept and ignore kwargs eg for freq passed in
         # Index._shallow_copy_with_infer
 
+        if name is None and hasattr(data, 'name'):
+            name = data.name
+
         # unbox containers that can contain ExtensionArray
-        if isinstance(data, (ABCSeries, ABCIndex)):
+        if isinstance(data, (ABCSeries, ABCIndexClass)):
             data = data._values
 
         # check dtype and coerce data to dtype if needed

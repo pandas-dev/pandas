@@ -13,6 +13,7 @@ from pandas.util.testing import (
 
 from pandas.core.arrays import integer_array
 from pandas.core.indexes.extension import ExtensionIndex
+from pandas.tests.extension.decimal import to_decimal, make_data
 
 
 @pytest.fixture
@@ -66,16 +67,20 @@ def test_default_index_constructor(data):
     assert_index_equal(result, expected)
 
 
-# class TestExtensionIndex(Base):
-#     _holder = ExtensionIndex
+class TestExtensionIndex(Base):
+    _holder = ExtensionIndex
+    _compat_props = ['shape', 'ndim', 'nbytes']  # 'size' is not in EA
 
-#     def setup_method(self, method):
-#         self.indices = dict(
-#             extIndex=ExtensionIndex(np.arange(100), dtype='Int64'))
-#         self.setup_indices()
+    def setup_method(self, method):
+        self.indices = dict(
+            intIndex=ExtensionIndex(np.arange(100), dtype='Int64'),
+            decInd=ExtensionIndex(to_decimal(make_data())))
+        self.setup_indices()
 
-#     # def create_index(self):
-#     #     if categories is None:
-#     #         categories = list('cab')
-#     #     return CategoricalIndex(
-#     #         list('aabbca'), categories=categories, ordered=ordered)
+    def create_index(self):
+        return ExtensionIndex(integer_array([0, 1, 2, 3]))
+
+    def test_logical_compat(self):
+        idx = self.create_index()
+        assert idx.all() == np.array(idx).all()
+        assert idx.any() == np.array(idx).any()
