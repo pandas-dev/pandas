@@ -245,6 +245,15 @@ Top-level evaluation
 
    eval
 
+Hashing
+~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   util.hash_array
+   util.hash_pandas_object
+
 Testing
 ~~~~~~~
 
@@ -905,7 +914,6 @@ Indexing, iteration
    DataFrame.iat
    DataFrame.loc
    DataFrame.iloc
-   DataFrame.insert
    DataFrame.insert
    DataFrame.__iter__
    DataFrame.items
