@@ -6,6 +6,7 @@ import pandas.util.testing as tm
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas.core.arrays import PeriodArray, period_array
+from pandas.core.dtypes.common import pandas_dtype
 
 
 @pytest.mark.parametrize('key, value, expected', [
@@ -87,3 +88,14 @@ def test_take_raises():
     with tm.assert_raises_regex(IncompatibleFrequency, 'freq'):
         arr.take([0, -1], allow_fill=True,
                  fill_value=pd.Period('2000', freq='W'))
+
+
+@pytest.mark.parametrize('dtype', [int, np.int32, np.int64])
+def test_astype(dtype):
+    # Need to ensure ordinals are astyped correctly for both
+    # int32 and 64
+    arr = period_array(['2000', '2001', None], freq='D')
+    result = arr.astype(dtype)
+    # need pandas_dtype to handle int32 vs. int64 correctly
+    expected = pandas_dtype(dtype)
+    assert result.dtype == expected

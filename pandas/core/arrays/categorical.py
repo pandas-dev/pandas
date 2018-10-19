@@ -2430,7 +2430,8 @@ def _get_codes_for_values(values, categories):
         # the underlying numpy array. gh-22702
         values = getattr(values, '_ndarray_values', values)
         categories = getattr(categories, '_ndarray_values', categories)
-    elif is_extension_array_dtype(categories.dtype) and is_object_dtype(values):
+    elif (is_extension_array_dtype(categories.dtype) and
+          is_object_dtype(values)):
         # Support inferring the correct extension dtype from an array of
         # scalar objects. e.g.
         # Categorical(array[Period, Period], categories=PeriodIndex(...))

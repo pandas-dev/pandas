@@ -828,8 +828,14 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             return self._format_native_types()
         elif is_integer_dtype(dtype):
             values = self._ndarray_values
-            if copy:
+
+            if values.dtype != dtype:
+                # int32 vs. int64
+                values = values.astype(dtype)
+
+            elif copy:
                 values = values.copy()
+
             return values
         elif (is_datetime_or_timedelta_dtype(dtype) and
               not is_dtype_equal(self.dtype, dtype)) or is_float_dtype(dtype):
