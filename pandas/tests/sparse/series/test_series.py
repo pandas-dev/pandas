@@ -192,15 +192,6 @@ class TestSparseSeries(SharedWithSparse):
         series = self.bseries.to_dense()
         tm.assert_series_equal(series, Series(arr, name='bseries'))
 
-        # see gh-14647
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            series = self.bseries.to_dense(sparse_only=True)
-
-        indexer = np.isfinite(arr)
-        exp = Series(arr[indexer], index=index[indexer], name='bseries')
-        tm.assert_series_equal(series, exp)
-
         series = self.iseries.to_dense()
         tm.assert_series_equal(series, Series(arr, name='iseries'))
 

@@ -73,6 +73,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
     is_named_tuple)
 from pandas.core.dtypes.concat import _get_sliced_frame_result_type
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCMultiIndex
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms
@@ -3157,6 +3158,14 @@ class DataFrame(NDFrame):
         4   True  1.0
         5  False  2.0
         """
+        def _get_info_slice(obj, indexer):
+            """Slice the info axis of `obj` with `indexer`."""
+            if not hasattr(obj, '_info_axis_number'):
+                msg = 'object of type {typ!r} has no info axis'
+                raise TypeError(msg.format(typ=type(obj).__name__))
+            slices = [slice(None)] * obj.ndim
+            slices[obj._info_axis_number] = indexer
+            return tuple(slices)
 
         if not is_list_like(include):
             include = (include,) if include is not None else ()
@@ -3205,7 +3214,7 @@ class DataFrame(NDFrame):
                 exclude_these.iloc[idx] = not any(map(f, exclude))
 
         dtype_indexer = include_these & exclude_these
-        return self.loc[com.get_info_slice(self, dtype_indexer)]
+        return self.loc[_get_info_slice(self, dtype_indexer)]
 
     def _box_item_values(self, key, values):
         items = self.columns[self.columns.get_loc(key)]
@@ -3980,6 +3989,25 @@ class DataFrame(NDFrame):
         if not isinstance(keys, list):
             keys = [keys]
 
+        missing = []
+        for col in keys:
+            if (is_scalar(col) or isinstance(col, tuple)) and col in self:
+                # tuples can be both column keys or list-likes
+                # if they are valid column keys, everything is fine
+                continue
+            elif is_scalar(col) and col not in self:
+                # tuples that are not column keys are considered list-like,
+                # not considered missing
+                missing.append(col)
+            elif (not is_list_like(col, allow_sets=False)
+                  or getattr(col, 'ndim', 1) > 1):
+                raise TypeError('The parameter "keys" may only contain a '
+                                'combination of valid column keys and '
+                                'one-dimensional list-likes')
+
+        if missing:
+            raise KeyError('{}'.format(missing))
+
         if inplace:
             frame = self
         else:
@@ -3989,7 +4017,7 @@ class DataFrame(NDFrame):
         names = []
         if append:
             names = [x for x in self.index.names]
-            if isinstance(self.index, MultiIndex):
+            if isinstance(self.index, ABCMultiIndex):
                 for i in range(self.index.nlevels):
                     arrays.append(self.index._get_level_values(i))
             else:
@@ -3997,29 +4025,29 @@ class DataFrame(NDFrame):
 
         to_remove = []
         for col in keys:
-            if isinstance(col, MultiIndex):
-                # append all but the last column so we don't have to modify
-                # the end of this loop
-                for n in range(col.nlevels - 1):
+            if isinstance(col, ABCMultiIndex):
+                for n in range(col.nlevels):
                     arrays.append(col._get_level_values(n))
-
-                level = col._get_level_values(col.nlevels - 1)
                 names.extend(col.names)
-            elif isinstance(col, Series):
-                level = col._values
+            elif isinstance(col, (ABCIndexClass, ABCSeries)):
+                # if Index then not MultiIndex (treated above)
+                arrays.append(col)
                 names.append(col.name)
-            elif isinstance(col, Index):
-                level = col
-                names.append(col.name)
-            elif isinstance(col, (list, np.ndarray, Index)):
-                level = col
+            elif isinstance(col, (list, np.ndarray)):
+                arrays.append(col)
                 names.append(None)
+            elif (is_list_like(col)
+                  and not (isinstance(col, tuple) and col in self)):
+                # all other list-likes (but avoid valid column keys)
+                col = list(col)  # ensure iterator do not get read twice etc.
+                arrays.append(col)
+                names.append(None)
+            # from here, col can only be a column label
             else:
-                level = frame[col]._values
+                arrays.append(frame[col]._values)
                 names.append(col)
                 if drop:
                     to_remove.append(col)
-            arrays.append(level)
 
         index = ensure_index_from_sequences(arrays, names)
 
@@ -4028,7 +4056,8 @@ class DataFrame(NDFrame):
             raise ValueError('Index has duplicate keys: {dup}'.format(
                 dup=duplicates))
 
-        for c in to_remove:
+        # use set to handle duplicate column names gracefully in case of drop
+        for c in set(to_remove):
             del frame[c]
 
         # clear up memory usage

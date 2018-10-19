@@ -76,7 +76,6 @@ _pxi_dep_template = {
               '_libs/algos_take_helper.pxi.in',
               '_libs/algos_rank_helper.pxi.in'],
     'groupby': ['_libs/groupby_helper.pxi.in'],
-    'join': ['_libs/join_helper.pxi.in', '_libs/join_func_helper.pxi.in'],
     'hashtable': ['_libs/hashtable_class_helper.pxi.in',
                   '_libs/hashtable_func_helper.pxi.in'],
     'index': ['_libs/index_class_helper.pxi.in'],
@@ -531,8 +530,7 @@ ext_data = {
         'pyxfile': '_libs/interval',
         'depends': _pxi_dep['interval']},
     '_libs.join': {
-        'pyxfile': '_libs/join',
-        'depends': _pxi_dep['join']},
+        'pyxfile': '_libs/join'},
     '_libs.lib': {
         'pyxfile': '_libs/lib',
         'include': common_include + ts_include,
