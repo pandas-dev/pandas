@@ -1267,6 +1267,7 @@ class TestToHTML(object):
 </table>'''
         assert result == expected
 
+    @pytest.mark.xfail(reason='GH22887 TypeError', strict=True)
     def test_to_html_truncate_multi_index_sparse_off(self):
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
