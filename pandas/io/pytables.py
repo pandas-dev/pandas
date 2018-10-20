@@ -688,7 +688,7 @@ class HDFStore(StringMixin):
         return self._read_group(group)
 
     def select(self, key, where=None, start=None, stop=None, columns=None,
-               iterator=False, chunksize=None, auto_close=False, **kwargs):
+               iterator=False, chunksize=None, auto_close=False):
         """
         Retrieve pandas object stored in file, optionally based on where
         criteria
@@ -706,9 +706,6 @@ class HDFStore(StringMixin):
         auto_close : boolean, should automatically close the store when
             finished, default is False
 
-        kwargs
-            Additional keyword arguments passed to Storer
-
         Returns
         -------
         The selected object
@@ -720,7 +717,7 @@ class HDFStore(StringMixin):
 
         # create the storer and axes
         where = _ensure_term(where, scope_level=1)
-        s = self._create_storer(group, **kwargs)
+        s = self._create_storer(group)
         s.infer_axes()
 
         # function to call on iteration
