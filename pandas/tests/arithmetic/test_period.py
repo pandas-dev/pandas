@@ -640,7 +640,7 @@ class TestPeriodIndexArithmetic(object):
         rng -= other
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_iadd_timedeltalike_freq_mismatch_daily(self, not_daily):
+    def test_pi_add_sub_timedeltalike_freq_mismatch_daily(self, not_daily):
         other = not_daily
         rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
         msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=D\\)'
@@ -648,13 +648,10 @@ class TestPeriodIndexArithmetic(object):
             rng + other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng += other
-
-    def test_pi_sub_timedeltalike_freq_mismatch_daily(self, not_daily):
-        other = not_daily
-        rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
-        msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=D\\)'
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng - other
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+            rng -= other
 
     def test_pi_add_iadd_timedeltalike_hourly(self, two_hours):
         other = two_hours
@@ -701,8 +698,8 @@ class TestPeriodIndexArithmetic(object):
         rng += pd.offsets.YearEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_iadd_timedeltalike_freq_mismatch_annual(self,
-                                                            mismatched_freq):
+    def test_pi_add_sub_timedeltalike_freq_mismatch_annual(self,
+                                                           mismatched_freq):
         other = mismatched_freq
         rng = pd.period_range('2014', '2024', freq='A')
         msg = ('Input has different freq(=.+)? '
@@ -711,13 +708,6 @@ class TestPeriodIndexArithmetic(object):
             rng + other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng += other
-
-    def test_pi_sub_isub_timedeltalike_freq_mismatch_annual(self,
-                                                            mismatched_freq):
-        other = mismatched_freq
-        rng = pd.period_range('2014', '2024', freq='A')
-        msg = ('Input has different freq(=.+)? '
-               'from PeriodIndex\\(freq=A-DEC\\)')
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng - other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
@@ -733,8 +723,8 @@ class TestPeriodIndexArithmetic(object):
         rng += pd.offsets.MonthEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_iadd_timedeltalike_freq_mismatch_monthly(self,
-                                                             mismatched_freq):
+    def test_pi_add_sub_timedeltalike_freq_mismatch_monthly(self,
+                                                            mismatched_freq):
         other = mismatched_freq
         rng = pd.period_range('2014-01', '2016-12', freq='M')
         msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=M\\)'
@@ -742,12 +732,6 @@ class TestPeriodIndexArithmetic(object):
             rng + other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng += other
-
-    def test_pi_sub_isub_timedeltalike_freq_mismatch_monthly(self,
-                                                             mismatched_freq):
-        other = mismatched_freq
-        rng = pd.period_range('2014-01', '2016-12', freq='M')
-        msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=M\\)'
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng - other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
