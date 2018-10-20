@@ -16,31 +16,40 @@ from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     """
-    Convert argument to timedelta
+    Convert argument to timedelta.
+
+    Timedeltas are differences in times, expressed in difference units,
+    for example, years, momths, days, hours, minutes, seconds.
+    They can be both positive and negative. This method can create Timedelta
+    objects from pandas objects.
 
     Parameters
     ----------
     arg : string, timedelta, list, tuple, 1-d array, or Series
-    unit : str, optional
-        Denote the unit of the input, if input is an integer. Default 'ns'.
+    unit : str, default 'ns'
         Possible values:
         {'Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
         'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds', 'sec', 'second',
         'ms', 'milliseconds', 'millisecond', 'milli', 'millis', 'L',
         'us', 'microseconds', 'microsecond', 'micro', 'micros', 'U',
         'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond', 'N'}
-    box : boolean, default True
-        - If True returns a Timedelta/TimedeltaIndex of the results
-        - if False returns a np.timedelta64 or ndarray of values of dtype
-          timedelta64[ns]
+    box : Boolean, default True
+          If True returns a Timedelta/TimedeltaIndex of the results.
+          if False returns a np.timedelta64 or ndarray of values of dtype
+          timedelta64[ns].
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
-        - If 'raise', then invalid parsing will raise an exception
-        - If 'coerce', then invalid parsing will be set as NaT
-        - If 'ignore', then invalid parsing will return the input
+          If 'raise', then invalid parsing will raise an exception.
+          If 'coerce', then invalid parsing will be set as NaT.
+          If 'ignore', then invalid parsing will return the input.
 
     Returns
     -------
     ret : timedelta64/arrays of timedelta64 if parsing succeeded
+
+    See also
+    --------
+    DataFrame.astype : Cast argument to a specified dtype.
+    to_datetime : Convert argument to datetime.
 
     Examples
     --------
@@ -68,10 +77,33 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
 
-    See Also
-    --------
-    pandas.DataFrame.astype : Cast argument to a specified dtype.
-    pandas.to_datetime : Convert argument to datetime.
+    For `M` and `Y` units, `1M = 30D` and 1Y = 365D:
+
+    >>> pd.to_timedelta(np.arange(5), unit='M')
+    TimedeltaIndex([  '0 days 00:00:00',  '30 days 10:29:06',
+                      '60 days 20:58:12', '91 days 07:27:18',
+                      '121 days 17:56:24'],
+                      dtype='timedelta64[ns]', freq=None)
+    >>> pd.to_timedelta(np.arange(5), unit='Y')
+    TimedeltaIndex([   '0 days 00:00:00',  '365 days 05:49:12',
+                 '730 days 11:38:24', '1095 days 17:27:36',
+                '1460 days 23:16:48'],
+               dtype='timedelta64[ns]', freq=None)
+
+    Add new column of dates from existing dates in a `DataFrame`
+    using `timedelta`
+
+    >>> Dates = pd.to_datetime(['26/10/2018','28/10/2018', '2/11/2018'])
+    >>> df = pd.DataFrame({'Start': Dates,'Days':[5, 10, 5]})
+    >>> df['End'] = df['Start'] + pd.to_timedelta(df['Days'], unit='d')
+    >>> df
+       Start      Days        End
+    0 2018-10-26     5 2018-10-31
+    1 2018-10-28    10 2018-11-07
+    2 2018-02-11     5 2018-02-16
+
+    See also
+
     """
     unit = parse_timedelta_unit(unit)
 
