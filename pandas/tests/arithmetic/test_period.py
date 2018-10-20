@@ -11,7 +11,6 @@ import pandas as pd
 import pandas.util.testing as tm
 
 from pandas.errors import PerformanceWarning
-from pandas._libs.tslibs.period import IncompatibleFrequency
 
 import pandas.core.indexes.period as period
 from pandas.core import ops
