@@ -491,18 +491,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         -------
         result : same class as self
         """
+        assert not is_period_dtype(self)  # overriden by PeriodArray
         assert op in [operator.add, operator.sub]
-        if is_period_dtype(self):
-            # easy case for PeriodIndex
-            if op is operator.sub:
-                other = -other
-            res_values = checked_add_with_arr(self.asi8, other,
-                                              arr_mask=self._isnan)
-            res_values = res_values.view('i8')
-            res_values[self._isnan] = iNaT
-            return self._from_ordinals(res_values, freq=self.freq)
 
-        elif self.freq is None:
+        if self.freq is None:
             # GH#19123
             raise NullFrequencyError("Cannot shift with no freq")
 

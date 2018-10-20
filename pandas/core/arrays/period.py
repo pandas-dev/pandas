@@ -24,6 +24,7 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.core.common as com
+from pandas.core.algorithms import checked_add_with_arr
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
@@ -333,6 +334,17 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
     # Arithmetic Methods
 
     _create_comparison_method = classmethod(_period_array_cmp)
+
+    @Appender(DatetimeLikeArrayMixin._addsub_int_array.__doc__)
+    def _addsub_int_array(self, other, op):
+        assert op in [operator.add, operator.sub]
+        if op is operator.sub:
+            other = -other
+        res_values = checked_add_with_arr(self.asi8, other,
+                                          arr_mask=self._isnan)
+        res_values = res_values.view('i8')
+        res_values[self._isnan] = iNaT
+        return self._simple_new(res_values, freq=self.freq)
 
     def _sub_period(self, other):
         # If the operation is well-defined, we return an object-Index
