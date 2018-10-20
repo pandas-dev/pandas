@@ -1725,10 +1725,10 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
 
 
 def _combine_series_frame(self, other, func, fill_value=None, axis=None,
-                          level=None, try_cast=True):
+                          level=None):
     """
     Apply binary operator `func` to self, other using alignment and fill
-    conventions determined by the fill_value, axis, level, and try_cast kwargs.
+    conventions determined by the fill_value, axis, and level kwargs.
 
     Parameters
     ----------
@@ -1738,7 +1738,6 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
     fill_value : object, default None
     axis : {0, 1, 'columns', 'index', None}, default None
     level : int or None, default None
-    try_cast : bool, default True
 
     Returns
     -------
@@ -1753,8 +1752,7 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
         if axis == 0:
             return self._combine_match_index(other, func, level=level)
         else:
-            return self._combine_match_columns(other, func, level=level,
-                                               try_cast=try_cast)
+            return self._combine_match_columns(other, func, level=level)
     else:
         if not len(other):
             return self * np.nan
@@ -1765,8 +1763,7 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
                                      columns=self.columns)
 
         # default axis is columns
-        return self._combine_match_columns(other, func, level=level,
-                                           try_cast=try_cast)
+        return self._combine_match_columns(other, func, level=level)
 
 
 def _align_method_FRAME(left, right, axis):
@@ -1866,13 +1863,13 @@ def _arith_method_FRAME(cls, op, special):
             pass_op = op if axis in [0, "columns", None] else na_op
             return _combine_series_frame(self, other, pass_op,
                                          fill_value=fill_value, axis=axis,
-                                         level=level, try_cast=True)
+                                         level=level)
         else:
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            pass_op = op if lib.is_scalar(other) else na_op
-            return self._combine_const(other, pass_op, try_cast=True)
+            assert np.ndim(other) == 0, other
+            return self._combine_const(other, op)
 
     f.__name__ = op_name
 
@@ -1908,9 +1905,10 @@ def _flex_comp_method_FRAME(cls, op, special):
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, na_op,
                                          fill_value=None, axis=axis,
-                                         level=level, try_cast=False)
+                                         level=level)
         else:
-            return self._combine_const(other, na_op, try_cast=False)
+            assert np.ndim(other) == 0, other
+            return self._combine_const(other, na_op)
 
     f.__name__ = op_name
 
@@ -1933,14 +1931,13 @@ def _comp_method_FRAME(cls, func, special):
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, func,
                                          fill_value=None, axis=None,
-                                         level=None, try_cast=False)
+                                         level=None)
         else:
 
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
             res = self._combine_const(other, func,
-                                      errors='ignore',
-                                      try_cast=False)
+                                      errors='ignore')
             return res.fillna(True).astype(bool)
 
     f.__name__ = op_name
@@ -1987,13 +1984,13 @@ def _comp_method_PANEL(cls, op, special):
             self._get_axis_number(axis)
 
         if isinstance(other, self._constructor):
-            return self._compare_constructor(other, na_op, try_cast=False)
+            return self._compare_constructor(other, na_op)
         elif isinstance(other, (self._constructor_sliced, ABCDataFrame,
                                 ABCSeries)):
             raise Exception("input needs alignment for this object [{object}]"
                             .format(object=self._constructor))
         else:
-            return self._combine_const(other, na_op, try_cast=False)
+            return self._combine_const(other, na_op)
 
     f.__name__ = op_name
 

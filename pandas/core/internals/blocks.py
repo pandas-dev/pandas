@@ -1318,7 +1318,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def eval(self, func, other, errors='raise', try_cast=False, mgr=None):
+    def eval(self, func, other, errors='raise', mgr=None):
         """
         evaluate the block; return result block from the result
 
@@ -1329,8 +1329,6 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
-
-        try_cast : try casting the results to the input type
 
         Returns
         -------
@@ -1368,7 +1366,7 @@ class Block(PandasObject):
             block = self.coerce_to_target_dtype(orig_other)
             return block.eval(func, orig_other,
                               errors=errors,
-                              try_cast=try_cast, mgr=mgr)
+                              mgr=mgr)
 
         # get the result, may need to transpose the other
         def get_result(other):
@@ -1449,10 +1447,6 @@ class Block(PandasObject):
 
         # transpose if needed
         result = transf(result)
-
-        # try to cast if requested
-        if try_cast:
-            result = self._try_cast_result(result)
 
         result = _block_shape(result, ndim=self.ndim)
         return [self.make_block(result)]
