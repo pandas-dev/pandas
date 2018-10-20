@@ -3967,15 +3967,14 @@ class AppendableTable(LegacyTable):
 
     def write(self, obj, axes=None, append=False, complib=None,
               complevel=None, fletcher32=None, min_itemsize=None,
-              chunksize=None, expectedrows=None, dropna=False, **kwargs):
+              chunksize=None, expectedrows=None, dropna=False):
 
         if not append and self.is_exists:
             self._handle.remove_node(self.group, 'table')
 
         # create the axes
         self.create_axes(axes=axes, obj=obj, validate=append,
-                         min_itemsize=min_itemsize,
-                         **kwargs)
+                         min_itemsize=min_itemsize)
 
         for a in self.axes:
             a.validate(self, append)
