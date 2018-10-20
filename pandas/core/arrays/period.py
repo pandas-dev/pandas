@@ -54,7 +54,7 @@ from pandas.core.arrays import datetimelike as dtl
 def _field_accessor(name, alias, docstring=None):
     def f(self):
         base, mult = frequencies.get_freq_code(self.freq)
-        result = get_period_field_arr(alias, self._ndarray_values, base)
+        result = get_period_field_arr(alias, self.asi8, base)
         return result
 
     f.__name__ = name
@@ -70,7 +70,7 @@ def _period_array_cmp(cls, op):
     nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
-        op = getattr(self._ndarray_values, opname)
+        op = getattr(self.asi8, opname)
         if isinstance(other, (ABCSeries, ABCIndexClass)):
             # TODO: return NotImplemented?
             other = other._values
@@ -86,7 +86,7 @@ def _period_array_cmp(cls, op):
                 msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
 
-            result = op(other._ndarray_values)
+            result = op(other.asi8)
 
             mask = self._isnan | other._isnan
             if mask.any():
@@ -94,7 +94,7 @@ def _period_array_cmp(cls, op):
 
             return result
         elif other is NaT:
-            result = np.empty(len(self._ndarray_values), dtype=bool)
+            result = np.empty(len(self.asi8), dtype=bool)
             result.fill(nat_result)
         else:
             other = Period(other, freq=self.freq)
@@ -210,7 +210,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         return cls(ordinals, freq=freq)
 
     def _values_for_factorize(self):
-        return self._ndarray_values, iNaT
+        return self.asi8, iNaT
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -278,13 +278,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         return self._data
 
     @property
+    def asi8(self):
+        return self._data
+
+    @property
     def freq(self):
         """Return the frequency object for this PeriodArray."""
         return self.dtype.freq
-
-    @property
-    def asi8(self):
-        return self._data
 
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
