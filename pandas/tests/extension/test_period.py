@@ -138,15 +138,6 @@ class TestComparisonOps(BasePeriodTests, base.BaseComparisonOpsTests):
         # with (some) integers, depending on the value.
         pass
 
-    @pytest.mark.xfail(reason="DatetimeArray", strict=True)
-    def test_direct_arith_with_series_returns_not_implemented(self, data):
-        # Investigate returning NotImplemented here once all Datetimelike
-        # are EAs
-        return (
-            super(TestComparisonOps, self)
-            .test_direct_arith_with_series_returns_not_implemented(data)
-        )
-
 
 class TestMissing(BasePeriodTests, base.BaseMissingTests):
     pass
