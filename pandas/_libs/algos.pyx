@@ -365,6 +365,8 @@ ctypedef fused algos_t:
     int16_t
     int8_t
     uint64_t
+    uint32_t
+    uint16_t
     uint8_t
 
 
@@ -462,7 +464,12 @@ pad_float32 = pad["float32_t"]
 pad_object = pad["object"]
 pad_int64 = pad["int64_t"]
 pad_int32 = pad["int32_t"]
+pad_int16 = pad["int16_t"]
+pad_int8 = pad["int8_t"]
 pad_uint64 = pad["uint64_t"]
+pad_uint32 = pad["uint32_t"]
+pad_uint16 = pad["uint16_t"]
+pad_uint8 = pad["uint8_t"]
 pad_bool = pad["uint8_t"]
 
 
@@ -656,7 +663,12 @@ backfill_float32 = backfill["float32_t"]
 backfill_object = backfill["object"]
 backfill_int64 = backfill["int64_t"]
 backfill_int32 = backfill["int32_t"]
+backfill_int16 = backfill["int16_t"]
+backfill_int8 = backfill["int8_t"]
 backfill_uint64 = backfill["uint64_t"]
+backfill_uint32 = backfill["uint32_t"]
+backfill_uint16 = backfill["uint16_t"]
+backfill_uint8 = backfill["uint8_t"]
 backfill_bool = backfill["uint8_t"]
 
 
@@ -872,6 +884,9 @@ is_monotonic_int32 = is_monotonic["int32_t"]
 is_monotonic_int16 = is_monotonic["int16_t"]
 is_monotonic_int8 = is_monotonic["int8_t"]
 is_monotonic_uint64 = is_monotonic["uint64_t"]
+is_monotonic_uint32 = is_monotonic["uint32_t"]
+is_monotonic_uint16 = is_monotonic["uint16_t"]
+is_monotonic_uint8 = is_monotonic["uint8_t"]
 is_monotonic_bool = is_monotonic["uint8_t"]
 
 

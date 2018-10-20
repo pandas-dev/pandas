@@ -1,6 +1,6 @@
 import numpy as np
 
-from pandas._libs import index as li
+from pandas._libs import index as libindex
 
 
 def _get_numeric_engines():
@@ -11,8 +11,9 @@ def _get_numeric_engines():
         ('UInt16engine', np.uint16), ('UInt8Engine', np.uint8),
         ('Float64Engine', np.float64), ('Float32Engine', np.float32),
     ]
-    return [(getattr(li, engine_name), dtype)
-            for engine_name, dtype in engine_names if hasattr(li, engine_name)]
+    return [(getattr(libindex, engine_name), dtype)
+            for engine_name, dtype in engine_names
+            if hasattr(libindex, engine_name)]
 
 
 class NumericEngineIndexing(object):
@@ -55,7 +56,7 @@ class ObjectEngineIndexing(object):
             'non_monotonic': np.array(list('abc') * N, dtype=object),
         }[index_type]
 
-        self.data = li.ObjectEngine(lambda: arr, len(arr))
+        self.data = libindex.ObjectEngine(lambda: arr, len(arr))
         # code belows avoids populating the mapping etc. while timing.
         self.data.get_loc('b')
 
