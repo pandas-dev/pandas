@@ -108,8 +108,11 @@ class TestPeriodIndexComparisons(object):
         tm.assert_equal(base <= idx, exp)
 
     @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
-    def test_parr_cmp_pi_mismatched_freq_raises(self, freq, box):
+    def test_parr_cmp_pi_mismatched_freq_raises(self, freq, box_df_fail):
+        # GH#13200
         # different base freq
+        box = box_df_fail
+
         base = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                            freq=freq)
         base = tm.box_expected(base, box)
@@ -121,6 +124,7 @@ class TestPeriodIndexComparisons(object):
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             Period('2011', freq='A') >= base
 
+        # TODO: Could parametrize over boxes for idx?
         idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='A')
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             base <= idx
@@ -225,21 +229,6 @@ class TestPeriodIndexComparisons(object):
 
 
 class TestPeriodSeriesComparisons(object):
-
-    @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
-    def test_cmp_series_period_series(self, freq):
-        # GH#13200
-        base = Series([Period(x, freq=freq) for x in
-                       ['2011-01', '2011-02', '2011-03', '2011-04']])
-
-        ser2 = Series([Period(x, freq='A') for x in
-                       ['2011', '2011', '2011', '2011']])
-
-        # different base freq
-        msg = "Input has different freq=A-DEC from Period"
-        with tm.assert_raises_regex(IncompatibleFrequency, msg):
-            base <= ser2
-
     def test_cmp_series_period_series_mixed_freq(self):
         # GH#13200
         base = Series([Period('2011', freq='A'),
@@ -374,8 +363,10 @@ class TestPeriodIndexArithmetic(object):
     @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
     @pytest.mark.parametrize('op', [operator.add, ops.radd,
                                     operator.sub, ops.rsub])
-    def test_pi_add_sub_float(self, op, other, box_df_broadcast_failure):
-        box = box_df_broadcast_failure
+    def test_pi_add_sub_float(self, op, other, box):
+        if box is pd.DataFrame and isinstance(other, np.ndarray):
+            pytest.xfail(reason="Tries to broadcast incorrectly")
+
         dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
         pi = dti.to_period('D')
         pi = tm.box_expected(pi, box)
