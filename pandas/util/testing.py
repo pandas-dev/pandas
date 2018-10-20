@@ -2999,3 +2999,24 @@ def _make_skipna_wrapper(alternative, skipna_alternative=None):
             return alternative(nona)
 
     return skipna_wrapper
+
+
+def convert_rows_list_to_csv_str(rows_list):
+    """
+    Convert list of CSV rows to single CSV-formatted string for current OS.
+
+    This method is used for creating expected value of to_csv() method.
+
+    Parameters
+    ----------
+    rows_list : list
+        The list of string. Each element represents the row of csv.
+
+    Returns
+    -------
+    expected : string
+        Expected output of to_csv() in current OS
+    """
+    sep = os.linesep
+    expected = sep.join(rows_list) + sep
+    return expected
