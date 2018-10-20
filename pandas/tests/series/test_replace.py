@@ -8,11 +8,9 @@ import pandas as pd
 import pandas._libs.lib as lib
 import pandas.util.testing as tm
 
-from .common import TestData
 
-
-class TestSeriesReplace(TestData):
-    def test_replace(self):
+class TestSeriesReplace():
+    def test_replace(self, datetime_series):
         N = 100
         ser = pd.Series(np.random.randn(N))
         ser[0:4] = np.nan
@@ -70,7 +68,7 @@ class TestSeriesReplace(TestData):
         filled[4] = 0
         tm.assert_series_equal(ser.replace(np.inf, 0), filled)
 
-        ser = pd.Series(self.ts.index)
+        ser = pd.Series(datetime_series.index)
         tm.assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
 
         # malformed
