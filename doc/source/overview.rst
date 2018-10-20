@@ -122,16 +122,14 @@ Modules Privacy
 
 The following modules in pandas are considered PRIVATE:
 
-::
-
   * pandas.compat and all sub-modules
   
   * pandas.util
-      -decorators
-      -print_versions
-      -doctools
-      -validators
-      -depr_module
+     - decorators
+     - print_versions
+     - doctools
+     - validators
+     - depr_module
       
   * pandas.core and all sub-modules
   	      
