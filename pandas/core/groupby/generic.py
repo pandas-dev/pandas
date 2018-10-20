@@ -44,7 +44,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.base import SpecificationError, DataError
 from pandas.core.index import Index, MultiIndex, CategoricalIndex
-from pandas.core.arrays.categorical import Categorical
+from pandas.core.arrays import Categorical
 from pandas.core.internals import BlockManager, make_block
 from pandas.compat.numpy import _np_version_under1p13
 
@@ -1027,8 +1027,9 @@ class SeriesGroupBy(GroupBy):
         try:
             sorter = np.lexsort((val, ids))
         except TypeError:  # catches object dtypes
-            assert val.dtype == object, \
-                'val.dtype must be object, got %s' % val.dtype
+            msg = ('val.dtype must be object, got {dtype}'
+                   .format(dtype=val.dtype))
+            assert val.dtype == object, msg
             val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
             _isna = lambda a: a == -1

@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function
 
+import warnings
 from functools import partial
 
-import pytest
-import warnings
 import numpy as np
+import pytest
 
 import pandas as pd
-from pandas import Series, isna
-from pandas.core.dtypes.common import is_integer_dtype
 import pandas.core.nanops as nanops
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
+import pandas.util.testing as tm
+from pandas import Series, isna
 from pandas.compat.numpy import _np_version_under1p13
+from pandas.core.dtypes.common import is_integer_dtype
 
 use_bn = nanops._USE_BOTTLENECK
 
@@ -1041,3 +1041,29 @@ def test_numpy_ops_np_version_under1p13(numpy_op, expected):
             assert result == expected
     else:
         assert result == expected
+
+
+@pytest.mark.parametrize("operation", [
+    nanops.nanany,
+    nanops.nanall,
+    nanops.nansum,
+    nanops.nanmean,
+    nanops.nanmedian,
+    nanops.nanstd,
+    nanops.nanvar,
+    nanops.nansem,
+    nanops.nanargmax,
+    nanops.nanargmin,
+    nanops.nanmax,
+    nanops.nanmin,
+    nanops.nanskew,
+    nanops.nankurt,
+    nanops.nanprod,
+])
+def test_nanops_independent_of_mask_param(operation):
+    # GH22764
+    s = pd.Series([1, 2, np.nan, 3, np.nan, 4])
+    mask = s.isna()
+    median_expected = operation(s)
+    median_result = operation(s, mask=mask)
+    assert median_expected == median_result

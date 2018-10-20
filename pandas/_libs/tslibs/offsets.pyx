@@ -282,11 +282,6 @@ class ApplyTypeError(TypeError):
     pass
 
 
-# TODO: unused.  remove?
-class CacheableOffset(object):
-    _cacheable = True
-
-
 # ---------------------------------------------------------------------
 # Base Classes
 
@@ -296,8 +291,6 @@ class _BaseOffset(object):
     and will (after pickle errors are resolved) go into a cdef class.
     """
     _typ = "dateoffset"
-    _normalize_cache = True
-    _cacheable = False
     _day_opt = None
     _attributes = frozenset(['n', 'normalize'])
 
@@ -385,10 +378,6 @@ class _BaseOffset(object):
         # Note: we are defering directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
         return self * 1
-
-    # TODO: this is never true.  fix it or get rid of it
-    def _should_cache(self):
-        return self.isAnchored() and self._cacheable
 
     def __repr__(self):
         className = getattr(self, '_outputName', type(self).__name__)

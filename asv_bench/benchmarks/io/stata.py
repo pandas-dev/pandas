@@ -2,7 +2,7 @@ import numpy as np
 from pandas import DataFrame, date_range, read_stata
 import pandas.util.testing as tm
 
-from ..pandas_vb_common import BaseIO, setup  # noqa
+from ..pandas_vb_common import BaseIO
 
 
 class Stata(BaseIO):
@@ -35,3 +35,6 @@ class Stata(BaseIO):
 
     def time_write_stata(self, convert_dates):
         self.df.to_stata(self.fname, self.convert_dates)
+
+
+from ..pandas_vb_common import setup  # noqa: F401

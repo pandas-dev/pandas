@@ -645,9 +645,9 @@ def coerce_to_dtypes(result, dtypes):
     return [conv(r, dtype) for r, dtype in zip(result, dtypes)]
 
 
-def astype_nansafe(arr, dtype, copy=True):
-    """ return a view if copy is False, but
-        need to be very careful as the result shape could change!
+def astype_nansafe(arr, dtype, copy=True, skipna=False):
+    """
+    Cast the elements of an array to a given dtype a nan-safe manner.
 
     Parameters
     ----------
@@ -655,7 +655,9 @@ def astype_nansafe(arr, dtype, copy=True):
     dtype : np.dtype
     copy : bool, default True
         If False, a view will be attempted but may fail, if
-        e.g. the itemsizes don't align.
+        e.g. the item sizes don't align.
+    skipna: bool, default False
+        Whether or not we should skip NaN when casting as a string-type.
     """
 
     # dispatch on extension dtype if needed
@@ -668,10 +670,12 @@ def astype_nansafe(arr, dtype, copy=True):
 
     if issubclass(dtype.type, text_type):
         # in Py3 that's str, in Py2 that's unicode
-        return lib.astype_unicode(arr.ravel()).reshape(arr.shape)
+        return lib.astype_unicode(arr.ravel(),
+                                  skipna=skipna).reshape(arr.shape)
 
     elif issubclass(dtype.type, string_types):
-        return lib.astype_str(arr.ravel()).reshape(arr.shape)
+        return lib.astype_str(arr.ravel(),
+                              skipna=skipna).reshape(arr.shape)
 
     elif is_datetime64_dtype(arr):
         if is_object_dtype(dtype):
@@ -1220,7 +1224,9 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
             dtype = dtype.dtype
 
         # coerce if we have nan for an integer dtype
-        if is_integer_dtype(dtype) and isna(value):
+        # GH 22858: only cast to float if an index
+        # (passed here as length) is specified
+        if length and is_integer_dtype(dtype) and isna(value):
             dtype = np.float64
         subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)
