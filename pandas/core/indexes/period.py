@@ -950,10 +950,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         scalar
         """
         # TODO(DatetimeArray): remove
-        # override to use _item
-        try:
-            return self._data._item()
-        except IndexError:
+        if len(self) == 1:
+            return self[0]
+        else:
             # copy numpy's message here because Py26 raises an IndexError
             raise ValueError('can only convert an array of size 1 to a '
                              'Python scalar')

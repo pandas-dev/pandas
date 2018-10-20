@@ -770,14 +770,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         else:
             return np.asarray(self, dtype=dtype)
 
-    def _item(self):
-        if len(self) == 1:
-            # IndexOpsMixin will catch and re-raise IndexErrors
-            return Period._from_ordinal(self._data[0], self.freq)
-        else:
-            raise ValueError('can only convert an array of size 1 to a '
-                             'Python scalar')
-
     @property
     def flags(self):
         # TODO: remove
@@ -963,13 +955,6 @@ def period_array(data, freq=None, copy=False):
     data = ensure_object(data)
 
     return PeriodArray._from_sequence(data, dtype=dtype)
-
-
-def _ordinal_to_periodarr(ordinal, freq, copy=False):
-    data = np.asarray(ordinal, dtype=np.int64)
-    if copy:
-        data = data.copy()
-    return PeriodArray(data, freq=freq)
 
 
 def dt64arr_to_periodarr(data, freq, tz=None):
