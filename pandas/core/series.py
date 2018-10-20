@@ -1600,7 +1600,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
               occurrence.
             - 'last' : Mark duplicates as ``True`` except for the last
               occurrence.
-            - ``False`` : Mark all duplicates as ``True``.
+            - 'all', ``False`` : Mark all duplicates as ``True``.
 
         Examples
         --------

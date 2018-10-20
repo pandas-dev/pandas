@@ -214,6 +214,7 @@ def test_has_duplicates_overflow():
 @pytest.mark.parametrize('keep, expected', [
     ('first', np.array([False, False, False, True, True, False])),
     ('last', np.array([False, True, True, False, False, False])),
+    ('all', np.array([False, True, True, True, True, False])),
     (False, np.array([False, True, True, True, True, False]))
 ])
 def test_duplicated(idx_dup, keep, expected):
@@ -221,7 +222,7 @@ def test_duplicated(idx_dup, keep, expected):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize('keep', ['first', 'last', False])
+@pytest.mark.parametrize('keep', ['first', 'last', 'all', False])
 def test_duplicated_large(keep):
     # GH 9125
     n, k = 200, 5000

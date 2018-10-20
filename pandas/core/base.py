@@ -1252,6 +1252,9 @@ class IndexOpsMixin(object):
             if self.is_unique:
                 return self._shallow_copy()
 
+        if keep not in ['first', 'last', False]:
+            raise ValueError('keep must be either "first", "last" or False')
+
         duplicated = self.duplicated(keep=keep)
         result = self[np.logical_not(duplicated)]
         if inplace:

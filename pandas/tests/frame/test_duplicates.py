@@ -46,6 +46,7 @@ def test_duplicated_do_not_fail_on_wide_dataframes():
 @pytest.mark.parametrize('keep, expected', [
     ('first', Series([False, False, True, False, True])),
     ('last', Series([True, True, False, False, False])),
+    ('all', Series([True, True, True, False, True])),
     (False, Series([True, True, True, False, True]))
 ])
 def test_duplicated_keep(keep, expected):
@@ -60,6 +61,7 @@ def test_duplicated_keep(keep, expected):
 @pytest.mark.parametrize('keep, expected', [
     ('first', Series([False, False, True, False, True])),
     ('last', Series([True, True, False, False, False])),
+    ('all', Series([True, True, True, False, True])),
     (False, Series([True, True, True, False, True]))
 ])
 def test_duplicated_nan_none(keep, expected):

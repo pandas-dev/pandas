@@ -4414,6 +4414,9 @@ class DataFrame(NDFrame):
         if self.empty:
             return self.copy()
 
+        if keep not in ['first', 'last', False]:
+            raise ValueError('keep must be either "first", "last" or False')
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
         duplicated = self.duplicated(subset, keep=keep)
 
@@ -4439,7 +4442,7 @@ class DataFrame(NDFrame):
               first occurrence.
             - ``last`` : Mark duplicates as ``True`` except for the
               last occurrence.
-            - False : Mark all duplicates as ``True``.
+            - ``all``, False : Mark all duplicates as ``True``.
 
         Returns
         -------
