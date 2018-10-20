@@ -390,6 +390,18 @@ class Docstring(object):
         return [klass for klass in PRIVATE_CLASSES if klass in self.raw_doc]
 
     @property
+    def section_order(self):
+        sections = ["Summary", "Parameters", "Returns",
+                    "Yields", "See Also", "Notes", "Examples"]
+        section_index = []
+        for section in sections:
+            if section not in self.raw_doc:
+                continue
+            else:
+                section_index.append(self.raw_doc.index(section))
+        return section_index
+
+    @property
     def examples_errors(self):
         flags = doctest.NORMALIZE_WHITESPACE | doctest.IGNORE_EXCEPTION_DETAIL
         finder = doctest.DocTestFinder()
@@ -491,6 +503,10 @@ def validate_one(func_name):
     if mentioned_errs:
         errs.append('Private classes ({}) should not be mentioned in public '
                     'docstring.'.format(mentioned_errs))
+
+    section_index = doc.section_order
+    if sorted(section_index) != section_index:
+        errs.append("The section titles are not in the correct order.")
 
     if not doc.see_also:
         wrns.append('See Also section not found')

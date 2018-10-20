@@ -146,6 +146,37 @@ class GoodDocStrings(object):
         """
         return self.iloc[:n]
 
+    def order(self):
+        """
+        In this case, we are illustrating the correct ordering
+        of sections in a docstring
+
+        Parameters
+        ----------
+        pat : str
+            Pattern to check for within each element.
+        case : bool, default True
+            Whether check should be done with case sensitivity.
+        na : object, default np.nan
+            Fill value for missing data.
+
+        Returns
+        -------
+        Series
+            Original series with boolean values.
+
+        Examples
+        --------
+        >>> s = pd.Series(['Antelope', 'Lion', 'Zebra', np.nan])
+        >>> s.str.contains(pat='a')
+        0    False
+        1    False
+        2     True
+        3      NaN
+        dtype: object
+        """
+        pass
+
     def contains(self, pat, case=True, na=np.nan):
         """
         Return whether each value contains `pat`.
@@ -502,6 +533,42 @@ class BadReturns(object):
         return "Hello world!"
 
 
+class BadOrder(object):
+
+    def wrong_section_order(self):
+        """
+        See also should not come before Returns section.
+
+        See Also
+        -------
+
+        Returns
+        -------
+        str
+            A nice greeting
+         """
+
+    def wrong_section_order1(self):
+        """
+        Examples should not come before Parameters section.
+
+        Examples
+        -------
+        >>> s = pd.Series(['Antelope', 'Lion', 'Zebra', np.nan])
+        >>> s.str.contains(pat='a')
+        0    False
+        1    False
+        2     True
+        3      NaN
+        dtype: object
+
+        Parameters
+        -------
+        str
+            A nice greeting
+         """
+
+
 class TestValidator(object):
 
     def _import_path(self, klass=None, func=None):
@@ -540,7 +607,7 @@ class TestValidator(object):
     @capture_stderr
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
-        'contains', 'mode'])
+        'order', 'contains', 'mode'])
     def test_good_functions(self, func):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings', func=func))['errors']
@@ -600,7 +667,12 @@ class TestValidator(object):
         pytest.param('BadReturns', 'no_description', ('foo',),
                      marks=pytest.mark.xfail),
         pytest.param('BadReturns', 'no_punctuation', ('foo',),
-                     marks=pytest.mark.xfail)
+                     marks=pytest.mark.xfail),
+        # Section ordering tests
+        ('BadOrder', 'wrong_section_order',
+         ('Section See Also should not be before Return section',)),
+        ('BadOrder', 'wrong_section_order1',
+         ('Examples section should not be before Parameters',))
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
