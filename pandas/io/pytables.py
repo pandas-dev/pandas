@@ -1404,7 +1404,7 @@ class HDFStore(StringMixin):
             )
 
         # write the object
-        s.write(obj=value, append=append, complib=complib, **kwargs)
+        s.write(obj=value, append=append, complib=complib)
 
         if s.is_table and index:
             s.create_index(columns=index)
