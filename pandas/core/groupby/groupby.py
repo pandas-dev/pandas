@@ -1755,7 +1755,12 @@ class GroupBy(_GroupBy):
         if axis != 0:
             return self.apply(lambda x: np.minimum.accumulate(x, axis))
 
-        return self._cython_transform('cummin', numeric_only=False)
+        if kwargs:
+            numeric_only = kwargs.get('numeric_only')
+        else:
+            numeric_only = False
+
+        return self._cython_transform('cummin', numeric_only=numeric_only)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1764,7 +1769,12 @@ class GroupBy(_GroupBy):
         if axis != 0:
             return self.apply(lambda x: np.maximum.accumulate(x, axis))
 
-        return self._cython_transform('cummax', numeric_only=False)
+        if kwargs:
+            numeric_only = kwargs.get('numeric_only')
+        else:
+            numeric_only = False
+
+        return self._cython_transform('cummax', numeric_only=numeric_only)
 
     def _get_cythonized_result(self, how, grouper, aggregate=False,
                                cython_dtype=None, needs_values=False,

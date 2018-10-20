@@ -706,6 +706,9 @@ class HDFStore(StringMixin):
         auto_close : boolean, should automatically close the store when
             finished, default is False
 
+        kwargs
+            Additional keyword arguments passed to Storer
+
         Returns
         -------
         The selected object
@@ -717,7 +720,7 @@ class HDFStore(StringMixin):
 
         # create the storer and axes
         where = _ensure_term(where, scope_level=1)
-        s = self._create_storer(group)
+        s = self._create_storer(group, **kwargs)
         s.infer_axes()
 
         # function to call on iteration
@@ -1674,7 +1677,7 @@ class IndexCol(StringMixin):
     def __iter__(self):
         return iter(self.values)
 
-    def maybe_set_size(self, min_itemsize=None, **kwargs):
+    def maybe_set_size(self, min_itemsize=None):
         """ maybe set a string col itemsize:
                min_itemsize can be an integer or a dict with this columns name
                with an integer size """
@@ -1687,13 +1690,13 @@ class IndexCol(StringMixin):
                 self.typ = _tables(
                 ).StringCol(itemsize=min_itemsize, pos=self.pos)
 
-    def validate(self, handler, append, **kwargs):
+    def validate(self, handler, append):
         self.validate_names()
 
     def validate_names(self):
         pass
 
-    def validate_and_set(self, handler, append, **kwargs):
+    def validate_and_set(self, handler, append):
         self.set_table(handler.table)
         self.validate_col()
         self.validate_attr(append)
@@ -3451,7 +3454,7 @@ class Table(Fixed):
         return [c for c in data_columns if c in axis_labels]
 
     def create_axes(self, axes, obj, validate=True, nan_rep=None,
-                    data_columns=None, min_itemsize=None, **kwargs):
+                    data_columns=None, min_itemsize=None):
         """ create and return the axes
         leagcy tables create an indexable column, indexable index,
         non-indexable fields
@@ -3772,7 +3775,7 @@ class Table(Fixed):
 
         return Index(coords)
 
-    def read_column(self, column, where=None, start=None, stop=None, **kwargs):
+    def read_column(self, column, where=None, start=None, stop=None):
         """return a single column from the table, generally only indexables
         are interesting
         """
@@ -4727,7 +4730,7 @@ class Selection(object):
 
     """
 
-    def __init__(self, table, where=None, start=None, stop=None, **kwargs):
+    def __init__(self, table, where=None, start=None, stop=None):
         self.table = table
         self.where = where
         self.start = start
