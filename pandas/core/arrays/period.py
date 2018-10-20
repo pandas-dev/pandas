@@ -71,8 +71,12 @@ def _period_array_cmp(cls, op):
 
     def wrapper(self, other):
         op = getattr(self.asi8, opname)
-        if isinstance(other, (ABCSeries, ABCIndexClass)):
-            # TODO: return NotImplemented?
+        # We want to eventually defer to the Series or PeriodIndex (which will
+        # return here with an unboxed PeriodArray). But before we do that,
+        # we do a bit of validation on type (Period) and freq, so that our
+        # error messages are sensible
+        not_implemented = isinstance(other, (ABCSeries, ABCIndexClass))
+        if not_implemented:
             other = other._values
 
         if isinstance(other, Period):
@@ -86,6 +90,8 @@ def _period_array_cmp(cls, op):
                 msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
 
+            if not_implemented:
+                return NotImplemented
             result = op(other.asi8)
 
             mask = self._isnan | other._isnan
