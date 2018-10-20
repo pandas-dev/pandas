@@ -125,6 +125,7 @@ The following modules in pandas are considered PRIVATE:
   * pandas.compat and all sub-modules
   
   * pandas.util
+  
      - decorators
      - print_versions
      - doctools
