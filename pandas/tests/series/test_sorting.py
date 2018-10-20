@@ -10,19 +10,17 @@ from pandas import DataFrame, Series, MultiIndex, IntervalIndex, Categorical
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
-from .common import TestData
 
+class TestSeriesSorting():
 
-class TestSeriesSorting(TestData):
-
-    def test_sortlevel_deprecated(self):
-        ts = self.ts.copy()
+    def test_sortlevel_deprecated(self, datetime_series):
+        ts = datetime_series.copy()
 
         # see gh-9816
         with tm.assert_produces_warning(FutureWarning):
             ts.sortlevel()
 
-    def test_sort_values(self):
+    def test_sort_values(self, datetime_series):
 
         # check indexes are reordered corresponding with the values
         ser = Series([3, 2, 4, 1], ['A', 'B', 'C', 'D'])
@@ -30,7 +28,7 @@ class TestSeriesSorting(TestData):
         result = ser.sort_values()
         tm.assert_series_equal(expected, result)
 
-        ts = self.ts.copy()
+        ts = datetime_series.copy()
         ts[:5] = np.NaN
         vals = ts.values
 
@@ -75,11 +73,11 @@ class TestSeriesSorting(TestData):
                       lambda: ts.sort_values(ascending='foobar'))
 
         # inplace=True
-        ts = self.ts.copy()
+        ts = datetime_series.copy()
         ts.sort_values(ascending=False, inplace=True)
-        tm.assert_series_equal(ts, self.ts.sort_values(ascending=False))
+        tm.assert_series_equal(ts, datetime_series.sort_values(ascending=False))
         tm.assert_index_equal(ts.index,
-                              self.ts.sort_values(ascending=False).index)
+                              datetime_series.sort_values(ascending=False).index)
 
         # GH 5856/5853
         # Series.sort_values operating on a view
@@ -91,55 +89,55 @@ class TestSeriesSorting(TestData):
 
         pytest.raises(ValueError, f)
 
-    def test_sort_index(self):
-        rindex = list(self.ts.index)
+    def test_sort_index(self, datetime_series):
+        rindex = list(datetime_series.index)
         random.shuffle(rindex)
 
-        random_order = self.ts.reindex(rindex)
+        random_order = datetime_series.reindex(rindex)
         sorted_series = random_order.sort_index()
-        assert_series_equal(sorted_series, self.ts)
+        assert_series_equal(sorted_series, datetime_series)
 
         # descending
         sorted_series = random_order.sort_index(ascending=False)
         assert_series_equal(sorted_series,
-                            self.ts.reindex(self.ts.index[::-1]))
+                            datetime_series.reindex(datetime_series.index[::-1]))
 
         # compat on level
         sorted_series = random_order.sort_index(level=0)
-        assert_series_equal(sorted_series, self.ts)
+        assert_series_equal(sorted_series, datetime_series)
 
         # compat on axis
         sorted_series = random_order.sort_index(axis=0)
-        assert_series_equal(sorted_series, self.ts)
+        assert_series_equal(sorted_series, datetime_series)
 
         pytest.raises(ValueError, lambda: random_order.sort_values(axis=1))
 
         sorted_series = random_order.sort_index(level=0, axis=0)
-        assert_series_equal(sorted_series, self.ts)
+        assert_series_equal(sorted_series, datetime_series)
 
         pytest.raises(ValueError,
                       lambda: random_order.sort_index(level=0, axis=1))
 
-    def test_sort_index_inplace(self):
+    def test_sort_index_inplace(self, datetime_series):
 
         # For #11402
-        rindex = list(self.ts.index)
+        rindex = list(datetime_series.index)
         random.shuffle(rindex)
 
         # descending
-        random_order = self.ts.reindex(rindex)
+        random_order = datetime_series.reindex(rindex)
         result = random_order.sort_index(ascending=False, inplace=True)
 
         assert result is None
-        tm.assert_series_equal(random_order, self.ts.reindex(
-            self.ts.index[::-1]))
+        tm.assert_series_equal(random_order, datetime_series.reindex(
+            datetime_series.index[::-1]))
 
         # ascending
-        random_order = self.ts.reindex(rindex)
+        random_order = datetime_series.reindex(rindex)
         result = random_order.sort_index(ascending=True, inplace=True)
 
         assert result is None
-        tm.assert_series_equal(random_order, self.ts)
+        tm.assert_series_equal(random_order, datetime_series)
 
     @pytest.mark.parametrize("level", ['A', 0])  # GH 21052
     def test_sort_index_multiindex(self, level):
