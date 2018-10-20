@@ -598,87 +598,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
         return DatetimeArrayMixin(new_data, freq='infer')
 
-    # ------------------------------------------------------------------
-    # Arithmetic Methods
-    _create_comparison_method = classmethod(_period_array_cmp)
-
-    def _sub_datelike(self, other):
-        assert other is not NaT
-        return NotImplemented
-
-    def _sub_period(self, other):
-        # If the operation is well-defined, we return an object-Index
-        # of DateOffsets.  Null entries are filled with pd.NaT
-        if self.freq != other.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
-
-        asi8 = self.asi8
-        new_data = asi8 - other.ordinal
-        new_data = np.array([self.freq * x for x in new_data])
-
-        if self.hasnans:
-            new_data[self._isnan] = NaT
-
-        return new_data
-
-    def _add_offset(self, other):
-        assert not isinstance(other, Tick)
-        base = frequencies.get_base_alias(other.rule_code)
-        if base != self.freq.rule_code:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
-        return self._time_shift(other.n)
-
-    def _add_delta_td(self, other):
-        assert isinstance(self.freq, Tick)  # checked by calling function
-        assert isinstance(other, (timedelta, np.timedelta64, Tick))
-
-        delta = self._check_timedeltalike_freq_compat(other)
-
-        # Note: when calling parent class's _add_delta_td, it will call
-        #  delta_to_nanoseconds(delta).  Because delta here is an integer,
-        #  delta_to_nanoseconds will return it unchanged.
-        ordinals = super(PeriodArray, self)._add_delta_td(delta)
-        return type(self)(ordinals, self.freq)
-
-    def _add_delta_tdi(self, other):
-        assert isinstance(self.freq, Tick)  # checked by calling function
-
-        delta = self._check_timedeltalike_freq_compat(other)
-        return self._addsub_int_array(delta, operator.add)
-
-    def _add_delta(self, other):
-        """
-        Add a timedelta-like, Tick, or TimedeltaIndex-like object
-        to self.
-
-        Parameters
-        ----------
-        other : {timedelta, np.timedelta64, Tick,
-                 TimedeltaIndex, ndarray[timedelta64]}
-
-        Returns
-        -------
-        result : same type as self
-        """
-        if not isinstance(self.freq, Tick):
-            # We cannot add timedelta-like to non-tick PeriodArray
-            raise IncompatibleFrequency("Input has different freq from "
-                                        "{cls}(freq={freqstr})"
-                                        .format(cls=type(self).__name__,
-                                                freqstr=self.freqstr))
-
-        # TODO: standardize across datetimelike subclasses whether to return
-        #  i8 view or _shallow_copy
-        if isinstance(other, (Tick, timedelta, np.timedelta64)):
-            return self._add_delta_td(other)
-        elif is_timedelta64_dtype(other):
-            # ndarray[timedelta64] or TimedeltaArray/index
-            return self._add_delta_tdi(other)
-        else:  # pragma: no cover
-            raise TypeError(type(other).__name__)
-
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
@@ -867,8 +786,29 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # place.
         return self._data.flags
 
-    # ------------------------------------------------------------------------
-    # Ops
+    # ------------------------------------------------------------------
+    # Arithmetic Methods
+    _create_comparison_method = classmethod(_period_array_cmp)
+
+    def _sub_datelike(self, other):
+        assert other is not NaT
+        return NotImplemented
+
+    def _sub_period(self, other):
+        # If the operation is well-defined, we return an object-Index
+        # of DateOffsets.  Null entries are filled with pd.NaT
+        if self.freq != other.freq:
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+
+        asi8 = self.asi8
+        new_data = asi8 - other.ordinal
+        new_data = np.array([self.freq * x for x in new_data])
+
+        if self.hasnans:
+            new_data[self._isnan] = NaT
+
+        return new_data
 
     def _addsub_int_array(self, other, op):
         assert op in [operator.add, operator.sub]
@@ -880,6 +820,63 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         res_values = res_values.view('i8')
         res_values[self._isnan] = iNaT
         return type(self)(res_values, freq=self.freq)
+
+    def _add_offset(self, other):
+        assert not isinstance(other, Tick)
+        base = frequencies.get_base_alias(other.rule_code)
+        if base != self.freq.rule_code:
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+        return self._time_shift(other.n)
+
+    def _add_delta_td(self, other):
+        assert isinstance(self.freq, Tick)  # checked by calling function
+        assert isinstance(other, (timedelta, np.timedelta64, Tick))
+
+        delta = self._check_timedeltalike_freq_compat(other)
+
+        # Note: when calling parent class's _add_delta_td, it will call
+        #  delta_to_nanoseconds(delta).  Because delta here is an integer,
+        #  delta_to_nanoseconds will return it unchanged.
+        ordinals = super(PeriodArray, self)._add_delta_td(delta)
+        return type(self)(ordinals, self.freq)
+
+    def _add_delta_tdi(self, other):
+        assert isinstance(self.freq, Tick)  # checked by calling function
+
+        delta = self._check_timedeltalike_freq_compat(other)
+        return self._addsub_int_array(delta, operator.add)
+
+    def _add_delta(self, other):
+        """
+        Add a timedelta-like, Tick, or TimedeltaIndex-like object
+        to self.
+
+        Parameters
+        ----------
+        other : {timedelta, np.timedelta64, Tick,
+                 TimedeltaIndex, ndarray[timedelta64]}
+
+        Returns
+        -------
+        result : same type as self
+        """
+        if not isinstance(self.freq, Tick):
+            # We cannot add timedelta-like to non-tick PeriodArray
+            raise IncompatibleFrequency("Input has different freq from "
+                                        "{cls}(freq={freqstr})"
+                                        .format(cls=type(self).__name__,
+                                                freqstr=self.freqstr))
+
+        # TODO: standardize across datetimelike subclasses whether to return
+        #  i8 view or _shallow_copy
+        if isinstance(other, (Tick, timedelta, np.timedelta64)):
+            return self._add_delta_td(other)
+        elif is_timedelta64_dtype(other):
+            # ndarray[timedelta64] or TimedeltaArray/index
+            return self._add_delta_tdi(other)
+        else:  # pragma: no cover
+            raise TypeError(type(other).__name__)
 
 
 PeriodArray._add_comparison_ops()
