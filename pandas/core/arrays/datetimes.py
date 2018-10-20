@@ -487,15 +487,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     @Appender(dtl.DatetimeLikeArrayMixin._add_delta.__doc__)
     def _add_delta(self, delta):
         new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
-
-        # Note: this construction is _not_ equivalent to
-        #  type(self)(new_values, tz=self.tz, freq'infer'')
-        #  see GH#23215
-        tz = 'UTC' if self.tz is not None else None
-        result = type(self)(new_values, tz=tz, freq='infer')
-        if self.tz is not None and self.tz is not utc:
-            result = result.tz_convert(self.tz)
-        return result
+        return type(self)(new_values, tz=self.tz, freq='infer')
 
     # -----------------------------------------------------------------
     # Timezone Conversion and Localization Methods
