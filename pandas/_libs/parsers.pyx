@@ -1229,7 +1229,10 @@ cdef class TextReader:
                 na_count = 0
 
             if result is not None and dtype != 'int64':
-                result = result.astype(dtype)
+                try:
+                    result = result.astype(dtype)
+                except TypeError:
+                    result = result.astype(dtype.numpy_dtype)
 
             return result, na_count
 
@@ -1238,7 +1241,10 @@ cdef class TextReader:
                                            na_filter, na_hashset, na_flist)
 
             if result is not None and dtype != 'float64':
-                result = result.astype(dtype)
+                try:
+                    result = result.astype(dtype)
+                except TypeError:
+                    result = result.astype(dtype.numpy_dtype)
             return result, na_count
 
         elif is_bool_dtype(dtype):

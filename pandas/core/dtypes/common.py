@@ -1872,7 +1872,10 @@ def _get_dtype_type(arr_or_dtype):
     try:
         return arr_or_dtype.dtype.type
     except AttributeError:
-        return type(None)
+        try:
+            return arr_or_dtype.numpy_dtype.type
+        except AttributeError:
+            return type(None)
 
 
 def _get_dtype_from_object(dtype):
