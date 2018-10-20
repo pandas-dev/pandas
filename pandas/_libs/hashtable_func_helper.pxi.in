@@ -145,8 +145,8 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
 
     kh_resize_{{ttype}}(table, min(n, _SIZE_HINT_LIMIT))
 
-    if keep not in ('last', 'first', False):
-        raise ValueError('keep must be either "first", "last" or False')
+    if keep not in ('last', 'first', 'all', False):
+        raise ValueError('keep must be either "first", "last", "all" or False')
 
     if keep == 'last':
         {{if dtype == 'object'}}
