@@ -1635,6 +1635,12 @@ Sparse
 - Bug in :meth:`SparseArray.nonzero` and :meth:`SparseDataFrame.dropna` returning shifted/incorrect results (:issue:`21172`)
 - Bug in :meth:`DataFrame.apply` where dtypes would lose sparseness (:issue:`23744`)
 
+IntegerArray
+^^^^^^^^^^^^
+
+- Bug in :func:`pandas.merge` when merging on an Integer extension array (:issue:`23020`)
+
+
 Build Changes
 ^^^^^^^^^^^^^
 

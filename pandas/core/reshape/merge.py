@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, is_categorical_dtype, is_datetime64_dtype,
     is_datetime64tz_dtype, is_datetimelike, is_dtype_equal, is_float_dtype,
     is_int64_dtype, is_integer, is_integer_dtype, is_list_like, is_number,
-    is_numeric_dtype, needs_i8_conversion)
+    is_numeric_dtype, needs_i8_conversion, is_extension_array_dtype)
 from pandas.core.dtypes.missing import isnull, na_value_for_dtype
 
 from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timedelta
@@ -1607,6 +1607,10 @@ def _factorize_keys(lk, rk, sort=True):
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
+    elif is_extension_array_dtype(lk) and is_extension_array_dtype(rk):
+        klass = libhashtable.Factorizer
+        lk = ensure_object(lk)
+        rk = ensure_object(rk)
     elif is_integer_dtype(lk) and is_integer_dtype(rk):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype
         #  and rk is datetime-dtype
