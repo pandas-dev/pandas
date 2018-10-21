@@ -42,6 +42,12 @@ def data_missing():
 
 
 @pytest.fixture
+def data_for_fillna():
+    """Length 2 array with [Valid, Valid]"""
+    return JSONArray([{'a': 1}, {'a': 2}])
+
+
+@pytest.fixture
 def data_for_sorting():
     return JSONArray([{'b': 1}, {'c': 4}, {'a': 2, 'c': 3}])
 

@@ -28,6 +28,11 @@ def data_missing():
 
 
 @pytest.fixture
+def data_for_fillna():
+    return DecimalArray([decimal.Decimal(1), decimal.Decimal(1)])
+
+
+@pytest.fixture
 def data_for_sorting():
     return DecimalArray([decimal.Decimal('1'),
                          decimal.Decimal('2'),

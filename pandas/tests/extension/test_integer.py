@@ -48,6 +48,11 @@ def data_missing(dtype):
 
 
 @pytest.fixture
+def data_for_fillna(dtype):
+    return integer_array([1, 1], dtype=dtype)
+
+
+@pytest.fixture
 def data_for_sorting(dtype):
     return integer_array([1, 2, 0], dtype=dtype)
 

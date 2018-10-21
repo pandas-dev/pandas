@@ -38,6 +38,12 @@ def data_missing(request):
 
 
 @pytest.fixture(params=[0, np.nan])
+def data_for_fillna(request):
+    """Length 2 array with [Valid, Valid]"""
+    return SparseArray([1, 1], fill_value=request.param)
+
+
+@pytest.fixture(params=[0, np.nan])
 def data_repeated(request):
     """Return different versions of data for count times"""
     def gen(count):

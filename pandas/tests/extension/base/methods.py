@@ -107,13 +107,10 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_fillna_copy(self, data_for_fillna):
         df = pd.DataFrame({"A": data_for_fillna})
-        result = df.fillna(0, axis='columns')
+        filled_val = df.iloc[0,0]
 
-        self.assert_frame_equal(df, result)
-        assert result._is_view
-
-    def test_fillna_array_lenght(self, data_for_fillna):
-        assert len(self) == len(data_for_fillna)
+        result = df.fillna(filled_val)
+        assert df.values.base is not result.values.base
 
     def test_combine_le(self, data_repeated):
         # GH 20825
