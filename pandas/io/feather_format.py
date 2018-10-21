@@ -111,7 +111,7 @@ def read_feather(path, nthreads=1):
     if LooseVersion(feather.__version__) < LooseVersion('0.4.0'):
         return feather.read_dataframe(path)
 
-    if LooseVersion(pyarrow.__version__) < LooseVersion('0.10')
+    if LooseVersion(pyarrow.__version__) < LooseVersion('0.10'):
         return feather.read_dataframe(path, nthreads=nthreads)
 
     # pyarrow>=0.10 has `use_threads` kwarg instead of `nthreads`
