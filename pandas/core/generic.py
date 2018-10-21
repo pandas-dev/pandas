@@ -7715,34 +7715,107 @@ class NDFrame(PandasObject, SelectionMixin):
     def rank(self, axis=0, method='average', numeric_only=None,
              na_option='keep', ascending=True, pct=False):
         """
-        Compute numerical data ranks (1 through n) along axis. Equal values are
-        assigned a rank that is the average of the ranks of those values
+        Compute numerical data ranks (1 through n) along axis.
+
+        By default, equal values are assigned a rank that is the average of the
+        ranks of those values.
 
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            index to direct ranking
-        method : {'average', 'min', 'max', 'first', 'dense'}
-            * average: average rank of group
-            * min: lowest rank in group
-            * max: highest rank in group
-            * first: ranks assigned in order they appear in the array
-            * dense: like 'min', but rank always increases by 1 between groups
+            Index to direct ranking.
+        method : {'average', 'min', 'max', 'first', 'dense'}, default 'average'
+            Which method to use to rank equal values:
+            * average: average rank of group.
+            * min: lowest rank in group.
+            * max: highest rank in group.
+            * first: ranks assigned in order they appear in the array.
+            * dense: like 'min', but rank always increases by 1 between groups.
         numeric_only : boolean, default None
             Include only float, int, boolean data. Valid only for DataFrame or
-            Panel objects
-        na_option : {'keep', 'top', 'bottom'}
-            * keep: leave NA values where they are
-            * top: smallest rank if ascending
-            * bottom: smallest rank if descending
+            Panel objects.
+        na_option : {'keep', 'top', 'bottom'}, default 'keep'
+            How to rank NaN values:
+            * keep: assign NaN rank to NaN values.
+            * top: assign smallest rank to NaN values if ascending.
+            * bottom: assign highest rank to NaN values if ascending.
         ascending : boolean, default True
-            False for ranks by high (1) to low (N)
+            False for ranks by high (1) to low (N).
         pct : boolean, default False
-            Computes percentage rank of data
+            Computes percentage rank of data.
 
         Returns
         -------
-        ranks : same type as caller
+        ranks : Series or DataFrame
+
+        Examples
+        --------
+
+        The default behaviour returns average ranks of every columns
+
+        >>> df = pd.DataFrame(data={'Customer':['A','B','C','D','E'],
+        ...                         'Tot_Spend':[12,20,20,18,16]})
+        >>> df.rank()
+           Customer  Tot_Spend
+        0       1.0        1.0
+        1       2.0        4.5
+        2       3.0        4.5
+        3       4.0        3.0
+        4       5.0        2.0
+
+        The argument numeric_only will only return rank for float, int and
+        boolean data
+
+        >>> df.rank(numeric_only=True)
+           Tot_Spend
+        0        1.0
+        1        4.5
+        2        4.5
+        3        3.0
+        4        2.0
+
+        The following examples show how rank behaves with every different
+        method and setting pct = True
+
+        >>> df['default_rank'] = df['Tot_Spend'].rank()
+        >>> df['min_rank'] = df['Tot_Spend'].rank(method='min')
+        >>> df['max_rank'] = df['Tot_Spend'].rank(method='max')
+        >>> df['dense_rank'] = df['Tot_Spend'].rank(method='dense')
+        >>> df[['Tot_Spend','default_rank','min_rank','max_rank','dense_rank']]
+           Tot_Spend  default_rank  min_rank  max_rank  dense_rank
+        0         12           1.0       1.0       1.0         1.0
+        1         20           4.5       4.0       5.0         4.0
+        2         20           4.5       4.0       5.0         4.0
+        3         18           3.0       3.0       3.0         3.0
+        4         16           2.0       2.0       2.0         2.0
+        >>> df['default_rank'] = df['Tot_Spend'].rank()
+        >>> df['pct_rank'] = df['Tot_Spend'].rank(pct=True)
+        >>> df[['Tot_Spend','default_rank','pct_rank']]
+           Tot_Spend  default_rank  pct_rank
+        0         12           1.0       0.2
+        1         20           4.5       0.9
+        2         20           4.5       0.9
+        3         18           3.0       0.6
+        4         16           2.0       0.4
+
+        The following example shows how rank behaves with NAs
+
+        >>> df = pd.DataFrame(data={'Student':['A','B','C','D','E'],
+        ...                         'Score':[78, np.nan, 68, 90, 68]})
+        >>> df['NA_keep'] = df['Score'].rank()
+        >>> df['NA_min'] = df['Score'].rank(na_option='bottom')
+        >>> df['NA_max'] = df['Score'].rank(na_option='top')
+        >>> df
+          Student  Score  NA_keep  NA_min  NA_max
+        0       A   78.0      3.0     3.0     4.0
+        1       B    NaN      NaN     5.0     1.0
+        2       C   68.0      1.5     1.5     2.5
+        3       D   90.0      4.0     4.0     5.0
+        4       E   68.0      1.5     1.5     2.5
+
+        See also
+        --------
+        GroupBy.rank : Rank of values within each group.
         """
         axis = self._get_axis_number(axis)
 
