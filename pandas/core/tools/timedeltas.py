@@ -18,8 +18,8 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     """
     Convert argument to timedelta.
 
-    Timedeltas are differences in times, expressed in difference units
-    e.g. days, hours, minutes, seconds. This method converts an argument
+    Timedeltas are absolute differences in times, expressed in difference
+    units e.g. days, hours, minutes, seconds. This method converts an argument
     from a recognized timedelta format / value into a Timedelta type.
 
     Parameters
@@ -76,21 +76,13 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
 
-    For `M` and `Y` units, `1M = 30D` and 1Y = 365D:
+    Returning an ndarray by using the 'box' keyword argument:
 
-    >>> pd.to_timedelta(np.arange(5), unit='M')
-    TimedeltaIndex([  '0 days 00:00:00',  '30 days 10:29:06',
-                      '60 days 20:58:12', '91 days 07:27:18',
-                      '121 days 17:56:24'],
-                      dtype='timedelta64[ns]', freq=None)
-    >>> pd.to_timedelta(np.arange(5), unit='Y')
-    TimedeltaIndex([   '0 days 00:00:00',  '365 days 05:49:12',
-                 '730 days 11:38:24', '1095 days 17:27:36',
-                '1460 days 23:16:48'],
-               dtype='timedelta64[ns]', freq=None)
+    >>> pd.to_timedelta(np.arange(5), box=False)
+    array([0, 1, 2, 3, 4], dtype='timedelta64[ns]')
 
     Add new column of dates from existing dates in a `DataFrame`
-    using `timedelta`
+    using `timedelta`:
 
     >>> Dates = pd.to_datetime(['26/10/2018','28/10/2018', '2/11/2018'])
     >>> df = pd.DataFrame({'Start': Dates,'Days':[5, 10, 5]})
