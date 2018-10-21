@@ -107,7 +107,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_fillna_copy(self, data_for_fillna):
         df = pd.DataFrame({"A": data_for_fillna})
-        filled_val = df.iloc[0,0]
+        filled_val = df.iloc[0, 0]
 
         result = df.fillna(filled_val)
         assert df.values.base is not result.values.base
