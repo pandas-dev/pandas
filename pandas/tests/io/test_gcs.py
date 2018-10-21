@@ -27,6 +27,21 @@ def test_read_csv_gcs(mock):
 
 
 @td.skip_if_no('gcsfs')
+def test_to_csv_gcs(mock):
+    df1 = DataFrame({'int': [1, 3], 'float': [2.0, np.nan], 'str': ['t', 's'],
+                     'dt': date_range('2018-06-18', periods=2)})
+    with mock.patch('gcsfs.GCSFileSystem') as MockFileSystem:
+        s = StringIO()
+        instance = MockFileSystem.return_value
+        instance.open.return_value = s
+
+        df1.to_csv('gs://test/test.csv', index=True)
+        df2 = read_csv(StringIO(s.getvalue()), parse_dates=['dt'], index_col=0)
+
+    assert_frame_equal(df1, df2)
+
+
+@td.skip_if_no('gcsfs')
 def test_gcs_get_filepath_or_buffer(mock):
     df1 = DataFrame({'int': [1, 3], 'float': [2.0, np.nan], 'str': ['t', 's'],
                      'dt': date_range('2018-06-18', periods=2)})

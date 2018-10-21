@@ -2,6 +2,7 @@
 from datetime import timedelta
 import operator
 
+import numpy as np
 import pytest
 import numpy as np
 
@@ -208,3 +209,18 @@ class TestSeriesComparison(object):
             ser = Series(cidx).rename(names[1])
             result = op(ser, cidx)
             assert result.name == names[2]
+
+
+def test_pow_ops_object():
+    # 22922
+    # pow is weird with masking & 1, so testing here
+    a = Series([1, np.nan, 1, np.nan], dtype=object)
+    b = Series([1, np.nan, np.nan, 1], dtype=object)
+    result = a ** b
+    expected = Series(a.values ** b.values, dtype=object)
+    tm.assert_series_equal(result, expected)
+
+    result = b ** a
+    expected = Series(b.values ** a.values, dtype=object)
+
+    tm.assert_series_equal(result, expected)

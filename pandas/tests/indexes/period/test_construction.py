@@ -264,20 +264,20 @@ class TestPeriodIndex(object):
 
     def test_constructor_simple_new(self):
         idx = period_range('2007-01', name='p', periods=2, freq='M')
-        result = idx._simple_new(idx, 'p', freq=idx.freq)
+        result = idx._simple_new(idx, name='p', freq=idx.freq)
         tm.assert_index_equal(result, idx)
 
-        result = idx._simple_new(idx.astype('i8'), 'p', freq=idx.freq)
+        result = idx._simple_new(idx.astype('i8'), name='p', freq=idx.freq)
         tm.assert_index_equal(result, idx)
 
         result = idx._simple_new([pd.Period('2007-01', freq='M'),
                                   pd.Period('2007-02', freq='M')],
-                                 'p', freq=idx.freq)
+                                 name='p', freq=idx.freq)
         tm.assert_index_equal(result, idx)
 
         result = idx._simple_new(np.array([pd.Period('2007-01', freq='M'),
                                            pd.Period('2007-02', freq='M')]),
-                                 'p', freq=idx.freq)
+                                 name='p', freq=idx.freq)
         tm.assert_index_equal(result, idx)
 
     def test_constructor_simple_new_empty(self):

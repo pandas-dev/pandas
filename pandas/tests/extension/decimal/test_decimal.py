@@ -100,7 +100,9 @@ class TestDtype(BaseDecimal, base.BaseDtypeTests):
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):
-    pass
+
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
@@ -112,7 +114,8 @@ class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
 
 
 class TestReshaping(BaseDecimal, base.BaseReshapingTests):
-    pass
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestGetitem(BaseDecimal, base.BaseGetitemTests):
@@ -128,6 +131,28 @@ class TestGetitem(BaseDecimal, base.BaseGetitemTests):
 
 
 class TestMissing(BaseDecimal, base.BaseMissingTests):
+    pass
+
+
+class Reduce(object):
+
+    def check_reduce(self, s, op_name, skipna):
+
+        if skipna or op_name in ['median', 'skew', 'kurt']:
+            with pytest.raises(NotImplementedError):
+                getattr(s, op_name)(skipna=skipna)
+
+        else:
+            result = getattr(s, op_name)(skipna=skipna)
+            expected = getattr(np.asarray(s), op_name)()
+            tm.assert_almost_equal(result, expected)
+
+
+class TestNumericReduce(Reduce, base.BaseNumericReduceTests):
+    pass
+
+
+class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
     pass
 
 
@@ -152,7 +177,8 @@ class TestCasting(BaseDecimal, base.BaseCastingTests):
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
-    pass
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestSetitem(BaseDecimal, base.BaseSetitemTests):

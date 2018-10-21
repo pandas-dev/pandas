@@ -3,8 +3,6 @@ import warnings
 import numpy as np
 from pandas import Panel
 
-from .pandas_vb_common import setup  # noqa
-
 
 class PanelMethods(object):
 
@@ -23,3 +21,6 @@ class PanelMethods(object):
     def time_shift(self, axis):
         with warnings.catch_warnings(record=True):
             self.panel.shift(1, axis=axis)
+
+
+from .pandas_vb_common import setup  # noqa: F401

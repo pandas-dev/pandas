@@ -14,7 +14,9 @@ from pandas._libs import lib, tslibs
 
 from pandas import compat
 from pandas.compat import iteritems, PY36, OrderedDict
-from pandas.core.dtypes.generic import ABCSeries, ABCIndex, ABCIndexClass
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCIndex, ABCIndexClass
+)
 from pandas.core.dtypes.common import (
     is_integer, is_bool_dtype, is_extension_array_dtype, is_array_like
 )
@@ -64,17 +66,6 @@ def consensus_name_attr(objs):
         except ValueError:
             name = None
     return name
-
-
-# TODO: only used once in frame.py; belongs elsewhere?
-def get_info_slice(obj, indexer):
-    """Slice the info axis of `obj` with `indexer`."""
-    if not hasattr(obj, '_info_axis_number'):
-        msg = 'object of type {typ!r} has no info axis'
-        raise TypeError(msg.format(typ=type(obj).__name__))
-    slices = [slice(None)] * obj.ndim
-    slices[obj._info_axis_number] = indexer
-    return tuple(slices)
 
 
 def maybe_box(indexer, values, obj, key):
@@ -428,21 +419,6 @@ def random_state(state=None):
     else:
         raise ValueError("random_state must be an integer, a numpy "
                          "RandomState, or None")
-
-
-# TODO: only used once in indexes.api; belongs elsewhere?
-def get_distinct_objs(objs):
-    """
-    Return a list with distinct elements of "objs" (different ids).
-    Preserves order.
-    """
-    ids = set()
-    res = []
-    for obj in objs:
-        if not id(obj) in ids:
-            ids.add(id(obj))
-            res.append(obj)
-    return res
 
 
 def _pipe(obj, func, *args, **kwargs):

@@ -862,6 +862,13 @@ def masked_arith_op(x, y, op):
         # mask is only meaningful for x
         result = np.empty(x.size, dtype=x.dtype)
         mask = notna(xrav)
+
+        # 1 ** np.nan is 1. So we have to unmask those.
+        if op == pow:
+            mask = np.where(x == 1, False, mask)
+        elif op == rpow:
+            mask = np.where(y == 1, False, mask)
+
         if mask.any():
             with np.errstate(all='ignore'):
                 result[mask] = op(xrav[mask], y)
@@ -1042,29 +1049,16 @@ def dispatch_to_extension_op(op, left, right):
 
     # The op calls will raise TypeError if the op is not defined
     # on the ExtensionArray
-    # TODO(jreback)
-    # we need to listify to avoid ndarray, or non-same-type extension array
-    # dispatching
 
-    if is_extension_array_dtype(left):
-
-        new_left = left.values
-        if isinstance(right, np.ndarray):
-
-            # handle numpy scalars, this is a PITA
-            # TODO(jreback)
-            new_right = lib.item_from_zerodim(right)
-            if is_scalar(new_right):
-                new_right = [new_right]
-            new_right = list(new_right)
-        elif is_extension_array_dtype(right) and type(left) != type(right):
-            new_right = list(right)
-        else:
-            new_right = right
-
+    # unbox Series and Index to arrays
+    if isinstance(left, (ABCSeries, ABCIndexClass)):
+        new_left = left._values
     else:
+        new_left = left
 
-        new_left = list(left.values)
+    if isinstance(right, (ABCSeries, ABCIndexClass)):
+        new_right = right._values
+    else:
         new_right = right
 
     res_values = op(new_left, new_right)
@@ -1803,12 +1797,7 @@ def _align_method_FRAME(left, right, axis):
 
             elif right.shape[0] == left.shape[0] and right.shape[1] == 1:
                 # Broadcast across columns
-                try:
-                    right = np.broadcast_to(right, left.shape)
-                except AttributeError:
-                    # numpy < 1.10.0
-                    right = np.tile(right, (1, left.shape[1]))
-
+                right = np.broadcast_to(right, left.shape)
                 right = left._constructor(right,
                                           index=left.index,
                                           columns=left.columns)
@@ -2064,16 +2053,19 @@ def _cast_sparse_series_op(left, right, opname):
     left : SparseArray
     right : SparseArray
     """
+    from pandas.core.sparse.api import SparseDtype
+
     opname = opname.strip('_')
 
+    # TODO: This should be moved to the array?
     if is_integer_dtype(left) and is_integer_dtype(right):
         # series coerces to float64 if result should have NaN/inf
         if opname in ('floordiv', 'mod') and (right.values == 0).any():
-            left = left.astype(np.float64)
-            right = right.astype(np.float64)
+            left = left.astype(SparseDtype(np.float64, left.fill_value))
+            right = right.astype(SparseDtype(np.float64, right.fill_value))
         elif opname in ('rfloordiv', 'rmod') and (left.values == 0).any():
-            left = left.astype(np.float64)
-            right = right.astype(np.float64)
+            left = left.astype(SparseDtype(np.float64, left.fill_value))
+            right = right.astype(SparseDtype(np.float64, right.fill_value))
 
     return left, right
 
@@ -2111,7 +2103,7 @@ def _sparse_series_op(left, right, op, name):
     new_index = left.index
     new_name = get_op_result_name(left, right)
 
-    from pandas.core.sparse.array import _sparse_array_op
+    from pandas.core.arrays.sparse import _sparse_array_op
     lvalues, rvalues = _cast_sparse_series_op(left.values, right.values, name)
     result = _sparse_array_op(lvalues, rvalues, op, name)
     return left._constructor(result, index=new_index, name=new_name)
@@ -2125,7 +2117,7 @@ def _arith_method_SPARSE_ARRAY(cls, op, special):
     op_name = _get_op_name(op, special)
 
     def wrapper(self, other):
-        from pandas.core.sparse.array import (
+        from pandas.core.arrays.sparse.array import (
             SparseArray, _sparse_array_op, _wrap_result, _get_fill)
         if isinstance(other, np.ndarray):
             if len(self) != len(other):

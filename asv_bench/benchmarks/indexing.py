@@ -2,17 +2,17 @@ import warnings
 
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (Series, DataFrame, MultiIndex, Panel,
-                    Int64Index, Float64Index, IntervalIndex,
-                    CategoricalIndex, IndexSlice, concat, date_range)
-from .pandas_vb_common import setup  # noqa
+from pandas import (Series, DataFrame, Panel, MultiIndex,
+                    Int64Index, UInt64Index, Float64Index,
+                    IntervalIndex, CategoricalIndex,
+                    IndexSlice, concat, date_range)
 
 
 class NumericSeriesIndexing(object):
 
     goal_time = 0.2
     params = [
-        (Int64Index, Float64Index),
+        (Int64Index, UInt64Index, Float64Index),
         ('unique_monotonic_inc', 'nonunique_monotonic_inc'),
     ]
     param_names = ['index_dtype', 'index_structure']
@@ -367,3 +367,6 @@ class InsertColumns(object):
         np.random.seed(1234)
         for i in range(100):
             self.df[i] = np.random.randn(self.N)
+
+
+from .pandas_vb_common import setup  # noqa: F401

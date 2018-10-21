@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import os
 import csv
 import pytest
 
@@ -841,11 +842,11 @@ class TestDataFrameToCSV(TestData):
                   encoding='utf-8')
 
         result = buf.getvalue()
-        expected = ('"A","B"\n'
-                    '1,"foo"\n'
-                    '2,"bar"\n'
-                    '3,"baz"\n')
-
+        expected_rows = ['"A","B"',
+                         '1,"foo"',
+                         '2,"bar"',
+                         '3,"baz"']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
 
     def test_to_csv_quote_none(self):
@@ -855,8 +856,12 @@ class TestDataFrameToCSV(TestData):
             buf = StringIO()
             df.to_csv(buf, quoting=csv.QUOTE_NONE,
                       encoding=encoding, index=False)
+
             result = buf.getvalue()
-            expected = 'A\nhello\n{"hello"}\n'
+            expected_rows = ['A',
+                             'hello',
+                             '{"hello"}']
+            expected = tm.convert_rows_list_to_csv_str(expected_rows)
             assert result == expected
 
     def test_to_csv_index_no_leading_comma(self):
@@ -865,31 +870,44 @@ class TestDataFrameToCSV(TestData):
 
         buf = StringIO()
         df.to_csv(buf, index_label=False)
-        expected = ('A,B\n'
-                    'one,1,4\n'
-                    'two,2,5\n'
-                    'three,3,6\n')
+
+        expected_rows = ['A,B',
+                         'one,1,4',
+                         'two,2,5',
+                         'three,3,6']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert buf.getvalue() == expected
 
     def test_to_csv_line_terminators(self):
+        # see gh-20353
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
                        index=['one', 'two', 'three'])
 
-        buf = StringIO()
-        df.to_csv(buf, line_terminator='\r\n')
-        expected = (',A,B\r\n'
-                    'one,1,4\r\n'
-                    'two,2,5\r\n'
-                    'three,3,6\r\n')
-        assert buf.getvalue() == expected
+        with ensure_clean() as path:
+            # case 1: CRLF as line terminator
+            df.to_csv(path, line_terminator='\r\n')
+            expected = b',A,B\r\none,1,4\r\ntwo,2,5\r\nthree,3,6\r\n'
 
-        buf = StringIO()
-        df.to_csv(buf)  # The default line terminator remains \n
-        expected = (',A,B\n'
-                    'one,1,4\n'
-                    'two,2,5\n'
-                    'three,3,6\n')
-        assert buf.getvalue() == expected
+            with open(path, mode='rb') as f:
+                assert f.read() == expected
+
+        with ensure_clean() as path:
+            # case 2: LF as line terminator
+            df.to_csv(path, line_terminator='\n')
+            expected = b',A,B\none,1,4\ntwo,2,5\nthree,3,6\n'
+
+            with open(path, mode='rb') as f:
+                assert f.read() == expected
+
+        with ensure_clean() as path:
+            # case 3: The default line terminator(=os.linesep)(gh-21406)
+            df.to_csv(path)
+            os_linesep = os.linesep.encode('utf-8')
+            expected = (b',A,B' + os_linesep + b'one,1,4' + os_linesep +
+                        b'two,2,5' + os_linesep + b'three,3,6' + os_linesep)
+
+            with open(path, mode='rb') as f:
+                assert f.read() == expected
 
     def test_to_csv_from_csv_categorical(self):
 
@@ -1069,35 +1087,39 @@ class TestDataFrameToCSV(TestData):
             'c_string': ['a', 'b,c'],
         })
 
-        expected = """\
-,c_bool,c_float,c_int,c_string
-0,True,1.0,42.0,a
-1,False,3.2,,"b,c"
-"""
+        expected_rows = [',c_bool,c_float,c_int,c_string',
+                         '0,True,1.0,42.0,a',
+                         '1,False,3.2,,"b,c"']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+
         result = df.to_csv()
         assert result == expected
 
         result = df.to_csv(quoting=None)
         assert result == expected
 
+        expected_rows = [',c_bool,c_float,c_int,c_string',
+                         '0,True,1.0,42.0,a',
+                         '1,False,3.2,,"b,c"']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+
         result = df.to_csv(quoting=csv.QUOTE_MINIMAL)
         assert result == expected
 
-        expected = """\
-"","c_bool","c_float","c_int","c_string"
-"0","True","1.0","42.0","a"
-"1","False","3.2","","b,c"
-"""
+        expected_rows = ['"","c_bool","c_float","c_int","c_string"',
+                         '"0","True","1.0","42.0","a"',
+                         '"1","False","3.2","","b,c"']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+
         result = df.to_csv(quoting=csv.QUOTE_ALL)
         assert result == expected
 
         # see gh-12922, gh-13259: make sure changes to
         # the formatters do not break this behaviour
-        expected = """\
-"","c_bool","c_float","c_int","c_string"
-0,True,1.0,42.0,"a"
-1,False,3.2,"","b,c"
-"""
+        expected_rows = ['"","c_bool","c_float","c_int","c_string"',
+                         '0,True,1.0,42.0,"a"',
+                         '1,False,3.2,"","b,c"']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
         result = df.to_csv(quoting=csv.QUOTE_NONNUMERIC)
         assert result == expected
 
@@ -1108,28 +1130,29 @@ class TestDataFrameToCSV(TestData):
                                quoting=csv.QUOTE_NONE,
                                escapechar=None)
 
-        expected = """\
-,c_bool,c_float,c_int,c_string
-0,True,1.0,42.0,a
-1,False,3.2,,b!,c
-"""
+        expected_rows = [',c_bool,c_float,c_int,c_string',
+                         '0,True,1.0,42.0,a',
+                         '1,False,3.2,,b!,c']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
         result = df.to_csv(quoting=csv.QUOTE_NONE,
                            escapechar='!')
         assert result == expected
 
-        expected = """\
-,c_bool,c_ffloat,c_int,c_string
-0,True,1.0,42.0,a
-1,False,3.2,,bf,c
-"""
+        expected_rows = [',c_bool,c_ffloat,c_int,c_string',
+                         '0,True,1.0,42.0,a',
+                         '1,False,3.2,,bf,c']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
         result = df.to_csv(quoting=csv.QUOTE_NONE,
                            escapechar='f')
         assert result == expected
 
         # see gh-3503: quoting Windows line terminators
         # presents with encoding?
-        text = 'a,b,c\n1,"test \r\n",3\n'
+        text_rows = ['a,b,c',
+                     '1,"test \r\n",3']
+        text = tm.convert_rows_list_to_csv_str(text_rows)
         df = pd.read_csv(StringIO(text))
+
         buf = StringIO()
         df.to_csv(buf, encoding='utf-8', index=False)
         assert buf.getvalue() == text
@@ -1138,7 +1161,11 @@ class TestDataFrameToCSV(TestData):
         # with multi-indexes
         df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
         df = df.set_index(['a', 'b'])
-        expected = '"a","b","c"\n"1","3","5"\n"2","4","6"\n'
+
+        expected_rows = ['"a","b","c"',
+                         '"1","3","5"',
+                         '"2","4","6"']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(quoting=csv.QUOTE_ALL) == expected
 
     def test_period_index_date_overflow(self):
@@ -1150,13 +1177,21 @@ class TestDataFrameToCSV(TestData):
         df = pd.DataFrame([4, 5, 6], index=index)
         result = df.to_csv()
 
-        expected = ',0\n1990-01-01,4\n2000-01-01,5\n3005-01-01,6\n'
+        expected_rows = [',0',
+                         '1990-01-01,4',
+                         '2000-01-01,5',
+                         '3005-01-01,6']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
 
         date_format = "%m-%d-%Y"
         result = df.to_csv(date_format=date_format)
 
-        expected = ',0\n01-01-1990,4\n01-01-2000,5\n01-01-3005,6\n'
+        expected_rows = [',0',
+                         '01-01-1990,4',
+                         '01-01-2000,5',
+                         '01-01-3005,6']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
 
         # Overflow with pd.NaT
@@ -1166,7 +1201,11 @@ class TestDataFrameToCSV(TestData):
         df = pd.DataFrame([4, 5, 6], index=index)
         result = df.to_csv()
 
-        expected = ',0\n1990-01-01,4\n,5\n3005-01-01,6\n'
+        expected_rows = [',0',
+                         '1990-01-01,4',
+                         ',5',
+                         '3005-01-01,6']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
 
     def test_multi_index_header(self):
@@ -1179,5 +1218,8 @@ class TestDataFrameToCSV(TestData):
         header = ["a", "b", "c", "d"]
         result = df.to_csv(header=header)
 
-        expected = ",a,b,c,d\n0,1,2,3,4\n1,5,6,7,8\n"
+        expected_rows = [',a,b,c,d',
+                         '0,1,2,3,4',
+                         '1,5,6,7,8']
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected

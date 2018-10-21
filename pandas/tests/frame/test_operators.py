@@ -536,8 +536,8 @@ class TestDataFrameOperators(TestData):
         b = np.array([2, 2])
         b_r = np.atleast_2d([2, 2])
         b_c = b_r.T
-        l = (2, 2, 2)
-        tup = tuple(l)
+        lst = [2, 2, 2]
+        tup = tuple(lst)
 
         # gt
         expected = DataFrame([[False, False], [False, True], [True, True]])
@@ -547,7 +547,7 @@ class TestDataFrameOperators(TestData):
         result = df.values > b
         assert_numpy_array_equal(result, expected.values)
 
-        result = df > l
+        result = df > lst
         assert_frame_equal(result, expected)
 
         result = df > tup
@@ -570,7 +570,7 @@ class TestDataFrameOperators(TestData):
         result = df == b
         assert_frame_equal(result, expected)
 
-        result = df == l
+        result = df == lst
         assert_frame_equal(result, expected)
 
         result = df == tup
@@ -593,7 +593,7 @@ class TestDataFrameOperators(TestData):
         expected.index = df.index
         expected.columns = df.columns
 
-        result = df == l
+        result = df == lst
         assert_frame_equal(result, expected)
 
         result = df == tup
