@@ -7731,7 +7731,7 @@ class NDFrame(PandasObject, SelectionMixin):
             * max: highest rank in group.
             * first: ranks assigned in order they appear in the array.
             * dense: like 'min', but rank always increases by 1 between groups.
-        numeric_only : boolean, default None
+        numeric_only : bool, default None
             Include only float, int, boolean data. Valid only for DataFrame or
             Panel objects.
         na_option : {'keep', 'top', 'bottom'}, default 'keep'
@@ -7739,9 +7739,9 @@ class NDFrame(PandasObject, SelectionMixin):
             * keep: assign NaN rank to NaN values.
             * top: assign smallest rank to NaN values if ascending.
             * bottom: assign highest rank to NaN values if ascending.
-        ascending : boolean, default True
+        ascending : bool, default True
             False for ranks by high (1) to low (N).
-        pct : boolean, default False
+        pct : bool, default False
             Computes percentage rank of data.
 
         Returns
@@ -7751,7 +7751,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
 
-        The default behaviour returns average ranks of every columns
+        The default behavior returns average ranks of every columns
 
         >>> df = pd.DataFrame(data={'Customer':['A','B','C','D','E'],
         ...                         'Tot_Spend':[12,20,20,18,16]})
