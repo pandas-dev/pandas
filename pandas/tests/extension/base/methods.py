@@ -105,6 +105,16 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(l1, l2)
         self.assert_extension_array_equal(u1, u2)
 
+    def test_fillna_copy(self, data_for_fillna):
+        df = pd.DataFrame({"A": data_for_fillna})
+        result = df.fillna(0, axis='columns')
+
+        self.assert_frame_equal(df, result)
+        assert result._is_view
+
+    def test_fillna_array_lenght(self, data_for_fillna):
+        assert len(self) == len(data_for_fillna)
+
     def test_combine_le(self, data_repeated):
         # GH 20825
         # Test that combine works when doing a <= (le) comparison
