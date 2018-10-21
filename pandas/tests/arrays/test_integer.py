@@ -114,12 +114,26 @@ class TestArithmeticOps(BaseOpsUtil):
         # compute expected
         mask = s.isna()
 
+        # if s is a DataFrame, squeeze to a Series
+        # for comparison
+        if isinstance(s, pd.DataFrame):
+            result = result.squeeze()
+            s = s.squeeze()
+            mask = mask.squeeze()
+
         # other array is an Integer
         if isinstance(other, IntegerArray):
             omask = getattr(other, 'mask', None)
             mask = getattr(other, 'data', other)
             if omask is not None:
                 mask |= omask
+
+        # 1 ** na is na, so need to unmask those
+        if op_name == '__pow__':
+            mask = np.where(s == 1, False, mask)
+
+        elif op_name == '__rpow__':
+            mask = np.where(other == 1, False, mask)
 
         # float result type or float op
         if ((is_float_dtype(other) or is_float(other) or
@@ -164,7 +178,6 @@ class TestArithmeticOps(BaseOpsUtil):
             else:
                 expected[(s.values == 0) &
                          ((expected == 0) | expected.isna())] = 0
-
         try:
             expected[(expected == np.inf) | (expected == -np.inf)] = fill_value
             original = expected
@@ -215,7 +228,6 @@ class TestArithmeticOps(BaseOpsUtil):
         s = pd.Series(data)
         self._check_op(s, op, 1, exc=TypeError)
 
-    @pytest.mark.xfail(run=False, reason="_reduce needs implementation")
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op = all_arithmetic_operators
@@ -242,12 +254,19 @@ class TestArithmeticOps(BaseOpsUtil):
     @pytest.mark.parametrize("other", [1., 1.0, np.array(1.), np.array([1.])])
     def test_arithmetic_conversion(self, all_arithmetic_operators, other):
         # if we have a float operand we should have a float result
-        # if if that is equal to an integer
+        # if that is equal to an integer
         op = self.get_op_from_name(all_arithmetic_operators)
 
         s = pd.Series([1, 2, 3], dtype='Int64')
         result = op(s, other)
         assert result.dtype is np.dtype('float')
+
+    @pytest.mark.parametrize("other", [0, 0.5])
+    def test_arith_zero_dim_ndarray(self, other):
+        arr = integer_array([1, None, 2])
+        result = arr + np.array(other)
+        expected = arr + other
+        tm.assert_equal(result, expected)
 
     def test_error(self, data, all_arithmetic_operators):
         # invalid ops
@@ -278,6 +297,21 @@ class TestArithmeticOps(BaseOpsUtil):
             opa(pd.DataFrame({'A': s}))
         with pytest.raises(NotImplementedError):
             opa(np.arange(len(s)).reshape(-1, len(s)))
+
+    def test_pow(self):
+        # https://github.com/pandas-dev/pandas/issues/22022
+        a = integer_array([1, np.nan, np.nan, 1])
+        b = integer_array([1, np.nan, 1, np.nan])
+        result = a ** b
+        expected = pd.core.arrays.integer_array([1, np.nan, np.nan, 1])
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_rpow_one_to_na(self):
+        # https://github.com/pandas-dev/pandas/issues/22022
+        arr = integer_array([np.nan, np.nan])
+        result = np.array([1.0, 2.0]) ** arr
+        expected = np.array([1.0, np.nan])
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestComparisonOps(BaseOpsUtil):
@@ -491,6 +525,18 @@ def test_integer_array_constructor():
         IntegerArray(values)
 
 
+@pytest.mark.parametrize('a, b', [
+    ([1, None], [1, np.nan]),
+    pytest.param([None], [np.nan],
+                 marks=pytest.mark.xfail(reason='GH-23224',
+                                         strict=True)),
+])
+def test_integer_array_constructor_none_is_nan(a, b):
+    result = integer_array(a)
+    expected = integer_array(b)
+    tm.assert_extension_array_equal(result, expected)
+
+
 def test_integer_array_constructor_copy():
     values = np.array([1, 2, 3, 4], dtype='int64')
     mask = np.array([False, False, False, True], dtype='bool')
@@ -587,18 +633,49 @@ def test_cross_type_arithmetic():
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_mean_included():
+@pytest.mark.parametrize('op', ['sum', 'min', 'max', 'prod'])
+def test_preserve_dtypes(op):
+    # TODO(#22346): preserve Int64 dtype
+    # for ops that enable (mean would actually work here
+    # but generally it is a float return value)
     df = pd.DataFrame({
         "A": ['a', 'b', 'b'],
         "B": [1, None, 3],
         "C": integer_array([1, None, 3], dtype='Int64'),
     })
 
-    result = df.groupby("A").sum()
-    # TODO(#22346): preserve Int64 dtype
+    # op
+    result = getattr(df.C, op)()
+    assert isinstance(result, int)
+
+    # groupby
+    result = getattr(df.groupby("A"), op)()
     expected = pd.DataFrame({
         "B": np.array([1.0, 3.0]),
         "C": np.array([1, 3], dtype="int64")
+    }, index=pd.Index(['a', 'b'], name='A'))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize('op', ['mean'])
+def test_reduce_to_float(op):
+    # some reduce ops always return float, even if the result
+    # is a rounded number
+    df = pd.DataFrame({
+        "A": ['a', 'b', 'b'],
+        "B": [1, None, 3],
+        "C": integer_array([1, None, 3], dtype='Int64'),
+    })
+
+    # op
+    result = getattr(df.C, op)()
+    assert isinstance(result, float)
+
+    # groupby
+    result = getattr(df.groupby("A"), op)()
+    expected = pd.DataFrame({
+        "B": np.array([1.0, 3.0]),
+        "C": np.array([1, 3], dtype="float64")
     }, index=pd.Index(['a', 'b'], name='A'))
     tm.assert_frame_equal(result, expected)
 

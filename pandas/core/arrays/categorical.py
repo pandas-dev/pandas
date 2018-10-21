@@ -45,6 +45,8 @@ from pandas.util._decorators import (
 
 import pandas.core.algorithms as algorithms
 
+from pandas.core.sorting import nargsort
+
 from pandas.io.formats import console
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
@@ -1605,32 +1607,15 @@ class Categorical(ExtensionArray, PandasObject):
             msg = 'invalid na_position: {na_position!r}'
             raise ValueError(msg.format(na_position=na_position))
 
-        codes = np.sort(self._codes)
-        if not ascending:
-            codes = codes[::-1]
+        sorted_idx = nargsort(self,
+                              ascending=ascending,
+                              na_position=na_position)
 
-        # NaN handling
-        na_mask = (codes == -1)
-        if na_mask.any():
-            n_nans = len(codes[na_mask])
-            if na_position == "first":
-                # in this case sort to the front
-                new_codes = codes.copy()
-                new_codes[0:n_nans] = -1
-                new_codes[n_nans:] = codes[~na_mask]
-                codes = new_codes
-            elif na_position == "last":
-                # ... and to the end
-                new_codes = codes.copy()
-                pos = len(codes) - n_nans
-                new_codes[0:pos] = codes[~na_mask]
-                new_codes[pos:] = -1
-                codes = new_codes
         if inplace:
-            self._codes = codes
-            return
+            self._codes = self._codes[sorted_idx]
         else:
-            return self._constructor(values=codes, dtype=self.dtype,
+            return self._constructor(values=self._codes[sorted_idx],
+                                     dtype=self.dtype,
                                      fastpath=True)
 
     def _values_for_rank(self):
@@ -2069,14 +2054,12 @@ class Categorical(ExtensionArray, PandasObject):
         return result
 
     # reduction ops #
-    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
-        """ perform the reduction type operation """
+    def _reduce(self, name, axis=0, skipna=True, **kwargs):
         func = getattr(self, name, None)
         if func is None:
             msg = 'Categorical cannot perform the operation {op}'
             raise TypeError(msg.format(op=name))
-        return func(numeric_only=numeric_only, **kwds)
+        return func(**kwargs)
 
     def min(self, numeric_only=None, **kwargs):
         """ The minimum value of the object.
@@ -2439,9 +2422,13 @@ def _get_codes_for_values(values, categories):
     """
     utility routine to turn values into codes given the specified categories
     """
-
     from pandas.core.algorithms import _get_data_algo, _hashtables
-    if not is_dtype_equal(values.dtype, categories.dtype):
+    if is_dtype_equal(values.dtype, categories.dtype):
+        # To prevent erroneous dtype coercion in _get_data_algo, retrieve
+        # the underlying numpy array. gh-22702
+        values = getattr(values, 'values', values)
+        categories = getattr(categories, 'values', categories)
+    else:
         values = ensure_object(values)
         categories = ensure_object(categories)
 

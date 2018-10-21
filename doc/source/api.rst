@@ -245,6 +245,15 @@ Top-level evaluation
 
    eval
 
+Hashing
+~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   util.hash_array
+   util.hash_pandas_object
+
 Testing
 ~~~~~~~
 
@@ -905,7 +914,6 @@ Indexing, iteration
    DataFrame.iat
    DataFrame.loc
    DataFrame.iloc
-   DataFrame.insert
    DataFrame.insert
    DataFrame.__iter__
    DataFrame.items
@@ -2603,3 +2611,12 @@ objects.
    generated/pandas.Series.ix
    generated/pandas.Series.imag
    generated/pandas.Series.real
+
+
+.. Can't convince sphinx to generate toctree for this class attribute.
+.. So we do it manually to avoid a warning
+
+.. toctree::
+   :hidden:
+
+   generated/pandas.api.extensions.ExtensionDtype.na_value

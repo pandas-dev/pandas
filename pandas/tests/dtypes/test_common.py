@@ -6,6 +6,7 @@ import pandas as pd
 
 from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
                                        CategoricalDtype, IntervalDtype)
+from pandas.core.sparse.api import SparseDtype
 
 import pandas.core.dtypes.common as com
 import pandas.util.testing as tm
@@ -386,6 +387,8 @@ def test_is_datetime_or_timedelta_dtype():
     assert not com.is_datetime_or_timedelta_dtype(str)
     assert not com.is_datetime_or_timedelta_dtype(pd.Series([1, 2]))
     assert not com.is_datetime_or_timedelta_dtype(np.array(['a', 'b']))
+    assert not com.is_datetime_or_timedelta_dtype(
+        DatetimeTZDtype("ns", "US/Eastern"))
 
     assert com.is_datetime_or_timedelta_dtype(np.datetime64)
     assert com.is_datetime_or_timedelta_dtype(np.timedelta64)
@@ -567,8 +570,8 @@ def test_is_offsetlike():
     (pd.DatetimeIndex([1, 2]).dtype, np.dtype('=M8[ns]')),
     ('<M8[ns]', np.dtype('<M8[ns]')),
     ('datetime64[ns, Europe/London]', DatetimeTZDtype('ns', 'Europe/London')),
-    (pd.SparseSeries([1, 2], dtype='int32'), np.dtype('int32')),
-    (pd.SparseSeries([1, 2], dtype='int32').dtype, np.dtype('int32')),
+    (pd.SparseSeries([1, 2], dtype='int32'), SparseDtype('int32')),
+    (pd.SparseSeries([1, 2], dtype='int32').dtype, SparseDtype('int32')),
     (PeriodDtype(freq='D'), PeriodDtype(freq='D')),
     ('period[D]', PeriodDtype(freq='D')),
     (IntervalDtype(), IntervalDtype()),
@@ -605,15 +608,15 @@ def test__get_dtype_fails(input_param):
     (pd.DatetimeIndex([1, 2]), np.datetime64),
     (pd.DatetimeIndex([1, 2]).dtype, np.datetime64),
     ('<M8[ns]', np.datetime64),
-    (pd.DatetimeIndex([1, 2], tz='Europe/London'), com.DatetimeTZDtypeType),
+    (pd.DatetimeIndex([1, 2], tz='Europe/London'), pd.Timestamp),
     (pd.DatetimeIndex([1, 2], tz='Europe/London').dtype,
-     com.DatetimeTZDtypeType),
-    ('datetime64[ns, Europe/London]', com.DatetimeTZDtypeType),
+     pd.Timestamp),
+    ('datetime64[ns, Europe/London]', pd.Timestamp),
     (pd.SparseSeries([1, 2], dtype='int32'), np.int32),
     (pd.SparseSeries([1, 2], dtype='int32').dtype, np.int32),
-    (PeriodDtype(freq='D'), com.PeriodDtypeType),
-    ('period[D]', com.PeriodDtypeType),
-    (IntervalDtype(), com.IntervalDtypeType),
+    (PeriodDtype(freq='D'), pd.Period),
+    ('period[D]', pd.Period),
+    (IntervalDtype(), pd.Interval),
     (None, type(None)),
     (1, type(None)),
     (1.2, type(None)),

@@ -14,8 +14,12 @@ from pandas._libs import lib, tslibs
 
 from pandas import compat
 from pandas.compat import iteritems, PY36, OrderedDict
-from pandas.core.dtypes.generic import ABCSeries, ABCIndex, ABCIndexClass
-from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCIndex, ABCIndexClass
+)
+from pandas.core.dtypes.common import (
+    is_integer, is_bool_dtype, is_extension_array_dtype, is_array_like
+)
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -64,17 +68,6 @@ def consensus_name_attr(objs):
     return name
 
 
-# TODO: only used once in frame.py; belongs elsewhere?
-def get_info_slice(obj, indexer):
-    """Slice the info axis of `obj` with `indexer`."""
-    if not hasattr(obj, '_info_axis_number'):
-        msg = 'object of type {typ!r} has no info axis'
-        raise TypeError(msg.format(typ=type(obj).__name__))
-    slices = [slice(None)] * obj.ndim
-    slices[obj._info_axis_number] = indexer
-    return tuple(slices)
-
-
 def maybe_box(indexer, values, obj, key):
 
     # if we have multiples coming back, box em
@@ -100,17 +93,45 @@ values_from_object = lib.values_from_object
 
 
 def is_bool_indexer(key):
-    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)):
+    # type: (Any) -> bool
+    """
+    Check whether `key` is a valid boolean indexer.
+
+    Parameters
+    ----------
+    key : Any
+        Only list-likes may be considered boolean indexers.
+        All other types are not considered a boolean indexer.
+        For array-like input, boolean ndarrays or ExtensionArrays
+        with ``_is_boolean`` set are considered boolean indexers.
+
+    Returns
+    -------
+    bool
+
+    Raises
+    ------
+    ValueError
+        When the array is an object-dtype ndarray or ExtensionArray
+        and contains missing values.
+    """
+    na_msg = 'cannot index with vector containing NA / NaN values'
+    if (isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or
+            (is_array_like(key) and is_extension_array_dtype(key.dtype))):
         if key.dtype == np.object_:
             key = np.asarray(values_from_object(key))
 
             if not lib.is_bool_array(key):
                 if isna(key).any():
-                    raise ValueError('cannot index with vector containing '
-                                     'NA / NaN values')
+                    raise ValueError(na_msg)
                 return False
             return True
-        elif key.dtype == np.bool_:
+        elif is_bool_dtype(key.dtype):
+            # an ndarray with bool-dtype by definition has no missing values.
+            # So we only need to check for NAs in ExtensionArrays
+            if is_extension_array_dtype(key.dtype):
+                if np.any(key.isna()):
+                    raise ValueError(na_msg)
             return True
     elif isinstance(key, list):
         try:
@@ -398,21 +419,6 @@ def random_state(state=None):
     else:
         raise ValueError("random_state must be an integer, a numpy "
                          "RandomState, or None")
-
-
-# TODO: only used once in indexes.api; belongs elsewhere?
-def get_distinct_objs(objs):
-    """
-    Return a list with distinct elements of "objs" (different ids).
-    Preserves order.
-    """
-    ids = set()
-    res = []
-    for obj in objs:
-        if not id(obj) in ids:
-            ids.add(id(obj))
-            res.append(obj)
-    return res
 
 
 def _pipe(obj, func, *args, **kwargs):

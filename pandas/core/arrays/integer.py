@@ -3,11 +3,13 @@ import warnings
 import copy
 import numpy as np
 
-from pandas._libs.lib import infer_dtype
+
+from pandas._libs import lib
 from pandas.util._decorators import cache_readonly
 from pandas.compat import u, range, string_types
 from pandas.compat import set_function_name
 
+from pandas.core import nanops
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import (
@@ -170,7 +172,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
 
     values = np.array(values, copy=copy)
     if is_object_dtype(values):
-        inferred_type = infer_dtype(values)
+        inferred_type = lib.infer_dtype(values)
         if inferred_type not in ['floating', 'integer',
                                  'mixed-integer', 'mixed-integer-float']:
             raise TypeError("{} cannot be converted to an IntegerDtype".format(
@@ -279,6 +281,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         data[self._mask] = self._na_value
         return data
 
+    __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
+
     def __array__(self, dtype=None):
         """
         the array interface, return my values
@@ -287,12 +291,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return self._coerce_to_ndarray()
 
     def __iter__(self):
-        """Iterate over elements of the array.
-
-        """
-        # This needs to be implemented so that pandas recognizes extension
-        # arrays as list-like. The default implementation makes successive
-        # calls to ``__getitem__``, which may be slower than necessary.
         for i in range(len(self)):
             if self._mask[i]:
                 yield self.dtype.na_value
@@ -503,12 +501,20 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             op_name = op.__name__
             mask = None
+
+            if isinstance(other, (ABCSeries, ABCIndexClass)):
+                # Rely on pandas to unbox and dispatch to us.
+                return NotImplemented
+
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
+
             elif is_list_like(other):
                 other = np.asarray(other)
                 if other.ndim > 0 and len(self) != len(other):
                     raise ValueError('Lengths must match to compare')
+
+            other = lib.item_from_zerodim(other)
 
             # numpy will show a DeprecationWarning on invalid elementwise
             # comparisons, this will raise in the future
@@ -528,6 +534,31 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         name = '__{name}__'.format(name=op.__name__)
         return set_function_name(cmp_method, name, cls)
+
+    def _reduce(self, name, skipna=True, **kwargs):
+        data = self._data
+        mask = self._mask
+
+        # coerce to a nan-aware float if needed
+        if mask.any():
+            data = self._data.astype('float64')
+            data[mask] = self._na_value
+
+        op = getattr(nanops, 'nan' + name)
+        result = op(data, axis=0, skipna=skipna, mask=mask)
+
+        # if we have a boolean op, don't coerce
+        if name in ['any', 'all']:
+            pass
+
+        # if we have a preservable numeric op,
+        # provide coercion back to an integer type if possible
+        elif name in ['sum', 'min', 'max', 'prod'] and notna(result):
+            int_result = int(result)
+            if int_result == result:
+                result = int_result
+
+        return result
 
     def _maybe_mask_result(self, result, mask, other, op_name):
         """
@@ -560,14 +591,21 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             op_name = op.__name__
             mask = None
+
             if isinstance(other, (ABCSeries, ABCIndexClass)):
-                other = getattr(other, 'values', other)
+                # Rely on pandas to unbox and dispatch to us.
+                return NotImplemented
+
+            if getattr(other, 'ndim', 0) > 1:
+                raise NotImplementedError(
+                    "can only perform ops with 1-d structures")
 
             if isinstance(other, IntegerArray):
                 other, mask = other._data, other._mask
-            elif getattr(other, 'ndim', 0) > 1:
-                raise NotImplementedError(
-                    "can only perform ops with 1-d structures")
+
+            elif getattr(other, 'ndim', None) == 0:
+                other = other.item()
+
             elif is_list_like(other):
                 other = np.asarray(other)
                 if not other.ndim:
@@ -585,6 +623,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 mask = self._mask
             else:
                 mask = self._mask | mask
+
+            # 1 ** np.nan is 1. So we have to unmask those.
+            if op_name == 'pow':
+                mask = np.where(self == 1, False, mask)
+
+            elif op_name == 'rpow':
+                mask = np.where(other == 1, False, mask)
 
             with np.errstate(all='ignore'):
                 result = op(self._data, other)

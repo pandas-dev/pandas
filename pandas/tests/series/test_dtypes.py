@@ -24,10 +24,8 @@ from pandas.compat import lrange, range, u
 from pandas import compat
 import pandas.util.testing as tm
 
-from .common import TestData
 
-
-class TestSeriesDtypes(TestData):
+class TestSeriesDtypes():
 
     def test_dt64_series_astype_object(self):
         dt64ser = Series(date_range('20130101', periods=3))
@@ -56,17 +54,17 @@ class TestSeriesDtypes(TestData):
             o = s.asobject
         assert isinstance(o, np.ndarray)
 
-    def test_dtype(self):
+    def test_dtype(self, datetime_series):
 
-        assert self.ts.dtype == np.dtype('float64')
-        assert self.ts.dtypes == np.dtype('float64')
-        assert self.ts.ftype == 'float64:dense'
-        assert self.ts.ftypes == 'float64:dense'
-        tm.assert_series_equal(self.ts.get_dtype_counts(),
+        assert datetime_series.dtype == np.dtype('float64')
+        assert datetime_series.dtypes == np.dtype('float64')
+        assert datetime_series.ftype == 'float64:dense'
+        assert datetime_series.ftypes == 'float64:dense'
+        tm.assert_series_equal(datetime_series.get_dtype_counts(),
                                Series(1, ['float64']))
         # GH18243 - Assert .get_ftype_counts is deprecated
         with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(self.ts.get_ftype_counts(),
+            tm.assert_series_equal(datetime_series.get_ftype_counts(),
                                    Series(1, ['float64:dense']))
 
     @pytest.mark.parametrize("value", [np.nan, np.inf])
@@ -245,15 +243,15 @@ class TestSeriesDtypes(TestData):
         tm.assert_series_equal(result, expected)
 
     def test_astype_from_categorical(self):
-        l = ["a", "b", "c", "a"]
-        s = Series(l)
-        exp = Series(Categorical(l))
+        items = ["a", "b", "c", "a"]
+        s = Series(items)
+        exp = Series(Categorical(items))
         res = s.astype('category')
         tm.assert_series_equal(res, exp)
 
-        l = [1, 2, 3, 1]
-        s = Series(l)
-        exp = Series(Categorical(l))
+        items = [1, 2, 3, 1]
+        s = Series(items)
+        exp = Series(Categorical(items))
         res = s.astype('category')
         tm.assert_series_equal(res, exp)
 
@@ -272,13 +270,13 @@ class TestSeriesDtypes(TestData):
         tm.assert_frame_equal(exp_df, df)
 
         # with keywords
-        l = ["a", "b", "c", "a"]
-        s = Series(l)
-        exp = Series(Categorical(l, ordered=True))
+        lst = ["a", "b", "c", "a"]
+        s = Series(lst)
+        exp = Series(Categorical(lst, ordered=True))
         res = s.astype(CategoricalDtype(None, ordered=True))
         tm.assert_series_equal(res, exp)
 
-        exp = Series(Categorical(l, categories=list('abcdef'), ordered=True))
+        exp = Series(Categorical(lst, categories=list('abcdef'), ordered=True))
         res = s.astype(CategoricalDtype(list('abcdef'), ordered=True))
         tm.assert_series_equal(res, exp)
 
@@ -508,3 +506,8 @@ class TestSeriesDtypes(TestData):
 
         assert actual.dtype == 'object'
         tm.assert_series_equal(actual, expected)
+
+    def test_is_homogeneous_type(self):
+        assert Series()._is_homogeneous_type
+        assert Series([1, 2])._is_homogeneous_type
+        assert Series(pd.Categorical([1, 2]))._is_homogeneous_type

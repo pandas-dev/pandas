@@ -98,11 +98,11 @@ class _Window(PandasObject, SelectionMixin):
     def validate(self):
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
-        if self.min_periods is not None and not \
-           is_integer(self.min_periods):
+        if (self.min_periods is not None and
+                not is_integer(self.min_periods)):
             raise ValueError("min_periods must be an integer")
-        if self.closed is not None and self.closed not in \
-           ['right', 'both', 'left', 'neither']:
+        if (self.closed is not None and
+                self.closed not in ['right', 'both', 'left', 'neither']):
             raise ValueError("closed must be 'right', 'left', 'both' or "
                              "'neither'")
 
@@ -462,7 +462,8 @@ class Window(_Window):
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA). For a window that is specified by an offset,
-        this will default to 1.
+        `min_periods` will default to 1. Otherwise, `min_periods` will default
+        to the size of the window.
     center : boolean, default False
         Set the labels at the center of the window.
     win_type : string, default None
@@ -1404,7 +1405,7 @@ class _Rolling_and_Expanding(_Rolling):
         otherwise defaults to `False`.
         Not relevant for :class:`~pandas.Series`.
     **kwargs
-        Under Review.
+        Unused.
 
     Returns
     -------
@@ -1430,7 +1431,7 @@ class _Rolling_and_Expanding(_Rolling):
     all 1's), except for :class:`~pandas.DataFrame` inputs with `pairwise`
     set to `True`.
 
-    Function will return `NaN`s for correlations of equal valued sequences;
+    Function will return ``NaN`` for correlations of equal valued sequences;
     this is the result of a 0/0 division error.
 
     When `pairwise` is set to `False`, only matching columns between `self` and
@@ -1446,7 +1447,7 @@ class _Rolling_and_Expanding(_Rolling):
     Examples
     --------
     The below example shows a rolling calculation with a window size of
-    four matching the equivalent function call using `numpy.corrcoef`.
+    four matching the equivalent function call using :meth:`numpy.corrcoef`.
 
     >>> v1 = [3, 3, 3, 5, 8]
     >>> v2 = [3, 4, 4, 4, 8]
@@ -2504,7 +2505,7 @@ def _offset(window, center):
     offset = (window - 1) / 2. if center else 0
     try:
         return int(offset)
-    except:
+    except TypeError:
         return offset.astype(int)
 
 
