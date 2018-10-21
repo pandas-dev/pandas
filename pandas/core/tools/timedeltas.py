@@ -18,10 +18,9 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     """
     Convert argument to timedelta.
 
-    Timedeltas are differences in times, expressed in difference units,
-    for example, years, momths, days, hours, minutes, seconds.
-    They can be both positive and negative. This method can create Timedelta
-    objects from pandas objects.
+    Timedeltas are differences in times, expressed in difference units
+    e.g. days, hours, minutes, seconds. This method converts an argument
+    from a recognized timedelta format / value into a Timedelta type.
 
     Parameters
     ----------
