@@ -31,6 +31,8 @@ def _try_import():
                           "or via pip\n"
                           "pip install -U feather-format\n")
 
+    import pyarrow  # used by feather; we'll need to check the version later
+
     return feather
 
 
@@ -109,4 +111,9 @@ def read_feather(path, nthreads=1):
     if LooseVersion(feather.__version__) < LooseVersion('0.4.0'):
         return feather.read_dataframe(path)
 
-    return feather.read_dataframe(path, nthreads=nthreads)
+    if LooseVersion(pyarrow.__version__) < LooseVersion('0.10')
+        return feather.read_dataframe(path, nthreads=nthreads)
+
+    # pyarrow>=0.10 has `use_threads` kwarg instead of `nthreads`
+    use_threads = nthreads > 1
+    return feather.read_dataframe(path, use_threads=use_threads)
