@@ -3,11 +3,12 @@ timedelta support tools
 """
 
 import numpy as np
+import warnings
 
 from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 
 import pandas as pd
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
