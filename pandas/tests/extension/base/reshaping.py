@@ -174,7 +174,8 @@ class BaseReshapingTests(BaseExtensionTests):
 
     @pytest.mark.parametrize("index", [
         pd.MultiIndex.from_product(([['A', 'B'], ['a', 'b']])),
-        pd.MultiIndex.from_product(([['A', 'B'], ['a', 'b'], ['x', 'y', 'z']])),
+        pd.MultiIndex.from_product(([['A', 'B'], ['a', 'b'],
+                                     ['x', 'y', 'z']])),
 
         # non-uniform
         pd.MultiIndex.from_tuples([('A', 'a'), ('A', 'b'), ('B', 'b')]),
@@ -203,7 +204,8 @@ class BaseReshapingTests(BaseExtensionTests):
 
         for level in combinations:
             result = ser.unstack(level=level)
-            assert all(isinstance(result[col].values, type(data)) for col in result.columns)
+            assert all(isinstance(result[col].values, type(data))
+                       for col in result.columns)
             expected = ser.astype(object).unstack(level=level)
             result = result.astype(object)
 
