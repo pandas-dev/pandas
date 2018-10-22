@@ -963,8 +963,8 @@ def unstack_extension_series(series, level, fill_value):
     out = []
     values = series.values
 
-    for col, indicies in result.iteritems():
-        out.append(Series(values.take(indicies.values,
+    for col, indices in result.iteritems():
+        out.append(Series(values.take(indices.values,
                                       allow_fill=True,
                                       fill_value=fill_value),
                           name=col, index=result.index))
