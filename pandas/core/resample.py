@@ -1522,15 +1522,23 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 
 def _get_range_edges(first, last, offset, closed='left', base=0):
-
     if isinstance(offset, Tick):
         is_day = isinstance(offset, Day)
         day_nanos = delta_to_nanoseconds(timedelta(1))
 
         # #1165
         if (is_day and day_nanos % offset.nanos == 0) or not is_day:
-            return _adjust_dates_anchored(first, last, offset,
-                                          closed=closed, base=base)
+            first, last = _adjust_dates_anchored(first, last, offset,
+                                                 closed=closed, base=base)
+            if offset == 'D' and first.tz is not None:
+                # TODO: Remove this statement when 'D' fully means calendar day
+                # and just return first and last.
+                # We need to make Tick 'D' flexible to DST (23H, 24H, or 25H)
+                # _adjust_dates_anchored assumes 'D' means 24H, so ensure
+                # first and last snap to midnight.
+                first = first.normalize()
+                last = last.normalize()
+            return first, last
 
     else:
         first = first.normalize()
