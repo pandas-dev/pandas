@@ -10166,6 +10166,37 @@ Series([], dtype: bool)
 _sum_examples = """\
 Examples
 --------
+``MultiIndex`` series example of monthly rainfall
+
+>>> index = [np.tile(['London', 'New York'], 3),
+...          np.repeat(['Jun', 'Jul', 'Aug'], 2)]
+>>> s = pd.Series([47, 112, 35, 117, 54, 113], index=index)
+>>> s.rename_axis(['city', 'month'], inplace=True)
+>>> s
+city      month
+London    Jun       47
+New York  Jun      112
+London    Jul       35
+New York  Jul      117
+London    Aug       54
+New York  Aug      113
+dtype: int64
+
+>>> s.sum()
+478
+
+>>> s.sum(level='city')
+London      136
+New York    342
+dtype: int64
+
+>>> s.sum(level=1)
+month
+Jun    159
+Jul    152
+Aug    167
+dtype: int64
+
 By default, the sum of an empty or all-NA Series is ``0``.
 
 >>> pd.Series([]).sum()  # min_count=0 is the default
