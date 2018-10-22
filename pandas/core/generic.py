@@ -8370,8 +8370,7 @@ class NDFrame(PandasObject, SelectionMixin):
                           level=level, try_cast=try_cast,
                           errors=errors)
 
-    _shared_docs['shift'] = (
-        """
+    _shared_docs['shift'] = ("""
         Shift index by desired number of periods with an optional time freq
 
         Parameters
@@ -8401,8 +8400,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         shifted : %(klass)s
-        """
-        )
+        """)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):
@@ -9796,9 +9794,11 @@ Examples
 
 See also
 --------
-pandas.DataFrame.median : Return the median of the values for the requested axis
-pandas.DataFrame.describe: Generate descriptive statistics that summarize the central tendency,
-dispersion and shape of a dataset's distribution, excluding NaN values.
+pandas.DataFrame.median : Return the median of the values for the requested
+axis
+pandas.DataFrame.describe: Generate descriptive statistics that summarize
+the central tendency, dispersion and shape of a dataset's
+distribution, excluding NaN values.
 """
 
 
