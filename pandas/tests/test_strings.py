@@ -302,10 +302,12 @@ class TestStringMethods(object):
             s.str.cat([u, [u, d]])
 
         # forbidden input type: set
+        # GH 23009
         with tm.assert_raises_regex(TypeError, rgx):
             s.str.cat(set(u))
 
         # forbidden input type: set in list
+        # GH 23009
         with tm.assert_raises_regex(TypeError, rgx):
             s.str.cat([u, set(u)])
 

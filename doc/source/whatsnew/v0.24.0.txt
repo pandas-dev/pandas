@@ -210,6 +210,7 @@ Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - A newly constructed empty :class:`DataFrame` with integer as the ``dtype`` will now only be cast to ``float64`` if ``index`` is specified (:issue:`22858`)
+- :meth:`Series.str.cat` will now raise if `others` is a `set` (:issue:`23009`)
 
 .. _whatsnew_0240.api_breaking.deps:
 
@@ -976,7 +977,7 @@ Numeric
 Strings
 ^^^^^^^
 
-- Bug in :meth:`Series.str.cat` which falsely did not raise if `others` was a `set` (:issue:`23009`)
+-
 -
 -
 
