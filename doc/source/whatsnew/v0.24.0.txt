@@ -449,7 +449,7 @@ respected absolute time instead (i.e. ``Day(n)`` and acted identically to ``Time
 
 :class:`Day` and associated frequency alias ``'D'`` will always respect
 calendar day arithmetic
-(:issue:`22864`, :issue:`20596`, :issue:`16980`, :issue:`8774`)
+(:issue:`22867`, :issue:`22864`, :issue:`20596`, :issue:`16980`, :issue:`8774`)
 
 Addition with :class:`CalendarDay` across a daylight savings time transition:
 
