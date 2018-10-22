@@ -127,7 +127,7 @@ class TestDatetimeArray(object):
         result = dti.to_datetime64()
         tm.assert_numpy_array_equal(result, expected)
 
-        result = arr.to_timedelta64()
+        result = arr.to_datetime64()
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize('propname', pd.DatetimeIndex._bool_ops)
