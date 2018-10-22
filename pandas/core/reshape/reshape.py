@@ -470,8 +470,15 @@ def stack(frame, level=-1, dropna=True):
         if is_extension_array_dtype(dtype):
             arr = dtype.construct_array_type()
             new_values = arr._concat_same_type([
-                col for _, col in frame.iteritems()
+                col._values for _, col in frame.iteritems()
             ])
+            # final take to get the order correct.
+            # idx is an indexer like
+            # [c0r0, c1r0, c2r0, ...,
+            #  c0r1, c1r1, c241, ...]
+            idx = np.arange(N * K).reshape(K, N).T.ravel()
+            new_values = new_values.take(idx)
+
         else:
             # homogeneous, non-EA
             new_values = frame.values.ravel()

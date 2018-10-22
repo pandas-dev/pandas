@@ -170,3 +170,11 @@ class BaseReshapingTests(BaseExtensionTests):
                  [data[0], data[0], data[1], data[2], na_value],
                  dtype=data.dtype)})
         self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
+
+    def test_stack(self, data):
+        df = pd.DataFrame({"A": data[:5], "B": data[:5]})
+        result = df.stack()
+        assert result.dtype == df.A.dtype
+        result = result.astype(object)
+        expected = df.astype(object).stack()
+        self.assert_series_equal(result, expected)
