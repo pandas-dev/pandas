@@ -512,6 +512,7 @@ class TestDateRanges(TestData):
 
     def test_negative_non_tick_frequency_descending_dates(self,
                                                           tz_aware_fixture):
+        # GH 23270
         tz = tz_aware_fixture
         result = pd.date_range(start='2011-06-01', end='2011-01-01',
                                freq='-1MS', tz=tz)
