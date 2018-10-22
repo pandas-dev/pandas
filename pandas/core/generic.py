@@ -10185,11 +10185,12 @@ dtype: int64
 >>> s.sum()
 478
 
+Sum using level names, as well as indices
+
 >>> s.sum(level='city')
 London      136
 New York    342
 dtype: int64
-
 >>> s.sum(level=1)
 month
 Jun    159
