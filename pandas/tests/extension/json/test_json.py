@@ -138,7 +138,11 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
-    pass
+    @pytest.mark.xfail(reason="dict for NA", strict=True)
+    def test_unstack(self, data, index):
+        # The base test has NaN for the expected NA value.
+        # this matches otherwise
+        return super().test_unstack(data, index)
 
 
 class TestGetitem(BaseJSON, base.BaseGetitemTests):
