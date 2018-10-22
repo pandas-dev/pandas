@@ -124,3 +124,16 @@ Here are just a few of the things that pandas does well:
     conversion, moving window statistics, moving window linear regressions,
     date shifting and lagging, etc.
 """
+
+def rolling_window(df, on, id_column_name, date_range, calculated_field, agg_fn):
+    calcs = (df[[on, calculated_field]]
+             .rolling(date_range, on=on, closed='left')[calculated_field])
+    rolling_calcs = pd.DataFrame({on : df[on],
+                                  'calcs' : getattr(calcs, agg_fn)()
+    })
+    result = (df[[on, id_column_name]]
+              .merge(rolling_calcs[~rolling_calcs[on].duplicated()], how = 'left'))
+    return list(result['calcs'])
+
+pandas.DataFrame.rolling_window = rolling_window
+
