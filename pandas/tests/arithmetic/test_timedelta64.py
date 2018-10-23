@@ -538,12 +538,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
     @pytest.mark.parametrize('scalar', [1, 1.5, np.array(2)])
     def test_td64arr_add_sub_numeric_scalar_invalid(self, box, scalar, tdser):
-
-        if box is pd.DataFrame and isinstance(scalar, np.ndarray):
-            # raises ValueError
-            pytest.xfail(reason="reversed ops return incorrect answers "
-                                "instead of raising.")
-
         tdser = tm.box_expected(tdser, box)
         err = TypeError
         if box is pd.Index and not isinstance(scalar, float):
