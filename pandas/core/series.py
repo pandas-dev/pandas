@@ -635,15 +635,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             for x in inputs
         )
 
-        if hasattr(self._values, '__array_ufunc__'):
-            result = self._values.__array_ufunc__(
-                ufunc, method, *inputs, **kwargs)
-        else:
-            result = np.array(self._values).__array_ufunc__(
-                ufunc, method, *inputs, **kwargs)
-        if result is NotImplemented:
-            raise TypeError("The '{0}' operation is not supported for "
-                            "dtype {1}.".format(ufunc.__name__, self.dtype))
+        result = getattr(ufunc, method)(*inputs, **kwargs)
         return self._constructor(result, index=self.index,
                                  copy=False).__finalize__(self)
 

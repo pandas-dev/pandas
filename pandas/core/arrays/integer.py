@@ -330,8 +330,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             np.array(x) if isinstance(x, type(self)) else x
             for x in inputs
         )
-        return np.array(self).__array_ufunc__(
-            ufunc, method, *inputs, **kwargs)
+        return getattr(ufunc, method)(*inputs, **kwargs)
 
     def __iter__(self):
         for i in range(len(self)):
