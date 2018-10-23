@@ -527,9 +527,9 @@ def test_integer_array_constructor():
 
 @pytest.mark.parametrize('a, b', [
     ([1, None], [1, np.nan]),
-    pytest.param([None], [np.nan],
-                 marks=pytest.mark.xfail(reason='GH-23224',
-                                         strict=True)),
+    ([None], [np.nan]),
+    ([None, np.nan], [np.nan, np.nan]),
+    ([np.nan, np.nan], [np.nan, np.nan]),
 ])
 def test_integer_array_constructor_none_is_nan(a, b):
     result = integer_array(a)
@@ -559,7 +559,8 @@ def test_integer_array_constructor_copy():
         1,
         1.0,
         pd.date_range('20130101', periods=2),
-        np.array(['foo'])])
+        np.array(['foo']),
+        [[1, 2], [3, 4]]])
 def test_to_integer_array_error(values):
     # error in converting existing arrays to IntegerArrays
     with pytest.raises(TypeError):
