@@ -422,32 +422,32 @@ class NumericInt(Numeric):
         tm.assert_index_equal(i, self._holder(i_view, name='Foo'))
 
     def test_is_monotonic(self):
-        assert self.index.is_monotonic
-        assert self.index.is_monotonic_increasing
-        assert self.index._is_strictly_monotonic_increasing
-        assert not self.index.is_monotonic_decreasing
-        assert not self.index._is_strictly_monotonic_decreasing
+        assert self.index.is_monotonic is True
+        assert self.index.is_monotonic_increasing is True
+        assert self.index._is_strictly_monotonic_increasing is True
+        assert self.index.is_monotonic_decreasing is False
+        assert self.index._is_strictly_monotonic_decreasing is False
 
         index = self._holder([4, 3, 2, 1])
-        assert not index.is_monotonic
-        assert not index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is False
+        assert index._is_strictly_monotonic_increasing is False
+        assert index._is_strictly_monotonic_decreasing is True
 
         index = self._holder([1])
-        assert index.is_monotonic
-        assert index.is_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_increasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
     def test_is_strictly_monotonic(self):
         index = self._holder([1, 1, 2, 3])
-        assert index.is_monotonic_increasing
-        assert not index._is_strictly_monotonic_increasing
+        assert index.is_monotonic_increasing is True
+        assert index._is_strictly_monotonic_increasing is False
 
         index = self._holder([3, 2, 1, 1])
-        assert index.is_monotonic_decreasing
-        assert not index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_decreasing is False
 
         index = self._holder([1, 1])
         assert index.is_monotonic_increasing
