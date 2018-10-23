@@ -515,10 +515,12 @@ class TestSeriesDatetimeValues():
         pd.Series([pd.NaT, pd.Timedelta('nat')]),
         pd.Series([pd.Timedelta('nat'), pd.Timedelta('nat')])])
     def test_minmax_nat_series(self, nat):
+        # GH 23282
         assert nat.min() is pd.NaT
         assert nat.max() is pd.NaT
 
     @pytest.mark.parametrize('nat', [
+        # GH 23282
         pd.DataFrame([pd.NaT, pd.NaT]),
         pd.DataFrame([pd.NaT, pd.Timedelta('nat')]),
         pd.DataFrame([pd.Timedelta('nat'), pd.Timedelta('nat')])])
