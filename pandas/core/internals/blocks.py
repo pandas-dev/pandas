@@ -299,7 +299,7 @@ class Block(PandasObject):
         """ return a slice of my values """
         return self.values[slicer]
 
-    def reshape_nd(self, labels, shape, ref_items, mgr=None):
+    def reshape_nd(self, labels, shape, ref_items):
         """
         Parameters
         ----------
@@ -381,7 +381,7 @@ class Block(PandasObject):
         self.values = np.delete(self.values, loc, 0)
         self.mgr_locs = self.mgr_locs.delete(loc)
 
-    def apply(self, func, mgr=None, **kwargs):
+    def apply(self, func, **kwargs):
         """ apply the function to my values; return a block if we are not
         one
         """
@@ -393,8 +393,7 @@ class Block(PandasObject):
 
         return result
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None,
-               mgr=None):
+    def fillna(self, value, limit=None, inplace=False, downcast=None):
         """ fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
         """
@@ -520,7 +519,7 @@ class Block(PandasObject):
             blocks = [blocks]
         return _extend_blocks([b.downcast(downcast) for b in blocks])
 
-    def downcast(self, dtypes=None, mgr=None):
+    def downcast(self, dtypes=None):
         """ try to downcast each item to the dict of dtypes if present """
 
         # turn it off completely
@@ -567,7 +566,7 @@ class Block(PandasObject):
                             **kwargs)
 
     def _astype(self, dtype, copy=False, errors='raise', values=None,
-                klass=None, mgr=None, **kwargs):
+                klass=None, **kwargs):
         """Coerce to the new type
 
         Parameters
@@ -776,7 +775,7 @@ class Block(PandasObject):
         return values
 
     # block actions ####
-    def copy(self, deep=True, mgr=None):
+    def copy(self, deep=True):
         """ copy constructor """
         values = self.values
         if deep:
@@ -784,7 +783,7 @@ class Block(PandasObject):
         return self.make_block_same_class(values)
 
     def replace(self, to_replace, value, inplace=False, filter=None,
-                regex=False, convert=True, mgr=None):
+                regex=False, convert=True):
         """replace the to_replace value with value, possible to create new
         blocks here this is just a call to putmask. regex is not used here.
         It is used in ObjectBlocks.  It is here for API compatibility.
@@ -827,7 +826,7 @@ class Block(PandasObject):
         """ no-op on a non-ObjectBlock """
         return self if kwargs['inplace'] else self.copy()
 
-    def setitem(self, indexer, value, mgr=None):
+    def setitem(self, indexer, value):
         """Set the value inplace, returning a a maybe different typed block.
 
         Parameters
@@ -836,7 +835,6 @@ class Block(PandasObject):
             The subset of self.values to set
         value : object
             The value being set
-        mgr : BlockPlacement, optional
 
         Returns
         -------
@@ -886,7 +884,7 @@ class Block(PandasObject):
                 dtype = find_common_type([values.dtype, dtype])
                 if not is_dtype_equal(self.dtype, dtype):
                     b = self.astype(dtype)
-                    return b.setitem(indexer, value, mgr=mgr)
+                    return b.setitem(indexer, value)
 
         # value must be storeable at this moment
         arr_value = np.array(value)
@@ -956,7 +954,7 @@ class Block(PandasObject):
         return block
 
     def putmask(self, mask, new, align=True, inplace=False, axis=0,
-                transpose=False, mgr=None):
+                transpose=False):
         """ putmask the data to the block; it is possible that we may create a
         new dtype of block
 
@@ -1131,7 +1129,7 @@ class Block(PandasObject):
     def interpolate(self, method='pad', axis=0, index=None, values=None,
                     inplace=False, limit=None, limit_direction='forward',
                     limit_area=None, fill_value=None, coerce=False,
-                    downcast=None, mgr=None, **kwargs):
+                    downcast=None, **kwargs):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
@@ -1158,7 +1156,7 @@ class Block(PandasObject):
                                                inplace=inplace, limit=limit,
                                                fill_value=fill_value,
                                                coerce=coerce,
-                                               downcast=downcast, mgr=mgr)
+                                               downcast=downcast)
         # try an interp method
         try:
             m = missing.clean_interp_method(method, **kwargs)
@@ -1174,13 +1172,13 @@ class Block(PandasObject):
                                      limit_direction=limit_direction,
                                      limit_area=limit_area,
                                      fill_value=fill_value, inplace=inplace,
-                                     downcast=downcast, mgr=mgr, **kwargs)
+                                     downcast=downcast, **kwargs)
 
         raise ValueError("invalid method '{0}' to interpolate.".format(method))
 
     def _interpolate_with_fill(self, method='pad', axis=0, inplace=False,
                                limit=None, fill_value=None, coerce=False,
-                               downcast=None, mgr=None):
+                               downcast=None):
         """ fillna but using the interpolate machinery """
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
@@ -1207,7 +1205,7 @@ class Block(PandasObject):
     def _interpolate(self, method=None, index=None, values=None,
                      fill_value=None, axis=0, limit=None,
                      limit_direction='forward', limit_area=None,
-                     inplace=False, downcast=None, mgr=None, **kwargs):
+                     inplace=False, downcast=None, **kwargs):
         """ interpolate using scipy wrappers """
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
@@ -1283,12 +1281,12 @@ class Block(PandasObject):
         else:
             return self.make_block_same_class(new_values, new_mgr_locs)
 
-    def diff(self, n, axis=1, mgr=None):
+    def diff(self, n, axis=1):
         """ return block for the diff of the values """
         new_values = algos.diff(self.values, n, axis=axis)
         return [self.make_block(values=new_values)]
 
-    def shift(self, periods, axis=0, mgr=None):
+    def shift(self, periods, axis=0):
         """ shift the block by periods, possibly upcast """
 
         # convert integer to float if necessary. need to do a lot more than
@@ -1319,7 +1317,7 @@ class Block(PandasObject):
         return [self.make_block(new_values)]
 
     def where(self, other, cond, align=True, errors='raise',
-              try_cast=False, axis=0, transpose=False, mgr=None):
+              try_cast=False, axis=0, transpose=False):
         """
         evaluate the block; return result block(s) from the result
 
@@ -1460,7 +1458,7 @@ class Block(PandasObject):
         blocks = [make_block(new_values, placement=new_placement)]
         return blocks, mask
 
-    def quantile(self, qs, interpolation='linear', axis=0, mgr=None):
+    def quantile(self, qs, interpolation='linear', axis=0, axes=None):
         """
         compute the quantiles of the
 
@@ -1469,6 +1467,7 @@ class Block(PandasObject):
         qs: a scalar or list of the quantiles to be computed
         interpolation: type of interpolation, default 'linear'
         axis: axis to compute, default 0
+        axes : BlockManager.axes
 
         Returns
         -------
@@ -1551,7 +1550,7 @@ class Block(PandasObject):
             if self.ndim == 1:
                 ax = Float64Index([qs])
             else:
-                ax = mgr.axes[0]
+                ax = axes[0]
 
             if is_empty:
                 if self.ndim == 1:
@@ -1570,7 +1569,7 @@ class Block(PandasObject):
                               ndim=ndim)
 
     def _replace_coerce(self, to_replace, value, inplace=True, regex=False,
-                        convert=False, mgr=None, mask=None):
+                        convert=False, mask=None):
         """
         Replace value corresponding to the given boolean array with another
         value.
@@ -1587,7 +1586,6 @@ class Block(PandasObject):
             If true, perform regular expression substitution.
         convert : bool, default True
             If true, try to coerce any object types to better types.
-        mgr : BlockManager, optional
         mask : array-like of bool, optional
             True indicate corresponding element is ignored.
 
@@ -1604,8 +1602,7 @@ class Block(PandasObject):
                 return self._replace_single(to_replace, value, inplace=inplace,
                                             regex=regex,
                                             convert=convert,
-                                            mask=mask,
-                                            mgr=mgr)
+                                            mask=mask)
         return self
 
 
@@ -1693,7 +1690,7 @@ class NonConsolidatableMixIn(object):
         self.values = values
 
     def putmask(self, mask, new, align=True, inplace=False, axis=0,
-                transpose=False, mgr=None):
+                transpose=False):
         """
         putmask the data to the block; we must be a single block and not
         generate other blocks
@@ -1825,7 +1822,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def is_numeric(self):
         return self.values.dtype._is_numeric
 
-    def setitem(self, indexer, value, mgr=None):
+    def setitem(self, indexer, value):
         """Set the value inplace, returning a same-typed block.
 
         This differs from Block.setitem by not allowing setitem to change
@@ -1837,7 +1834,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             The subset of self.values to set
         value : object
             The value being set
-        mgr : BlockPlacement, optional
 
         Returns
         -------
@@ -1922,8 +1918,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return self.make_block_same_class(values, ndim=self.ndim,
                                           placement=placement)
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None,
-               mgr=None):
+    def fillna(self, value, limit=None, inplace=False, downcast=None):
         values = self.values if inplace else self.values.copy()
         values = values.fillna(value=value, limit=limit)
         return [self.make_block_same_class(values=values,
@@ -1939,7 +1934,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                  limit=limit),
             placement=self.mgr_locs)
 
-    def shift(self, periods, axis=0, mgr=None):
+    def shift(self, periods, axis=0):
         """
         Shift the block by `periods`.
 
@@ -2212,15 +2207,14 @@ class BoolBlock(NumericBlock):
                 is_extension_array_dtype(value))
 
     def replace(self, to_replace, value, inplace=False, filter=None,
-                regex=False, convert=True, mgr=None):
+                regex=False, convert=True):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         to_replace_values = np.atleast_1d(to_replace)
         if not np.can_cast(to_replace_values, bool):
             return self
         return super(BoolBlock, self).replace(to_replace, value,
                                               inplace=inplace, filter=filter,
-                                              regex=regex, convert=convert,
-                                              mgr=mgr)
+                                              regex=regex, convert=convert)
 
 
 class ObjectBlock(Block):
@@ -2353,7 +2347,7 @@ class ObjectBlock(Block):
                     is_extension_array_dtype(value))
 
     def replace(self, to_replace, value, inplace=False, filter=None,
-                regex=False, convert=True, mgr=None):
+                regex=False, convert=True):
         to_rep_is_list = is_list_like(to_replace)
         value_is_list = is_list_like(value)
         both_lists = to_rep_is_list and value_is_list
@@ -2365,19 +2359,19 @@ class ObjectBlock(Block):
         if not either_list and is_re(to_replace):
             return self._replace_single(to_replace, value, inplace=inplace,
                                         filter=filter, regex=True,
-                                        convert=convert, mgr=mgr)
+                                        convert=convert)
         elif not (either_list or regex):
             return super(ObjectBlock, self).replace(to_replace, value,
                                                     inplace=inplace,
                                                     filter=filter, regex=regex,
-                                                    convert=convert, mgr=mgr)
+                                                    convert=convert)
         elif both_lists:
             for to_rep, v in zip(to_replace, value):
                 result_blocks = []
                 for b in blocks:
                     result = b._replace_single(to_rep, v, inplace=inplace,
                                                filter=filter, regex=regex,
-                                               convert=convert, mgr=mgr)
+                                               convert=convert)
                     result_blocks = _extend_blocks(result, result_blocks)
                 blocks = result_blocks
             return result_blocks
@@ -2388,17 +2382,17 @@ class ObjectBlock(Block):
                 for b in blocks:
                     result = b._replace_single(to_rep, value, inplace=inplace,
                                                filter=filter, regex=regex,
-                                               convert=convert, mgr=mgr)
+                                               convert=convert)
                     result_blocks = _extend_blocks(result, result_blocks)
                 blocks = result_blocks
             return result_blocks
 
         return self._replace_single(to_replace, value, inplace=inplace,
                                     filter=filter, convert=convert,
-                                    regex=regex, mgr=mgr)
+                                    regex=regex)
 
     def _replace_single(self, to_replace, value, inplace=False, filter=None,
-                        regex=False, convert=True, mgr=None, mask=None):
+                        regex=False, convert=True, mask=None):
         """
         Replace elements by the given value.
 
@@ -2415,7 +2409,6 @@ class ObjectBlock(Block):
             If true, perform regular expression substitution.
         convert : bool, default True
             If true, try to coerce any object types to better types.
-        mgr : BlockManager, optional
         mask : array-like of bool, optional
             True indicate corresponding element is ignored.
 
@@ -2458,8 +2451,7 @@ class ObjectBlock(Block):
             # the superclass method -> to_replace is some kind of object
             return super(ObjectBlock, self).replace(to_replace, value,
                                                     inplace=inplace,
-                                                    filter=filter, regex=regex,
-                                                    mgr=mgr)
+                                                    filter=filter, regex=regex)
 
         new_values = self.values if inplace else self.values.copy()
 
@@ -2500,7 +2492,7 @@ class ObjectBlock(Block):
         return block
 
     def _replace_coerce(self, to_replace, value, inplace=True, regex=False,
-                        convert=False, mgr=None, mask=None):
+                        convert=False, mask=None):
         """
         Replace value corresponding to the given boolean array with another
         value.
@@ -2517,7 +2509,6 @@ class ObjectBlock(Block):
             If true, perform regular expression substitution.
         convert : bool, default True
             If true, try to coerce any object types to better types.
-        mgr : BlockManager, optional
         mask : array-like of bool, optional
             True indicate corresponding element is ignored.
 
@@ -2528,7 +2519,7 @@ class ObjectBlock(Block):
         if mask.any():
             block = super(ObjectBlock, self)._replace_coerce(
                 to_replace=to_replace, value=value, inplace=inplace,
-                regex=regex, convert=convert, mgr=mgr, mask=mask)
+                regex=regex, convert=convert, mask=mask)
             if convert:
                 block = [b.convert(by_item=True, numeric=False, copy=True)
                          for b in block]
@@ -2643,7 +2634,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             values = conversion.ensure_datetime64ns(values)
         return values
 
-    def _astype(self, dtype, mgr=None, **kwargs):
+    def _astype(self, dtype, **kwargs):
         """
         these automatically copy, so copy=True has no effect
         raise on an except if raise == True
@@ -2812,7 +2803,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         # check the ndarray values of the DatetimeIndex values
         return self.values.values.base is not None
 
-    def copy(self, deep=True, mgr=None):
+    def copy(self, deep=True):
         """ copy constructor """
         values = self.values
         if deep:
@@ -2901,7 +2892,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     def _box_func(self):
         return lambda x: tslibs.Timestamp(x, tz=self.dtype.tz)
 
-    def shift(self, periods, axis=0, mgr=None):
+    def shift(self, periods, axis=0):
         """ shift the block by periods """
 
         # think about moving this to the DatetimeIndex. This is a non-freq
@@ -2925,14 +2916,13 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
 
-    def diff(self, n, axis=0, mgr=None):
+    def diff(self, n, axis=0):
         """1st discrete difference
 
         Parameters
         ----------
         n : int, number of periods to diff
         axis : int, axis to diff upon. default 0
-        mgr : default None
 
         Return
         ------
