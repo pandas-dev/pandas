@@ -419,7 +419,7 @@ class Block(PandasObject):
 
         # fillna, but if we cannot coerce, then try again as an ObjectBlock
         try:
-            values, _, _, _ = self._try_coerce_args(self.values, value)
+            values, _ = self._try_coerce_args(self.values, value)
             blocks = self.putmask(mask, value, inplace=inplace)
             blocks = [b.make_block(values=self._try_coerce_result(b.values))
                       for b in blocks]
@@ -746,7 +746,7 @@ class Block(PandasObject):
                 type(other).__name__,
                 type(self).__name__.lower().replace('Block', '')))
 
-        return values, False, other, False
+        return values, other
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
@@ -796,8 +796,8 @@ class Block(PandasObject):
         # try to replace, if we raise an error, convert to ObjectBlock and
         # retry
         try:
-            values, _, to_replace, _ = self._try_coerce_args(self.values,
-                                                             to_replace)
+            values, to_replace = self._try_coerce_args(self.values,
+                                                       to_replace)
             mask = missing.mask_missing(values, to_replace)
             if filter is not None:
                 filtered_out = ~self.mgr_locs.isin(filter)
@@ -855,7 +855,7 @@ class Block(PandasObject):
         # coerce if block dtype can store value
         values = self.values
         try:
-            values, _, value, _ = self._try_coerce_args(values, value)
+            values, value = self._try_coerce_args(values, value)
             # can keep its own dtype
             if hasattr(value, 'dtype') and is_dtype_equal(values.dtype,
                                                           value.dtype):
@@ -987,7 +987,7 @@ class Block(PandasObject):
             new = self.fill_value
 
         if self._can_hold_element(new):
-            _, _, new, _ = self._try_coerce_args(new_values, new)
+            _, new = self._try_coerce_args(new_values, new)
 
             if transpose:
                 new_values = new_values.T
@@ -1195,7 +1195,7 @@ class Block(PandasObject):
                     return [self.copy()]
 
         values = self.values if inplace else self.values.copy()
-        values, _, fill_value, _ = self._try_coerce_args(values, fill_value)
+        values, fill_value = self._try_coerce_args(values, fill_value)
         values = missing.interpolate_2d(values, method=method, axis=axis,
                                         limit=limit, fill_value=fill_value,
                                         dtype=self.dtype)
@@ -1368,8 +1368,7 @@ class Block(PandasObject):
             if cond.ravel().all():
                 return values
 
-            values, values_mask, other, other_mask = self._try_coerce_args(
-                values, other)
+            values, other = self._try_coerce_args(values, other)
 
             try:
                 return self._try_coerce_result(expressions.where(
@@ -1478,7 +1477,7 @@ class Block(PandasObject):
         """
         kw = {'interpolation': interpolation}
         values = self.get_values()
-        values, _, _, _ = self._try_coerce_args(values, values)
+        values, _ = self._try_coerce_args(values, values)
 
         def _nanpercentile1D(values, mask, q, **kw):
             # mask is Union[ExtensionArray, ndarray]
@@ -1717,7 +1716,7 @@ class NonConsolidatableMixIn(object):
         # use block's copy logic.
         # .values may be an Index which does shallow copy by default
         new_values = self.values if inplace else self.copy().values
-        new_values, _, new, _ = self._try_coerce_args(new_values, new)
+        new_values, new = self._try_coerce_args(new_values, new)
 
         if isinstance(new, np.ndarray) and len(new) == len(mask):
             new = new[mask]
@@ -2134,35 +2133,28 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
         Returns
         -------
-        base-type values, values mask, base-type other, other mask
+        base-type values, base-type other
         """
-
-        values_mask = isna(values)
         values = values.view('i8')
-        other_mask = False
 
         if isinstance(other, bool):
             raise TypeError
         elif is_null_datelike_scalar(other):
             other = tslibs.iNaT
-            other_mask = True
         elif isinstance(other, Timedelta):
-            other_mask = isna(other)
             other = other.value
         elif isinstance(other, timedelta):
             other = Timedelta(other).value
         elif isinstance(other, np.timedelta64):
-            other_mask = isna(other)
             other = Timedelta(other).value
         elif hasattr(other, 'dtype') and is_timedelta64_dtype(other):
-            other_mask = isna(other)
             other = other.astype('i8', copy=False).view('i8')
         else:
             # coercion issues
             # let higher levels handle
             raise TypeError
 
-        return values, values_mask, other, other_mask
+        return values, other
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args / try_operate """
@@ -2349,7 +2341,7 @@ class ObjectBlock(Block):
             # to store DatetimeTZBlock as object
             other = other.astype(object).values
 
-        return values, False, other, False
+        return values, other
 
     def should_store(self, value):
         return not (issubclass(value.dtype.type,
@@ -2691,33 +2683,29 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         Returns
         -------
-        base-type values, values mask, base-type other, other mask
+        base-type values, base-type other
         """
 
-        values_mask = isna(values)
         values = values.view('i8')
 
         if isinstance(other, bool):
             raise TypeError
         elif is_null_datelike_scalar(other):
             other = tslibs.iNaT
-            other_mask = True
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
             if getattr(other, 'tz') is not None:
                 raise TypeError("cannot coerce a Timestamp with a tz on a "
                                 "naive Block")
-            other_mask = isna(other)
             other = other.asm8.view('i8')
         elif hasattr(other, 'dtype') and is_datetime64_dtype(other):
-            other_mask = isna(other)
             other = other.astype('i8', copy=False).view('i8')
         else:
             # coercion issues
             # let higher levels handle
             raise TypeError
 
-        return values, values_mask, other, other_mask
+        return values, other
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
@@ -2864,9 +2852,8 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
         Returns
         -------
-        base-type values, values mask, base-type other, other mask
+        base-type values, base-type other
         """
-        values_mask = _block_shape(isna(values), ndim=self.ndim)
         # asi8 is a view, needs copy
         values = _block_shape(values.asi8, ndim=self.ndim)
 
@@ -2878,11 +2865,9 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         elif (is_null_datelike_scalar(other) or
               (lib.is_scalar(other) and isna(other))):
             other = tslibs.iNaT
-            other_mask = True
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
-            other_mask = _block_shape(isna(other), ndim=self.ndim)
             other = _block_shape(other.asi8, ndim=self.ndim)
         elif isinstance(other, (np.datetime64, datetime, date)):
             other = tslibs.Timestamp(other)
@@ -2891,12 +2876,11 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             # test we can have an equal time zone
             if tz is None or str(tz) != str(self.values.tz):
                 raise ValueError("incompatible or non tz-aware value")
-            other_mask = isna(other)
             other = other.value
         else:
             raise TypeError
 
-        return values, values_mask, other, other_mask
+        return values, other
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
