@@ -720,8 +720,8 @@ read_table = Appender(_read_table_doc)(read_table)
 
 
 @Appender(_read_fwf_doc)
-def read_fwf(filepath_or_buffer, colspecs='infer', infer_nrows=100,
-             widths=None, **kwds):
+def read_fwf(filepath_or_buffer, colspecs='infer', widths=None,
+             infer_nrows=100, **kwds):
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
