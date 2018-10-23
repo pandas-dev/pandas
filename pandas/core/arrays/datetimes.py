@@ -672,6 +672,22 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
 
+    def to_datetime64(self):
+        """
+        Return numpy datetime64[ns] representation of self.  For timezone-aware
+        cases, the returned array represents UTC timestamps.
+
+        Returns
+        -------
+        ndarray[datetime64[ns]]
+        """
+        return self.asi8.view('M8[ns]')
+
+    @property
+    def asm8(self):
+        """Vectorized analogue of Timestamp.asm8"""
+        return self.to_datetime64()
+
     def to_pydatetime(self):
         """
         Return Datetime Array/Index as object ndarray of datetime.datetime
