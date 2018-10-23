@@ -135,6 +135,12 @@ There are two approaches for providing operator support for your ExtensionArray:
 2. Use an operator implementation from pandas that depends on operators that are already defined
    on the underlying elements (scalars) of the ExtensionArray.
 
+.. note::
+
+   Regardless of the approach, you may want to set ``__array_priority__``
+   if you want your implementation to be called when involved in binary operations
+   with NumPy arrays.
+
 For the first approach, you define selected operators, e.g., ``__add__``, ``__le__``, etc. that
 you want your ``ExtensionArray`` subclass to support.
 
@@ -160,9 +166,28 @@ your ``MyExtensionArray`` class, as follows:
     MyExtensionArray._add_arithmetic_ops()
     MyExtensionArray._add_comparison_ops()
 
-Note that since ``pandas`` automatically calls the underlying operator on each
-element one-by-one, this might not be as performant as implementing your own
-version of the associated operators directly on the ``ExtensionArray``.
+
+.. note::
+
+   Since ``pandas`` automatically calls the underlying operator on each
+   element one-by-one, this might not be as performant as implementing your own
+   version of the associated operators directly on the ``ExtensionArray``.
+
+For arithmetic operations, this implementation will try to reconstruct a new
+``ExtensionArray`` with the result of the element-wise operation. Whether
+or not that succeeds depends on whether the operation returns a result
+that's valid for the ``ExtensionArray``. If an ``ExtensionArray`` cannot
+be reconstructed, an ndarray containing the scalars returned instead.
+
+For ease of implementation and consistency with operations between pandas
+and NumPy ndarrays, we recommend *not* handling Series and Indexes in your binary ops.
+Instead, you should detect these cases and return ``NotImplemented``.
+When pandas encounters an operation like ``op(Series, ExtensionArray)``, pandas
+will
+
+1. unbox the array from the ``Series`` (roughly ``Series.values``)
+2. call ``result = op(values, ExtensionArray)``
+3. re-box the result in a ``Series``
 
 .. _extending.extension.testing:
 

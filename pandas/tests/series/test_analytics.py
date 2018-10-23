@@ -11,8 +11,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Series, Categorical, DataFrame, isna, notna,
-                    bdate_range, date_range, _np_version_under1p10,
-                    CategoricalIndex)
+                    bdate_range, date_range, CategoricalIndex)
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
@@ -539,9 +538,9 @@ class TestSeriesAnalytics(TestData):
             f(s)
 
             # 2888
-            l = [0]
-            l.extend(lrange(2 ** 40, 2 ** 40 + 1000))
-            s = Series(l, dtype='int64')
+            items = [0]
+            items.extend(lrange(2 ** 40, 2 ** 40 + 1000))
+            s = Series(items, dtype='int64')
             assert_almost_equal(float(f(s)), float(alternate(s.values)))
 
             # check date range
@@ -974,12 +973,12 @@ class TestSeriesAnalytics(TestData):
 
         for s in sers:
             thresh = s[2]
-            l = s.clip_lower(thresh)
-            u = s.clip_upper(thresh)
-            assert l[notna(l)].min() == thresh
-            assert u[notna(u)].max() == thresh
-            assert list(isna(s)) == list(isna(l))
-            assert list(isna(s)) == list(isna(u))
+            lower = s.clip_lower(thresh)
+            upper = s.clip_upper(thresh)
+            assert lower[notna(lower)].min() == thresh
+            assert upper[notna(upper)].max() == thresh
+            assert list(isna(s)) == list(isna(lower))
+            assert list(isna(s)) == list(isna(upper))
 
     def test_clip_with_na_args(self):
         """Should process np.nan argument as None """
@@ -1246,12 +1245,11 @@ class TestSeriesAnalytics(TestData):
 
         assert result == 1
 
-        if not _np_version_under1p10:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                msg = "the 'out' parameter is not supported"
-                tm.assert_raises_regex(ValueError, msg, np.argmin,
-                                       s, out=data)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            msg = "the 'out' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.argmin,
+                                   s, out=data)
 
     def test_idxmax(self):
         # test idxmax
@@ -1315,12 +1313,11 @@ class TestSeriesAnalytics(TestData):
 
         assert result == 10
 
-        if not _np_version_under1p10:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                msg = "the 'out' parameter is not supported"
-                tm.assert_raises_regex(ValueError, msg, np.argmax,
-                                       s, out=data)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            msg = "the 'out' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.argmax,
+                                   s, out=data)
 
     def test_ptp(self):
         # GH21614
@@ -1442,17 +1439,17 @@ class TestSeriesAnalytics(TestData):
         s = Series(np.random.randint(0, 10, size=1000))
         assert not s.is_monotonic
         s = Series(np.arange(1000))
-        assert s.is_monotonic
-        assert s.is_monotonic_increasing
+        assert s.is_monotonic is True
+        assert s.is_monotonic_increasing is True
         s = Series(np.arange(1000, 0, -1))
-        assert s.is_monotonic_decreasing
+        assert s.is_monotonic_decreasing is True
 
         s = Series(pd.date_range('20130101', periods=10))
-        assert s.is_monotonic
-        assert s.is_monotonic_increasing
+        assert s.is_monotonic is True
+        assert s.is_monotonic_increasing is True
         s = Series(list(reversed(s.tolist())))
-        assert not s.is_monotonic
-        assert s.is_monotonic_decreasing
+        assert s.is_monotonic is False
+        assert s.is_monotonic_decreasing is True
 
     def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))

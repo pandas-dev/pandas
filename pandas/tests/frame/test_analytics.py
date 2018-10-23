@@ -15,7 +15,6 @@ import numpy as np
 from pandas.compat import lrange, PY35
 from pandas import (compat, isna, notna, DataFrame, Series,
                     MultiIndex, date_range, Timestamp, Categorical,
-                    _np_version_under1p12,
                     to_datetime, to_timedelta)
 import pandas as pd
 import pandas.core.nanops as nanops
@@ -25,22 +24,44 @@ import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
 
-def _check_stat_op(name, alternative, main_frame, float_frame,
-                   float_string_frame, has_skipna=True,
-                   has_numeric_only=False, check_dtype=True,
-                   check_dates=False, check_less_precise=False,
-                   skipna_alternative=None):
+def assert_stat_op_calc(opname, alternative, frame, has_skipna=True,
+                        check_dtype=True, check_dates=False,
+                        check_less_precise=False, skipna_alternative=None):
+    """
+    Check that operator opname works as advertised on frame
 
-    f = getattr(main_frame, name)
+    Parameters
+    ----------
+    opname : string
+        Name of the operator to test on frame
+    alternative : function
+        Function that opname is tested against; i.e. "frame.opname()" should
+        equal "alternative(frame)".
+    frame : DataFrame
+        The object that the tests are executed on
+    has_skipna : bool, default True
+        Whether the method "opname" has the kwarg "skip_na"
+    check_dtype : bool, default True
+        Whether the dtypes of the result of "frame.opname()" and
+        "alternative(frame)" should be checked.
+    check_dates : bool, default false
+        Whether opname should be tested on a Datetime Series
+    check_less_precise : bool, default False
+        Whether results should only be compared approximately;
+        passed on to tm.assert_series_equal
+    skipna_alternative : function, default None
+        NaN-safe version of alternative
+    """
+
+    f = getattr(frame, opname)
 
     if check_dates:
         df = DataFrame({'b': date_range('1/1/2001', periods=2)})
-        _f = getattr(df, name)
-        result = _f()
+        result = getattr(df, opname)()
         assert isinstance(result, Series)
 
         df['a'] = lrange(len(df))
-        result = getattr(df, name)()
+        result = getattr(df, opname)()
         assert isinstance(result, Series)
         assert len(result)
 
@@ -52,11 +73,11 @@ def _check_stat_op(name, alternative, main_frame, float_frame,
                                                  skipna_alternative)
         result0 = f(axis=0, skipna=False)
         result1 = f(axis=1, skipna=False)
-        tm.assert_series_equal(result0, main_frame.apply(wrapper),
+        tm.assert_series_equal(result0, frame.apply(wrapper),
                                check_dtype=check_dtype,
                                check_less_precise=check_less_precise)
         # HACK: win32
-        tm.assert_series_equal(result1, main_frame.apply(wrapper, axis=1),
+        tm.assert_series_equal(result1, frame.apply(wrapper, axis=1),
                                check_dtype=False,
                                check_less_precise=check_less_precise)
     else:
@@ -64,49 +85,83 @@ def _check_stat_op(name, alternative, main_frame, float_frame,
 
     result0 = f(axis=0)
     result1 = f(axis=1)
-    tm.assert_series_equal(result0, main_frame.apply(skipna_wrapper),
+    tm.assert_series_equal(result0, frame.apply(skipna_wrapper),
                            check_dtype=check_dtype,
                            check_less_precise=check_less_precise)
-    if name in ['sum', 'prod']:
-        expected = main_frame.apply(skipna_wrapper, axis=1)
+
+    if opname in ['sum', 'prod']:
+        expected = frame.apply(skipna_wrapper, axis=1)
         tm.assert_series_equal(result1, expected, check_dtype=False,
                                check_less_precise=check_less_precise)
 
     # check dtypes
     if check_dtype:
-        lcd_dtype = main_frame.values.dtype
+        lcd_dtype = frame.values.dtype
         assert lcd_dtype == result0.dtype
         assert lcd_dtype == result1.dtype
 
     # bad axis
     tm.assert_raises_regex(ValueError, 'No axis named 2', f, axis=2)
-    # make sure works on mixed-type frame
-    getattr(float_string_frame, name)(axis=0)
-    getattr(float_string_frame, name)(axis=1)
-
-    if has_numeric_only:
-        getattr(float_string_frame, name)(axis=0, numeric_only=True)
-        getattr(float_string_frame, name)(axis=1, numeric_only=True)
-        getattr(float_frame, name)(axis=0, numeric_only=False)
-        getattr(float_frame, name)(axis=1, numeric_only=False)
 
     # all NA case
     if has_skipna:
-        all_na = float_frame * np.NaN
-        r0 = getattr(all_na, name)(axis=0)
-        r1 = getattr(all_na, name)(axis=1)
-        if name in ['sum', 'prod']:
-            unit = int(name == 'prod')
+        all_na = frame * np.NaN
+        r0 = getattr(all_na, opname)(axis=0)
+        r1 = getattr(all_na, opname)(axis=1)
+        if opname in ['sum', 'prod']:
+            unit = 1 if opname == 'prod' else 0  # result for empty sum/prod
             expected = pd.Series(unit, index=r0.index, dtype=r0.dtype)
             tm.assert_series_equal(r0, expected)
             expected = pd.Series(unit, index=r1.index, dtype=r1.dtype)
             tm.assert_series_equal(r1, expected)
 
 
-def _check_bool_op(name, alternative, frame, float_string_frame,
-                   has_skipna=True, has_bool_only=False):
+def assert_stat_op_api(opname, float_frame, float_string_frame,
+                       has_numeric_only=False):
+    """
+    Check that API for operator opname works as advertised on frame
 
-    f = getattr(frame, name)
+    Parameters
+    ----------
+    opname : string
+        Name of the operator to test on frame
+    float_frame : DataFrame
+        DataFrame with columns of type float
+    float_string_frame : DataFrame
+        DataFrame with both float and string columns
+    has_numeric_only : bool, default False
+        Whether the method "opname" has the kwarg "numeric_only"
+    """
+
+    # make sure works on mixed-type frame
+    getattr(float_string_frame, opname)(axis=0)
+    getattr(float_string_frame, opname)(axis=1)
+
+    if has_numeric_only:
+        getattr(float_string_frame, opname)(axis=0, numeric_only=True)
+        getattr(float_string_frame, opname)(axis=1, numeric_only=True)
+        getattr(float_frame, opname)(axis=0, numeric_only=False)
+        getattr(float_frame, opname)(axis=1, numeric_only=False)
+
+
+def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
+    """
+    Check that bool operator opname works as advertised on frame
+
+    Parameters
+    ----------
+    opname : string
+        Name of the operator to test on frame
+    alternative : function
+        Function that opname is tested against; i.e. "frame.opname()" should
+        equal "alternative(frame)".
+    frame : DataFrame
+        The object that the tests are executed on
+    has_skipna : bool, default True
+        Whether the method "opname" has the kwarg "skip_na"
+    """
+
+    f = getattr(frame, opname)
 
     if has_skipna:
         def skipna_wrapper(x):
@@ -118,6 +173,7 @@ def _check_bool_op(name, alternative, frame, float_string_frame,
 
         result0 = f(axis=0, skipna=False)
         result1 = f(axis=1, skipna=False)
+
         tm.assert_series_equal(result0, frame.apply(wrapper))
         tm.assert_series_equal(result1, frame.apply(wrapper, axis=1),
                                check_dtype=False)  # HACK: win32
@@ -127,18 +183,48 @@ def _check_bool_op(name, alternative, frame, float_string_frame,
 
     result0 = f(axis=0)
     result1 = f(axis=1)
+
     tm.assert_series_equal(result0, frame.apply(skipna_wrapper))
     tm.assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
                            check_dtype=False)
 
     # bad axis
-    pytest.raises(ValueError, f, axis=2)
+    tm.assert_raises_regex(ValueError, 'No axis named 2', f, axis=2)
 
-    # make sure works on mixed-type frame
+    # all NA case
+    if has_skipna:
+        all_na = frame * np.NaN
+        r0 = getattr(all_na, opname)(axis=0)
+        r1 = getattr(all_na, opname)(axis=1)
+        if opname == 'any':
+            assert not r0.any()
+            assert not r1.any()
+        else:
+            assert r0.all()
+            assert r1.all()
+
+
+def assert_bool_op_api(opname, bool_frame_with_na, float_string_frame,
+                       has_bool_only=False):
+    """
+    Check that API for boolean operator opname works as advertised on frame
+
+    Parameters
+    ----------
+    opname : string
+        Name of the operator to test on frame
+    float_frame : DataFrame
+        DataFrame with columns of type float
+    float_string_frame : DataFrame
+        DataFrame with both float and string columns
+    has_bool_only : bool, default False
+        Whether the method "opname" has the kwarg "bool_only"
+    """
+    # make sure op works on mixed-type frame
     mixed = float_string_frame
-    mixed['_bool_'] = np.random.randn(len(mixed)) > 0
-    getattr(mixed, name)(axis=0)
-    getattr(mixed, name)(axis=1)
+    mixed['_bool_'] = np.random.randn(len(mixed)) > 0.5
+    getattr(mixed, opname)(axis=0)
+    getattr(mixed, opname)(axis=1)
 
     class NonzeroFail(object):
 
@@ -148,22 +234,10 @@ def _check_bool_op(name, alternative, frame, float_string_frame,
     mixed['_nonzero_fail_'] = NonzeroFail()
 
     if has_bool_only:
-        getattr(mixed, name)(axis=0, bool_only=True)
-        getattr(mixed, name)(axis=1, bool_only=True)
-        getattr(frame, name)(axis=0, bool_only=False)
-        getattr(frame, name)(axis=1, bool_only=False)
-
-    # all NA case
-    if has_skipna:
-        all_na = frame * np.NaN
-        r0 = getattr(all_na, name)(axis=0)
-        r1 = getattr(all_na, name)(axis=1)
-        if name == 'any':
-            assert not r0.any()
-            assert not r1.any()
-        else:
-            assert r0.all()
-            assert r1.all()
+        getattr(mixed, opname)(axis=0, bool_only=True)
+        getattr(mixed, opname)(axis=1, bool_only=True)
+        getattr(bool_frame_with_na, opname)(axis=0, bool_only=False)
+        getattr(bool_frame_with_na, opname)(axis=1, bool_only=False)
 
 
 class TestDataFrameAnalytics():
@@ -265,7 +339,7 @@ class TestDataFrameAnalytics():
             assert result.index.equals(result.columns)
 
     def test_corr_invalid_method(self):
-        # GH PR #22298
+        # GH 22298
         df = pd.DataFrame(np.random.normal(size=(10, 2)))
         msg = ("method must be either 'pearson', 'spearman', "
                "or 'kendall'")
@@ -473,8 +547,8 @@ class TestDataFrameAnalytics():
 
         cat = Series(Categorical(["a", "b", "c", "c"]))
         df3 = DataFrame({"cat": cat, "s": ["a", "b", "c", "c"]})
-        res = df3.describe()
-        tm.assert_numpy_array_equal(res["cat"].values, res["s"].values)
+        result = df3.describe()
+        tm.assert_numpy_array_equal(result["cat"].values, result["s"].values)
 
     def test_describe_categorical_columns(self):
         # GH 11558
@@ -545,8 +619,8 @@ class TestDataFrameAnalytics():
                              index=['count', 'mean', 'std', 'min', '25%',
                                     '50%', '75%', 'max'])
 
-        res = df.describe()
-        tm.assert_frame_equal(res, expected)
+        result = df.describe()
+        tm.assert_frame_equal(result, expected)
 
         exp_repr = ("                           t1                      t2\n"
                     "count                       5                       5\n"
@@ -557,7 +631,7 @@ class TestDataFrameAnalytics():
                     "50%           3 days 00:00:00         0 days 03:00:00\n"
                     "75%           4 days 00:00:00         0 days 04:00:00\n"
                     "max           5 days 00:00:00         0 days 05:00:00")
-        assert repr(res) == exp_repr
+        assert repr(result) == exp_repr
 
     def test_describe_tz_values(self, tz_naive_fixture):
         # GH 21332
@@ -578,8 +652,8 @@ class TestDataFrameAnalytics():
                                     'last', 'mean', 'std', 'min', '25%', '50%',
                                     '75%', 'max']
                              )
-        res = df.describe(include='all')
-        tm.assert_frame_equal(res, expected)
+        result = df.describe(include='all')
+        tm.assert_frame_equal(result, expected)
 
     def test_reduce_mixed_frame(self):
         # GH 6806
@@ -596,10 +670,10 @@ class TestDataFrameAnalytics():
 
     def test_count(self, float_frame_with_na, float_frame, float_string_frame):
         f = lambda s: notna(s).sum()
-        _check_stat_op('count', f, float_frame_with_na, float_frame,
-                       float_string_frame, has_skipna=False,
-                       has_numeric_only=True, check_dtype=False,
-                       check_dates=True)
+        assert_stat_op_calc('count', f, float_frame_with_na, has_skipna=False,
+                            check_dtype=False, check_dates=True)
+        assert_stat_op_api('count', float_frame, float_string_frame,
+                           has_numeric_only=True)
 
         # corner case
         frame = DataFrame()
@@ -609,7 +683,7 @@ class TestDataFrameAnalytics():
         ct2 = frame.count(0)
         assert isinstance(ct2, Series)
 
-        # GH #423
+        # GH 423
         df = DataFrame(index=lrange(10))
         result = df.count(1)
         expected = Series(0, index=df.index)
@@ -628,9 +702,10 @@ class TestDataFrameAnalytics():
     def test_nunique(self, float_frame_with_na, float_frame,
                      float_string_frame):
         f = lambda s: len(algorithms.unique1d(s.dropna()))
-        _check_stat_op('nunique', f, float_frame_with_na,
-                       float_frame, float_string_frame, has_skipna=False,
-                       check_dtype=False, check_dates=True)
+        assert_stat_op_calc('nunique', f, float_frame_with_na,
+                            has_skipna=False, check_dtype=False,
+                            check_dates=True)
+        assert_stat_op_api('nunique', float_frame, float_string_frame)
 
         df = DataFrame({'A': [1, 1, 1],
                         'B': [1, 2, 3],
@@ -644,20 +719,18 @@ class TestDataFrameAnalytics():
 
     def test_sum(self, float_frame_with_na, mixed_float_frame,
                  float_frame, float_string_frame):
-        _check_stat_op('sum', np.sum, float_frame_with_na, float_frame,
-                       float_string_frame, has_numeric_only=True,
-                       skipna_alternative=np.nansum)
-
+        assert_stat_op_api('sum', float_frame, float_string_frame,
+                           has_numeric_only=True)
+        assert_stat_op_calc('sum', np.sum, float_frame_with_na,
+                            skipna_alternative=np.nansum)
         # mixed types (with upcasting happening)
-        _check_stat_op('sum', np.sum,
-                       mixed_float_frame.astype('float32'), float_frame,
-                       float_string_frame, has_numeric_only=True,
-                       check_dtype=False, check_less_precise=True)
+        assert_stat_op_calc('sum', np.sum, mixed_float_frame.astype('float32'),
+                            check_dtype=False, check_less_precise=True)
 
     @pytest.mark.parametrize('method', ['sum', 'mean', 'prod', 'var',
                                         'std', 'skew', 'min', 'max'])
     def test_stat_operators_attempt_obj_array(self, method):
-        # GH #676
+        # GH 676
         data = {
             'a': [-0.00049987540199591344, -0.0016467257772919831,
                   0.00067695870775883013],
@@ -679,13 +752,14 @@ class TestDataFrameAnalytics():
                 tm.assert_series_equal(result, expected)
 
     def test_mean(self, float_frame_with_na, float_frame, float_string_frame):
-        _check_stat_op('mean', np.mean, float_frame_with_na,
-                       float_frame, float_string_frame, check_dates=True)
+        assert_stat_op_calc('mean', np.mean, float_frame_with_na,
+                            check_dates=True)
+        assert_stat_op_api('mean', float_frame, float_string_frame)
 
     def test_product(self, float_frame_with_na, float_frame,
                      float_string_frame):
-        _check_stat_op('product', np.prod, float_frame_with_na,
-                       float_frame, float_string_frame)
+        assert_stat_op_calc('product', np.prod, float_frame_with_na)
+        assert_stat_op_api('product', float_frame, float_string_frame)
 
     # TODO: Ensure warning isn't emitted in the first place
     @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
@@ -696,18 +770,18 @@ class TestDataFrameAnalytics():
                 return np.nan
             return np.median(x)
 
-        _check_stat_op('median', wrapper, float_frame_with_na,
-                       float_frame, float_string_frame, check_dates=True)
+        assert_stat_op_calc('median', wrapper, float_frame_with_na,
+                            check_dates=True)
+        assert_stat_op_api('median', float_frame, float_string_frame)
 
     def test_min(self, float_frame_with_na, int_frame,
                  float_frame, float_string_frame):
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
-            _check_stat_op('min', np.min, float_frame_with_na,
-                           float_frame, float_string_frame,
-                           check_dates=True)
-        _check_stat_op('min', np.min, int_frame, float_frame,
-                       float_string_frame)
+            assert_stat_op_calc('min', np.min, float_frame_with_na,
+                                check_dates=True)
+        assert_stat_op_calc('min', np.min, int_frame)
+        assert_stat_op_api('min', float_frame, float_string_frame)
 
     def test_cummin(self, datetime_frame):
         datetime_frame.loc[5:10, 0] = nan
@@ -759,26 +833,25 @@ class TestDataFrameAnalytics():
                  float_frame, float_string_frame):
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
-            _check_stat_op('max', np.max, float_frame_with_na,
-                           float_frame, float_string_frame,
-                           check_dates=True)
-        _check_stat_op('max', np.max, int_frame, float_frame,
-                       float_string_frame)
+            assert_stat_op_calc('max', np.max, float_frame_with_na,
+                                check_dates=True)
+        assert_stat_op_calc('max', np.max, int_frame)
+        assert_stat_op_api('max', float_frame, float_string_frame)
 
     def test_mad(self, float_frame_with_na, float_frame, float_string_frame):
         f = lambda x: np.abs(x - x.mean()).mean()
-        _check_stat_op('mad', f, float_frame_with_na, float_frame,
-                       float_string_frame)
+        assert_stat_op_calc('mad', f, float_frame_with_na)
+        assert_stat_op_api('mad', float_frame, float_string_frame)
 
     def test_var_std(self, float_frame_with_na, datetime_frame, float_frame,
                      float_string_frame):
         alt = lambda x: np.var(x, ddof=1)
-        _check_stat_op('var', alt, float_frame_with_na, float_frame,
-                       float_string_frame)
+        assert_stat_op_calc('var', alt, float_frame_with_na)
+        assert_stat_op_api('var', float_frame, float_string_frame)
 
         alt = lambda x: np.std(x, ddof=1)
-        _check_stat_op('std', alt, float_frame_with_na, float_frame,
-                       float_string_frame)
+        assert_stat_op_calc('std', alt, float_frame_with_na)
+        assert_stat_op_api('std', float_frame, float_string_frame)
 
         result = datetime_frame.std(ddof=4)
         expected = datetime_frame.apply(lambda x: x.std(ddof=4))
@@ -799,7 +872,7 @@ class TestDataFrameAnalytics():
     @pytest.mark.parametrize(
         "meth", ['sem', 'var', 'std'])
     def test_numeric_only_flag(self, meth):
-        # GH #9201
+        # GH 9201
         df1 = DataFrame(np.random.randn(5, 3), columns=['foo', 'bar', 'baz'])
         # set one entry to a number in str format
         df1.loc[0, 'foo'] = '100'
@@ -892,8 +965,8 @@ class TestDataFrameAnalytics():
     def test_sem(self, float_frame_with_na, datetime_frame,
                  float_frame, float_string_frame):
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
-        _check_stat_op('sem', alt, float_frame_with_na,
-                       float_frame, float_string_frame)
+        assert_stat_op_calc('sem', alt, float_frame_with_na)
+        assert_stat_op_api('sem', float_frame, float_string_frame)
 
         result = datetime_frame.sem(ddof=4)
         expected = datetime_frame.apply(
@@ -917,8 +990,8 @@ class TestDataFrameAnalytics():
                 return np.nan
             return skew(x, bias=False)
 
-        _check_stat_op('skew', alt, float_frame_with_na,
-                       float_frame, float_string_frame)
+        assert_stat_op_calc('skew', alt, float_frame_with_na)
+        assert_stat_op_api('skew', float_frame, float_string_frame)
 
     @td.skip_if_no_scipy
     def test_kurt(self, float_frame_with_na, float_frame, float_string_frame):
@@ -929,8 +1002,8 @@ class TestDataFrameAnalytics():
                 return np.nan
             return kurtosis(x, bias=False)
 
-        _check_stat_op('kurt', alt, float_frame_with_na,
-                       float_frame, float_string_frame)
+        assert_stat_op_calc('kurt', alt, float_frame_with_na)
+        assert_stat_op_api('kurt', float_frame, float_string_frame)
 
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
                            labels=[[0, 0, 0, 0, 0, 0],
@@ -1205,9 +1278,9 @@ class TestDataFrameAnalytics():
                 return np.nan
             return np.median(x)
 
-        _check_stat_op('median', wrapper, int_frame, float_frame,
-                       float_string_frame, check_dtype=False,
-                       check_dates=True)
+        assert_stat_op_calc('median', wrapper, int_frame, check_dtype=False,
+                            check_dates=True)
+        assert_stat_op_api('median', float_frame, float_string_frame)
 
     # Miscellanea
 
@@ -1262,13 +1335,12 @@ class TestDataFrameAnalytics():
     # ----------------------------------------------------------------------
     # Logical reductions
 
-    def test_any_all(self, bool_frame_with_na, float_string_frame):
-        _check_bool_op('any', np.any, bool_frame_with_na,
-                       float_string_frame, has_skipna=True,
-                       has_bool_only=True)
-        _check_bool_op('all', np.all, bool_frame_with_na,
-                       float_string_frame, has_skipna=True,
-                       has_bool_only=True)
+    @pytest.mark.parametrize('opname', ['any', 'all'])
+    def test_any_all(self, opname, bool_frame_with_na, float_string_frame):
+        assert_bool_op_calc(opname, getattr(np, opname), bool_frame_with_na,
+                            has_skipna=True)
+        assert_bool_op_api(opname, bool_frame_with_na, float_string_frame,
+                           has_bool_only=True)
 
     def test_any_all_extra(self):
         df = DataFrame({
@@ -1365,12 +1437,12 @@ class TestDataFrameAnalytics():
         (np.any, {'A': pd.Series([1, 2], dtype='category')}, True),
 
         # # Mix
-        # GH-21484
+        # GH 21484
         # (np.all, {'A': pd.Series([10, 20], dtype='M8[ns]'),
         #           'B': pd.Series([10, 20], dtype='m8[ns]')}, True),
     ])
     def test_any_all_np_func(self, func, data, expected):
-        # https://github.com/pandas-dev/pandas/issues/19976
+        # GH 19976
         data = DataFrame(data)
         result = func(data)
         assert isinstance(result, np.bool_)
@@ -1382,7 +1454,7 @@ class TestDataFrameAnalytics():
         assert result.item() is expected
 
     def test_any_all_object(self):
-        # https://github.com/pandas-dev/pandas/issues/19976
+        # GH 19976
         result = np.all(DataFrame(columns=['a', 'b'])).item()
         assert result is True
 
@@ -1404,7 +1476,7 @@ class TestDataFrameAnalytics():
     # Isin
 
     def test_isin(self):
-        # GH #4211
+        # GH 4211
         df = DataFrame({'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'],
                         'ids2': ['a', 'n', 'c', 'n']},
                        index=['foo', 'bar', 'baz', 'qux'])
@@ -1416,7 +1488,7 @@ class TestDataFrameAnalytics():
 
     @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
     def test_isin_empty(self, empty):
-        # see gh-16991
+        # GH 16991
         df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
         expected = DataFrame(False, df.index, df.columns)
 
@@ -1442,7 +1514,7 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(result, expected)
 
     def test_isin_with_string_scalar(self):
-        # GH4763
+        # GH 4763
         df = DataFrame({'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'],
                         'ids2': ['a', 'n', 'c', 'n']},
                        index=['foo', 'bar', 'baz', 'qux'])
@@ -1468,7 +1540,7 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(result, expected)
 
     def test_isin_tuples(self):
-        # GH16394
+        # GH 16394
         df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
         df['C'] = list(zip(df['A'], df['B']))
         result = df['C'].isin([(1, 'a')])
@@ -1678,7 +1750,7 @@ class TestDataFrameAnalytics():
                                expected_rounded['col1'])
 
     def test_numpy_round(self):
-        # See gh-12600
+        # GH 12600
         df = DataFrame([[1.53, 1.36], [0.06, 7.01]])
         out = np.round(df, decimals=0)
         expected = DataFrame([[2., 1.], [0., 7.]])
@@ -1689,7 +1761,7 @@ class TestDataFrameAnalytics():
             np.round(df, decimals=0, out=df)
 
     def test_round_mixed_type(self):
-        # GH11885
+        # GH 11885
         df = DataFrame({'col1': [1.1, 2.2, 3.3, 4.4],
                         'col2': ['1', 'a', 'c', 'f'],
                         'col3': date_range('20111111', periods=4)})
@@ -1704,7 +1776,7 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(df.round({'col3': 1}), df)
 
     def test_round_issue(self):
-        # GH11611
+        # GH 11611
 
         df = pd.DataFrame(np.random.random([3, 3]), columns=['A', 'B', 'C'],
                           index=['first', 'second', 'third'])
@@ -1721,7 +1793,7 @@ class TestDataFrameAnalytics():
             pytest.skip("build in round cannot be overridden "
                         "prior to Python 3")
 
-        # GH11763
+        # GH 11763
         # Here's the test frame we'll be working with
         df = DataFrame(
             {'col1': [1.123, 2.123, 3.123], 'col2': [1.234, 2.234, 3.234]})
@@ -1765,7 +1837,7 @@ class TestDataFrameAnalytics():
         assert (float_frame.values == original.values).all()
 
     def test_inplace_clip(self, float_frame):
-        # GH #15388
+        # GH 15388
         median = float_frame.median().median()
         frame_copy = float_frame.copy()
 
@@ -1781,7 +1853,7 @@ class TestDataFrameAnalytics():
         assert not (frame_copy.values != median).any()
 
     def test_dataframe_clip(self):
-        # GH #2747
+        # GH 2747
         df = DataFrame(np.random.randn(1000, 2))
 
         for lb, ub in [(-1, 1), (1, -1)]:
@@ -1808,7 +1880,7 @@ class TestDataFrameAnalytics():
 
     @pytest.mark.parametrize("inplace", [True, False])
     def test_clip_against_series(self, inplace):
-        # GH #6966
+        # GH 6966
 
         df = DataFrame(np.random.randn(1000, 2))
         lb = Series(np.random.randn(1000))
@@ -1843,7 +1915,7 @@ class TestDataFrameAnalytics():
     ])
     def test_clip_against_list_like(self, simple_frame,
                                     inplace, lower, axis, res):
-        # GH #15390
+        # GH 15390
         original = simple_frame.copy(deep=True)
 
         result = original.clip(lower=lower, upper=[5, 6, 7],
@@ -1874,12 +1946,12 @@ class TestDataFrameAnalytics():
 
     def test_clip_with_na_args(self, float_frame):
         """Should process np.nan argument as None """
-        # GH # 17276
+        # GH 17276
         tm.assert_frame_equal(float_frame.clip(np.nan), float_frame)
         tm.assert_frame_equal(float_frame.clip(upper=np.nan, lower=np.nan),
                               float_frame)
 
-        # GH #19992
+        # GH 19992
         df = DataFrame({'col_0': [1, 2, 3], 'col_1': [4, 5, 6],
                         'col_2': [7, 8, 9]})
 
@@ -1948,11 +2020,8 @@ class TestDataFrameAnalytics():
 
     @pytest.mark.skipif(not PY35,
                         reason='matmul supported for Python>=3.5')
-    @pytest.mark.xfail(
-        _np_version_under1p12,
-        reason="unpredictable return types under numpy < 1.12")
     def test_matmul(self):
-        # matmul test is for GH #10259
+        # matmul test is for GH 10259
         a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
                       columns=['p', 'q', 'r', 's'])
         b = DataFrame(np.random.randn(4, 2), index=['p', 'q', 'r', 's'],
@@ -1973,8 +2042,11 @@ class TestDataFrameAnalytics():
 
         # np.array @ DataFrame
         result = operator.matmul(a.values, b)
+        assert isinstance(result, DataFrame)
+        assert result.columns.equals(b.columns)
+        assert result.index.equals(pd.Index(range(3)))
         expected = np.dot(a.values, b.values)
-        tm.assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result.values, expected)
 
         # nested list @ DataFrame (__rmatmul__)
         result = operator.matmul(a.values.tolist(), b)
@@ -2066,7 +2138,7 @@ class TestNLargestNSmallest(object):
         ['b', 'c', 'c']])
     @pytest.mark.parametrize('n', range(1, 11))
     def test_n(self, df_strings, nselect_method, n, order):
-        # GH10393
+        # GH 10393
         df = df_strings
         if 'b' in order:
 
@@ -2117,7 +2189,7 @@ class TestNLargestNSmallest(object):
         tm.assert_frame_equal(result, expected)
 
     def test_n_identical_values(self):
-        # GH15297
+        # GH 15297
         df = pd.DataFrame({'a': [1] * 5, 'b': [1, 2, 3, 4, 5]})
 
         result = df.nlargest(3, 'a')
@@ -2151,7 +2223,7 @@ class TestNLargestNSmallest(object):
         tm.assert_frame_equal(result, expected)
 
     def test_duplicate_keep_all_ties(self):
-        # see gh-16818
+        # GH 16818
         df = pd.DataFrame({'a': [5, 4, 4, 2, 3, 3, 3, 3],
                            'b': [10, 9, 8, 7, 5, 50, 10, 20]})
         result = df.nlargest(4, 'a', keep='all')

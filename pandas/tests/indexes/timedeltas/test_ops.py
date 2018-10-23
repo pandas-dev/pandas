@@ -5,10 +5,8 @@ from datetime import timedelta
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import to_timedelta
 from pandas import (Series, Timedelta, Timestamp, TimedeltaIndex,
-                    timedelta_range,
-                    _np_version_under1p10)
+                    timedelta_range, to_timedelta)
 from pandas._libs.tslib import iNaT
 from pandas.tests.test_base import Ops
 from pandas.tseries.offsets import Day, Hour
@@ -68,12 +66,11 @@ class TestTimedeltaIndexOps(Ops):
         assert np.argmin(td) == 0
         assert np.argmax(td) == 5
 
-        if not _np_version_under1p10:
-            errmsg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmin, td, out=0)
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmax, td, out=0)
+        errmsg = "the 'out' parameter is not supported"
+        tm.assert_raises_regex(
+            ValueError, errmsg, np.argmin, td, out=0)
+        tm.assert_raises_regex(
+            ValueError, errmsg, np.argmax, td, out=0)
 
     def test_value_counts_unique(self):
         # GH 7735

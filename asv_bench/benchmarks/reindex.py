@@ -2,12 +2,10 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import (DataFrame, Series, DatetimeIndex, MultiIndex, Index,
                     date_range)
-from .pandas_vb_common import setup, lib  # noqa
+from .pandas_vb_common import lib
 
 
 class Reindex(object):
-
-    goal_time = 0.2
 
     def setup(self):
         rng = DatetimeIndex(start='1/1/1970', periods=10000, freq='1min')
@@ -37,7 +35,6 @@ class Reindex(object):
 
 class ReindexMethod(object):
 
-    goal_time = 0.2
     params = ['pad', 'backfill']
     param_names = ['method']
 
@@ -52,7 +49,6 @@ class ReindexMethod(object):
 
 class Fillna(object):
 
-    goal_time = 0.2
     params = ['pad', 'backfill']
     param_names = ['method']
 
@@ -71,8 +67,6 @@ class Fillna(object):
 
 
 class LevelAlign(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.index = MultiIndex(
@@ -94,7 +88,6 @@ class LevelAlign(object):
 
 class DropDuplicates(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['inplace']
 
@@ -139,8 +132,6 @@ class DropDuplicates(object):
 
 class Align(object):
     # blog "pandas escaped the zoo"
-    goal_time = 0.2
-
     def setup(self):
         n = 50000
         indices = tm.makeStringIndex(n)
@@ -156,8 +147,6 @@ class Align(object):
 
 class LibFastZip(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 10000
         K = 10
@@ -170,3 +159,6 @@ class LibFastZip(object):
 
     def time_lib_fast_zip(self):
         lib.fast_zip(self.col_array_list)
+
+
+from .pandas_vb_common import setup  # noqa: F401

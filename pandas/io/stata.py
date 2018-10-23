@@ -442,8 +442,8 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
         conv_dates = 4 * (d.year - stata_epoch.year) + (d.month - 1) // 3
     elif fmt in ["%th", "th"]:
         d = parse_dates_safe(dates, year=True)
-        conv_dates = 2 * (d.year - stata_epoch.year) + \
-                         (d.month > 6).astype(np.int)
+        conv_dates = (2 * (d.year - stata_epoch.year) +
+                      (d.month > 6).astype(np.int))
     elif fmt in ["%ty", "ty"]:
         d = parse_dates_safe(dates, year=True)
         conv_dates = d.year
@@ -568,16 +568,18 @@ def _cast_to_stata_types(data):
         elif dtype in (np.float32, np.float64):
             value = data[col].max()
             if np.isinf(value):
-                msg = 'Column {0} has a maximum value of infinity which is ' \
-                      'outside the range supported by Stata.'
-                raise ValueError(msg.format(col))
+                raise ValueError('Column {col} has a maximum value of '
+                                 'infinity which is outside the range '
+                                 'supported by Stata.'.format(col=col))
             if dtype == np.float32 and value > float32_max:
                 data[col] = data[col].astype(np.float64)
             elif dtype == np.float64:
                 if value > float64_max:
-                    msg = 'Column {0} has a maximum value ({1}) outside the ' \
-                          'range supported by Stata ({1})'
-                    raise ValueError(msg.format(col, value, float64_max))
+                    raise ValueError('Column {col} has a maximum value '
+                                     '({val}) outside the range supported by '
+                                     'Stata ({float64_max})'
+                                     .format(col=col, val=value,
+                                             float64_max=float64_max))
 
     if ws:
         warnings.warn(ws, PossiblePrecisionLoss)
@@ -1252,12 +1254,12 @@ class StataReader(StataParser, BaseIterator):
 
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
-        except:
+        except ValueError:
             raise ValueError("cannot convert stata types [{0}]"
                              .format(','.join(str(x) for x in typlist)))
         try:
             self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
-        except:
+        except ValueError:
             raise ValueError("cannot convert stata dtypes [{0}]"
                              .format(','.join(str(x) for x in typlist)))
 
@@ -1704,9 +1706,10 @@ class StataReader(StataParser, BaseIterator):
                     vc = Series(categories).value_counts()
                     repeats = list(vc.index[vc > 1])
                     repeats = '\n' + '-' * 80 + '\n'.join(repeats)
-                    msg = 'Value labels for column {0} are not unique. The ' \
-                          'repeated labels are:\n{1}'.format(col, repeats)
-                    raise ValueError(msg)
+                    raise ValueError('Value labels for column {col} are not '
+                                     'unique. The repeated labels are:\n'
+                                     '{repeats}'
+                                     .format(col=col, repeats=repeats))
                 # TODO: is the next line needed above in the data(...) method?
                 cat_data = Series(cat_data, index=data.index)
                 cat_converted_data.append((col, cat_data))
@@ -2066,8 +2069,8 @@ class StataWriter(StataParser):
                 name = text_type(name)
 
             for c in name:
-                if (c < 'A' or c > 'Z') and (c < 'a' or c > 'z') and \
-                        (c < '0' or c > '9') and c != '_':
+                if ((c < 'A' or c > 'Z') and (c < 'a' or c > 'z') and
+                        (c < '0' or c > '9') and c != '_'):
                     name = name.replace(c, '_')
 
             # Variable name must not be a reserved word

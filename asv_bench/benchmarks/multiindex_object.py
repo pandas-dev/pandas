@@ -4,12 +4,8 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import date_range, MultiIndex
 
-from .pandas_vb_common import setup  # noqa
-
 
 class GetLoc(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.mi_large = MultiIndex.from_product(
@@ -46,8 +42,6 @@ class GetLoc(object):
 
 class Duplicates(object):
 
-    goal_time = 0.2
-
     def setup(self):
         size = 65536
         arrays = [np.random.randint(0, 8192, size),
@@ -61,8 +55,6 @@ class Duplicates(object):
 
 
 class Integer(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.mi_int = MultiIndex.from_product([np.arange(1000),
@@ -82,8 +74,6 @@ class Integer(object):
 
 class Duplicated(object):
 
-    goal_time = 0.2
-
     def setup(self):
         n, k = 200, 5000
         levels = [np.arange(n),
@@ -97,8 +87,6 @@ class Duplicated(object):
 
 
 class Sortlevel(object):
-
-    goal_time = 0.2
 
     def setup(self):
         n = 1182720
@@ -124,8 +112,6 @@ class Sortlevel(object):
 
 class Values(object):
 
-    goal_time = 0.2
-
     def setup_cache(self):
 
         level1 = range(1000)
@@ -138,3 +124,6 @@ class Values(object):
 
     def time_datetime_level_values_sliced(self, mi):
         mi[:10].values
+
+
+from .pandas_vb_common import setup  # noqa: F401

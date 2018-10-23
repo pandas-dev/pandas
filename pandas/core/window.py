@@ -98,11 +98,11 @@ class _Window(PandasObject, SelectionMixin):
     def validate(self):
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
-        if self.min_periods is not None and not \
-           is_integer(self.min_periods):
+        if (self.min_periods is not None and
+                not is_integer(self.min_periods)):
             raise ValueError("min_periods must be an integer")
-        if self.closed is not None and self.closed not in \
-           ['right', 'both', 'left', 'neither']:
+        if (self.closed is not None and
+                self.closed not in ['right', 'both', 'left', 'neither']):
             raise ValueError("closed must be 'right', 'left', 'both' or "
                              "'neither'")
 
@@ -462,7 +462,8 @@ class Window(_Window):
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA). For a window that is specified by an offset,
-        this will default to 1.
+        `min_periods` will default to 1. Otherwise, `min_periods` will default
+        to the size of the window.
     center : boolean, default False
         Set the labels at the center of the window.
     win_type : string, default None

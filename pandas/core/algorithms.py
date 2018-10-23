@@ -30,7 +30,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int, ensure_object,
     ensure_float64, ensure_uint64,
     ensure_int64)
-from pandas.compat.numpy import _np_version_under1p10
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
@@ -275,8 +274,8 @@ def match(to_match, values, na_sentinel=-1):
         # replace but return a numpy array
         # use a Series because it handles dtype conversions properly
         from pandas import Series
-        result = Series(result.ravel()).replace(-1, na_sentinel).values.\
-            reshape(result.shape)
+        result = Series(result.ravel()).replace(-1, na_sentinel)
+        result = result.values.reshape(result.shape)
 
     return result
 
@@ -468,15 +467,13 @@ def _factorize_array(values, na_sentinel=-1, size_hint=None,
     -------
     labels, uniques : ndarray
     """
-    (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
+    (hash_klass, _), values = _get_data_algo(values, _hashtables)
 
     table = hash_klass(size_hint or len(values))
-    uniques = vec_klass()
-    labels = table.get_labels(values, uniques, 0, na_sentinel,
-                              na_value=na_value)
+    labels, uniques = table.factorize(values, na_sentinel=na_sentinel,
+                                      na_value=na_value)
 
     labels = ensure_platform_int(labels)
-    uniques = uniques.to_array()
     return labels, uniques
 
 
@@ -910,26 +907,12 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
     ------
     OverflowError if any x + y exceeds the maximum or minimum int64 value.
     """
-    def _broadcast(arr_or_scalar, shape):
-        """
-        Helper function to broadcast arrays / scalars to the desired shape.
-        """
-        if _np_version_under1p10:
-            if is_scalar(arr_or_scalar):
-                out = np.empty(shape)
-                out.fill(arr_or_scalar)
-            else:
-                out = arr_or_scalar
-        else:
-            out = np.broadcast_to(arr_or_scalar, shape)
-        return out
-
     # For performance reasons, we broadcast 'b' to the new array 'b2'
     # so that it has the same size as 'arr'.
-    b2 = _broadcast(b, arr.shape)
+    b2 = np.broadcast_to(b, arr.shape)
     if b_mask is not None:
         # We do the same broadcasting for b_mask as well.
-        b2_mask = _broadcast(b_mask, arr.shape)
+        b2_mask = np.broadcast_to(b_mask, arr.shape)
     else:
         b2_mask = None
 

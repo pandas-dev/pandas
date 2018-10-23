@@ -9,6 +9,7 @@ import numpy as np
 
 import operator
 
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.errors import AbstractMethodError
 from pandas.compat.numpy import function as nv
 from pandas.compat import set_function_name, PY3
@@ -63,6 +64,10 @@ class ExtensionArray(object):
     as they only compose abstract methods. Still, a more efficient
     implementation may be available, and these methods can be overridden.
 
+    One can implement methods to handle array reductions.
+
+    * _reduce
+
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
@@ -105,6 +110,7 @@ class ExtensionArray(object):
             compatible with the ExtensionArray.
         copy : boolean, default False
             If True, copy the underlying data.
+
         Returns
         -------
         ExtensionArray
@@ -283,10 +289,25 @@ class ExtensionArray(object):
         return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self):
-        # type: () -> np.ndarray
-        """Boolean NumPy array indicating if each value is missing.
+        # type: () -> Union[ExtensionArray, np.ndarray]
+        """
+        A 1-D array indicating if each value is missing.
 
-        This should return a 1-D array the same length as 'self'.
+        Returns
+        -------
+        na_values : Union[np.ndarray, ExtensionArray]
+            In most cases, this should return a NumPy ndarray. For
+            exceptional cases like ``SparseArray``, where returning
+            an ndarray would be expensive, an ExtensionArray may be
+            returned.
+
+        Notes
+        -----
+        If returning an ExtensionArray, then
+
+        * ``na_values._is_boolean`` should be True
+        * `na_values` should implement :func:`ExtensionArray._reduce`
+        * ``na_values.any`` and ``na_values.all`` should be implemented
         """
         raise AbstractMethodError(self)
 
@@ -466,6 +487,11 @@ class ExtensionArray(object):
             as NA in the factorization routines, so it will be coded as
             `na_sentinal` and not included in `uniques`. By default,
             ``np.nan`` is used.
+
+        Notes
+        -----
+        The values returned by this method are also used in
+        :func:`pandas.util.hash_pandas_object`.
         """
         return self.astype(object), np.nan
 
@@ -670,10 +696,43 @@ class ExtensionArray(object):
         """
         return np.array(self)
 
+    def _reduce(self, name, skipna=True, **kwargs):
+        """
+        Return a scalar result of performing the reduction operation.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            { any, all, min, max, sum, mean, median, prod,
+            std, var, sem, kurt, skew }.
+        skipna : bool, default True
+            If True, skip NaN values.
+        **kwargs
+            Additional keyword arguments passed to the reduction function.
+            Currently, `ddof` is the only supported kwarg.
+
+        Returns
+        -------
+        scalar
+
+        Raises
+        ------
+        TypeError : subclass does not define reductions
+        """
+        raise TypeError("cannot perform {name} with type {dtype}".format(
+            name=name, dtype=self.dtype))
+
 
 class ExtensionOpsMixin(object):
     """
-    A base class for linking the operators to their dunder names
+    A base class for linking the operators to their dunder names.
+
+    .. note::
+
+       You may want to set ``__array_priority__`` if you want your
+       implementation to be called when involved in binary operations
+       with NumPy arrays.
     """
 
     @classmethod
@@ -710,12 +769,14 @@ class ExtensionOpsMixin(object):
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
-    """A mixin for defining the arithmetic and logical operations on
-    an ExtensionArray class, where it is assumed that the underlying objects
-    have the operators already defined.
+    """
+    A mixin for defining  ops on an ExtensionArray.
 
-    Usage
-    ------
+    It is assumed that the underlying scalar objects have the operators
+    already defined.
+
+    Notes
+    -----
     If you have defined a subclass MyExtensionArray(ExtensionArray), then
     use MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin) to
     get the arithmetic operators.  After the definition of MyExtensionArray,
@@ -725,6 +786,12 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     MyExtensionArray._add_comparison_ops()
 
     to link the operators to your class.
+
+    .. note::
+
+       You may want to set ``__array_priority__`` if you want your
+       implementation to be called when involved in binary operations
+       with NumPy arrays.
     """
 
     @classmethod
@@ -774,6 +841,11 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                 else:  # Assume its an object
                     ovalues = [param] * len(self)
                 return ovalues
+
+            if isinstance(other, (ABCSeries, ABCIndexClass)):
+                # rely on pandas to unbox and dispatch to us
+                return NotImplemented
+
             lvalues = self
             rvalues = convert_values(other)
 
@@ -781,17 +853,24 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
             # a TypeError should be raised
             res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
 
-            if coerce_to_dtype:
-                try:
-                    res = self._from_sequence(res)
-                except Exception:
+            def _maybe_convert(arr):
+                if coerce_to_dtype:
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    res = np.asarray(res)
-            else:
-                res = np.asarray(res)
+                    try:
+                        res = self._from_sequence(arr)
+                    except Exception:
+                        res = np.asarray(arr)
+                else:
+                    res = np.asarray(arr)
+                return res
 
+            if op.__name__ in {'divmod', 'rdivmod'}:
+                a, b = zip(*res)
+                res = _maybe_convert(a), _maybe_convert(b)
+            else:
+                res = _maybe_convert(res)
             return res
 
         op_name = ops._get_op_name(op, True)

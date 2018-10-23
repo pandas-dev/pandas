@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
+import operator
 import warnings
 
 import numpy as np
@@ -10,14 +11,15 @@ from pandas._libs.tslibs.period import (
     Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX,
     get_period_field_arr, period_asfreq_arr)
 from pandas._libs.tslibs import period as libperiod
-from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.fields import isleapyear_arr
 
 from pandas import compat
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (cache_readonly, deprecate_kwarg)
 
 from pandas.core.dtypes.common import (
-    is_integer_dtype, is_float_dtype, is_period_dtype)
+    is_integer_dtype, is_float_dtype, is_period_dtype, is_timedelta64_dtype,
+    is_datetime64_dtype, _TD_DTYPE)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 
@@ -26,6 +28,7 @@ import pandas.core.common as com
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
 
+from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 
 
@@ -127,7 +130,11 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
             freq = values.freq
             values = values.asi8
 
-        return cls._simple_new(values, freq, **kwargs)
+        elif is_datetime64_dtype(values):
+            # TODO: what if it has tz?
+            values = dt64arr_to_periodarr(values, freq)
+
+        return cls._simple_new(values, freq=freq, **kwargs)
 
     @classmethod
     def _simple_new(cls, values, freq=None, **kwargs):
@@ -136,21 +143,27 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
         """
 
+        if is_period_dtype(values):
+            freq = dtl.validate_dtype_freq(values.dtype, freq)
+            values = values.asi8
+
         if not is_integer_dtype(values):
             values = np.array(values, copy=False)
             if len(values) > 0 and is_float_dtype(values):
                 raise TypeError("{cls} can't take floats"
                                 .format(cls=cls.__name__))
-            return cls(values, freq=freq)
+            return cls(values, freq=freq, **kwargs)
 
-        return cls._from_ordinals(values, freq)
+        return cls._from_ordinals(values, freq=freq, **kwargs)
 
     @classmethod
-    def _from_ordinals(cls, values, freq=None):
+    def _from_ordinals(cls, values, freq=None, **kwargs):
         """
         Values should be int ordinals
         `__new__` & `_simple_new` cooerce to ordinals and call this method
         """
+        # **kwargs are included so that the signature matches PeriodIndex,
+        #  letting us share _simple_new
 
         values = np.array(values, dtype='int64', copy=False)
 
@@ -163,11 +176,13 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
+        periods = dtl.validate_periods(periods)
+
         if freq is not None:
             freq = Period._maybe_convert_freq(freq)
 
         field_count = len(fields)
-        if com.count_not_none(start, end) > 0:
+        if start is not None or end is not None:
             if field_count > 0:
                 raise ValueError('Can either instantiate from fields '
                                  'or endpoints, but not both')
@@ -206,6 +221,14 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
     def is_leap_year(self):
         """ Logical indicating if the date belongs to a leap year """
         return isleapyear_arr(np.asarray(self.year))
+
+    @property
+    def start_time(self):
+        return self.to_timestamp(how='start')
+
+    @property
+    def end_time(self):
+        return self.to_timestamp(how='end')
 
     def asfreq(self, freq=None, how='E'):
         """
@@ -266,6 +289,48 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
         return self._shallow_copy(new_data, freq=freq)
 
+    def to_timestamp(self, freq=None, how='start'):
+        """
+        Cast to DatetimeArray/Index
+
+        Parameters
+        ----------
+        freq : string or DateOffset, optional
+            Target frequency. The default is 'D' for week or longer,
+            'S' otherwise
+        how : {'s', 'e', 'start', 'end'}
+
+        Returns
+        -------
+        DatetimeArray/Index
+        """
+        from pandas.core.arrays import DatetimeArrayMixin
+
+        how = libperiod._validate_end_alias(how)
+
+        end = how == 'E'
+        if end:
+            if freq == 'B':
+                # roll forward to ensure we land on B date
+                adjust = Timedelta(1, 'D') - Timedelta(1, 'ns')
+                return self.to_timestamp(how='start') + adjust
+            else:
+                adjust = Timedelta(1, 'ns')
+                return (self + 1).to_timestamp(how='start') - adjust
+
+        if freq is None:
+            base, mult = frequencies.get_freq_code(self.freq)
+            freq = frequencies.get_to_timestamp_base(base)
+        else:
+            freq = Period._maybe_convert_freq(freq)
+
+        base, mult = frequencies.get_freq_code(freq)
+        new_data = self.asfreq(freq, how=how)
+
+        new_data = libperiod.periodarr_to_dt64arr(new_data._ndarray_values,
+                                                  base)
+        return DatetimeArrayMixin(new_data, freq='infer')
+
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
@@ -300,39 +365,81 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         return self._time_shift(other.n)
 
     def _add_delta_td(self, other):
+        assert isinstance(self.freq, Tick)  # checked by calling function
         assert isinstance(other, (timedelta, np.timedelta64, Tick))
-        nanos = delta_to_nanoseconds(other)
-        own_offset = frequencies.to_offset(self.freq.rule_code)
 
-        if isinstance(own_offset, Tick):
-            offset_nanos = delta_to_nanoseconds(own_offset)
-            if np.all(nanos % offset_nanos == 0):
-                return self._time_shift(nanos // offset_nanos)
+        delta = self._check_timedeltalike_freq_compat(other)
 
-        # raise when input doesn't have freq
-        raise IncompatibleFrequency("Input has different freq from "
-                                    "{cls}(freq={freqstr})"
-                                    .format(cls=type(self).__name__,
-                                            freqstr=self.freqstr))
+        # Note: when calling parent class's _add_delta_td, it will call
+        #  delta_to_nanoseconds(delta).  Because delta here is an integer,
+        #  delta_to_nanoseconds will return it unchanged.
+        return DatetimeLikeArrayMixin._add_delta_td(self, delta)
+
+    def _add_delta_tdi(self, other):
+        assert isinstance(self.freq, Tick)  # checked by calling function
+
+        delta = self._check_timedeltalike_freq_compat(other)
+        return self._addsub_int_array(delta, operator.add)
 
     def _add_delta(self, other):
-        ordinal_delta = self._maybe_convert_timedelta(other)
-        return self._time_shift(ordinal_delta)
-
-    def shift(self, n):
         """
-        Specialized shift which produces an Period Array/Index
+        Add a timedelta-like, Tick, or TimedeltaIndex-like object
+        to self.
 
         Parameters
         ----------
-        n : int
-            Periods to shift by
+        other : {timedelta, np.timedelta64, Tick,
+                 TimedeltaIndex, ndarray[timedelta64]}
 
         Returns
         -------
-        shifted : Period Array/Index
+        result : same type as self
         """
-        return self._time_shift(n)
+        if not isinstance(self.freq, Tick):
+            # We cannot add timedelta-like to non-tick PeriodArray
+            raise IncompatibleFrequency("Input has different freq from "
+                                        "{cls}(freq={freqstr})"
+                                        .format(cls=type(self).__name__,
+                                                freqstr=self.freqstr))
+
+        # TODO: standardize across datetimelike subclasses whether to return
+        #  i8 view or _shallow_copy
+        if isinstance(other, (Tick, timedelta, np.timedelta64)):
+            new_values = self._add_delta_td(other)
+            return self._shallow_copy(new_values)
+        elif is_timedelta64_dtype(other):
+            # ndarray[timedelta64] or TimedeltaArray/index
+            new_values = self._add_delta_tdi(other)
+            return self._shallow_copy(new_values)
+        else:  # pragma: no cover
+            raise TypeError(type(other).__name__)
+
+    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
+    def shift(self, periods):
+        """
+        Shift index by desired number of increments.
+
+        This method is for shifting the values of period indexes
+        by a specified time increment.
+
+        Parameters
+        ----------
+        periods : int
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+
+            .. versionchanged:: 0.24.0
+
+        Returns
+        -------
+        pandas.PeriodIndex
+            Shifted index.
+
+        See Also
+        --------
+        DatetimeIndex.shift : Shift values of DatetimeIndex.
+        """
+        return self._time_shift(periods)
 
     def _time_shift(self, n):
         values = self._ndarray_values + n * self.freq.n
@@ -361,14 +468,9 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
                 other, (timedelta, np.timedelta64, Tick, np.ndarray)):
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, Tick):
-                if isinstance(other, np.ndarray):
-                    nanos = np.vectorize(delta_to_nanoseconds)(other)
-                else:
-                    nanos = delta_to_nanoseconds(other)
-                offset_nanos = delta_to_nanoseconds(offset)
-                check = np.all(nanos % offset_nanos == 0)
-                if check:
-                    return nanos // offset_nanos
+                # _check_timedeltalike_freq_compat will raise if incompatible
+                delta = self._check_timedeltalike_freq_compat(other)
+                return delta
         elif isinstance(other, DateOffset):
             freqstr = other.rule_code
             base = frequencies.get_base_alias(freqstr)
@@ -387,6 +489,58 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
                                                freqstr=self.freqstr))
 
+    def _check_timedeltalike_freq_compat(self, other):
+        """
+        Arithmetic operations with timedelta-like scalars or array `other`
+        are only valid if `other` is an integer multiple of `self.freq`.
+        If the operation is valid, find that integer multiple.  Otherwise,
+        raise because the operation is invalid.
+
+        Parameters
+        ----------
+        other : timedelta, np.timedelta64, Tick,
+                ndarray[timedelta64], TimedeltaArray, TimedeltaIndex
+
+        Returns
+        -------
+        multiple : int or ndarray[int64]
+
+        Raises
+        ------
+        IncompatibleFrequency
+        """
+        assert isinstance(self.freq, Tick)  # checked by calling function
+        own_offset = frequencies.to_offset(self.freq.rule_code)
+        base_nanos = delta_to_nanoseconds(own_offset)
+
+        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            nanos = delta_to_nanoseconds(other)
+
+        elif isinstance(other, np.ndarray):
+            # numpy timedelta64 array; all entries must be compatible
+            assert other.dtype.kind == 'm'
+            if other.dtype != _TD_DTYPE:
+                # i.e. non-nano unit
+                # TODO: disallow unit-less timedelta64
+                other = other.astype(_TD_DTYPE)
+            nanos = other.view('i8')
+        else:
+            # TimedeltaArray/Index
+            nanos = other.asi8
+
+        if np.all(nanos % base_nanos == 0):
+            # nanos being added is an integer multiple of the
+            #  base-frequency to self.freq
+            delta = nanos // base_nanos
+            # delta is the integer (or integer-array) number of periods
+            # by which will be added to self.
+            return delta
+
+        raise IncompatibleFrequency("Input has different freq from "
+                                    "{cls}(freq={freqstr})"
+                                    .format(cls=type(self).__name__,
+                                            freqstr=self.freqstr))
+
 
 PeriodArrayMixin._add_comparison_ops()
 PeriodArrayMixin._add_datetimelike_methods()
@@ -394,6 +548,15 @@ PeriodArrayMixin._add_datetimelike_methods()
 
 # -------------------------------------------------------------------
 # Constructor Helpers
+
+def dt64arr_to_periodarr(data, freq, tz=None):
+    if data.dtype != np.dtype('M8[ns]'):
+        raise ValueError('Wrong dtype: %s' % data.dtype)
+
+    freq = Period._maybe_convert_freq(freq)
+    base, mult = frequencies.get_freq_code(freq)
+    return libperiod.dt64arr_to_periodarr(data.view('i8'), base, tz)
+
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):
     if com.count_not_none(start, end, periods) != 2:

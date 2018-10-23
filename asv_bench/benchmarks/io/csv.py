@@ -6,12 +6,11 @@ import pandas.util.testing as tm
 from pandas import DataFrame, Categorical, date_range, read_csv
 from pandas.compat import cStringIO as StringIO
 
-from ..pandas_vb_common import setup, BaseIO  # noqa
+from ..pandas_vb_common import BaseIO
 
 
 class ToCSV(BaseIO):
 
-    goal_time = 0.2
     fname = '__test__.csv'
     params = ['wide', 'long', 'mixed']
     param_names = ['kind']
@@ -41,7 +40,6 @@ class ToCSV(BaseIO):
 
 class ToCSVDatetime(BaseIO):
 
-    goal_time = 0.2
     fname = '__test__.csv'
 
     def setup(self):
@@ -61,7 +59,6 @@ class StringIORewind(object):
 
 class ReadCSVDInferDatetimeFormat(StringIORewind):
 
-    goal_time = 0.2
     params = ([True, False], ['custom', 'iso8601', 'ymd'])
     param_names = ['infer_datetime_format', 'format']
 
@@ -82,7 +79,6 @@ class ReadCSVDInferDatetimeFormat(StringIORewind):
 
 class ReadCSVSkipRows(BaseIO):
 
-    goal_time = 0.2
     fname = '__test__.csv'
     params = [None, 10000]
     param_names = ['skiprows']
@@ -103,8 +99,6 @@ class ReadCSVSkipRows(BaseIO):
 
 
 class ReadUint64Integers(StringIORewind):
-
-    goal_time = 0.2
 
     def setup(self):
         self.na_values = [2**63 + 500]
@@ -127,7 +121,6 @@ class ReadUint64Integers(StringIORewind):
 
 class ReadCSVThousands(BaseIO):
 
-    goal_time = 0.2
     fname = '__test__.csv'
     params = ([',', '|'], [None, ','])
     param_names = ['sep', 'thousands']
@@ -149,8 +142,6 @@ class ReadCSVThousands(BaseIO):
 
 class ReadCSVComment(StringIORewind):
 
-    goal_time = 0.2
-
     def setup(self):
         data = ['A,B,C'] + (['1,2,3 # comment'] * 100000)
         self.StringIO_input = StringIO('\n'.join(data))
@@ -162,7 +153,6 @@ class ReadCSVComment(StringIORewind):
 
 class ReadCSVFloatPrecision(StringIORewind):
 
-    goal_time = 0.2
     params = ([',', ';'], ['.', '_'], [None, 'high', 'round_trip'])
     param_names = ['sep', 'decimal', 'float_precision']
 
@@ -185,7 +175,6 @@ class ReadCSVFloatPrecision(StringIORewind):
 
 class ReadCSVCategorical(BaseIO):
 
-    goal_time = 0.2
     fname = '__test__.csv'
 
     def setup(self):
@@ -202,8 +191,6 @@ class ReadCSVCategorical(BaseIO):
 
 
 class ReadCSVParseDates(StringIORewind):
-
-    goal_time = 0.2
 
     def setup(self):
         data = """{},19:00:00,18:56:00,0.8100,2.8100,7.2000,0.0000,280.0000\n
@@ -225,3 +212,6 @@ class ReadCSVParseDates(StringIORewind):
         read_csv(self.data(self.StringIO_input), sep=',', header=None,
                  parse_dates=[1],
                  names=list(string.digits[:9]))
+
+
+from ..pandas_vb_common import setup  # noqa: F401

@@ -6,12 +6,8 @@ try:
 except ImportError:
     import pandas.computation.expressions as expr
 
-from .pandas_vb_common import setup # noqa
-
 
 class Ops(object):
-
-    goal_time = 0.2
 
     params = [[True, False], ['default', 1]]
     param_names = ['use_numexpr', 'threads']
@@ -43,8 +39,6 @@ class Ops(object):
 
 
 class Ops2(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**3
@@ -83,8 +77,6 @@ class Ops2(object):
 
 class Timeseries(object):
 
-    goal_time = 0.2
-
     params = [None, 'US/Eastern']
     param_names = ['tz']
 
@@ -111,8 +103,6 @@ class Timeseries(object):
 
 class AddOverflowScalar(object):
 
-    goal_time = 0.2
-
     params = [1, -1, 0]
     param_names = ['scalar']
 
@@ -125,8 +115,6 @@ class AddOverflowScalar(object):
 
 
 class AddOverflowArray(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**6
@@ -149,3 +137,6 @@ class AddOverflowArray(object):
     def time_add_overflow_both_arg_nan(self):
         checked_add_with_arr(self.arr, self.arr_mixed, arr_mask=self.arr_nan_1,
                              b_mask=self.arr_nan_2)
+
+
+from .pandas_vb_common import setup  # noqa: F401
