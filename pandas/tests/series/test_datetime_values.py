@@ -509,3 +509,8 @@ class TestSeriesDatetimeValues():
                            time(22, 14, tzinfo=tz)])
         result = s.dt.timetz
         tm.assert_series_equal(result, expected)
+
+    def test_minmax_nat(self):
+        series = pd.Series([pd.NaT, pd.NaT])
+        assert series.min() is pd.NaT
+        assert series.max() is pd.NaT
