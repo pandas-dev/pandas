@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_re,
     is_re_compilable,
+    is_sparse,
     pandas_dtype)
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
@@ -633,7 +634,9 @@ class Block(PandasObject):
             return self
 
         if klass is None:
-            if dtype == np.object_:
+            # sparse is "special" and preserves sparsity.
+            # We're changing this in GH-23125
+            if dtype == np.object_ and is_sparse(values):
                 klass = ObjectBlock
             elif is_extension_array_dtype(dtype):
                 klass = ExtensionBlock
