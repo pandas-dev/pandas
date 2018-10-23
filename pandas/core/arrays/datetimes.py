@@ -423,7 +423,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     # -----------------------------------------------------------------
     # Arithmetic Methods
 
-    def _sub_datelike_dti(self, other):
+    def _sub_datetime_arraylike(self, other):
         """subtract DatetimeArray/Index or ndarray[datetime64]"""
         if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
@@ -465,7 +465,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         return type(self)(result, freq='infer')
 
-    def _sub_datelike(self, other):
+    def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
         assert isinstance(other, (datetime, np.datetime64))
         assert other is not NaT

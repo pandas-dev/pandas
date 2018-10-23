@@ -325,21 +325,21 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
-    def _add_datelike(self, other):
+    def _add_datetimelike_scalar(self, other):
         # Overriden by TimedeltaArray
         raise TypeError("cannot add {cls} and {typ}"
                         .format(cls=type(self).__name__,
                                 typ=type(other).__name__))
 
-    _add_datelike_dti = _add_datelike
+    _add_datetime_arraylike = _add_datetimelike_scalar
 
-    def _sub_datelike(self, other):
+    def _sub_datetimelike_scalar(self, other):
         # Overridden by DatetimeArray
         assert other is not NaT
         raise TypeError("cannot subtract a datelike from a {cls}"
                         .format(cls=type(self).__name__))
 
-    _sub_datelike_dti = _sub_datelike
+    _sub_datetime_arraylike = _sub_datetimelike_scalar
 
     def _sub_period(self, other):
         # Overriden by PeriodArray
@@ -627,7 +627,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 # specifically _not_ a Tick
                 result = self._add_offset(other)
             elif isinstance(other, (datetime, np.datetime64)):
-                result = self._add_datelike(other)
+                result = self._add_datetimelike_scalar(other)
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
@@ -642,7 +642,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 result = self._addsub_offset_array(other, operator.add)
             elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
                 # DatetimeIndex, ndarray[datetime64]
-                return self._add_datelike_dti(other)
+                return self._add_datetime_arraylike(other)
             elif is_integer_dtype(other):
                 result = self._addsub_int_array(other, operator.add)
             elif is_float_dtype(other):
@@ -685,7 +685,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 # specifically _not_ a Tick
                 result = self._add_offset(-other)
             elif isinstance(other, (datetime, np.datetime64)):
-                result = self._sub_datelike(other)
+                result = self._sub_datetimelike_scalar(other)
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
@@ -702,7 +702,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 result = self._addsub_offset_array(other, operator.sub)
             elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
                 # DatetimeIndex, ndarray[datetime64]
-                result = self._sub_datelike_dti(other)
+                result = self._sub_datetime_arraylike(other)
             elif is_period_dtype(other):
                 # PeriodIndex
                 result = self._sub_period_array(other)
