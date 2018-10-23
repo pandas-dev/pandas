@@ -10188,6 +10188,7 @@ dtype: int64
 Sum using level names, as well as indices
 
 >>> s.sum(level='city')
+city
 London      136
 New York    342
 dtype: int64
