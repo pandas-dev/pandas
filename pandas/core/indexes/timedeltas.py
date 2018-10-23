@@ -147,12 +147,10 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
 
         if data is None:
             # TODO: Remove this block and associated kwargs; GH#20535
-            if freq is None and com._any_none(periods, start, end):
-                raise ValueError('Must provide freq argument if no data is '
-                                 'supplied')
-            periods = dtl.validate_periods(periods)
-            return cls._generate_range(start, end, periods, name, freq,
-                                       closed=closed)
+            result = cls._generate_range(start, end, periods, freq,
+                                         closed=closed)
+            result.name = name
+            return result
 
         if unit is not None:
             data = to_timedelta(data, unit=unit, box=False)
@@ -180,16 +178,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 subarr.freq = to_offset(inferred)
 
         return subarr
-
-    @classmethod
-    def _generate_range(cls, start, end, periods,
-                        name=None, freq=None, closed=None):
-        # TimedeltaArray gets `name` via **kwargs, so we need to explicitly
-        # override it if name is passed as a positional argument
-        return super(TimedeltaIndex, cls)._generate_range(start, end,
-                                                          periods, freq,
-                                                          name=name,
-                                                          closed=closed)
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):

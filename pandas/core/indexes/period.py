@@ -165,8 +165,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             raise TypeError('__new__() got an unexpected keyword argument {}'.
                             format(list(set(fields) - valid_field_set)[0]))
 
-        periods = dtl.validate_periods(periods)
-
         if name is None and hasattr(data, 'name'):
             name = data.name
 

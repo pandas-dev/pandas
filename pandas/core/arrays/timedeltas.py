@@ -126,8 +126,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         result._freq = freq
         return result
 
-    def __new__(cls, values, freq=None, start=None, end=None, periods=None,
-                closed=None):
+    def __new__(cls, values, freq=None):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
@@ -140,8 +139,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         return result
 
     @classmethod
-    def _generate_range(cls, start, end, periods, freq, closed=None, **kwargs):
-        # **kwargs are for compat with TimedeltaIndex, which includes `name`
+    def _generate_range(cls, start, end, periods, freq, closed=None):
 
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -167,10 +165,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         if freq is not None:
             index = _generate_regular_range(start, end, periods, freq)
-            index = cls._simple_new(index, freq=freq, **kwargs)
+            index = cls._simple_new(index, freq=freq)
         else:
             index = np.linspace(start.value, end.value, periods).astype('i8')
-            # TODO: shouldn't we pass `name` here?  (via **kwargs)
             index = cls._simple_new(index, freq=freq)
 
         if not left_closed:

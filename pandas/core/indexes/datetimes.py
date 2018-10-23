@@ -240,9 +240,11 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         if data is None:
             # TODO: Remove this block and associated kwargs; GH#20535
-            return cls._generate_range(start, end, periods, name, freq,
-                                       tz=tz, normalize=normalize,
-                                       closed=closed, ambiguous=ambiguous)
+            result = cls._generate_range(start, end, periods,
+                                         freq=freq, tz=tz, normalize=normalize,
+                                         closed=closed, ambiguous=ambiguous)
+            result.name = name
+            return result
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries,
                                  DatetimeArrayMixin)):
@@ -313,17 +315,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 subarr.freq = to_offset(inferred)
 
         return subarr._deepcopy_if_needed(ref_to_data, copy)
-
-    @classmethod
-    @Appender(DatetimeArrayMixin._generate_range.__doc__)
-    def _generate_range(cls, start, end, periods, name=None, freq=None,
-                        tz=None, normalize=False, ambiguous='raise',
-                        closed=None):
-        out = super(DatetimeIndex, cls)._generate_range(
-            start, end, periods, freq,
-            tz=tz, normalize=normalize, ambiguous=ambiguous, closed=closed)
-        out.name = name
-        return out
 
     def _convert_for_op(self, value):
         """ Convert value to be insertable to ndarray """
