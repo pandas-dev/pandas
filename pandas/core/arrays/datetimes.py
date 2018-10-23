@@ -484,7 +484,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         result = self._maybe_mask_results(result, fill_value=iNaT)
         return result.view('timedelta64[ns]')
 
-    @Appender(dtl.DatetimeLikeArrayMixin._add_delta.__doc__)
+    @Appender(dtl.DatetimeLikeArrayMixin._add_delta.__doc__.replace(
+        "ndarray[int64]", "same type as self"))
     def _add_delta(self, delta):
         new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
         return type(self)(new_values, tz=self.tz, freq='infer')

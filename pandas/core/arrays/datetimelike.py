@@ -361,17 +361,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         Returns
         -------
-        result : same type as self
+        result : ndarray[int64]
 
         Notes
         -----
         The result's name is set outside of _add_delta by the calling
         method (__add__ or __sub__), if necessary (i.e. for Indexes).
         """
-        # Note: The docstring here says the return type is the same type
-        #   as self, which is inaccurate.  Once wrapped by the inheriting
-        #   Array classes, this will be accurate.
-
         if isinstance(other, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(other)
         elif is_timedelta64_dtype(other):

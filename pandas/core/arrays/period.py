@@ -390,7 +390,8 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         delta = self._check_timedeltalike_freq_compat(other)
         return self._addsub_int_array(delta, operator.add)
 
-    @Appender(DatetimeLikeArrayMixin._add_delta.__doc__)
+    @Appender(DatetimeLikeArrayMixin._add_delta.__doc__.replace(
+        "ndarray[int64]", "same type as self"))
     def _add_delta(self, other):
         if not isinstance(self.freq, Tick):
             # We cannot add timedelta-like to non-tick PeriodArray
