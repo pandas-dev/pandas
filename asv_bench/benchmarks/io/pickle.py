@@ -7,8 +7,6 @@ from ..pandas_vb_common import BaseIO
 
 class Pickle(BaseIO):
 
-    goal_time = 0.2
-
     def setup(self):
         self.fname = '__test__.pkl'
         N = 100000
