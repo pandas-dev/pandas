@@ -106,6 +106,30 @@ class TestDatetimeArray(object):
         #  an EA-specific tm.assert_ function
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
 
+    def test_asm8(self, datetime_index):
+        dti = datetime_index
+        arr = DatetimeArrayMixin(dti)
+
+        expected = np.array([x.asm8 for x in dti], dtype='M8[ns]')
+
+        result = dti.asm8
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = arr.asm8
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_to_datetime64(self, datetime_index):
+        dti = datetime_index
+        arr = DatetimeArrayMixin(dti)
+
+        expected = np.array([x.asm8 for x in dti], dtype='M8[ns]')
+
+        result = dti.to_datetime64()
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = arr.to_datetime64()
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize('propname', pd.DatetimeIndex._bool_ops)
     def test_bool_properties(self, datetime_index, propname):
         # in this case _bool_ops is just `is_leap_year`
@@ -147,6 +171,30 @@ class TestTimedeltaArray(object):
         assert isinstance(asobj, np.ndarray)
         assert asobj.dtype == 'O'
         assert list(asobj) == list(tdi)
+
+    def test_asm8(self):
+        tdi = pd.TimedeltaIndex(['1 Hour', '3 Hours'])
+        arr = TimedeltaArrayMixin(tdi)
+
+        expected = np.array([3600, 10800], dtype='m8[ns]') * 1e9
+
+        result = tdi.asm8
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = arr.asm8
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_to_timedelta64(self):
+        tdi = pd.TimedeltaIndex(['1 Hour', '3 Hours'])
+        arr = TimedeltaArrayMixin(tdi)
+
+        expected = np.array([3600, 10800], dtype='m8[ns]') * 1e9
+
+        result = tdi.to_timedelta64()
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = arr.to_timedelta64()
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_to_pytimedelta(self, timedelta_index):
         tdi = timedelta_index
