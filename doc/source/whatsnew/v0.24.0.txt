@@ -528,7 +528,7 @@ Some new warnings are issued for operations that require or are likely to materi
 
 In addition to these API breaking changes, many :ref:`performance improvements and bug fixes have been made <whatsnew_0240.bug_fixes.sparse>`.
 
-Finally, a ``Series.sparse`` accessor has added to provide sparse-specific methods and attributes.
+Finally, a ``Series.sparse`` accessor has added to provide sparse-specific methods like :meth:`Series.sparse.from_coo`.
 
 .. ipython:: python
 

@@ -67,6 +67,8 @@ Any sparse object can be converted back to the standard dense form by calling
 Sparse Accessor
 ---------------
 
+.. versionadded:: 0.24.0
+
 Pandas provides a ``.sparse`` accessor, similar to ``.str`` for string data, ``.cat``
 for categorical data, and ``.dt`` for datetime-like data. This namespace provides
 attributes and methods that are specific to sparse data.
