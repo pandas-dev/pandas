@@ -151,7 +151,7 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
         index = numeric_idx[1:3]
 
         broken = (isinstance(three_days, np.timedelta64) and
-                  three_days.dtype != 'm8[ns]')
+                  three_days.dtype == 'm8[D]')
         broken = broken or isinstance(three_days, pd.offsets.Tick)
         if box is not pd.Index and broken:
             # np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
@@ -169,6 +169,35 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
         with pytest.raises(TypeError):
             index / three_days
 
+    @pytest.mark.xfail(reason="timedelta64 not converted to nanos; "
+                              "Tick division is not implemented",
+                       strict=True)
+    @pytest.mark.parametrize('box', [pd.Series, pd.DataFrame])
+    def test_numeric_arr_rdiv_tdscalar_failing(self, three_days,
+                                               numeric_idx, box):
+        # This is a duplicate of test_numeric_arr_rdiv_tdscalar specific to
+        # failing cases.  This allows us to make the "xfail" strict and be
+        # notified if/when these cases are fixed.
+        index = numeric_idx[1:3]
+
+        # np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
+        broken = (isinstance(three_days, np.timedelta64) and
+                  three_days.dtype == 'm8[D]')
+        broken =  broken or isinstance(three_days, pd.offsets.Tick)
+        if not broken:
+            # raise a fake exception for the working cases
+            assert False
+
+        expected = TimedeltaIndex(['3 Days', '36 Hours'])
+
+        index = tm.box_expected(index, box)
+        expected = tm.box_expected(expected, box)
+
+        result = three_days / index
+        tm.assert_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            index / three_days
 
 # ------------------------------------------------------------------
 # Arithmetic

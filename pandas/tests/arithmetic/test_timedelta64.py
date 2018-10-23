@@ -359,6 +359,24 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with pytest.raises(TypeError):
             'a' + tdi
 
+    @pytest.mark.xfail(reason="Tries to broadcast",
+                       strict=True, raises=ValueError)
+    @pytest.mark.parametrize('op', [operator.add, ops.radd,
+                                    operator.sub, ops.rsub],
+                             ids=lambda x: x.__name__)
+    def test_td64arr_add_sub_float_fail(self, op):
+        # This is a duplicate of test_td64arr_add_sub_float specific to
+        # the failing cases.  This allows us to make the "xfail" strict and
+        # get alerted if/when the broken cases are fixed.
+        box = pd.DataFrame
+        other = np.array([2.0, 3.0])
+
+        tdi = TimedeltaIndex(['-1 days', '-1 days'])
+        tdi = tm.box_expected(tdi, box)
+
+        with pytest.raises(TypeError):
+            op(tdi, other)
+
     @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
     @pytest.mark.parametrize('op', [operator.add, ops.radd,
                                     operator.sub, ops.rsub],
@@ -566,6 +584,38 @@ class TestTimedeltaArraylikeAddSubOps(object):
             tdser - scalar
         with pytest.raises(err):
             scalar - tdser
+
+    @pytest.mark.xfail(reason="Tries to broadcast incorrectly",
+                       strict=True, raises=ValueError)
+    @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
+                                       'uint64', 'uint32', 'uint16', 'uint8',
+                                       'float64', 'float32', 'float16'])
+    @pytest.mark.parametrize('vec', [
+        np.array([1, 2, 3]),
+        pd.Index([1, 2, 3]),
+    ], ids=lambda x: type(x).__name__)
+    def test_td64arr_add_sub_numeric_arr_invalid_failing(self, vec,
+                                                         dtype, tdser):
+        # This is a duplicate of test_td64arr_add_sub_numeric_arr_invalid
+        # specific to the failing cases.  This lets us have a "strict" xfail
+        # and get alerted if/when the cases are fixed.
+        box = pd.DataFrame
+
+        tdser = tm.box_expected(tdser, box)
+        err = TypeError
+        if box is pd.Index and not dtype.startswith('float'):
+            err = NullFrequencyError
+
+        vector = vec.astype(dtype)
+        # TODO: parametrize over these four ops?
+        with pytest.raises(err):
+            tdser + vector
+        with pytest.raises(err):
+            vector + tdser
+        with pytest.raises(err):
+            tdser - vector
+        with pytest.raises(err):
+            vector - tdser
 
     @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
                                        'uint64', 'uint32', 'uint16', 'uint8',
@@ -918,6 +968,35 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with tm.assert_produces_warning(PerformanceWarning):
             res3 = tdi - other
         tm.assert_equal(res3, expected_sub)
+
+    @pytest.mark.xfail(reason="Attempts to broadcast incorrectly",
+                       strict=True, raises=ValueError)
+    @pytest.mark.parametrize('obox', [np.array, pd.Index])
+    def test_td64arr_addsub_anchored_offset_arraylike_fail(self, obox):
+        # This is a duplicate of test_td64arr_addsub_anchored_offset_arraylike
+        # specific to the failing cases, so that we can have a "strict" xfail,
+        # and be alerted if/when the case is fixed.
+        box = pd.DataFrame
+
+        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
+        tdi = tm.box_expected(tdi, box)
+
+        anchored = obox([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+
+        # addition/subtraction ops with anchored offsets should issue
+        # a PerformanceWarning and _then_ raise a TypeError.
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                tdi + anchored
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored + tdi
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                tdi - anchored
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored - tdi
 
     @pytest.mark.parametrize('obox', [np.array, pd.Index, pd.Series])
     def test_td64arr_addsub_anchored_offset_arraylike(self, obox, box):
