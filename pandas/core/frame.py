@@ -4971,14 +4971,14 @@ class DataFrame(NDFrame):
                                      index=left.index, columns=self.columns,
                                      copy=False)
 
-    def _combine_match_columns(self, other, func, level=None, try_cast=True):
+    def _combine_match_columns(self, other, func, level=None):
         assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         assert left.columns.equals(right.index)
         return ops.dispatch_to_series(left, right, func, axis="columns")
 
-    def _combine_const(self, other, func, errors='raise', try_cast=True):
+    def _combine_const(self, other, func, errors='raise'):
         assert lib.is_scalar(other) or np.ndim(other) == 0
         return ops.dispatch_to_series(self, other, func)
 
