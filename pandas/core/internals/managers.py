@@ -373,9 +373,6 @@ class BlockManager(PandasObject):
                 align_keys = ['new', 'mask']
             else:
                 align_keys = ['mask']
-        elif f == 'eval':
-            align_copy = False
-            align_keys = ['other']
         elif f == 'fillna':
             # fillna internally does putmask, maybe it's better to do this
             # at mgr, not block level?
@@ -508,9 +505,6 @@ class BlockManager(PandasObject):
 
     def where(self, **kwargs):
         return self.apply('where', **kwargs)
-
-    def eval(self, **kwargs):
-        return self.apply('eval', **kwargs)
 
     def quantile(self, **kwargs):
         return self.reduction('quantile', **kwargs)

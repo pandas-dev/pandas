@@ -8,8 +8,6 @@ except ImportError:
 
 class Eval(object):
 
-    goal_time = 0.2
-
     params = [['numexpr', 'python'], [1, 'all']]
     param_names = ['engine', 'threads']
 
@@ -40,8 +38,6 @@ class Eval(object):
 
 
 class Query(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**6

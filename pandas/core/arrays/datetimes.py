@@ -707,6 +707,22 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
 
+    def to_datetime64(self):
+        """
+        Return numpy datetime64[ns] representation of self.  For timezone-aware
+        cases, the returned array represents UTC timestamps.
+
+        Returns
+        -------
+        ndarray[datetime64[ns]]
+        """
+        return self.asi8.view('M8[ns]')
+
+    @property
+    def asm8(self):
+        """Vectorized analogue of Timestamp.asm8"""
+        return self.to_datetime64()
+
     def to_pydatetime(self):
         """
         Return Datetime Array/Index as object ndarray of datetime.datetime
@@ -819,6 +835,25 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             freq = get_period_alias(freq)
 
         return PeriodArrayMixin(self.values, freq=freq)
+
+    def to_perioddelta(self, freq):
+        """
+        Calculate TimedeltaArray of difference between index
+        values and index converted to PeriodArray at specified
+        freq. Used for vectorized offsets
+
+        Parameters
+        ----------
+        freq: Period frequency
+
+        Returns
+        -------
+        TimedeltaArray/Index
+        """
+        # TODO: consider privatizing (discussion in GH#23113)
+        from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
+        i8delta = self.asi8 - self.to_period(freq).to_timestamp().asi8
+        return TimedeltaArrayMixin(i8delta)
 
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods

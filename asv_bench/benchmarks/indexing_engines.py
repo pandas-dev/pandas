@@ -6,7 +6,6 @@ from pandas._libs.index import (Int64Engine, UInt64Engine, Float64Engine,
 
 class NumericEngineIndexing(object):
 
-    goal_time = 0.2
     params = [[Int64Engine, UInt64Engine, Float64Engine],
               [np.int64, np.uint64, np.float64],
               ['monotonic_incr', 'monotonic_decr', 'non_monotonic'],
@@ -33,7 +32,6 @@ class NumericEngineIndexing(object):
 
 class ObjectEngineIndexing(object):
 
-    goal_time = 0.2
     params = [('monotonic_incr', 'monotonic_decr', 'non_monotonic')]
     param_names = ['index_type']
 
