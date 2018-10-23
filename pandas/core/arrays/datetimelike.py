@@ -487,7 +487,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         -------
         result : same class as self
         """
-        assert not is_period_dtype(self)  # overriden by PeriodArray
+        # _addsub_int_array is overriden by PeriodArray
+        assert not is_period_dtype(self)
         assert op in [operator.add, operator.sub]
 
         if self.freq is None:

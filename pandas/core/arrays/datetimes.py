@@ -429,7 +429,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             raise ValueError("cannot add indices of unequal length")
 
         if isinstance(other, np.ndarray):
-            # if other is an ndarray, we assume it is datetime64-dtype
+            assert is_datetime64_dtype(other)
             other = type(self)(other)
 
         if not self._has_same_tz(other):
