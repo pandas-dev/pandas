@@ -192,7 +192,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                         .format(typ=type(other).__name__,
                                 cls=type(self).__name__))
 
-    @Appender(dtl.DatetimeLikeArrayMixin._add_delta.__doc__.replace(
+    @Appender((dtl.DatetimeLikeArrayMixin._add_delta.__doc__ or "").replace(
         "ndarray[int64]", "same type as self"))
     def _add_delta(self, delta):
         new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
