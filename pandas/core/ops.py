@@ -45,6 +45,8 @@ from pandas.core.dtypes.generic import (
     ABCIndex, ABCIndexClass,
     ABCSparseSeries, ABCSparseArray)
 
+from pandas.tseries.offsets import Tick
+
 
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities
@@ -125,10 +127,15 @@ def maybe_upcast_for_op(obj):
     Be careful to call this *after* determining the `name` attribute to be
     attached to the result of the arithmetic operation.
     """
-    if type(obj) is datetime.timedelta:
+    if type(obj) is datetime.timedelta or isinstance(obj, Tick):
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
+        return pd.Timedelta(obj)
+    elif isinstance(obj, np.timedelta64):
+        # In particular non-nanosecond timedelta64 needs to be cast to
+        # nanoseconds, or else we get undesired behavior like
+        # np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         return pd.Timedelta(obj)
     elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
         # GH#22390 Unfortunately we need to special-case right-hand
