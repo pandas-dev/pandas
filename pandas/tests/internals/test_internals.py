@@ -300,14 +300,14 @@ class TestDatetimeBlock(object):
         block = create_block('datetime', [0])
 
         # coerce None
-        none_coerced = block._try_coerce_args(block.values, None)[2]
+        none_coerced = block._try_coerce_args(block.values, None)[1]
         assert pd.Timestamp(none_coerced) is pd.NaT
 
         # coerce different types of date bojects
         vals = (np.datetime64('2010-10-10'), datetime(2010, 10, 10),
                 date(2010, 10, 10))
         for val in vals:
-            coerced = block._try_coerce_args(block.values, val)[2]
+            coerced = block._try_coerce_args(block.values, val)[1]
             assert np.int64 == type(coerced)
             assert pd.Timestamp('2010-10-10') == pd.Timestamp(coerced)
 
