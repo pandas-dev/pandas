@@ -810,7 +810,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
         return new_data
 
-    def _addsub_int_array(self, other, op):
+    def _addsub_int_array(
+            self,
+            other,  # type: Union[Index, ExtensionArray, np.ndarray[int]]
+            op,     # type: Callable[Any, Any]
+    ):
+        # type: (...) -> PeriodArray
         assert op in [operator.add, operator.sub]
         # easy case for PeriodIndex
         if op is operator.sub:

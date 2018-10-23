@@ -97,10 +97,10 @@ def test_astype(dtype):
 def test_astype_copies():
     arr = period_array(['2000', '2001', None], freq='D')
     result = arr.astype(np.int64, copy=False)
-    assert result is arr._ndarray_values
+    assert result is arr._data
 
     result = arr.astype(np.int64, copy=True)
-    assert result is not arr._ndarray_values
+    assert result is not arr._data
 
 
 def test_astype_categorical():
