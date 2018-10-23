@@ -1795,6 +1795,10 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Array Interface
 
+    # This is also set in IndexOpsMixin
+    # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
+    __array_priority__ = 1000
+
     def __array__(self, dtype=None):
         return com.values_from_object(self)
 
@@ -4064,16 +4068,6 @@ class NDFrame(PandasObject, SelectionMixin):
             new_data = new_data.copy()
 
         return self._constructor(new_data).__finalize__(self)
-
-    # TODO: unused; remove?
-    def _reindex_axis(self, new_index, fill_method, axis, copy):
-        new_data = self._data.reindex_axis(new_index, axis=axis,
-                                           method=fill_method, copy=copy)
-
-        if new_data is self._data and not copy:
-            return self
-        else:
-            return self._constructor(new_data).__finalize__(self)
 
     def filter(self, items=None, like=None, regex=None, axis=None):
         """
@@ -9514,7 +9508,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None, compression='infer', quoting=None,
-               quotechar='"', line_terminator='\n', chunksize=None,
+               quotechar='"', line_terminator=None, chunksize=None,
                tupleize_cols=None, date_format=None, doublequote=True,
                escapechar=None, decimal='.'):
         r"""
@@ -9579,9 +9573,12 @@ class NDFrame(PandasObject, SelectionMixin):
             will treat them as non-numeric.
         quotechar : str, default '\"'
             String of length 1. Character used to quote fields.
-        line_terminator : string, default ``'\n'``
+        line_terminator : string, optional
             The newline character or character sequence to use in the output
-            file.
+            file. Defaults to `os.linesep`, which depends on the OS in which
+            this method is called ('\n' for linux, '\r\n' for Windows, i.e.).
+
+            .. versionchanged:: 0.24.0
         chunksize : int or None
             Rows to write at a time.
         tupleize_cols : bool, default False

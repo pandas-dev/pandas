@@ -806,7 +806,6 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
     """
-    _cacheable = False
     _prefix = 'C'
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])
@@ -958,7 +957,6 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
     """
-    _cacheable = False
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])
 
@@ -2390,7 +2388,7 @@ def generate_range(start=None, end=None, periods=None,
     elif end and not offset.onOffset(end):
         end = offset.rollback(end)
 
-    if periods is None and end < start:
+    if periods is None and end < start and offset.n >= 0:
         end = None
         periods = 0
 

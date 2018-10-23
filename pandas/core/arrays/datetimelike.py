@@ -383,6 +383,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if not len(self) == len(other):
             raise ValueError("cannot add indices of unequal length")
 
+        if isinstance(other, np.ndarray):
+            # ndarray[timedelta64]; wrap in TimedeltaIndex for op
+            from pandas import TimedeltaIndex
+            other = TimedeltaIndex(other)
+
         self_i8 = self.asi8
         other_i8 = other.asi8
         new_values = checked_add_with_arr(self_i8, other_i8,
@@ -590,9 +595,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         start = self[0] + periods * self.freq
         end = self[-1] + periods * self.freq
-        attribs = self._get_attributes_dict()
+
+        # Note: in the DatetimeTZ case, _generate_range will infer the
+        #  appropriate timezone from `start` and `end`, so tz does not need
+        #  to be passed explicitly.
         return self._generate_range(start=start, end=end, periods=None,
-                                    **attribs)
+                                    freq=self.freq)
 
     @classmethod
     def _add_datetimelike_methods(cls):
@@ -633,11 +641,17 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 return self._add_datelike(other)
             elif is_integer_dtype(other):
                 result = self._addsub_int_array(other, operator.add)
-            elif is_float_dtype(other) or is_period_dtype(other):
+            elif is_float_dtype(other):
                 # Explicitly catch invalid dtypes
                 raise TypeError("cannot add {dtype}-dtype to {cls}"
                                 .format(dtype=other.dtype,
                                         cls=type(self).__name__))
+            elif is_period_dtype(other):
+                # if self is a TimedeltaArray and other is a PeriodArray with
+                #  a timedelta-like (i.e. Tick) freq, this operation is valid.
+                #  Defer to the PeriodArray implementation.
+                # In remaining cases, this will end up raising TypeError.
+                return NotImplemented
             elif is_extension_array_dtype(other):
                 # Categorical op will raise; defer explicitly
                 return NotImplemented

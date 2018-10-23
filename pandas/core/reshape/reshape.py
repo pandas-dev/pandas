@@ -10,6 +10,7 @@ import numpy as np
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_list_like, is_bool_dtype,
+    is_extension_array_dtype,
     needs_i8_conversion, is_sparse, is_object_dtype)
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.missing import notna
@@ -18,7 +19,7 @@ from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 
 from pandas.core.sparse.api import SparseDataFrame, SparseSeries
-from pandas.core.sparse.array import SparseArray
+from pandas.core.arrays import SparseArray
 from pandas._libs.sparse import IntIndex
 
 from pandas.core.arrays import Categorical
@@ -427,7 +428,6 @@ def stack(frame, level=-1, dropna=True):
     -------
     stacked : Series
     """
-
     def factorize(index):
         if index.is_unique:
             return index, np.arange(len(index))
@@ -461,7 +461,25 @@ def stack(frame, level=-1, dropna=True):
                                names=[frame.index.name, frame.columns.name],
                                verify_integrity=False)
 
-    new_values = frame.values.ravel()
+    if frame._is_homogeneous_type:
+        # For homogeneous EAs, frame.values will coerce to object. So
+        # we concatenate instead.
+        dtypes = list(frame.dtypes.values)
+        dtype = dtypes[0]
+
+        if is_extension_array_dtype(dtype):
+            arr = dtype.construct_array_type()
+            new_values = arr._concat_same_type([
+                col for _, col in frame.iteritems()
+            ])
+        else:
+            # homogeneous, non-EA
+            new_values = frame.values.ravel()
+
+    else:
+        # non-homogeneous
+        new_values = frame.values.ravel()
+
     if dropna:
         mask = notna(new_values)
         new_values = new_values[mask]
