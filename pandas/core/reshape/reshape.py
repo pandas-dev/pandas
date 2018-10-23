@@ -401,7 +401,7 @@ def unstack(obj, level, fill_value=None):
             return obj.T.stack(dropna=False)
     else:
         if is_extension_array_dtype(obj.dtype):
-            return unstack_extension_series(obj, level, fill_value)
+            return _unstack_extension_series(obj, level, fill_value)
         unstacker = _Unstacker(obj.values, obj.index, level=level,
                                fill_value=fill_value,
                                constructor=obj._constructor_expanddim)
@@ -420,6 +420,52 @@ def _unstack_frame(obj, level, fill_value=None):
                                fill_value=fill_value,
                                constructor=obj._constructor)
         return unstacker.get_result()
+
+
+def _unstack_extension_series(series, level, fill_value):
+    """
+    Unstack an ExtensionArray-backed Series.
+
+    The ExtensionDtype is preserved.
+
+    Parameters
+    ----------
+    series : Series
+        A Series with an ExtensionArray for values
+    level : Any
+        The level name or number.
+    fill_value : Any
+        The user-level (not physical storage) fill value to use for
+        missing values introduced by the reshape. Passed to
+        ``series.values.take``.
+
+    Returns
+    -------
+    DataFrame
+        Each column of the DataFrame will have the same dtype as
+        the input Series.
+    """
+    # Implementation note: the basic idea is to
+    # 1. Do a regular unstack on a dummy array of integers
+    # 2. Followup with a columnwise take.
+    # We use the dummy take to discover newly-created missing values
+    # introduced by the reshape.
+    from pandas.core.reshape.concat import concat
+
+    dummy_arr = np.arange(len(series))
+    # fill_value=-1, since we will do a series.values.take later
+    result = _Unstacker(dummy_arr, series.index,
+                        level=level, fill_value=-1).get_result()
+
+    out = []
+    values = series.values
+
+    for col, indices in result.iteritems():
+        out.append(Series(values.take(indices.values,
+                                      allow_fill=True,
+                                      fill_value=fill_value),
+                          name=col, index=result.index))
+    return concat(out, axis='columns', copy=False)
 
 
 def stack(frame, level=-1, dropna=True):
@@ -950,22 +996,3 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     values = values.take(labels, axis=0)
 
     return DataFrame(values, columns=items, index=frame.index)
-
-
-def unstack_extension_series(series, level, fill_value):
-    from pandas.core.reshape.concat import concat
-
-    dummy_arr = np.arange(len(series))
-    # fill_value=-1, since we will do a series.values.take later
-    result = _Unstacker(dummy_arr, series.index,
-                        level=level, fill_value=-1).get_result()
-
-    out = []
-    values = series.values
-
-    for col, indices in result.iteritems():
-        out.append(Series(values.take(indices.values,
-                                      allow_fill=True,
-                                      fill_value=fill_value),
-                          name=col, index=result.index))
-    return concat(out, axis='columns', copy=False)

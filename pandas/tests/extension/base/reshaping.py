@@ -197,7 +197,7 @@ class BaseReshapingTests(BaseExtensionTests):
         n = index.nlevels
         levels = list(range(n))
         # [0, 1, 2]
-        # -> [(0,), (1,), (2,) (0, 1), (1, 0)]
+        # [(0,), (1,), (2,), (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)]
         combinations = itertools.chain.from_iterable(
             itertools.permutations(levels, i) for i in range(1, n)
         )

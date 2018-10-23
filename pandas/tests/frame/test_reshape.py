@@ -314,9 +314,10 @@ class TestDataFrameReshape(TestData):
                              index=list('xyz'))
         assert_frame_equal(result, expected)
 
-        # Fill with non-category results in NaN entries similar to above
-        result = data.unstack(fill_value='d')
-        assert_frame_equal(result, expected)
+        # Fill with non-category results in a TypeError
+        msg = r"'fill_value' \('d'\) is not in"
+        with tm.assert_raises_regex(TypeError, msg):
+            data.unstack(fill_value='d')
 
         # Fill with category value replaces missing values as expected
         result = data.unstack(fill_value='c')
