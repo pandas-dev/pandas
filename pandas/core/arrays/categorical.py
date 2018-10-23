@@ -1019,7 +1019,15 @@ class Categorical(ExtensionArray, PandasObject):
         set_categories
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        new_dtype = self.dtype._add_categories(new_categories)
+        if not is_list_like(new_categories):
+            new_categories = [new_categories]
+        already_included = set(new_categories) & set(self.dtype.categories)
+        if len(already_included) != 0:
+            msg = ("new categories must not include old categories: "
+                   "{already_included!s}")
+            raise ValueError(msg.format(already_included=already_included))
+        new_categories = list(self.dtype.categories) + list(new_categories)
+        new_dtype = CategoricalDtype(new_categories, self.ordered)
 
         cat = self if inplace else self.copy()
         cat._dtype = new_dtype
@@ -1843,7 +1851,8 @@ class Categorical(ExtensionArray, PandasObject):
                 fill_value = self.categories.get_loc(fill_value)
             else:
                 msg = (
-                    "'fill_value' ('{}') is not in this Categorical's categories."
+                    "'fill_value' ('{}') is not in this Categorical's "
+                    "categories."
                 )
                 raise TypeError(msg.format(fill_value))
 

@@ -469,23 +469,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return is_bool_dtype(self.categories)
 
-    def _add_categories(self, new_categories):
-        """
-        Return a new CategoricalDtype with new categories added at the end.
-
-        """
-        from pandas.core.dtypes.common import is_list_like
-
-        if not is_list_like(new_categories):
-            new_categories = [new_categories]
-        already_included = set(new_categories) & set(self.categories)
-        if len(already_included) != 0:
-            msg = ("new categories must not include old categories: "
-                   "{already_included!s}")
-            raise ValueError(msg.format(already_included=already_included))
-        new_categories = list(self.categories) + list(new_categories)
-        return CategoricalDtype(new_categories, self.ordered)
-
 
 class DatetimeTZDtype(PandasExtensionDtype):
 
