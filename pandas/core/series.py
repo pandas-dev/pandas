@@ -627,7 +627,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # for binary ops, use our custom dunder methods
         result = ops.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs)
-        if result is not None:
+        if result is not NotImplemented:
             return result
 
         inputs = tuple(

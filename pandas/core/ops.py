@@ -2182,10 +2182,16 @@ def maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs):
     op_name = ufunc.__name__
     op_name = aliases.get(op_name, op_name)
 
+    def not_implemented(*args, **kwargs):
+        return NotImplemented
+
     if (method == '__call__' and op_name in special
             and kwargs.get('out') is None):
         if isinstance(inputs[0], type(self)):
-            return getattr(self, '__{}__'.format(op_name))(inputs[1])
+            name = '__{}__'.format(op_name)
+            return getattr(self, name, not_implemented)(inputs[1])
         else:
             name = flipped.get(op_name, '__r{}__'.format(op_name))
-        return getattr(self, name)(inputs[0])
+            return getattr(self, name, not_implemented)(inputs[0])
+    else:
+        return NotImplemented
