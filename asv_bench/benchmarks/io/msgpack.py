@@ -7,8 +7,6 @@ from ..pandas_vb_common import BaseIO
 
 class MSGPack(BaseIO):
 
-    goal_time = 0.2
-
     def setup(self):
         self.fname = '__test__.msg'
         N = 100000

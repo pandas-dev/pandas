@@ -10,8 +10,6 @@ matplotlib.use('Agg')
 
 class Plotting(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.s = Series(np.random.randn(1000000))
         self.df = DataFrame({'col': self.s})
@@ -24,8 +22,6 @@ class Plotting(object):
 
 
 class TimeseriesPlotting(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 2000
@@ -49,8 +45,6 @@ class TimeseriesPlotting(object):
 
 
 class Misc(object):
-
-    goal_time = 0.6
 
     def setup(self):
         N = 500

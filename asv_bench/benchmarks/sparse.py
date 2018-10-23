@@ -16,8 +16,6 @@ def make_array(size, dense_proportion, fill_value, dtype):
 
 class SparseSeriesToFrame(object):
 
-    goal_time = 0.2
-
     def setup(self):
         K = 50
         N = 50001
@@ -35,7 +33,6 @@ class SparseSeriesToFrame(object):
 
 class SparseArrayConstructor(object):
 
-    goal_time = 0.2
     params = ([0.1, 0.01], [0, np.nan],
               [np.int64, np.float64, np.object])
     param_names = ['dense_proportion', 'fill_value', 'dtype']
@@ -49,8 +46,6 @@ class SparseArrayConstructor(object):
 
 
 class SparseDataFrameConstructor(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 1000
@@ -70,8 +65,6 @@ class SparseDataFrameConstructor(object):
 
 class FromCoo(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.matrix = scipy.sparse.coo_matrix(([3.0, 1.0, 2.0],
                                                ([1, 0, 0], [0, 2, 3])),
@@ -82,8 +75,6 @@ class FromCoo(object):
 
 
 class ToCoo(object):
-
-    goal_time = 0.2
 
     def setup(self):
         s = Series([np.nan] * 10000)
@@ -101,7 +92,6 @@ class ToCoo(object):
 
 class Arithmetic(object):
 
-    goal_time = 0.2
     params = ([0.1, 0.01], [0, np.nan])
     param_names = ['dense_proportion', 'fill_value']
 
@@ -127,7 +117,6 @@ class Arithmetic(object):
 
 class ArithmeticBlock(object):
 
-    goal_time = 0.2
     params = [np.nan, 0]
     param_names = ['fill_value']
 

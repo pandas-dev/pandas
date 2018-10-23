@@ -6,7 +6,6 @@ from pandas import (Series, date_range, DatetimeIndex, Index, RangeIndex,
 
 class SetOperations(object):
 
-    goal_time = 0.2
     params = (['datetime', 'date_string', 'int', 'strings'],
               ['intersection', 'union', 'symmetric_difference'])
     param_names = ['dtype', 'method']
@@ -32,8 +31,6 @@ class SetOperations(object):
 
 class SetDisjoint(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 10**5
         B = N + 20000
@@ -45,8 +42,6 @@ class SetDisjoint(object):
 
 
 class Datetime(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.dr = date_range('20000101', freq='D', periods=10000)
@@ -84,8 +79,6 @@ class Ops(object):
 
 class Range(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.idx_inc = RangeIndex(start=0, stop=10**7, step=3)
         self.idx_dec = RangeIndex(start=10**7, stop=-1, step=-3)
@@ -104,8 +97,6 @@ class Range(object):
 
 
 class IndexAppend(object):
-
-    goal_time = 0.2
 
     def setup(self):
 
@@ -136,7 +127,6 @@ class IndexAppend(object):
 
 class Indexing(object):
 
-    goal_time = 0.2
     params = ['String', 'Float', 'Int']
     param_names = ['dtype']
 
@@ -181,8 +171,6 @@ class Indexing(object):
 
 class Float64IndexMethod(object):
     # GH 13166
-    goal_time = 0.2
-
     def setup(self):
         N = 100000
         a = np.arange(N)

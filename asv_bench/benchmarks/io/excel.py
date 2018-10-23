@@ -3,12 +3,9 @@ from pandas import DataFrame, date_range, ExcelWriter, read_excel
 from pandas.compat import BytesIO
 import pandas.util.testing as tm
 
-from ..pandas_vb_common import BaseIO
-
 
 class Excel(object):
 
-    goal_time = 0.2
     params = ['openpyxl', 'xlsxwriter', 'xlwt']
     param_names = ['engine']
 

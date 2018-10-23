@@ -4,7 +4,6 @@ import pandas as pd
 
 class FillNa(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['inplace']
 
@@ -24,7 +23,6 @@ class FillNa(object):
 
 class ReplaceDict(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['inplace']
 
@@ -40,7 +38,6 @@ class ReplaceDict(object):
 
 class Convert(object):
 
-    goal_time = 0.5
     params = (['DataFrame', 'Series'], ['Timestamp', 'Timedelta'])
     param_names = ['constructor', 'replace_data']
 

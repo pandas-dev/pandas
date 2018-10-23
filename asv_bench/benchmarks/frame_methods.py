@@ -9,8 +9,6 @@ from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
 
 class GetNumericData(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame(np.random.randn(10000, 25))
         self.df['foo'] = 'bar'
@@ -23,8 +21,6 @@ class GetNumericData(object):
 
 
 class Lookup(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.df = DataFrame(np.random.randn(10000, 8),
@@ -45,8 +41,6 @@ class Lookup(object):
 
 
 class Reindex(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**3
@@ -76,8 +70,6 @@ class Reindex(object):
 
 
 class Iteration(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 1000
@@ -112,8 +104,6 @@ class Iteration(object):
 
 class ToString(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame(np.random.randn(100, 10))
 
@@ -122,8 +112,6 @@ class ToString(object):
 
 
 class ToHTML(object):
-
-    goal_time = 0.2
 
     def setup(self):
         nrows = 500
@@ -136,8 +124,6 @@ class ToHTML(object):
 
 
 class Repr(object):
-
-    goal_time = 0.2
 
     def setup(self):
         nrows = 10000
@@ -164,8 +150,6 @@ class Repr(object):
 
 class MaskBool(object):
 
-    goal_time = 0.2
-
     def setup(self):
         data = np.random.randn(1000, 500)
         df = DataFrame(data)
@@ -181,8 +165,6 @@ class MaskBool(object):
 
 
 class Isnull(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**3
@@ -216,7 +198,6 @@ class Isnull(object):
 
 class Fillna(object):
 
-    goal_time = 0.2
     params = ([True, False], ['pad', 'bfill'])
     param_names = ['inplace', 'method']
 
@@ -231,7 +212,6 @@ class Fillna(object):
 
 class Dropna(object):
 
-    goal_time = 0.2
     params = (['all', 'any'], [0, 1])
     param_names = ['how', 'axis']
 
@@ -251,8 +231,6 @@ class Dropna(object):
 
 
 class Count(object):
-
-    goal_time = 0.2
 
     params = [0, 1]
     param_names = ['axis']
@@ -282,8 +260,6 @@ class Count(object):
 
 class Apply(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame(np.random.randn(1000, 100))
 
@@ -312,8 +288,6 @@ class Apply(object):
 
 class Dtypes(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame(np.random.randn(1000, 1000))
 
@@ -322,8 +296,6 @@ class Dtypes(object):
 
 
 class Equals(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**3
@@ -361,7 +333,6 @@ class Equals(object):
 
 class Interpolate(object):
 
-    goal_time = 0.2
     params = [None, 'infer']
     param_names = ['downcast']
 
@@ -387,7 +358,6 @@ class Interpolate(object):
 
 class Shift(object):
     # frame shift speedup issue-5609
-    goal_time = 0.2
     params = [0, 1]
     param_names = ['axis']
 
@@ -409,8 +379,6 @@ class Nunique(object):
 
 class Duplicated(object):
 
-    goal_time = 0.2
-
     def setup(self):
         n = (1 << 20)
         t = date_range('2015-01-01', freq='S', periods=(n // 64))
@@ -429,7 +397,6 @@ class Duplicated(object):
 
 class XS(object):
 
-    goal_time = 0.2
     params = [0, 1]
     param_names = ['axis']
 
@@ -443,7 +410,6 @@ class XS(object):
 
 class SortValues(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['ascending']
 
@@ -455,8 +421,6 @@ class SortValues(object):
 
 
 class SortIndexByColumns(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10000
@@ -471,7 +435,6 @@ class SortIndexByColumns(object):
 
 class Quantile(object):
 
-    goal_time = 0.2
     params = [0, 1]
     param_names = ['axis']
 
@@ -484,8 +447,6 @@ class Quantile(object):
 
 class GetDtypeCounts(object):
     # 2807
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame(np.random.randn(10, 10000))
 
@@ -498,7 +459,6 @@ class GetDtypeCounts(object):
 
 class NSort(object):
 
-    goal_time = 0.2
     params = ['first', 'last', 'all']
     param_names = ['keep']
 
@@ -520,8 +480,6 @@ class NSort(object):
 
 
 class Describe(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.df = DataFrame({

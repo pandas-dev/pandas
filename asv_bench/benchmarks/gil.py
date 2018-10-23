@@ -28,7 +28,6 @@ from .pandas_vb_common import BaseIO
 
 class ParallelGroupbyMethods(object):
 
-    goal_time = 0.2
     params = ([2, 4, 8], ['count', 'last', 'max', 'mean', 'min', 'prod',
                           'sum', 'var'])
     param_names = ['threads', 'method']
@@ -60,7 +59,6 @@ class ParallelGroupbyMethods(object):
 
 class ParallelGroups(object):
 
-    goal_time = 0.2
     params = [2, 4, 8]
     param_names = ['threads']
 
@@ -82,7 +80,6 @@ class ParallelGroups(object):
 
 class ParallelTake1D(object):
 
-    goal_time = 0.2
     params = ['int64', 'float64']
     param_names = ['dtype']
 
@@ -125,8 +122,6 @@ class ParallelKth(object):
 
 
 class ParallelDatetimeFields(object):
-
-    goal_time = 0.2
 
     def setup(self):
         if not have_real_test_parallel:
@@ -174,7 +169,6 @@ class ParallelDatetimeFields(object):
 
 class ParallelRolling(object):
 
-    goal_time = 0.2
     params = ['median', 'mean', 'min', 'max', 'var', 'skew', 'kurt', 'std']
     param_names = ['method']
 

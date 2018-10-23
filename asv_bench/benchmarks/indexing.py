@@ -10,7 +10,6 @@ from pandas import (Series, DataFrame, Panel, MultiIndex,
 
 class NumericSeriesIndexing(object):
 
-    goal_time = 0.2
     params = [
         (Int64Index, UInt64Index, Float64Index),
         ('unique_monotonic_inc', 'nonunique_monotonic_inc'),
@@ -82,7 +81,6 @@ class NumericSeriesIndexing(object):
 
 class NonNumericSeriesIndexing(object):
 
-    goal_time = 0.2
     params = [
         ('string', 'datetime'),
         ('unique_monotonic_inc', 'nonunique_monotonic_inc'),
@@ -118,8 +116,6 @@ class NonNumericSeriesIndexing(object):
 
 class DataFrameStringIndexing(object):
 
-    goal_time = 0.2
-
     def setup(self):
         index = tm.makeStringIndex(1000)
         columns = tm.makeStringIndex(30)
@@ -152,8 +148,6 @@ class DataFrameStringIndexing(object):
 
 class DataFrameNumericIndexing(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.idx_dupe = np.array(range(30)) * 99
         self.df = DataFrame(np.random.randn(10000, 5))
@@ -178,7 +172,6 @@ class DataFrameNumericIndexing(object):
 
 class Take(object):
 
-    goal_time = 0.2
     params = ['int', 'datetime']
     param_names = ['index']
 
@@ -195,8 +188,6 @@ class Take(object):
 
 
 class MultiIndexing(object):
-
-    goal_time = 0.2
 
     def setup(self):
         mi = MultiIndex.from_product([range(1000), range(1000)])
@@ -226,8 +217,6 @@ class MultiIndexing(object):
 
 class IntervalIndexing(object):
 
-    goal_time = 0.2
-
     def setup_cache(self):
         idx = IntervalIndex.from_breaks(np.arange(1000001))
         monotonic = Series(np.arange(1000000), index=idx)
@@ -248,7 +237,6 @@ class IntervalIndexing(object):
 
 class CategoricalIndexIndexing(object):
 
-    goal_time = 0.2
     params = ['monotonic_incr', 'monotonic_decr', 'non_monotonic']
     param_names = ['index']
 
@@ -291,8 +279,6 @@ class CategoricalIndexIndexing(object):
 
 class PanelIndexing(object):
 
-    goal_time = 0.2
-
     def setup(self):
         with warnings.catch_warnings(record=True):
             self.p = Panel(np.random.randn(100, 100, 100))
@@ -304,8 +290,6 @@ class PanelIndexing(object):
 
 
 class MethodLookup(object):
-
-    goal_time = 0.2
 
     def setup_cache(self):
         s = Series()
@@ -323,8 +307,6 @@ class MethodLookup(object):
 
 class GetItemSingleColumn(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.df_string_col = DataFrame(np.random.randn(3000, 1), columns=['A'])
         self.df_int_col = DataFrame(np.random.randn(3000, 1))
@@ -338,8 +320,6 @@ class GetItemSingleColumn(object):
 
 class AssignTimeseriesIndex(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 100000
         idx = date_range('1/1/2000', periods=N, freq='H')
@@ -350,8 +330,6 @@ class AssignTimeseriesIndex(object):
 
 
 class InsertColumns(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.N = 10**3

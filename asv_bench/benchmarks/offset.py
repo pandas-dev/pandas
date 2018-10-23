@@ -34,8 +34,6 @@ offsets = non_apply + other_offsets
 
 class ApplyIndex(object):
 
-    goal_time = 0.2
-
     params = other_offsets
     param_names = ['offset']
 
@@ -48,8 +46,6 @@ class ApplyIndex(object):
 
 
 class OnOffset(object):
-
-    goal_time = 0.2
 
     params = offsets
     param_names = ['offset']
@@ -67,7 +63,6 @@ class OnOffset(object):
 
 class OffsetSeriesArithmetic(object):
 
-    goal_time = 0.2
     params = offsets
     param_names = ['offset']
 
@@ -83,7 +78,6 @@ class OffsetSeriesArithmetic(object):
 
 class OffsetDatetimeIndexArithmetic(object):
 
-    goal_time = 0.2
     params = offsets
     param_names = ['offset']
 
@@ -98,7 +92,6 @@ class OffsetDatetimeIndexArithmetic(object):
 
 class OffestDatetimeArithmetic(object):
 
-    goal_time = 0.2
     params = offsets
     param_names = ['offset']
 
