@@ -4960,7 +4960,7 @@ class DataFrame(NDFrame):
                                  copy=False)
         assert left.index.equals(right.index)
 
-        if left._is_mixed_type or right._is_mixed_type:
+        if ops.should_series_dispatch(left, right, func):
             # operate column-wise; avoid costly object-casting in `.values`
             return ops.dispatch_to_series(left, right, func)
         else:

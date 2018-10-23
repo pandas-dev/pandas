@@ -344,9 +344,7 @@ class TestPeriodIndexArithmetic(object):
     # PeriodIndex - other is defined for integers, timedelta-like others,
     #   and PeriodIndex (with matching freq)
 
-    def test_parr_add_iadd_parr_raises(self, box_df_broadcast_failure):
-        box = box_df_broadcast_failure
-
+    def test_parr_add_iadd_parr_raises(self, box):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
         # TODO: parametrize over boxes for other?
@@ -388,9 +386,7 @@ class TestPeriodIndexArithmetic(object):
         expected = pd.Index([pd.NaT, 0 * off, 0 * off, 0 * off, 0 * off])
         tm.assert_index_equal(result, expected)
 
-    def test_parr_sub_pi_mismatched_freq(self, box_df_broadcast_failure):
-        box = box_df_broadcast_failure
-
+    def test_parr_sub_pi_mismatched_freq(self, box):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='H', periods=5)
         # TODO: parametrize over boxes for other?

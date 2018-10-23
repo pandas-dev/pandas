@@ -928,12 +928,14 @@ def should_series_dispatch(left, right, op):
     if left._is_mixed_type or right._is_mixed_type:
         return True
 
-    if not len(left.columns) or not len(right.columns):
+    if not len(left.columns) or (isinstance(right, ABCDataFrame) and
+                                 not len(right.columns)):
         # ensure obj.dtypes[0] exists for each obj
         return False
 
     ldtype = left.dtypes.iloc[0]
-    rdtype = right.dtypes.iloc[0]
+    rdtype = (right.dtypes.iloc[0]
+              if isinstance(right, ABCDataFrame) else right.dtype)
 
     if ((is_timedelta64_dtype(ldtype) and is_integer_dtype(rdtype)) or
             (is_timedelta64_dtype(rdtype) and is_integer_dtype(ldtype))):
@@ -1767,6 +1769,25 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
         return self._combine_match_columns(other, func, level=level)
 
 
+def _treat_as_column(left, right, axis=None):
+    # Only if it is _impossible_ to treat `right` as row-like and a precise
+    # fit to treat it as column-like do we treat it as a column.
+    if axis is not None:
+        return False
+
+    if np.ndim(right) != 1:
+        return False
+
+    if len(right) == len(left.columns):
+        return False
+
+    if isinstance(right, ABCSeries):
+        # require an exact match
+        return right.index.equals(left.index)
+
+    return len(right) == len(left)
+
+
 def _align_method_FRAME(left, right, axis):
     """ convert rhs to meet lhs dims if input is list, tuple or np.ndarray """
 
@@ -1850,7 +1871,12 @@ def _arith_method_FRAME(cls, op, special):
         doc = _arith_doc_FRAME % op_name
 
     @Appender(doc)
-    def f(self, other, axis=default_axis, level=None, fill_value=None):
+    def f(self, other, axis=None, level=None, fill_value=None):
+
+        if _treat_as_column(self, other, axis):
+            axis = "index"
+        else:
+            axis = axis if axis is not None else default_axis
 
         other = _align_method_FRAME(self, other, axis)
 
@@ -1861,7 +1887,7 @@ def _arith_method_FRAME(cls, op, special):
         elif isinstance(other, ABCSeries):
             # For these values of `axis`, we end up dispatching to Series op,
             # so do not want the masked op.
-            pass_op = op if axis in [0, "columns", None] else na_op
+            pass_op = op if axis in [0, "columns", "index", None] else na_op
             return _combine_series_frame(self, other, pass_op,
                                          fill_value=fill_value, axis=axis,
                                          level=level)
@@ -1923,7 +1949,11 @@ def _comp_method_FRAME(cls, func, special):
     @Appender('Wrapper for comparison method {name}'.format(name=op_name))
     def f(self, other):
 
-        other = _align_method_FRAME(self, other, axis=None)
+        axis = None
+        if _treat_as_column(self, other, axis=axis):
+            axis = "index"
+
+        other = _align_method_FRAME(self, other, axis=axis)
 
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
@@ -1934,7 +1964,7 @@ def _comp_method_FRAME(cls, func, special):
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, func,
-                                         fill_value=None, axis=None,
+                                         fill_value=None, axis=axis,
                                          level=None)
         else:
 

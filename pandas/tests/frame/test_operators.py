@@ -805,16 +805,15 @@ class TestDataFrameOperators(TestData):
         result = df.values > b
         assert_numpy_array_equal(result, expected.values)
 
-        msg1d = 'Unable to coerce to Series, length must be 2: given 3'
         msg2d = 'Unable to coerce to DataFrame, shape must be'
         msg2db = 'operands could not be broadcast together with shapes'
-        with tm.assert_raises_regex(ValueError, msg1d):
-            # wrong shape
-            df > lst
 
-        with tm.assert_raises_regex(ValueError, msg1d):
-            # wrong shape
-            result = df > tup
+        # operate column-by-column
+        result = df > lst
+        assert_frame_equal(result, expected)
+
+        result = df > tup
+        assert_frame_equal(result, expected)
 
         # broadcasts like ndarray (GH#23000)
         result = df > b_r
@@ -834,11 +833,11 @@ class TestDataFrameOperators(TestData):
         result = df == b
         assert_frame_equal(result, expected)
 
-        with tm.assert_raises_regex(ValueError, msg1d):
-            result = df == lst
+        result = df == lst
+        assert_frame_equal(result, expected)
 
-        with tm.assert_raises_regex(ValueError, msg1d):
-            result = df == tup
+        result = df == tup
+        assert_frame_equal(result, expected)
 
         # broadcasts like ndarray (GH#23000)
         result = df == b_r
@@ -858,11 +857,11 @@ class TestDataFrameOperators(TestData):
         expected.index = df.index
         expected.columns = df.columns
 
-        with tm.assert_raises_regex(ValueError, msg1d):
-            result = df == lst
+        result = df == lst
+        assert_frame_equal(result, expected)
 
-        with tm.assert_raises_regex(ValueError, msg1d):
-            result = df == tup
+        result = df == tup
+        assert_frame_equal(result, expected)
 
     def test_combine_generic(self):
         df1 = self.frame
