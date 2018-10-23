@@ -5,8 +5,6 @@ from pandas import DataFrame, Panel, DatetimeIndex, date_range
 
 
 class DifferentIndexes(object):
-    goal_time = 0.2
-
     def setup(self):
         self.data_frames = {}
         start = datetime(1990, 1, 1)
@@ -24,8 +22,6 @@ class DifferentIndexes(object):
 
 class SameIndexes(object):
 
-    goal_time = 0.2
-
     def setup(self):
         idx = DatetimeIndex(start=datetime(1990, 1, 1),
                             end=datetime(2012, 1, 1),
@@ -39,8 +35,6 @@ class SameIndexes(object):
 
 
 class TwoIndexes(object):
-
-    goal_time = 0.2
 
     def setup(self):
         start = datetime(1990, 1, 1)

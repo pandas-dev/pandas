@@ -437,6 +437,7 @@ class TestParquetPyArrow(Base):
                           columns=list('aaa')).copy()
         self.check_error_on_write(df, pa, ValueError)
 
+    @pytest.mark.xfail(reason="failing for pyarrow < 0.11.0")
     def test_unsupported(self, pa):
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
