@@ -624,15 +624,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                  index=self.index).__finalize__(self)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        inputs = tuple(
-            x._values if isinstance(x, type(self)) else x
-            for x in inputs
-        )
         # for binary ops, use our custom dunder methods
         result = ops.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs)
         if result is not None:
             return result
+
+        inputs = tuple(
+            x._values if isinstance(x, type(self)) else x
+            for x in inputs
+        )
 
         if hasattr(self._values, '__array_ufunc__'):
             result = self._values.__array_ufunc__(
