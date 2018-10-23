@@ -17,6 +17,7 @@ from pandas.io.feather_format import to_feather, read_feather  # noqa:E402
 fv = LooseVersion(feather.__version__)
 
 
+@pytest.mark.xfail(reason="failing for pyarrow < 0.11.0")
 @pytest.mark.single
 class TestFeather(object):
 
