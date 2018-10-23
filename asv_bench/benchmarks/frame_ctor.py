@@ -10,8 +10,6 @@ except ImportError:
 
 class FromDicts(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N, K = 5000, 50
         self.index = tm.makeStringIndex(N)
@@ -45,8 +43,6 @@ class FromDicts(object):
 
 class FromSeries(object):
 
-    goal_time = 0.2
-
     def setup(self):
         mi = MultiIndex.from_product([range(100), range(100)])
         self.s = Series(np.random.randn(10000), index=mi)
@@ -57,7 +53,6 @@ class FromSeries(object):
 
 class FromDictwithTimestamp(object):
 
-    goal_time = 0.2
     params = [Nano(1), Hour(1)]
     param_names = ['offset']
 
@@ -74,7 +69,6 @@ class FromDictwithTimestamp(object):
 
 class FromRecords(object):
 
-    goal_time = 0.2
     params = [None, 1000]
     param_names = ['nrows']
 
@@ -88,8 +82,6 @@ class FromRecords(object):
 
 
 class FromNDArray(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 100000
