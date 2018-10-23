@@ -352,31 +352,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         """
         return tslibs.ints_to_pytimedelta(self.asi8)
 
-    def to_timedelta64(self):
-        """
-        Return numpy array with timedelta64[ns] dtype
-
-        Returns
-        -------
-        ndarray[timedelta64[ns]]
-
-        Notes
-        -----
-        This returns a view on self, not a copy.
-
-        See also
-        --------
-        Timedelta.to_timedelta64
-        """
-        return self.asi8.view('m8[ns]')
-
-    @property
-    def asm8(self):
-        """
-        Vectorized analogue of Timedelta.asm8
-        """
-        return self.to_timedelta64()
-
     days = _field_accessor("days", "days",
                            " Number of days for each element. ")
     seconds = _field_accessor("seconds", "seconds",
