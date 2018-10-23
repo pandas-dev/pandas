@@ -364,3 +364,11 @@ def test_divmod_array(reverse, expected_div, expected_mod):
 
     tm.assert_extension_array_equal(div, expected_div)
     tm.assert_extension_array_equal(mod, expected_mod)
+
+
+def test_ufunc_fallback(data):
+    a = data[:5]
+    s = pd.Series(a, index=range(3, 8))
+    result = np.abs(s)
+    expected = pd.Series(np.abs(a.astype(object)), index=range(3, 8))
+    tm.assert_series_equal(result, expected)
