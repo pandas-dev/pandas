@@ -53,12 +53,11 @@ class BaseSetitemTests(BaseExtensionTests):
         assert data[1] == data[2]
 
     @pytest.mark.parametrize('setter', ['loc', 'iloc'])
-    def test_setitem_scalar(self, data, box, setter):
-        if box:
-            data = pd.Series(data)
-        setter = getattr(data, setter)
+    def test_setitem_scalar(self, data, setter):
+        arr = pd.Series(data)
+        setter = getattr(arr, setter)
         operator.setitem(setter, 0, data[1])
-        assert data[0] == data[1]
+        assert arr[0] == data[1]
 
     def test_setitem_loc_scalar_mixed(self, data):
         df = pd.DataFrame({"A": np.arange(len(data)), "B": data})
