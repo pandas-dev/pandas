@@ -10285,7 +10285,8 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
     return set_function_name(stat_func, name, cls)
 
 
-def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f, examples=''):
+def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f,
+                        examples=''):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, min_count='', examples=examples)
     @Appender(_num_doc)
