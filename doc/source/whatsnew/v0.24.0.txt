@@ -1194,6 +1194,7 @@ Reshaping
 - Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
 - Bug in :func:`pandas.concat` when concatenating a multicolumn DataFrame with tz-aware data against a DataFrame with a different number of columns (:issue`22796`)
 - Bug in :func:`merge_asof` where confusing error message raised when attempting to merge with missing values (:issue:`23189`)
+- Bug in :meth:`DataFrame.nsmallest` and :meth:`DataFrame.nlargest` for dataframes that have :class:`MultiIndex`ed columns (:issue:`23033`).
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
@@ -1208,7 +1209,6 @@ Sparse
 - Bug in ``DataFrame.groupby`` not including ``fill_value`` in the groups for non-NA ``fill_value`` when grouping by a sparse column (:issue:`5078`)
 - Bug in unary inversion operator (``~``) on a ``SparseSeries`` with boolean values. The performance of this has also been improved (:issue:`22835`)
 - Bug in :meth:`SparseArary.unique` not returning the unique values (:issue:`19595`)
-- Bug in :meth:`DataFrame.nsmallest` and :meth:`DataFrame.nlargest` for dataframes that have :class:`MultiIndex`ed columns (:issue:`23033`).
 
 Build Changes
 ^^^^^^^^^^^^^
