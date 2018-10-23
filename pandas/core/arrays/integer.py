@@ -8,9 +8,10 @@ import numpy as np
 from pandas._libs import lib
 from pandas.util._decorators import cache_readonly
 from pandas.compat import u, range, string_types
-from pandas.compat import set_function_name, PY2
+from pandas.compat import set_function_name
 
 from pandas.core import nanops
+from pandas.core import ops
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import (
