@@ -4,7 +4,6 @@ import operator
 
 import numpy as np
 import pytest
-import numpy as np
 
 from pandas import compat, Series
 from pandas.core.indexes.period import IncompatibleFrequency
