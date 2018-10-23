@@ -10,48 +10,41 @@ import os
 import re
 import time
 import warnings
-
-from datetime import datetime, date
+from datetime import date, datetime
 from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas import (Series, DataFrame, Panel, Index,
-                    MultiIndex, Int64Index, isna, concat, to_datetime,
-                    SparseSeries, SparseDataFrame, PeriodIndex,
-                    DatetimeIndex, TimedeltaIndex)
-from pandas import compat
+import pandas.core.common as com
+from pandas import (
+    DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, Panel,
+    PeriodIndex, Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat,
+    concat, isna, to_datetime
+)
 from pandas._libs import algos, lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-
-from pandas.errors import PerformanceWarning
-from pandas.compat import PY3, range, lrange, string_types, filter
-
-from pandas.core.dtypes.common import (
-    is_list_like,
-    is_categorical_dtype,
-    is_timedelta64_dtype,
-    is_datetime64tz_dtype,
-    is_datetime64_dtype,
-    ensure_object,
-    ensure_int64,
-    ensure_platform_int)
-from pandas.core.dtypes.missing import array_equivalent
-
+from pandas.compat import PY3, filter, lrange, range, string_types
 from pandas.core import config
-import pandas.core.common as com
 from pandas.core.algorithms import match, unique
-from pandas.core.arrays.categorical import (Categorical,
-                                            _factorize_from_iterables)
+from pandas.core.arrays.categorical import (
+    Categorical, _factorize_from_iterables
+)
+from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
 from pandas.core.computation.pytables import Expr, maybe_expression
 from pandas.core.config import get_option
+from pandas.core.dtypes.common import (
+    ensure_int64, ensure_object, ensure_platform_int, is_categorical_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_list_like,
+    is_timedelta64_dtype
+)
+from pandas.core.dtypes.missing import array_equivalent
 from pandas.core.index import ensure_index
-from pandas.core.internals import (BlockManager, make_block,
-                                   _block2d_to_blocknd,
-                                   _factor_indexer, _block_shape)
-from pandas.core.sparse.array import BlockIndex, IntIndex
-
+from pandas.core.internals import (
+    BlockManager, _block2d_to_blocknd, _block_shape, _factor_indexer,
+    make_block
+)
+from pandas.errors import PerformanceWarning
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
@@ -1804,8 +1797,8 @@ class IndexCol(StringMixin):
         if self.meta == 'category':
             new_metadata = self.metadata
             cur_metadata = handler.read_metadata(self.cname)
-            if new_metadata is not None and cur_metadata is not None \
-                    and not array_equivalent(new_metadata, cur_metadata):
+            if (new_metadata is not None and cur_metadata is not None and
+                    not array_equivalent(new_metadata, cur_metadata)):
                 raise ValueError("cannot append a categorical with "
                                  "different categories to the existing")
 
@@ -2476,7 +2469,7 @@ class GenericFixed(Fixed):
         if klass == DatetimeIndex:
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
-                result = DatetimeIndex._simple_new(values.values, None,
+                result = DatetimeIndex._simple_new(values.values, name=None,
                                                    freq=freq)
                 if tz is not None:
                     result = result.tz_localize('UTC').tz_convert(tz)
@@ -2484,7 +2477,7 @@ class GenericFixed(Fixed):
             return f
         elif klass == PeriodIndex:
             def f(values, freq=None, tz=None):
-                return PeriodIndex._simple_new(values, None, freq=freq)
+                return PeriodIndex._simple_new(values, name=None, freq=freq)
             return f
 
         return klass

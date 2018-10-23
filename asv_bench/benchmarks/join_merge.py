@@ -14,8 +14,6 @@ except ImportError:
 
 class Append(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.df1 = DataFrame(np.random.randn(10000, 4),
                              columns=['A', 'B', 'C', 'D'])
@@ -42,7 +40,6 @@ class Append(object):
 
 class Concat(object):
 
-    goal_time = 0.2
     params = [0, 1]
     param_names = ['axis']
 
@@ -71,7 +68,6 @@ class Concat(object):
 
 class ConcatPanels(object):
 
-    goal_time = 0.2
     params = ([0, 1, 2], [True, False])
     param_names = ['axis', 'ignore_index']
 
@@ -97,7 +93,6 @@ class ConcatPanels(object):
 
 class ConcatDataFrames(object):
 
-    goal_time = 0.2
     params = ([0, 1], [True, False])
     param_names = ['axis', 'ignore_index']
 
@@ -118,7 +113,6 @@ class ConcatDataFrames(object):
 
 class Join(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['sort']
 
@@ -166,8 +160,6 @@ class Join(object):
 
 class JoinIndex(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 50000
         self.left = DataFrame(np.random.randint(1, N / 500, (N, 2)),
@@ -182,8 +174,6 @@ class JoinIndex(object):
 class JoinNonUnique(object):
     # outer join of non-unique
     # GH 6329
-    goal_time = 0.2
-
     def setup(self):
         date_index = date_range('01-Jan-2013', '23-Jan-2013', freq='T')
         daily_dates = date_index.to_period('D').to_timestamp('S', 'S')
@@ -200,7 +190,6 @@ class JoinNonUnique(object):
 
 class Merge(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['sort']
 
@@ -235,7 +224,6 @@ class Merge(object):
 
 class I8Merge(object):
 
-    goal_time = 0.2
     params = ['inner', 'outer', 'left', 'right']
     param_names = ['how']
 
@@ -253,8 +241,6 @@ class I8Merge(object):
 
 
 class MergeCategoricals(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.left_object = DataFrame(
@@ -342,8 +328,6 @@ class MergeAsof(object):
 
 
 class Align(object):
-
-    goal_time = 0.2
 
     def setup(self):
         size = 5 * 10**5

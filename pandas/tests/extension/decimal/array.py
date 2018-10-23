@@ -47,6 +47,7 @@ class DecimalDtype(ExtensionDtype):
 
 
 class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
+    __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False, context=None):
         for val in values:
@@ -133,6 +134,18 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     @classmethod
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
+
+    def _reduce(self, name, skipna=True, **kwargs):
+
+        if skipna:
+            raise NotImplementedError("decimal does not support skipna=True")
+
+        try:
+            op = getattr(self.data, name)
+        except AttributeError:
+            raise NotImplementedError("decimal does not support "
+                                      "the {} operation".format(name))
+        return op(axis=0)
 
 
 def to_decimal(values, context=None):
