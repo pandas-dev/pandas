@@ -9362,7 +9362,7 @@ class NDFrame(PandasObject, SelectionMixin):
             """This method returns the maximum of the values in the object.
             If you want the *index* of the maximum, use ``idxmax``. This is
             the equivalent of the ``numpy.ndarray`` method ``argmax``.""",
-            nanops.nanmax)
+            nanops.nanmax, _max_examples)
         cls.min = _make_stat_function(
             cls, 'min', name, name2, axis_descr,
             """This method returns the minimum of the values in the object.
@@ -10210,6 +10210,44 @@ empty series identically.
 nan
 """
 
+_max_examples = """\
+Examples
+--------
+``MultiIndex`` series example of monthly rainfall
+
+>>> index = [np.tile(['London', 'New York'], 3),
+...          np.repeat(['Jun', 'Jul', 'Aug'], 2)]
+>>> s = pd.Series([47, 112, 35, 117, 54, 113], index=index)
+>>> s.rename_axis(['city', 'month'], inplace=True)
+>>> s
+city      month
+London    Jun       47
+New York  Jun      112
+London    Jul       35
+New York  Jul      117
+London    Aug       54
+New York  Aug      113
+dtype: int64
+
+>>> s.max()
+117
+
+Sum using level names, as well as indices
+
+>>> s.max(level='city')
+city
+London       54
+New York    117
+dtype: int64
+
+>>> s.max(level=1)
+month
+Jun    112
+Jul    117
+Aug    113
+dtype: int64
+"""
+
 
 _min_count_stub = """\
 min_count : int, default 0
@@ -10247,9 +10285,9 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
     return set_function_name(stat_func, name, cls)
 
 
-def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
+def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f, examples=''):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, min_count='', examples='')
+                  axis_descr=axis_descr, min_count='', examples=examples)
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):
