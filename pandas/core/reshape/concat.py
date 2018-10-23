@@ -446,7 +446,7 @@ class _Concatenator(object):
                 new_axes[i] = self._get_comb_axis(i)
         else:
             if len(self.join_axes) != ndim - 1:
-                raise AssertionError("length of join_axes must not be equal "
+                raise AssertionError("length of join_axes must be equal "
                                      "to {length}".format(length=ndim - 1))
 
             # ufff...

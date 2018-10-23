@@ -165,8 +165,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             raise TypeError('__new__() got an unexpected keyword argument {}'.
                             format(list(set(fields) - valid_field_set)[0]))
 
-        periods = dtl.validate_periods(periods)
-
         if name is None and hasattr(data, 'name'):
             name = data.name
 
@@ -268,7 +266,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
     @cache_readonly
     def _int64index(self):
-        return Int64Index(self.asi8, name=self.name, fastpath=True)
+        return Int64Index._simple_new(self.asi8, name=self.name)
 
     @property
     def values(self):
@@ -289,9 +287,9 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         """
         if isinstance(context, tuple) and len(context) > 0:
             func = context[0]
-            if (func is np.add):
+            if func is np.add:
                 pass
-            elif (func is np.subtract):
+            elif func is np.subtract:
                 name = self.name
                 left = context[1][0]
                 right = context[1][1]
@@ -312,7 +310,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             return result
         # the result is object dtype array of Period
         # cannot pass _simple_new as it is
-        return self._shallow_copy(result, freq=self.freq, name=self.name)
+        return type(self)(result, freq=self.freq, name=self.name)
 
     @property
     def size(self):

@@ -533,32 +533,20 @@ class TestSparseArray(object):
         out = SparseArray(data, dtype=dtype)
         assert out.shape == shape
 
-    def test_to_dense(self):
-        vals = np.array([1, np.nan, np.nan, 3, np.nan])
-        res = SparseArray(vals).to_dense()
-        tm.assert_numpy_array_equal(res, vals)
+    @pytest.mark.parametrize("vals", [
+        [np.nan, np.nan, np.nan, np.nan, np.nan],
+        [1, np.nan, np.nan, 3, np.nan],
+        [1, np.nan, 0, 3, 0],
+    ])
+    @pytest.mark.parametrize("method", ["to_dense", "get_values"])
+    @pytest.mark.parametrize("fill_value", [None, 0])
+    def test_dense_repr(self, vals, fill_value, method):
+        vals = np.array(vals)
+        arr = SparseArray(vals, fill_value=fill_value)
+        dense_func = getattr(arr, method)
 
-        res = SparseArray(vals, fill_value=0).to_dense()
+        res = dense_func()
         tm.assert_numpy_array_equal(res, vals)
-
-        vals = np.array([1, np.nan, 0, 3, 0])
-        res = SparseArray(vals).to_dense()
-        tm.assert_numpy_array_equal(res, vals)
-
-        res = SparseArray(vals, fill_value=0).to_dense()
-        tm.assert_numpy_array_equal(res, vals)
-
-        vals = np.array([np.nan, np.nan, np.nan, np.nan, np.nan])
-        res = SparseArray(vals).to_dense()
-        tm.assert_numpy_array_equal(res, vals)
-
-        res = SparseArray(vals, fill_value=0).to_dense()
-        tm.assert_numpy_array_equal(res, vals)
-
-        # see gh-14647
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            SparseArray(vals).to_dense(fill=2)
 
     def test_getitem(self):
         def _checkit(i):
@@ -1113,6 +1101,14 @@ def test_unique_na_fill(arr, fill_value):
     assert isinstance(a, SparseArray)
     a = np.asarray(a)
     tm.assert_numpy_array_equal(a, b)
+
+
+def test_unique_all_sparse():
+    # https://github.com/pandas-dev/pandas/issues/23168
+    arr = SparseArray([0, 0])
+    result = arr.unique()
+    expected = SparseArray([0])
+    tm.assert_sp_array_equal(result, expected)
 
 
 def test_map():

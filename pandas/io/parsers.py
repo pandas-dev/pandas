@@ -1685,7 +1685,8 @@ class ParserBase(object):
 
         else:
             try:
-                values = astype_nansafe(values, cast_type, copy=True)
+                values = astype_nansafe(values, cast_type,
+                                        copy=True, skipna=True)
             except ValueError:
                 raise ValueError("Unable to convert column %s to "
                                  "type %s" % (column, cast_type))
