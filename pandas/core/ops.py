@@ -1778,14 +1778,12 @@ def _treat_as_column(left, right, axis=None):
     if np.ndim(right) != 1:
         return False
 
-    if len(right) == len(left.columns):
-        return False
-
     if isinstance(right, ABCSeries):
         # require an exact match
-        return right.index.equals(left.index)
+        return (right.index.equals(left.index) and
+                not left.index.equals(left.columns))
 
-    return len(right) == len(left)
+    return len(right) == len(left) != len(left.columns)
 
 
 def _align_method_FRAME(left, right, axis):
