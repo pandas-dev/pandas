@@ -3,7 +3,7 @@ Utility functions related to concat
 """
 
 import numpy as np
-import pandas._libs.tslib as tslib
+from pandas._libs import tslib, tslibs
 from pandas import compat
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_object_dtype,
     is_bool_dtype,
+    is_interval_dtype,
     is_dtype_equal,
     _NS_DTYPE,
     _TD_DTYPE)
@@ -58,6 +59,8 @@ def get_dtype_kinds(l):
             typ = 'bool'
         elif is_period_dtype(dtype):
             typ = str(arr.dtype)
+        elif is_interval_dtype(dtype):
+            typ = str(arr.dtype)
         else:
             typ = dtype.kind
         typs.add(typ)
@@ -90,11 +93,13 @@ def _get_series_result_type(result, objs=None):
 def _get_frame_result_type(result, objs):
     """
     return appropriate class of DataFrame-like concat
-    if all blocks are SparseBlock, return SparseDataFrame
+    if all blocks are sparse, return SparseDataFrame
     otherwise, return 1st obj
     """
 
-    if result.blocks and all(b.is_sparse for b in result.blocks):
+    if (result.blocks and (
+            all(is_sparse(b) for b in result.blocks) or
+            all(isinstance(obj, ABCSparseDataFrame) for obj in objs))):
         from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:
@@ -185,8 +190,8 @@ def _concat_compat(to_concat, axis=0):
         typs = get_dtype_kinds(to_concat)
         if len(typs) != 1:
 
-            if (not len(typs - set(['i', 'u', 'f'])) or
-                    not len(typs - set(['bool', 'i', 'u']))):
+            if (not len(typs - {'i', 'u', 'f'}) or
+                    not len(typs - {'bool', 'i', 'u'})):
                 # let numpy coerce
                 pass
             else:
@@ -486,7 +491,7 @@ def _convert_datetimelike_to_object(x):
 
     elif x.dtype == _TD_DTYPE:
         shape = x.shape
-        x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
+        x = tslibs.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
         x = x.reshape(shape)
 
     return x
@@ -531,6 +536,7 @@ def _concat_index_asobject(to_concat, name=None):
 
     to_concat = [x._values if isinstance(x, Index) else x
                  for x in to_concat]
+
     return self._shallow_copy_with_infer(np.concatenate(to_concat), **attribs)
 
 
@@ -550,61 +556,18 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     a single array, preserving the combined dtypes
     """
 
-    from pandas.core.sparse.array import SparseArray, _make_index
+    from pandas.core.arrays import SparseArray
 
-    def convert_sparse(x, axis):
-        # coerce to native type
-        if isinstance(x, SparseArray):
-            x = x.get_values()
-        else:
-            x = np.asarray(x)
-        x = x.ravel()
-        if axis > 0:
-            x = np.atleast_2d(x)
-        return x
+    fill_values = [x.fill_value for x in to_concat
+                   if isinstance(x, SparseArray)]
+    fill_value = fill_values[0]
 
-    if typs is None:
-        typs = get_dtype_kinds(to_concat)
+    # TODO: Fix join unit generation so we aren't passed this.
+    to_concat = [x if isinstance(x, SparseArray)
+                 else SparseArray(x.squeeze(), fill_value=fill_value)
+                 for x in to_concat]
 
-    if len(typs) == 1:
-        # concat input as it is if all inputs are sparse
-        # and have the same fill_value
-        fill_values = {c.fill_value for c in to_concat}
-        if len(fill_values) == 1:
-            sp_values = [c.sp_values for c in to_concat]
-            indexes = [c.sp_index.to_int_index() for c in to_concat]
-
-            indices = []
-            loc = 0
-            for idx in indexes:
-                indices.append(idx.indices + loc)
-                loc += idx.length
-            sp_values = np.concatenate(sp_values)
-            indices = np.concatenate(indices)
-            sp_index = _make_index(loc, indices, kind=to_concat[0].sp_index)
-
-            return SparseArray(sp_values, sparse_index=sp_index,
-                               fill_value=to_concat[0].fill_value)
-
-    # input may be sparse / dense mixed and may have different fill_value
-    # input must contain sparse at least 1
-    sparses = [c for c in to_concat if is_sparse(c)]
-    fill_values = [c.fill_value for c in sparses]
-    sp_indexes = [c.sp_index for c in sparses]
-
-    # densify and regular concat
-    to_concat = [convert_sparse(x, axis) for x in to_concat]
-    result = np.concatenate(to_concat, axis=axis)
-
-    if not len(typs - set(['sparse', 'f', 'i'])):
-        # sparsify if inputs are sparse and dense numerics
-        # first sparse input's fill_value and SparseIndex is used
-        result = SparseArray(result.ravel(), fill_value=fill_values[0],
-                             kind=sp_indexes[0])
-    else:
-        # coerce to object if needed
-        result = result.astype('object')
-    return result
+    return SparseArray._concat_same_type(to_concat)
 
 
 def _concat_rangeindex_same_dtype(indexes):

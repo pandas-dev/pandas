@@ -136,6 +136,12 @@ class TestCategoricalIndex(Base):
         result = CategoricalIndex(idx, categories=idx, ordered=True)
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_construction_empty_with_bool_categories(self):
+        # see gh-22702
+        cat = pd.CategoricalIndex([], categories=[True, False])
+        categories = sorted(cat.categories.tolist())
+        assert categories == [False, True]
+
     def test_construction_with_categorical_dtype(self):
         # construction with CategoricalDtype
         # GH18109
@@ -549,37 +555,37 @@ class TestCategoricalIndex(Base):
     ])
     def test_is_monotonic(self, data, non_lexsorted_data):
         c = CategoricalIndex(data)
-        assert c.is_monotonic_increasing
-        assert not c.is_monotonic_decreasing
+        assert c.is_monotonic_increasing is True
+        assert c.is_monotonic_decreasing is False
 
         c = CategoricalIndex(data, ordered=True)
-        assert c.is_monotonic_increasing
-        assert not c.is_monotonic_decreasing
+        assert c.is_monotonic_increasing is True
+        assert c.is_monotonic_decreasing is False
 
         c = CategoricalIndex(data, categories=reversed(data))
-        assert not c.is_monotonic_increasing
-        assert c.is_monotonic_decreasing
+        assert c.is_monotonic_increasing is False
+        assert c.is_monotonic_decreasing is True
 
         c = CategoricalIndex(data, categories=reversed(data), ordered=True)
-        assert not c.is_monotonic_increasing
-        assert c.is_monotonic_decreasing
+        assert c.is_monotonic_increasing is False
+        assert c.is_monotonic_decreasing is True
 
         # test when data is neither monotonic increasing nor decreasing
         reordered_data = [data[0], data[2], data[1]]
         c = CategoricalIndex(reordered_data, categories=reversed(data))
-        assert not c.is_monotonic_increasing
-        assert not c.is_monotonic_decreasing
+        assert c.is_monotonic_increasing is False
+        assert c.is_monotonic_decreasing is False
 
         # non lexsorted categories
         categories = non_lexsorted_data
 
         c = CategoricalIndex(categories[:2], categories=categories)
-        assert c.is_monotonic_increasing
-        assert not c.is_monotonic_decreasing
+        assert c.is_monotonic_increasing is True
+        assert c.is_monotonic_decreasing is False
 
         c = CategoricalIndex(categories[1:3], categories=categories)
-        assert c.is_monotonic_increasing
-        assert not c.is_monotonic_decreasing
+        assert c.is_monotonic_increasing is True
+        assert c.is_monotonic_decreasing is False
 
     @pytest.mark.parametrize('values, expected', [
         ([1, 2, 3], True),
@@ -590,12 +596,15 @@ class TestCategoricalIndex(Base):
         ci = CategoricalIndex(values)
         assert ci.is_unique is expected
 
-    def test_duplicates(self):
+    def test_has_duplicates(self):
 
         idx = CategoricalIndex([0, 0, 0], name='foo')
-        assert not idx.is_unique
-        assert idx.has_duplicates
+        assert idx.is_unique is False
+        assert idx.has_duplicates is True
 
+    def test_drop_duplicates(self):
+
+        idx = CategoricalIndex([0, 0, 0], name='foo')
         expected = CategoricalIndex([0], name='foo')
         tm.assert_index_equal(idx.drop_duplicates(), expected)
         tm.assert_index_equal(idx.unique(), expected)

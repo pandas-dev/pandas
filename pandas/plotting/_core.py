@@ -9,10 +9,15 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly, Appender
+from pandas.compat import range, lrange, map, zip, string_types
+import pandas.compat as compat
+
 import pandas.core.common as com
 from pandas.core.base import PandasObject
 from pandas.core.config import get_option
+from pandas.core.generic import _shared_docs, _shared_doc_kwargs
+
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -20,20 +25,12 @@ from pandas.core.dtypes.common import (
     is_number,
     is_hashable,
     is_iterator)
-from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCDataFrame, ABCPeriodIndex, ABCMultiIndex, ABCIndexClass)
 
-from pandas.core.generic import _shared_docs, _shared_doc_kwargs
-from pandas.core.index import Index, MultiIndex
-
-from pandas.core.indexes.period import PeriodIndex
-from pandas.compat import range, lrange, map, zip, string_types
-import pandas.compat as compat
 from pandas.io.formats.printing import pprint_thing
-from pandas.util._decorators import Appender
 
-from pandas.plotting._compat import (_mpl_ge_1_3_1,
-                                     _mpl_ge_1_5_0,
-                                     _mpl_ge_2_0_0)
+from pandas.plotting._compat import _mpl_ge_3_0_0
 from pandas.plotting._style import (plot_params,
                                     _get_standard_colors)
 from pandas.plotting._tools import (_subplots, _flatten, table,
@@ -170,7 +167,8 @@ class MPLPlot(object):
         for kw, err in zip(['xerr', 'yerr'], [xerr, yerr]):
             self.errors[kw] = self._parse_errorbars(kw, err)
 
-        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, Index)):
+        if not isinstance(secondary_y, (bool, tuple, list,
+                                        np.ndarray, ABCIndexClass)):
             secondary_y = [secondary_y]
         self.secondary_y = secondary_y
 
@@ -233,7 +231,7 @@ class MPLPlot(object):
 
         # TODO: unused?
         # if self.sort_columns:
-        #     columns = com._try_sort(data.columns)
+        #     columns = com.try_sort(data.columns)
         # else:
         #     columns = data.columns
 
@@ -484,7 +482,7 @@ class MPLPlot(object):
 
     @property
     def legend_title(self):
-        if not isinstance(self.data.columns, MultiIndex):
+        if not isinstance(self.data.columns, ABCMultiIndex):
             name = self.data.columns.name
             if name is not None:
                 name = pprint_thing(name)
@@ -550,14 +548,6 @@ class MPLPlot(object):
         import matplotlib.pyplot as plt
         return plt
 
-    @staticmethod
-    def mpl_ge_1_3_1():
-        return _mpl_ge_1_3_1()
-
-    @staticmethod
-    def mpl_ge_1_5_0():
-        return _mpl_ge_1_5_0()
-
     _need_to_set_index = False
 
     def _get_xticks(self, convert_period=False):
@@ -566,7 +556,7 @@ class MPLPlot(object):
                                               'datetime64', 'time')
 
         if self.use_index:
-            if convert_period and isinstance(index, PeriodIndex):
+            if convert_period and isinstance(index, ABCPeriodIndex):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
             elif index.is_numeric():
@@ -596,7 +586,7 @@ class MPLPlot(object):
             y = np.ma.array(y)
             y = np.ma.masked_where(mask, y)
 
-        if isinstance(x, Index):
+        if isinstance(x, ABCIndexClass):
             x = x._mpl_repr()
 
         if is_errorbar:
@@ -615,7 +605,7 @@ class MPLPlot(object):
             return ax.plot(*args, **kwds)
 
     def _get_index_name(self):
-        if isinstance(self.data.index, MultiIndex):
+        if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
             if com._any_not_none(*name):
                 name = ','.join(pprint_thing(x) for x in name)
@@ -653,7 +643,8 @@ class MPLPlot(object):
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
-        if isinstance(self.secondary_y, (tuple, list, np.ndarray, Index)):
+        if isinstance(self.secondary_y, (tuple, list,
+                                         np.ndarray, ABCIndexClass)):
             return self.data.columns[i] in self.secondary_y
 
     def _apply_style_colors(self, colors, kwds, col_num, label):
@@ -704,14 +695,12 @@ class MPLPlot(object):
         if err is None:
             return None
 
-        from pandas import DataFrame, Series
-
         def match_labels(data, e):
             e = e.reindex(data.index)
             return e
 
         # key-matched DataFrame
-        if isinstance(err, DataFrame):
+        if isinstance(err, ABCDataFrame):
 
             err = match_labels(self.data, err)
         # key-matched dict
@@ -719,7 +708,7 @@ class MPLPlot(object):
             pass
 
         # Series of error values
-        elif isinstance(err, Series):
+        elif isinstance(err, ABCSeries):
             # broadcast error series across data
             err = match_labels(self.data, err)
             err = np.atleast_2d(err)
@@ -765,14 +754,13 @@ class MPLPlot(object):
         return err
 
     def _get_errorbars(self, label=None, index=None, xerr=True, yerr=True):
-        from pandas import DataFrame
         errors = {}
 
         for kw, flag in zip(['xerr', 'yerr'], [xerr, yerr]):
             if flag:
                 err = self.errors[kw]
                 # user provided label-matched dataframe of errors
-                if isinstance(err, (DataFrame, dict)):
+                if isinstance(err, (ABCDataFrame, dict)):
                     if label is not None and label in err.keys():
                         err = err[label]
                     else:
@@ -833,6 +821,37 @@ class PlanePlot(MPLPlot):
         ax.set_ylabel(pprint_thing(y))
         ax.set_xlabel(pprint_thing(x))
 
+    def _plot_colorbar(self, ax, **kwds):
+        # Addresses issues #10611 and #10678:
+        # When plotting scatterplots and hexbinplots in IPython
+        # inline backend the colorbar axis height tends not to
+        # exactly match the parent axis height.
+        # The difference is due to small fractional differences
+        # in floating points with similar representation.
+        # To deal with this, this method forces the colorbar
+        # height to take the height of the parent axes.
+        # For a more detailed description of the issue
+        # see the following link:
+        # https://github.com/ipython/ipython/issues/11215
+        img = ax.collections[0]
+        cbar = self.fig.colorbar(img, ax=ax, **kwds)
+
+        if _mpl_ge_3_0_0():
+            # The workaround below is no longer necessary.
+            return
+
+        points = ax.get_position().get_points()
+        cbar_points = cbar.ax.get_position().get_points()
+
+        cbar.ax.set_position([cbar_points[0, 0],
+                              points[0, 1],
+                              cbar_points[1, 0] - cbar_points[0, 0],
+                              points[1, 1] - points[0, 1]])
+        # To see the discrepancy in axis heights uncomment
+        # the following two lines:
+        # print(points[1, 1] - points[0, 1])
+        # print(cbar_points[1, 1] - cbar_points[0, 1])
+
 
 class ScatterPlot(PlanePlot):
     _kind = 'scatter'
@@ -878,11 +897,8 @@ class ScatterPlot(PlanePlot):
         scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
                              label=label, cmap=cmap, **self.kwds)
         if cb:
-            img = ax.collections[0]
-            kws = dict(ax=ax)
-            if self.mpl_ge_1_3_1():
-                kws['label'] = c if c_is_column else ''
-            self.fig.colorbar(img, **kws)
+            cbar_label = c if c_is_column else ''
+            self._plot_colorbar(ax, label=cbar_label)
 
         if label is not None:
             self._add_legend_handle(scatter, label)
@@ -923,8 +939,7 @@ class HexBinPlot(PlanePlot):
         ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=cmap,
                   **self.kwds)
         if cb:
-            img = ax.collections[0]
-            self.fig.colorbar(img, ax=ax)
+            self._plot_colorbar(ax)
 
     def _make_legend(self):
         pass
@@ -985,10 +1000,9 @@ class LinePlot(MPLPlot):
                              **kwds)
             self._add_legend_handle(newlines[0], label, index=i)
 
-            if not _mpl_ge_2_0_0():
-                lines = _get_all_lines(ax)
-                left, right = _get_xlim(lines)
-                ax.set_xlim(left, right)
+            lines = _get_all_lines(ax)
+            left, right = _get_xlim(lines)
+            ax.set_xlim(left, right)
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None,
@@ -1114,8 +1128,7 @@ class AreaPlot(LinePlot):
 
         # need to remove label, because subplots uses mpl legend as it is
         line_kwds = kwds.copy()
-        if cls.mpl_ge_1_5_0():
-            line_kwds.pop('label')
+        line_kwds.pop('label')
         lines = MPLPlot._plot(ax, x, y_values, style=style, **line_kwds)
 
         # get data from the line to get coordinates for fill_between
@@ -1138,18 +1151,8 @@ class AreaPlot(LinePlot):
         cls._update_stacker(ax, stacking_id, y)
 
         # LinePlot expects list of artists
-        res = [rect] if cls.mpl_ge_1_5_0() else lines
+        res = [rect]
         return res
-
-    def _add_legend_handle(self, handle, label, index=None):
-        if not self.mpl_ge_1_5_0():
-            from matplotlib.patches import Rectangle
-            # Because fill_between isn't supported in legend,
-            # specifically add Rectangle handle here
-            alpha = self.kwds.get('alpha', None)
-            handle = Rectangle((0, 0), 1, 1, fc=handle.get_color(),
-                               alpha=alpha)
-        LinePlot._add_legend_handle(self, handle, label, index=index)
 
     def _post_plot_logic(self, ax, data):
         LinePlot._post_plot_logic(self, ax, data)
@@ -2173,9 +2176,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {'axes', 'dict', 'both'}")
 
-    from pandas import Series, DataFrame
-    if isinstance(data, Series):
-        data = DataFrame({'x': data})
+    if isinstance(data, ABCSeries):
+        data = data.to_frame('x')
         column = 'x'
 
     def _get_colors():
@@ -2397,7 +2399,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         return axes
 
     if column is not None:
-        if not isinstance(column, (list, np.ndarray, Index)):
+        if not isinstance(column, (list, np.ndarray, ABCIndexClass)):
             column = [column]
         data = data[column]
     data = data._get_numeric_data()
@@ -2408,7 +2410,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                           layout=layout)
     _axes = _flatten(axes)
 
-    for i, col in enumerate(com._try_sort(data.columns)):
+    for i, col in enumerate(com.try_sort(data.columns)):
         ax = _axes[i]
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)
@@ -2548,7 +2550,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
 
 def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                           rot=0, grid=True, ax=None, figsize=None,
-                          layout=None, **kwds):
+                          layout=None, sharex=False, sharey=True, **kwds):
     """
     Make box plots from DataFrameGroupBy data.
 
@@ -2567,6 +2569,14 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     figsize : A tuple (width, height) in inches
     layout : tuple (optional)
         (rows, columns) for the layout of the plot
+    sharex : bool, default False
+        Whether x-axes will be shared among subplots
+
+        .. versionadded:: 0.23.1
+    sharey : bool, default True
+        Whether y-axes will be shared among subplots
+
+        .. versionadded:: 0.23.1
     `**kwds` : Keyword Arguments
         All other plotting keyword arguments to be passed to
         matplotlib's boxplot function
@@ -2578,14 +2588,11 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
 
     Examples
     --------
-    >>> import pandas
-    >>> import numpy as np
     >>> import itertools
-    >>>
     >>> tuples = [t for t in itertools.product(range(1000), range(4))]
-    >>> index = pandas.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
+    >>> index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
     >>> data = np.random.randn(len(index),4)
-    >>> df = pandas.DataFrame(data, columns=list('ABCD'), index=index)
+    >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
     >>>
     >>> grouped = df.groupby(level='lvl1')
     >>> boxplot_frame_groupby(grouped)
@@ -2598,7 +2605,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(naxes=naxes, squeeze=False,
-                              ax=ax, sharex=False, sharey=True,
+                              ax=ax, sharex=sharex, sharey=sharey,
                               figsize=figsize, layout=layout)
         axes = _flatten(axes)
 
@@ -2630,7 +2637,6 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
 def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   figsize=None, sharex=True, sharey=True, layout=None,
                   rot=0, ax=None, **kwargs):
-    from pandas import DataFrame
 
     if figsize == 'default':
         # allowed to specify mpl default with 'default'
@@ -2651,7 +2657,7 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
 
     for i, (key, group) in enumerate(grouped):
         ax = _axes[i]
-        if numeric_only and isinstance(group, DataFrame):
+        if numeric_only and isinstance(group, ABCDataFrame):
             group = group._get_numeric_data()
         plotf(group, ax, **kwargs)
         ax.set_title(pprint_thing(key))
@@ -2703,7 +2709,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
 class BasePlotMethods(PandasObject):
 
     def __init__(self, data):
-        self._data = data
+        self._parent = data  # can be Series or DataFrame
 
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
@@ -2731,7 +2737,7 @@ class SeriesPlotMethods(BasePlotMethods):
                  rot=None, fontsize=None, colormap=None, table=False,
                  yerr=None, xerr=None,
                  label=None, secondary_y=False, **kwds):
-        return plot_series(self._data, kind=kind, ax=ax, figsize=figsize,
+        return plot_series(self._parent, kind=kind, ax=ax, figsize=figsize,
                            use_index=use_index, title=title, grid=grid,
                            legend=legend, style=style, logx=logx, logy=logy,
                            loglog=loglog, xticks=xticks, yticks=yticks,
@@ -2930,7 +2936,7 @@ class FramePlotMethods(BasePlotMethods):
                  rot=None, fontsize=None, colormap=None, table=False,
                  yerr=None, xerr=None,
                  secondary_y=False, sort_columns=False, **kwds):
-        return plot_frame(self._data, kind=kind, x=x, y=y, ax=ax,
+        return plot_frame(self._parent, kind=kind, x=x, y=y, ax=ax,
                           subplots=subplots, sharex=sharex, sharey=sharey,
                           layout=layout, figsize=figsize, use_index=use_index,
                           title=title, grid=grid, legend=legend, style=style,
@@ -3313,19 +3319,74 @@ class FramePlotMethods(BasePlotMethods):
 
     def area(self, x=None, y=None, **kwds):
         """
-        Area plot
+        Draw a stacked area plot.
+
+        An area plot displays quantitative data visually.
+        This function wraps the matplotlib area function.
 
         Parameters
         ----------
-        x, y : label or position, optional
-            Coordinates for each point.
-        `**kwds` : optional
+        x : label or position, optional
+            Coordinates for the X axis. By default uses the index.
+        y : label or position, optional
+            Column to plot. By default uses all columns.
+        stacked : bool, default True
+            Area plots are stacked by default. Set to False to create a
+            unstacked plot.
+        **kwds : optional
             Additional keyword arguments are documented in
             :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray
+            Area plot, or array of area plots if subplots is True
+
+        See Also
+        --------
+        DataFrame.plot : Make plots of DataFrame using matplotlib / pylab.
+
+        Examples
+        --------
+        Draw an area plot based on basic business metrics:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({
+            ...     'sales': [3, 2, 3, 9, 10, 6],
+            ...     'signups': [5, 5, 6, 12, 14, 13],
+            ...     'visits': [20, 42, 28, 62, 81, 50],
+            ... }, index=pd.date_range(start='2018/01/01', end='2018/07/01',
+            ...                        freq='M'))
+            >>> ax = df.plot.area()
+
+        Area plots are stacked by default. To produce an unstacked plot,
+        pass ``stacked=False``:
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = df.plot.area(stacked=False)
+
+        Draw an area plot for a single column:
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = df.plot.area(y='sales')
+
+        Draw with a different `x`:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({
+            ...     'sales': [3, 2, 3],
+            ...     'visits': [20, 42, 28],
+            ...     'day': [1, 2, 3],
+            ... })
+            >>> ax = df.plot.area(x='day')
         """
         return self(kind='area', x=x, y=y, **kwds)
 

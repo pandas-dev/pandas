@@ -9,15 +9,11 @@ for imp in ['pandas.util', 'pandas.tools.hashing']:
     try:
         hashing = import_module(imp)
         break
-    except:
+    except (ImportError, TypeError, ValueError):
         pass
-
-from .pandas_vb_common import setup # noqa
 
 
 class Factorize(object):
-
-    goal_time = 0.2
 
     params = [True, False]
     param_names = ['sort']
@@ -40,8 +36,6 @@ class Factorize(object):
 
 class Duplicated(object):
 
-    goal_time = 0.2
-
     params = ['first', 'last', False]
     param_names = ['keep']
 
@@ -63,8 +57,6 @@ class Duplicated(object):
 
 class DuplicatedUniqueIndex(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 10**5
         self.idx_int_dup = pd.Int64Index(np.arange(N * 5))
@@ -77,8 +69,6 @@ class DuplicatedUniqueIndex(object):
 
 class Match(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.uniques = tm.makeStringIndex(1000).values
         self.all = self.uniques.repeat(10)
@@ -89,8 +79,6 @@ class Match(object):
 
 
 class Hashing(object):
-
-    goal_time = 0.2
 
     def setup_cache(self):
         N = 10**5
@@ -126,3 +114,6 @@ class Hashing(object):
 
     def time_series_dates(self, df):
         hashing.hash_pandas_object(df['dates'])
+
+
+from .pandas_vb_common import setup  # noqa: F401

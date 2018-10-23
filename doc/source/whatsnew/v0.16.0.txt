@@ -589,7 +589,7 @@ Bug Fixes
 - Fixed bug on big endian platforms which produced incorrect results in ``StataReader`` (:issue:`8688`).
 - Bug in ``MultiIndex.has_duplicates`` when having many levels causes an indexer overflow (:issue:`9075`, :issue:`5873`)
 - Bug in ``pivot`` and ``unstack`` where ``nan`` values would break index alignment (:issue:`4862`, :issue:`7401`, :issue:`7403`, :issue:`7405`, :issue:`7466`, :issue:`9497`)
-- Bug in left ``join`` on multi-index with ``sort=True`` or null values (:issue:`9210`).
+- Bug in left ``join`` on MultiIndex with ``sort=True`` or null values (:issue:`9210`).
 - Bug in ``MultiIndex`` where inserting new keys would fail (:issue:`9250`).
 - Bug in ``groupby`` when key space exceeds ``int64`` bounds (:issue:`9096`).
 - Bug in ``unstack`` with ``TimedeltaIndex`` or ``DatetimeIndex`` and nulls (:issue:`9491`).

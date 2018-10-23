@@ -26,11 +26,13 @@ if [ "$DOC" ]; then
 
 elif [ "$COVERAGE" ]; then
     echo pytest -s -m "single" --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
-    pytest -s -m "single" --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
+    pytest      -s -m "single" --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
 
+    echo pytest -s --strict scripts
+    pytest      -s --strict scripts
 else
-    echo pytest -m "single" -r xX --junitxml=/tmp/single.xml --strict $TEST_ARGS pandas
-    pytest -m "single" -r xX  --junitxml=/tmp/single.xml --strict $TEST_ARGS pandas # TODO: doctest
+    echo pytest -m "single" --junitxml=/tmp/single.xml --strict $TEST_ARGS pandas
+    pytest      -m "single" --junitxml=/tmp/single.xml --strict $TEST_ARGS pandas # TODO: doctest
 
 fi
 

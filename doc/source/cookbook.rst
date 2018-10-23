@@ -132,7 +132,7 @@ Building Criteria
 
 .. ipython:: python
 
-   newseries = df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']; newseries;
+   newseries = df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']; newseries
 
 ...or (with assignment modifies the DataFrame.)
 
@@ -505,13 +505,11 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 .. ipython:: python
 
    df = pd.DataFrame({'A' : [1, 1, 2, 2], 'B' : [1, -1, 1, 2]})
-
    gb = df.groupby('A')
 
    def replace(g):
-      mask = g < 0
-      g.loc[mask] = g[~mask].mean()
-      return g
+       mask = g < 0
+       return g.where(mask, g[~mask].mean())
 
    gb.transform(replace)
 
@@ -1224,6 +1222,46 @@ Computation
 
 `Numerical integration (sample-based) of a time series
 <http://nbviewer.ipython.org/5720498>`__
+
+Correlation
+***********
+
+The `method` argument within `DataFrame.corr` can accept a callable in addition to the named correlation types.  Here we compute the `distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>`__ matrix for a `DataFrame` object.
+
+.. code-block:: python
+
+    >>> def distcorr(x, y):
+    ...     n = len(x)
+    ...     a = np.zeros(shape=(n, n))
+    ...     b = np.zeros(shape=(n, n))
+    ...
+    ...     for i in range(n):
+    ...         for j in range(i + 1, n):
+    ...             a[i, j] = abs(x[i] - x[j])
+    ...             b[i, j] = abs(y[i] - y[j])
+    ...
+    ...     a += a.T
+    ...     b += b.T
+    ...
+    ...     a_bar = np.vstack([np.nanmean(a, axis=0)] * n)
+    ...     b_bar = np.vstack([np.nanmean(b, axis=0)] * n)
+    ...
+    ...     A = a - a_bar - a_bar.T + np.full(shape=(n, n), fill_value=a_bar.mean())
+    ...     B = b - b_bar - b_bar.T + np.full(shape=(n, n), fill_value=b_bar.mean())
+    ...
+    ...     cov_ab = np.sqrt(np.nansum(A * B)) / n
+    ...     std_a = np.sqrt(np.sqrt(np.nansum(A**2)) / n)
+    ...     std_b = np.sqrt(np.sqrt(np.nansum(B**2)) / n)
+    ...
+    ...     return cov_ab / std_a / std_b
+    ...
+    >>> df = pd.DataFrame(np.random.normal(size=(100, 3)))
+    ...
+    >>> df.corr(method=distcorr)
+              0         1         2
+    0  1.000000  0.171368  0.145302
+    1  0.171368  1.000000  0.189919
+    2  0.145302  0.189919  1.000000
 
 Timedeltas
 ----------

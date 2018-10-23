@@ -61,6 +61,12 @@ Excel
    read_excel
    ExcelFile.parse
 
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   ExcelWriter
+
 JSON
 ~~~~
 
@@ -100,6 +106,7 @@ HDFStore: PyTables (HDF5)
    HDFStore.select
    HDFStore.info
    HDFStore.keys
+   HDFStore.walk
 
 Feather
 ~~~~~~~
@@ -237,6 +244,15 @@ Top-level evaluation
    :toctree: generated/
 
    eval
+
+Hashing
+~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   util.hash_array
+   util.hash_pandas_object
 
 Testing
 ~~~~~~~
@@ -434,7 +450,6 @@ Computations / Descriptive Stats
    Series.value_counts
    Series.compound
    Series.nonzero
-   Series.ptp
 
 
 Reindexing / Selection / Label manipulation
@@ -444,6 +459,7 @@ Reindexing / Selection / Label manipulation
 
    Series.align
    Series.drop
+   Series.droplevel
    Series.drop_duplicates
    Series.duplicated
    Series.equals
@@ -544,6 +560,7 @@ These can be accessed like ``Series.dt.<property>``.
 
    Series.dt.date
    Series.dt.time
+   Series.dt.timetz
    Series.dt.year
    Series.dt.month
    Series.dt.day
@@ -898,7 +915,6 @@ Indexing, iteration
    DataFrame.loc
    DataFrame.iloc
    DataFrame.insert
-   DataFrame.insert
    DataFrame.__iter__
    DataFrame.items
    DataFrame.keys
@@ -1063,6 +1079,7 @@ Reshaping, sorting, transposing
 .. autosummary::
    :toctree: generated/
 
+   DataFrame.droplevel
    DataFrame.pivot
    DataFrame.pivot_table
    DataFrame.reorder_levels
@@ -1200,9 +1217,9 @@ Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Axes**
 
-  * **items**: axis 0; each item corresponds to a DataFrame contained inside
-  * **major_axis**: axis 1; the index (rows) of each of the DataFrames
-  * **minor_axis**: axis 2; the columns of each of the DataFrames
+* **items**: axis 0; each item corresponds to a DataFrame contained inside
+* **major_axis**: axis 1; the index (rows) of each of the DataFrames
+* **minor_axis**: axis 2; the columns of each of the DataFrames
 
 .. autosummary::
    :toctree: generated/
@@ -1641,6 +1658,7 @@ IntervalIndex Components
    IntervalIndex.is_non_overlapping_monotonic
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
+   IntervalIndex.set_closed
 
 
 .. _api.multiindex:
@@ -1736,6 +1754,7 @@ Time/Date Components
    DatetimeIndex.nanosecond
    DatetimeIndex.date
    DatetimeIndex.time
+   DatetimeIndex.timetz
    DatetimeIndex.dayofyear
    DatetimeIndex.weekofyear
    DatetimeIndex.week
@@ -1869,8 +1888,6 @@ Methods
     PeriodIndex.asfreq
     PeriodIndex.strftime
     PeriodIndex.to_timestamp
-    PeriodIndex.tz_convert
-    PeriodIndex.tz_localize
 
 Scalars
 -------
@@ -2349,6 +2366,7 @@ Computations / Descriptive Stats
    Resampler.std
    Resampler.sum
    Resampler.var
+   Resampler.quantile
 
 Style
 -----
@@ -2555,6 +2573,7 @@ objects.
 .. autosummary::
    :toctree: generated/
 
+   api.extensions.register_extension_dtype
    api.extensions.register_dataframe_accessor
    api.extensions.register_series_accessor
    api.extensions.register_index_accessor
@@ -2592,3 +2611,12 @@ objects.
    generated/pandas.Series.ix
    generated/pandas.Series.imag
    generated/pandas.Series.real
+
+
+.. Can't convince sphinx to generate toctree for this class attribute.
+.. So we do it manually to avoid a warning
+
+.. toctree::
+   :hidden:
+
+   generated/pandas.api.extensions.ExtensionDtype.na_value

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 """Strptime-related classes and functions.
 """
 import time
 import locale
 import calendar
 import re
+from datetime import date as datetime_date
 
 
 # Python 2 vs Python 3
@@ -20,21 +20,17 @@ except:
         except:
             from _dummy_thread import allocate_lock as _thread_allocate_lock
 
+from cython import Py_ssize_t
+
+
 import pytz
 
-from cython cimport Py_ssize_t
-from cpython cimport PyFloat_Check
-
-cimport cython
-
 import numpy as np
-from numpy cimport ndarray, int64_t
+from numpy cimport int64_t
 
-from datetime import date as datetime_date
-from cpython.datetime cimport datetime
 
 from np_datetime cimport (check_dts_bounds,
-                          dtstruct_to_dt64, pandas_datetimestruct)
+                          dtstruct_to_dt64, npy_datetimestruct)
 
 from util cimport is_string_object
 
@@ -63,7 +59,7 @@ cdef dict _parse_code_table = {'y': 0,
                                'z': 19}
 
 
-def array_strptime(ndarray[object] values, object fmt,
+def array_strptime(object[:] values, object fmt,
                    bint exact=True, errors='raise'):
     """
     Calculates the datetime structs represented by the passed array of strings
@@ -78,9 +74,9 @@ def array_strptime(ndarray[object] values, object fmt,
 
     cdef:
         Py_ssize_t i, n = len(values)
-        pandas_datetimestruct dts
-        ndarray[int64_t] iresult
-        ndarray[object] result_timezone
+        npy_datetimestruct dts
+        int64_t[:] iresult
+        object[:] result_timezone
         int year, month, day, minute, hour, second, weekday, julian
         int week_of_year, week_of_year_start, parse_code, ordinal
         int64_t us, ns
@@ -323,7 +319,7 @@ def array_strptime(ndarray[object] values, object fmt,
 
         result_timezone[i] = timezone
 
-    return result, result_timezone
+    return result, result_timezone.base
 
 
 """_getlang, LocaleTime, TimeRE, _calc_julian_from_U_or_W are vendored
@@ -624,6 +620,7 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
     else:
         days_to_week = week_0_length + (7 * (week_of_year - 1))
         return 1 + days_to_week + day_of_week
+
 
 cdef parse_timezone_directive(object z):
     """

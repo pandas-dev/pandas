@@ -37,10 +37,91 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: https://pypi.org/project/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.23.2
+-------------
+
+**Release date**: July 5, 2018
+
+This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
+and bug fixes.
+
+See the :ref:`full whatsnew <whatsnew_0232>` for a list of all the changes.
+
+Thanks
+~~~~~~
+
+A total of 17 people contributed to this release.  People with a "+" by their
+names contributed a patch for the first time.
+
+* David Krych
+* Jacopo Rota +
+* Jeff Reback
+* Jeremy Schendel
+* Joris Van den Bossche
+* Kalyan Gokhale
+* Matthew Roeschke
+* Michael Odintsov +
+* Ming Li
+* Pietro Battiston
+* Tom Augspurger
+* Uddeshya Singh
+* Vu Le +
+* alimcmaster1 +
+* david-liu-brattle-1 +
+* gfyoung
+* jbrockmendel
+
+pandas 0.23.1
+-------------
+
+**Release date**: June 12, 2018
+
+This is a minor release from 0.23.0 and includes a number of bug fixes and
+performance improvements.
+
+See the :ref:`full whatsnew <whatsnew_0231>` for a list of all the changes.
+
+Thanks
+~~~~~~
+
+A total of 30 people contributed to this release.  People with a "+" by their
+names contributed a patch for the first time.
+
+* Adam J. Stewart
+* Adam Kim +
+* Aly Sivji
+* Chalmer Lowe +
+* Damini Satya +
+* Dr. Irv
+* Gabe Fernando +
+* Giftlin Rajaiah
+* Jeff Reback
+* Jeremy Schendel +
+* Joris Van den Bossche
+* Kalyan Gokhale +
+* Kevin Sheppard
+* Matthew Roeschke
+* Max Kanter +
+* Ming Li
+* Pyry Kovanen +
+* Stefano Cianciulli
+* Tom Augspurger
+* Uddeshya Singh +
+* Wenhuan
+* William Ayd
+* chris-b1
+* gfyoung
+* h-vetinari
+* nprad +
+* ssikdar1 +
+* tmnhat2001
+* topper-123
+* zertrin +
+
 pandas 0.23.0
 -------------
 
-**Release date**: May 15, 2017
+**Release date**: May 15, 2018
 
 This is a major release from 0.22.0 and includes a number of API changes, new
 features, enhancements, and performance improvements along with a large number
@@ -2174,7 +2255,7 @@ Highlights include:
 - SQL interfaces updated to use ``sqlalchemy``, see :ref:`here<whatsnew_0140.sql>`.
 - Display interface changes, see :ref:`here<whatsnew_0140.display>`
 - MultiIndexing using Slicers, see :ref:`here<whatsnew_0140.slicers>`.
-- Ability to join a singly-indexed DataFrame with a multi-indexed DataFrame, see :ref:`here <merging.join_on_mi>`
+- Ability to join a singly-indexed DataFrame with a MultiIndexed DataFrame, see :ref:`here <merging.join_on_mi>`
 - More consistency in groupby results and more flexible groupby specifications, see :ref:`here<whatsnew_0140.groupby>`
 - Holiday calendars are now supported in ``CustomBusinessDay``, see :ref:`here <timeseries.holiday>`
 - Several improvements in plotting functions, including: hexbin, area and pie plots, see :ref:`here<whatsnew_0140.plotting>`.
@@ -2384,8 +2465,8 @@ Bug Fixes
 - Bug in merging ``timedelta`` dtypes (:issue:`5695`)
 - Bug in plotting.scatter_matrix function. Wrong alignment among diagonal
   and off-diagonal plots, see (:issue:`5497`).
-- Regression in Series with a multi-index via ix (:issue:`6018`)
-- Bug in Series.xs with a multi-index (:issue:`6018`)
+- Regression in Series with a MultiIndex via ix (:issue:`6018`)
+- Bug in Series.xs with a MultiIndex (:issue:`6018`)
 - Bug in Series construction of mixed type with datelike and an integer (which should result in
   object type and not automatic conversion) (:issue:`6028`)
 - Possible segfault when chained indexing with an object array under NumPy 1.7.1 (:issue:`6026`, :issue:`6056`)
@@ -2409,10 +2490,10 @@ Bug Fixes
 - Fixed a bug in ``query``/``eval`` during lexicographic string comparisons (:issue:`6155`).
 - Fixed a bug in ``query`` where the index of a single-element ``Series`` was
   being thrown away (:issue:`6148`).
-- Bug in ``HDFStore`` on appending a dataframe with multi-indexed columns to
+- Bug in ``HDFStore`` on appending a dataframe with MultiIndexed columns to
   an existing table (:issue:`6167`)
 - Consistency with dtypes in setting an empty DataFrame (:issue:`6171`)
-- Bug in selecting on a multi-index ``HDFStore`` even in the presence of under
+- Bug in selecting on a MultiIndex ``HDFStore`` even in the presence of under
   specified column spec (:issue:`6169`)
 - Bug in ``nanops.var`` with ``ddof=1`` and 1 elements would sometimes return ``inf``
   rather than ``nan`` on some platforms (:issue:`6136`)
@@ -2594,7 +2675,7 @@ Improvements to existing features
   option it is no longer possible to round trip Excel files with merged
   MultiIndex and Hierarchical Rows. Set the ``merge_cells`` to ``False`` to
   restore the previous behaviour.  (:issue:`5254`)
-- The FRED DataReader now accepts multiple series (:issue`3413`)
+- The FRED DataReader now accepts multiple series (:issue:`3413`)
 - StataWriter adjusts variable names to Stata's limitations (:issue:`5709`)
 
 API Changes
@@ -2659,8 +2740,8 @@ API Changes
   - the ``format`` keyword now replaces the ``table`` keyword; allowed values
     are ``fixed(f)|table(t)`` the ``Storer`` format has been renamed to
     ``Fixed``
-  - a column multi-index will be recreated properly (:issue:`4710`); raise on
-    trying to use a multi-index with data_columns on the same axis
+  - a column MultiIndex will be recreated properly (:issue:`4710`); raise on
+    trying to use a MultiIndex with data_columns on the same axis
   - ``select_as_coordinates`` will now return an ``Int64Index`` of the
     resultant selection set
   - support ``timedelta64[ns]`` as a serialization type (:issue:`3577`)
@@ -2790,7 +2871,7 @@ API Changes
   copy through chained assignment is detected, settable via option ``mode.chained_assignment``
 - test the list of ``NA`` values in the csv parser. add ``N/A``, ``#NA`` as independent default
   na values (:issue:`5521`)
-- The refactoring involving``Series`` deriving from ``NDFrame`` breaks ``rpy2<=2.3.8``. an Issue
+- The refactoring involving ``Series`` deriving from ``NDFrame`` breaks ``rpy2<=2.3.8``. an Issue
   has been opened against rpy2 and a workaround is detailed in :issue:`5698`. Thanks @JanSchulz.
 - ``Series.argmin`` and ``Series.argmax`` are now aliased to ``Series.idxmin`` and ``Series.idxmax``.
   These return the *index* of the min or max element respectively. Prior to 0.13.0 these would return
@@ -2932,7 +3013,7 @@ Bug Fixes
   - A zero length series written in Fixed format not deserializing properly.
     (:issue:`4708`)
   - Fixed decoding perf issue on pyt3 (:issue:`5441`)
-  - Validate levels in a multi-index before storing (:issue:`5527`)
+  - Validate levels in a MultiIndex before storing (:issue:`5527`)
   - Correctly handle ``data_columns`` with a Panel (:issue:`5717`)
 - Fixed bug in tslib.tz_convert(vals, tz1, tz2): it could raise IndexError
   exception while trying to access trans[pos + 1] (:issue:`4496`)
@@ -2995,7 +3076,7 @@ Bug Fixes
   alignment (:issue:`3777`)
 - frozenset objects now raise in the ``Series`` constructor (:issue:`4482`,
   :issue:`4480`)
-- Fixed issue with sorting a duplicate multi-index that has multiple dtypes
+- Fixed issue with sorting a duplicate MultiIndex that has multiple dtypes
   (:issue:`4516`)
 - Fixed bug in ``DataFrame.set_values`` which was causing name attributes to
   be lost when expanding the index. (:issue:`3742`, :issue:`4039`)
@@ -3042,11 +3123,11 @@ Bug Fixes
   (:issue:`4328`)
 - Bug with Series indexing not raising an error when the right-hand-side has
   an incorrect length (:issue:`2702`)
-- Bug in multi-indexing with a partial string selection as one part of a
+- Bug in MultiIndexing with a partial string selection as one part of a
   MultIndex (:issue:`4758`)
 - Bug with reindexing on the index with a non-unique index will now raise
   ``ValueError`` (:issue:`4746`)
-- Bug in setting with ``loc/ix`` a single indexer with a multi-index axis and
+- Bug in setting with ``loc/ix`` a single indexer with a MultiIndex axis and
   a NumPy array, related to (:issue:`3777`)
 - Bug in concatenation with duplicate columns across dtypes not merging with
   axis=0 (:issue:`4771`, :issue:`4975`)
@@ -3117,7 +3198,7 @@ Bug Fixes
 - Make sure series-series boolean comparisons are label based (:issue:`4947`)
 - Bug in multi-level indexing with a Timestamp partial indexer
   (:issue:`4294`)
-- Tests/fix for multi-index construction of an all-nan frame (:issue:`4078`)
+- Tests/fix for MultiIndex construction of an all-nan frame (:issue:`4078`)
 - Fixed a bug where :func:`~pandas.read_html` wasn't correctly inferring
   values of tables with commas (:issue:`5029`)
 - Fixed a bug where :func:`~pandas.read_html` wasn't providing a stable
@@ -3174,7 +3255,7 @@ Bug Fixes
 - Fixed segfault in C parser caused by passing more names than columns in
   the file. (:issue:`5156`)
 - Fix ``Series.isin`` with date/time-like dtypes (:issue:`5021`)
-- C and Python Parser can now handle the more common multi-index column
+- C and Python Parser can now handle the more common MultiIndex column
   format which doesn't have a row for index names (:issue:`4702`)
 - Bug when trying to use an out-of-bounds date as an object dtype
   (:issue:`5312`)
@@ -3199,7 +3280,7 @@ Bug Fixes
 - performance improvements in ``isnull`` on larger size pandas objects
 - Fixed various setitem with 1d ndarray that does not have a matching
   length to the indexer (:issue:`5508`)
-- Bug in getitem with a multi-index and ``iloc`` (:issue:`5528`)
+- Bug in getitem with a MultiIndex and ``iloc`` (:issue:`5528`)
 - Bug in delitem on a Series (:issue:`5542`)
 - Bug fix in apply when using custom function and objects are not mutated (:issue:`5545`)
 - Bug in selecting from a non-unique index with ``loc`` (:issue:`5553`)
@@ -3208,7 +3289,7 @@ Bug Fixes
 - Bug in repeated indexing of object with resultant non-unique index (:issue:`5678`)
 - Bug in fillna with Series and a passed series/dict (:issue:`5703`)
 - Bug in groupby transform with a datetime-like grouper (:issue:`5712`)
-- Bug in multi-index selection in PY3 when using certain keys (:issue:`5725`)
+- Bug in MultiIndex selection in PY3 when using certain keys (:issue:`5725`)
 - Row-wise concat of differing dtypes failing in certain cases (:issue:`5754`)
 
 pandas 0.12.0
@@ -3229,14 +3310,14 @@ New Features
 - Added module for reading and writing Stata files: pandas.io.stata (:issue:`1512`)
   includes ``to_stata`` DataFrame method, and a ``read_stata`` top-level reader
 - Added support for writing in ``to_csv`` and reading in ``read_csv``,
-  multi-index columns. The ``header`` option in ``read_csv`` now accepts a
+  MultiIndex columns. The ``header`` option in ``read_csv`` now accepts a
   list of the rows from which to read the index. Added the option,
   ``tupleize_cols`` to provide compatibility for the pre 0.12 behavior of
-  writing and reading multi-index columns via a list of tuples. The default in
+  writing and reading MultiIndex columns via a list of tuples. The default in
   0.12 is to write lists of tuples and *not* interpret list of tuples as a
-  multi-index column.
+  MultiIndex column.
   Note: The default value will change in 0.12 to make the default *to* write and
-  read multi-index columns in the new format. (:issue:`3571`, :issue:`1651`, :issue:`3141`)
+  read MultiIndex columns in the new format. (:issue:`3571`, :issue:`1651`, :issue:`3141`)
 - Add iterator to ``Series.str`` (:issue:`3638`)
 - ``pd.set_option()`` now allows N option, value pairs (:issue:`3667`).
 - Added keyword parameters for different types of scatter_matrix subplots
@@ -3447,7 +3528,7 @@ Bug Fixes
 - Fixed bug with ``Panel.transpose`` argument aliases (:issue:`3556`)
 - Fixed platform bug in ``PeriodIndex.take`` (:issue:`3579`)
 - Fixed bud in incorrect conversion of datetime64[ns] in ``combine_first`` (:issue:`3593`)
-- Fixed bug in reset_index with ``NaN`` in a multi-index (:issue:`3586`)
+- Fixed bug in reset_index with ``NaN`` in a MultiIndex (:issue:`3586`)
 - ``fillna`` methods now raise a ``TypeError`` when the ``value`` parameter
   is a ``list`` or ``tuple``.
 - Fixed bug where a time-series was being selected in preference to an actual column name
@@ -3480,7 +3561,7 @@ Bug Fixes
   their first argument (:issue:`3702`)
 - Fix file tokenization error with \r delimiter and quoted fields (:issue:`3453`)
 - Groupby transform with item-by-item not upcasting correctly (:issue:`3740`)
-- Incorrectly read a HDFStore multi-index Frame with a column specification (:issue:`3748`)
+- Incorrectly read a HDFStore MultiIndex Frame with a column specification (:issue:`3748`)
 - ``read_html`` now correctly skips tests (:issue:`3741`)
 - PandasObjects raise TypeError when trying to hash (:issue:`3882`)
 - Fix incorrect arguments passed to concat that are not list-like (e.g. concat(df1,df2)) (:issue:`3481`)
@@ -3497,7 +3578,7 @@ Bug Fixes
 - csv parsers would loop infinitely if ``iterator=True`` but no ``chunksize`` was
   specified (:issue:`3967`), Python parser failing with ``chunksize=1``
 - Fix index name not propagating when using ``shift``
-- Fixed dropna=False being ignored with multi-index stack (:issue:`3997`)
+- Fixed dropna=False being ignored with MultiIndex stack (:issue:`3997`)
 - Fixed flattening of columns when renaming MultiIndex columns DataFrame (:issue:`4004`)
 - Fix ``Series.clip`` for datetime series. NA/NaN threshold values will now throw ValueError (:issue:`3996`)
 - Fixed insertion issue into DataFrame, after rename (:issue:`4032`)
@@ -3521,7 +3602,7 @@ Bug Fixes
   iterated over when regex=False (:issue:`4115`)
 - Fixed bug in ``convert_objects(convert_numeric=True)`` where a mixed numeric and
   object Series/Frame was not converting properly (:issue:`4119`)
-- Fixed bugs in multi-index selection with column multi-index and duplicates
+- Fixed bugs in MultiIndex selection with column MultiIndex and duplicates
   (:issue:`4145`, :issue:`4146`)
 - Fixed bug in the parsing of microseconds when using the ``format``
   argument in ``to_datetime`` (:issue:`4152`)
@@ -3830,7 +3911,7 @@ Improvements to existing features
 
 - ``HDFStore``
 
-  - enables storing of multi-index dataframes (closes :issue:`1277`)
+  - enables storing of MultiIndex dataframes (closes :issue:`1277`)
   - support data column indexing and selection, via ``data_columns`` keyword
     in append
   - support write chunking to reduce memory footprint, via ``chunksize``

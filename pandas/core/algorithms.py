@@ -3,7 +3,7 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from __future__ import division
-from warnings import warn, catch_warnings
+from warnings import warn, catch_warnings, simplefilter
 from textwrap import dedent
 
 import numpy as np
@@ -27,10 +27,9 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype, is_datetime64tz_dtype,
     is_timedelta64_dtype, is_datetimelike,
     is_interval_dtype, is_scalar, is_list_like,
-    _ensure_platform_int, _ensure_object,
-    _ensure_float64, _ensure_uint64,
-    _ensure_int64)
-from pandas.compat.numpy import _np_version_under1p10
+    ensure_platform_int, ensure_object,
+    ensure_float64, ensure_uint64,
+    ensure_int64)
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
@@ -73,32 +72,33 @@ def _ensure_data(values, dtype=None):
     # we check some simple dtypes first
     try:
         if is_object_dtype(dtype):
-            return _ensure_object(np.asarray(values)), 'object', 'object'
+            return ensure_object(np.asarray(values)), 'object', 'object'
         if is_bool_dtype(values) or is_bool_dtype(dtype):
             # we are actually coercing to uint64
             # until our algos support uint8 directly (see TODO)
             return np.asarray(values).astype('uint64'), 'bool', 'uint64'
         elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
-            return _ensure_int64(values), 'int64', 'int64'
+            return ensure_int64(values), 'int64', 'int64'
         elif (is_unsigned_integer_dtype(values) or
               is_unsigned_integer_dtype(dtype)):
-            return _ensure_uint64(values), 'uint64', 'uint64'
+            return ensure_uint64(values), 'uint64', 'uint64'
         elif is_float_dtype(values) or is_float_dtype(dtype):
-            return _ensure_float64(values), 'float64', 'float64'
+            return ensure_float64(values), 'float64', 'float64'
         elif is_object_dtype(values) and dtype is None:
-            return _ensure_object(np.asarray(values)), 'object', 'object'
+            return ensure_object(np.asarray(values)), 'object', 'object'
         elif is_complex_dtype(values) or is_complex_dtype(dtype):
 
             # ignore the fact that we are casting to float
             # which discards complex parts
-            with catch_warnings(record=True):
-                values = _ensure_float64(values)
+            with catch_warnings():
+                simplefilter("ignore", np.ComplexWarning)
+                values = ensure_float64(values)
             return values, 'float64', 'float64'
 
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
         # and it is incompat this will fall thru to here
-        return _ensure_object(values), 'object', 'object'
+        return ensure_object(values), 'object', 'object'
 
     # datetimelike
     if (needs_i8_conversion(values) or
@@ -129,13 +129,13 @@ def _ensure_data(values, dtype=None):
 
         # we are actually coercing to int64
         # until our algos support int* directly (not all do)
-        values = _ensure_int64(values)
+        values = ensure_int64(values)
 
         return values, dtype, 'int64'
 
     # we have failed, return object
-    values = np.asarray(values)
-    return _ensure_object(values), 'object', 'object'
+    values = np.asarray(values, dtype=np.object)
+    return ensure_object(values), 'object', 'object'
 
 
 def _reconstruct_data(values, dtype, original):
@@ -154,7 +154,7 @@ def _reconstruct_data(values, dtype, original):
     """
     from pandas import Index
     if is_extension_array_dtype(dtype):
-        pass
+        values = dtype.construct_array_type()._from_sequence(values)
     elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
         values = Index(original)._shallow_copy(values, name=None)
     elif is_bool_dtype(dtype):
@@ -262,7 +262,7 @@ def match(to_match, values, na_sentinel=-1):
     -------
     match : ndarray of integers
     """
-    values = com._asarray_tuplesafe(values)
+    values = com.asarray_tuplesafe(values)
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
     to_match, _, _ = _ensure_data(to_match, dtype)
     table = htable(min(len(to_match), 1000000))
@@ -274,8 +274,8 @@ def match(to_match, values, na_sentinel=-1):
         # replace but return a numpy array
         # use a Series because it handles dtype conversions properly
         from pandas import Series
-        result = Series(result.ravel()).replace(-1, na_sentinel).values.\
-            reshape(result.shape)
+        result = Series(result.ravel()).replace(-1, na_sentinel)
+        result = result.values.reshape(result.shape)
 
     return result
 
@@ -306,8 +306,8 @@ def unique(values):
     >>> pd.unique(pd.Series([2] + [1] * 5))
     array([2, 1])
 
-    >>> pd.unique(Series([pd.Timestamp('20160101'),
-    ...                   pd.Timestamp('20160101')]))
+    >>> pd.unique(pd.Series([pd.Timestamp('20160101'),
+    ...                     pd.Timestamp('20160101')]))
     array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
 
     >>> pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
@@ -326,20 +326,20 @@ def unique(values):
     An unordered Categorical will return categories in the
     order of appearance.
 
-    >>> pd.unique(Series(pd.Categorical(list('baabc'))))
+    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'))))
     [b, a, c]
     Categories (3, object): [b, a, c]
 
-    >>> pd.unique(Series(pd.Categorical(list('baabc'),
-    ...                                 categories=list('abc'))))
+    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
+    ...                                    categories=list('abc'))))
     [b, a, c]
     Categories (3, object): [b, a, c]
 
     An ordered Categorical preserves the category ordering.
 
-    >>> pd.unique(Series(pd.Categorical(list('baabc'),
-    ...                                 categories=list('abc'),
-    ...                                 ordered=True)))
+    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
+    ...                                    categories=list('abc'),
+    ...                                    ordered=True)))
     [b, a, c]
     Categories (3, object): [a < b < c]
 
@@ -412,7 +412,7 @@ def isin(comps, values):
         # handle categoricals
         return comps._values.isin(values)
 
-    comps = com._values_from_object(comps)
+    comps = com.values_from_object(comps)
 
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)
@@ -429,7 +429,7 @@ def isin(comps, values):
             values = values.astype('int64', copy=False)
             comps = comps.astype('int64', copy=False)
             f = lambda x, y: htable.ismember_int64(x, y)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             values = values.astype(object)
             comps = comps.astype(object)
 
@@ -437,8 +437,7 @@ def isin(comps, values):
         try:
             values = values.astype('float64', copy=False)
             comps = comps.astype('float64', copy=False)
-            checknull = isna(values).any()
-            f = lambda x, y: htable.ismember_float64(x, y, checknull)
+            f = lambda x, y: htable.ismember_float64(x, y)
         except (TypeError, ValueError):
             values = values.astype(object)
             comps = comps.astype(object)
@@ -468,15 +467,13 @@ def _factorize_array(values, na_sentinel=-1, size_hint=None,
     -------
     labels, uniques : ndarray
     """
-    (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
+    (hash_klass, _), values = _get_data_algo(values, _hashtables)
 
     table = hash_klass(size_hint or len(values))
-    uniques = vec_klass()
-    labels = table.get_labels(values, uniques, 0, na_sentinel,
-                              na_value=na_value)
+    labels, uniques = table.factorize(values, na_sentinel=na_sentinel,
+                                      na_value=na_value)
 
-    labels = _ensure_platform_int(labels)
-    uniques = uniques.to_array()
+    labels = ensure_platform_int(labels)
     return labels, uniques
 
 
@@ -705,7 +702,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     else:
 
-        if is_categorical_dtype(values) or is_sparse(values):
+        if is_extension_array_dtype(values) or is_sparse(values):
 
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
@@ -910,26 +907,12 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
     ------
     OverflowError if any x + y exceeds the maximum or minimum int64 value.
     """
-    def _broadcast(arr_or_scalar, shape):
-        """
-        Helper function to broadcast arrays / scalars to the desired shape.
-        """
-        if _np_version_under1p10:
-            if is_scalar(arr_or_scalar):
-                out = np.empty(shape)
-                out.fill(arr_or_scalar)
-            else:
-                out = arr_or_scalar
-        else:
-            out = np.broadcast_to(arr_or_scalar, shape)
-        return out
-
     # For performance reasons, we broadcast 'b' to the new array 'b2'
     # so that it has the same size as 'arr'.
-    b2 = _broadcast(b, arr.shape)
+    b2 = np.broadcast_to(b, arr.shape)
     if b_mask is not None:
         # We do the same broadcasting for b_mask as well.
-        b2_mask = _broadcast(b_mask, arr.shape)
+        b2_mask = np.broadcast_to(b_mask, arr.shape)
     else:
         b2_mask = None
 
@@ -1076,8 +1059,8 @@ class SelectN(object):
         self.n = n
         self.keep = keep
 
-        if self.keep not in ('first', 'last'):
-            raise ValueError('keep must be either "first", "last"')
+        if self.keep not in ('first', 'last', 'all'):
+            raise ValueError('keep must be either "first", "last" or "all"')
 
     def nlargest(self):
         return self.compute('nlargest')
@@ -1133,9 +1116,12 @@ class SelectNSeries(SelectN):
             return dropped[slc].sort_values(ascending=ascending).head(n)
 
         # fast method
-        arr, _, _ = _ensure_data(dropped.values)
+        arr, pandas_dtype, _ = _ensure_data(dropped.values)
         if method == 'nlargest':
             arr = -arr
+            if is_integer_dtype(pandas_dtype):
+                # GH 21426: ensure reverse ordering at boundaries
+                arr -= 1
 
         if self.keep == 'last':
             arr = arr[::-1]
@@ -1145,7 +1131,11 @@ class SelectNSeries(SelectN):
 
         kth_val = algos.kth_smallest(arr.copy(), n - 1)
         ns, = np.nonzero(arr <= kth_val)
-        inds = ns[arr[ns].argsort(kind='mergesort')][:n]
+        inds = ns[arr[ns].argsort(kind='mergesort')]
+
+        if self.keep != 'all':
+            inds = inds[:n]
+
         if self.keep == 'last':
             # reverse indices
             inds = narr - 1 - inds
@@ -1207,41 +1197,56 @@ class SelectNFrame(SelectN):
         indexer = Int64Index([])
 
         for i, column in enumerate(columns):
-
             # For each column we apply method to cur_frame[column].
-            # If it is the last column in columns, or if the values
-            # returned are unique in frame[column] we save this index
-            # and break
-            # Otherwise we must save the index of the non duplicated values
-            # and set the next cur_frame to cur_frame filtered on all
-            # duplcicated values (#GH15297)
+            # If it's the last column or if we have the number of
+            # results desired we are done.
+            # Otherwise there are duplicates of the largest/smallest
+            # value and we need to look at the rest of the columns
+            # to determine which of the rows with the largest/smallest
+            # value in the column to keep.
             series = cur_frame[column]
-            values = getattr(series, method)(cur_n, keep=self.keep)
             is_last_column = len(columns) - 1 == i
-            if is_last_column or values.nunique() == series.isin(values).sum():
+            values = getattr(series, method)(
+                cur_n,
+                keep=self.keep if is_last_column else 'all')
 
-                # Last column in columns or values are unique in
-                # series => values
-                # is all that matters
+            if is_last_column or len(values) <= cur_n:
                 indexer = get_indexer(indexer, values.index)
                 break
 
-            duplicated_filter = series.duplicated(keep=False)
-            duplicated = values[duplicated_filter]
-            non_duplicated = values[~duplicated_filter]
-            indexer = get_indexer(indexer, non_duplicated.index)
+            # Now find all values which are equal to
+            # the (nsmallest: largest)/(nlarrgest: smallest)
+            # from our series.
+            border_value = values == values[values.index[-1]]
 
-            # Must set cur frame to include all duplicated values
-            # to consider for the next column, we also can reduce
-            # cur_n by the current length of the indexer
-            cur_frame = cur_frame[series.isin(duplicated)]
+            # Some of these values are among the top-n
+            # some aren't.
+            unsafe_values = values[border_value]
+
+            # These values are definitely among the top-n
+            safe_values = values[~border_value]
+            indexer = get_indexer(indexer, safe_values.index)
+
+            # Go on and separate the unsafe_values on the remaining
+            # columns.
+            cur_frame = cur_frame.loc[unsafe_values.index]
             cur_n = n - len(indexer)
 
         frame = frame.take(indexer)
 
         # Restore the index on frame
         frame.index = original_index.take(indexer)
-        return frame
+
+        # If there is only one column, the frame is already sorted.
+        if len(columns) == 1:
+            return frame
+
+        ascending = method == 'nsmallest'
+
+        return frame.sort_values(
+            columns,
+            ascending=ascending,
+            kind='mergesort')
 
 
 # ------- ## ---- #
@@ -1302,7 +1307,7 @@ def _take_nd_object(arr, indexer, out, axis, fill_value, mask_info):
     if arr.dtype != out.dtype:
         arr = arr.astype(out.dtype)
     if arr.shape[axis] > 0:
-        arr.take(_ensure_platform_int(indexer), axis=axis, out=out)
+        arr.take(ensure_platform_int(indexer), axis=axis, out=out)
     if needs_masking:
         outindexer = [slice(None)] * arr.ndim
         outindexer[axis] = mask
@@ -1443,7 +1448,7 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
             return func
 
     def func(arr, indexer, out, fill_value=np.nan):
-        indexer = _ensure_int64(indexer)
+        indexer = ensure_int64(indexer)
         _take_nd_object(arr, indexer, out, axis=axis, fill_value=fill_value,
                         mask_info=mask_info)
 
@@ -1602,7 +1607,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
         dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
-        indexer = _ensure_int64(indexer, copy=False)
+        indexer = ensure_int64(indexer, copy=False)
         if not allow_fill:
             dtype, fill_value = arr.dtype, arr.dtype.type()
             mask_info = None, False
@@ -1680,11 +1685,11 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
         if row_idx is None:
             row_idx = np.arange(arr.shape[0], dtype=np.int64)
         else:
-            row_idx = _ensure_int64(row_idx)
+            row_idx = ensure_int64(row_idx)
         if col_idx is None:
             col_idx = np.arange(arr.shape[1], dtype=np.int64)
         else:
-            col_idx = _ensure_int64(col_idx)
+            col_idx = ensure_int64(col_idx)
         indexer = row_idx, col_idx
         if not allow_fill:
             dtype, fill_value = arr.dtype, arr.dtype.type()

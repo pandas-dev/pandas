@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from cpython cimport (
-    PyFloat_Check, PyComplex_Check,
     PyObject_RichCompare,
     Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
@@ -16,13 +14,14 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
+cimport util
 from util cimport (get_nat,
                    is_integer_object, is_float_object,
                    is_datetime64_object, is_timedelta64_object)
 
 # ----------------------------------------------------------------------
 # Constants
-nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
+nat_strings = {'NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'}
 
 cdef int64_t NPY_NAT = get_nat()
 iNaT = NPY_NAT  # python-visible constant
@@ -478,6 +477,13 @@ class NaTType(_NaT):
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+            .. versionadded:: 0.24.0
 
         Raises
         ------
@@ -490,6 +496,17 @@ class NaTType(_NaT):
         Parameters
         ----------
         freq : a freq string indicating the flooring resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+            .. versionadded:: 0.24.0
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
         """)
     ceil = _make_nat_func('ceil',  # noqa:E128
         """
@@ -498,6 +515,17 @@ class NaTType(_NaT):
         Parameters
         ----------
         freq : a freq string indicating the ceiling resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+            .. versionadded:: 0.24.0
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
         """)
 
     tz_convert = _make_nat_func('tz_convert',  # noqa:E128
@@ -585,5 +613,29 @@ NaT = NaTType()
 
 cdef inline bint checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
-    return val is None or (
-        PyFloat_Check(val) and val != val) or val is NaT
+    return val is None or util.is_nan(val) or val is NaT
+
+
+cdef inline bint is_null_datetimelike(object val):
+    """
+    Determine if we have a null for a timedelta/datetime (or integer versions)
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    null_datetimelike : bool
+    """
+    if val is None or util.is_nan(val):
+        return True
+    elif val is NaT:
+        return True
+    elif util.is_timedelta64_object(val):
+        return val.view('int64') == NPY_NAT
+    elif util.is_datetime64_object(val):
+        return val.view('int64') == NPY_NAT
+    elif util.is_integer_object(val):
+        return val == NPY_NAT
+    return False

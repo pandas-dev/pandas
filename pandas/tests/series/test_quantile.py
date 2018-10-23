@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 import numpy as np
 import pandas as pd
 
@@ -113,31 +115,30 @@ class TestSeriesQuantile(TestData):
             tm.assert_series_equal(res, pd.Series([np.nan, np.nan],
                                                   index=[0.2, 0.3]))
 
-    def test_quantile_box(self):
-        cases = [[pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
-                  pd.Timestamp('2011-01-03')],
-                 [pd.Timestamp('2011-01-01', tz='US/Eastern'),
-                  pd.Timestamp('2011-01-02', tz='US/Eastern'),
-                  pd.Timestamp('2011-01-03', tz='US/Eastern')],
-                 [pd.Timedelta('1 days'), pd.Timedelta('2 days'),
-                  pd.Timedelta('3 days')],
-                 # NaT
-                 [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
-                  pd.Timestamp('2011-01-03'), pd.NaT],
-                 [pd.Timestamp('2011-01-01', tz='US/Eastern'),
-                  pd.Timestamp('2011-01-02', tz='US/Eastern'),
-                  pd.Timestamp('2011-01-03', tz='US/Eastern'), pd.NaT],
-                 [pd.Timedelta('1 days'), pd.Timedelta('2 days'),
-                  pd.Timedelta('3 days'), pd.NaT]]
+    @pytest.mark.parametrize('case', [
+        [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+         pd.Timestamp('2011-01-03')],
+        [pd.Timestamp('2011-01-01', tz='US/Eastern'),
+         pd.Timestamp('2011-01-02', tz='US/Eastern'),
+         pd.Timestamp('2011-01-03', tz='US/Eastern')],
+        [pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+         pd.Timedelta('3 days')],
+        # NaT
+        [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+         pd.Timestamp('2011-01-03'), pd.NaT],
+        [pd.Timestamp('2011-01-01', tz='US/Eastern'),
+         pd.Timestamp('2011-01-02', tz='US/Eastern'),
+         pd.Timestamp('2011-01-03', tz='US/Eastern'), pd.NaT],
+        [pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+         pd.Timedelta('3 days'), pd.NaT]])
+    def test_quantile_box(self, case):
+        s = pd.Series(case, name='XXX')
+        res = s.quantile(0.5)
+        assert res == case[1]
 
-        for case in cases:
-            s = pd.Series(case, name='XXX')
-            res = s.quantile(0.5)
-            assert res == case[1]
-
-            res = s.quantile([0.5])
-            exp = pd.Series([case[1]], index=[0.5], name='XXX')
-            tm.assert_series_equal(res, exp)
+        res = s.quantile([0.5])
+        exp = pd.Series([case[1]], index=[0.5], name='XXX')
+        tm.assert_series_equal(res, exp)
 
     def test_datetime_timedelta_quantiles(self):
         # covers #9694
@@ -150,6 +151,16 @@ class TestSeriesQuantile(TestData):
 
         res = Series([pd.NaT, pd.NaT]).quantile([0.5])
         tm.assert_series_equal(res, pd.Series([pd.NaT], index=[0.5]))
+
+    @pytest.mark.parametrize('values, dtype', [
+        ([0, 0, 0, 1, 2, 3], 'Sparse[int]'),
+        ([0., None, 1., 2.], 'Sparse[float]'),
+    ])
+    def test_quantile_sparse(self, values, dtype):
+        ser = pd.Series(values, dtype=dtype)
+        result = ser.quantile([0.5])
+        expected = pd.Series(np.asarray(ser)).quantile([0.5])
+        tm.assert_series_equal(result, expected)
 
     def test_quantile_empty(self):
 

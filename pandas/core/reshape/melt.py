@@ -103,7 +103,6 @@ def lreshape(data, groups, dropna=True, label=None):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> data = pd.DataFrame({'hr1': [514, 573], 'hr2': [545, 526],
     ...                      'team': ['Red Sox', 'Yankees'],
     ...                      'year1': [2007, 2007], 'year2': [2008, 2008]})
@@ -217,8 +216,6 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
 
     Examples
     --------
-    >>> import pandas as pd
-    >>> import numpy as np
     >>> np.random.seed(123)
     >>> df = pd.DataFrame({"A1970" : {0 : "a", 1 : "b", 2 : "c"},
     ...                    "A1980" : {0 : "d", 1 : "e", 2 : "f"},
@@ -412,13 +409,13 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
 
         return newdf.set_index(i + [j])
 
-    if any(col in stubnames for col in df.columns):
-        raise ValueError("stubname can't be identical to a column name")
-
     if not is_list_like(stubnames):
         stubnames = [stubnames]
     else:
         stubnames = list(stubnames)
+
+    if any(col in stubnames for col in df.columns):
+        raise ValueError("stubname can't be identical to a column name")
 
     if not is_list_like(i):
         i = [i]

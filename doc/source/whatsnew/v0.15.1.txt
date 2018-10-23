@@ -288,7 +288,7 @@ Bug Fixes
 - Bug in Panel indexing with a list-like (:issue:`8710`)
 - Compat issue is ``DataFrame.dtypes`` when ``options.mode.use_inf_as_null`` is True (:issue:`8722`)
 - Bug in ``read_csv``, ``dialect`` parameter would not take a string (:issue:`8703`)
-- Bug in slicing a multi-index level with an empty-list (:issue:`8737`)
+- Bug in slicing a MultiIndex level with an empty-list (:issue:`8737`)
 - Bug in numeric index operations of add/sub with Float/Index Index with numpy arrays (:issue:`8608`)
 - Bug in setitem with empty indexer and unwanted coercion of dtypes (:issue:`8669`)
 - Bug in ix/loc block splitting on setitem (manifests with integer-like dtypes, e.g. datetime64) (:issue:`8607`)

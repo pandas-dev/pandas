@@ -123,6 +123,12 @@ class TestJSONNormalize(object):
                           'country', 'states_name']).sort_values()
         assert result.columns.sort_values().equals(expected)
 
+    def test_value_array_record_prefix(self):
+        # GH 21536
+        result = json_normalize({'A': [1, 2]}, 'A', record_prefix='Prefix.')
+        expected = DataFrame([[1], [2]], columns=['Prefix.0'])
+        tm.assert_frame_equal(result, expected)
+
     def test_more_deeply_nested(self, deep_nested):
 
         result = json_normalize(deep_nested, ['states', 'cities'],
@@ -238,15 +244,16 @@ class TestJSONNormalize(object):
         tm.assert_frame_equal(result, expected)
 
     def test_missing_field(self, author_missing_data):
-        # GH20030: Checks for robustness of json_normalize - should
-        # unnest records where only the first record has a None value
+        # GH20030:
         result = json_normalize(author_missing_data)
         ex_data = [
-            {'author_name.first': np.nan,
+            {'info': np.nan,
+             'author_name.first': np.nan,
              'author_name.last_name': np.nan,
              'info.created_at': np.nan,
              'info.last_updated': np.nan},
-            {'author_name.first': 'Jane',
+            {'info': None,
+             'author_name.first': 'Jane',
              'author_name.last_name': 'Doe',
              'info.created_at': '11/08/1993',
              'info.last_updated': '26/05/2012'}
@@ -351,9 +358,8 @@ class TestNestedToRecord(object):
                       errors='raise'
                       )
 
-    def test_nonetype_dropping(self):
-        # GH20030: Checks that None values are dropped in nested_to_record
-        # to prevent additional columns of nans when passed to DataFrame
+    def test_donot_drop_nonevalues(self):
+        # GH21356
         data = [
             {'info': None,
              'author_name':
@@ -367,7 +373,8 @@ class TestNestedToRecord(object):
         ]
         result = nested_to_record(data)
         expected = [
-            {'author_name.first': 'Smith',
+            {'info': None,
+             'author_name.first': 'Smith',
              'author_name.last_name': 'Appleseed'},
             {'author_name.first': 'Jane',
              'author_name.last_name': 'Doe',
@@ -395,6 +402,7 @@ class TestNestedToRecord(object):
         }
         result = nested_to_record(data)
         expected = {
+            'id': None,
             'location.country.state.id': None,
             'location.country.state.town.info.id': None,
             'location.country.state.town.info.region': None,
@@ -423,6 +431,7 @@ class TestNestedToRecord(object):
         }
         result = nested_to_record(data)
         expected = {
+            'id': None,
             'location.id': None,
             'location.country.id': None,
             'location.country.state.id': None,

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import textwrap
+import os
 import pandas as pd
 import pytest
 import numpy as np
@@ -10,6 +12,7 @@ from pandas.util.testing import (assert_almost_equal, raise_with_traceback,
                                  assert_index_equal, assert_series_equal,
                                  assert_frame_equal, assert_numpy_array_equal,
                                  RNGContext)
+from pandas import compat
 
 
 class TestAssertAlmostEqual(object):
@@ -161,6 +164,17 @@ class TestUtilTesting(object):
                 e = LookupError("error_text")
                 _, _, traceback = sys.exc_info()
                 raise_with_traceback(e, traceback)
+
+    def test_convert_rows_list_to_csv_str(self):
+        rows_list = ["aaa", "bbb", "ccc"]
+        ret = tm.convert_rows_list_to_csv_str(rows_list)
+
+        if compat.is_platform_windows():
+            expected = "aaa\r\nbbb\r\nccc\r\n"
+        else:
+            expected = "aaa\nbbb\nccc\n"
+
+        assert ret == expected
 
 
 class TestAssertNumpyArrayEqual(object):
@@ -819,6 +833,21 @@ Attribute "ordered" are different
             tm.assert_categorical_equal(a, b)
 
 
+class TestAssertIntervalArrayEqual(object):
+    def test_interval_array_equal_message(self):
+        a = pd.interval_range(0, periods=4).values
+        b = pd.interval_range(1, periods=4).values
+
+        msg = textwrap.dedent("""\
+            IntervalArray.left are different
+
+            IntervalArray.left values are different \\(100.0 %\\)
+            \\[left\\]:  Int64Index\\(\\[0, 1, 2, 3\\], dtype='int64'\\)
+            \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)""")
+        with tm.assert_raises_regex(AssertionError, msg):
+            tm.assert_interval_array_equal(a, b)
+
+
 class TestRNGContext(object):
 
     def test_RNGContext(self):
@@ -831,13 +860,18 @@ class TestRNGContext(object):
             assert np.random.randn() == expected0
 
 
-class TestLocale(object):
+def test_datapath_missing(datapath, request):
+    if not request.config.getoption("--strict-data-files"):
+        pytest.skip("Need to set '--strict-data-files'")
 
-    def test_locale(self):
-        if sys.platform == 'win32':
-            pytest.skip(
-                "skipping on win platforms as locale not available")
+    with pytest.raises(ValueError):
+        datapath('not_a_file')
 
-        # GH9744
-        locales = tm.get_locales()
-        assert len(locales) >= 1
+    result = datapath('data', 'iris.csv')
+    expected = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        'data',
+        'iris.csv'
+    )
+
+    assert result == expected

@@ -7,8 +7,14 @@
 """
 import numpy as np
 
+import operator
+
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.errors import AbstractMethodError
 from pandas.compat.numpy import function as nv
+from pandas.compat import set_function_name, PY3
+from pandas.core import ops
+from pandas.core.dtypes.common import is_list_like
 
 _not_implemented_message = "{} does not implement {}."
 
@@ -49,9 +55,18 @@ class ExtensionArray(object):
     methods:
 
     * fillna
+    * dropna
     * unique
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
+
+    The remaining methods implemented on this class should be performant,
+    as they only compose abstract methods. Still, a more efficient
+    implementation may be available, and these methods can be overridden.
+
+    One can implement methods to handle array reductions.
+
+    * _reduce
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -82,7 +97,7 @@ class ExtensionArray(object):
     # Constructors
     # ------------------------------------------------------------------------
     @classmethod
-    def _from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
         """Construct a new ExtensionArray from a sequence of scalars.
 
         Parameters
@@ -90,6 +105,12 @@ class ExtensionArray(object):
         scalars : Sequence
             Each element will be an instance of the scalar type for this
             array, ``cls.dtype.type``.
+        dtype : dtype, optional
+            Construct for this particular dtype. This should be a Dtype
+            compatible with the ExtensionArray.
+        copy : boolean, default False
+            If True, copy the underlying data.
+
         Returns
         -------
         ExtensionArray
@@ -195,13 +216,13 @@ class ExtensionArray(object):
         )
 
     def __len__(self):
+        # type: () -> int
         """Length of this array
 
         Returns
         -------
         length : int
         """
-        # type: () -> int
         raise AbstractMethodError(self)
 
     def __iter__(self):
@@ -268,10 +289,25 @@ class ExtensionArray(object):
         return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self):
-        # type: () -> np.ndarray
-        """Boolean NumPy array indicating if each value is missing.
+        # type: () -> Union[ExtensionArray, np.ndarray]
+        """
+        A 1-D array indicating if each value is missing.
 
-        This should return a 1-D array the same length as 'self'.
+        Returns
+        -------
+        na_values : Union[np.ndarray, ExtensionArray]
+            In most cases, this should return a NumPy ndarray. For
+            exceptional cases like ``SparseArray``, where returning
+            an ndarray would be expensive, an ExtensionArray may be
+            returned.
+
+        Notes
+        -----
+        If returning an ExtensionArray, then
+
+        * ``na_values._is_boolean`` should be True
+        * `na_values` should implement :func:`ExtensionArray._reduce`
+        * ``na_values.any`` and ``na_values.all`` should be implemented
         """
         raise AbstractMethodError(self)
 
@@ -370,7 +406,7 @@ class ExtensionArray(object):
                 func = pad_1d if method == 'pad' else backfill_1d
                 new_values = func(self.astype(object), limit=limit,
                                   mask=mask)
-                new_values = self._from_sequence(new_values)
+                new_values = self._from_sequence(new_values, dtype=self.dtype)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -378,6 +414,50 @@ class ExtensionArray(object):
         else:
             new_values = self.copy()
         return new_values
+
+    def dropna(self):
+        """ Return ExtensionArray without NA values
+
+        Returns
+        -------
+        valid : ExtensionArray
+        """
+
+        return self[~self.isna()]
+
+    def shift(self, periods=1):
+        # type: (int) -> ExtensionArray
+        """
+        Shift values by desired number.
+
+        Newly introduced missing values are filled with
+        ``self.dtype.na_value``.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        periods : int, default 1
+            The number of periods to shift. Negative values are allowed
+            for shifting backwards.
+
+        Returns
+        -------
+        shifted : ExtensionArray
+        """
+        # Note: this implementation assumes that `self.dtype.na_value` can be
+        # stored in an instance of your ExtensionArray with `self.dtype`.
+        if periods == 0:
+            return self.copy()
+        empty = self._from_sequence([self.dtype.na_value] * abs(periods),
+                                    dtype=self.dtype)
+        if periods > 0:
+            a = empty
+            b = self[:-periods]
+        else:
+            a = self[abs(periods):]
+            b = empty
+        return self._concat_same_type([a, b])
 
     def unique(self):
         """Compute the ExtensionArray of unique values.
@@ -389,7 +469,7 @@ class ExtensionArray(object):
         from pandas import unique
 
         uniques = unique(self.astype(object))
-        return self._from_sequence(uniques)
+        return self._from_sequence(uniques, dtype=self.dtype)
 
     def _values_for_factorize(self):
         # type: () -> Tuple[ndarray, Any]
@@ -407,6 +487,11 @@ class ExtensionArray(object):
             as NA in the factorization routines, so it will be coded as
             `na_sentinal` and not included in `uniques`. By default,
             ``np.nan`` is used.
+
+        Notes
+        -----
+        The values returned by this method are also used in
+        :func:`pandas.util.hash_pandas_object`.
         """
         return self.astype(object), np.nan
 
@@ -541,7 +626,7 @@ class ExtensionArray(object):
 
                result = take(data, indices, fill_value=fill_value,
                              allow_fill=allow_fill)
-               return self._from_sequence(result)
+               return self._from_sequence(result, dtype=self.dtype)
         """
         # Implementer note: The `fill_value` parameter should be a user-facing
         # value, an instance of self.dtype.type. When passed `fill_value=None`,
@@ -610,3 +695,191 @@ class ExtensionArray(object):
         used for interacting with our indexers.
         """
         return np.array(self)
+
+    def _reduce(self, name, skipna=True, **kwargs):
+        """
+        Return a scalar result of performing the reduction operation.
+
+        Parameters
+        ----------
+        name : str
+            Name of the function, supported values are:
+            { any, all, min, max, sum, mean, median, prod,
+            std, var, sem, kurt, skew }.
+        skipna : bool, default True
+            If True, skip NaN values.
+        **kwargs
+            Additional keyword arguments passed to the reduction function.
+            Currently, `ddof` is the only supported kwarg.
+
+        Returns
+        -------
+        scalar
+
+        Raises
+        ------
+        TypeError : subclass does not define reductions
+        """
+        raise TypeError("cannot perform {name} with type {dtype}".format(
+            name=name, dtype=self.dtype))
+
+
+class ExtensionOpsMixin(object):
+    """
+    A base class for linking the operators to their dunder names.
+
+    .. note::
+
+       You may want to set ``__array_priority__`` if you want your
+       implementation to be called when involved in binary operations
+       with NumPy arrays.
+    """
+
+    @classmethod
+    def _add_arithmetic_ops(cls):
+        cls.__add__ = cls._create_arithmetic_method(operator.add)
+        cls.__radd__ = cls._create_arithmetic_method(ops.radd)
+        cls.__sub__ = cls._create_arithmetic_method(operator.sub)
+        cls.__rsub__ = cls._create_arithmetic_method(ops.rsub)
+        cls.__mul__ = cls._create_arithmetic_method(operator.mul)
+        cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
+        cls.__pow__ = cls._create_arithmetic_method(operator.pow)
+        cls.__rpow__ = cls._create_arithmetic_method(ops.rpow)
+        cls.__mod__ = cls._create_arithmetic_method(operator.mod)
+        cls.__rmod__ = cls._create_arithmetic_method(ops.rmod)
+        cls.__floordiv__ = cls._create_arithmetic_method(operator.floordiv)
+        cls.__rfloordiv__ = cls._create_arithmetic_method(ops.rfloordiv)
+        cls.__truediv__ = cls._create_arithmetic_method(operator.truediv)
+        cls.__rtruediv__ = cls._create_arithmetic_method(ops.rtruediv)
+        if not PY3:
+            cls.__div__ = cls._create_arithmetic_method(operator.div)
+            cls.__rdiv__ = cls._create_arithmetic_method(ops.rdiv)
+
+        cls.__divmod__ = cls._create_arithmetic_method(divmod)
+        cls.__rdivmod__ = cls._create_arithmetic_method(ops.rdivmod)
+
+    @classmethod
+    def _add_comparison_ops(cls):
+        cls.__eq__ = cls._create_comparison_method(operator.eq)
+        cls.__ne__ = cls._create_comparison_method(operator.ne)
+        cls.__lt__ = cls._create_comparison_method(operator.lt)
+        cls.__gt__ = cls._create_comparison_method(operator.gt)
+        cls.__le__ = cls._create_comparison_method(operator.le)
+        cls.__ge__ = cls._create_comparison_method(operator.ge)
+
+
+class ExtensionScalarOpsMixin(ExtensionOpsMixin):
+    """
+    A mixin for defining  ops on an ExtensionArray.
+
+    It is assumed that the underlying scalar objects have the operators
+    already defined.
+
+    Notes
+    -----
+    If you have defined a subclass MyExtensionArray(ExtensionArray), then
+    use MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin) to
+    get the arithmetic operators.  After the definition of MyExtensionArray,
+    insert the lines
+
+    MyExtensionArray._add_arithmetic_ops()
+    MyExtensionArray._add_comparison_ops()
+
+    to link the operators to your class.
+
+    .. note::
+
+       You may want to set ``__array_priority__`` if you want your
+       implementation to be called when involved in binary operations
+       with NumPy arrays.
+    """
+
+    @classmethod
+    def _create_method(cls, op, coerce_to_dtype=True):
+        """
+        A class method that returns a method that will correspond to an
+        operator for an ExtensionArray subclass, by dispatching to the
+        relevant operator defined on the individual elements of the
+        ExtensionArray.
+
+        Parameters
+        ----------
+        op : function
+            An operator that takes arguments op(a, b)
+        coerce_to_dtype :  bool, default True
+            boolean indicating whether to attempt to convert
+            the result to the underlying ExtensionArray dtype.
+            If it's not possible to create a new ExtensionArray with the
+            values, an ndarray is returned instead.
+
+        Returns
+        -------
+        Callable[[Any, Any], Union[ndarray, ExtensionArray]]
+            A method that can be bound to a class. When used, the method
+            receives the two arguments, one of which is the instance of
+            this class, and should return an ExtensionArray or an ndarray.
+
+            Returning an ndarray may be necessary when the result of the
+            `op` cannot be stored in the ExtensionArray. The dtype of the
+            ndarray uses NumPy's normal inference rules.
+
+        Example
+        -------
+        Given an ExtensionArray subclass called MyExtensionArray, use
+
+        >>> __add__ = cls._create_method(operator.add)
+
+        in the class definition of MyExtensionArray to create the operator
+        for addition, that will be based on the operator implementation
+        of the underlying elements of the ExtensionArray
+        """
+
+        def _binop(self, other):
+            def convert_values(param):
+                if isinstance(param, ExtensionArray) or is_list_like(param):
+                    ovalues = param
+                else:  # Assume its an object
+                    ovalues = [param] * len(self)
+                return ovalues
+
+            if isinstance(other, (ABCSeries, ABCIndexClass)):
+                # rely on pandas to unbox and dispatch to us
+                return NotImplemented
+
+            lvalues = self
+            rvalues = convert_values(other)
+
+            # If the operator is not defined for the underlying objects,
+            # a TypeError should be raised
+            res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
+
+            def _maybe_convert(arr):
+                if coerce_to_dtype:
+                    # https://github.com/pandas-dev/pandas/issues/22850
+                    # We catch all regular exceptions here, and fall back
+                    # to an ndarray.
+                    try:
+                        res = self._from_sequence(arr)
+                    except Exception:
+                        res = np.asarray(arr)
+                else:
+                    res = np.asarray(arr)
+                return res
+
+            if op.__name__ in {'divmod', 'rdivmod'}:
+                a, b = zip(*res)
+                res = _maybe_convert(a), _maybe_convert(b)
+            else:
+                res = _maybe_convert(res)
+            return res
+
+        op_name = ops._get_op_name(op, True)
+        return set_function_name(_binop, op_name, cls)
+
+    @classmethod
+    def _create_arithmetic_method(cls, op):
+        return cls._create_method(op)
+
+    @classmethod
+    def _create_comparison_method(cls, op):
+        return cls._create_method(op, coerce_to_dtype=False)

@@ -8,6 +8,10 @@ ga
 fe
 reindexed
 automagic
+closedness
+ae
+arbitrarly
+losslessly
 Histogramming
 histogramming
 concat

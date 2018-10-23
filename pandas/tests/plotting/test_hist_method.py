@@ -12,6 +12,7 @@ import numpy as np
 from numpy.random import randn
 
 from pandas.plotting._core import grouped_hist
+from pandas.plotting._compat import _mpl_ge_2_2_0
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 
@@ -121,7 +122,7 @@ class TestSeriesPlots(TestPlotBase):
         subplot(122)
         y.hist()
         fig = gcf()
-        axes = fig.axes if self.mpl_ge_1_5_0 else fig.get_axes()
+        axes = fig.axes
         assert len(axes) == 2
 
     @pytest.mark.slow
@@ -193,7 +194,11 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
         # make sure kwargs to hist are handled
-        ax = ser.hist(normed=True, cumulative=True, bins=4)
+        if _mpl_ge_2_2_0():
+            kwargs = {"density": True}
+        else:
+            kwargs = {"normed": True}
+        ax = ser.hist(cumulative=True, bins=4, **kwargs)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
         tm.assert_almost_equal(rects[-1].get_height(), 1.0)
@@ -279,9 +284,15 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # make sure kwargs to hist are handled
         xf, yf = 20, 18
         xrot, yrot = 30, 40
-        axes = grouped_hist(df.A, by=df.C, normed=True, cumulative=True,
+
+        if _mpl_ge_2_2_0():
+            kwargs = {"density": True}
+        else:
+            kwargs = {"normed": True}
+
+        axes = grouped_hist(df.A, by=df.C, cumulative=True,
                             bins=4, xlabelsize=xf, xrot=xrot,
-                            ylabelsize=yf, yrot=yrot)
+                            ylabelsize=yf, yrot=yrot, **kwargs)
         # height of last bin (index 5) must be 1.0
         for ax in axes.ravel():
             rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]

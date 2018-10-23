@@ -1,5 +1,7 @@
-from warnings import catch_warnings
-from itertools import combinations, product
+from warnings import catch_warnings, simplefilter
+from itertools import combinations
+from collections import deque
+from decimal import Decimal
 
 import datetime as dt
 import dateutil
@@ -7,7 +9,7 @@ import numpy as np
 from numpy.random import randn
 
 from datetime import datetime
-from pandas.compat import StringIO, iteritems, PY2
+from pandas.compat import Iterable, StringIO, iteritems, PY2
 import pandas as pd
 from pandas import (DataFrame, concat,
                     read_csv, isna, Series, date_range,
@@ -17,6 +19,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.util import testing as tm
 from pandas.util.testing import (assert_frame_equal,
                                  makeCustomDataframe as mkdf)
+from pandas.tests.extension.decimal import to_decimal
 
 import pytest
 
@@ -941,10 +944,11 @@ class TestAppend(ConcatenateBase):
                                 columns=combined_columns)
         assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "index_can_append, index_cannot_append_with_other",
-        product(indexes_can_append, indexes_cannot_append_with_other),
-        ids=lambda x: x.__class__.__name__)
+    @pytest.mark.parametrize('index_can_append', indexes_can_append,
+                             ids=lambda x: x.__class__.__name__)
+    @pytest.mark.parametrize('index_cannot_append_with_other',
+                             indexes_cannot_append_with_other,
+                             ids=lambda x: x.__class__.__name__)
     def test_append_different_columns_types_raises(
             self, index_can_append, index_cannot_append_with_other):
         # GH18359
@@ -1464,6 +1468,7 @@ class TestConcatenate(ConcatenateBase):
 
         # invalid concatente of mixed dims
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             panel = tm.makePanel()
             pytest.raises(ValueError, lambda: concat([panel, s1], axis=1))
 
@@ -1502,60 +1507,61 @@ class TestConcatenate(ConcatenateBase):
         result = concat([df.iloc[[0]], df.iloc[[1]]])
         tm.assert_series_equal(result.dtypes, df.dtypes)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_panel_concat_other_axes(self):
-        with catch_warnings(record=True):
-            panel = tm.makePanel()
+        panel = tm.makePanel()
 
-            p1 = panel.iloc[:, :5, :]
-            p2 = panel.iloc[:, 5:, :]
+        p1 = panel.iloc[:, :5, :]
+        p2 = panel.iloc[:, 5:, :]
 
-            result = concat([p1, p2], axis=1)
-            tm.assert_panel_equal(result, panel)
+        result = concat([p1, p2], axis=1)
+        tm.assert_panel_equal(result, panel)
 
-            p1 = panel.iloc[:, :, :2]
-            p2 = panel.iloc[:, :, 2:]
+        p1 = panel.iloc[:, :, :2]
+        p2 = panel.iloc[:, :, 2:]
 
-            result = concat([p1, p2], axis=2)
-            tm.assert_panel_equal(result, panel)
+        result = concat([p1, p2], axis=2)
+        tm.assert_panel_equal(result, panel)
 
-            # if things are a bit misbehaved
-            p1 = panel.iloc[:2, :, :2]
-            p2 = panel.iloc[:, :, 2:]
-            p1['ItemC'] = 'baz'
+        # if things are a bit misbehaved
+        p1 = panel.iloc[:2, :, :2]
+        p2 = panel.iloc[:, :, 2:]
+        p1['ItemC'] = 'baz'
 
-            result = concat([p1, p2], axis=2)
+        result = concat([p1, p2], axis=2)
 
-            expected = panel.copy()
-            expected['ItemC'] = expected['ItemC'].astype('O')
-            expected.loc['ItemC', :, :2] = 'baz'
-            tm.assert_panel_equal(result, expected)
+        expected = panel.copy()
+        expected['ItemC'] = expected['ItemC'].astype('O')
+        expected.loc['ItemC', :, :2] = 'baz'
+        tm.assert_panel_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+    # Panel.rename warning we don't care about
+    @pytest.mark.filterwarnings("ignore:Using:FutureWarning")
     def test_panel_concat_buglet(self, sort):
-        with catch_warnings(record=True):
-            # #2257
-            def make_panel():
-                index = 5
-                cols = 3
+        # #2257
+        def make_panel():
+            index = 5
+            cols = 3
 
-                def df():
-                    return DataFrame(np.random.randn(index, cols),
-                                     index=["I%s" % i for i in range(index)],
-                                     columns=["C%s" % i for i in range(cols)])
-                return Panel(dict(("Item%s" % x, df())
-                                  for x in ['A', 'B', 'C']))
+            def df():
+                return DataFrame(np.random.randn(index, cols),
+                                 index=["I%s" % i for i in range(index)],
+                                 columns=["C%s" % i for i in range(cols)])
+            return Panel({"Item%s" % x: df() for x in ['A', 'B', 'C']})
 
-            panel1 = make_panel()
-            panel2 = make_panel()
+        panel1 = make_panel()
+        panel2 = make_panel()
 
-            panel2 = panel2.rename_axis(dict((x, "%s_1" % x)
-                                             for x in panel2.major_axis),
-                                        axis=1)
+        panel2 = panel2.rename_axis({x: "%s_1" % x
+                                     for x in panel2.major_axis},
+                                    axis=1)
 
-            panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)
-            panel3 = panel3.rename_axis(lambda x: '%s_1' % x, axis=2)
+        panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)
+        panel3 = panel3.rename_axis(lambda x: '%s_1' % x, axis=2)
 
-            # it works!
-            concat([panel1, panel3], axis=1, verify_integrity=True, sort=sort)
+        # it works!
+        concat([panel1, panel3], axis=1, verify_integrity=True, sort=sort)
 
     def test_concat_series(self):
 
@@ -1722,8 +1728,6 @@ class TestConcatenate(ConcatenateBase):
         tm.assert_index_equal(result.columns, expected)
 
     def test_concat_iterables(self):
-        from collections import deque, Iterable
-
         # GH8645 check concat works with tuples, list, generators, and weird
         # stuff like deque and custom iterables
         df1 = DataFrame([1, 2, 3])
@@ -2324,7 +2328,7 @@ bar2,12,13,14,15
                                  '2011-01-01 01:00:00+01:00',
                                  '2011-01-01 02:00:00+01:00'],
                                 freq='H'
-                                ).tz_localize('UTC').tz_convert('Europe/Paris')
+                                ).tz_convert('UTC').tz_convert('Europe/Paris')
 
         expected = pd.DataFrame([[1, 1], [2, 2], [3, 3]],
                                 index=exp_idx, columns=['a', 'b'])
@@ -2342,7 +2346,7 @@ bar2,12,13,14,15
                                  '2010-12-31 23:00:00+00:00',
                                  '2011-01-01 00:00:00+00:00',
                                  '2011-01-01 01:00:00+00:00']
-                                ).tz_localize('UTC')
+                                )
 
         expected = pd.DataFrame([[np.nan, 1], [np.nan, 2], [np.nan, 3],
                                  [1, np.nan], [2, np.nan], [3, np.nan]],
@@ -2350,22 +2354,43 @@ bar2,12,13,14,15
 
         tm.assert_frame_equal(result, expected)
 
+        # GH 13783: Concat after resample
+        result = pd.concat([df1.resample('H').mean(),
+                            df2.resample('H').mean()], sort=True)
+        expected = pd.DataFrame({'a': [1, 2, 3] + [np.nan] * 3,
+                                 'b': [np.nan] * 3 + [1, 2, 3]},
+                                index=idx1.append(idx1))
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(PY2, reason="Unhashable Decimal dtype")
+    def test_concat_different_extension_dtypes_upcasts(self):
+        a = pd.Series(pd.core.arrays.integer_array([1, 2]))
+        b = pd.Series(to_decimal([1, 2]))
+
+        result = pd.concat([a, b], ignore_index=True)
+        expected = pd.Series([
+            1, 2,
+            Decimal(1), Decimal(2)
+        ], dtype=object)
+        tm.assert_series_equal(result, expected)
+
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
 @pytest.mark.parametrize('dt', np.sctypes['float'])
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_concat_no_unnecessary_upcast(dt, pdt):
-    with catch_warnings(record=True):
-        # GH 13247
-        dims = pdt().ndim
-        dfs = [pdt(np.array([1], dtype=dt, ndmin=dims)),
-               pdt(np.array([np.nan], dtype=dt, ndmin=dims)),
-               pdt(np.array([5], dtype=dt, ndmin=dims))]
-        x = pd.concat(dfs)
-        assert x.values.dtype == dt
+    # GH 13247
+    dims = pdt().ndim
+    dfs = [pdt(np.array([1], dtype=dt, ndmin=dims)),
+           pdt(np.array([np.nan], dtype=dt, ndmin=dims)),
+           pdt(np.array([5], dtype=dt, ndmin=dims))]
+    x = pd.concat(dfs)
+    assert x.values.dtype == dt
 
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
 @pytest.mark.parametrize('dt', np.sctypes['int'])
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_concat_will_upcast(dt, pdt):
     with catch_warnings(record=True):
         dims = pdt().ndim

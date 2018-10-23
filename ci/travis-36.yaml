@@ -4,20 +4,24 @@ channels:
   - conda-forge
 dependencies:
   - beautifulsoup4
-  - cython
+  - cython>=0.28.2
   - dask
   - fastparquet
   - feather-format
+  - flake8>=3.5
+  - flake8-comprehensions
+  - gcsfs
   - geopandas
   - html5lib
   - ipython
+  - isort
   - jinja2
   - lxml
   - matplotlib
   - nomkl
   - numexpr
   - numpy
-  - openpyxl
+  - openpyxl=2.5.5
   - psycopg2
   - pyarrow
   - pymysql
@@ -40,8 +44,10 @@ dependencies:
   - pytest-xdist
   - pytest-cov
   - moto
+  - hypothesis>=3.58.0
   - pip:
     - brotlipy
     - coverage
+    - cpplint
     - pandas-datareader
     - python-dateutil

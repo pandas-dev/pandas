@@ -2,7 +2,7 @@
 # pylint: disable-msg=E1101,W0612
 
 from copy import copy, deepcopy
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 
 import pytest
 import numpy as np
@@ -199,11 +199,11 @@ class Generic(object):
         self._compare(result, expected)
 
     def test_constructor_compound_dtypes(self):
-        # GH 5191
-        # compound dtypes should raise not-implementederror
+        # see gh-5191
+        # Compound dtypes should raise NotImplementedError.
 
         def f(dtype):
-            return self._construct(shape=3, dtype=dtype)
+            return self._construct(shape=3, value=1, dtype=dtype)
 
         pytest.raises(NotImplementedError, f, [("A", "datetime64[h]"),
                                                ("B", "str"),
@@ -534,14 +534,14 @@ class Generic(object):
 
         # small
         shape = [int(2e3)] + ([1] * (self._ndim - 1))
-        small = self._construct(shape, dtype='int8')
+        small = self._construct(shape, dtype='int8', value=1)
         self._compare(small.truncate(), small)
         self._compare(small.truncate(before=0, after=3e3), small)
         self._compare(small.truncate(before=-1, after=2e3), small)
 
         # big
         shape = [int(2e6)] + ([1] * (self._ndim - 1))
-        big = self._construct(shape, dtype='int8')
+        big = self._construct(shape, dtype='int8', value=1)
         self._compare(big.truncate(), big)
         self._compare(big.truncate(before=0, after=3e6), big)
         self._compare(big.truncate(before=-1, after=2e6), big)
@@ -638,6 +638,7 @@ class TestNDFrame(object):
             s.sample(n=3, weights='weight_column')
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             panel = Panel(items=[0, 1, 2], major_axis=[2, 3, 4],
                           minor_axis=[3, 4, 5])
             with pytest.raises(ValueError):
@@ -705,6 +706,7 @@ class TestNDFrame(object):
 
         # Test default axes
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             p = Panel(items=['a', 'b', 'c'], major_axis=[2, 4, 6],
                       minor_axis=[1, 3, 5])
             assert_panel_equal(
@@ -743,6 +745,7 @@ class TestNDFrame(object):
         for df in [tm.makeTimeDataFrame()]:
             tm.assert_frame_equal(df.squeeze(), df)
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             for p in [tm.makePanel()]:
                 tm.assert_panel_equal(p.squeeze(), p)
 
@@ -751,6 +754,7 @@ class TestNDFrame(object):
         tm.assert_series_equal(df.squeeze(), df['A'])
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             p = tm.makePanel().reindex(items=['ItemA'])
             tm.assert_frame_equal(p.squeeze(), p['ItemA'])
 
@@ -761,6 +765,7 @@ class TestNDFrame(object):
         empty_series = Series([], name='five')
         empty_frame = DataFrame([empty_series])
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             empty_panel = Panel({'six': empty_frame})
 
         [tm.assert_series_equal(empty_series, higher_dim.squeeze())
@@ -798,6 +803,7 @@ class TestNDFrame(object):
             tm.assert_frame_equal(df.transpose().transpose(), df)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             for p in [tm.makePanel()]:
                 tm.assert_panel_equal(p.transpose(2, 0, 1)
                                       .transpose(1, 2, 0), p)
@@ -820,6 +826,7 @@ class TestNDFrame(object):
                                np.transpose, df, axes=1)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             p = tm.makePanel()
             tm.assert_panel_equal(np.transpose(
                 np.transpose(p, axes=(2, 0, 1)),
@@ -842,6 +849,7 @@ class TestNDFrame(object):
 
         indices = [-3, 2, 0, 1]
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             for p in [tm.makePanel()]:
                 out = p.take(indices)
                 expected = Panel(data=p.values.take(indices, axis=0),
@@ -856,6 +864,7 @@ class TestNDFrame(object):
         df = tm.makeTimeDataFrame()
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             p = tm.makePanel()
 
         for obj in (s, df, p):
@@ -963,6 +972,7 @@ class TestNDFrame(object):
 
     def test_describe_raises(self):
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             with pytest.raises(NotImplementedError):
                 tm.makePanel().describe()
 
@@ -996,6 +1006,7 @@ class TestNDFrame(object):
 
     def test_pipe_panel(self):
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             wp = Panel({'r1': DataFrame({"A": [1, 2, 3]})})
             f = lambda x, y: x + y
             result = wp.pipe(f, 2)

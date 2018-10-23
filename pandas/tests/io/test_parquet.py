@@ -216,7 +216,8 @@ def test_options_get_engine(fp, pa):
 
 
 @pytest.mark.xfail(is_platform_windows() or is_platform_mac(),
-                   reason="reading pa metadata failing on Windows/mac")
+                   reason="reading pa metadata failing on Windows/mac",
+                   strict=True)
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
@@ -367,6 +368,40 @@ class TestBasic(Base):
             check_round_trip(df, engine, read_kwargs={'columns': ['A', 'B']},
                              expected=df[['A', 'B']])
 
+    def test_write_ignoring_index(self, engine):
+        # ENH 20768
+        # Ensure index=False omits the index from the written Parquet file.
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': ['q', 'r', 's']})
+
+        write_kwargs = {
+            'compression': None,
+            'index': False,
+        }
+
+        # Because we're dropping the index, we expect the loaded dataframe to
+        # have the default integer index.
+        expected = df.reset_index(drop=True)
+
+        check_round_trip(df, engine, write_kwargs=write_kwargs,
+                         expected=expected)
+
+        # Ignore custom index
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': ['q', 'r', 's']},
+                          index=['zyx', 'wvu', 'tsr'])
+
+        check_round_trip(df, engine, write_kwargs=write_kwargs,
+                         expected=expected)
+
+        # Ignore multi-indexes as well.
+        arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        df = pd.DataFrame({'one': [i for i in range(8)],
+                           'two': [-i for i in range(8)]}, index=arrays)
+
+        expected = df.reset_index(drop=True)
+        check_round_trip(df, engine, write_kwargs=write_kwargs,
+                         expected=expected)
+
 
 class TestParquetPyArrow(Base):
 
@@ -383,6 +418,7 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
+    # TODO: This doesn't fail on all systems; track down which
     @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)")
     def test_basic_subset_columns(self, pa, df_full):
         # GH18628
@@ -401,6 +437,7 @@ class TestParquetPyArrow(Base):
                           columns=list('aaa')).copy()
         self.check_error_on_write(df, pa, ValueError)
 
+    @pytest.mark.xfail(reason="failing for pyarrow < 0.11.0")
     def test_unsupported(self, pa):
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})

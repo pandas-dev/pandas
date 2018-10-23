@@ -11,11 +11,6 @@ from pandas.tseries.offsets import Day
 import pandas.util.testing as tm
 
 
-@pytest.fixture(scope='class', params=['left', 'right', 'both', 'neither'])
-def closed(request):
-    return request.param
-
-
 @pytest.fixture(scope='class', params=[None, 'foo'])
 def name(request):
     return request.param

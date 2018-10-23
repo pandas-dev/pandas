@@ -5,6 +5,7 @@ import pytest
 import dateutil
 import calendar
 import locale
+import unicodedata
 import numpy as np
 
 from dateutil.tz import tzutc
@@ -20,7 +21,7 @@ from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
 
 from pandas.errors import OutOfBoundsDatetime
-from pandas.compat import long, PY3
+from pandas.compat import long, PY3, PY2
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import Timestamp, Period, Timedelta, NaT
 
@@ -116,8 +117,21 @@ class TestTimestampProperties(object):
                 expected_day = calendar.day_name[0].capitalize()
                 expected_month = calendar.month_name[8].capitalize()
 
-        assert data.day_name(time_locale) == expected_day
-        assert data.month_name(time_locale) == expected_month
+        result_day = data.day_name(time_locale)
+        result_month = data.month_name(time_locale)
+
+        # Work around https://github.com/pandas-dev/pandas/issues/22342
+        # different normalizations
+
+        if not PY2:
+            expected_day = unicodedata.normalize("NFD", expected_day)
+            expected_month = unicodedata.normalize("NFD", expected_month)
+
+            result_day = unicodedata.normalize("NFD", result_day,)
+            result_month = unicodedata.normalize("NFD", result_month)
+
+        assert result_day == expected_day
+        assert result_month == expected_month
 
         # Test NaT
         nan_ts = Timestamp(NaT)
@@ -171,6 +185,11 @@ class TestTimestampProperties(object):
                            for args in [(2000, 1, 1), (2000, 1, 2), (
                                2005, 1, 1), (2005, 1, 2)]])
         assert (result == [52, 52, 53, 53]).all()
+
+    def test_resolution(self):
+        # GH#21336, GH#21365
+        dt = Timestamp('2100-01-01 00:00:00')
+        assert dt.resolution == Timedelta(nanoseconds=1)
 
 
 class TestTimestampConstructors(object):
@@ -420,6 +439,12 @@ class TestTimestampConstructors(object):
         expected = expected + Timedelta(nanoseconds=1)
         assert result == expected
 
+    @pytest.mark.parametrize('z', ['Z0', 'Z00'])
+    def test_constructor_invalid_Z0_isostring(self, z):
+        # GH 8910
+        with pytest.raises(ValueError):
+            Timestamp('2014-11-02 01:00{}'.format(z))
+
     @pytest.mark.parametrize('arg', ['year', 'month', 'day', 'hour', 'minute',
                                      'second', 'microsecond', 'nanosecond'])
     def test_invalid_date_kwarg_with_string_input(self, arg):
@@ -527,6 +552,22 @@ class TestTimestampConstructors(object):
         ts = Timestamp('2010')
         with pytest.raises(AttributeError):
             ts.tz = tz
+
+    @pytest.mark.parametrize('offset', ['+0300', '+0200'])
+    def test_construct_timestamp_near_dst(self, offset):
+        # GH 20854
+        expected = Timestamp('2016-10-30 03:00:00{}'.format(offset),
+                             tz='Europe/Helsinki')
+        result = Timestamp(expected, tz='Europe/Helsinki')
+        assert result == expected
+
+    @pytest.mark.parametrize('arg', [
+        '2013/01/01 00:00:00+09:00', '2013-01-01 00:00:00+09:00'])
+    def test_construct_with_different_string_format(self, arg):
+        # GH 12064
+        result = Timestamp(arg)
+        expected = Timestamp(datetime(2013, 1, 1), tz=pytz.FixedOffset(540))
+        assert result == expected
 
 
 class TestTimestamp(object):
@@ -888,3 +929,11 @@ class TestTimestampConversion(object):
         with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
             assert (Timestamp(Timestamp.min.to_pydatetime()).value / 1000 ==
                     Timestamp.min.value / 1000)
+
+    def test_to_period_tz_warning(self):
+        # GH#21333 make sure a warning is issued when timezone
+        # info is lost
+        ts = Timestamp('2009-04-15 16:17:18', tz='US/Eastern')
+        with tm.assert_produces_warning(UserWarning):
+            # warning that timezone info will be lost
+            ts.to_period('D')

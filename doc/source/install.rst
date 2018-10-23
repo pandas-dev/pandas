@@ -43,7 +43,7 @@ For more information, see the `Python 3 statement`_ and the `Porting to Python 3
 Python version support
 ----------------------
 
-Officially Python 2.7, 3.5, and 3.6.
+Officially Python 2.7, 3.5, 3.6, and 3.7.
 
 Installing pandas
 -----------------
@@ -202,7 +202,8 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<http://doc.pytest.org/en/latest/>`__ and run:
+<http://docs.pytest.org/en/latest/>`__ >= 3.6 and `Hypothesis
+<https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
 
 ::
 
@@ -210,7 +211,7 @@ installed), make sure you have `pytest
     >>> pd.test()
     running: pytest --skip-slow --skip-network C:\Users\TP\Anaconda3\envs\py36\lib\site-packages\pandas
     ============================= test session starts =============================
-    platform win32 -- Python 3.6.2, pytest-3.2.1, py-1.4.34, pluggy-0.4.0
+    platform win32 -- Python 3.6.2, pytest-3.6.0, py-1.4.34, pluggy-0.4.0
     rootdir: C:\Users\TP\Documents\Python\pandasdev\pandas, inifile: setup.cfg
     collected 12145 items / 3 skipped
 
@@ -224,8 +225,8 @@ Dependencies
 ------------
 
 * `setuptools <https://setuptools.readthedocs.io/en/latest/>`__: 24.2.0 or higher
-* `NumPy <http://www.numpy.org>`__: 1.9.0 or higher
-* `python-dateutil <//https://dateutil.readthedocs.io/en/stable/>`__: 2.5.0 or higher
+* `NumPy <http://www.numpy.org>`__: 1.12.0 or higher
+* `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__: 2.5.0 or higher
 * `pytz <http://pytz.sourceforge.net/>`__
 
 .. _install.recommended_dependencies:
@@ -235,11 +236,11 @@ Recommended Dependencies
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.4.6 or higher.
+  If installed, must be Version 2.6.1 or higher.
 
 * `bottleneck <https://github.com/kwgoodman/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
-  must be Version 1.0.0 or higher.
+  must be Version 1.2.0 or higher.
 
 .. note::
 
@@ -253,29 +254,30 @@ Optional Dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
 * `Cython <http://www.cython.org>`__: Only necessary to build development
-  version. Version 0.24 or higher.
-* `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.14.0 or higher
+  version. Version 0.28.2 or higher.
+* `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.18.1 or higher
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
-* `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.
+* `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage, Version 3.4.2 or higher
 * `Feather Format <https://github.com/wesm/feather>`__: necessary for feather-based storage, version 0.3.1 or higher.
 * `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1) or `fastparquet <https://fastparquet.readthedocs.io/en/latest>`__ (>= 0.0.6) for parquet-based storage. The `snappy <https://pypi.org/project/python-snappy>`__ and `brotli <https://pypi.org/project/brotlipy>`__ are available for compression support.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended. Besides SQLAlchemy, you also need a database specific driver. You can find an overview of supported drivers for each SQL dialect in the `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__. Some common drivers are:
 
-  * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
-  * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
-  * `SQLite <https://docs.python.org/3/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
+    * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
+    * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
+    * `SQLite <https://docs.python.org/3/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
 
-* `matplotlib <http://matplotlib.org/>`__: for plotting, Version 1.4.3 or higher.
+* `matplotlib <http://matplotlib.org/>`__: for plotting, Version 2.0.0 or higher.
 * For Excel I/O:
 
-  * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
-  * `openpyxl <http://https://openpyxl.readthedocs.io/en/default/>`__: openpyxl version 2.4.0
-    for writing .xlsx files (xlrd >= 0.9.0)
-  * `XlsxWriter <https://pypi.org/project/XlsxWriter>`__: Alternative Excel writer
+    * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
+    * `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__: openpyxl version 2.4.0
+      for writing .xlsx files (xlrd >= 0.9.0)
+    * `XlsxWriter <https://pypi.org/project/XlsxWriter>`__: Alternative Excel writer
 
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
 * `s3fs <http://s3fs.readthedocs.io/>`__: necessary for Amazon S3 access (s3fs >= 0.0.7).
 * `blosc <https://pypi.org/project/blosc>`__: for msgpack compression using ``blosc``
+* `gcsfs <http://gcsfs.readthedocs.io/>`__: necessary for Google Cloud Storage access (gcsfs >= 0.1.0).
 * One of
   `qtpy  <https://github.com/spyder-ide/qtpy>`__ (requires PyQt or PySide),
   `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/download5>`__,

@@ -373,7 +373,7 @@ New Behavior:
    s = pd.Series([1,2,3], index=np.arange(3.))
    s
    s.index
-   print(s.to_csv(path=None))
+   print(s.to_csv(path_or_buf=None, header=False))
 
 Changes to dtype assignment behaviors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1257,7 +1257,7 @@ Bug Fixes
 - Bug in ``read_sql`` with ``pymysql`` connections failing to return chunked data (:issue:`11522`)
 - Bug in ``.to_csv`` ignoring formatting parameters ``decimal``, ``na_rep``, ``float_format`` for float indexes (:issue:`11553`)
 - Bug in ``Int64Index`` and ``Float64Index`` preventing the use of the modulo operator (:issue:`9244`)
-- Bug in ``MultiIndex.drop`` for not lexsorted multi-indexes (:issue:`12078`)
+- Bug in ``MultiIndex.drop`` for not lexsorted MultiIndexes (:issue:`12078`)
 
 - Bug in ``DataFrame`` when masking an empty ``DataFrame`` (:issue:`11859`)
 
@@ -1277,7 +1277,7 @@ Bug Fixes
 - Bug in ``Series`` constructor with read-only data (:issue:`11502`)
 - Removed ``pandas.util.testing.choice()``.  Should use ``np.random.choice()``, instead. (:issue:`12386`)
 - Bug in ``.loc`` setitem indexer preventing the use of a TZ-aware DatetimeIndex (:issue:`12050`)
-- Bug in ``.style`` indexes and multi-indexes not appearing (:issue:`11655`)
+- Bug in ``.style`` indexes and MultiIndexes not appearing (:issue:`11655`)
 - Bug in ``to_msgpack`` and ``from_msgpack`` which did not correctly serialize or deserialize ``NaT`` (:issue:`12307`).
 - Bug in ``.skew`` and ``.kurt`` due to roundoff error for highly similar values (:issue:`11974`)
 - Bug in ``Timestamp`` constructor where microsecond resolution was lost if HHMMSS were not separated with ':' (:issue:`10041`)

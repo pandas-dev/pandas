@@ -25,8 +25,8 @@ from pandas.io.stata import (InvalidColumnName, PossiblePrecisionLoss,
 
 
 @pytest.fixture
-def dirpath():
-    return tm.get_data_path()
+def dirpath(datapath):
+    return datapath("io", "data")
 
 
 @pytest.fixture
@@ -39,8 +39,9 @@ def parsed_114(dirpath):
 
 class TestStata(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
+        self.dirpath = datapath("io", "data")
         self.dta1_114 = os.path.join(self.dirpath, 'stata1_114.dta')
         self.dta1_117 = os.path.join(self.dirpath, 'stata1_117.dta')
 
@@ -119,7 +120,7 @@ class TestStata(object):
     def test_data_method(self):
         # Minimal testing of legacy data method
         with StataReader(self.dta1_114) as rdr:
-            with warnings.catch_warnings(record=True) as w:  # noqa
+            with tm.assert_produces_warning(UserWarning):
                 parsed_114_data = rdr.data()
 
         with StataReader(self.dta1_114) as rdr:
@@ -361,7 +362,8 @@ class TestStata(object):
 
         # GH 4626, proper encoding handling
         raw = read_stata(self.dta_encoding)
-        encoded = read_stata(self.dta_encoding, encoding="latin-1")
+        with tm.assert_produces_warning(FutureWarning):
+            encoded = read_stata(self.dta_encoding, encoding='latin-1')
         result = encoded.kreis1849[0]
 
         expected = raw.kreis1849[0]
@@ -369,8 +371,9 @@ class TestStata(object):
         assert isinstance(result, compat.string_types)
 
         with tm.ensure_clean() as path:
-            encoded.to_stata(path, encoding='latin-1',
-                             write_index=False, version=version)
+            with tm.assert_produces_warning(FutureWarning):
+                encoded.to_stata(path, write_index=False, version=version,
+                                 encoding='latin-1')
             reread_encoded = read_stata(path)
             tm.assert_frame_equal(encoded, reread_encoded)
 
@@ -385,10 +388,8 @@ class TestStata(object):
         formatted = formatted.astype(np.int32)
 
         with tm.ensure_clean() as path:
-            with warnings.catch_warnings(record=True) as w:
+            with tm.assert_produces_warning(pd.io.stata.InvalidColumnName):
                 original.to_stata(path, None)
-                # should get a warning for that format.
-            assert len(w) == 1
 
             written_and_read_again = self.read_dta(path)
             tm.assert_frame_equal(
@@ -868,6 +869,9 @@ class TestStata(object):
             read_stata(self.dta15_117, convert_dates=True, columns=columns)
 
     @pytest.mark.parametrize('version', [114, 117])
+    @pytest.mark.filterwarnings(
+        "ignore:\\nStata value:pandas.io.stata.ValueLabelTypeMismatch"
+    )
     def test_categorical_writing(self, version):
         original = DataFrame.from_records(
             [
@@ -898,12 +902,10 @@ class TestStata(object):
         expected.index.name = 'index'
 
         with tm.ensure_clean() as path:
-            with warnings.catch_warnings(record=True) as w:  # noqa
-                # Silence warnings
-                original.to_stata(path, version=version)
-                written_and_read_again = self.read_dta(path)
-                res = written_and_read_again.set_index('index')
-                tm.assert_frame_equal(res, expected, check_categorical=False)
+            original.to_stata(path, version=version)
+            written_and_read_again = self.read_dta(path)
+            res = written_and_read_again.set_index('index')
+            tm.assert_frame_equal(res, expected, check_categorical=False)
 
     def test_categorical_warnings_and_errors(self):
         # Warning for non-string labels
@@ -930,10 +932,9 @@ class TestStata(object):
         original = pd.concat([original[col].astype('category')
                               for col in original], axis=1)
 
-        with warnings.catch_warnings(record=True) as w:
+        with tm.assert_produces_warning(pd.io.stata.ValueLabelTypeMismatch):
             original.to_stata(path)
             # should get a warning for mixed content
-            assert len(w) == 1
 
     @pytest.mark.parametrize('version', [114, 117])
     def test_categorical_with_stata_missing_values(self, version):
@@ -994,7 +995,7 @@ class TestStata(object):
         parsed = read_stata(getattr(self, file))
 
         # Sort based on codes, not strings
-        parsed = parsed.sort_values("srh")
+        parsed = parsed.sort_values("srh", na_position='first')
 
         # Don't sort index
         parsed.index = np.arange(parsed.shape[0])
@@ -1349,13 +1350,6 @@ class TestStata(object):
             assert 'ColumnTooBig' in cm.exception
             assert 'infinity' in cm.exception
 
-    def test_invalid_encoding(self):
-        # GH15723, validate encoding
-        original = self.read_csv(self.csv3)
-        with pytest.raises(ValueError):
-            with tm.ensure_clean() as path:
-                original.to_stata(path, encoding='utf-8')
-
     def test_path_pathlib(self):
         df = tm.makeDataFrame()
         df.index.name = 'index'
@@ -1449,7 +1443,7 @@ class TestStata(object):
                              columns=['long1' * 10, 'long', 1])
         original.index.name = 'index'
 
-        with warnings.catch_warnings(record=True) as w:  # noqa
+        with tm.assert_produces_warning(pd.io.stata.InvalidColumnName):
             with tm.ensure_clean() as path:
                 original.to_stata(path, convert_strl=['long', 1], version=117)
                 reread = self.read_dta(path)

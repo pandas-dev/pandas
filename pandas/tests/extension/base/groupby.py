@@ -25,8 +25,8 @@ class BaseGroupbyTests(BaseExtensionTests):
                            "B": data_for_grouping})
         result = df.groupby("B", as_index=as_index).A.mean()
         _, index = pd.factorize(data_for_grouping, sort=True)
-        # TODO(ExtensionIndex): remove astype
-        index = pd.Index(index.astype(object), name="B")
+
+        index = pd.Index(index, name="B")
         expected = pd.Series([3, 1, 4], index=index, name="A")
         if as_index:
             self.assert_series_equal(result, expected)
@@ -39,8 +39,8 @@ class BaseGroupbyTests(BaseExtensionTests):
                            "B": data_for_grouping})
         result = df.groupby("B", sort=False).A.mean()
         _, index = pd.factorize(data_for_grouping, sort=False)
-        # TODO(ExtensionIndex): remove astype
-        index = pd.Index(index.astype(object), name="B")
+
+        index = pd.Index(index, name="B")
         expected = pd.Series([1, 3, 4], index=index, name="A")
         self.assert_series_equal(result, expected)
 
@@ -67,3 +67,16 @@ class BaseGroupbyTests(BaseExtensionTests):
         df.groupby("B").A.apply(op)
         df.groupby("A").apply(op)
         df.groupby("A").B.apply(op)
+
+    def test_in_numeric_groupby(self, data_for_grouping):
+        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4],
+                           "B": data_for_grouping,
+                           "C": [1, 1, 1, 1, 1, 1, 1, 1]})
+        result = df.groupby("A").sum().columns
+
+        if data_for_grouping.dtype._is_numeric:
+            expected = pd.Index(['B', 'C'])
+        else:
+            expected = pd.Index(['C'])
+
+        tm.assert_index_equal(result, expected)

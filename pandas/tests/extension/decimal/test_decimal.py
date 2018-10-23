@@ -1,13 +1,15 @@
+import operator
 import decimal
 
 import numpy as np
 import pandas as pd
+from pandas import compat
 import pandas.util.testing as tm
 import pytest
 
 from pandas.tests.extension import base
 
-from .array import DecimalDtype, DecimalArray, make_data
+from .array import DecimalDtype, DecimalArray, make_data, to_decimal
 
 
 @pytest.fixture
@@ -92,19 +94,28 @@ class BaseDecimal(object):
 
 
 class TestDtype(BaseDecimal, base.BaseDtypeTests):
-    pass
+    @pytest.mark.skipif(compat.PY2, reason="Context not hashable.")
+    def test_hashable(self, dtype):
+        pass
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):
-    pass
+
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
-    pass
+
+    @pytest.mark.skip(reason="not implemented constructor from dtype")
+    def test_from_dtype(self, data):
+        # construct from our dtype & string dtype
+        pass
 
 
 class TestReshaping(BaseDecimal, base.BaseReshapingTests):
-    pass
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestGetitem(BaseDecimal, base.BaseGetitemTests):
@@ -120,6 +131,28 @@ class TestGetitem(BaseDecimal, base.BaseGetitemTests):
 
 
 class TestMissing(BaseDecimal, base.BaseMissingTests):
+    pass
+
+
+class Reduce(object):
+
+    def check_reduce(self, s, op_name, skipna):
+
+        if skipna or op_name in ['median', 'skew', 'kurt']:
+            with pytest.raises(NotImplementedError):
+                getattr(s, op_name)(skipna=skipna)
+
+        else:
+            result = getattr(s, op_name)(skipna=skipna)
+            expected = getattr(np.asarray(s), op_name)()
+            tm.assert_almost_equal(result, expected)
+
+
+class TestNumericReduce(Reduce, base.BaseNumericReduceTests):
+    pass
+
+
+class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
     pass
 
 
@@ -144,9 +177,18 @@ class TestCasting(BaseDecimal, base.BaseCastingTests):
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
+
+
+class TestSetitem(BaseDecimal, base.BaseSetitemTests):
     pass
 
 
+# TODO(extension)
+@pytest.mark.xfail(reason=(
+    "raising AssertionError as this is not implemented, "
+    "though easy enough to do"))
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")
@@ -154,32 +196,171 @@ def test_series_constructor_coerce_data_to_extension_dtype_raises():
         pd.Series([0, 1, 2], dtype=DecimalDtype())
 
 
-def test_series_constructor_with_same_dtype_ok():
+def test_series_constructor_with_dtype():
     arr = DecimalArray([decimal.Decimal('10.0')])
     result = pd.Series(arr, dtype=DecimalDtype())
     expected = pd.Series(arr)
     tm.assert_series_equal(result, expected)
 
-
-def test_series_constructor_coerce_extension_array_to_dtype_raises():
-    arr = DecimalArray([decimal.Decimal('10.0')])
-    xpr = r"Cannot specify a dtype 'int64' .* \('decimal'\)."
-
-    with tm.assert_raises_regex(ValueError, xpr):
-        pd.Series(arr, dtype='int64')
+    result = pd.Series(arr, dtype='int64')
+    expected = pd.Series([10])
+    tm.assert_series_equal(result, expected)
 
 
-def test_dataframe_constructor_with_same_dtype_ok():
+def test_dataframe_constructor_with_dtype():
     arr = DecimalArray([decimal.Decimal('10.0')])
 
     result = pd.DataFrame({"A": arr}, dtype=DecimalDtype())
     expected = pd.DataFrame({"A": arr})
     tm.assert_frame_equal(result, expected)
 
-
-def test_dataframe_constructor_with_different_dtype_raises():
     arr = DecimalArray([decimal.Decimal('10.0')])
+    result = pd.DataFrame({"A": arr}, dtype='int64')
+    expected = pd.DataFrame({"A": [10]})
+    tm.assert_frame_equal(result, expected)
 
-    xpr = "Cannot coerce extension array to dtype 'int64'. "
-    with tm.assert_raises_regex(ValueError, xpr):
-        pd.DataFrame({"A": arr}, dtype='int64')
+
+@pytest.mark.parametrize("frame", [True, False])
+def test_astype_dispatches(frame):
+    # This is a dtype-specific test that ensures Series[decimal].astype
+    # gets all the way through to ExtensionArray.astype
+    # Designing a reliable smoke test that works for arbitrary data types
+    # is difficult.
+    data = pd.Series(DecimalArray([decimal.Decimal(2)]), name='a')
+    ctx = decimal.Context()
+    ctx.prec = 5
+
+    if frame:
+        data = data.to_frame()
+
+    result = data.astype(DecimalDtype(ctx))
+
+    if frame:
+        result = result['a']
+
+    assert result.dtype.context.prec == ctx.prec
+
+
+class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
+
+    def check_opname(self, s, op_name, other, exc=None):
+        super(TestArithmeticOps, self).check_opname(s, op_name,
+                                                    other, exc=None)
+
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
+        op_name = all_arithmetic_operators
+        s = pd.Series(data)
+
+        context = decimal.getcontext()
+        divbyzerotrap = context.traps[decimal.DivisionByZero]
+        invalidoptrap = context.traps[decimal.InvalidOperation]
+        context.traps[decimal.DivisionByZero] = 0
+        context.traps[decimal.InvalidOperation] = 0
+
+        # Decimal supports ops with int, but not float
+        other = pd.Series([int(d * 100) for d in data])
+        self.check_opname(s, op_name, other)
+
+        if "mod" not in op_name:
+            self.check_opname(s, op_name, s * 2)
+
+        self.check_opname(s, op_name, 0)
+        self.check_opname(s, op_name, 5)
+        context.traps[decimal.DivisionByZero] = divbyzerotrap
+        context.traps[decimal.InvalidOperation] = invalidoptrap
+
+    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
+        # We implement divmod
+        super(TestArithmeticOps, self)._check_divmod_op(
+            s, op, other, exc=None
+        )
+
+    def test_error(self):
+        pass
+
+
+class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
+
+    def check_opname(self, s, op_name, other, exc=None):
+        super(TestComparisonOps, self).check_opname(s, op_name,
+                                                    other, exc=None)
+
+    def _compare_other(self, s, data, op_name, other):
+        self.check_opname(s, op_name, other)
+
+    def test_compare_scalar(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        s = pd.Series(data)
+        self._compare_other(s, data, op_name, 0.5)
+
+    def test_compare_array(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        s = pd.Series(data)
+
+        alter = np.random.choice([-1, 0, 1], len(data))
+        # Randomly double, halve or keep same value
+        other = pd.Series(data) * [decimal.Decimal(pow(2.0, i))
+                                   for i in alter]
+        self._compare_other(s, data, op_name, other)
+
+
+class DecimalArrayWithoutFromSequence(DecimalArray):
+    """Helper class for testing error handling in _from_sequence."""
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        raise KeyError("For the test")
+
+
+class DecimalArrayWithoutCoercion(DecimalArrayWithoutFromSequence):
+    @classmethod
+    def _create_arithmetic_method(cls, op):
+        return cls._create_method(op, coerce_to_dtype=False)
+
+
+DecimalArrayWithoutCoercion._add_arithmetic_ops()
+
+
+def test_combine_from_sequence_raises():
+    # https://github.com/pandas-dev/pandas/issues/22850
+    ser = pd.Series(DecimalArrayWithoutFromSequence([
+        decimal.Decimal("1.0"),
+        decimal.Decimal("2.0")
+    ]))
+    result = ser.combine(ser, operator.add)
+
+    # note: object dtype
+    expected = pd.Series([decimal.Decimal("2.0"),
+                          decimal.Decimal("4.0")], dtype="object")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("class_", [DecimalArrayWithoutFromSequence,
+                                    DecimalArrayWithoutCoercion])
+def test_scalar_ops_from_sequence_raises(class_):
+    # op(EA, EA) should return an EA, or an ndarray if it's not possible
+    # to return an EA with the return values.
+    arr = class_([
+        decimal.Decimal("1.0"),
+        decimal.Decimal("2.0")
+    ])
+    result = arr + arr
+    expected = np.array([decimal.Decimal("2.0"), decimal.Decimal("4.0")],
+                        dtype="object")
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("reverse, expected_div, expected_mod", [
+    (False, [0, 1, 1, 2], [1, 0, 1, 0]),
+    (True, [2, 1, 0, 0], [0, 0, 2, 2]),
+])
+def test_divmod_array(reverse, expected_div, expected_mod):
+    # https://github.com/pandas-dev/pandas/issues/22930
+    arr = to_decimal([1, 2, 3, 4])
+    if reverse:
+        div, mod = divmod(2, arr)
+    else:
+        div, mod = divmod(arr, 2)
+    expected_div = to_decimal(expected_div)
+    expected_mod = to_decimal(expected_mod)
+
+    tm.assert_extension_array_equal(div, expected_div)
+    tm.assert_extension_array_equal(mod, expected_mod)

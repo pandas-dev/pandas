@@ -27,7 +27,7 @@ try:
     import scipy
     _is_scipy_ge_0190 = (LooseVersion(scipy.__version__) >=
                          LooseVersion('0.19.0'))
-except:
+except ImportError:
     _is_scipy_ge_0190 = False
 
 
@@ -299,6 +299,17 @@ class TestDataFrameMissingData(TestData):
         exp = pd.DataFrame({'A': [pd.Timestamp('2012-11-11 00:00:00+01:00'),
                                   pd.Timestamp('2012-11-11 00:00:00+01:00')]})
         assert_frame_equal(df.fillna(method='bfill'), exp)
+
+        # with timezone in another column
+        # GH 15522
+        df = pd.DataFrame({'A': pd.date_range('20130101', periods=4,
+                                              tz='US/Eastern'),
+                           'B': [1, 2, np.nan, np.nan]})
+        result = df.fillna(method='pad')
+        expected = pd.DataFrame({'A': pd.date_range('20130101', periods=4,
+                                                    tz='US/Eastern'),
+                                 'B': [1., 2., 2., 2.]})
+        assert_frame_equal(result, expected)
 
     def test_na_actions_categorical(self):
 
@@ -802,6 +813,19 @@ class TestDataFrameInterpolate(TestData):
                         'E': [1, 2, 3, 4]})
         with pytest.raises(TypeError):
             df.interpolate(axis=1)
+
+    def test_interp_raise_on_all_object_dtype(self):
+        # GH 22985
+        df = DataFrame({
+            'A': [1, 2, 3],
+            'B': [4, 5, 6]},
+            dtype='object')
+        with tm.assert_raises_regex(
+                TypeError,
+                "Cannot interpolate with all object-dtype columns "
+                "in the DataFrame. Try setting at least one "
+                "column to a numeric dtype."):
+            df.interpolate()
 
     def test_interp_inplace(self):
         df = DataFrame({'a': [1., 2., np.nan, 4.]})

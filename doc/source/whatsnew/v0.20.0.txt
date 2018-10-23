@@ -186,7 +186,7 @@ Previously, only ``gzip`` compression was supported. By default, compression of
 URLs and paths are now inferred using their file extensions. Additionally,
 support for bz2 compression in the python 2 C-engine improved (:issue:`14874`).
 
-.. ipython:: python
+.. code-block:: python
 
    url = 'https://github.com/{repo}/raw/{branch}/{path}'.format(
        repo = 'pandas-dev/pandas',
@@ -462,7 +462,7 @@ Selecting via a scalar value that is contained *in* the intervals.
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- ``DataFrame.rolling()`` now accepts the parameter ``closed='right'|'left'|'both'|'neither'`` to choose the rolling window-endpoint closed. See the :ref:`documentation <stats.rolling_window.endpoints>` (:issue:`13965`)
+- ``DataFrame.rolling()`` now accepts the parameter ``closed='right'|'left'|'both'|'neither'`` to choose the rolling window-endpoint closedness. See the :ref:`documentation <stats.rolling_window.endpoints>` (:issue:`13965`)
 - Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
 - ``Series.str.replace()`` now accepts a callable, as replacement, which is passed to ``re.sub`` (:issue:`15055`)
 - ``Series.str.replace()`` now accepts a compiled regular expression as a pattern (:issue:`15446`)
@@ -1528,7 +1528,7 @@ Removal of prior version deprecations/changes
 - The ``pandas.io.ga`` module with a ``google-analytics`` interface is removed (:issue:`11308`).
   Similar functionality can be found in the `Google2Pandas <https://github.com/panalysis/Google2Pandas>`__ package.
 - ``pd.to_datetime`` and ``pd.to_timedelta`` have dropped the ``coerce`` parameter in favor of ``errors`` (:issue:`13602`)
-- ``pandas.stats.fama_macbeth``, ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var``, as well as the top-level ``pandas.fama_macbeth`` and ``pandas.ols`` routines are removed. Similar functionality can be found in the `statsmodels <shttp://www.statsmodels.org/dev/>`__ package. (:issue:`11898`)
+- ``pandas.stats.fama_macbeth``, ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var``, as well as the top-level ``pandas.fama_macbeth`` and ``pandas.ols`` routines are removed. Similar functionality can be found in the `statsmodels <https://www.statsmodels.org/dev/>`__ package. (:issue:`11898`)
 - The ``TimeSeries`` and ``SparseTimeSeries`` classes, aliases of ``Series``
   and ``SparseSeries``, are removed (:issue:`10890`, :issue:`15098`).
 - ``Series.is_time_series`` is dropped in favor of ``Series.index.is_all_dates`` (:issue:`15098`)

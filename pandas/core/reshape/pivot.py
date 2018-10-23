@@ -8,9 +8,9 @@ from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 
 from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
-from pandas.core.groupby.groupby import Grouper
+from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
-from pandas.core.index import Index, _get_objs_combined_axis
+from pandas.core.index import Index, MultiIndex, _get_objs_combined_axis
 from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
@@ -140,8 +140,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                              margins_name=margins_name, fill_value=fill_value)
 
     # discard the top level
-    if values_passed and not values_multi and not table.empty and \
-       (table.columns.nlevels > 1):
+    if (values_passed and not values_multi and not table.empty and
+            (table.columns.nlevels > 1)):
         table = table[values[0]]
 
     if len(index) == 0 and len(columns) > 0:
@@ -369,6 +369,30 @@ def _convert_by(by):
     return by
 
 
+@Substitution('\ndata : DataFrame')
+@Appender(_shared_docs['pivot'], indents=1)
+def pivot(data, index=None, columns=None, values=None):
+    if values is None:
+        cols = [columns] if index is None else [index, columns]
+        append = index is None
+        indexed = data.set_index(cols, append=append)
+    else:
+        if index is None:
+            index = data.index
+        else:
+            index = data[index]
+        index = MultiIndex.from_arrays([index, data[columns]])
+
+        if is_list_like(values) and not isinstance(values, tuple):
+            # Exclude tuple because it is seen as a single column name
+            indexed = data._constructor(data[values].values, index=index,
+                                        columns=values)
+        else:
+            indexed = data._constructor_sliced(data[values].values,
+                                               index=index)
+    return indexed.unstack(columns)
+
+
 def crosstab(index, columns, values=None, rownames=None, colnames=None,
              aggfunc=None, margins=False, margins_name='All', dropna=True,
              normalize=False):
@@ -446,7 +470,18 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
     >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
     >>> crosstab(foo, bar)  # 'c' and 'f' are not represented in the data,
-    ...                     # but they still will be counted in the output
+                            # and will not be shown in the output because
+                            # dropna is True by default. Set 'dropna=False'
+                            # to preserve categories with no data
+    ... # doctest: +SKIP
+    col_0  d  e
+    row_0
+    a      1  0
+    b      0  1
+
+    >>> crosstab(foo, bar, dropna=False)  # 'c' and 'f' are not represented
+                            # in the data, but they still will be counted
+                            # and shown in the output
     ... # doctest: +SKIP
     col_0  d  e  f
     row_0
@@ -459,8 +494,8 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     crosstab : DataFrame
     """
 
-    index = com._maybe_make_list(index)
-    columns = com._maybe_make_list(columns)
+    index = com.maybe_make_list(index)
+    columns = com.maybe_make_list(columns)
 
     rownames = _get_names(index, rownames, prefix='row')
     colnames = _get_names(columns, colnames, prefix='col')

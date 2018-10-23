@@ -2,7 +2,6 @@
 Template for each `dtype` helper function using 1-d template
 
 # 1-d template
-- map_indices
 - pad
 - pad_1d
 - pad_2d
@@ -15,466 +14,32 @@ Template for each `dtype` helper function using 1-d template
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-#----------------------------------------------------------------------
-# 1-d template
-#----------------------------------------------------------------------
-
 {{py:
 
-# name, c_type, dtype, can_hold_na, nogil
-dtypes = [('float64', 'float64_t', 'np.float64', True, True),
-          ('float32', 'float32_t', 'np.float32', True, True),
-          ('object', 'object', 'object', True, False),
-          ('int32', 'int32_t', 'np.int32', False, True),
-          ('int64', 'int64_t', 'np.int64', False, True),
-          ('uint64', 'uint64_t', 'np.uint64', False, True),
-          ('bool', 'uint8_t', 'np.bool', False, True)]
+# name, c_type, dest_type
+dtypes = [('float64', 'float64_t', 'float64_t'),
+          ('float32', 'float32_t', 'float32_t'),
+          ('int8',  'int8_t',  'float32_t'),
+          ('int16', 'int16_t', 'float32_t'),
+          ('int32', 'int32_t', 'float64_t'),
+          ('int64', 'int64_t', 'float64_t')]
 
 def get_dispatch(dtypes):
 
-    for name, c_type, dtype, can_hold_na, nogil in dtypes:
-
-        nogil_str = 'with nogil:' if nogil else ''
-        tab = '    ' if nogil else ''
-        yield name, c_type, dtype, can_hold_na, nogil_str, tab
-}}
-
-{{for name, c_type, dtype, can_hold_na, nogil_str, tab
-      in get_dispatch(dtypes)}}
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cpdef map_indices_{{name}}(ndarray[{{c_type}}] index):
-    """
-    Produce a dict mapping the values of the input array to their respective
-    locations.
-
-    Example:
-        array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
-
-    Better to do this with Cython because of the enormous speed boost.
-    """
-    cdef Py_ssize_t i, length
-    cdef dict result = {}
-
-    length = len(index)
-
-    for i in range(length):
-        result[index[i]] = i
-
-    return result
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def pad_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new,
-                 limit=None):
-    cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int64_t, ndim=1] indexer
-    cdef {{c_type}} cur, next
-    cdef int lim, fill_count = 0
-
-    nleft = len(old)
-    nright = len(new)
-    indexer = np.empty(nright, dtype=np.int64)
-    indexer.fill(-1)
-
-    if limit is None:
-        lim = nright
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
-
-    if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
-        return indexer
-
-    i = j = 0
-
-    cur = old[0]
-
-    while j <= nright - 1 and new[j] < cur:
-        j += 1
-
-    while True:
-        if j == nright:
-            break
-
-        if i == nleft - 1:
-            while j < nright:
-                if new[j] == cur:
-                    indexer[j] = i
-                elif new[j] > cur and fill_count < lim:
-                    indexer[j] = i
-                    fill_count += 1
-                j += 1
-            break
-
-        next = old[i + 1]
-
-        while j < nright and cur <= new[j] < next:
-            if new[j] == cur:
-                indexer[j] = i
-            elif fill_count < lim:
-                indexer[j] = i
-                fill_count += 1
-            j += 1
-
-        fill_count = 0
-        i += 1
-        cur = next
-
-    return indexer
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def pad_inplace_{{name}}(ndarray[{{c_type}}] values,
-                         ndarray[uint8_t, cast=True] mask,
-                         limit=None):
-    cdef Py_ssize_t i, N
-    cdef {{c_type}} val
-    cdef int lim, fill_count = 0
-
-    N = len(values)
-
-    # GH 2778
-    if N == 0:
-        return
-
-    if limit is None:
-        lim = N
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
-
-    val = values[0]
-    for i in range(N):
-        if mask[i]:
-            if fill_count >= lim:
-                continue
-            fill_count += 1
-            values[i] = val
-        else:
-            fill_count = 0
-            val = values[i]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def pad_2d_inplace_{{name}}(ndarray[{{c_type}}, ndim=2] values,
-                            ndarray[uint8_t, ndim=2] mask,
-                            limit=None):
-    cdef Py_ssize_t i, j, N, K
-    cdef {{c_type}} val
-    cdef int lim, fill_count = 0
-
-    K, N = (<object> values).shape
-
-    # GH 2778
-    if N == 0:
-        return
-
-    if limit is None:
-        lim = N
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
-
-    for j in range(K):
-        fill_count = 0
-        val = values[j, 0]
-        for i in range(N):
-            if mask[j, i]:
-                if fill_count >= lim:
-                    continue
-                fill_count += 1
-                values[j, i] = val
-            else:
-                fill_count = 0
-                val = values[j, i]
-
-"""
-Backfilling logic for generating fill vector
-
-Diagram of what's going on
-
-Old      New    Fill vector    Mask
-         .        0               1
-         .        0               1
-         .        0               1
-A        A        0               1
-         .        1               1
-         .        1               1
-         .        1               1
-         .        1               1
-         .        1               1
-B        B        1               1
-         .        2               1
-         .        2               1
-         .        2               1
-C        C        2               1
-         .                        0
-         .                        0
-D
-"""
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def backfill_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new,
-                      limit=None):
-    cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int64_t, ndim=1] indexer
-    cdef {{c_type}} cur, prev
-    cdef int lim, fill_count = 0
-
-    nleft = len(old)
-    nright = len(new)
-    indexer = np.empty(nright, dtype=np.int64)
-    indexer.fill(-1)
-
-    if limit is None:
-        lim = nright
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
-
-    if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
-        return indexer
-
-    i = nleft - 1
-    j = nright - 1
-
-    cur = old[nleft - 1]
-
-    while j >= 0 and new[j] > cur:
-        j -= 1
-
-    while True:
-        if j < 0:
-            break
-
-        if i == 0:
-            while j >= 0:
-                if new[j] == cur:
-                    indexer[j] = i
-                elif new[j] < cur and fill_count < lim:
-                    indexer[j] = i
-                    fill_count += 1
-                j -= 1
-            break
-
-        prev = old[i - 1]
-
-        while j >= 0 and prev < new[j] <= cur:
-            if new[j] == cur:
-                indexer[j] = i
-            elif new[j] < cur and fill_count < lim:
-                indexer[j] = i
-                fill_count += 1
-            j -= 1
-
-        fill_count = 0
-        i -= 1
-        cur = prev
-
-    return indexer
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def backfill_inplace_{{name}}(ndarray[{{c_type}}] values,
-                              ndarray[uint8_t, cast=True] mask,
-                              limit=None):
-    cdef Py_ssize_t i, N
-    cdef {{c_type}} val
-    cdef int lim, fill_count = 0
-
-    N = len(values)
-
-    # GH 2778
-    if N == 0:
-        return
-
-    if limit is None:
-        lim = N
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
-
-    val = values[N - 1]
-    for i in range(N - 1, -1, -1):
-        if mask[i]:
-            if fill_count >= lim:
-                continue
-            fill_count += 1
-            values[i] = val
-        else:
-            fill_count = 0
-            val = values[i]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def backfill_2d_inplace_{{name}}(ndarray[{{c_type}}, ndim=2] values,
-                                 ndarray[uint8_t, ndim=2] mask,
-                                 limit=None):
-    cdef Py_ssize_t i, j, N, K
-    cdef {{c_type}} val
-    cdef int lim, fill_count = 0
-
-    K, N = (<object> values).shape
-
-    # GH 2778
-    if N == 0:
-        return
-
-    if limit is None:
-        lim = N
-    else:
-        if not util.is_integer_object(limit):
-            raise ValueError('Limit must be an integer')
-        if limit < 1:
-            raise ValueError('Limit must be greater than 0')
-        lim = limit
-
-    for j in range(K):
-        fill_count = 0
-        val = values[j, N - 1]
-        for i in range(N - 1, -1, -1):
-            if mask[j, i]:
-                if fill_count >= lim:
-                    continue
-                fill_count += 1
-                values[j, i] = val
-            else:
-                fill_count = 0
-                val = values[j, i]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def is_monotonic_{{name}}(ndarray[{{c_type}}] arr, bint timelike):
-    """
-    Returns
-    -------
-    is_monotonic_inc, is_monotonic_dec, is_unique
-    """
-    cdef:
-        Py_ssize_t i, n
-        {{c_type}} prev, cur
-        bint is_monotonic_inc = 1
-        bint is_monotonic_dec = 1
-        bint is_unique = 1
-
-    n = len(arr)
-
-    if n == 1:
-        if arr[0] != arr[0] or (timelike and <int64_t>arr[0] == iNaT):
-            # single value is NaN
-            return False, False, True
-        else:
-            return True, True, True
-    elif n < 2:
-        return True, True, True
-
-    if timelike and <int64_t>arr[0] == iNaT:
-        return False, False, True
-
-    {{nogil_str}}
-    {{tab}}prev = arr[0]
-    {{tab}}for i in range(1, n):
-    {{tab}}    cur = arr[i]
-    {{tab}}    if timelike and <int64_t>cur == iNaT:
-    {{tab}}        is_monotonic_inc = 0
-    {{tab}}        is_monotonic_dec = 0
-    {{tab}}        break
-    {{tab}}    if cur < prev:
-    {{tab}}        is_monotonic_inc = 0
-    {{tab}}    elif cur > prev:
-    {{tab}}        is_monotonic_dec = 0
-    {{tab}}    elif cur == prev:
-    {{tab}}        is_unique = 0
-    {{tab}}    else:
-    {{tab}}        # cur or prev is NaN
-    {{tab}}        is_monotonic_inc = 0
-    {{tab}}        is_monotonic_dec = 0
-    {{tab}}        break
-    {{tab}}    if not is_monotonic_inc and not is_monotonic_dec:
-    {{tab}}        is_monotonic_inc = 0
-    {{tab}}        is_monotonic_dec = 0
-    {{tab}}        break
-    {{tab}}    prev = cur
-    return is_monotonic_inc, is_monotonic_dec, \
-           is_unique and (is_monotonic_inc or is_monotonic_dec)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def arrmap_{{name}}(ndarray[{{c_type}}] index, object func):
-    cdef Py_ssize_t length = index.shape[0]
-    cdef Py_ssize_t i = 0
-
-    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
-
-    from pandas._libs.lib import maybe_convert_objects
-
-    for i in range(length):
-        result[i] = func(index[i])
-
-    return maybe_convert_objects(result)
-
-{{endfor}}
-
-#----------------------------------------------------------------------
-# put template
-#----------------------------------------------------------------------
-
-{{py:
-
-# name, c_type, dest_type, dest_dtype
-dtypes = [('float64', 'float64_t', 'float64_t', 'np.float64'),
-          ('float32', 'float32_t', 'float32_t', 'np.float32'),
-          ('int8',  'int8_t',  'float32_t', 'np.float32'),
-          ('int16', 'int16_t', 'float32_t', 'np.float32'),
-          ('int32', 'int32_t', 'float64_t', 'np.float64'),
-          ('int64', 'int64_t', 'float64_t', 'np.float64')]
-
-def get_dispatch(dtypes):
-
-    for name, c_type, dest_type, dest_dtype, in dtypes:
-
-        dest_type2 = dest_type
-        dest_type = dest_type.replace('_t', '')
-
-        yield name, c_type, dest_type, dest_type2, dest_dtype
+    for name, c_type, dest_type, in dtypes:
+        dest_name = dest_type[:-2]  # i.e. strip "_t"
+        yield name, c_type, dest_type, dest_name
 
 }}
 
-{{for name, c_type, dest_type, dest_type2, dest_dtype
+{{for name, c_type, dest_type, dest_name
       in get_dispatch(dtypes)}}
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d_{{name}}(ndarray[{{c_type}}, ndim=2] arr,
-                     ndarray[{{dest_type2}}, ndim=2] out,
+                     ndarray[{{dest_type}}, ndim=2] out,
                      Py_ssize_t periods, int axis):
     cdef:
         Py_ssize_t i, j, sx, sy
@@ -516,14 +81,14 @@ def diff_2d_{{name}}(ndarray[{{c_type}}, ndim=2] arr,
                     out[i, j] = arr[i, j] - arr[i, j - periods]
 
 
-def put2d_{{name}}_{{dest_type}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
+def put2d_{{name}}_{{dest_name}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
                                  ndarray[int64_t] indexer, Py_ssize_t loc,
-                                 ndarray[{{dest_type2}}] out):
+                                 ndarray[{{dest_type}}] out):
     cdef:
         Py_ssize_t i, j, k
 
     k = len(values)
-    for j from 0 <= j < k:
+    for j in range(k):
         i = indexer[j]
         out[i] = values[j, loc]
 
@@ -535,7 +100,8 @@ def put2d_{{name}}_{{dest_type}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
 
 cdef int PLATFORM_INT = (<ndarray> np.arange(0, dtype=np.intp)).descr.type_num
 
-cpdef ensure_platform_int(object arr):
+
+def ensure_platform_int(object arr):
     # GH3033, GH1392
     # platform int is the size of the int pointer, e.g. np.intp
     if util.is_array(arr):
@@ -546,7 +112,8 @@ cpdef ensure_platform_int(object arr):
     else:
         return np.array(arr, dtype=np.intp)
 
-cpdef ensure_object(object arr):
+
+def ensure_object(object arr):
     if util.is_array(arr):
         if (<ndarray> arr).descr.type_num == NPY_OBJECT:
             return arr
@@ -579,7 +146,8 @@ def get_dispatch(dtypes):
 
 {{for name, c_type, dtype in get_dispatch(dtypes)}}
 
-cpdef ensure_{{name}}(object arr, copy=True):
+
+def ensure_{{name}}(object arr, copy=True):
     if util.is_array(arr):
         if (<ndarray> arr).descr.type_num == NPY_{{c_type}}:
             return arr
