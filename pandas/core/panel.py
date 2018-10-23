@@ -330,7 +330,7 @@ class Panel(NDFrame):
     # ----------------------------------------------------------------------
     # Comparison methods
 
-    def _compare_constructor(self, other, func, try_cast=True):
+    def _compare_constructor(self, other, func):
         if not self._indexed_same(other):
             raise Exception('Can only compare identically-labeled '
                             'same type objects')
@@ -745,13 +745,13 @@ class Panel(NDFrame):
                 "{otype!s} is not supported in combine operation with "
                 "{selftype!s}".format(otype=type(other), selftype=type(self)))
 
-    def _combine_const(self, other, func, try_cast=True):
+    def _combine_const(self, other, func):
         with np.errstate(all='ignore'):
             new_values = func(self.values, other)
         d = self._construct_axes_dict()
         return self._constructor(new_values, **d)
 
-    def _combine_frame(self, other, func, axis=0, try_cast=True):
+    def _combine_frame(self, other, func, axis=0):
         index, columns = self._get_plane_axes(axis)
         axis = self._get_axis_number(axis)
 
@@ -770,7 +770,7 @@ class Panel(NDFrame):
         return self._constructor(new_values, self.items, self.major_axis,
                                  self.minor_axis)
 
-    def _combine_panel(self, other, func, try_cast=True):
+    def _combine_panel(self, other, func):
         items = self.items.union(other.items)
         major = self.major_axis.union(other.major_axis)
         minor = self.minor_axis.union(other.minor_axis)
