@@ -7,7 +7,6 @@ from ..pandas_vb_common import BaseIO
 
 class Stata(BaseIO):
 
-    goal_time = 0.2
     params = ['tc', 'td', 'tm', 'tw', 'th', 'tq', 'ty']
     param_names = ['convert_dates']
 

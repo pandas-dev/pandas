@@ -518,7 +518,7 @@ _op_descriptions = {
                  'df_examples': None},
     'divmod': {'op': 'divmod',
                'desc': 'Integer division and modulo',
-               'reverse': None,
+               'reverse': 'rdivmod',
                'df_examples': None},
 
     # Comparison Operators
@@ -1039,6 +1039,7 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
     if have_divmod:
         # divmod doesn't have an op that is supported by numexpr
         new_methods['divmod'] = arith_method(cls, divmod, special)
+        new_methods['rdivmod'] = arith_method(cls, rdivmod, special)
 
     new_methods.update(dict(
         eq=comp_method(cls, operator.eq, special),
@@ -1224,7 +1225,7 @@ def dispatch_to_extension_op(op, left, right):
     res_values = op(new_left, new_right)
     res_name = get_op_result_name(left, right)
 
-    if op.__name__ == 'divmod':
+    if op.__name__ in ['divmod', 'rdivmod']:
         return _construct_divmod_result(
             left, res_values, left.index, res_name)
 
@@ -1241,7 +1242,7 @@ def _arith_method_SERIES(cls, op, special):
     eval_kwargs = _gen_eval_kwargs(op_name)
     fill_zeros = _gen_fill_zeros(op_name)
     construct_result = (_construct_divmod_result
-                        if op is divmod else _construct_result)
+                        if op in [divmod, rdivmod] else _construct_result)
 
     def na_op(x, y):
         import pandas.core.computation.expressions as expressions
@@ -1871,8 +1872,8 @@ def _arith_method_FRAME(cls, op, special):
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            pass_op = op if lib.is_scalar(other) else na_op
-            return self._combine_const(other, pass_op, try_cast=True)
+            assert np.ndim(other) == 0
+            return self._combine_const(other, op, try_cast=True)
 
     f.__name__ = op_name
 
@@ -1923,6 +1924,9 @@ def _comp_method_FRAME(cls, func, special):
 
     @Appender('Wrapper for comparison method {name}'.format(name=op_name))
     def f(self, other):
+
+        other = _align_method_FRAME(self, other, axis=None)
+
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
             if not self._indexed_same(other):
