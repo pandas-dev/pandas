@@ -304,45 +304,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             if not isinstance(x, self._HANDLED_TYPES + (IntegerArray,)):
                 return NotImplemented
 
-        special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
-                   'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder'}
-        if PY2:
-            special.add('div')
-        aliases = {
-            'subtract': 'sub',
-            'multiply': 'mul',
-            'floor_divide': 'floordiv',
-            'true_divide': 'truediv',
-            'power': 'pow',
-            'remainder': 'mod',
-            'divide': 'div',
-            'equal': 'eq',
-            'not_equal': 'ne',
-            'less': 'lt',
-            'less_equal': 'le',
-            'greater': 'gt',
-            'greater_equal': 'ge',
-        }
-
-        flipped = {
-            'lt': '__gt__',
-            'le': '__ge__',
-            'gt': '__lt__',
-            'ge': '__le__',
-            'eq': '__eq__',
-            'ne': '__ne__',
-        }
-
-        op_name = ufunc.__name__
-        op_name = aliases.get(op_name, op_name)
-
-        if (method == '__call__' and op_name in special
-                and kwargs.get('out') is None):
-            if isinstance(inputs[0], type(self)):
-                return getattr(self, '__{}__'.format(op_name))(inputs[1])
-            else:
-                name = flipped.get(op_name, '__r{}__'.format(op_name))
-            return getattr(self, name)(inputs[0])
+        # for binary ops, use our custom dunder methods
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs)
+        if result is not None:
+            return result
 
         if (method == '__call__'
                 and ufunc.signature is None
