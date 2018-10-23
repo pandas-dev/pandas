@@ -113,6 +113,7 @@ class TestTake(object):
         tm.assert_categorical_equal(result, expected)
 
     def test_take_allow_fill(self):
+        # https://github.com/pandas-dev/pandas/issues/23296
         cat = pd.Categorical(['a', 'a', 'b'])
         result = cat.take([0, -1, -1], allow_fill=True)
         expected = pd.Categorical(['a', np.nan, np.nan],
@@ -126,12 +127,6 @@ class TestTake(object):
         expected = pd.Categorical([-1, -1, 0], categories=[-1, 0, 1])
         tm.assert_categorical_equal(result, expected)
 
-        # -1 was not a category
-        cat = pd.Categorical([0, 1])
-        result = cat.take([0, -1, 1], allow_fill=True, fill_value=-1)
-        expected = pd.Categorical([0, -1, 1], categories=[0, 1, -1])
-        tm.assert_categorical_equal(result, expected)
-
     def test_take_fill_value(self):
         # https://github.com/pandas-dev/pandas/issues/23296
         cat = pd.Categorical(['a', 'b', 'c'])
@@ -139,9 +134,9 @@ class TestTake(object):
         expected = pd.Categorical(['a', 'b', 'a'], categories=['a', 'b', 'c'])
         tm.assert_categorical_equal(result, expected)
 
-    def test_take_fill_value_adds_categories(self):
+    def test_take_fill_value_new_raises(self):
         # https://github.com/pandas-dev/pandas/issues/23296
         cat = pd.Categorical(['a', 'b', 'c'])
-        result = cat.take([0, 1, -1], fill_value='d', allow_fill=True)
-        expected = pd.Categorical(['a', 'b', 'd'], categories=['a', 'b', 'c', 'd'])
-        tm.assert_categorical_equal(result, expected)
+        xpr = r"'fill_value' \('d'\) is not in this Categorical's categories."
+        with tm.assert_raises_regex(TypeError, xpr):
+            cat.take([0, 1, -1], fill_value='d', allow_fill=True)

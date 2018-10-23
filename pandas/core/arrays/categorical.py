@@ -1785,10 +1785,6 @@ class Categorical(ExtensionArray, PandasObject):
             ``allow_fill=True``. This should be the category, i.e. a value
             in ``self.categories``, not a code.
 
-            Specifying a `fill_value` that's not in ``self.categories`` is
-            allowed. The new category is added to the end of the existing
-            categories.
-
         Returns
         -------
         Categorical
@@ -1822,13 +1818,14 @@ class Categorical(ExtensionArray, PandasObject):
         [a, NaN, NaN]
         Categories (2, object): [a, b]
 
-        The fill value can be specified. Notice that if the `fill_value` was
-        not previously present in ``self.categories``, it is added to the end
-        of the categories in the output Categorical.
+        The fill value can be specified.
 
-        >>> cat.take([0, -1, -1], allow_fill=True, fill_value='c')
-        [a, c, c]
-        Categories (3, object): [a, b, c]
+        >>> cat.take([0, -1, -1], allow_fill=True, fill_value='a')
+        [a, a, a]
+        Categories (3, object): [a, b]
+
+        Specifying a fill value that's not in ``self.categories``
+        will raise a ``TypeError``.
         """
         indexer = np.asarray(indexer, dtype=np.intp)
         if allow_fill is None:
@@ -1840,13 +1837,15 @@ class Categorical(ExtensionArray, PandasObject):
 
         if isna(fill_value):
             fill_value = -1
-        elif allow_fill and fill_value is not None:
+        elif allow_fill:
             # convert user-provided `fill_value` to codes
             if fill_value in self.categories:
                 fill_value = self.categories.get_loc(fill_value)
             else:
-                dtype = self.dtype._add_categories(fill_value)
-                fill_value = dtype.categories.get_loc(fill_value)
+                msg = (
+                    "'fill_value' ('{}') is not in this Categorical's categories."
+                )
+                raise TypeError(msg.format(fill_value))
 
         codes = take(self._codes, indexer, allow_fill=allow_fill,
                      fill_value=fill_value)
