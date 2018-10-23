@@ -151,6 +151,8 @@ cpdef convert_to_timedelta64(object ts, object unit):
     # kludgy here until we have a timedelta scalar
     # handle the numpy < 1.7 case
     """
+    if unit is None:
+        unit='ns'
     if checknull_with_nat(ts):
         return np.timedelta64(NPY_NAT)
     elif isinstance(ts, Timedelta):
@@ -198,7 +200,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
     return ts.astype('timedelta64[ns]')
 
 
-cpdef array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
+cpdef array_to_timedelta64(object[:] values, unit=None, errors='raise'):
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.

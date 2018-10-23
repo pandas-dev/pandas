@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 
 
-def to_timedelta(arg, unit='ns', box=True, errors='raise'):
+def to_timedelta(arg, unit=None, box=True, errors='raise'):
     """
     Convert argument to timedelta
 
@@ -134,12 +134,12 @@ def _validate_timedelta_unit(arg):
         return _unit_map[arg]
     except (KeyError, TypeError):
         if arg is None:
-            return 'ns'
+            return None
         raise ValueError("invalid timedelta unit {arg} provided"
                          .format(arg=arg))
 
 
-def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
+def _coerce_scalar_to_timedelta_type(r, unit=None, box=True, errors='raise'):
     """Convert string 'r' to a timedelta object."""
 
     try:
@@ -162,7 +162,7 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
     return result
 
 
-def _convert_listlike(arg, unit='ns', box=True, errors='raise', name=None):
+def _convert_listlike(arg, unit=None, box=True, errors='raise', name=None):
     """Convert a list of objects to a timedelta index object."""
 
     if isinstance(arg, (list, tuple)) or not hasattr(arg, 'dtype'):
@@ -172,6 +172,8 @@ def _convert_listlike(arg, unit='ns', box=True, errors='raise', name=None):
     if is_timedelta64_dtype(arg):
         value = arg.astype('timedelta64[ns]')
     elif is_integer_dtype(arg):
+        if unit is None:
+            unit = 'ns'
         value = arg.astype('timedelta64[{unit}]'.format(unit=unit)).astype(
             'timedelta64[ns]', copy=False)
     else:

@@ -227,5 +227,5 @@ def test_string_with_unit(str_unit, unit, expectation):
 
         assert Timedelta(val_str, unit=unit) == expected_td
         assert pd.to_timedelta(val_str, unit=unit) == expected_td
-        assert all(pd.to_timedelta([val_str, val_str], unit=unit) == \
-            pd.to_timedelta([expected_td, expected_td]))
+        assert all(pd.to_timedelta([val_str, val_str], unit=unit) ==
+                   pd.to_timedelta([expected_td, expected_td]))
