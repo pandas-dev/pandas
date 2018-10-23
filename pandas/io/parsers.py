@@ -3428,7 +3428,7 @@ class FixedWidthReader(BaseIterator):
         self.buffer = iter(buffer_rows)
         return detect_rows
 
-    def detect_colspecs(self, infer_nrows, skiprows=None):
+    def detect_colspecs(self, infer_nrows=100, skiprows=None):
         # Regex escape the delimiters
         delimiters = ''.join(r'\%s' % x for x in self.delimiter)
         pattern = re.compile('([^%s]+)' % delimiters)
