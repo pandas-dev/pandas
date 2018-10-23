@@ -102,10 +102,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def astype(self, dtype, copy=True):
         if isinstance(dtype, type(self.dtype)):
             return type(self)(self._data, context=dtype.context)
-        # need to replace decimal NA
-        result = np.asarray(self, dtype=dtype)
-        result[self.isna()] = np.nan
-        return result
+        return np.asarray(self, dtype=dtype)
 
     def __setitem__(self, key, value):
         if pd.api.types.is_list_like(value):
