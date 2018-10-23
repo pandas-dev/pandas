@@ -126,8 +126,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         result._freq = freq
         return result
 
-    def __new__(cls, values, freq=None, start=None, end=None, periods=None,
-                closed=None):
+    def __new__(cls, values, freq=None):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
@@ -140,8 +139,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         return result
 
     @classmethod
-    def _generate_range(cls, start, end, periods, freq, closed=None, **kwargs):
-        # **kwargs are for compat with TimedeltaIndex, which includes `name`
+    def _generate_range(cls, start, end, periods, freq, closed=None):
 
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -167,10 +165,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         if freq is not None:
             index = _generate_regular_range(start, end, periods, freq)
-            index = cls._simple_new(index, freq=freq, **kwargs)
+            index = cls._simple_new(index, freq=freq)
         else:
             index = np.linspace(start.value, end.value, periods).astype('i8')
-            # TODO: shouldn't we pass `name` here?  (via **kwargs)
             index = cls._simple_new(index, freq=freq)
 
         if not left_closed:
@@ -354,6 +351,31 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         datetimes : ndarray
         """
         return tslibs.ints_to_pytimedelta(self.asi8)
+
+    def to_timedelta64(self):
+        """
+        Return numpy array with timedelta64[ns] dtype
+
+        Returns
+        -------
+        ndarray[timedelta64[ns]]
+
+        Notes
+        -----
+        This returns a view on self, not a copy.
+
+        See also
+        --------
+        Timedelta.to_timedelta64
+        """
+        return self.asi8.view('m8[ns]')
+
+    @property
+    def asm8(self):
+        """
+        Vectorized analogue of Timedelta.asm8
+        """
+        return self.to_timedelta64()
 
     days = _field_accessor("days", "days",
                            " Number of days for each element. ")

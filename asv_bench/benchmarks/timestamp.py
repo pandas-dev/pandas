@@ -29,8 +29,6 @@ class TimestampConstruction(object):
 
 
 class TimestampProperties(object):
-    goal_time = 0.2
-
     _tzs = [None, pytz.timezone('Europe/Amsterdam')]
     _freqs = [None, 'B']
     params = [_tzs, _freqs]
@@ -89,8 +87,6 @@ class TimestampProperties(object):
 
 
 class TimestampOps(object):
-    goal_time = 0.2
-
     params = [None, 'US/Eastern']
     param_names = ['tz']
 
@@ -108,8 +104,6 @@ class TimestampOps(object):
 
 
 class TimestampAcrossDst(object):
-    goal_time = 0.2
-
     def setup(self):
         dt = datetime.datetime(2016, 3, 27, 1)
         self.tzinfo = pytz.timezone('CET').localize(dt, is_dst=False).tzinfo
