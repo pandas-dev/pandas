@@ -1019,15 +1019,7 @@ class Categorical(ExtensionArray, PandasObject):
         set_categories
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        if not is_list_like(new_categories):
-            new_categories = [new_categories]
-        already_included = set(new_categories) & set(self.dtype.categories)
-        if len(already_included) != 0:
-            msg = ("new categories must not include old categories: "
-                   "{already_included!s}")
-            raise ValueError(msg.format(already_included=already_included))
-        new_categories = list(self.dtype.categories) + list(new_categories)
-        new_dtype = CategoricalDtype(new_categories, self.ordered)
+        new_dtype = self.dtype._add_categories(new_categories)
 
         cat = self if inplace else self.copy()
         cat._dtype = new_dtype
@@ -1768,8 +1760,10 @@ class Categorical(ExtensionArray, PandasObject):
 
         Parameters
         ----------
-        indexer : sequence of integers
-        allow_fill : bool, default None.
+        indexer : sequence of int
+            The indices in `self` to take. The meaning of negative values in
+            `indexer` depends on the value of `allow_fill`.
+        allow_fill : bool, default None
             How to handle negative values in `indexer`.
 
             * False: negative values in `indices` indicate positional indices
@@ -1786,11 +1780,55 @@ class Categorical(ExtensionArray, PandasObject):
                default is ``True``. In the future, this will change to
                ``False``.
 
+        fill_value : object
+            The value to use for `indices` that are missing (-1), when
+            ``allow_fill=True``. This should be the category, i.e. a value
+            in ``self.categories``, not a code.
+
+            Specifying a `fill_value` that's not in ``self.categories`` is
+            allowed. The new category is added to the end of the existing
+            categories.
+
         Returns
         -------
         Categorical
             This Categorical will have the same categories and ordered as
             `self`.
+
+        See Also
+        --------
+        Series.take : Similar method for Series.
+        numpy.ndarray.take : Similar method for NumPy arrays.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(['a', 'a', 'b'])
+        >>> cat
+        [a, a, b]
+        Categories (2, object): [a, b]
+
+        Specify ``allow_fill==False`` to have negative indices mean indexing
+        from the right.
+
+        >>> cat.take([0, -1, -2], allow_fill=False)
+        [a, b, a]
+        Categories (2, object): [a, b]
+
+        With ``allow_fill=True``, indices equal to ``-1`` mean "missing"
+        values that should be filled with the `fill_value`, which is
+        ``np.nan`` by default.
+
+        >>> cat.take([0, -1, -1], allow_fill=True)
+        [a, NaN, NaN]
+        Categories (2, object): [a, b]
+
+        The fill value can be specified. Notice that if the `fill_value` was
+        not previously present in ``self.categories``, it is added to the end
+        of the categories in the output Categorical.
+
+        >>> cat.take([0, -1, -1], allow_fill=True, fill_value='c')
+        [a, c, c]
+        Categories (3, object): [a, b, c]
         """
         indexer = np.asarray(indexer, dtype=np.intp)
         if allow_fill is None:
@@ -1798,14 +1836,23 @@ class Categorical(ExtensionArray, PandasObject):
                 warn(_take_msg, FutureWarning, stacklevel=2)
                 allow_fill = True
 
+        dtype = self.dtype
+
         if isna(fill_value):
-            # For categorical, any NA value is considered a user-facing
-            # NA value. Our storage NA value is -1.
             fill_value = -1
+        elif allow_fill and fill_value is not None:
+            # convert user-provided `fill_value` to codes
+            if fill_value in self.categories:
+                fill_value = self.categories.get_loc(fill_value)
+            else:
+                dtype = self.dtype._add_categories(fill_value)
+                fill_value = dtype.categories.get_loc(fill_value)
 
         codes = take(self._codes, indexer, allow_fill=allow_fill,
                      fill_value=fill_value)
-        result = self._constructor(codes, dtype=self.dtype, fastpath=True)
+        result = type(self).from_codes(codes,
+                                       categories=dtype.categories,
+                                       ordered=dtype.ordered)
         return result
 
     take = take_nd
