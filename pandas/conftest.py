@@ -501,6 +501,12 @@ def mock():
         return pytest.importorskip("mock")
 
 
+@pytest.fixture(params=[True, False])
+def box(request):
+    """Whether to box the data in a Series"""
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Global setup for tests using Hypothesis
 
