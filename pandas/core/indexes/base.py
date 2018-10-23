@@ -2005,35 +2005,35 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
     _index_shared_docs['contains'] = """
-        Return a boolean if this key is in the index.
+        Return a boolean indicating whether this key is in the index.
 
         Parameters
         ----------
         key : label
-            The key can be of the same type as the label of :class: `Index`,
+            The key can be of the same type as the label of :class:`Index`,
             hence immutable-like and 1-dimensional if it is a tuple.
 
         Returns
         -------
         bool
-            Result of the key search.
+            Result indicating whether the key search is in the index.
 
         See Also
         --------
-        Index.isin : Returns ndarray of boolean dtype if list-like key is in
-            index.
+        Index.isin : Returns an ndarray of boolean dtype indicating whether the
+            list-like key is in the index.
 
         Examples
         --------
         >>> idx = pd.Index([1, 2, (3, 4), 5])
         >>> idx
         Index([1, 2, (3, 4), 5], dtype='object')
-        >>> idx.contains((3,4))
-        True
         >>> idx.contains(1)
         True
         >>> idx.contains(6)
         False
+        >>> idx.contains((3, 4))
+        True
         """
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
