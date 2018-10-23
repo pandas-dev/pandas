@@ -623,6 +623,23 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._constructor(self._values.view(dtype),
                                  index=self.index).__finalize__(self)
 
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        inputs = tuple(
+            x._values if isinstance(x, type(self)) else x
+            for x in inputs
+        )
+        if hasattr(self._values, '__array_ufunc__'):
+            result = self._values.__array_ufunc__(
+                ufunc, method, *inputs, **kwargs)
+        else:
+            result = np.array(self._values).__array_ufunc__(
+                ufunc, method, *inputs, **kwargs)
+        if result is NotImplemented:
+            raise TypeError("The '{0}' operation is not supported for "
+                            "dtype {1}.".format(ufunc.__name__, self.dtype))
+        return self._constructor(result, index=self.index,
+                                 copy=False).__finalize__(self)
+
     def __array__(self, result=None):
         """
         the array interface, return my values
@@ -640,10 +657,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Gets called prior to a ufunc
         """
-
         # nice error message for non-ufunc types
         if (context is not None and
-                not isinstance(self._values, (np.ndarray, ABCSparseArray))):
+                not isinstance(self._values, (np.ndarray, ExtensionArray))):
             obj = context[1][0]
             raise TypeError("{obj} with dtype {dtype} cannot perform "
                             "the numpy op {op}".format(

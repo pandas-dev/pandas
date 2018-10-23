@@ -690,6 +690,43 @@ def test_astype_nansafe():
         arr.astype('uint32')
 
 
+@pytest.mark.parametrize(
+    'ufunc', [np.abs, ])
+def test_ufuncs_single_int(ufunc):
+    a = integer_array([1, 2, -3, np.nan])
+    result = ufunc(a)
+    expected = integer_array(ufunc(a.astype(float)))
+    tm.assert_extension_array_equal(result, expected)
+
+    s = pd.Series(a)
+    result = ufunc(s)
+    expected = pd.Series(integer_array(ufunc(a.astype(float))))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    'ufunc', [np.log, np.exp, np.sin, np.cos, np.sqrt])
+def test_ufuncs_single_float(ufunc):
+    a = integer_array([1, 2, -3, np.nan])
+    result = ufunc(a)
+    expected = ufunc(a.astype(float))
+    tm.assert_numpy_array_equal(result, expected)
+
+    s = pd.Series(a)
+    result = ufunc(s)
+    expected = ufunc(s.astype(float))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    'ufunc', [np.add, np.subtract])
+def test_ufuncs_binary_int(ufunc):
+    a = integer_array([1, 2, -3, np.nan])
+    result = ufunc(a, a)
+    expected = integer_array(ufunc(a.astype(float), a.astype(float)))
+    tm.assert_extension_array_equal(result, expected)
+
+
 # TODO(jreback) - these need testing / are broken
 
 # shift

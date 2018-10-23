@@ -1,3 +1,4 @@
+import numbers
 import sys
 import warnings
 import copy
@@ -292,6 +293,33 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         We return an object array here to preserve our scalar values
         """
         return self._coerce_to_ndarray()
+
+    _HANDLED_TYPES = (np.ndarray, numbers.Number)
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+
+        out = kwargs.get('out', ())
+
+        for x in inputs + out:
+            if not isinstance(x, self._HANDLED_TYPES + (IntegerArray,)):
+                return NotImplemented
+
+        if method == '__call__':
+            if ufunc.signature is None and ufunc.nout == 1:
+                args = [a._data for a in inputs]
+                masks = [a._mask for a in inputs]
+                result = ufunc(*args, **kwargs)
+                mask = np.logical_or.reduce(masks)
+                if result.dtype.kind in ('i', 'u'):
+                    return IntegerArray(result, mask)
+                else:
+                    result[mask] = np.nan
+                    return result
+
+        # fall back to array for other ufuncs
+        return np.array(self).__array_ufunc__(
+            ufunc, method, *inputs, **kwargs)
+        return NotImplemented
 
     def __iter__(self):
         for i in range(len(self)):
