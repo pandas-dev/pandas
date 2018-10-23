@@ -8,8 +8,6 @@ except ImportError:
 
 class DataFrameAttributes(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.df = DataFrame(np.random.randn(10, 6))
         self.cur_index = self.df.index
@@ -22,8 +20,6 @@ class DataFrameAttributes(object):
 
 
 class CacheReadonly(object):
-
-    goal_time = 0.2
 
     def setup(self):
 

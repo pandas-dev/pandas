@@ -516,33 +516,38 @@ class TestMultiplicationDivision(object):
         result = idx % 2
         tm.assert_equal(result, expected)
 
-    def test_divmod(self, numeric_idx):
+    def test_divmod_scalar(self, numeric_idx):
         idx = numeric_idx
+
         result = divmod(idx, 2)
         with np.errstate(all='ignore'):
             div, mod = divmod(idx.values, 2)
-            expected = Index(div), Index(mod)
+
+        expected = Index(div), Index(mod)
         for r, e in zip(result, expected):
             tm.assert_index_equal(r, e)
 
+    def test_divmod_ndarray(self, numeric_idx):
+        idx = numeric_idx
         other = np.ones(idx.values.shape, dtype=idx.values.dtype) * 2
+
         result = divmod(idx, other)
         with np.errstate(all='ignore'):
             div, mod = divmod(idx.values, other)
-            expected = Index(div), Index(mod)
+
+        expected = Index(div), Index(mod)
         for r, e in zip(result, expected):
             tm.assert_index_equal(r, e)
 
-    @pytest.mark.xfail(reason='GH#19252 Series has no __rdivmod__',
-                       strict=True)
     def test_divmod_series(self, numeric_idx):
         idx = numeric_idx
         other = np.ones(idx.values.shape, dtype=idx.values.dtype) * 2
+
         result = divmod(idx, Series(other))
         with np.errstate(all='ignore'):
             div, mod = divmod(idx.values, other)
-            expected = Series(div), Series(mod)
 
+        expected = Series(div), Series(mod)
         for r, e in zip(result, expected):
             tm.assert_series_equal(r, e)
 
