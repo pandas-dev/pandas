@@ -174,7 +174,8 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     if is_object_dtype(values):
         inferred_type = lib.infer_dtype(values)
         if inferred_type is 'mixed' and isna(values).any():
-            values = np.array([np.nan] * len(values))  # GH 23224
+            values = np.empty(len(values))
+            values.fill(np.nan)
         elif inferred_type not in ['floating', 'integer',
                                    'mixed-integer', 'mixed-integer-float']:
             raise TypeError("{} cannot be converted to an IntegerDtype".format(
