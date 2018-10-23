@@ -510,7 +510,18 @@ class TestSeriesDatetimeValues():
         result = s.dt.timetz
         tm.assert_series_equal(result, expected)
 
-    def test_minmax_nat(self):
-        series = pd.Series([pd.NaT, pd.NaT])
-        assert series.min() is pd.NaT
-        assert series.max() is pd.NaT
+    @pytest.mark.parametrize('nat', [
+        pd.Series([pd.NaT, pd.NaT]),
+        pd.Series([pd.NaT, pd.Timedelta('nat')]),
+        pd.Series([pd.Timedelta('nat'), pd.Timedelta('nat')])])
+    def test_minmax_nat_series(self, nat):
+        assert nat.min() is pd.NaT
+        assert nat.max() is pd.NaT
+
+    @pytest.mark.parametrize('nat', [
+        pd.DataFrame([pd.NaT, pd.NaT]),
+        pd.DataFrame([pd.NaT, pd.Timedelta('nat')]),
+        pd.DataFrame([pd.Timedelta('nat'), pd.Timedelta('nat')])])
+    def test_minmax_nat_dataframe(self, nat):
+        assert nat.min()[0] is pd.NaT
+        assert nat.max()[0] is pd.NaT

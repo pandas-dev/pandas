@@ -718,7 +718,8 @@ def _nanminmax(meth, fill_value_typ):
                 result = np.nan
         else:
             result = getattr(values, meth)(axis)
-            if is_integer(result) and result == _int64_max:
+            if (is_integer(result) and is_datetime_or_timedelta_dtype(dtype)
+                    and result == _int64_max):
                 result = tslibs.iNaT
 
         result = _wrap_results(result, dtype)
