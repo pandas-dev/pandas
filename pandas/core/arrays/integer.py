@@ -8,7 +8,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas.util._decorators import cache_readonly
 from pandas.compat import u, range, string_types
-from pandas.compat import set_function_name
+from pandas.compat import set_function_name, PY2
 
 from pandas.core import nanops
 from pandas.core.dtypes.cast import astype_nansafe
@@ -304,22 +304,67 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             if not isinstance(x, self._HANDLED_TYPES + (IntegerArray,)):
                 return NotImplemented
 
-        if method == '__call__':
-            if ufunc.signature is None and ufunc.nout == 1:
-                args = [a._data for a in inputs]
-                masks = [a._mask for a in inputs]
-                result = ufunc(*args, **kwargs)
-                mask = np.logical_or.reduce(masks)
-                if result.dtype.kind in ('i', 'u'):
-                    return IntegerArray(result, mask)
-                else:
-                    result[mask] = np.nan
-                    return result
+        special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
+                   'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder'}
+        if PY2:
+            special.add('div')
+        aliases = {
+            'subtract': 'sub',
+            'multiply': 'mul',
+            'floor_divide': 'floordiv',
+            'true_divide': 'truediv',
+            'power': 'pow',
+            'remainder': 'mod',
+            'divide': 'div',
+            'equal': 'eq',
+            'not_equal': 'ne',
+            'less': 'lt',
+            'less_equal': 'le',
+            'greater': 'gt',
+            'greater_equal': 'ge',
+        }
+
+        flipped = {
+            'lt': '__gt__',
+            'le': '__ge__',
+            'gt': '__lt__',
+            'ge': '__le__',
+            'eq': '__eq__',
+            'ne': '__ne__',
+        }
+
+        op_name = ufunc.__name__
+        op_name = aliases.get(op_name, op_name)
+
+        if (method == '__call__' and op_name in special
+                and kwargs.get('out') is None):
+            if isinstance(inputs[0], type(self)):
+                return getattr(self, '__{}__'.format(op_name))(inputs[1])
+            else:
+                name = flipped.get(op_name, '__r{}__'.format(op_name))
+            return getattr(self, name)(inputs[0])
+
+        if (method == '__call__'
+                and ufunc.signature is None
+                and ufunc.nout == 1):
+            # only supports IntegerArray for now
+            args = [a._data for a in inputs]
+            masks = [a._mask for a in inputs]
+            result = ufunc(*args, **kwargs)
+            mask = np.logical_or.reduce(masks)
+            if result.dtype.kind in ('i', 'u'):
+                return IntegerArray(result, mask)
+            else:
+                result[mask] = np.nan
+                return result
 
         # fall back to array for other ufuncs
+        inputs = tuple(
+            np.array(x) if isinstance(x, type(self)) else x
+            for x in inputs
+        )
         return np.array(self).__array_ufunc__(
             ufunc, method, *inputs, **kwargs)
-        return NotImplemented
 
     def __iter__(self):
         for i in range(len(self)):

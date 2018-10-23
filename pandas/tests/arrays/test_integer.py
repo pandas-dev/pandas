@@ -691,7 +691,7 @@ def test_astype_nansafe():
 
 
 @pytest.mark.parametrize(
-    'ufunc', [np.abs, ])
+    'ufunc', [np.abs, np.positive, np.negative])
 def test_ufuncs_single_int(ufunc):
     a = integer_array([1, 2, -3, np.nan])
     result = ufunc(a)
@@ -708,23 +708,50 @@ def test_ufuncs_single_int(ufunc):
     'ufunc', [np.log, np.exp, np.sin, np.cos, np.sqrt])
 def test_ufuncs_single_float(ufunc):
     a = integer_array([1, 2, -3, np.nan])
-    result = ufunc(a)
-    expected = ufunc(a.astype(float))
+    with np.errstate(invalid='ignore'):
+        result = ufunc(a)
+        expected = ufunc(a.astype(float))
     tm.assert_numpy_array_equal(result, expected)
 
     s = pd.Series(a)
-    result = ufunc(s)
-    expected = ufunc(s.astype(float))
+    with np.errstate(invalid='ignore'):
+        result = ufunc(s)
+        expected = ufunc(s.astype(float))
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     'ufunc', [np.add, np.subtract])
 def test_ufuncs_binary_int(ufunc):
+    # two IntegerArrays
     a = integer_array([1, 2, -3, np.nan])
     result = ufunc(a, a)
     expected = integer_array(ufunc(a.astype(float), a.astype(float)))
     tm.assert_extension_array_equal(result, expected)
+
+    # IntegerArray with numpy array
+    arr = np.array([1, 2, 3, 4])
+    result = ufunc(a, arr)
+    expected = integer_array(ufunc(a.astype(float), arr))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = ufunc(arr, a)
+    expected = integer_array(ufunc(arr, a.astype(float)))
+    tm.assert_extension_array_equal(result, expected)
+
+    # IntegerArray with scalar
+    result = ufunc(a, 1)
+    expected = integer_array(ufunc(a.astype(float), 1))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = ufunc(1, a)
+    expected = integer_array(ufunc(1, a.astype(float)))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_ufunc_fallback():
+    a = integer_array([1, 2, -3, np.nan])
+    assert pd.isna(np.add.reduce(a))
 
 
 # TODO(jreback) - these need testing / are broken
