@@ -203,7 +203,6 @@ Other Enhancements
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
 - New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295`).
 - Compatibility with Matplotlib 3.0 (:issue:`22790`).
-- Asv benchmarks are no longer excluded when running flake8 and occurrences of the benchmark directive `goal_time` has been removed. (:issue:`23075`).
 
 .. _whatsnew_0240.api_breaking:
 
