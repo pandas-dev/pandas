@@ -39,6 +39,7 @@ from pandas.core.base import (PandasObject,
                               NoNewAttributesMixin, _shared_docs)
 import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
+from pandas.core import ops
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender, cache_readonly, deprecate_kwarg, Substitution)
@@ -1270,6 +1271,19 @@ class Categorical(ExtensionArray, PandasObject):
             # ndarray.
             ret = np.asarray(ret)
         return ret
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # for binary ops, use our custom dunder methods
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs)
+        if result is not None:
+            return result
+        # for all other cases, raise for now (similarly as what happens in
+        # Series.__array_prepare__)
+        raise TypeError("Object with dtype {dtype} cannot perform "
+                        "the numpy op {op}".format(
+                            dtype=self.dtype,
+                            op=ufunc.__name__))
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""

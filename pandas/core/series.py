@@ -666,7 +666,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # nice error message for non-ufunc types
         if (context is not None and
-                not isinstance(self._values, (np.ndarray, ExtensionArray))):
+                (not isinstance(self._values, (np.ndarray, ExtensionArray))
+                 or isinstance(self._values, Categorical))):
             obj = context[1][0]
             raise TypeError("{obj} with dtype {dtype} cannot perform "
                             "the numpy op {op}".format(
