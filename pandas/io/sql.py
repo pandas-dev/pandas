@@ -434,13 +434,13 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
         If all columns are of the same type, one single value can be used.
     method : {'default', 'multi', callable}, default 'default'
-        Controls the SQL insertion clause used.
+        Controls the SQL insertion clause used:
 
-        * `'default'`: Uses standard SQL `INSERT` clause (one per row).
-        * `'multi'`: Pass multiple values in a single `INSERT` clause.
-        * callable: with signature `(pd_table, conn, keys, data_iter)`.
+        * 'default': Uses standard SQL ``INSERT`` clause (one per row).
+        * 'multi': Pass multiple values in a single ``INSERT`` clause.
+        * callable with signature ``(pd_table, conn, keys, data_iter)``.
 
-        Details and a sample callable implementation on
+        Details and a sample callable implementation can be found in the
         section :ref:`insert method <io.sql.method>`.
 
         .. versionadded:: 0.24.0
@@ -1149,13 +1149,13 @@ class SQLDatabase(PandasSQL):
             be a SQLAlchemy type. If all columns are of the same type, one
             single value can be used.
         method : {'default', 'multi', callable}, default 'default'
-            Controls the SQL insertion clause used.
+            Controls the SQL insertion clause used:
 
-            * `'default'`: Uses standard SQL `INSERT` clause (one per row).
-            * `'multi'`: Pass multiple values in a single `INSERT` clause.
-            * callable: with signature `(pd_table, conn, keys, data_iter)`.
+            * 'default': Uses standard SQL ``INSERT`` clause (one per row).
+            * 'multi': Pass multiple values in a single ``INSERT`` clause.
+            * callable with signature ``(pd_table, conn, keys, data_iter)``.
 
-            Details and a sample callable implementation on
+            Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
 
             .. versionadded:: 0.24.0
@@ -1515,13 +1515,13 @@ class SQLiteDatabase(PandasSQL):
             be a string. If all columns are of the same type, one single value
             can be used.
         method : {'default', 'multi', callable}, default 'default'
-            Controls the SQL insertion clause used.
+            Controls the SQL insertion clause used:
 
-            * `'default'`: Uses standard SQL `INSERT` clause (one per row).
-            * `'multi'`: Pass multiple values in a single `INSERT` clause.
-            * callable: with signature `(pd_table, conn, keys, data_iter)`.
+            * 'default': Uses standard SQL ``INSERT`` clause (one per row).
+            * 'multi': Pass multiple values in a single ``INSERT`` clause.
+            * callable with signature ``(pd_table, conn, keys, data_iter)``.
 
-            Details and a sample callable implementation on
+            Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
 
             .. versionadded:: 0.24.0

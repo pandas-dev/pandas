@@ -4814,24 +4814,22 @@ Insertion Method
 .. versionadded:: 0.24.0
 
 The parameter ``method`` controls the SQL insertion clause used.
-
 Possible values are:
 
-- `'default'`: Uses standard SQL `INSERT` clause (one per row).
-- `'multi'`: Pass multiple values in a single `INSERT` clause.
-  It uses a **special** SQL syntax not supported by all backends.
-  This usually provides better performance for Analytic databases
-  like *Presto* and *Redshit*, but has worse performance for
+- ``'default'``: Uses standard SQL ``INSERT`` clause (one per row).
+- ``'multi'``: Pass multiple values in a single ``INSERT`` clause.
+  It uses a *special* SQL syntax not supported by all backends.
+  This usually provides better performance for analytic databases
+  like *Presto* and *Redshift*, but has worse performance for
   traditional SQL backend if the table contains many columns.
-  For more information check SQLAlchemy `documention
-  <http://docs.sqlalchemy.org/en/latest/core/dml.html?highlight=multivalues#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
-- callable: with signature `(pd_table, conn, keys, data_iter)`.
-  This can be used to implement more performant insertion based on
+  For more information check the SQLAlchemy `documention
+  <http://docs.sqlalchemy.org/en/latest/core/dml.html#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
+- callable with signature ``(pd_table, conn, keys, data_iter)``:
+  This can be used to implement a more performant insertion method based on
   specific backend dialect features.
-  I.e. using *Postgresql* `COPY clause
-  <https://www.postgresql.org/docs/current/static/sql-copy.html>`__.
 
-Example of callable for Postgresql *COPY*::
+Example of a callable using PostgreSQL `COPY clause
+<https://www.postgresql.org/docs/current/static/sql-copy.html>`__::
 
   # Alternative to_sql() *method* for DBs that support COPY FROM
   import csv
