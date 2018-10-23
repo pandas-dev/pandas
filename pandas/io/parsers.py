@@ -3367,7 +3367,7 @@ class FixedWidthReader(BaseIterator):
     A reader of fixed-width lines.
     """
 
-    def __init__(self, f, colspecs, delimiter, comment, infer_nrows,
+    def __init__(self, f, colspecs, delimiter, comment, infer_nrows=100,
                  skiprows=None):
         self.f = f
         self.buffer = None
