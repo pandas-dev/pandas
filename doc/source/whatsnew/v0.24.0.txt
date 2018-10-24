@@ -1195,6 +1195,7 @@ Reshaping
 - Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
 - Bug in :func:`pandas.concat` when concatenating a multicolumn DataFrame with tz-aware data against a DataFrame with a different number of columns (:issue`22796`)
 - Bug in :func:`merge_asof` where confusing error message raised when attempting to merge with missing values (:issue:`23189`)
+- Bug in :meth:`DataFrame.nsmallest` and :meth:`DataFrame.nlargest` for dataframes that have :class:`MultiIndex`ed columns (:issue:`23033`).
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
