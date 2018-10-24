@@ -645,6 +645,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if type(result) is tuple:
             # multiple return values
             return tuple(construct_return(x) for x in result)
+        elif method == 'at':
+            # no return value
+            return None
         else:
             return construct_return(result)
 
