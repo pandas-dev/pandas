@@ -633,9 +633,10 @@ class Block(PandasObject):
             return self
 
         if klass is None:
-            # sparse is "special" and preserves sparsity.
-            # We're changing this in GH-23125
-            if dtype == np.object_ and is_sparse(values):
+            if is_sparse(self.values):
+                # Series[Sparse].astype(object) is sparse.
+                klass = ExtensionBlock
+            elif is_object_dtype(dtype):
                 klass = ObjectBlock
             elif is_extension_array_dtype(dtype):
                 klass = ExtensionBlock

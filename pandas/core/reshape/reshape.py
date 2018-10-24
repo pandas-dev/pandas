@@ -475,7 +475,7 @@ def stack(frame, level=-1, dropna=True):
             # final take to get the order correct.
             # idx is an indexer like
             # [c0r0, c1r0, c2r0, ...,
-            #  c0r1, c1r1, c241, ...]
+            #  c0r1, c1r1, c2r1, ...]
             idx = np.arange(N * K).reshape(K, N).T.ravel()
             new_values = new_values.take(idx)
 
@@ -603,20 +603,39 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         # indexer
         if not isinstance(loc, slice):
             slice_len = len(loc)
+            locs = list(loc)
         else:
             slice_len = loc.stop - loc.start
+            locs = list(range(loc.start, loc.stop))
 
         if slice_len != levsize:
             chunk = this.loc[:, this.columns[loc]]
             chunk.columns = level_vals.take(chunk.columns.labels[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
         else:
-            if frame._is_mixed_type:
+            if (frame._is_homogeneous_type and
+                    is_extension_array_dtype(frame.dtypes.iloc[0])):
+                import pdb; pdb.set_trace()
+                dtype = this.loc[:, this.columns[loc]].dtypes.iloc[0]
+                subset = this.loc[:, this.columns[loc]]
+
+                value_slice = dtype.construct_array_type()._concat_same_type(
+                    [x._values for _, x in subset.iteritems()]
+                )
+                N, K = this.shape
+                idx = np.arange(N * K).reshape(K, N).T.ravel()
+                value_slice = value_slice.take(idx)
+
+            elif frame._is_mixed_type:
                 value_slice = this.loc[:, this.columns[loc]].values
             else:
                 value_slice = this.values[:, loc]
 
-        new_data[key] = value_slice.ravel()
+        if value_slice.ndim > 1:
+            # i.e. not extension
+            value_slice = value_slice.ravel()
+
+        new_data[key] = value_slice
 
     if len(drop_cols) > 0:
         new_columns = new_columns.difference(drop_cols)
