@@ -44,7 +44,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
-from pandas.core.ops import _align_method_FRAME
+from pandas.core.ops import _align_method_FRAME, add_unary_methods
 
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles
 from pandas.io.formats.printing import pprint_thing
@@ -1423,45 +1423,6 @@ class NDFrame(PandasObject, SelectionMixin):
         if not isinstance(other, self._constructor):
             return False
         return self._data.equals(other._data)
-
-    # -------------------------------------------------------------------------
-    # Unary Methods
-
-    def __neg__(self):
-        values = com.values_from_object(self)
-        if is_bool_dtype(values):
-            arr = operator.inv(values)
-        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)
-                or is_object_dtype(values)):
-            arr = operator.neg(values)
-        else:
-            raise TypeError("Unary negative expects numeric dtype, not {}"
-                            .format(values.dtype))
-        return self.__array_wrap__(arr)
-
-    def __pos__(self):
-        values = com.values_from_object(self)
-        if (is_bool_dtype(values) or is_period_arraylike(values)):
-            arr = values
-        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)
-                or is_object_dtype(values)):
-            arr = operator.pos(values)
-        else:
-            raise TypeError("Unary plus expects numeric dtype, not {}"
-                            .format(values.dtype))
-        return self.__array_wrap__(arr)
-
-    def __invert__(self):
-        try:
-            arr = operator.inv(com.values_from_object(self))
-            return self.__array_wrap__(arr)
-        except Exception:
-
-            # inv fails with 0 len
-            if not np.prod(self.shape):
-                return self
-
-            raise
 
     def __nonzero__(self):
         raise ValueError("The truth value of a {0} is ambiguous. "
@@ -8578,7 +8539,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if not is_bool_dtype(dt):
                     raise ValueError(msg.format(dtype=dt))
 
-        cond = -cond if inplace else cond
+        cond = ~cond if inplace else cond
 
         # try to align with other
         try_quick = True
@@ -9469,7 +9430,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        return np.abs(self)
+        return abs(self)
 
     def describe(self, percentiles=None, include=None, exclude=None):
         """
@@ -11027,3 +10988,6 @@ def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
 # install the indexes
 for _name, _indexer in indexing.get_indexers_list():
     NDFrame._create_indexer(_name, _indexer)
+
+# Add unary methods
+add_unary_methods(NDFrame)

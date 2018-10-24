@@ -164,3 +164,4 @@ def make_data():
 
 DecimalArray._add_arithmetic_ops()
 DecimalArray._add_comparison_ops()
+DecimalArray._add_unary_ops()

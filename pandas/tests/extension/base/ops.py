@@ -164,3 +164,23 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             raise pytest.skip(
                 "{} does not implement __eq__".format(data.__class__.__name__)
             )
+
+
+class BaseUnaryOpsTests(BaseOpsUtil):
+    """Various Series and DataFrame unary ops methods."""
+
+    # dict defines unsupported ops, {opname: exception} like
+    # {'__inv__': TypeError}
+    exc = {}
+
+    def test_unary(self, data, all_unary_operators):
+        op = all_unary_operators
+        if op not in self.exc:
+            s = pd.Series(data)
+            result = getattr(s, op)()
+            expected = pd.Series([getattr(d, op)() for d in data],
+                                 dtype=s.dtype)
+            self.assert_series_equal(result, expected)
+        else:
+            s = pd.Series(data)
+            pytest.raises(self.exc[op], s, op)

@@ -218,6 +218,20 @@ def all_compare_operators(request):
     return request.param
 
 
+@pytest.fixture(params=['__pos__', '__neg__', '__inv__', '__invert__',
+                        '__abs__'])
+def all_unary_operators(request):
+    """
+    Fixture for dunder names for common unary operations
+
+    * +
+    * -
+    * ~
+    * abs
+    """
+    return request.param
+
+
 @pytest.fixture(params=[None, 'gzip', 'bz2', 'zip',
                         pytest.param('xz', marks=td.skip_if_no_lzma)])
 def compression(request):

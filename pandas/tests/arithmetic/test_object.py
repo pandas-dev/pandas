@@ -43,7 +43,7 @@ class TestObjectComparisons(object):
         tm.assert_series_equal(result, expected)
 
         result = ser != 'a'
-        expected = -(ser == 'a')
+        expected = ~(ser == 'a')
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('dtype', [None, object])

@@ -3401,7 +3401,7 @@ class DataFrame(NDFrame):
 
         self._check_inplace_setting(value)
         self._check_setitem_copy()
-        self._where(-key, value, inplace=True)
+        self._where(~key, value, inplace=True)
 
     def _ensure_valid_index(self, value):
         """
@@ -4639,11 +4639,11 @@ class DataFrame(NDFrame):
         duplicated = self.duplicated(subset, keep=keep)
 
         if inplace:
-            inds, = (-duplicated)._ndarray_values.nonzero()
+            inds, = (~duplicated)._ndarray_values.nonzero()
             new_data = self._data.take(inds)
             self._update_inplace(new_data)
         else:
-            return self[-duplicated]
+            return self[~duplicated]
 
     def duplicated(self, subset=None, keep='first'):
         """

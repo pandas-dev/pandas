@@ -24,9 +24,9 @@ from pandas.core.dtypes.cast import (
     maybe_upcast_putmask)
 from pandas.core.dtypes.common import (
     ensure_object, is_bool_dtype, is_categorical_dtype, is_datetime64_dtype,
-    is_datetime64tz_dtype, is_datetimelike_v_numeric, is_extension_array_dtype,
-    is_integer_dtype, is_list_like, is_object_dtype, is_period_dtype,
-    is_scalar, is_timedelta64_dtype, needs_i8_conversion)
+    is_datetime64_any_dtype, is_datetime64tz_dtype, is_datetimelike_v_numeric,
+    is_extension_array_dtype, is_integer_dtype, is_list_like, is_object_dtype,
+    is_period_dtype, is_scalar, is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndex, ABCIndexClass, ABCPanel, ABCSeries, ABCSparseArray,
     ABCSparseSeries)
@@ -1438,6 +1438,82 @@ def add_flex_arithmetic_methods(cls):
     # opt out of bool flex methods for now
     assert not any(kname in new_methods for kname in ('ror_', 'rxor', 'rand_'))
 
+    add_methods(cls, new_methods=new_methods)
+
+
+# ----------------------------------------------------------------------
+# Unary
+
+def _unary_method(cls, op, special=True):
+    op_name = _get_op_name(op, special)
+
+    def f(self):
+        if self.ndim > 2:
+            with np.errstate(all='ignore'):
+                # apply op at once based on current impl
+                new_data = op(self._values)
+            result = self._constructor(new_data, self.items,
+                                       self.major_axis, self.minor_axis)
+            return result.__finalize__(self)
+        elif self.ndim == 2:
+            new_data = {i: op(self.iloc[:, i])
+                        for i in range(len(self.columns))}
+            result = self._constructor(new_data, index=self.index, copy=False)
+            # Pin columns instead of passing to constructor for compat with
+            # non-unique columns case
+            result.columns = self.columns
+            return result.__finalize__(self)
+        else:
+            with np.errstate(all='ignore'):
+                new_data = op(self._values)
+            return self._constructor(new_data, name=self.name,
+                                     index=self.index).__finalize__(self)
+
+    f.__name__ = op_name
+
+    return f
+
+
+def pos(values):
+    if is_datetime64_any_dtype(values):
+        raise TypeError("Unary plus expects numeric dtype, not {}"
+                        .format(values.dtype))
+    else:
+        return operator.pos(values)
+
+
+def neg(values):
+    if is_bool_dtype(values):
+        return operator.invert(values)
+    else:
+        return operator.neg(values)
+
+
+def invert(values):
+    try:
+        return operator.inv(values)
+    except Exception:
+        # inv fails with 0 len
+        if not values.size:
+            return values
+        raise
+
+
+def add_unary_methods(cls):
+    """
+    Adds the full suite of unary methods to the class.
+
+    Parameters
+    ----------
+    cls : class
+        unary methods will be defined and pinned to this class
+    """
+    new_methods = dict(pos=_unary_method(cls, pos),
+                       neg=_unary_method(cls, neg),
+                       invert=_unary_method(cls, invert),
+                       inv=_unary_method(cls, invert),
+                       abs=_unary_method(cls, operator.abs))
+    new_methods = {'__{}__'.format(k): v for k, v in new_methods.items()}
     add_methods(cls, new_methods=new_methods)
 
 

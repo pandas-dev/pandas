@@ -1002,6 +1002,14 @@ class ExtensionOpsMixin(object):
         cls.__le__ = cls._create_comparison_method(operator.le)
         cls.__ge__ = cls._create_comparison_method(operator.ge)
 
+    @classmethod
+    def _add_unary_ops(cls):
+        cls.__pos__ = cls._create_unary_method(operator.pos)
+        cls.__neg__ = cls._create_unary_method(operator.neg)
+        cls.__inv__ = cls._create_unary_method(operator.invert)
+        cls.__invert__ = cls._create_unary_method(operator.invert)
+        cls.__abs__ = cls._create_unary_method(operator.abs)
+
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
@@ -1040,7 +1048,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         Parameters
         ----------
         op : function
-            An operator that takes arguments op(a, b)
+            An operator that takes binary arguments op(a, b)
         coerce_to_dtype :  bool, default True
             boolean indicating whether to attempt to convert
             the result to the underlying ExtensionArray dtype.
@@ -1058,8 +1066,8 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
             `op` cannot be stored in the ExtensionArray. The dtype of the
             ndarray uses NumPy's normal inference rules.
 
-        Example
-        -------
+        Examples
+        --------
         Given an ExtensionArray subclass called MyExtensionArray, use
 
         >>> __add__ = cls._create_method(operator.add)
@@ -1088,24 +1096,12 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
             # a TypeError should be raised
             res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
 
-            def _maybe_convert(arr):
-                if coerce_to_dtype:
-                    # https://github.com/pandas-dev/pandas/issues/22850
-                    # We catch all regular exceptions here, and fall back
-                    # to an ndarray.
-                    try:
-                        res = self._from_sequence(arr)
-                    except Exception:
-                        res = np.asarray(arr)
-                else:
-                    res = np.asarray(arr)
-                return res
-
             if op.__name__ in {'divmod', 'rdivmod'}:
                 a, b = zip(*res)
-                res = _maybe_convert(a), _maybe_convert(b)
+                res = (self._maybe_convert(a, coerce_to_dtype),
+                       self._maybe_convert(b, coerce_to_dtype))
             else:
-                res = _maybe_convert(res)
+                res = self._maybe_convert(res, coerce_to_dtype)
             return res
 
         op_name = ops._get_op_name(op, True)
@@ -1118,3 +1114,65 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     @classmethod
     def _create_comparison_method(cls, op):
         return cls._create_method(op, coerce_to_dtype=False)
+
+    @classmethod
+    def _create_unary_method(cls, op, coerce_to_dtype=True):
+        """
+        A class method that returns a method that will correspond to an
+        operator for an ExtensionArray subclass, by dispatching to the
+        relevant operator defined on the individual elements of the
+        ExtensionArray.
+
+        Parameters
+        ----------
+        op : function
+            An operator that takes unary argument op(a)
+        coerce_to_dtype :  bool, default True
+            boolean indicating whether to attempt to convert
+            the result to the underlying ExtensionArray dtype.
+            If it's not possible to create a new ExtensionArray with the
+            values, an ndarray is returned instead.
+
+        Returns
+        -------
+        Callable[[Any], Union[ndarray, ExtensionArray]]
+            A method that can be bound to a class. When used, the method
+            receives the instance of this class, and should return an
+            ExtensionArray or an ndarray.
+
+            Returning an ndarray may be necessary when the result of the
+            `op` cannot be stored in the ExtensionArray. The dtype of the
+            ndarray uses NumPy's normal inference rules.
+
+        Examples
+        --------
+        Given an ExtensionArray subclass called MyExtensionArray, use
+        >>> __neg__ = cls._create_method(operator.neg)
+
+        in the class definition of MyExtensionArray to create the operator
+        for negative, that will be based on the operator implementation
+        of the underlying elements of the ExtensionArray
+        """
+
+        def _unaryop(self):
+            # If the operator is not defined for the underlying objects,
+            # a TypeError should be raised
+            res = [op(a) for a in self]
+            res = self._maybe_convert(res, coerce_to_dtype)
+            return res
+
+        op_name = ops._get_op_name(op, True)
+        return set_function_name(_unaryop, op_name, cls)
+
+    def _maybe_convert(self, arr, coerce_to_dtype):
+        if coerce_to_dtype:
+            # https://github.com/pandas-dev/pandas/issues/22850
+            # We catch all regular exceptions here, and fall back
+            # to an ndarray.
+            try:
+                res = self._from_sequence(arr)
+            except Exception:
+                res = np.asarray(arr)
+        else:
+            res = np.asarray(arr)
+        return res

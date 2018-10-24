@@ -733,17 +733,3 @@ class TestSeriesOperators(TestData):
         result = s1 + s2
         expected = pd.Series([11, 12, np.nan], index=[1, 1, 2])
         assert_series_equal(result, expected)
-
-
-class TestSeriesUnaryOps(object):
-    # __neg__, __pos__, __inv__
-
-    def test_neg(self):
-        ser = tm.makeStringSeries()
-        ser.name = 'series'
-        assert_series_equal(-ser, -1 * ser)
-
-    def test_invert(self):
-        ser = tm.makeStringSeries()
-        ser.name = 'series'
-        assert_series_equal(-(ser < 0), ~(ser < 0))

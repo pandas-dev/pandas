@@ -644,9 +644,20 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         name = '__{name}__'.format(name=op.__name__)
         return set_function_name(integer_arithmetic_method, name, cls)
 
+    @classmethod
+    def _create_unary_method(cls, op):
+        def integer_unary_method(self):
+            with np.errstate(all='ignore'):
+                result = op(self._data)
+            return type(self)(result, self._mask)
+
+        name = '__{name}__'.format(name=op.__name__)
+        return set_function_name(integer_unary_method, name, cls)
+
 
 IntegerArray._add_arithmetic_ops()
 IntegerArray._add_comparison_ops()
+IntegerArray._add_unary_ops()
 
 
 module = sys.modules[__name__]

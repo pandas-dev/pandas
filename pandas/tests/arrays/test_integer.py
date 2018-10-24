@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import operator
+
 import numpy as np
 import pytest
 
@@ -363,6 +365,49 @@ class TestComparisonOps(BaseOpsUtil):
         op_name = all_compare_operators
         other = pd.Series([0] * len(data))
         self._compare_other(data, op_name, other)
+
+
+# ------------------------------------------------------------------
+# Unary
+
+class TestUnaryOps(object):
+
+    @pytest.mark.parametrize('op', [operator.pos, operator.neg,
+                                    operator.inv, operator.abs])
+    def test_integer(self, dtype, op):
+        # GH#23087
+        arr = integer_array([1, 3, 2], dtype=dtype)
+        result = op(arr)
+        exp = integer_array(op(np.array([1, 3, 2], dtype=dtype.numpy_dtype)))
+        tm.assert_extension_array_equal(result, exp)
+
+    @pytest.mark.parametrize('op', [operator.pos, operator.neg,
+                                    operator.inv, operator.abs])
+    def test_empty(self, dtype, op):
+        # GH#23087
+        arr = integer_array([], dtype=dtype)
+        result = op(arr)
+        tm.assert_extension_array_equal(result, arr)
+
+    @pytest.mark.parametrize('op', [operator.pos, operator.neg,
+                                    operator.inv, operator.abs])
+    def test_mask(self, dtype, op):
+        # GH#23087
+        arr = IntegerArray(np.array([1, 2, 3], dtype=dtype.numpy_dtype),
+                           mask=np.array([False, True, False]))
+        result = op(arr)
+        exp = IntegerArray(op(np.array([1, 2, 3], dtype=dtype.numpy_dtype)),
+                           mask=np.array([False, True, False]))
+        tm.assert_extension_array_equal(result, exp)
+
+    @pytest.mark.parametrize('op', [operator.pos, operator.neg,
+                                    operator.inv, operator.abs])
+    def test_all_mask(self, dtype, op):
+        # GH#23087
+        arr = IntegerArray(np.array([1, 1, 1], dtype=dtype.numpy_dtype),
+                           mask=np.array([True, True, True]))
+        result = op(arr)
+        tm.assert_extension_array_equal(result, arr)
 
 
 class TestCasting(object):

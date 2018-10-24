@@ -805,6 +805,9 @@ class CheckIndexing(object):
     def test_neg(self):
         assert_panel_equal(-self.panel, -1 * self.panel)
 
+    def test_pos(self):
+        assert_panel_equal(+self.panel, self.panel)
+
     def test_invert(self):
         assert_panel_equal(-(self.panel < 0), ~(self.panel < 0))
 

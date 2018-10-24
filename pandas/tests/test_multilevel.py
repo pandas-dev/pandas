@@ -1206,7 +1206,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # it works! #2101
         result = idf.drop(drop_idx.index, level=0).reset_index()
-        expected = df[-df.var1.isin(drop_idx.index)]
+        expected = df[~df.var1.isin(drop_idx.index)]
 
         result.index = expected.index
 

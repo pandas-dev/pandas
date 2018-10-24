@@ -133,7 +133,7 @@ class TestFrameComparisons(object):
         df = pd.DataFrame([{"a": 1, "b": "foo"}, {"a": 2, "b": "bar"}])
         mask_a = df.a > 1
         tm.assert_frame_equal(df[mask_a], df.loc[1:1, :])
-        tm.assert_frame_equal(df[-mask_a], df.loc[0:0, :])
+        tm.assert_frame_equal(df[~mask_a], df.loc[0:0, :])
 
         mask_b = df.b == "foo"
         tm.assert_frame_equal(df[mask_b], df.loc[0:0, :])
@@ -634,3 +634,159 @@ class TestFrameArithmetic(object):
         added = pd.DataFrame(df.values + val3,
                              index=df.index, columns=df.columns)
         tm.assert_frame_equal(df.add(val3), added)
+
+
+# ------------------------------------------------------------------
+# Unary
+class TestFrameUnary(object):
+
+    @pytest.mark.parametrize('typ', ['int64', 'int32', 'int16', 'int8',
+                                     'uint64', 'uint32', 'uint16', 'uint8',
+                                     'Int64', 'Int32', 'Int16', 'Int8',
+                                     'UInt64', 'UInt32', 'UInt16', 'UInt8'])
+    @pytest.mark.parametrize('op', [operator.pos, operator.neg,
+                                    operator.inv, operator.abs])
+    def test_int_only(self, typ, op):
+        # GH#23087
+        df = pd.DataFrame({'a': [1, 2, 3],
+                           'b': [1, 2, 3],
+                           'c': [1, 2, 3],
+                           'd': [1, 2, 3]}, dtype=typ)
+        result = op(df)
+
+        exp = pd.DataFrame({'a': op(np.array([1, 2, 3],
+                                    dtype=typ.lower())),
+                            'b': op(np.array([1, 2, 3],
+                                    dtype=typ.lower())),
+                            'c': op(np.array([1., 2., 3.],
+                                    dtype=typ.lower())),
+                            'd': op(np.array([1., 2., 3.],
+                                    dtype=typ.lower()))}, dtype=typ)
+        tm.assert_frame_equal(result, exp)
+
+    @pytest.mark.parametrize('op', [operator.pos, operator.neg,
+                                    operator.abs])
+    def test_float_only(self, float_dtype, op):
+        typ = float_dtype
+        # GH#23087
+        df = pd.DataFrame({'a': [1, 2, 3],
+                           'b': [1, 2, 3],
+                           'c': [1, 2, 3],
+                           'd': [1, 2, 3]}, dtype=typ)
+        result = op(df)
+        exp = pd.DataFrame({'a': op(np.array([1, 2, 3], dtype=typ)),
+                            'b': op(np.array([1, 2, 3], dtype=typ)),
+                            'c': op(np.array([1., 2., 3.], dtype=typ)),
+                            'd': op(np.array([1., 2., 3.], dtype=typ))},
+                           dtype=typ)
+        tm.assert_frame_equal(result, exp)
+
+    @pytest.mark.parametrize('op', [operator.inv])
+    def test_float_only_inv_raise(self, float_dtype, op):
+        typ = float_dtype
+        # GH#23087
+        df = pd.DataFrame({'a': [1, 2, 3],
+                           'b': [1, 2, 3],
+                           'c': [1, 2, 3],
+                           'd': [1, 2, 3]}, dtype=typ)
+
+        pytest.raises(TypeError, op, df)
+
+    @pytest.mark.parametrize('ityp', ['Int64', 'Int32', 'Int16', 'Int8',
+                                      'UInt64', 'UInt32', 'UInt16', 'UInt8'])
+    @pytest.mark.parametrize('op', [operator.pos, operator.neg,
+                                    operator.abs])
+    def test_mixed_numeric(self, ityp, float_dtype, op):
+        # GH#23087
+        df = pd.DataFrame({'a': [1, 2, 3],
+                           'b': [1, 2, 3],
+                           'c': [1., 2., 3.],
+                           'd': [1., 2., 3.]})
+        df = df.astype({'a': ityp, 'b': ityp, 'c': float_dtype,
+                        'd': float_dtype})
+        result = op(df)
+        exp = pd.DataFrame({'a': op(np.array([1, 2, 3],
+                                    dtype=ityp.lower())),
+                            'b': op(np.array([1, 2, 3],
+                                    dtype=ityp.lower())),
+                            'c': op(np.array([1., 2., 3.],
+                                    dtype=float_dtype)),
+                            'd': op(np.array([1., 2., 3.],
+                                    dtype=float_dtype))})
+        exp = exp.astype({'a': ityp, 'b': ityp, 'c': float_dtype,
+                          'd': float_dtype})
+        tm.assert_frame_equal(result, exp)
+
+    @pytest.mark.parametrize('ityp', ['Int64', 'Int32', 'Int16', 'Int8',
+                                      'UInt64', 'UInt32', 'UInt16', 'UInt8'])
+    @pytest.mark.parametrize('op', [operator.inv])
+    def test_mixed_numeric_inv_raise(self, ityp, float_dtype, op):
+        # GH#23087
+        df = pd.DataFrame({'a': [1, 2, 3],
+                           'b': [1, 2, 3],
+                           'c': [1., 2., 3.],
+                           'd': [1., 2., 3.]})
+        df = df.astype({'a': ityp, 'b': ityp, 'c': float_dtype,
+                        'd': float_dtype})
+        pytest.raises(TypeError, op, df)
+
+    @pytest.mark.parametrize('typ', ['Int64', 'Int32', 'Int16', 'Int8'])
+    @pytest.mark.parametrize('op', [operator.pos, operator.neg,
+                                    operator.abs])
+    def test_timedelta_mixed(self, typ, op):
+        # GH#23087
+        df = pd.DataFrame({'a': [1, 2, 3],
+                           'b': [1, 2, 3],
+                           'c': [1., 2., 3.],
+                           'd': pd.to_timedelta([1, 2, 3], unit='m')})
+        df = df.astype({'a': typ, 'b': typ})
+        result = op(df)
+
+        exp = pd.DataFrame({'a': op(np.array([1, 2, 3],
+                                    dtype=typ.lower())),
+                            'b': op(np.array([1, 2, 3],
+                                    dtype=typ.lower())),
+                            'c': op(np.array([1., 2., 3.])),
+                            'd': op(pd.to_timedelta([1, 2, 3], unit='m'))})
+        exp = exp.astype({'a': typ, 'b': typ})
+        tm.assert_frame_equal(result, exp)
+
+    @pytest.mark.parametrize('typ', ['Int64', 'Int32', 'Int16', 'Int8'])
+    @pytest.mark.parametrize('op', [operator.inv])
+    def test_timedelta_mixed_inv_raise(self, typ, op):
+        # GH#23087
+        df = pd.DataFrame({'a': [1, 2, 3],
+                           'b': [1, 2, 3],
+                           'c': [1., 2., 3.],
+                           'd': pd.to_timedelta([1, 2, 3], unit='m')})
+        df = df.astype({'a': typ, 'b': typ})
+        pytest.raises(TypeError, op, df)
+
+    @pytest.mark.parametrize('typ', ['Int64', 'Int32', 'Int16', 'Int8'])
+    @pytest.mark.parametrize('op', [operator.pos])
+    def test_object_mixed(self, typ, op):
+        # GH#23087
+        df = pd.DataFrame({'a': [1, 2, 3],
+                           'b': [1, 2, 3],
+                           'c': [1., 2., 3.],
+                           'd': ['a', 'b', 'c']})
+        df = df.astype({'a': typ, 'b': typ})
+        result = op(df)
+        exp = pd.DataFrame({'a': [1, 2, 3],
+                            'b': [1, 2, 3],
+                            'c': [1., 2., 3.],
+                            'd': ['a', 'b', 'c']})
+        exp = exp.astype({'a': typ, 'b': typ})
+        tm.assert_frame_equal(result, exp)
+
+    @pytest.mark.parametrize('typ', ['Int64', 'Int32', 'Int16', 'Int8'])
+    @pytest.mark.parametrize('op', [operator.neg,
+                                    operator.inv, operator.abs])
+    def test_object_mixed_raise(self, typ, op):
+        # GH#23087
+        df = pd.DataFrame({'a': [1, 2, 3],
+                           'b': [1, 2, 3],
+                           'c': [1., 2., 3.],
+                           'd': ['a', 'b', 'c']})
+        df = df.astype({'a': typ, 'b': typ})
+        pytest.raises(TypeError, op, df)

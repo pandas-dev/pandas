@@ -325,6 +325,11 @@ class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
         self._compare_other(s, data, op_name, other)
 
 
+class TestUnaryOps(BaseDecimal, base.BaseUnaryOpsTests):
+
+    exc = {'__inv__': TypeError, '__invert__': TypeError}
+
+
 class DecimalArrayWithoutFromSequence(DecimalArray):
     """Helper class for testing error handling in _from_sequence."""
     def _from_sequence(cls, scalars, dtype=None, copy=False):

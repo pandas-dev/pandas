@@ -170,3 +170,136 @@ class TestSeriesComparison(object):
             ser = Series(cidx).rename(names[1])
             result = op(ser, cidx)
             assert result.name == names[2]
+
+# ------------------------------------------------------------------
+# Unary
+
+class TestSeriesUnary(object):
+
+    def test_neg(self):
+        ser = tm.makeStringSeries()
+        ser.name = 'series'
+        tm.assert_series_equal(-ser, -1 * ser)
+
+    def test_pos(self):
+        ser = tm.makeStringSeries()
+        ser.name = 'series'
+        tm.assert_series_equal(+ser, ser)
+
+    def test_invert(self):
+        ser = tm.makeStringSeries()
+        ser.name = 'series'
+        tm.assert_series_equal(-(ser < 0), ~(ser < 0))
+
+    @pytest.mark.parametrize('typ', ['int64', 'int32', 'int16', 'int8',
+                                     'uint64', 'uint32', 'uint16', 'uint8',
+                                     'Int64', 'Int32', 'Int16', 'Int8',
+                                     'UInt64', 'UInt32', 'UInt16', 'UInt8'])
+    @pytest.mark.parametrize('op', [operator.pos, operator.neg,
+                                    operator.inv, operator.abs])
+    def test_integer(self, typ, op):
+        # GH#23087
+        ser = Series([1, 3, 2], index=range(3), dtype=typ)
+        result = op(ser)
+        exp = Series(op(ser.values), index=ser.index)
+        tm.assert_series_equal(result, exp)
+
+    @pytest.mark.parametrize('op', [operator.pos, operator.neg,
+                                    operator.abs])
+    def test_float(self, float_dtype, op):
+        # GH#23087
+        ser = Series([1.1, 3.1, 2.1], index=range(3), dtype=float_dtype)
+        result = op(ser)
+        exp = Series(op(ser.values), index=ser.index)
+        tm.assert_series_equal(result, exp)
+
+    @pytest.mark.parametrize('op', [operator.inv])
+    def test_float_inv_raise(self, float_dtype, op):
+        # GH#23087
+        ser = Series([1.1, 3.1, 2.1], index=range(3), dtype=float_dtype)
+        pytest.raises(TypeError, op, ser)
+        # consistent with numpy
+        pytest.raises(TypeError, op, ser.values)
+
+    @pytest.mark.parametrize('typ', ['bool'])
+    @pytest.mark.parametrize('op', [operator.pos, operator.neg,
+                                    operator.inv, operator.abs])
+    def test_bool(self, typ, op):
+        # GH#23087
+        ser = Series([True, False, True], index=range(3), dtype=typ)
+
+        if op is operator.neg:
+            result = op(ser)
+            exp = Series(operator.inv(ser.values), index=ser.index)
+            tm.assert_series_equal(result, exp)
+
+            # inconsistent with NumPy
+            pytest.raises(TypeError, op, ser.values)
+        else:
+            result = op(ser)
+            exp = Series(op(ser.values), index=ser.index)
+            tm.assert_series_equal(result, exp)
+
+    @pytest.mark.parametrize('typ', ['datetime64[ns]', 'datetime64[ns, GMT]',
+                                     'datetime64[ns, US/Eastern]'])
+    @pytest.mark.parametrize('op', [operator.pos])
+    def test_datetime_pos_raises(self, typ, op):
+        # GH#23087
+        ser = Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+                      pd.Timestamp('2011-01-03')], index=range(3), dtype=typ)
+        # pandas all raises
+        pytest.raises(TypeError, op, ser)
+        # inconsistent with NumPy
+        tm.assert_numpy_array_equal(ser.values, op(ser.values))
+
+    @pytest.mark.parametrize('typ', ['datetime64[ns]', 'datetime64[ns, GMT]',
+                                     'datetime64[ns, US/Eastern]'])
+    @pytest.mark.parametrize('op', [operator.neg,
+                                    operator.inv, operator.abs])
+    def test_datetime_raises(self, typ, op):
+        # GH#23087
+        ser = Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+                      pd.Timestamp('2011-01-03')], index=range(3), dtype=typ)
+        # pandas all raises
+        pytest.raises(TypeError, op, ser)
+        pytest.raises(TypeError, op, ser.values)
+
+    @pytest.mark.parametrize('typ', ['timedelta64[ns]'])
+    @pytest.mark.parametrize('op', [operator.pos, operator.neg,
+                                    operator.abs])
+    def test_timedelta(self, typ, op):
+        # GH#23087
+        ser = Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+                      pd.Timedelta('3 days')], index=range(3), dtype=typ)
+        result = op(ser)
+        exp = Series(op(ser.values), index=ser.index)
+        tm.assert_series_equal(result, exp)
+
+    @pytest.mark.parametrize('typ', ['timedelta64[ns]'])
+    @pytest.mark.parametrize('op', [operator.inv])
+    def test_timedelta_inv_raise(self, typ, op):
+        # GH#23087
+        ser = Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+                      pd.Timedelta('3 days')], index=range(3), dtype=typ)
+        pytest.raises(TypeError, op, ser)
+        # consistent with numpy
+        pytest.raises(TypeError, op, ser.values)
+
+    @pytest.mark.parametrize('typ', ['str', 'object'])
+    @pytest.mark.parametrize('op', [operator.pos])
+    def test_object(self, typ, op):
+        # GH#23087
+        ser = Series(['a', 'b', 'c'], index=range(3), dtype=typ)
+        result = op(ser)
+        exp = Series(op(ser.values), index=ser.index)
+        tm.assert_series_equal(result, exp)
+
+    @pytest.mark.parametrize('typ', ['str', 'object'])
+    @pytest.mark.parametrize('op', [operator.neg,
+                                    operator.inv, operator.abs])
+    def test_object_raises(self, typ, op):
+        # GH#23087
+        ser = Series(['a', 'b', 'c'], index=range(3), dtype=typ)
+        pytest.raises(TypeError, op, ser)
+        # consistent with numpy
+        pytest.raises(TypeError, op, ser.values)
