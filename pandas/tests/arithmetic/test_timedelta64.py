@@ -1127,9 +1127,9 @@ class TestTimedeltaArraylikeMulDivOps(object):
         pd.Float64Index(range(1, 11)),
         pd.RangeIndex(1, 11)
     ], ids=lambda x: type(x).__name__)
-    def test_tdi_rmul_arraylike(self, other, box_df_fail):
+    def test_tdi_rmul_arraylike(self, other, box_df_broadcast_failure):
         # DataFrame tries to broadcast incorrectly
-        box = box_df_fail
+        box = box_df_broadcast_failure
 
         tdi = TimedeltaIndex(['1 Day'] * 10)
         expected = timedelta_range('1 days', '10 days')
