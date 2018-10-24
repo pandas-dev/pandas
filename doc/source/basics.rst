@@ -1464,9 +1464,6 @@ for altering the ``Series.name`` attribute.
 
    s.rename("scalar-name")
 
-The Panel class has a related :meth:`~Panel.rename` class which can rename
-any of its three axes.
-
 .. _basics.rename_axis:
 
 .. versionadded:: 0.24.0

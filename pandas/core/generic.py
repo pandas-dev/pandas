@@ -963,24 +963,6 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Rename
 
-    # renamer function if passed a dict
-    def _get_rename_function(self, mapper):
-        """
-        Returns a function that will map names/labels, dependent if mapper
-        is a dict, Series or just a function.
-        """
-        if isinstance(mapper, (dict, ABCSeries)):
-
-            def f(x):
-                if x in mapper:
-                    return mapper[x]
-                else:
-                    return x
-        else:
-            f = mapper
-
-        return f
-
     def rename(self, *args, **kwargs):
         """
         Alter axes input function or functions. Function / dict values must be
@@ -1106,7 +1088,7 @@ class NDFrame(PandasObject, SelectionMixin):
             v = axes.get(self._AXIS_NAMES[axis])
             if v is None:
                 continue
-            f = self._get_rename_function(v)
+            f = com.get_rename_function(v)
 
             baxis = self._get_block_manager_axis(axis)
             if level is not None:
@@ -1135,6 +1117,9 @@ class NDFrame(PandasObject, SelectionMixin):
             Use either ``mapper`` and ``axis`` to
             specify the axis to target with ``mapper``, or ``index``
             and/or ``columns``.
+
+            .. versionchanged:: 0.24.0
+
         axis : int or string, default 0
         copy : boolean, default True
             Also copy underlying data.
@@ -1285,7 +1270,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if non_mapper:
                     newnames = v
                 else:
-                    f = self._get_rename_function(v)
+                    f = com.get_rename_function(v)
                     curnames = self._get_axis(axis).names
                     newnames = [f(name) for name in curnames]
                 result._set_axis_name(newnames, axis=axis,
