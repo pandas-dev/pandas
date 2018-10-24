@@ -465,7 +465,7 @@ def _unstack_extension_series(series, level, fill_value):
                                       allow_fill=True,
                                       fill_value=fill_value),
                           name=col, index=result.index))
-    return concat(out, axis='columns', copy=False)
+    return concat(out, axis='columns', copy=False, keys=result.columns)
 
 
 def stack(frame, level=-1, dropna=True):

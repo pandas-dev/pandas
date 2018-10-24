@@ -303,7 +303,8 @@ class TestDataFrameReshape(TestData):
         # Test unstacking with categorical
         data = pd.Series(['a', 'b', 'c', 'a'], dtype='category')
         data.index = pd.MultiIndex.from_tuples(
-            [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')])
+            [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')],
+        )
 
         # By default missing values will be NaN
         result = data.unstack()
