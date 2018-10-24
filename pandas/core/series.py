@@ -633,6 +633,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Gets called after a ufunc
         """
+        if getattr(result, 'ndim', None) == 0:
+            return result
         return self._constructor(result, index=self.index,
                                  copy=False).__finalize__(self)
 

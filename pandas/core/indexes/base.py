@@ -677,7 +677,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Gets called after a ufunc
         """
-        if is_bool_dtype(result):
+        if is_bool_dtype(result) or (getattr(result, 'ndim', None) == 0):
             return result
 
         attrs = self._get_attributes_dict()

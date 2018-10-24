@@ -833,6 +833,15 @@ class TestUFuncCompat(object):
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
+    @pytest.mark.parametrize('holder', [pd.Int64Index, pd.UInt64Index,
+                                        pd.Float64Index, pd.Series])
+    def test_ufunc_reduce(self, holder):
+        idx = holder([1, 2, 3, 4, 5], name='x')
+
+        result = np.add.reduce(idx)
+        assert not isinstance(result, holder)
+        assert result == 15
+
 
 class TestObjectDtypeEquivalence(object):
     # Tests that arithmetic operations match operations executed elementwise
