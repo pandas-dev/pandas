@@ -16,7 +16,7 @@ dependencies:
   - pyarrow
   - pytables
   - python-dateutil
-  - python=3.6.*
+  - python=3.6.6
   - pytz
   - scipy
   - thrift=0.10*
