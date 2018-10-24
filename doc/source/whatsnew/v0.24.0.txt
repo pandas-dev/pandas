@@ -421,44 +421,6 @@ that the dates have been converted to UTC
 
     pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
 
-.. _whatsnew_0240.api_breaking.calendarday:
-
-Frequency alisas ``'D'`` and Day offset representing calendar day
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-:class:`Day` and associated frequency alias ``'D'`` were documented to represent
-a calendar day; however, arithmetic and operations with :class:`Day` sometimes
-respected absolute time instead (i.e. ``Day(n)`` and acted identically to ``Timedelta(days=n)``).
-
-*Previous Behavior*:
-
-.. code-block:: ipython
-
-
-    In [2]: ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
-
-    # Respects calendar arithmetic
-    In [3]: pd.date_range(start=ts, freq='D', periods=3)
-    Out[3]:
-    DatetimeIndex(['2016-10-30 00:00:00+03:00', '2016-10-31 00:00:00+02:00',
-                   '2016-11-01 00:00:00+02:00'],
-                  dtype='datetime64[ns, Europe/Helsinki]', freq='D')
-
-    # Respects absolute arithmetic
-    In [4]: ts + pd.tseries.frequencies.to_offset('D')
-    Out[4]: Timestamp('2016-10-30 23:00:00+0200', tz='Europe/Helsinki')
-
-:class:`Day` and associated frequency alias ``'D'`` will always respect
-calendar day arithmetic
-(:issue:`22867`, :issue:`22864`, :issue:`20596`, :issue:`16980`, :issue:`8774`)
-
-Addition with :class:`CalendarDay` across a daylight savings time transition:
-
-.. ipython:: python
-
-   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
-   ts + pd.offsets.Day(1)
-
 .. _whatsnew_0240.api_breaking.period_end_time:
 
 Time values in ``dt.end_time`` and ``to_timestamp(how='end')``
@@ -908,6 +870,7 @@ Deprecations
 - :meth:`FrozenNDArray.searchsorted` has deprecated the ``v`` parameter in favor of ``value`` (:issue:`14645`)
 - :func:`DatetimeIndex.shift` and :func:`PeriodIndex.shift` now accept ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`, :issue:`22912`)
 - The ``fastpath`` keyword of the different Index constructors is deprecated (:issue:`23110`).
+- Operations where the offset alias ``'D'`` or :class:`Day` acts as a fixed, absolute duration of 24 hours are deprecated. This includes :class:`Timestamp` arithmetic and all operations with :class:`Timedelta`. :class:`Day` will always represent a calendar day in a future version (:issue:`22864`)
 
 .. _whatsnew_0240.prior_deprecations:
 
