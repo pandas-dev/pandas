@@ -790,11 +790,11 @@ class TestAdditionSubtraction(object):
 
 
 class TestUFuncCompat(object):
-    @pytest.mark.parametrize('holder', [pd.Int64Index, pd.UInt64Index,
-                                        pd.Float64Index, pd.Series])
-    def test_ufunc_coercions(self, holder):
-        idx = holder([1, 2, 3, 4, 5], name='x')
-        box = pd.Series if holder is pd.Series else pd.Index
+    @pytest.mark.parametrize('box', [pd.Int64Index, pd.UInt64Index,
+                                     pd.Float64Index, pd.Series])
+    def test_ufunc_coercions(self, box):
+        idx = box([1, 2, 3, 4, 5], name='x')
+        box = pd.Series if box is pd.Series else pd.Index
 
         result = np.sqrt(idx)
         assert result.dtype == 'f8' and isinstance(result, box)
@@ -833,14 +833,19 @@ class TestUFuncCompat(object):
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
-    @pytest.mark.parametrize('holder', [pd.Int64Index, pd.UInt64Index,
-                                        pd.Float64Index, pd.Series])
-    def test_ufunc_reduce(self, holder):
-        idx = holder([1, 2, 3, 4, 5], name='x')
+    @pytest.mark.parametrize('box', [pd.Int64Index, pd.UInt64Index,
+                                     pd.Float64Index, pd.Series])
+    def test_ufunc_reduce(self, box):
+        idx = box([1, 2, 3, 4, 5], name='x')
 
         result = np.add.reduce(idx)
-        assert not isinstance(result, holder)
+        # GH23312 result was equal to 15 but boxed as 0-dim array in Index
+        assert not isinstance(result, box)
         assert result == 15
+
+        result = np.logical_and.reduce(idx)
+        assert not isinstance(result, box)
+        assert result is True
 
 
 class TestObjectDtypeEquivalence(object):
