@@ -1544,7 +1544,7 @@ def assert_equal(left, right, **kwargs):
         raise NotImplementedError(type(left))
 
 
-def box_expected(expected, box_cls):
+def box_expected(expected, box_cls, transpose=False):
     """
     Helper function to wrap the expected output of a test in a given box_class.
 
@@ -1552,6 +1552,8 @@ def box_expected(expected, box_cls):
     ----------
     expected : np.ndarray, Index, Series
     box_cls : {Index, Series, DataFrame}
+    transpose : bool
+        whether to transpose the result; only relevant for DataFrame
 
     Returns
     -------
@@ -1563,6 +1565,11 @@ def box_expected(expected, box_cls):
         expected = pd.Series(expected)
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
+        if transpose:
+            # For tests in which a DataFrame operates with a 1-dimensional
+            # array-like other, broadcasting conventions require us to transpose
+            # both the DataFrame operand and the expected result.
+            expected = expected.T
     else:
         raise NotImplementedError(box_cls)
     return expected

@@ -1342,20 +1342,18 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                         Series([20, 30, 40])],
                              ids=lambda x: type(x).__name__)
     @pytest.mark.parametrize('op', [operator.mul, ops.rmul])
-    def test_td64arr_rmul_numeric_array(self, op, box_df_fail,
-                                        vector, dtype, tdser):
+    def test_td64arr_rmul_numeric_array(self, op, box, vector, dtype, tdser):
         # GH#4521
         # divide/multiply by integers
-        box = box_df_fail  # broadcasts incorrectly but doesn't raise
         vector = vector.astype(dtype)
 
         expected = Series(['1180 Days', '1770 Days', 'NaT'],
                           dtype='timedelta64[ns]')
 
-        tdser = tm.box_expected(tdser, box)
+        tdser = tm.box_expected(tdser, box, transpose=True)
         # TODO: Make this up-casting more systematic?
-        box = Series if (box is pd.Index and type(vector) is Series) else box
-        expected = tm.box_expected(expected, box)
+        box2 = Series if (box is pd.Index and type(vector) is Series) else box
+        expected = tm.box_expected(expected, box2, transpose=True)
 
         result = op(vector, tdser)
         tm.assert_equal(result, expected)
