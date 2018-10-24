@@ -120,20 +120,10 @@ The information about current institutional partners can be found on `pandas web
 Modules Privacy
 ----------------
 
-The following modules in pandas are considered PRIVATE:
+The following modules in pandas are considered private:
 
-  * pandas.compat and all sub-modules
-  
-  * pandas.util
-  
-     - decorators
-     - print_versions
-     - doctools
-     - validators
-     - depr_module
-      
-  * pandas.core and all sub-modules
-  	      
+  * ``pandas.core`` and all sub-modules
+  * ``pandas.compat`` and all sub-modules
 
 License
 -------
