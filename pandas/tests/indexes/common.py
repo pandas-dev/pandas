@@ -353,8 +353,8 @@ class Base(object):
             pytest.skip('Skip check for empty Index and MultiIndex')
 
         idx = self._holder([indices[0]] * 5)
-        assert not idx.is_unique
-        assert idx.has_duplicates
+        assert idx.is_unique is False
+        assert idx.has_duplicates is True
 
     @pytest.mark.parametrize('keep', ['first', 'last', False])
     def test_duplicated(self, indices, keep):
@@ -414,7 +414,7 @@ class Base(object):
 
         # We test against `idx_unique`, so first we make sure it's unique
         # and doesn't contain nans.
-        assert idx_unique.is_unique
+        assert idx_unique.is_unique is True
         try:
             assert not idx_unique.hasnans
         except NotImplementedError:
@@ -438,7 +438,7 @@ class Base(object):
         vals_unique = vals[:2]
         idx_nan = indices._shallow_copy(vals)
         idx_unique_nan = indices._shallow_copy(vals_unique)
-        assert idx_unique_nan.is_unique
+        assert idx_unique_nan.is_unique is True
 
         assert idx_nan.dtype == indices.dtype
         assert idx_unique_nan.dtype == indices.dtype

@@ -193,6 +193,7 @@ Other Enhancements
 - :func:`~DataFrame.to_csv`, :func:`~Series.to_csv`, :func:`~DataFrame.to_json`, and :func:`~Series.to_json` now support ``compression='infer'`` to infer compression based on filename extension (:issue:`15008`).
   The default compression for ``to_csv``, ``to_json``, and ``to_pickle`` methods has been updated to ``'infer'`` (:issue:`22004`).
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
+- Comparing :class:`Timedelta` with unknown types now return ``NotImplemented`` instead of ``False`` (:issue:`20829`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
 - :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support an ``ambiguous`` argument for handling datetimes that are rounded to ambiguous times (:issue:`18946`)
@@ -203,6 +204,7 @@ Other Enhancements
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
 - New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295`).
 - Compatibility with Matplotlib 3.0 (:issue:`22790`).
+- Added :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` for determining overlaps between interval-like objects (:issue:`21998`)
 
 .. _whatsnew_0240.api_breaking:
 
@@ -973,6 +975,7 @@ Categorical
 - Bug in :meth:`Categorical.sort_values` where ``NaN`` values were always positioned in front regardless of ``na_position`` value. (:issue:`22556`).
 - Bug when indexing with a boolean-valued ``Categorical``. Now a boolean-valued ``Categorical`` is treated as a boolean mask (:issue:`22665`)
 - Constructing a :class:`CategoricalIndex` with empty values and boolean categories was raising a ``ValueError`` after a change to dtype coercion (:issue:`22702`).
+- Bug in :meth:`Categorical.take` with a user-provided ``fill_value`` not encoding the ``fill_value``, which could result in a ``ValueError``, incorrect results, or a segmentation fault (:issue:`23296`).
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -1009,7 +1012,7 @@ Timedelta
 - Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 - Fixed bug where subtracting :class:`Timedelta` from an object-dtyped array would raise ``TypeError`` (:issue:`21980`)
 - Fixed bug in adding a :class:`DataFrame` with all-`timedelta64[ns]` dtypes to a :class:`DataFrame` with all-integer dtypes returning incorrect results instead of raising ``TypeError`` (:issue:`22696`)
--
+
 
 Timezones
 ^^^^^^^^^
@@ -1193,6 +1196,7 @@ Reshaping
 - Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
 - Bug in :func:`pandas.concat` when concatenating a multicolumn DataFrame with tz-aware data against a DataFrame with a different number of columns (:issue`22796`)
 - Bug in :func:`merge_asof` where confusing error message raised when attempting to merge with missing values (:issue:`23189`)
+- Bug in :meth:`DataFrame.nsmallest` and :meth:`DataFrame.nlargest` for dataframes that have :class:`MultiIndex`ed columns (:issue:`23033`).
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
