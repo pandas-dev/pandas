@@ -173,7 +173,8 @@ class BaseReshapingTests(BaseExtensionTests):
         self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
 
     @pytest.mark.parametrize("index", [
-        pd.MultiIndex.from_product(([['A', 'B'], ['a', 'b']]), names=['a', 'b']),
+        pd.MultiIndex.from_product(([['A', 'B'], ['a', 'b']]),
+                                   names=['a', 'b']),
         pd.MultiIndex.from_product(([['A', 'B'], ['a', 'b'],
                                      ['x', 'y', 'z']])),
 
