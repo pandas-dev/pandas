@@ -636,8 +636,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         )
 
         result = getattr(ufunc, method)(*inputs, **kwargs)
-        return self._constructor(result, index=self.index,
-                                 copy=False).__finalize__(self)
+
+        def construct_return(result):
+            return self._constructor(result, index=self.index,
+                                     copy=False).__finalize__(self)
+
+        if type(result) is tuple:
+            # multiple return values
+            return tuple(construct_return(x) for x in result)
+        else:
+            return construct_return(result)
 
     def __array__(self, result=None):
         """
