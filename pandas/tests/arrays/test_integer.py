@@ -4,6 +4,7 @@ import pandas as pd
 import pandas.util.testing as tm
 import pytest
 
+from pandas import _np_version_under1p13
 from pandas.api.types import is_integer, is_float, is_float_dtype, is_scalar
 from pandas.core.dtypes.generic import ABCIndexClass
 
@@ -690,6 +691,7 @@ def test_astype_nansafe():
         arr.astype('uint32')
 
 
+@pytest.mark.skipif(_np_version_under1p13)
 @pytest.mark.parametrize(
     'ufunc', [np.abs, np.sign])
 def test_ufuncs_single_int(ufunc):
@@ -704,6 +706,7 @@ def test_ufuncs_single_int(ufunc):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.skipif(_np_version_under1p13)
 @pytest.mark.parametrize(
     'ufunc', [np.log, np.exp, np.sin, np.cos, np.sqrt])
 def test_ufuncs_single_float(ufunc):
@@ -720,6 +723,7 @@ def test_ufuncs_single_float(ufunc):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.skipif(_np_version_under1p13)
 @pytest.mark.parametrize(
     'ufunc', [np.add, np.subtract])
 def test_ufuncs_binary_int(ufunc):
