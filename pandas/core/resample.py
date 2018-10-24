@@ -1530,9 +1530,8 @@ def _get_range_edges(first, last, offset, closed='left', base=0):
         if (is_day and day_nanos % offset.nanos == 0) or not is_day:
             first, last = _adjust_dates_anchored(first, last, offset,
                                                  closed=closed, base=base)
+            # TODO: Remove when _Day replaces Day and just return first, last
             if offset == 'D' and first.tz is not None:
-                # TODO: Remove this statement when 'D' fully means calendar day
-                # and just return first and last.
                 # We need to make Tick 'D' flexible to DST (23H, 24H, or 25H)
                 # _adjust_dates_anchored assumes 'D' means 24H, so ensure
                 # first and last snap to midnight.

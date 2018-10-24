@@ -232,7 +232,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')
         freq = to_offset(freq)
-        # TODO: Remove once Day offsets fully becomes a calendar offset
+        # TODO: Remove when _Day replaces Day
         if isinstance(freq, Day):
             freq = _Day(freq.n)
 
@@ -299,7 +299,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
 
-        # TODO: Remove once Day offsets fully becomes a calendar offset
+        # TODO: Remove when _Day replaces Day
         if isinstance(freq, _Day):
             freq = Day(freq.n)
         return cls._simple_new(index.values, freq=freq, tz=tz)
