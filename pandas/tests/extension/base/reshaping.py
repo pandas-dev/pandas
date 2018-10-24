@@ -191,9 +191,13 @@ class BaseReshapingTests(BaseExtensionTests):
             ('B', 'c', 1),
         ]),
     ])
-    def test_unstack(self, data, index):
+    @pytest.mark.parametrize("obj", ["series", "frame"])
+    def test_unstack(self, data, index, obj):
         data = data[:len(index)]
-        ser = pd.Series(data, index=index)
+        if obj == "series":
+            ser = pd.Series(data, index=index)
+        else:
+            ser = pd.DataFrame({"A": data, "B": data}, index=index)
 
         n = index.nlevels
         levels = list(range(n))

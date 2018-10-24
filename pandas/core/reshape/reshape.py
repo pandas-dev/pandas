@@ -409,6 +409,13 @@ def unstack(obj, level, fill_value=None):
 
 
 def _unstack_frame(obj, level, fill_value=None):
+    from pandas.tools.merge import concat
+
+    if (obj._is_homogeneous_type and
+            is_extension_array_dtype(obj.dtypes.iloc[0])):
+        frames = [ser.unstack(level=level, fill_value=fill_value)
+                  for name, ser in obj.iteritems()]
+        return concat(frames, axis=1, keys=obj.columns)
     if obj._is_mixed_type:
         unstacker = partial(_Unstacker, index=obj.index,
                             level=level, fill_value=fill_value)
