@@ -81,18 +81,6 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     >>> pd.to_timedelta(np.arange(5), box=False)
     array([0, 1, 2, 3, 4], dtype='timedelta64[ns]')
 
-    Add new column of dates from existing dates in a `DataFrame`
-    using `timedelta`:
-
-    >>> Dates = pd.to_datetime(['26/10/2018','28/10/2018', '2/11/2018'])
-    >>> df = pd.DataFrame({'Start': Dates,'Days':[5, 10, 5]})
-    >>> df['End'] = df['Start'] + pd.to_timedelta(df['Days'], unit='d')
-    >>> df
-       Start      Days        End
-    0 2018-10-26     5 2018-10-31
-    1 2018-10-28    10 2018-11-07
-    2 2018-02-11     5 2018-02-16
-
     See also
 
     """
