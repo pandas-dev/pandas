@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import copy
+import functools
 import warnings
 import inspect
 import re
@@ -1434,7 +1434,7 @@ class Block(PandasObject):
             return False
         return array_equivalent(self.values, other.values)
 
-    def _unstack(self, unstacker_func, new_columns):
+    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
         """Return a list of unstacked blocks of self
 
         Parameters
@@ -1443,6 +1443,10 @@ class Block(PandasObject):
             Partially applied unstacker.
         new_columns : Index
             All columns of the unstacked BlockManager.
+        n_rows : int
+            Only used in ExtensionBlock.unstack
+        fill_value : int
+            Only used in ExtensionBlock.unstack
 
         Returns
         -------
@@ -1736,7 +1740,7 @@ class NonConsolidatableMixIn(object):
     def _try_cast_result(self, result, dtype=None):
         return result
 
-    def _unstack(self, unstacker_func, new_columns):
+    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
         """Return a list of unstacked blocks of self
 
         Parameters
@@ -1745,6 +1749,10 @@ class NonConsolidatableMixIn(object):
             Partially applied unstacker.
         new_columns : Index
             All columns of the unstacked BlockManager.
+        n_rows : int
+            Only used in ExtensionBlock.unstack
+        fill_value : int
+            Only used in ExtensionBlock.unstack
 
         Returns
         -------
@@ -1756,17 +1764,27 @@ class NonConsolidatableMixIn(object):
         # NonConsolidatable blocks can have a single item only, so we return
         # one block per item
         unstacker = unstacker_func(self.values.T)
-        new_items = unstacker.get_new_columns()
-        new_placement = new_columns.get_indexer(new_items)
-        new_values, mask = unstacker.get_new_values()
 
-        mask = mask.any(0)
+        new_placement, new_values, mask = self._get_unstack_items(
+            unstacker, new_columns
+        )
+
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
         blocks = [self.make_block_same_class(vals, [place])
                   for vals, place in zip(new_values, new_placement)]
         return blocks, mask
+
+    @staticmethod
+    def _get_unstack_items(unstacker, new_columns):
+        # shared with ExtensionBlock
+        new_items = unstacker.get_new_columns()
+        new_placement = new_columns.get_indexer(new_items)
+        new_values, mask = unstacker.get_new_values()
+
+        mask = mask.any(0)
+        return new_placement, new_values, mask
 
 
 class ExtensionBlock(NonConsolidatableMixIn, Block):
@@ -1955,32 +1973,21 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def _ftype(self):
         return getattr(self.values, '_pandas_ftype', Block._ftype)
 
-    def _unstack(self, unstacker_func, new_columns):
-        # I wonder if this is supported
-        fill_value = unstacker_func.keywords['fill_value']
-        unstacker_func = copy.deepcopy(unstacker_func)
-        unstacker_func.keywords['fill_value'] = -1
+    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
+        dummy_arr = np.arange(n_rows)
+        dummy_unstacker = functools.partial(unstacker_func, fill_value=-1)
+        unstacker = dummy_unstacker(dummy_arr)
 
-        # just get the index. Can maybe avoid this?
-        dummy_unstacker = unstacker_func(np.empty((0, 0)))
-
-        dummy_arr = np.arange(len(dummy_unstacker.index))
-
-        unstacker = unstacker_func(dummy_arr)
-        new_items = unstacker.get_new_columns()
-        new_placement = new_columns.get_indexer(new_items)
-        new_values, mask = unstacker.get_new_values()
-        mask = mask.any(0)
-
-        new_values = [
-            self.values.take(indices, allow_fill=True,
-                             fill_value=fill_value)
-            for indices in new_values.T
-        ]
+        new_placement, new_values, mask = self._get_unstack_items(
+            unstacker, new_columns
+        )
 
         blocks = [
-            self.make_block_same_class(vals, [place])
-            for vals, place in zip(new_values, new_placement)
+            self.make_block_same_class(
+                self.values.take(indices, allow_fill=True,
+                                 fill_value=fill_value),
+                [place])
+            for indices, place in zip(new_values.T, new_placement)
         ]
         return blocks, mask
 
