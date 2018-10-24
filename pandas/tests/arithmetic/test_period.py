@@ -344,14 +344,12 @@ class TestPeriodIndexArithmetic(object):
     # PeriodIndex - other is defined for integers, timedelta-like others,
     #   and PeriodIndex (with matching freq)
 
-    def test_parr_add_iadd_parr_raises(self, box_df_broadcast_failure):
-        box = box_df_broadcast_failure
-
+    def test_parr_add_iadd_parr_raises(self, box):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
         # TODO: parametrize over boxes for other?
 
-        rng = tm.box_expected(rng, box)
+        rng = tm.box_expected(rng, box, transpose=True)
         # An earlier implementation of PeriodIndex addition performed
         # a set operation (union).  This has since been changed to
         # raise a TypeError. See GH#14164 and GH#13077 for historical
@@ -388,14 +386,12 @@ class TestPeriodIndexArithmetic(object):
         expected = pd.Index([pd.NaT, 0 * off, 0 * off, 0 * off, 0 * off])
         tm.assert_index_equal(result, expected)
 
-    def test_parr_sub_pi_mismatched_freq(self, box_df_broadcast_failure):
-        box = box_df_broadcast_failure
-
+    def test_parr_sub_pi_mismatched_freq(self, box):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='H', periods=5)
         # TODO: parametrize over boxes for other?
 
-        rng = tm.box_expected(rng, box)
+        rng = tm.box_expected(rng, box, transpose=True)
         with pytest.raises(period.IncompatibleFrequency):
             rng - other
 

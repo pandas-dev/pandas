@@ -1365,14 +1365,12 @@ class TestDatetimeIndexArithmetic(object):
                                     operator.sub, ops.rsub])
     @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
     @pytest.mark.parametrize('dti_freq', [None, 'D'])
-    def test_dti_sub_pi(self, dti_freq, pi_freq, op, box_df_broadcast_failure):
+    def test_dti_sub_pi(self, dti_freq, pi_freq, op, box):
         # GH#20049 subtracting PeriodIndex should raise TypeError
-        box = box_df_broadcast_failure
-
         dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
         pi = dti.to_period(pi_freq)
 
-        dti = tm.box_expected(dti, box)
+        dti = tm.box_expected(dti, box, transpose=True)
         # TODO: Also box pi?
         with pytest.raises(TypeError):
             op(dti, pi)
