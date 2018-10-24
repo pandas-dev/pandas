@@ -1128,7 +1128,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
         pd.RangeIndex(1, 11)
     ], ids=lambda x: type(x).__name__)
     def test_tdi_rmul_arraylike(self, other, box_df_fail):
-        # RangeIndex fails to return NotImplemented, for others
         # DataFrame tries to broadcast incorrectly
         box = box_df_fail
 
@@ -1415,8 +1414,9 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = ser * tdi
         tm.assert_equal(result, expected)
 
-        # The direct operation tdi * ser still needs to be fixed.
         result = ser.__rmul__(tdi)
+        tm.assert_equal(result, expected)
+        result = tdi * ser
         tm.assert_equal(result, expected)
 
     # TODO: Should we be parametrizing over types for `ser` too?
