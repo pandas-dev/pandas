@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import copy
 import warnings
 import inspect
 import re
@@ -1953,6 +1954,35 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     @property
     def _ftype(self):
         return getattr(self.values, '_pandas_ftype', Block._ftype)
+
+    def _unstack(self, unstacker_func, new_columns):
+        # I wonder if this is supported
+        fill_value = unstacker_func.keywords['fill_value']
+        unstacker_func = copy.deepcopy(unstacker_func)
+        unstacker_func.keywords['fill_value'] = -1
+
+        # just get the index. Can maybe avoid this?
+        dummy_unstacker = unstacker_func(np.empty((0, 0)))
+
+        dummy_arr = np.arange(len(dummy_unstacker.index))
+
+        unstacker = unstacker_func(dummy_arr)
+        new_items = unstacker.get_new_columns()
+        new_placement = new_columns.get_indexer(new_items)
+        new_values, mask = unstacker.get_new_values()
+        mask = mask.any(0)
+
+        new_values = [
+            self.values.take(indices, allow_fill=True,
+                             fill_value=fill_value)
+            for indices in new_values.T
+        ]
+
+        blocks = [
+            self.make_block_same_class(vals, [place])
+            for vals, place in zip(new_values, new_placement)
+        ]
+        return blocks, mask
 
 
 class NumericBlock(Block):

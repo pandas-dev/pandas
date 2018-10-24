@@ -874,6 +874,21 @@ class TestDataFrameReshape(TestData):
 
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('level', [0, 1])
+    def test_unstack_mixed_extension_types(self, level):
+        index = pd.MultiIndex.from_tuples([('A', 0), ('A', 1), ('B', 1)],
+                                          names=['a', 'b'])
+        df = pd.DataFrame({"A": pd.core.arrays.integer_array([0, 1, None]),
+                           "B": pd.Categorical(['a', 'a', 'b'])}, index=index)
+
+        result = df.unstack(level=level)
+        expected = df.astype(object).unstack(level=level)
+
+        expected_dtypes = pd.Series([df.A.dtype] * 2 + [df.B.dtype] * 2,
+                                    index=result.columns)
+        tm.assert_series_equal(result.dtypes, expected_dtypes)
+        tm.assert_frame_equal(result.astype(object), expected)
+
     @pytest.mark.parametrize("level", [0, 'baz'])
     def test_unstack_swaplevel_sortlevel(self, level):
         # GH 20994

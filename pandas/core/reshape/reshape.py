@@ -409,7 +409,7 @@ def unstack(obj, level, fill_value=None):
 
 
 def _unstack_frame(obj, level, fill_value=None):
-    from pandas.tools.merge import concat
+    from pandas.core.reshape.concat import concat
 
     if (obj._is_homogeneous_type and
             is_extension_array_dtype(obj.dtypes.iloc[0])):
