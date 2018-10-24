@@ -671,17 +671,19 @@ class TestTimedeltaArraylikeAddSubOps(object):
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('Egon', 'Venkman', None),
                                        ('NCC1701D', 'NCC1701D', 'NCC1701D')])
-    def test_td64arr_add_sub_tdi(self, box_df_broadcast_failure, names):
+    def test_td64arr_add_sub_tdi(self, box, names):
         # GH#17250 make sure result dtype is correct
         # GH#19043 make sure names are propagated correctly
-        box = box_df_broadcast_failure
+        if box is pd.DataFrame and names[0] != names[1]:
+            return
+
         tdi = TimedeltaIndex(['0 days', '1 day'], name=names[0])
         ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[1])
         expected = Series([Timedelta(hours=3), Timedelta(days=1, hours=4)],
                           name=names[2])
 
-        ser = tm.box_expected(ser, box)
-        expected = tm.box_expected(expected, box)
+        ser = tm.box_expected(ser, box, transpose=True)
+        expected = tm.box_expected(expected, box, transpose=True)
 
         result = tdi + ser
         tm.assert_equal(result, expected)
@@ -699,7 +701,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
         expected = Series([Timedelta(hours=-3), Timedelta(days=1, hours=-4)],
                           name=names[2])
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, box, transpose=True)
 
         result = tdi - ser
         tm.assert_equal(result, expected)
@@ -787,9 +789,11 @@ class TestTimedeltaArraylikeAddSubOps(object):
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('foo', 'bar', None),
                                        ('foo', 'foo', 'foo')])
-    def test_td64arr_add_offset_index(self, names, box_df_broadcast_failure):
+    def test_td64arr_add_offset_index(self, names, box):
         # GH#18849, GH#19744
-        box = box_df_broadcast_failure
+        if box is pd.DataFrame and names[0] != names[1]:
+            return
+
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
                              name=names[0])
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],
@@ -797,14 +801,15 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
         expected = TimedeltaIndex([tdi[n] + other[n] for n in range(len(tdi))],
                                   freq='infer', name=names[2])
-        tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
+        tdi = tm.box_expected(tdi, box, transpose=True)
+        expected = tm.box_expected(expected, box, transpose=True)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        exwarning = PerformanceWarning if box is not pd.DataFrame else None
+        with tm.assert_produces_warning(exwarning):
             res = tdi + other
         tm.assert_equal(res, expected)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(exwarning):
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
@@ -833,9 +838,11 @@ class TestTimedeltaArraylikeAddSubOps(object):
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('foo', 'bar', None),
                                        ('foo', 'foo', 'foo')])
-    def test_td64arr_sub_offset_index(self, names, box_df_broadcast_failure):
+    def test_td64arr_sub_offset_index(self, names, box):
         # GH#18824, GH#19744
-        box = box_df_broadcast_failure
+        if box is pd.DataFrame and names[0] != names[1]:
+            return
+
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
                              name=names[0])
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],
@@ -844,10 +851,11 @@ class TestTimedeltaArraylikeAddSubOps(object):
         expected = TimedeltaIndex([tdi[n] - other[n] for n in range(len(tdi))],
                                   freq='infer', name=names[2])
 
-        tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
+        tdi = tm.box_expected(tdi, box, transpose=True)
+        expected = tm.box_expected(expected, box, transpose=True)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        exwarning = PerformanceWarning if box is not pd.DataFrame else None
+        with tm.assert_produces_warning(exwarning):
             res = tdi - other
         tm.assert_equal(res, expected)
 
@@ -870,10 +878,13 @@ class TestTimedeltaArraylikeAddSubOps(object):
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('foo', 'bar', None),
                                        ('foo', 'foo', 'foo')])
-    def test_td64arr_with_offset_series(self, names, box_df_fail):
+    def test_td64arr_with_offset_series(self, names, box):
         # GH#18849
-        box = box_df_fail
+        if box is pd.DataFrame and names[0] != names[1]:
+            return
+
         box2 = Series if box is pd.Index else box
+        exwarning = PerformanceWarning if box is not pd.DataFrame else None
 
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
                              name=names[0])
@@ -882,23 +893,23 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
         expected_add = Series([tdi[n] + other[n] for n in range(len(tdi))],
                               name=names[2])
-        tdi = tm.box_expected(tdi, box)
-        expected_add = tm.box_expected(expected_add, box2)
+        expected_sub = Series([tdi[n] - other[n] for n in range(len(tdi))],
+                              name=names[2])
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        tdi = tm.box_expected(tdi, box, transpose=True)
+        expected_add = tm.box_expected(expected_add, box2, transpose=True)
+
+        with tm.assert_produces_warning(exwarning):
             res = tdi + other
         tm.assert_equal(res, expected_add)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(exwarning):
             res2 = other + tdi
         tm.assert_equal(res2, expected_add)
 
-        # TODO: separate/parametrize add/sub test?
-        expected_sub = Series([tdi[n] - other[n] for n in range(len(tdi))],
-                              name=names[2])
-        expected_sub = tm.box_expected(expected_sub, box2)
+        expected_sub = tm.box_expected(expected_sub, box2, transpose=True)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(exwarning):
             res3 = tdi - other
         tm.assert_equal(res3, expected_sub)
 
@@ -1280,9 +1291,11 @@ class TestTimedeltaArraylikeMulDivOps(object):
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('Egon', 'Venkman', None),
                                        ('NCC1701D', 'NCC1701D', 'NCC1701D')])
-    def test_td64arr_mul_int_series(self, box_df_fail, names):
+    def test_td64arr_mul_int_series(self, box, names):
         # GH#19042 test for correct name attachment
-        box = box_df_fail  # broadcasts along wrong axis, but doesn't raise
+        if box is pd.DataFrame and names[0] != names[1]:
+            return
+
         tdi = TimedeltaIndex(['0days', '1day', '2days', '3days', '4days'],
                              name=names[0])
         # TODO: Should we be parametrizing over types for `ser` too?
@@ -1292,15 +1305,13 @@ class TestTimedeltaArraylikeMulDivOps(object):
                           dtype='timedelta64[ns]',
                           name=names[2])
 
-        tdi = tm.box_expected(tdi, box)
+        tdi = tm.box_expected(tdi, box, transpose=True)
         box = Series if (box is pd.Index and type(ser) is Series) else box
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, box, transpose=True)
 
         result = ser * tdi
         tm.assert_equal(result, expected)
 
-        result = ser.__rmul__(tdi)
-        tm.assert_equal(result, expected)
         result = tdi * ser
         tm.assert_equal(result, expected)
 
