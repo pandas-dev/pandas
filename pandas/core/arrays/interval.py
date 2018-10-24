@@ -1,6 +1,8 @@
 import textwrap
 import numpy as np
 
+from operator import le, lt
+
 from pandas._libs.interval import (Interval, IntervalMixin,
                                    intervals_to_interval_bounds)
 from pandas.compat import add_metaclass
@@ -27,8 +29,11 @@ from . import ExtensionArray, Categorical
 
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _interval_shared_docs = {}
+
+# TODO(jschendel) remove constructor key when IntervalArray is public (GH22860)
 _shared_docs_kwargs = dict(
     klass='IntervalArray',
+    constructor='pd.core.arrays.IntervalArray',
     name=''
 )
 
@@ -1029,6 +1034,67 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         left_repeat = self.left.repeat(repeats, **kwargs)
         right_repeat = self.right.repeat(repeats, **kwargs)
         return self._shallow_copy(left=left_repeat, right=right_repeat)
+
+    _interval_shared_docs['overlaps'] = """
+        Check elementwise if an Interval overlaps the values in the %(klass)s.
+
+        Two intervals overlap if they share a common point, including closed
+        endpoints. Intervals that only have an open endpoint in common do not
+        overlap.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        other : Interval
+            Interval to check against for an overlap.
+
+        Returns
+        -------
+        ndarray
+            Boolean array positionally indicating where an overlap occurs.
+
+        Examples
+        --------
+        >>> intervals = %(constructor)s.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals
+        %(klass)s([(0, 1], (1, 3], (2, 4]],
+              closed='right',
+              dtype='interval[int64]')
+        >>> intervals.overlaps(pd.Interval(0.5, 1.5))
+        array([ True,  True, False])
+
+        Intervals that share closed endpoints overlap:
+
+        >>> intervals.overlaps(pd.Interval(1, 3, closed='left'))
+        array([ True,  True, True])
+
+        Intervals that only have an open endpoint in common do not overlap:
+
+        >>> intervals.overlaps(pd.Interval(1, 2, closed='right'))
+        array([False,  True, False])
+
+        See Also
+        --------
+        Interval.overlaps : Check whether two Interval objects overlap.
+    """
+
+    @Appender(_interval_shared_docs['overlaps'] % _shared_docs_kwargs)
+    def overlaps(self, other):
+        if isinstance(other, (IntervalArray, ABCIntervalIndex)):
+            raise NotImplementedError
+        elif not isinstance(other, Interval):
+            msg = '`other` must be Interval-like, got {other}'
+            raise TypeError(msg.format(other=type(other).__name__))
+
+        # equality is okay if both endpoints are closed (overlap at a point)
+        op1 = le if (self.closed_left and other.closed_right) else lt
+        op2 = le if (other.closed_left and self.closed_right) else lt
+
+        # overlaps is equivalent negation of two interval being disjoint:
+        # disjoint = (A.left > B.right) or (B.left > A.right)
+        # (simplifying the negation allows this to be done in less operations)
+        return op1(self.left, other.right) & op2(other.left, self.right)
 
 
 def maybe_convert_platform_interval(values):
