@@ -1788,8 +1788,8 @@ def _make_index(length, indices, kind):
 # ----------------------------------------------------------------------------
 # Accessor
 
-@delegate_names(SparseArray, ['npoints', 'kind', 'density',
-                              'fill_value', 'sp_index', 'sp_values'],
+@delegate_names(SparseArray, ['npoints', 'density', 'fill_value',
+                              'sp_values'],
                 typ='property')
 class SparseAccessor(PandasDelegate):
     def __init__(self, data=None):

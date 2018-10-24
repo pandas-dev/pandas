@@ -27,6 +27,7 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.core.arrays import (
     SparseArray,
 )
+from pandas.core.arrays.sparse import SparseAccessor
 from pandas._libs.sparse import BlockIndex, IntIndex
 import pandas._libs.sparse as splib
 
@@ -579,6 +580,7 @@ class SparseSeries(Series):
         dense_combined = self.to_dense().combine_first(other)
         return dense_combined.to_sparse(fill_value=self.fill_value)
 
+    @Appender(SparseAccessor.to_coo.__doc__)
     def to_coo(self, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
         A, rows, columns = _sparse_series_to_coo(self, row_levels,
                                                  column_levels,
@@ -586,6 +588,7 @@ class SparseSeries(Series):
         return A, rows, columns
 
     @classmethod
+    @Appender(SparseAccessor.from_coo.__doc__)
     def from_coo(cls, A, dense_index=False):
         return _coo_to_sparse_series(A, dense_index=dense_index)
 

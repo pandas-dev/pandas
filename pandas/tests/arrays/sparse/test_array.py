@@ -1008,8 +1008,7 @@ class TestSparseArrayAnalytics(object):
 class TestAccessor(object):
 
     @pytest.mark.parametrize('attr', [
-        'npoints', 'kind', 'density', 'fill_value',
-        'sp_index', 'sp_values',
+        'npoints', 'density', 'fill_value', 'sp_values',
     ])
     def test_get_attributes(self, attr):
         arr = SparseArray([0, 1])
