@@ -630,7 +630,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if result is not NotImplemented:
             return result
 
-        import pdb; pdb.set_trace()
         inputs = tuple(
             x._values if isinstance(x, type(self)) else x
             for x in inputs
