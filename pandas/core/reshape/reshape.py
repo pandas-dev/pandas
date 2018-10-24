@@ -603,10 +603,8 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         # indexer
         if not isinstance(loc, slice):
             slice_len = len(loc)
-            locs = list(loc)
         else:
             slice_len = loc.stop - loc.start
-            locs = list(range(loc.start, loc.stop))
 
         if slice_len != levsize:
             chunk = this.loc[:, this.columns[loc]]
@@ -615,7 +613,6 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         else:
             if (frame._is_homogeneous_type and
                     is_extension_array_dtype(frame.dtypes.iloc[0])):
-                import pdb; pdb.set_trace()
                 dtype = this.loc[:, this.columns[loc]].dtypes.iloc[0]
                 subset = this.loc[:, this.columns[loc]]
 
