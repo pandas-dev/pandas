@@ -22,7 +22,7 @@ def assert_dtype(result, dtype, box):
     if box is not pd.DataFrame:
         assert result.dtype == dtype
     else:
-         assert result.dtypes[0] == dtype
+        assert result.dtypes[0] == dtype
 
 
 # ------------------------------------------------------------------
