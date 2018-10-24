@@ -203,6 +203,7 @@ Other Enhancements
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
 - New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295`).
 - Compatibility with Matplotlib 3.0 (:issue:`22790`).
+- Added :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` for determining overlaps between interval-like objects (:issue:`21998`)
 
 .. _whatsnew_0240.api_breaking:
 
@@ -1194,6 +1195,7 @@ Reshaping
 - Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
 - Bug in :func:`pandas.concat` when concatenating a multicolumn DataFrame with tz-aware data against a DataFrame with a different number of columns (:issue`22796`)
 - Bug in :func:`merge_asof` where confusing error message raised when attempting to merge with missing values (:issue:`23189`)
+- Bug in :meth:`DataFrame.nsmallest` and :meth:`DataFrame.nlargest` for dataframes that have :class:`MultiIndex`ed columns (:issue:`23033`).
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
