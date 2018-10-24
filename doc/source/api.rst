@@ -245,6 +245,15 @@ Top-level evaluation
 
    eval
 
+Hashing
+~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   util.hash_array
+   util.hash_pandas_object
+
 Testing
 ~~~~~~~
 
@@ -1650,6 +1659,7 @@ IntervalIndex Components
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
+   IntervalIndex.overlaps
 
 
 .. _api.multiindex:
@@ -2036,6 +2046,7 @@ Properties
     Interval.mid
     Interval.open_left
     Interval.open_right
+    Interval.overlaps
     Interval.right
 
 Timedelta

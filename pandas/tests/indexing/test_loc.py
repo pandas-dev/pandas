@@ -668,15 +668,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                           index=[0] * l2, columns=columns)])
 
         def gen_expected(df, mask):
-            l = len(mask)
+            len_mask = len(mask)
             return pd.concat([df.take([0]),
-                              DataFrame(np.ones((l, len(columns))),
-                                        index=[0] * l,
+                              DataFrame(np.ones((len_mask, len(columns))),
+                                        index=[0] * len_mask,
                                         columns=columns),
                               df.take(mask[1:])])
 
         df = gen_test(900, 100)
-        assert not df.index.is_unique
+        assert df.index.is_unique is False
 
         mask = np.arange(100)
         result = df.loc[mask]
@@ -684,7 +684,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         tm.assert_frame_equal(result, expected)
 
         df = gen_test(900000, 100000)
-        assert not df.index.is_unique
+        assert df.index.is_unique is False
 
         mask = np.arange(100000)
         result = df.loc[mask]

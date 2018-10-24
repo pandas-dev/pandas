@@ -164,6 +164,10 @@ class TestMissing(base.BaseMissingTests):
         pass
 
 
+class TestReduce(base.BaseNoReduceTests):
+    pass
+
+
 class TestMethods(base.BaseMethodsTests):
     pass
 

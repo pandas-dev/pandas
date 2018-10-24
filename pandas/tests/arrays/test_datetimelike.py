@@ -5,9 +5,9 @@ import pytest
 import pandas as pd
 import pandas.util.testing as tm
 
-from pandas.core.arrays.datetimes import DatetimeArrayMixin
-from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
-from pandas.core.arrays.period import PeriodArrayMixin
+from pandas.core.arrays import (DatetimeArrayMixin,
+                                TimedeltaArrayMixin,
+                                PeriodArrayMixin)
 
 
 # TODO: more freq variants
@@ -34,7 +34,7 @@ def datetime_index(request):
     A fixture to provide DatetimeIndex objects with different frequencies.
 
     Most DatetimeArray behavior is already tested in DatetimeIndex tests,
-    so here we just test that the DatetimeIndex behavior matches
+    so here we just test that the DatetimeArray behavior matches
     the DatetimeIndex behavior.
     """
     freqstr = request.param
@@ -43,6 +43,18 @@ def datetime_index(request):
                        periods=100,
                        freq=freqstr)
     return pi
+
+
+@pytest.fixture
+def timedelta_index(request):
+    """
+    A fixture to provide TimedeltaIndex objects with different frequencies.
+     Most TimedeltaArray behavior is already tested in TimedeltaIndex tests,
+    so here we just test that the TimedeltaArray behavior matches
+    the TimedeltaIndex behavior.
+    """
+    # TODO: flesh this out
+    return pd.TimedeltaIndex(['1 Day', '3 Hours', 'NaT'])
 
 
 class TestDatetimeArray(object):
@@ -66,6 +78,20 @@ class TestDatetimeArray(object):
         assert isinstance(asobj, np.ndarray)
         assert asobj.dtype == 'O'
         assert list(asobj) == list(dti)
+
+    @pytest.mark.parametrize('freqstr', ['D', 'B', 'W', 'M', 'Q', 'Y'])
+    def test_to_perioddelta(self, datetime_index, freqstr):
+        # GH#23113
+        dti = datetime_index
+        arr = DatetimeArrayMixin(dti)
+
+        expected = dti.to_perioddelta(freq=freqstr)
+        result = arr.to_perioddelta(freq=freqstr)
+        assert isinstance(result, TimedeltaArrayMixin)
+
+        # placeholder until these become actual EA subclasses and we can use
+        #  an EA-specific tm.assert_ function
+        tm.assert_index_equal(pd.Index(result), pd.Index(expected))
 
     @pytest.mark.parametrize('freqstr', ['D', 'B', 'W', 'M', 'Q', 'Y'])
     def test_to_period(self, datetime_index, freqstr):
@@ -121,6 +147,34 @@ class TestTimedeltaArray(object):
         assert isinstance(asobj, np.ndarray)
         assert asobj.dtype == 'O'
         assert list(asobj) == list(tdi)
+
+    def test_to_pytimedelta(self, timedelta_index):
+        tdi = timedelta_index
+        arr = TimedeltaArrayMixin(tdi)
+
+        expected = tdi.to_pytimedelta()
+        result = arr.to_pytimedelta()
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_total_seconds(self, timedelta_index):
+        tdi = timedelta_index
+        arr = TimedeltaArrayMixin(tdi)
+
+        expected = tdi.total_seconds()
+        result = arr.total_seconds()
+
+        tm.assert_numpy_array_equal(result, expected.values)
+
+    @pytest.mark.parametrize('propname', pd.TimedeltaIndex._field_ops)
+    def test_int_properties(self, timedelta_index, propname):
+        tdi = timedelta_index
+        arr = TimedeltaArrayMixin(tdi)
+
+        result = getattr(arr, propname)
+        expected = np.array(getattr(tdi, propname), dtype=result.dtype)
+
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestPeriodArray(object):
