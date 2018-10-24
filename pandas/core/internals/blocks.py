@@ -34,6 +34,7 @@ from pandas.core.dtypes.common import (
     is_numeric_v_string_like, is_extension_type,
     is_extension_array_dtype,
     is_list_like,
+    is_sparse,
     is_re,
     is_re_compilable,
     pandas_dtype)
@@ -632,7 +633,10 @@ class Block(PandasObject):
             return self
 
         if klass is None:
-            if dtype == np.object_:
+            if is_sparse(self.values):
+                # Series[Sparse].astype(object) is sparse.
+                klass = ExtensionBlock
+            elif is_object_dtype(dtype):
                 klass = ObjectBlock
             elif is_extension_array_dtype(dtype):
                 klass = ExtensionBlock
