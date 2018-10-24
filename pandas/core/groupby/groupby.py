@@ -27,6 +27,7 @@ from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
     is_numeric_dtype,
+    is_extension_array_dtype,
     is_scalar,
     ensure_float)
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -757,6 +758,18 @@ b  2""")
             dtype = obj.values.dtype
         else:
             dtype = obj.dtype
+
+        if is_extension_array_dtype(obj.dtype):
+            # The function can return something of any type, so check
+            # if the type is compatible with the calling EA.
+            try:
+                result = obj.values._from_sequence(result)
+            except Exception:
+                # https://github.com/pandas-dev/pandas/issues/22850
+                # pandas has no control over what 3rd-party ExtensionArrays
+                # do in _values_from_sequence. We still want ops to work
+                # though, so we catch any regular Exception.
+                pass
 
         if not is_scalar(result):
             if numeric_only and is_numeric_dtype(dtype) or not numeric_only:
