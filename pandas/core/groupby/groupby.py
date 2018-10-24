@@ -759,7 +759,7 @@ b  2""")
         else:
             dtype = obj.dtype
 
-        if is_extension_array_dtype(obj.dtype):
+        if is_extension_array_dtype(dtype):
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
             try:

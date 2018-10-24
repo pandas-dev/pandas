@@ -283,6 +283,9 @@ class TestGrouping():
         assert_frame_equal(result, expected)
 
     def test_groupby_extension_array(self):
+
+        # GH23227
+        # groupby on an extension array should return the extension array type
         df = pd.DataFrame({'Int': pd.Series([1, 2, 3], dtype='Int64'),
                            'A': [1, 2, 1]})
         result = df.groupby('A').Int.sum()
