@@ -480,8 +480,8 @@ def get_locales(prefix=None, normalize=True,
     if prefix is None:
         return _valid_locales(out_locales, normalize)
 
-    found = re.compile('{prefix}.*'.format(prefix=prefix)) \
-              .findall('\n'.join(out_locales))
+    pattern = re.compile('{prefix}.*'.format(prefix=prefix))
+    found = pattern.findall('\n'.join(out_locales))
     return _valid_locales(found, normalize)
 
 
@@ -966,14 +966,14 @@ def assert_is_valid_plot_return_object(objs):
     import matplotlib.pyplot as plt
     if isinstance(objs, (pd.Series, np.ndarray)):
         for el in objs.ravel():
-            msg = ('one of \'objs\' is not a matplotlib Axes instance, type '
-                   'encountered {name!r}').format(name=el.__class__.__name__)
+            msg = ("one of 'objs' is not a matplotlib Axes instance, type "
+                   "encountered {name!r}").format(name=el.__class__.__name__)
             assert isinstance(el, (plt.Axes, dict)), msg
     else:
-        assert isinstance(objs, (plt.Artist, tuple, dict)), \
-            ('objs is neither an ndarray of Artist instances nor a '
-             'single Artist instance, tuple, or dict, "objs" is a {name!r}'
-             ).format(name=objs.__class__.__name__)
+        assert isinstance(objs, (plt.Artist, tuple, dict)), (
+            'objs is neither an ndarray of Artist instances nor a '
+            'single Artist instance, tuple, or dict, "objs" is a {name!r}'
+            .format(name=objs.__class__.__name__))
 
 
 def isiterable(obj):
@@ -2024,8 +2024,9 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
     assert (is_sequence(ndupe_l) and len(ndupe_l) <= nlevels)
     assert (names is None or names is False or
             names is True or len(names) is nlevels)
-    assert idx_type is None or \
-        (idx_type in ('i', 'f', 's', 'u', 'dt', 'p', 'td') and nlevels == 1)
+    assert idx_type is None or (idx_type in ('i', 'f', 's', 'u',
+                                             'dt', 'p', 'td')
+                                and nlevels == 1)
 
     if names is True:
         # build default names
@@ -2152,12 +2153,12 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
 
     assert c_idx_nlevels > 0
     assert r_idx_nlevels > 0
-    assert r_idx_type is None or \
-        (r_idx_type in ('i', 'f', 's',
-                        'u', 'dt', 'p', 'td') and r_idx_nlevels == 1)
-    assert c_idx_type is None or \
-        (c_idx_type in ('i', 'f', 's',
-                        'u', 'dt', 'p', 'td') and c_idx_nlevels == 1)
+    assert r_idx_type is None or (r_idx_type in ('i', 'f', 's',
+                                                 'u', 'dt', 'p', 'td')
+                                  and r_idx_nlevels == 1)
+    assert c_idx_type is None or (c_idx_type in ('i', 'f', 's',
+                                                 'u', 'dt', 'p', 'td')
+                                  and c_idx_nlevels == 1)
 
     columns = makeCustomIndex(ncols, nlevels=c_idx_nlevels, prefix='C',
                               names=c_idx_names, ndupe_l=c_ndupe_l,
