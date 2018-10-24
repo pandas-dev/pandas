@@ -131,16 +131,16 @@ def test_duplicate_meta_data():
 
 def test_has_duplicates(idx, idx_dup):
     # see fixtures
-    assert idx.is_unique
-    assert not idx.has_duplicates
-    assert not idx_dup.is_unique
-    assert idx_dup.has_duplicates
+    assert idx.is_unique is True
+    assert idx.has_duplicates is False
+    assert idx_dup.is_unique is False
+    assert idx_dup.has_duplicates is True
 
     mi = MultiIndex(levels=[[0, 1], [0, 1, 2]],
                     labels=[[0, 0, 0, 0, 1, 1, 1],
                             [0, 1, 2, 0, 0, 1, 2]])
-    assert not mi.is_unique
-    assert mi.has_duplicates
+    assert mi.is_unique is False
+    assert mi.has_duplicates is True
 
 
 def test_has_duplicates_from_tuples():

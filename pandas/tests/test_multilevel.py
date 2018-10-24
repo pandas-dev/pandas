@@ -495,7 +495,7 @@ class TestMultiLevel(Base):
     def test_xs_with_duplicates(self):
         # Issue #13719
         df_dup = concat([self.frame] * 2)
-        assert not df_dup.index.is_unique
+        assert df_dup.index.is_unique is False
         expected = concat([self.frame.xs('one', level='second')] * 2)
         tm.assert_frame_equal(df_dup.xs('one', level='second'), expected)
         tm.assert_frame_equal(df_dup.xs(['one'], level=['second']), expected)
@@ -892,7 +892,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # GH10417
         def check(left, right):
             tm.assert_series_equal(left, right)
-            assert not left.index.is_unique
+            assert left.index.is_unique is False
             li, ri = left.index, right.index
             tm.assert_index_equal(li, ri)
 
@@ -1925,7 +1925,7 @@ Thur,Lunch,Yes,51.51,17"""
         df['tstamp'] = idxdt
         df = df.set_index('tstamp', append=True)
         ts = Timestamp('201603231600')
-        assert not df.index.is_unique
+        assert df.index.is_unique is False
 
         result = df.drop(ts, level='tstamp')
         expected = df.loc[idx != 4]

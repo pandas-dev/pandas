@@ -110,9 +110,9 @@ class TestHashing(object):
     def test_multiindex_unique(self):
         mi = MultiIndex.from_tuples([(118, 472), (236, 118),
                                      (51, 204), (102, 51)])
-        assert mi.is_unique
+        assert mi.is_unique is True
         result = hash_pandas_object(mi)
-        assert result.is_unique
+        assert result.is_unique is True
 
     def test_multiindex_objects(self):
         mi = MultiIndex(levels=[['b', 'd', 'a'], [1, 2, 3]],

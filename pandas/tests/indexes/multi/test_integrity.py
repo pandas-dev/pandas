@@ -110,7 +110,7 @@ def test_consistency():
     index = MultiIndex(levels=[major_axis, minor_axis],
                        labels=[major_labels, minor_labels])
 
-    assert not index.is_unique
+    assert index.is_unique is False
 
 
 def test_hash_collisions():

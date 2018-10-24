@@ -387,7 +387,7 @@ def test_set_value(test_data):
 def test_setslice(test_data):
     sl = test_data.ts[5:20]
     assert len(sl) == len(sl.index)
-    assert sl.index.is_unique
+    assert sl.index.is_unique is True
 
 
 # FutureWarning from NumPy about [slice(None, 5).
