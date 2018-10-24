@@ -691,7 +691,7 @@ def test_astype_nansafe():
 
 
 @pytest.mark.parametrize(
-    'ufunc', [np.abs, np.positive, np.negative])
+    'ufunc', [np.abs, np.sign])
 def test_ufuncs_single_int(ufunc):
     a = integer_array([1, 2, -3, np.nan])
     result = ufunc(a)
