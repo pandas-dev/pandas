@@ -9,14 +9,14 @@ from .base import BaseExtensionTests
 
 
 class BaseSetitemTests(BaseExtensionTests):
-    def test_setitem_scalar_series(self, data, box):
-        if box:
+    def test_setitem_scalar_series(self, data, box_in_series):
+        if box_in_series:
             data = pd.Series(data)
         data[0] = data[1]
         assert data[0] == data[1]
 
-    def test_setitem_sequence(self, data, box):
-        if box:
+    def test_setitem_sequence(self, data, box_in_series):
+        if box_in_series:
             data = pd.Series(data)
         original = data.copy()
 
@@ -40,15 +40,15 @@ class BaseSetitemTests(BaseExtensionTests):
             ser[slice(3)] = value
         assert ser[slice(3)] == value
 
-    def test_setitem_empty_indxer(self, data, box):
-        if box:
+    def test_setitem_empty_indxer(self, data, box_in_series):
+        if box_in_series:
             data = pd.Series(data)
         original = data.copy()
         data[[]] = []
         self.assert_series_equal(data, original)
 
-    def test_setitem_sequence_broadcasts(self, data, box):
-        if box:
+    def test_setitem_sequence_broadcasts(self, data, box_in_series):
+        if box_in_series:
             data = pd.Series(data)
         data[[0, 1]] = data[2]
         assert data[0] == data[2]
