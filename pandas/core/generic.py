@@ -9368,7 +9368,7 @@ class NDFrame(PandasObject, SelectionMixin):
             """This method returns the minimum of the values in the object.
             If you want the *index* of the minimum, use ``idxmin``. This is
             the equivalent of the ``numpy.ndarray`` method ``argmin``.""",
-            nanops.nanmin)
+            nanops.nanmin, _min_examples)
 
     @classmethod
     def _add_series_only_operations(cls):
@@ -10248,6 +10248,43 @@ Aug    113
 dtype: int64
 """
 
+_min_examples = """\
+Examples
+--------
+``MultiIndex`` series example of monthly rainfall
+
+>>> index = [np.tile(['London', 'New York'], 3),
+...          np.repeat(['Jun', 'Jul', 'Aug'], 2)]
+>>> s = pd.Series([47, 112, 35, 117, 54, 113], index=index)
+>>> s.rename_axis(['city', 'month'], inplace=True)
+>>> s
+city      month
+London    Jun       47
+New York  Jun      112
+London    Jul       35
+New York  Jul      117
+London    Aug       54
+New York  Aug      113
+dtype: int64
+
+>>> s.min()
+35
+
+Sum using level names, as well as indices
+
+>>> s.min(level='city')
+city
+London       35
+New York    112
+dtype: int64
+
+>>> s.min(level=1)
+month
+Jun    47
+Jul    35
+Aug    54
+dtype: int64
+"""
 
 _min_count_stub = """\
 min_count : int, default 0
