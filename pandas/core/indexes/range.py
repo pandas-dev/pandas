@@ -558,7 +558,7 @@ class RangeIndex(Int64Index):
         return super_getitem(key)
 
     def __floordiv__(self, other):
-        if isinstance(other, ABCDataFrame):
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
             return NotImplemented
 
         if is_integer(other) and other != 0:
