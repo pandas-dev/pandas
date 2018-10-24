@@ -1567,8 +1567,8 @@ def box_expected(expected, box_cls, transpose=False):
         expected = pd.Series(expected).to_frame()
         if transpose:
             # For tests in which a DataFrame operates with a 1-dimensional
-            # array-like other, broadcasting conventions require us to transpose
-            # both the DataFrame operand and the expected result.
+            # array-like other, broadcasting conventions require us to
+            # transpose both the DataFrame operand and the expected result.
             expected = expected.T
     else:
         raise NotImplementedError(box_cls)
