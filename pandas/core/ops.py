@@ -1316,11 +1316,12 @@ def _arith_method_SERIES(cls, op, special):
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
 
-        elif is_timedelta64_dtype(right) and not is_scalar(right):
-            # i.e. exclude np.timedelta64 object
+        elif is_timedelta64_dtype(right):
+            # We should only get here with non-scalar or timedelta64('NaT')
+            #  values for right
             # Note: we cannot use dispatch_to_index_op because
-            # that may incorrectly raise TypeError when we
-            # should get NullFrequencyError
+            #  that may incorrectly raise TypeError when we
+            #  should get NullFrequencyError
             result = op(pd.Index(left), right)
             return construct_result(left, result,
                                     index=left.index, name=res_name,
