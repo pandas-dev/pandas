@@ -17,7 +17,7 @@ from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.tseries.offsets import (DateOffset, Tick, Day,
-                                    delta_to_nanoseconds, Nano, _Day)
+                                    delta_to_nanoseconds, Nano)
 from pandas.core.indexes.period import PeriodIndex
 from pandas.errors import AbstractMethodError
 import pandas.core.algorithms as algos
