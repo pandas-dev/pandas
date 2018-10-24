@@ -34,11 +34,11 @@ class BaseSetitemTests(BaseExtensionTests):
         xpr = 'cannot set using a {} indexer with a different length'
         with tm.assert_raises_regex(ValueError, xpr.format('list-like')):
             ser[[0, 1]] = value
-        assert ser[[0, 1]] == value
+        assert ser._values[[0, 1]] == value
 
         with tm.assert_raises_regex(ValueError, xpr.format('slice')):
             ser[slice(3)] = value
-        assert ser[slice(3)] == value
+        assert ser._values[slice(3)] == value
 
     def test_setitem_empty_indxer(self, data, box_in_series):
         if box_in_series:
