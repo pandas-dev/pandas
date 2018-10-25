@@ -131,6 +131,11 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             assert ser._values is arr
 
+    def test_fillna_length_mismatch(self, data_missing):
+        with (tm.assert_raises_regex(ValueError,
+              "Length of 'value' does not match.")):
+            data_missing.fillna(data_missing.take([1]))
+
     def test_combine_le(self, data_repeated):
         # GH 20825
         # Test that combine works when doing a <= (le) comparison

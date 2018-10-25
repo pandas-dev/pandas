@@ -108,6 +108,10 @@ class TestMethods(BaseInterval, base.BaseMethodsTests):
     def test_combine_add(self, data_repeated):
         pass
 
+    @pytest.mark.skip(reason="Not Applicable")
+    def test_fillna_length_mismatch(self, data_missing):
+        pass
+
 
 class TestMissing(BaseInterval, base.BaseMissingTests):
     # Index.fillna only accepts scalar `value`, so we have to skip all

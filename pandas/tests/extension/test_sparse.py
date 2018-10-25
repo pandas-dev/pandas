@@ -231,6 +231,10 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         ], fill_value=False))
         self.assert_series_equal(result, expected)
 
+    @pytest.mark.skip(reason="Not Applicable")
+    def test_fillna_length_mismatch(self, data_missing):
+        pass
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     pass
