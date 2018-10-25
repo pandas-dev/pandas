@@ -162,6 +162,13 @@ class TestTimedeltaArrayCompat(object):
         # ms
         testit('L', lambda x: 'ms')
 
+    def test_round_invalid_freq(self):
+        t1 = timedelta_range('1 days', periods=3, freq='1 min 2 s 3 us')
+
+        for freq in ['Y', 'M', 'foobar']:
+            with pytest.raises(ValueError):
+                t1.round(freq)
+
     def test_round(self):
         t1 = timedelta_range('1 days', periods=3, freq='1 min 2 s 3 us')
         t2 = -1 * t1
@@ -186,18 +193,10 @@ class TestTimedeltaArrayCompat(object):
                                                freq=None)
                                 ),
                                ('12T', t1c,
-                                TimedeltaIndex(['-1 days',
-                                                '-1 days',
-                                                '-1 days'],
-                                               dtype='timedelta64[ns]',
-                                               freq=None)
+                                TimedeltaIndex([-1, -1, -1], unit='D')
                                 ),
                                ('H', t1c,
-                                TimedeltaIndex(['-1 days',
-                                                '-1 days',
-                                                '-1 days'],
-                                               dtype='timedelta64[ns]',
-                                               freq=None)
+                                TimedeltaIndex([-1, -1, -1], unit='D')
                                 ),
                                ('d', t1c,
                                 TimedeltaIndex([-1, -1, -1], unit='D')
@@ -206,12 +205,7 @@ class TestTimedeltaArrayCompat(object):
             r1 = t1.round(freq)
             tm.assert_index_equal(r1, s1)
             r2 = t2.round(freq)
-        tm.assert_index_equal(r2, s2)  # TODO: Should this be indented?
-
-        # invalid
-        for freq in ['Y', 'M', 'foobar']:
-            with pytest.raises(ValueError):
-                t1.round(freq)
+            tm.assert_index_equal(r2, s2)
 
     def test_timedelta_hash_equality(self):
         # GH#11129
