@@ -1856,18 +1856,15 @@ class DataFrame(NDFrame):
                  data_label=None, variable_labels=None, version=114,
                  convert_strl=None):
         """
-        Converting data frame object to Stata dta format.
+        Converting DataFrame object to Stata dta format.
 
-        Writes the Dataframe to a Stata dataset file.
+        Writes the DataFrame to a Stata dataset file.
         "dta" files contain a Stata dataset.
 
         Parameters
         ----------
-        fname : path (string), buffer or path object
-            String, path object (pathlib.Path or py._path.local.LocalPath) or
-            object implementing a binary write() functions. If using a buffer
-            then the buffer will not be automatically closed after the file
-            data has been written.
+        fname : str, file descriptor or pathlib.Path
+            String or path to file which needs to be converted.
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
             internal format to use when writing the dates. Options are 'tc',
@@ -1909,10 +1906,6 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.23.0
 
-        Returns
-        ------
-        Stata (dta) file or StataWriter.
-
         Raises
         ------
         NotImplementedError
@@ -1934,22 +1927,12 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        Converting dataframe with date column to Stata dta file
-        using the to_stata method.
+        Converting DataFrame to Stata "dta" file using the to_stata method.
 
-        >>> dates = pd.date_range(start='2018-01-01', periods=4)
-        >>> df = pd.DataFrame({'date': dates,
-        ...                    'animal': ['falcon', 'parrot', 'falcon',
+        >>> df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
         ...                               'parrot'],
-        ...                    'speed': [350, 18, 361, 15]}).set_index(['date',
-        ...                                                    'animal'])
+        ...                    'speed': [350, 18, 361, 15]})
         >>> df.to_stata('animals.dta')
-
-        Alternatively you can create an instance of the StataWriter class
-
-        >>> StataWriter = pd.io.stata.StataWriter
-        >>> writer = StataWriter('animals.dta', df)
-        >>> writer.write_file()
         """
         kwargs = {}
         if version not in (114, 117):
