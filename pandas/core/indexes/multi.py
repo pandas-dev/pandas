@@ -389,6 +389,9 @@ class MultiIndex(Index):
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'foo', u'bar'])
         """
+        if is_list_like(levels) and not isinstance(levels, Index):
+            levels = list(levels)
+
         if level is not None and not is_list_like(level):
             if not is_list_like(levels):
                 raise TypeError("Levels must be list-like")
