@@ -10253,19 +10253,18 @@ Examples
 --------
 ``MultiIndex`` series example of monthly rainfall
 
->>> index = pd.MultiIndex.from_arrays(
-...     [np.tile(['London', 'New York'], 3),
-...      np.repeat(['Jun', 'Jul', 'Aug'], 2)],
-...      names=['city', 'month'])
->>> s = pd.Series([47, 112, 35, 117, 54, 113], index=index)
+>>> index = pd.MultiIndex.from_product(
+...         [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
+...         names=['city', 'month'])
+>>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
 >>> s
 city      month
 London    Jun       47
+          Jul       35
+          Aug       54
 New York  Jun      112
-London    Jul       35
-New York  Jul      117
-London    Aug       54
-New York  Aug      113
+          Jul      117
+          Aug      113
 dtype: int64
 
 >>> s.min()
