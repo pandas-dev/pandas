@@ -17,7 +17,8 @@ from pandas.core.dtypes.common import (
     is_int64_dtype, is_integer, is_scalar, is_timedelta64_dtype
 )
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCSeries, ABCTimedeltaIndex)
+    ABCDataFrame, ABCSeries, ABCTimedeltaIndex
+)
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
 from pandas.util._decorators import Appender, cache_readonly
