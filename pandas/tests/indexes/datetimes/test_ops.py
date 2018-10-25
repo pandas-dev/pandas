@@ -33,7 +33,7 @@ class TestDatetimeIndexOps(Ops):
     def test_ops_properties_basic(self):
 
         # sanity check that the behavior didn't change
-        # GH7206
+        # GH#7206
         for op in ['year', 'day', 'second', 'weekday']:
             pytest.raises(TypeError, lambda x: getattr(self.dt_series, op))
 
