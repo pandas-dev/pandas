@@ -29,11 +29,11 @@ jobs:
       - run:
           name: build
           command: |
-            ./ci/install_circle.sh
-            ./ci/show_circle.sh
+            ./ci/circle/install_circle.sh
+            ./ci/circle/show_circle.sh
       - run:
           name: test
-          command: ./ci/run_circle.sh  --skip-slow --skip-network
+          command: ./ci/circle/run_circle.sh  --skip-slow --skip-network
 
 workflows:
   version: 2
