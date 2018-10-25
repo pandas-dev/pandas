@@ -151,7 +151,7 @@ def is_lexsorted(list_of_arrays: list) -> bint:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
+def groupsort_indexer(int64_t[:] index, Py_ssize_t ngroups):
     """
     compute a 1-d indexer that is an ordering of the passed index,
     ordered by the groups. This is a reverse of the label
@@ -373,7 +373,7 @@ ctypedef fused algos_t:
 # TODO: unused; needed?
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef map_indices(ndarray[algos_t] index):
+cpdef map_indices(algos_t[:] index):
     """
     Produce a dict mapping the values of the input array to their respective
     locations.
@@ -397,7 +397,7 @@ cpdef map_indices(ndarray[algos_t] index):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
+def pad(algos_t[:] old, algos_t[:] new, limit=None):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t, ndim=1] indexer
@@ -475,8 +475,9 @@ pad_bool = pad["uint8_t"]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_inplace(ndarray[algos_t] values,
+def pad_inplace(algos_t[:] values,
                 ndarray[uint8_t, cast=True] mask,
+                # TODO: What does the cast=True mean?  If unneeded, use bint[:]?
                 limit=None):
     cdef:
         Py_ssize_t i, N
@@ -595,7 +596,7 @@ D
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
+def backfill(algos_t[:] old, algos_t[:] new, limit=None):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t, ndim=1] indexer
@@ -674,7 +675,7 @@ backfill_bool = backfill["uint8_t"]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_inplace(ndarray[algos_t] values,
+def backfill_inplace(algos_t[:] values,
                      ndarray[uint8_t, cast=True] mask,
                      limit=None):
     cdef:
@@ -768,7 +769,7 @@ backfill_2d_inplace_bool = backfill_2d_inplace["uint8_t"]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def arrmap(ndarray[algos_t] index, object func):
+def arrmap(algos_t[:] index, object func):
     cdef:
         Py_ssize_t length = index.shape[0]
         Py_ssize_t i = 0
@@ -793,7 +794,7 @@ arrmap_bool = arrmap["uint8_t"]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def is_monotonic(ndarray[algos_t] arr, bint timelike):
+def is_monotonic(algos_t[:] arr, bint timelike):
     """
     Returns
     -------

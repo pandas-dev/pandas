@@ -107,6 +107,7 @@ cdef inline _npdivmod(x1, x2):
 try:
     from numpy import divmod as npdivmod
 except ImportError:
+    # numpy < 1.13
     npdivmod = _npdivmod
 
 

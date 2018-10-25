@@ -315,6 +315,7 @@ cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     lens = lens[:result_indexer]
     return locs, lens
 
+
 # -----------------------------------------------------------------------------
 # BlockIndex
 
@@ -805,10 +806,11 @@ include "sparse_op_helper.pxi"
 # Indexing operations
 
 def get_reindexer(ndarray[object, ndim=1] values, dict index_map):
-    cdef object idx
-    cdef Py_ssize_t i
-    cdef Py_ssize_t new_length = len(values)
-    cdef ndarray[int32_t, ndim=1] indexer
+    cdef:
+        object idx
+        Py_ssize_t i
+        Py_ssize_t new_length = len(values)
+        ndarray[int32_t, ndim=1] indexer
 
     indexer = np.empty(new_length, dtype=np.int32)
 
@@ -861,10 +863,11 @@ def reindex_integer(ndarray[float64_t, ndim=1] values,
 # SparseArray mask create operations
 
 def make_mask_object_ndarray(ndarray[object, ndim=1] arr, object fill_value):
-    cdef object value
-    cdef Py_ssize_t i
-    cdef Py_ssize_t new_length = len(arr)
-    cdef ndarray[int8_t, ndim=1] mask
+    cdef:
+        object value
+        Py_ssize_t i
+        Py_ssize_t new_length = len(arr)
+        ndarray[int8_t, ndim=1] mask
 
     mask = np.ones(new_length, dtype=np.int8)
 
