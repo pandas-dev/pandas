@@ -42,7 +42,6 @@ from pandas.errors import PerformanceWarning
 
 # ----------------------------------------------------------------------------
 # Dtype
-
 @register_extension_dtype
 class SparseDtype(ExtensionDtype):
     """
