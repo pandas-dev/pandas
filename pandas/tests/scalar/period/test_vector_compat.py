@@ -14,7 +14,7 @@ ids = ['identity', 'Series', 'Index']
 
 @pytest.mark.parametrize('lbox', boxes, ids=ids)
 @pytest.mark.parametrize('rbox', boxes, ids=ids)
-def test_add_timestamp_raises(self, rbox, lbox):
+def test_add_timestamp_raises(rbox, lbox):
     # GH#17983
     ts = Timestamp('2017')
     per = Period('2017', freq='M')
@@ -34,7 +34,7 @@ def test_add_timestamp_raises(self, rbox, lbox):
         lbox(per) + rbox(per)
 
 
-def test_pnow(self):
+def test_pnow():
     # deprecation, xref GH#13790
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         pnow('D')
