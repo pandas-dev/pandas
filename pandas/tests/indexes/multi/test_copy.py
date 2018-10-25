@@ -2,8 +2,9 @@
 
 from copy import copy, deepcopy
 
-import pandas.util.testing as tm
 import pytest
+
+import pandas.util.testing as tm
 from pandas import MultiIndex
 
 
