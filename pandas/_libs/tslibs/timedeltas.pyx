@@ -1062,6 +1062,10 @@ class Timedelta(_Timedelta):
                 return other.delta * self
             return NotImplemented
 
+        elif util._checknan(other):
+            # i.e. np.nan
+            return NaT
+
         elif hasattr(other, 'dtype'):
             # ndarray-like
             return other * self.to_timedelta64()
@@ -1088,6 +1092,10 @@ class Timedelta(_Timedelta):
         elif is_timedelta64_object(other):
             # convert to Timedelta below
             pass
+
+        elif util._checknan(other):
+            # i.e. np.nan
+            return NaT
 
         elif hasattr(other, 'dtype'):
             return self.to_timedelta64() / other
