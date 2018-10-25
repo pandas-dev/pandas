@@ -1,73 +1,16 @@
+"""
+Tests for pd.NaT that are logically dependent only on pandas._libs.tslibs;
+any tests that depend on Index/Series/etc are in test_vector_compat.py
+"""
 from datetime import datetime, timedelta
 
 import pytest
 import pytz
 import numpy as np
 
-from pandas import (NaT, Index, Timestamp, Timedelta, Period,
-                    DatetimeIndex, PeriodIndex,
-                    TimedeltaIndex, Series, isna)
+from pandas import NaT, Timestamp, Timedelta, Period, isna
 from pandas.util import testing as tm
 from pandas._libs.tslib import iNaT
-
-
-@pytest.mark.parametrize('nat, idx', [(Timestamp('NaT'), DatetimeIndex),
-                                      (Timedelta('NaT'), TimedeltaIndex),
-                                      (Period('NaT', freq='M'), PeriodIndex)])
-def test_nat_fields(nat, idx):
-
-    for field in idx._field_ops:
-
-        # weekday is a property of DTI, but a method
-        # on NaT/Timestamp for compat with datetime
-        if field == 'weekday':
-            continue
-
-        result = getattr(NaT, field)
-        assert np.isnan(result)
-
-        result = getattr(nat, field)
-        assert np.isnan(result)
-
-    for field in idx._bool_ops:
-
-        result = getattr(NaT, field)
-        assert result is False
-
-        result = getattr(nat, field)
-        assert result is False
-
-
-def test_nat_vector_field_access():
-    idx = DatetimeIndex(['1/1/2000', None, None, '1/4/2000'])
-
-    for field in DatetimeIndex._field_ops:
-        # weekday is a property of DTI, but a method
-        # on NaT/Timestamp for compat with datetime
-        if field == 'weekday':
-            continue
-
-        result = getattr(idx, field)
-        expected = Index([getattr(x, field) for x in idx])
-        tm.assert_index_equal(result, expected)
-
-    s = Series(idx)
-
-    for field in DatetimeIndex._field_ops:
-
-        # weekday is a property of DTI, but a method
-        # on NaT/Timestamp for compat with datetime
-        if field == 'weekday':
-            continue
-
-        result = getattr(s.dt, field)
-        expected = [getattr(x, field) for x in idx]
-        tm.assert_series_equal(result, Series(expected))
-
-    for field in DatetimeIndex._bool_ops:
-        result = getattr(s.dt, field)
-        expected = [getattr(x, field) for x in idx]
-        tm.assert_series_equal(result, Series(expected))
 
 
 @pytest.mark.parametrize('klass', [Timestamp, Timedelta, Period])
@@ -113,7 +56,7 @@ def test_equality(klass):
 
 @pytest.mark.parametrize('klass', [Timestamp, Timedelta])
 def test_round_nat(klass):
-    # GH14940
+    # GH#14940
     ts = klass('nat')
     for method in ["round", "floor", "ceil"]:
         round_method = getattr(ts, method)
@@ -122,8 +65,8 @@ def test_round_nat(klass):
 
 
 def test_NaT_methods():
-    # GH 9513
-    # GH 17329 for `timestamp`
+    # GH#9513
+    # GH#17329 for `timestamp`
     raise_methods = ['astimezone', 'combine', 'ctime', 'dst',
                      'fromordinal', 'fromtimestamp', 'isocalendar',
                      'strftime', 'strptime', 'time', 'timestamp',
@@ -145,7 +88,7 @@ def test_NaT_methods():
 
     for method in nat_methods:
         if hasattr(NaT, method):
-            # see gh-8254
+            # see GH#8254
             exp_warning = None
             if method == 'to_datetime':
                 exp_warning = FutureWarning
@@ -153,7 +96,7 @@ def test_NaT_methods():
                     exp_warning, check_stacklevel=False):
                 assert getattr(NaT, method)() is NaT
 
-    # GH 12300
+    # GH#12300
     assert NaT.isoformat() == 'NaT'
 
 
@@ -213,8 +156,9 @@ def test_isoformat(klass):
     assert result == expected
 
 
+# TODO: split this test up?
 def test_nat_arithmetic():
-    # GH 6873
+    # GH#6873
     i = 2
     f = 1.5
 
@@ -250,7 +194,7 @@ def test_nat_arithmetic():
         assert np.isnan(left / right)
         assert np.isnan(right / left)
 
-    # GH 11718
+    # GH#11718
     t_utc = Timestamp('2014-01-01', tz='UTC')
     t_tz = Timestamp('2014-01-01', tz='US/Eastern')
     dt_tz = pytz.timezone('Asia/Tokyo').localize(dt)
@@ -281,47 +225,6 @@ def test_nat_rfloordiv_timedelta():
     assert np.isnan(td // np.timedelta64('NaT'))
 
 
-def test_nat_arithmetic_index():
-    # GH 11718
-
-    dti = DatetimeIndex(['2011-01-01', '2011-01-02'], name='x')
-    exp = DatetimeIndex([NaT, NaT], name='x')
-    tm.assert_index_equal(dti + NaT, exp)
-    tm.assert_index_equal(NaT + dti, exp)
-
-    dti_tz = DatetimeIndex(['2011-01-01', '2011-01-02'],
-                           tz='US/Eastern', name='x')
-    exp = DatetimeIndex([NaT, NaT], name='x', tz='US/Eastern')
-    tm.assert_index_equal(dti_tz + NaT, exp)
-    tm.assert_index_equal(NaT + dti_tz, exp)
-
-    exp = TimedeltaIndex([NaT, NaT], name='x')
-    for (left, right) in [(NaT, dti), (NaT, dti_tz)]:
-        tm.assert_index_equal(left - right, exp)
-        tm.assert_index_equal(right - left, exp)
-
-    # timedelta # GH#19124
-    tdi = TimedeltaIndex(['1 day', '2 day'], name='x')
-    tdi_nat = TimedeltaIndex([NaT, NaT], name='x')
-
-    tm.assert_index_equal(tdi + NaT, tdi_nat)
-    tm.assert_index_equal(NaT + tdi, tdi_nat)
-    tm.assert_index_equal(tdi - NaT, tdi_nat)
-    tm.assert_index_equal(NaT - tdi, tdi_nat)
-
-
-@pytest.mark.parametrize('box', [TimedeltaIndex, Series])
-def test_nat_arithmetic_td64_vector(box):
-    # GH#19124
-    vec = box(['1 day', '2 day'], dtype='timedelta64[ns]')
-    box_nat = box([NaT, NaT], dtype='timedelta64[ns]')
-
-    tm.assert_equal(vec + NaT, box_nat)
-    tm.assert_equal(NaT + vec, box_nat)
-    tm.assert_equal(vec - NaT, box_nat)
-    tm.assert_equal(NaT - vec, box_nat)
-
-
 def test_nat_pinned_docstrings():
-    # GH17327
+    # GH#17327
     assert NaT.ctime.__doc__ == datetime.ctime.__doc__
