@@ -105,12 +105,31 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(l1, l2)
         self.assert_extension_array_equal(u1, u2)
 
-    def test_fillna_copy(self, data_for_fillna):
-        df = pd.DataFrame({"A": data_for_fillna})
+    def test_fillna_copy_frame(self, data):
+        arr = data.take([1, 1])
+        df = pd.DataFrame({"A": arr})
         filled_val = df.iloc[0, 0]
 
         result = df.fillna(filled_val)
         assert df.values.base is not result.values.base
+
+        if isinstance(arr, pd.SparseArray):
+            assert df.A._values.to_dense() is arr.to_dense()
+        else:
+            assert df.A._values is arr
+
+    def test_fillna_copy_series(self, data):
+        arr = data.take([1, 1])
+        ser = pd.Series(arr)
+        filled_val = ser[0]
+
+        result = ser.fillna(filled_val)
+        assert ser._values is not result._values
+
+        if isinstance(arr, pd.SparseArray):
+            assert ser._values.to_dense() is arr.to_dense()
+        else:
+            assert ser._values is arr
 
     def test_combine_le(self, data_repeated):
         # GH 20825

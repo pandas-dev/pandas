@@ -47,12 +47,6 @@ def data_missing():
 
 
 @pytest.fixture
-def data_for_fillna():
-    """Length 2 array with [Valid, Valid]"""
-    return Categorical(['A', 'A'])
-
-
-@pytest.fixture
 def data_for_sorting():
     return Categorical(['A', 'B', 'C'], categories=['C', 'A', 'B'],
                        ordered=True)

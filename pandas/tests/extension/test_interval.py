@@ -48,12 +48,6 @@ def data_missing():
 
 
 @pytest.fixture
-def data_for_fillna():
-    """Length 2 array with [Valid, Valid]"""
-    return IntervalArray.from_tuples([(1, 1), (1, 2)])
-
-
-@pytest.fixture
 def data_for_sorting():
     return IntervalArray.from_tuples([(1, 2), (2, 3), (0, 1)])
 
