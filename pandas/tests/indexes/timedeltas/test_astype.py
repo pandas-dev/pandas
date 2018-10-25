@@ -1,12 +1,13 @@
 from datetime import timedelta
 
+import numpy as np
 import pytest
 
-import numpy as np
-
 import pandas.util.testing as tm
-from pandas import (TimedeltaIndex, timedelta_range, Int64Index, Float64Index,
-                    Index, Timedelta, NaT)
+from pandas import (
+    Float64Index, Index, Int64Index, NaT, Timedelta, TimedeltaIndex,
+    timedelta_range
+)
 
 
 class TestTimedeltaIndex(object):

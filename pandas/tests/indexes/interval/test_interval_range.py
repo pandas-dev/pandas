@@ -1,14 +1,17 @@
 from __future__ import division
 
-import pytest
-import numpy as np
 from datetime import timedelta
+
+import numpy as np
+import pytest
+
+import pandas.util.testing as tm
 from pandas import (
-    Interval, IntervalIndex, Timestamp, Timedelta, DateOffset,
-    interval_range, date_range, timedelta_range)
+    DateOffset, Interval, IntervalIndex, Timedelta, Timestamp, date_range,
+    interval_range, timedelta_range
+)
 from pandas.core.dtypes.common import is_integer
 from pandas.tseries.offsets import Day
-import pandas.util.testing as tm
 
 
 @pytest.fixture(scope='class', params=[None, 'foo'])
