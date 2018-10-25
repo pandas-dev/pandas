@@ -10216,8 +10216,8 @@ Examples
 ``MultiIndex`` series example of monthly rainfall
 
 >>> index = pd.MultiIndex.from_product(
-...         [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
-...         names=['city', 'month'])
+...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
+...     names=['city', 'month'])
 >>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
 >>> s
 city      month
