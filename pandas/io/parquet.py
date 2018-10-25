@@ -1,10 +1,11 @@
 """ parquet compat """
 
-from warnings import catch_warnings
 from distutils.version import LooseVersion
-from pandas import DataFrame, RangeIndex, Int64Index, get_option
-from pandas.compat import string_types
+from warnings import catch_warnings
+
 import pandas.core.common as com
+from pandas import DataFrame, Int64Index, RangeIndex, get_option
+from pandas.compat import string_types
 from pandas.io.common import get_filepath_or_buffer, is_s3_url
 
 
