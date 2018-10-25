@@ -1,13 +1,13 @@
 """
 Tests for pd.NaT behavior that depend on the implementations of Index/Series
 """
-import pytest
 import numpy as np
+import pytest
 
 import pandas.util.testing as tm
 from pandas import (
-    Timestamp, Timedelta, Period, NaT,
-    DatetimeIndex, TimedeltaIndex, PeriodIndex, Index, Series
+    DatetimeIndex, Index, NaT, Period, PeriodIndex, Series, Timedelta,
+    TimedeltaIndex, Timestamp
 )
 
 

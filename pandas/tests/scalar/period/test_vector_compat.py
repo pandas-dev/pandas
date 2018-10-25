@@ -4,9 +4,8 @@ Tests for pd.Period behavior that depend on the implementations of Index/Series
 import pytest
 
 import pandas.util.testing as tm
+from pandas import Index, Period, Series, Timestamp
 from pandas.core.indexes.period import pnow
-from pandas import Timestamp, Period, Series, Index
-
 
 boxes = [lambda x: x, lambda x: Series([x]), lambda x: Index([x])]
 ids = ['identity', 'Series', 'Index']

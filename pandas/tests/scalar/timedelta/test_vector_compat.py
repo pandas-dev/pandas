@@ -8,13 +8,11 @@ import numpy as np
 import pytest
 
 import pandas.util.testing as tm
-
-from pandas._libs.tslib import iNaT
 from pandas import (
-    NaT, Timedelta,
-    Series, DatetimeIndex, TimedeltaIndex,
-    date_range, to_timedelta, timedelta_range, offsets
+    DatetimeIndex, NaT, Series, Timedelta, TimedeltaIndex, date_range, offsets,
+    timedelta_range, to_timedelta
 )
+from pandas._libs.tslib import iNaT
 
 
 class TestTimedeltaArithmeticArrayCompat(object):

@@ -4,13 +4,13 @@ any tests that depend on Index/Series/etc are in test_vector_compat.py
 """
 from datetime import datetime, timedelta
 
+import numpy as np
 import pytest
 import pytz
-import numpy as np
 
-from pandas import NaT, Timestamp, Timedelta, Period, isna
-from pandas.util import testing as tm
+from pandas import NaT, Period, Timedelta, Timestamp, isna
 from pandas._libs.tslib import iNaT
+from pandas.util import testing as tm
 
 
 @pytest.mark.parametrize('klass', [Timestamp, Timedelta, Period])
