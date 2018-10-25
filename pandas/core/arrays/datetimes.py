@@ -486,7 +486,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         return result.view('timedelta64[ns]')
 
     @Appender((dtl.DatetimeLikeArrayMixin._add_delta.__doc__ or "").replace(
-        "ndarray[int64]", "same type as self"))
+        "ndarray[int64]", "same type as self").replace(
+        "an int64 numpy array", "another array of the same type as self"))
     def _add_delta(self, delta):
         new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
         return type(self)(new_values, tz=self.tz, freq='infer')

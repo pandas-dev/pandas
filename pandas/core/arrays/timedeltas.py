@@ -4,7 +4,7 @@ from datetime import timedelta
 import numpy as np
 
 from pandas._libs import tslibs
-from pandas._libs.tslibs import Timedelta, Timestamp, NaT, iNaT
+from pandas._libs.tslibs import Timedelta, Timestamp, NaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
@@ -191,7 +191,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                                 cls=type(self).__name__))
 
     @Appender((dtl.DatetimeLikeArrayMixin._add_delta.__doc__ or "").replace(
-        "ndarray[int64]", "same type as self"))
+        "ndarray[int64]", "same type as self").replace(
+        "an int64 numpy array", "another array of the same type as self"))
     def _add_delta(self, delta):
         new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
         return type(self)(new_values, freq='infer')

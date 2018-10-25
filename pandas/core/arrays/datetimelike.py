@@ -352,7 +352,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     def _add_delta(self, other):
         """
         Add a timedelta-like, Tick or TimedeltaIndex-like object
-        to self, yielding another array of the same type
+        to self, yielding an int64 numpy array
 
         Parameters
         ----------
