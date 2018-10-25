@@ -323,32 +323,35 @@ class TestDatetimeIndexComparisons(object):
         with pytest.raises(TypeError):
             dti >= other
 
-    def test_dti_cmp_nat(self):
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_dti_cmp_nat(self, dtype):
         left = pd.DatetimeIndex([pd.Timestamp('2011-01-01'), pd.NaT,
                                  pd.Timestamp('2011-01-03')])
         right = pd.DatetimeIndex([pd.NaT, pd.NaT, pd.Timestamp('2011-01-03')])
 
-        for lhs, rhs in [(left, right),
-                         (left.astype(object), right.astype(object))]:
-            result = rhs == lhs
-            expected = np.array([False, False, True])
-            tm.assert_numpy_array_equal(result, expected)
+        lhs, rhs = left, right
+        if dtype is object:
+            lhs, rhs = left.astype(object), right.astype(object)
 
-            result = lhs != rhs
-            expected = np.array([True, True, False])
-            tm.assert_numpy_array_equal(result, expected)
+        result = rhs == lhs
+        expected = np.array([False, False, True])
+        tm.assert_numpy_array_equal(result, expected)
 
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
+        result = lhs != rhs
+        expected = np.array([True, True, False])
+        tm.assert_numpy_array_equal(result, expected)
 
-            expected = np.array([True, True, True])
-            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
+        expected = np.array([False, False, False])
+        tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
+        tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
 
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
+        expected = np.array([True, True, True])
+        tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
+        tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
+
+        expected = np.array([False, False, False])
+        tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
+        tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
 
     def test_dti_cmp_nat_behaves_like_float_cmp_nan(self):
         fidx1 = pd.Index([1.0, np.nan, 3.0, np.nan, 5.0, 7.0])
@@ -946,13 +949,15 @@ class TestTimestampSeriesArithmetic(object):
 
         other = Series([20, 30, 40], dtype='uint8')
 
-        pytest.raises(TypeError, getattr(ser, op), 1)
-
-        pytest.raises(TypeError, getattr(ser, op), other)
-
-        pytest.raises(TypeError, getattr(ser, op), other.values)
-
-        pytest.raises(TypeError, getattr(ser, op), pd.Index(other))
+        method = getattr(ser, op)
+        with pytest.raises(TypeError):
+            method(1)
+        with pytest.raises(TypeError):
+            method(other)
+        with pytest.raises(TypeError):
+            method(other.values)
+        with pytest.raises(TypeError):
+            method(pd.Index(other))
 
     # -------------------------------------------------------------
     # Timezone-Centric Tests
@@ -1039,10 +1044,6 @@ class TestDatetimeIndexArithmetic(object):
         msg = "cannot add"
         with tm.assert_raises_regex(TypeError, msg):
             idx + Timestamp('2011-01-01')
-
-    def test_dti_radd_timestamp_raises(self):
-        idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
-        msg = "cannot add DatetimeIndex and Timestamp"
         with tm.assert_raises_regex(TypeError, msg):
             Timestamp('2011-01-01') + idx
 
