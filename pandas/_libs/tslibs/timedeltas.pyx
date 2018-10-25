@@ -1214,7 +1214,9 @@ class Timedelta(_Timedelta):
             return NotImplemented
 
         elif util.is_nan(other):
-            # i.e. np.nan
+            # i.e. np.nan, but also catch np.float64("NaN") which would
+            #  otherwise get caught by the hasattr(other, "dtype") branch
+            #  incorrectly return a np.timedelta64 object.
             return NaT
 
         elif hasattr(other, 'dtype'):
@@ -1245,7 +1247,9 @@ class Timedelta(_Timedelta):
             pass
 
         elif util.is_nan(other):
-            # i.e. np.nan
+            # i.e. np.nan, but also catch np.float64("NaN") which would
+            #  otherwise get caught by the hasattr(other, "dtype") branch
+            #  incorrectly return a np.timedelta64 object.
             return NaT
 
         elif hasattr(other, 'dtype'):
