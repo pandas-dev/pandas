@@ -1091,6 +1091,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` when indexing with an :class:`IntervalIndex` (:issue:`19977`)
 - :class:`Index` no longer mangles ``None``, ``NaN`` and ``NaT``, i.e. they are treated as three different keys. However, for numeric Index all three are still coerced to a ``NaN`` (:issue:`22332`)
 - Bug in `scalar in Index` if scalar is a float while the ``Index`` is of integer dtype (:issue:`22085`)
+- Bug in `MultiIndex.set_levels` when levels value is not subscriptable (:issue:`23273`)
 
 Missing
 ^^^^^^^
