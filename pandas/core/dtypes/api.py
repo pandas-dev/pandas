@@ -2,7 +2,8 @@
 
 import sys
 
-from .common import (  # categorical; interval; datetimelike; string-like; sparse; numeric types; like
+# categorical; interval; datetimelike; string-like; sparse; numeric types; like
+from .common import (
     is_array_like, is_bool, is_bool_dtype, is_categorical,
     is_categorical_dtype, is_complex, is_complex_dtype,
     is_datetime64_any_dtype, is_datetime64_dtype, is_datetime64_ns_dtype,
