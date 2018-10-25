@@ -12,7 +12,7 @@ def make_data(fill_value):
     if np.isnan(fill_value):
         data = np.random.uniform(size=100)
     else:
-        data = np.random.randint(0, 100, size=100)
+        data = np.random.randint(1, 100, size=100)
 
     data[2::3] = fill_value
     return data
