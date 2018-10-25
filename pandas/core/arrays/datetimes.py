@@ -12,7 +12,7 @@ from pandas._libs.tslibs import (
     conversion, fields, timezones,
     resolution as libresolution)
 
-from pandas.util._decorators import cache_readonly, Appender
+from pandas.util._decorators import cache_readonly
 from pandas.errors import PerformanceWarning
 from pandas import compat
 
@@ -485,10 +485,20 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         result = self._maybe_mask_results(result)
         return result.view('timedelta64[ns]')
 
-    @Appender((dtl.DatetimeLikeArrayMixin._add_delta.__doc__ or "").replace(
-        "ndarray[int64]", "same type as self").replace(
-        "an int64 numpy array", "another array of the same type as self"))
     def _add_delta(self, delta):
+        """
+        Add a timedelta-like, Tick, or TimedeltaIndex-like object
+        to self, yielding a new DatetimeArray
+
+        Parameters
+        ----------
+        other : {timedelta, np.timedelta64, Tick,
+                 TimedeltaIndex, ndarray[timedelta64]}
+
+        Returns
+        -------
+        result : DatetimeArray
+        """
         new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
         return type(self)(new_values, tz=self.tz, freq='infer')
 

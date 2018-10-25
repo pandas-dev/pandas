@@ -8,7 +8,6 @@ from pandas._libs.tslibs import Timedelta, Timestamp, NaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
-from pandas.util._decorators import Appender
 from pandas import compat
 
 from pandas.core.dtypes.common import (
@@ -190,10 +189,20 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                         .format(typ=type(other).__name__,
                                 cls=type(self).__name__))
 
-    @Appender((dtl.DatetimeLikeArrayMixin._add_delta.__doc__ or "").replace(
-        "ndarray[int64]", "same type as self").replace(
-        "an int64 numpy array", "another array of the same type as self"))
     def _add_delta(self, delta):
+        """
+        Add a timedelta-like, Tick, or TimedeltaIndex-like object
+        to self, yielding a new TimedeltaArray
+
+        Parameters
+        ----------
+        other : {timedelta, np.timedelta64, Tick,
+                 TimedeltaIndex, ndarray[timedelta64]}
+
+        Returns
+        -------
+        result : TimedeltaArray
+        """
         new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
         return type(self)(new_values, freq='infer')
 
