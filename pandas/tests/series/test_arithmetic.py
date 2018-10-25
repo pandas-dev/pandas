@@ -4,11 +4,9 @@ import operator
 import numpy as np
 import pytest
 
-from pandas import Series
-
 import pandas as pd
 import pandas.util.testing as tm
-
+from pandas import Series
 
 # ------------------------------------------------------------------
 # Comparisons

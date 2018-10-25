@@ -1,11 +1,10 @@
 # coding=utf-8
 
+import numpy as np
 import pytest
 
-import numpy as np
-
-from pandas import Series, Categorical
 import pandas.util.testing as tm
+from pandas import Categorical, Series
 
 
 def test_value_counts_nunique():
