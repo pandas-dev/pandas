@@ -105,11 +105,11 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(l1, l2)
         self.assert_extension_array_equal(u1, u2)
 
-    def test_fillna_copy_frame(self, data):
-        arr = data.take([1, 1])
+    def test_fillna_copy_frame(self, data_missing):
+        arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr})
-        filled_val = df.iloc[0, 0]
 
+        filled_val = df.iloc[0, 0]
         result = df.fillna(filled_val)
         assert df.values.base is not result.values.base
 
@@ -118,11 +118,11 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             assert df.A._values is arr
 
-    def test_fillna_copy_series(self, data):
-        arr = data.take([1, 1])
+    def test_fillna_copy_series(self, data_missing):
+        arr = data_missing.take([1, 1])
         ser = pd.Series(arr)
-        filled_val = ser[0]
 
+        filled_val = ser[0]
         result = ser.fillna(filled_val)
         assert ser._values is not result._values
 
