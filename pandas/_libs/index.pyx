@@ -1,21 +1,17 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta, date
 
-cimport cython
-
-from cpython cimport PyTuple_Check, PyList_Check
-from cpython.slice cimport PySlice_Check
+import cython
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t
+from numpy cimport (ndarray, float64_t, int32_t,
+                    int64_t, uint8_t, uint64_t, intp_t,
+                    # Note: NPY_DATETIME, NPY_TIMEDELTA are only available
+                    # for cimport in cython>=0.27.3
+                    NPY_DATETIME, NPY_TIMEDELTA)
 cnp.import_array()
 
-cdef extern from "numpy/arrayobject.h":
-    # These can be cimported directly from numpy in cython>=0.27.3
-    cdef enum NPY_TYPES:
-        NPY_DATETIME
-        NPY_TIMEDELTA
 
 cimport util
 
@@ -24,56 +20,34 @@ from tslibs.conversion cimport maybe_datetimelike_to_i8
 from hashtable cimport HashTable
 
 from pandas._libs import algos, hashtable as _hash
-from pandas._libs.tslibs import period as periodlib
-from pandas._libs.tslib import Timestamp, Timedelta
+from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
 cdef int64_t iNaT = util.get_nat()
 
 
 cdef inline bint is_definitely_invalid_key(object val):
-    if PyTuple_Check(val):
+    if isinstance(val, tuple):
         try:
             hash(val)
         except TypeError:
             return True
 
     # we have a _data, means we are a NDFrame
-    return (PySlice_Check(val) or cnp.PyArray_Check(val)
-            or PyList_Check(val) or hasattr(val, '_data'))
+    return (isinstance(val, slice) or util.is_array(val)
+            or isinstance(val, list) or hasattr(val, '_data'))
 
 
-def get_value_at(ndarray arr, object loc):
+cpdef get_value_at(ndarray arr, object loc, object tz=None):
     if arr.descr.type_num == NPY_DATETIME:
-        return Timestamp(util.get_value_at(arr, loc))
+        return Timestamp(util.get_value_at(arr, loc), tz=tz)
     elif arr.descr.type_num == NPY_TIMEDELTA:
         return Timedelta(util.get_value_at(arr, loc))
     return util.get_value_at(arr, loc)
 
 
-cpdef object get_value_box(ndarray arr, object loc):
-    cdef:
-        Py_ssize_t i, sz
-
-    if util.is_float_object(loc):
-        casted = int(loc)
-        if casted == loc:
-            loc = casted
-    i = <Py_ssize_t> loc
-    sz = cnp.PyArray_SIZE(arr)
-
-    if i < 0 and sz > 0:
-        i += sz
-
-    if i >= sz or sz == 0 or i < 0:
-        raise IndexError('index out of bounds')
-
-    if arr.descr.type_num == NPY_DATETIME:
-        return Timestamp(util.get_value_1d(arr, i))
-    elif arr.descr.type_num == NPY_TIMEDELTA:
-        return Timedelta(util.get_value_1d(arr, i))
-    else:
-        return util.get_value_1d(arr, i)
+def get_value_box(arr: ndarray, loc: object) -> object:
+    return get_value_at(arr, loc, tz=None)
 
 
 # Don't populate hash tables in monotonic indexes larger than this
@@ -111,14 +85,10 @@ cdef class IndexEngine:
             void* data_ptr
 
         loc = self.get_loc(key)
-        if PySlice_Check(loc) or cnp.PyArray_Check(loc):
+        if isinstance(loc, slice) or util.is_array(loc):
             return arr[loc]
         else:
-            if arr.descr.type_num == NPY_DATETIME:
-                return Timestamp(util.get_value_at(arr, loc), tz=tz)
-            elif arr.descr.type_num == NPY_TIMEDELTA:
-                return Timedelta(util.get_value_at(arr, loc))
-            return util.get_value_at(arr, loc)
+            return get_value_at(arr, loc, tz=tz)
 
     cpdef set_value(self, ndarray arr, object key, object value):
         """
@@ -131,10 +101,7 @@ cdef class IndexEngine:
         loc = self.get_loc(key)
         value = convert_scalar(arr, value)
 
-        if PySlice_Check(loc) or cnp.PyArray_Check(loc):
-            arr[loc] = value
-        else:
-            util.set_value_at(arr, loc, value)
+        arr[loc] = value
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
@@ -183,32 +150,20 @@ cdef class IndexEngine:
 
     cdef _maybe_get_bool_indexer(self, object val):
         cdef:
-            ndarray[uint8_t] indexer
-            ndarray[object] values
-            int count = 0
-            Py_ssize_t i, n
-            int last_true
+            ndarray[uint8_t, ndim=1, cast=True] indexer
+            ndarray[intp_t, ndim=1] found
+            int count
 
-        values = np.array(self._get_index_values(), copy=False)
-        n = len(values)
+        indexer = self._get_index_values() == val
+        found = np.where(indexer)[0]
+        count = len(found)
 
-        result = np.empty(n, dtype=bool)
-        indexer = result.view(np.uint8)
-
-        for i in range(n):
-            if values[i] == val:
-                count += 1
-                indexer[i] = 1
-                last_true = i
-            else:
-                indexer[i] = 0
-
-        if count == 0:
-            raise KeyError(val)
+        if count > 1:
+            return indexer
         if count == 1:
-            return last_true
+            return int(found[0])
 
-        return result
+        raise KeyError(val)
 
     def sizeof(self, deep=False):
         """ return the sizeof our mapping """
@@ -315,7 +270,7 @@ cdef class IndexEngine:
         """ return an indexer suitable for takng from a non unique index
             return the labels in the same order ast the target
             and a missing indexer into the targets (which correspond
-            to the -1 indicies in the results """
+            to the -1 indices in the results """
 
         cdef:
             ndarray values, x
@@ -339,18 +294,26 @@ cdef class IndexEngine:
         result = np.empty(n_alloc, dtype=np.int64)
         missing = np.empty(n_t, dtype=np.int64)
 
-        # form the set of the results (like ismember)
-        members = np.empty(n, dtype=np.uint8)
-        for i in range(n):
-            val = util.get_value_1d(values, i)
-            if val in stargets:
-                if val not in d:
-                    d[val] = []
-                d[val].append(i)
+        # map each starget to its position in the index
+        if stargets and len(stargets) < 5 and self.is_monotonic_increasing:
+            # if there are few enough stargets and the index is monotonically
+            # increasing, then use binary search for each starget
+            for starget in stargets:
+                start = values.searchsorted(starget, side='left')
+                end = values.searchsorted(starget, side='right')
+                if start != end:
+                    d[starget] = list(range(start, end))
+        else:
+            # otherwise, map by iterating through all items in the index
+            for i in range(n):
+                val = values[i]
+                if val in stargets:
+                    if val not in d:
+                        d[val] = []
+                    d[val].append(i)
 
         for i in range(n_t):
-
-            val = util.get_value_1d(targets, i)
+            val = targets[i]
 
             # found
             if val in d:
@@ -542,9 +505,6 @@ cdef class PeriodEngine(Int64Engine):
 
         return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
 
-    cdef _get_index_values_for_bool_indexer(self):
-        return self._get_index_values().view('i8')
-
 
 cpdef convert_scalar(ndarray arr, object value):
     # we don't turn integers
@@ -686,7 +646,7 @@ cdef class BaseMultiIndexCodesEngine:
     def get_loc(self, object key):
         if is_definitely_invalid_key(key):
             raise TypeError("'{key}' is an invalid key".format(key=key))
-        if not PyTuple_Check(key):
+        if not isinstance(key, tuple):
             raise KeyError(key)
         try:
             indices = [0 if checknull(v) else lev.get_loc(v) + 1

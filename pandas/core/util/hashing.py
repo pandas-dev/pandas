@@ -2,16 +2,15 @@
 data hash pandas / numpy objects
 """
 import itertools
-
 import numpy as np
-from pandas._libs import hashing, tslib
+from pandas._libs import hashing, tslibs
 from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCIndexClass,
     ABCSeries,
     ABCDataFrame)
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_list_like)
+    is_categorical_dtype, is_list_like, is_extension_array_dtype)
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 
@@ -205,7 +204,9 @@ def _hash_categorical(c, encoding, hash_key):
     -------
     ndarray of hashed values array, same size as len(c)
     """
-    hashed = hash_array(c.categories.values, encoding, hash_key,
+    # Convert ExtensionArrays to ndarrays
+    values = np.asarray(c.categories.values)
+    hashed = hash_array(values, encoding, hash_key,
                         categorize=False)
 
     # we have uint64, as we don't directly support missing values
@@ -263,10 +264,13 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
     # numpy if categorical is a subdtype of complex, as it will choke).
     if is_categorical_dtype(dtype):
         return _hash_categorical(vals, encoding, hash_key)
+    elif is_extension_array_dtype(dtype):
+        vals, _ = vals._values_for_factorize()
+        dtype = vals.dtype
 
     # we'll be working with everything as 64-bit values, so handle this
     # 128-bit value early
-    elif np.issubdtype(dtype, np.complex128):
+    if np.issubdtype(dtype, np.complex128):
         return hash_array(vals.real) + 23 * hash_array(vals.imag)
 
     # First, turn whatever array this is into unsigned 64-bit ints, if we can
@@ -321,8 +325,8 @@ def _hash_scalar(val, encoding='utf8', hash_key=None):
         # for tz-aware datetimes, we need the underlying naive UTC value and
         # not the tz aware object or pd extension type (as
         # infer_dtype_from_scalar would do)
-        if not isinstance(val, tslib.Timestamp):
-            val = tslib.Timestamp(val)
+        if not isinstance(val, tslibs.Timestamp):
+            val = tslibs.Timestamp(val)
         val = val.tz_convert(None)
 
     dtype, val = infer_dtype_from_scalar(val)

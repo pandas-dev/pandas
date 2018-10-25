@@ -83,9 +83,10 @@ class TestMergeOrdered(object):
         pd.concat([pd.DataFrame(), None])
 
     def test_doc_example(self):
-        left = DataFrame({'key': ['a', 'c', 'e', 'a', 'c', 'e'],
+        left = DataFrame({'group': list('aaabbb'),
+                          'key': ['a', 'c', 'e', 'a', 'c', 'e'],
                           'lvalue': [1, 2, 3] * 2,
-                          'group': list('aaabbb')})
+                          })
 
         right = DataFrame({'key': ['b', 'c', 'd'],
                            'rvalue': [1, 2, 3]})

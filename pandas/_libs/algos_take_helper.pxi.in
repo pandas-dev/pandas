@@ -46,7 +46,7 @@ def get_dispatch(dtypes):
     fv = fill_value
 
     %(nogil_str)s
-    %(tab)sfor i from 0 <= i < n:
+    %(tab)sfor i in range(n):
     %(tab)s    idx = indexer[i]
     %(tab)s    if idx == -1:
     %(tab)s        out[i] = fv
@@ -74,10 +74,10 @@ def get_dispatch(dtypes):
             values.strides[1] == sizeof(%(c_type_out)s) and
             sizeof(%(c_type_out)s) * n >= 256):
 
-            for i from 0 <= i < n:
+            for i in range(n):
                 idx = indexer[i]
                 if idx == -1:
-                    for j from 0 <= j < k:
+                    for j in range(k):
                         out[i, j] = fv
                 else:
                     v = &values[idx, 0]
@@ -85,13 +85,13 @@ def get_dispatch(dtypes):
                     memmove(o, v, <size_t>(sizeof(%(c_type_out)s) * k))
             return
 
-    for i from 0 <= i < n:
+    for i in range(n):
         idx = indexer[i]
         if idx == -1:
-            for j from 0 <= j < k:
+            for j in range(k):
                 out[i, j] = fv
         else:
-            for j from 0 <= j < k:
+            for j in range(k):
                 out[i, j] = %(preval)svalues[idx, j]%(postval)s
 """
 
@@ -108,8 +108,8 @@ def get_dispatch(dtypes):
 
     fv = fill_value
 
-    for i from 0 <= i < n:
-        for j from 0 <= j < k:
+    for i in range(n):
+        for j in range(k):
             idx = indexer[j]
             if idx == -1:
                 out[i, j] = fv
@@ -246,13 +246,13 @@ def take_2d_multi_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
     k = len(idx1)
 
     fv = fill_value
-    for i from 0 <= i < n:
+    for i in range(n):
         idx = idx0[i]
         if idx == -1:
-            for j from 0 <= j < k:
+            for j in range(k):
                 out[i, j] = fv
         else:
-            for j from 0 <= j < k:
+            for j in range(k):
                 if idx1[j] == -1:
                     out[i, j] = fv
                 else:
@@ -260,33 +260,39 @@ def take_2d_multi_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 
 {{endfor}}
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # take_2d internal function
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
-{{py:
+ctypedef fused take_t:
+    float64_t
+    uint64_t
+    int64_t
+    object
 
-# dtype, ctype, init_result
-dtypes = [('float64', 'float64_t', 'np.empty_like(values)'),
-          ('uint64', 'uint64_t', 'np.empty_like(values)'),
-          ('object', 'object', 'values.copy()'),
-          ('int64', 'int64_t', 'np.empty_like(values)')]
-}}
 
-{{for dtype, ctype, init_result in dtypes}}
-
-cdef _take_2d_{{dtype}}(ndarray[{{ctype}}, ndim=2] values, object idx):
+cdef _take_2d(ndarray[take_t, ndim=2] values, object idx):
     cdef:
         Py_ssize_t i, j, N, K
         ndarray[Py_ssize_t, ndim=2, cast=True] indexer = idx
-        ndarray[{{ctype}}, ndim=2] result
+        ndarray[take_t, ndim=2] result
         object val
 
     N, K = (<object> values).shape
-    result = {{init_result}}
+
+    if take_t is object:
+        # evaluated at compile-time
+        result = values.copy()
+    else:
+        result = np.empty_like(values)
+
     for i in range(N):
         for j in range(K):
             result[i, j] = values[i, indexer[i, j]]
     return result
 
-{{endfor}}
+
+_take_2d_object = _take_2d[object]
+_take_2d_float64 = _take_2d[float64_t]
+_take_2d_int64 = _take_2d[int64_t]
+_take_2d_uint64 = _take_2d[uint64_t]

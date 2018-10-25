@@ -4,12 +4,9 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import Series, date_range, NaT
 
-from .pandas_vb_common import setup  # noqa
-
 
 class SeriesConstructor(object):
 
-    goal_time = 0.2
     params = [None, 'dict']
     param_names = ['data']
 
@@ -26,7 +23,6 @@ class SeriesConstructor(object):
 
 class IsIn(object):
 
-    goal_time = 0.2
     params = ['int64', 'object']
     param_names = ['dtype']
 
@@ -38,10 +34,67 @@ class IsIn(object):
         self.s.isin(self.values)
 
 
+class IsInFloat64(object):
+
+    def setup(self):
+        self.small = Series([1, 2], dtype=np.float64)
+        self.many_different_values = np.arange(10**6, dtype=np.float64)
+        self.few_different_values = np.zeros(10**7, dtype=np.float64)
+        self.only_nans_values = np.full(10**7, np.nan, dtype=np.float64)
+
+    def time_isin_many_different(self):
+        # runtime is dominated by creation of the lookup-table
+        self.small.isin(self.many_different_values)
+
+    def time_isin_few_different(self):
+        # runtime is dominated by creation of the lookup-table
+        self.small.isin(self.few_different_values)
+
+    def time_isin_nan_values(self):
+        # runtime is dominated by creation of the lookup-table
+        self.small.isin(self.few_different_values)
+
+
+class IsInForObjects(object):
+
+    def setup(self):
+        self.s_nans = Series(np.full(10**4, np.nan)).astype(np.object)
+        self.vals_nans = np.full(10**4, np.nan).astype(np.object)
+        self.s_short = Series(np.arange(2)).astype(np.object)
+        self.s_long = Series(np.arange(10**5)).astype(np.object)
+        self.vals_short = np.arange(2).astype(np.object)
+        self.vals_long = np.arange(10**5).astype(np.object)
+        # because of nans floats are special:
+        self.s_long_floats = Series(np.arange(10**5,
+                                    dtype=np.float)).astype(np.object)
+        self.vals_long_floats = np.arange(10**5,
+                                          dtype=np.float).astype(np.object)
+
+    def time_isin_nans(self):
+        # if nan-objects are different objects,
+        # this has the potential to trigger O(n^2) running time
+        self.s_nans.isin(self.vals_nans)
+
+    def time_isin_short_series_long_values(self):
+        # running time dominated by the preprocessing
+        self.s_short.isin(self.vals_long)
+
+    def time_isin_long_series_short_values(self):
+        # running time dominated by look-up
+        self.s_long.isin(self.vals_short)
+
+    def time_isin_long_series_long_values(self):
+        # no dominating part
+        self.s_long.isin(self.vals_long)
+
+    def time_isin_long_series_long_values_floats(self):
+        # no dominating part
+        self.s_long_floats.isin(self.vals_long_floats)
+
+
 class NSort(object):
 
-    goal_time = 0.2
-    params = ['last', 'first']
+    params = ['first', 'last', 'all']
     param_names = ['keep']
 
     def setup(self, keep):
@@ -56,7 +109,6 @@ class NSort(object):
 
 class Dropna(object):
 
-    goal_time = 0.2
     params = ['int', 'datetime']
     param_names = ['dtype']
 
@@ -74,7 +126,6 @@ class Dropna(object):
 
 class Map(object):
 
-    goal_time = 0.2
     params = ['dict', 'Series']
     param_names = 'mapper'
 
@@ -90,8 +141,6 @@ class Map(object):
 
 class Clip(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.s = Series(np.random.randn(50))
 
@@ -101,7 +150,6 @@ class Clip(object):
 
 class ValueCounts(object):
 
-    goal_time = 0.2
     params = ['int', 'float', 'object']
     param_names = ['dtype']
 
@@ -114,10 +162,22 @@ class ValueCounts(object):
 
 class Dir(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.s = Series(index=tm.makeStringIndex(10000))
 
     def time_dir_strings(self):
         dir(self.s)
+
+
+class SeriesGetattr(object):
+    # https://github.com/pandas-dev/pandas/issues/19764
+    def setup(self):
+        self.s = Series(1,
+                        index=date_range("2012-01-01", freq='s',
+                                         periods=int(1e6)))
+
+    def time_series_datetimeindex_repr(self):
+        getattr(self.s, 'a', None)
+
+
+from .pandas_vb_common import setup  # noqa: F401

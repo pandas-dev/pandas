@@ -6,16 +6,13 @@ import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
 from pandas.compat import lrange
-from pandas._libs import tslib, tslibs
+from pandas._libs import tslibs
 from pandas import (PeriodIndex, Series, DatetimeIndex,
-                    period_range, Period)
+                    period_range, Period, notna)
 from pandas._libs.tslibs import period as libperiod
 
 
 class TestGetItem(object):
-
-    def setup_method(self, method):
-        pass
 
     def test_getitem(self):
         idx1 = pd.period_range('2011-01-01', '2011-01-31', freq='D',
@@ -122,7 +119,7 @@ class TestGetItem(object):
     def test_getitem_nat(self):
         idx = pd.PeriodIndex(['2011-01', 'NaT', '2011-02'], freq='M')
         assert idx[0] == pd.Period('2011-01', freq='M')
-        assert idx[1] is tslib.NaT
+        assert idx[1] is pd.NaT
 
         s = pd.Series([0, 1, 2], index=idx)
         assert s[pd.NaT] == 1
@@ -130,7 +127,7 @@ class TestGetItem(object):
         s = pd.Series(idx, index=idx)
         assert (s[pd.Period('2011-01', freq='M')] ==
                 pd.Period('2011-01', freq='M'))
-        assert s[pd.NaT] is tslib.NaT
+        assert s[pd.NaT] is pd.NaT
 
     def test_getitem_list_periods(self):
         # GH 7710
@@ -193,31 +190,43 @@ class TestGetItem(object):
                     s[v]
 
 
-class TestIndexing(object):
+class TestWhere(object):
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
+    def test_where(self, klass):
+        i = period_range('20130101', periods=5, freq='D')
+        cond = [True] * len(i)
+        expected = i
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
 
-    def test_get_loc_msg(self):
-        idx = period_range('2000-1-1', freq='A', periods=10)
-        bad_period = Period('2012', 'A')
-        pytest.raises(KeyError, idx.get_loc, bad_period)
+        cond = [False] + [True] * (len(i) - 1)
+        expected = PeriodIndex([pd.NaT] + i[1:].tolist(), freq='D')
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
 
-        try:
-            idx.get_loc(bad_period)
-        except KeyError as inst:
-            assert inst.args[0] == bad_period
+    def test_where_other(self):
+        i = period_range('20130101', periods=5, freq='D')
+        for arr in [np.nan, pd.NaT]:
+            result = i.where(notna(i), other=np.nan)
+            expected = i
+            tm.assert_index_equal(result, expected)
 
-    def test_get_loc_nat(self):
-        didx = DatetimeIndex(['2011-01-01', 'NaT', '2011-01-03'])
-        pidx = PeriodIndex(['2011-01-01', 'NaT', '2011-01-03'], freq='M')
+        i2 = i.copy()
+        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
+                            freq='D')
+        result = i.where(notna(i2), i2)
+        tm.assert_index_equal(result, i2)
 
-        # check DatetimeIndex compat
-        for idx in [didx, pidx]:
-            assert idx.get_loc(pd.NaT) == 1
-            assert idx.get_loc(None) == 1
-            assert idx.get_loc(float('nan')) == 1
-            assert idx.get_loc(np.nan) == 1
+        i2 = i.copy()
+        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
+                            freq='D')
+        result = i.where(notna(i2), i2.values)
+        tm.assert_index_equal(result, i2)
 
+
+class TestTake(object):
     def test_take(self):
-        # GH 10295
+        # GH#10295
         idx1 = pd.period_range('2011-01-01', '2011-01-31', freq='D',
                                name='idx')
 
@@ -281,7 +290,7 @@ class TestIndexing(object):
             assert taken.name == expected.name
 
     def test_take_fill_value(self):
-        # GH 12631
+        # GH#12631
         idx = pd.PeriodIndex(['2011-01-01', '2011-02-01', '2011-03-01'],
                              name='xxx', freq='D')
         result = idx.take(np.array([1, 0, -1]))
@@ -311,6 +320,30 @@ class TestIndexing(object):
 
         with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
+
+
+class TestIndexing(object):
+
+    def test_get_loc_msg(self):
+        idx = period_range('2000-1-1', freq='A', periods=10)
+        bad_period = Period('2012', 'A')
+        pytest.raises(KeyError, idx.get_loc, bad_period)
+
+        try:
+            idx.get_loc(bad_period)
+        except KeyError as inst:
+            assert inst.args[0] == bad_period
+
+    def test_get_loc_nat(self):
+        didx = DatetimeIndex(['2011-01-01', 'NaT', '2011-01-03'])
+        pidx = PeriodIndex(['2011-01-01', 'NaT', '2011-01-03'], freq='M')
+
+        # check DatetimeIndex compat
+        for idx in [didx, pidx]:
+            assert idx.get_loc(pd.NaT) == 1
+            assert idx.get_loc(None) == 1
+            assert idx.get_loc(float('nan')) == 1
+            assert idx.get_loc(np.nan) == 1
 
     def test_get_loc(self):
         # GH 17717
@@ -371,11 +404,11 @@ class TestIndexing(object):
         idx_dec1 = pd.PeriodIndex([p2, p1, p1])
         idx = pd.PeriodIndex([p1, p2, p0])
 
-        assert idx_inc0.is_monotonic_increasing
-        assert idx_inc1.is_monotonic_increasing
-        assert not idx_dec0.is_monotonic_increasing
-        assert not idx_dec1.is_monotonic_increasing
-        assert not idx.is_monotonic_increasing
+        assert idx_inc0.is_monotonic_increasing is True
+        assert idx_inc1.is_monotonic_increasing is True
+        assert idx_dec0.is_monotonic_increasing is False
+        assert idx_dec1.is_monotonic_increasing is False
+        assert idx.is_monotonic_increasing is False
 
     def test_is_monotonic_decreasing(self):
         # GH 17717
@@ -389,11 +422,11 @@ class TestIndexing(object):
         idx_dec1 = pd.PeriodIndex([p2, p1, p1])
         idx = pd.PeriodIndex([p1, p2, p0])
 
-        assert not idx_inc0.is_monotonic_decreasing
-        assert not idx_inc1.is_monotonic_decreasing
-        assert idx_dec0.is_monotonic_decreasing
-        assert idx_dec1.is_monotonic_decreasing
-        assert not idx.is_monotonic_decreasing
+        assert idx_inc0.is_monotonic_decreasing is False
+        assert idx_inc1.is_monotonic_decreasing is False
+        assert idx_dec0.is_monotonic_decreasing is True
+        assert idx_dec1.is_monotonic_decreasing is True
+        assert idx.is_monotonic_decreasing is False
 
     def test_is_unique(self):
         # GH 17717
@@ -402,10 +435,10 @@ class TestIndexing(object):
         p2 = pd.Period('2017-09-03')
 
         idx0 = pd.PeriodIndex([p0, p1, p2])
-        assert idx0.is_unique
+        assert idx0.is_unique is True
 
         idx1 = pd.PeriodIndex([p1, p1, p2])
-        assert not idx1.is_unique
+        assert idx1.is_unique is False
 
     def test_contains(self):
         # GH 17717

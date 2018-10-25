@@ -870,7 +870,7 @@ Andrews Curves
 
 Andrews curves allow one to plot multivariate data as a large number
 of curves that are created using the attributes of samples as coefficients
-for Fourier series, see the `Wikipedia entry<https://en.wikipedia.org/wiki/Andrews_plot>`_
+for Fourier series, see the `Wikipedia entry <https://en.wikipedia.org/wiki/Andrews_plot>`__
 for more information. By coloring these curves differently for each class
 it is possible to visualize data clustering. Curves belonging to samples
 of the same class will usually be closer together and form larger structures.
@@ -894,7 +894,7 @@ Parallel Coordinates
 ~~~~~~~~~~~~~~~~~~~~
 
 Parallel coordinates is a plotting technique for plotting multivariate data,
-see the `Wikipedia entry<https://en.wikipedia.org/wiki/Parallel_coordinates>`_
+see the `Wikipedia entry <https://en.wikipedia.org/wiki/Parallel_coordinates>`__
 for an introduction.
 Parallel coordinates allows one to see clusters in data and to estimate other statistics visually.
 Using parallel coordinates points are represented as connected line segments.
@@ -962,7 +962,7 @@ all time-lag separations. If time series is non-random then one or more of the
 autocorrelations will be significantly non-zero. The horizontal lines displayed
 in the plot correspond to 95% and 99% confidence bands. The dashed line is 99%
 confidence band. See the 
-`Wikipedia entry<https://en.wikipedia.org/wiki/Correlogram>`_ for more about
+`Wikipedia entry <https://en.wikipedia.org/wiki/Correlogram>`__ for more about
 autocorrelation plots.
 
 .. ipython:: python
@@ -1032,7 +1032,7 @@ unit interval). The point in the plane, where our sample settles to (where the
 forces acting on our sample are at an equilibrium) is where a dot representing
 our sample will be drawn. Depending on which class that sample belongs it will
 be colored differently.
-See the R package `Radviz<https://cran.r-project.org/web/packages/Radviz/>`_
+See the R package `Radviz <https://cran.r-project.org/web/packages/Radviz/>`__
 for more information.
 
 **Note**: The "Iris" dataset is available `here <https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/iris.csv>`__.
@@ -1061,7 +1061,7 @@ Plot Formatting
 Setting the plot style
 ~~~~~~~~~~~~~~~~~~~~~~
 
-From version 1.5 and up, matplotlib offers a range of preconfigured plotting styles. Setting the
+From version 1.5 and up, matplotlib offers a range of pre-configured plotting styles. Setting the
 style can be used to easily give plots the general look that you want.
 Setting the style is as easy as calling ``matplotlib.style.use(my_plot_style)`` before
 creating your plot. For example you could write ``matplotlib.style.use('ggplot')`` for ggplot-style
@@ -1381,9 +1381,9 @@ Plotting with error bars is supported in :meth:`DataFrame.plot` and :meth:`Serie
 
 Horizontal and vertical error bars can be supplied to the ``xerr`` and ``yerr`` keyword arguments to :meth:`~DataFrame.plot()`. The error values can be specified using a variety of formats:
 
-- As a :class:`DataFrame` or ``dict`` of errors with column names matching the ``columns`` attribute of the plotting :class:`DataFrame` or matching the ``name`` attribute of the :class:`Series`.
-- As a ``str`` indicating which of the columns of plotting :class:`DataFrame` contain the error values.
-- As raw values (``list``, ``tuple``, or ``np.ndarray``). Must be the same length as the plotting :class:`DataFrame`/:class:`Series`.
+* As a :class:`DataFrame` or ``dict`` of errors with column names matching the ``columns`` attribute of the plotting :class:`DataFrame` or matching the ``name`` attribute of the :class:`Series`.
+* As a ``str`` indicating which of the columns of plotting :class:`DataFrame` contain the error values.
+* As raw values (``list``, ``tuple``, or ``np.ndarray``). Must be the same length as the plotting :class:`DataFrame`/:class:`Series`.
 
 Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``M`` length :class:`Series`, a ``Mx2`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors should be in a ``Mx2xN`` array.
 

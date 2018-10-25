@@ -22,7 +22,7 @@ from .test_numeric import Numeric
 
 class TestRangeIndex(Numeric):
     _holder = RangeIndex
-    _compat_props = ['shape', 'ndim', 'size', 'itemsize']
+    _compat_props = ['shape', 'ndim', 'size']
 
     def setup_method(self, method):
         self.indices = dict(index=RangeIndex(0, 20, 2, name='foo'),
@@ -43,6 +43,11 @@ class TestRangeIndex(Numeric):
                     result = op(idx, scalar)
                     expected = op(Int64Index(idx), scalar)
                     tm.assert_index_equal(result, expected)
+
+    def test_can_hold_identifiers(self):
+        idx = self.create_index()
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is False
 
     def test_binops(self):
         ops = [operator.add, operator.sub, operator.mul, operator.floordiv,
@@ -335,38 +340,38 @@ class TestRangeIndex(Numeric):
         assert self.index.dtype == np.int64
 
     def test_is_monotonic(self):
-        assert self.index.is_monotonic
-        assert self.index.is_monotonic_increasing
-        assert not self.index.is_monotonic_decreasing
-        assert self.index._is_strictly_monotonic_increasing
-        assert not self.index._is_strictly_monotonic_decreasing
+        assert self.index.is_monotonic is True
+        assert self.index.is_monotonic_increasing is True
+        assert self.index.is_monotonic_decreasing is False
+        assert self.index._is_strictly_monotonic_increasing is True
+        assert self.index._is_strictly_monotonic_decreasing is False
 
         index = RangeIndex(4, 0, -1)
-        assert not index.is_monotonic
-        assert not index._is_strictly_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is False
+        assert index._is_strictly_monotonic_increasing is False
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
         index = RangeIndex(1, 2)
-        assert index.is_monotonic
-        assert index.is_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_increasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
         index = RangeIndex(2, 1)
-        assert index.is_monotonic
-        assert index.is_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_increasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
         index = RangeIndex(1, 1)
-        assert index.is_monotonic
-        assert index.is_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_increasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
     def test_equals_range(self):
         equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
@@ -801,7 +806,7 @@ class TestRangeIndex(Numeric):
         result = a - fidx
         tm.assert_index_equal(result, expected)
 
-    def test_duplicates(self):
+    def test_has_duplicates(self):
         for ind in self.indices:
             if not len(ind):
                 continue

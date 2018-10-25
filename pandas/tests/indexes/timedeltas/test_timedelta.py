@@ -102,13 +102,10 @@ class TestTimedeltaIndex(DatetimeLike):
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
 
-    def test_join_self(self):
-
+    def test_join_self(self, join_type):
         index = timedelta_range('1 day', periods=10)
-        kinds = 'outer', 'inner', 'left', 'right'
-        for kind in kinds:
-            joined = index.join(index, how=kind)
-            tm.assert_index_equal(index, joined)
+        joined = index.join(index, how=join_type)
+        tm.assert_index_equal(index, joined)
 
     def test_does_not_convert_mixed_integer(self):
         df = tm.makeCustomDataframe(10, 10,
@@ -148,7 +145,10 @@ class TestTimedeltaIndex(DatetimeLike):
         idx = TimedeltaIndex(['1 day', '2 day', '2 day', '3 day', '3day',
                               '4day'])
 
-        result = idx.get_duplicates()
+        with tm.assert_produces_warning(FutureWarning):
+            # Deprecated - see GH20239
+            result = idx.get_duplicates()
+
         ex = TimedeltaIndex(['2 day', '3day'])
         tm.assert_index_equal(result, ex)
 

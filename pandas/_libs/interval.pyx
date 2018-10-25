@@ -1,17 +1,24 @@
-cimport numpy as cnp
-import numpy as np
-
-cimport util
-cimport cython
-import cython
-from numpy cimport ndarray
-from tslib import Timestamp
-from tslibs.timezones cimport tz_compare
+# -*- coding: utf-8 -*-
+import numbers
 
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
                              PyObject_RichCompare)
 
-import numbers
+cimport cython
+from cython cimport Py_ssize_t
+
+import numpy as np
+from numpy cimport ndarray
+
+from operator import le, lt
+
+cimport util
+util.import_array()
+
+from tslibs import Timestamp
+from tslibs.timezones cimport tz_compare
+
+
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
 
@@ -20,28 +27,60 @@ cdef class IntervalMixin(object):
     @property
     def closed_left(self):
         """
-        Return True if the Interval is closed on the left-side, else False
+        Check if the interval is closed on the left side.
+
+        For the meaning of `closed` and `open` see :class:`~pandas.Interval`.
+
+        Returns
+        -------
+        bool
+            ``True`` if the Interval is closed on the left-side, else
+            ``False``.
         """
         return self.closed in ('left', 'both')
 
     @property
     def closed_right(self):
         """
-        Return True if the Interval is closed on the right-side, else False
+        Check if the interval is closed on the right side.
+
+        For the meaning of `closed` and `open` see :class:`~pandas.Interval`.
+
+        Returns
+        -------
+        bool
+            ``True`` if the Interval is closed on the left-side, else
+            ``False``.
         """
         return self.closed in ('right', 'both')
 
     @property
     def open_left(self):
         """
-        Return True if the Interval is open on the left-side, else False
+        Check if the interval is open on the left side.
+
+        For the meaning of `closed` and `open` see :class:`~pandas.Interval`.
+
+        Returns
+        -------
+        bool
+            ``True`` if the Interval is closed on the left-side, else
+            ``False``.
         """
         return not self.closed_left
 
     @property
     def open_right(self):
         """
-        Return True if the Interval is open on the right-side, else False
+        Check if the interval is open on the right side.
+
+        For the meaning of `closed` and `open` see :class:`~pandas.Interval`.
+
+        Returns
+        -------
+        bool
+            ``True`` if the Interval is closed on the left-side, else
+            ``False``.
         """
         return not self.closed_right
 
@@ -66,6 +105,26 @@ cdef class IntervalMixin(object):
             msg = 'cannot compute length between {left!r} and {right!r}'
             raise TypeError(msg.format(left=self.left, right=self.right))
 
+    def _check_closed_matches(self, other, name='other'):
+        """Check if the closed attribute of `other` matches.
+
+        Note that 'left' and 'right' are considered different from 'both'.
+
+        Parameters
+        ----------
+        other : Interval, IntervalIndex, IntervalArray
+        name : str
+            Name to use for 'other' in the error message.
+
+        Raises
+        ------
+        ValueError
+            When `other` is not closed exactly the same as self.
+        """
+        if self.closed != other.closed:
+            msg = "'{}.closed' is '{}', expected '{}'."
+            raise ValueError(msg.format(name, other.closed, self.closed))
+
 
 cdef _interval_like(other):
     return (hasattr(other, 'left')
@@ -81,33 +140,95 @@ cdef class Interval(IntervalMixin):
 
     Parameters
     ----------
-    left : value
-        Left bound for the interval
-    right : value
-        Right bound for the interval
+    left : orderable scalar
+        Left bound for the interval.
+    right : orderable scalar
+        Right bound for the interval.
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the interval is closed on the left-side, right-side, both or
-        neither
+        neither.
+    closed : {'right', 'left', 'both', 'neither'}, default 'right'
+        Whether the interval is closed on the left-side, right-side, both or
+        neither. See the Notes for more detailed explanation.
+
+    Notes
+    -----
+    The parameters `left` and `right` must be from the same type, you must be
+    able to compare them and they must satisfy ``left <= right``.
+
+    A closed interval (in mathematics denoted by square brackets) contains
+    its endpoints, i.e. the closed interval ``[0, 5]`` is characterized by the
+    conditions ``0 <= x <= 5``. This is what ``closed='both'`` stands for.
+    An open interval (in mathematics denoted by parentheses) does not contain
+    its endpoints, i.e. the open interval ``(0, 5)`` is characterized by the
+    conditions ``0 < x < 5``. This is what ``closed='neither'`` stands for.
+    Intervals can also be half-open or half-closed, i.e. ``[0, 5)`` is
+    described by ``0 <= x < 5`` (``closed='left'``) and ``(0, 5]`` is
+    described by ``0 < x <= 5`` (``closed='right'``).
 
     Examples
     --------
+    It is possible to build Intervals of different types, like numeric ones:
+
     >>> iv = pd.Interval(left=0, right=5)
     >>> iv
     Interval(0, 5, closed='right')
+
+    You can check if an element belongs to it
+
     >>> 2.5 in iv
     True
 
-    >>> year_2017 = pd.Interval(pd.Timestamp('2017-01-01'),
-    ...                         pd.Timestamp('2017-12-31'), closed='both')
+    You can test the bounds (``closed='right'``, so ``0 < x <= 5``):
+
+    >>> 0 in iv
+    False
+    >>> 5 in iv
+    True
+    >>> 0.0001 in iv
+    True
+
+    Calculate its length
+
+    >>> iv.length
+    5
+
+    You can operate with `+` and `*` over an Interval and the operation
+    is applied to each of its bounds, so the result depends on the type
+    of the bound elements
+
+    >>> shifted_iv = iv + 3
+    >>> shifted_iv
+    Interval(3, 8, closed='right')
+    >>> extended_iv = iv * 10.0
+    >>> extended_iv
+    Interval(0.0, 50.0, closed='right')
+
+    To create a time interval you can use Timestamps as the bounds
+
+    >>> year_2017 = pd.Interval(pd.Timestamp('2017-01-01 00:00:00'),
+    ...                         pd.Timestamp('2018-01-01 00:00:00'),
+    ...                         closed='left')
     >>> pd.Timestamp('2017-01-01 00:00') in year_2017
+    True
+    >>> year_2017.length
+    Timedelta('365 days 00:00:00')
+
+    And also you can create string intervals
+
+    >>> volume_1 = pd.Interval('Ant', 'Dog', closed='both')
+    >>> 'Bee' in volume_1
     True
 
     See Also
     --------
     IntervalIndex : An Index of Interval objects that are all closed on the
-                    same side.
-    cut, qcut : Convert arrays of continuous data into Categoricals/Series of
-                Interval.
+        same side.
+    cut : Convert continuous data into discrete bins (Categorical
+        of Interval objects).
+    qcut : Convert continuous data into bins (Categorical of Interval objects)
+        based on quantiles.
+    Period : Represents a period of time.
     """
     _typ = "interval"
 
@@ -151,7 +272,7 @@ cdef class Interval(IntervalMixin):
         return ((self.left < key if self.open_left else self.left <= key) and
                 (key < self.right if self.open_right else key <= self.right))
 
-    def __richcmp__(self, other, int op):
+    def __richcmp__(self, other, op: int):
         if hasattr(other, 'ndim'):
             # let numpy (or IntervalIndex) handle vectorization
             return NotImplemented
@@ -206,46 +327,114 @@ cdef class Interval(IntervalMixin):
 
     def __add__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left + y, self.right + y)
+            return Interval(self.left + y, self.right + y, closed=self.closed)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
-            return Interval(y.left + self, y.right + self)
+            return Interval(y.left + self, y.right + self, closed=y.closed)
         return NotImplemented
 
     def __sub__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left - y, self.right - y)
+            return Interval(self.left - y, self.right - y, closed=self.closed)
         return NotImplemented
 
     def __mul__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left * y, self.right * y)
+            return Interval(self.left * y, self.right * y, closed=self.closed)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
-            return Interval(y.left * self, y.right * self)
+            return Interval(y.left * self, y.right * self, closed=y.closed)
         return NotImplemented
 
     def __div__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left / y, self.right / y)
+            return Interval(self.left / y, self.right / y, closed=self.closed)
         return NotImplemented
 
     def __truediv__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left / y, self.right / y)
+            return Interval(self.left / y, self.right / y, closed=self.closed)
         return NotImplemented
 
     def __floordiv__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left // y, self.right // y)
+            return Interval(
+                self.left // y, self.right // y, closed=self.closed)
         return NotImplemented
+
+    def overlaps(self, other):
+        """
+        Check whether two Interval objects overlap.
+
+        Two intervals overlap if they share a common point, including closed
+        endpoints. Intervals that only have an open endpoint in common do not
+        overlap.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        other : Interval
+            The interval to check against for an overlap.
+
+        Returns
+        -------
+        bool
+            ``True`` if the two intervals overlap, else ``False``.
+
+        Examples
+        --------
+        >>> i1 = pd.Interval(0, 2)
+        >>> i2 = pd.Interval(1, 3)
+        >>> i1.overlaps(i2)
+        True
+        >>> i3 = pd.Interval(4, 5)
+        >>> i1.overlaps(i3)
+        False
+
+        Intervals that share closed endpoints overlap:
+
+        >>> i4 = pd.Interval(0, 1, closed='both')
+        >>> i5 = pd.Interval(1, 2, closed='both')
+        >>> i4.overlaps(i5)
+        True
+
+        Intervals that only have an open endpoint in common do not overlap:
+
+        >>> i6 = pd.Interval(1, 2, closed='neither')
+        >>> i4.overlaps(i6)
+        False
+
+        See Also
+        --------
+        IntervalArray.overlaps : The corresponding method for IntervalArray
+        IntervalIndex.overlaps : The corresponding method for IntervalIndex
+        """
+        if not isinstance(other, Interval):
+            msg = '`other` must be an Interval, got {other}'
+            raise TypeError(msg.format(other=type(other).__name__))
+
+        # equality is okay if both endpoints are closed (overlap at a point)
+        op1 = le if (self.closed_left and other.closed_right) else lt
+        op2 = le if (other.closed_left and self.closed_right) else lt
+
+        # overlaps is equivalent negation of two interval being disjoint:
+        # disjoint = (A.left > B.right) or (B.left > A.right)
+        # (simplifying the negation allows this to be done in less operations)
+        return op1(self.left, other.right) and op2(other.left, self.right)
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef intervals_to_interval_bounds(ndarray intervals):
+def intervals_to_interval_bounds(ndarray intervals,
+                                 bint validate_closed=True):
     """
     Parameters
     ----------
-    intervals: ndarray object array of Intervals / nulls
+    intervals : ndarray
+        object array of Intervals / nulls
+
+    validate_closed: boolean, default True
+        boolean indicating if all intervals must be closed on the same side.
+        Mismatching closed will raise if True, else return None for closed.
 
     Returns
     -------
@@ -259,13 +448,14 @@ cpdef intervals_to_interval_bounds(ndarray intervals):
         object closed = None, interval
         int64_t n = len(intervals)
         ndarray left, right
+        bint seen_closed = False
 
     left = np.empty(n, dtype=intervals.dtype)
     right = np.empty(n, dtype=intervals.dtype)
 
     for i in range(len(intervals)):
         interval = intervals[i]
-        if util._checknull(interval):
+        if interval is None or util.is_nan(interval):
             left[i] = np.nan
             right[i] = np.nan
             continue
@@ -276,11 +466,16 @@ cpdef intervals_to_interval_bounds(ndarray intervals):
 
         left[i] = interval.left
         right[i] = interval.right
-        if closed is None:
+        if not seen_closed:
+            seen_closed = True
             closed = interval.closed
         elif closed != interval.closed:
-            raise ValueError('intervals must all be closed on the same side')
+            closed = None
+            if validate_closed:
+                msg = 'intervals must all be closed on the same side'
+                raise ValueError(msg)
 
     return left, right, closed
+
 
 include "intervaltree.pxi"

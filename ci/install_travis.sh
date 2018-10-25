@@ -50,16 +50,6 @@ conda config --set ssl_verify false || exit 1
 conda config --set quiet true --set always_yes true --set changeps1 false || exit 1
 conda update -q conda
 
-echo
-echo "[add channels]"
-conda config --remove channels defaults || exit 1
-conda config --add channels defaults || exit 1
-
-if [ "$CONDA_FORGE" ]; then
-    # add conda-forge channel as priority
-    conda config --add channels conda-forge || exit 1
-fi
-
 # Useful for debugging any issues with conda
 conda info -a || exit 1
 
@@ -90,63 +80,9 @@ echo
 echo "[create env]"
 
 # create our environment
-REQ="ci/requirements-${JOB}.build"
-time conda create -n pandas --file=${REQ} || exit 1
+time conda env create -q -n pandas --file="${ENV_FILE}" || exit 1
 
 source activate pandas
-
-# may have addtl installation instructions for this build
-echo
-echo "[build addtl installs]"
-REQ="ci/requirements-${JOB}.build.sh"
-if [ -e ${REQ} ]; then
-    time bash $REQ || exit 1
-fi
-
-time conda install -n pandas pytest>=3.1.0
-time pip install -q pytest-xdist moto
-
-if [ "$LINT" ]; then
-   conda install flake8=3.4.1
-   pip install cpplint
-fi
-
-if [ "$COVERAGE" ]; then
-    pip install coverage pytest-cov
-fi
-
-echo
-if [ -z "$PIP_BUILD_TEST" ] ; then
-
-    # build but don't install
-    echo "[build em]"
-    time python setup.py build_ext --inplace || exit 1
-
-fi
-
-# we may have run installations
-echo
-echo "[conda installs]"
-REQ="ci/requirements-${JOB}.run"
-if [ -e ${REQ} ]; then
-    time conda install -n pandas --file=${REQ} || exit 1
-fi
-
-# we may have additional pip installs
-echo
-echo "[pip installs]"
-REQ="ci/requirements-${JOB}.pip"
-if [ -e ${REQ} ]; then
-   pip install -r $REQ
-fi
-
-# may have addtl installation instructions for this build
-echo
-echo "[addtl installs]"
-REQ="ci/requirements-${JOB}.sh"
-if [ -e ${REQ} ]; then
-    time bash $REQ || exit 1
-fi
 
 # remove any installed pandas package
 # w/o removing anything else
@@ -161,27 +97,12 @@ conda list pandas
 pip list --format columns |grep pandas
 
 # build and install
-echo
-
-if [ "$PIP_BUILD_TEST" ]; then
-
-    # build & install testing
-    echo "[building release]"
-    time bash scripts/build_dist_for_release.sh || exit 1
-    conda uninstall -y cython
-    time pip install dist/*tar.gz || exit 1
-
-else
-
-    # install our pandas
-    echo "[running setup.py develop]"
-    python setup.py develop  || exit 1
-
-fi
+echo "[running setup.py develop]"
+python setup.py develop  || exit 1
 
 echo
-echo "[show pandas]"
-conda list pandas
+echo "[show environment]"
+conda list
 
 echo
 echo "[done]"

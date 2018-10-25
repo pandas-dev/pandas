@@ -3,12 +3,9 @@ from pandas import DataFrame, date_range, ExcelWriter, read_excel
 from pandas.compat import BytesIO
 import pandas.util.testing as tm
 
-from ..pandas_vb_common import BaseIO, setup  # noqa
-
 
 class Excel(object):
 
-    goal_time = 0.2
     params = ['openpyxl', 'xlsxwriter', 'xlwt']
     param_names = ['engine']
 
@@ -25,13 +22,15 @@ class Excel(object):
         self.writer_read.save()
         self.bio_read.seek(0)
 
-        self.bio_write = BytesIO()
-        self.bio_write.seek(0)
-        self.writer_write = ExcelWriter(self.bio_write, engine=engine)
-
     def time_read_excel(self, engine):
         read_excel(self.bio_read)
 
     def time_write_excel(self, engine):
-        self.df.to_excel(self.writer_write, sheet_name='Sheet1')
-        self.writer_write.save()
+        bio_write = BytesIO()
+        bio_write.seek(0)
+        writer_write = ExcelWriter(bio_write, engine=engine)
+        self.df.to_excel(writer_write, sheet_name='Sheet1')
+        writer_write.save()
+
+
+from ..pandas_vb_common import setup  # noqa: F401

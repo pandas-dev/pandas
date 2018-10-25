@@ -5,6 +5,7 @@ Tests that NA values are properly handled during
 parsing for all of the parsers defined in parsers.py
 """
 
+import pytest
 import numpy as np
 from numpy import nan
 
@@ -69,9 +70,9 @@ NaN,nan
                 tm.assert_frame_equal(out, expected)
 
     def test_default_na_values(self):
-        _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
-                          '#N/A', 'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null',
-                          'NaN', 'nan', '-NaN', '-nan', '#N/A N/A', ''])
+        _NA_VALUES = {'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A',
+                      'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', 'nan',
+                      '-NaN', '-nan', '#N/A N/A', ''}
         assert _NA_VALUES == com._NA_VALUES
         nv = len(_NA_VALUES)
 
@@ -369,3 +370,29 @@ nan,B
         expected = DataFrame({"a": [1, 4], "c": [3, 6]},
                              index=Index([np.nan, 5.0], name="b"))
         tm.assert_frame_equal(out, expected)
+
+    def test_inf_na_values_with_int_index(self):
+        # see gh-17128
+        data = "idx,col1,col2\n1,3,4\n2,inf,-inf"
+
+        # Don't fail with OverflowError with infs and integer index column
+        out = self.read_csv(StringIO(data), index_col=[0],
+                            na_values=['inf', '-inf'])
+        expected = DataFrame({"col1": [3, np.nan], "col2": [4, np.nan]},
+                             index=Index([1, 2], name="idx"))
+        tm.assert_frame_equal(out, expected)
+
+    @pytest.mark.parametrize("na_filter", [True, False])
+    def test_na_values_with_dtype_str_and_na_filter(self, na_filter):
+        # see gh-20377
+        data = "a,b,c\n1,,3\n4,5,6"
+
+        # na_filter=True --> missing value becomes NaN.
+        # na_filter=False --> missing value remains empty string.
+        empty = np.nan if na_filter else ""
+        expected = DataFrame({"a": ["1", "4"],
+                              "b": [empty, "5"],
+                              "c": ["3", "6"]})
+
+        result = self.read_csv(StringIO(data), na_filter=na_filter, dtype=str)
+        tm.assert_frame_equal(result, expected)

@@ -1,0 +1,28 @@
+name: pandas
+channels:
+  - defaults
+dependencies:
+  - beautifulsoup4
+  - bottleneck
+  - cython>=0.28.2
+  - html5lib
+  - jinja2
+  - lxml
+  - matplotlib=2.2.0
+  - nomkl
+  - numexpr
+  - numpy=1.12.0
+  - openpyxl=2.5.5
+  - pytables
+  - python=3.5*
+  - pytz
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  # universal
+  - pytest
+  - pytest-xdist
+  - pip:
+    - python-dateutil==2.5.3
+    - hypothesis>=3.58.0

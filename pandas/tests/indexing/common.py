@@ -1,12 +1,14 @@
 """ common utilities """
 
 import itertools
-from warnings import catch_warnings
+from warnings import catch_warnings, filterwarnings
+import pytest
 import numpy as np
 
 from pandas.compat import lrange
 from pandas.core.dtypes.common import is_scalar
-from pandas import Series, DataFrame, Panel, date_range, UInt64Index
+from pandas import (Series, DataFrame, Panel, date_range, UInt64Index,
+                    Float64Index, MultiIndex)
 from pandas.util import testing as tm
 from pandas.io.formats.printing import pprint_thing
 
@@ -24,12 +26,13 @@ def _axify(obj, key, axis):
     return tuple(axes)
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class Base(object):
     """ indexing comprehensive base class """
 
-    _objs = set(['series', 'frame', 'panel'])
-    _typs = set(['ints', 'uints', 'labels', 'mixed',
-                 'ts', 'floats', 'empty', 'ts_rev'])
+    _objs = {'series', 'frame', 'panel'}
+    _typs = {'ints', 'uints', 'labels', 'mixed', 'ts', 'floats', 'empty',
+             'ts_rev', 'multi'}
 
     def setup_method(self, method):
 
@@ -48,35 +51,55 @@ class Base(object):
         self.frame_uints = DataFrame(np.random.randn(4, 4),
                                      index=UInt64Index(lrange(0, 8, 2)),
                                      columns=UInt64Index(lrange(0, 12, 3)))
-        with catch_warnings(record=True):
-            self.panel_uints = Panel(np.random.rand(4, 4, 4),
-                                     items=UInt64Index(lrange(0, 8, 2)),
-                                     major_axis=UInt64Index(lrange(0, 12, 3)),
-                                     minor_axis=UInt64Index(lrange(0, 16, 4)))
+        self.panel_uints = Panel(np.random.rand(4, 4, 4),
+                                 items=UInt64Index(lrange(0, 8, 2)),
+                                 major_axis=UInt64Index(lrange(0, 12, 3)),
+                                 minor_axis=UInt64Index(lrange(0, 16, 4)))
+
+        self.series_floats = Series(np.random.rand(4),
+                                    index=Float64Index(range(0, 8, 2)))
+        self.frame_floats = DataFrame(np.random.randn(4, 4),
+                                      index=Float64Index(range(0, 8, 2)),
+                                      columns=Float64Index(range(0, 12, 3)))
+        self.panel_floats = Panel(np.random.rand(4, 4, 4),
+                                  items=Float64Index(range(0, 8, 2)),
+                                  major_axis=Float64Index(range(0, 12, 3)),
+                                  minor_axis=Float64Index(range(0, 16, 4)))
+
+        m_idces = [MultiIndex.from_product([[1, 2], [3, 4]]),
+                   MultiIndex.from_product([[5, 6], [7, 8]]),
+                   MultiIndex.from_product([[9, 10], [11, 12]])]
+
+        self.series_multi = Series(np.random.rand(4),
+                                   index=m_idces[0])
+        self.frame_multi = DataFrame(np.random.randn(4, 4),
+                                     index=m_idces[0],
+                                     columns=m_idces[1])
+        self.panel_multi = Panel(np.random.rand(4, 4, 4),
+                                 items=m_idces[0],
+                                 major_axis=m_idces[1],
+                                 minor_axis=m_idces[2])
 
         self.series_labels = Series(np.random.randn(4), index=list('abcd'))
         self.frame_labels = DataFrame(np.random.randn(4, 4),
                                       index=list('abcd'), columns=list('ABCD'))
-        with catch_warnings(record=True):
-            self.panel_labels = Panel(np.random.randn(4, 4, 4),
-                                      items=list('abcd'),
-                                      major_axis=list('ABCD'),
-                                      minor_axis=list('ZYXW'))
+        self.panel_labels = Panel(np.random.randn(4, 4, 4),
+                                  items=list('abcd'),
+                                  major_axis=list('ABCD'),
+                                  minor_axis=list('ZYXW'))
 
         self.series_mixed = Series(np.random.randn(4), index=[2, 4, 'null', 8])
         self.frame_mixed = DataFrame(np.random.randn(4, 4),
                                      index=[2, 4, 'null', 8])
-        with catch_warnings(record=True):
-            self.panel_mixed = Panel(np.random.randn(4, 4, 4),
-                                     items=[2, 4, 'null', 8])
+        self.panel_mixed = Panel(np.random.randn(4, 4, 4),
+                                 items=[2, 4, 'null', 8])
 
         self.series_ts = Series(np.random.randn(4),
                                 index=date_range('20130101', periods=4))
         self.frame_ts = DataFrame(np.random.randn(4, 4),
                                   index=date_range('20130101', periods=4))
-        with catch_warnings(record=True):
-            self.panel_ts = Panel(np.random.randn(4, 4, 4),
-                                  items=date_range('20130101', periods=4))
+        self.panel_ts = Panel(np.random.randn(4, 4, 4),
+                              items=date_range('20130101', periods=4))
 
         dates_rev = (date_range('20130101', periods=4)
                      .sort_values(ascending=False))
@@ -84,14 +107,12 @@ class Base(object):
                                     index=dates_rev)
         self.frame_ts_rev = DataFrame(np.random.randn(4, 4),
                                       index=dates_rev)
-        with catch_warnings(record=True):
-            self.panel_ts_rev = Panel(np.random.randn(4, 4, 4),
-                                      items=dates_rev)
+        self.panel_ts_rev = Panel(np.random.randn(4, 4, 4),
+                                  items=dates_rev)
 
         self.frame_empty = DataFrame({})
         self.series_empty = Series({})
-        with catch_warnings(record=True):
-            self.panel_empty = Panel({})
+        self.panel_empty = Panel({})
 
         # form agglomerates
         for o in self._objs:
@@ -103,7 +124,7 @@ class Base(object):
             setattr(self, o, d)
 
     def generate_indices(self, f, values=False):
-        """ generate the indicies
+        """ generate the indices
         if values is True , use the axis values
         is False, use the range
         """
@@ -148,6 +169,7 @@ class Base(object):
         #    v = v.__getitem__(a)
         # return v
         with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
             return f.ix[i]
 
     def check_values(self, f, func, values=False):
@@ -273,7 +295,8 @@ class Base(object):
 
                     # Panel deprecations
                     if isinstance(obj, Panel):
-                        with catch_warnings(record=True):
+                        with catch_warnings():
+                            filterwarnings("ignore", "\nPanel*", FutureWarning)
                             _call()
                     else:
                         _call()

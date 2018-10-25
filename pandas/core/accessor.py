@@ -12,7 +12,8 @@ from pandas.util._decorators import Appender
 
 class DirNamesMixin(object):
     _accessors = frozenset([])
-    _deprecations = frozenset(['asobject'])
+    _deprecations = frozenset(
+        ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides'])
 
     def _dir_deletions(self):
         """ delete unwanted __dir__ for this object """
@@ -104,6 +105,38 @@ class PandasDelegate(object):
                 setattr(cls, name, f)
 
 
+def delegate_names(delegate, accessors, typ, overwrite=False):
+    """
+    Add delegated names to a class using a class decorator.  This provides
+    an alternative usage to directly calling `_add_delegate_accessors`
+    below a class definition.
+
+    Parameters
+    ----------
+    delegate : the class to get methods/properties & doc-strings
+    acccessors : string list of accessors to add
+    typ : 'property' or 'method'
+    overwrite : boolean, default False
+       overwrite the method/property in the target class if it exists
+
+    Returns
+    -------
+    decorator
+
+    Examples
+    --------
+    @delegate_names(Categorical, ["categories", "ordered"], "property")
+    class CategoricalAccessor(PandasDelegate):
+        [...]
+    """
+    def add_delegate_accessors(cls):
+        cls._add_delegate_accessors(delegate, accessors, typ,
+                                    overwrite=overwrite)
+        return cls
+
+    return add_delegate_accessors
+
+
 # Ported with modifications from xarray
 # https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
 # 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
@@ -148,6 +181,7 @@ def _register_accessor(name, cls):
                 UserWarning,
                 stacklevel=2)
         setattr(cls, name, CachedAccessor(name, accessor))
+        cls._accessors.add(name)
         return accessor
     return decorator
 
@@ -191,9 +225,9 @@ In your library code::
 
         @property
         def center(self):
-            # return the geographic center point of this DataFarme
-            lon = self._obj.latitude
-            lat = self._obj.longitude
+            # return the geographic center point of this DataFrame
+            lat = self._obj.latitude
+            lon = self._obj.longitude
             return (float(lon.mean()), float(lat.mean()))
 
         def plot(self):

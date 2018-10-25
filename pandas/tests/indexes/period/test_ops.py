@@ -1,11 +1,11 @@
 
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
-from pandas import (DatetimeIndex, PeriodIndex, Series, Period,
-                    _np_version_under1p10, Index)
+from pandas import DatetimeIndex, PeriodIndex, Series, Period, Index
 
 from pandas.tests.test_base import Ops
 
@@ -24,42 +24,6 @@ class TestPeriodIndexOps(Ops):
         self.check_ops_properties(PeriodIndex._field_ops, f)
         self.check_ops_properties(PeriodIndex._object_ops, f)
         self.check_ops_properties(PeriodIndex._bool_ops, f)
-
-    def test_astype_object(self):
-        idx = pd.period_range(start='2013-01-01', periods=4, freq='M',
-                              name='idx')
-        expected_list = [pd.Period('2013-01-31', freq='M'),
-                         pd.Period('2013-02-28', freq='M'),
-                         pd.Period('2013-03-31', freq='M'),
-                         pd.Period('2013-04-30', freq='M')]
-        expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.astype(object)
-        assert isinstance(result, Index)
-        assert result.dtype == object
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-        assert idx.tolist() == expected_list
-
-        idx = PeriodIndex(['2013-01-01', '2013-01-02', 'NaT',
-                           '2013-01-04'], freq='D', name='idx')
-        expected_list = [pd.Period('2013-01-01', freq='D'),
-                         pd.Period('2013-01-02', freq='D'),
-                         pd.Period('NaT', freq='D'),
-                         pd.Period('2013-01-04', freq='D')]
-        expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.astype(object)
-        assert isinstance(result, Index)
-        assert result.dtype == object
-        tm.assert_index_equal(result, expected)
-        for i in [0, 1, 3]:
-            assert result[i] == expected[i]
-        assert result[2] is pd.NaT
-        assert result.name == expected.name
-
-        result_list = idx.tolist()
-        for i in [0, 1, 3]:
-            assert result_list[i] == expected_list[i]
-        assert result_list[2] is pd.NaT
 
     def test_minmax(self):
 
@@ -108,170 +72,11 @@ class TestPeriodIndexOps(Ops):
         assert np.argmin(pr) == 0
         assert np.argmax(pr) == 5
 
-        if not _np_version_under1p10:
-            errmsg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmin, pr, out=0)
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmax, pr, out=0)
-
-    def test_representation(self):
-        # GH 7601
-        idx1 = PeriodIndex([], freq='D')
-        idx2 = PeriodIndex(['2011-01-01'], freq='D')
-        idx3 = PeriodIndex(['2011-01-01', '2011-01-02'], freq='D')
-        idx4 = PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03'],
-                           freq='D')
-        idx5 = PeriodIndex(['2011', '2012', '2013'], freq='A')
-        idx6 = PeriodIndex(['2011-01-01 09:00', '2012-02-01 10:00',
-                            'NaT'], freq='H')
-        idx7 = pd.period_range('2013Q1', periods=1, freq="Q")
-        idx8 = pd.period_range('2013Q1', periods=2, freq="Q")
-        idx9 = pd.period_range('2013Q1', periods=3, freq="Q")
-        idx10 = PeriodIndex(['2011-01-01', '2011-02-01'], freq='3D')
-
-        exp1 = """PeriodIndex([], dtype='period[D]', freq='D')"""
-
-        exp2 = """PeriodIndex(['2011-01-01'], dtype='period[D]', freq='D')"""
-
-        exp3 = ("PeriodIndex(['2011-01-01', '2011-01-02'], dtype='period[D]', "
-                "freq='D')")
-
-        exp4 = ("PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03'], "
-                "dtype='period[D]', freq='D')")
-
-        exp5 = ("PeriodIndex(['2011', '2012', '2013'], dtype='period[A-DEC]', "
-                "freq='A-DEC')")
-
-        exp6 = ("PeriodIndex(['2011-01-01 09:00', '2012-02-01 10:00', 'NaT'], "
-                "dtype='period[H]', freq='H')")
-
-        exp7 = ("PeriodIndex(['2013Q1'], dtype='period[Q-DEC]', "
-                "freq='Q-DEC')")
-
-        exp8 = ("PeriodIndex(['2013Q1', '2013Q2'], dtype='period[Q-DEC]', "
-                "freq='Q-DEC')")
-
-        exp9 = ("PeriodIndex(['2013Q1', '2013Q2', '2013Q3'], "
-                "dtype='period[Q-DEC]', freq='Q-DEC')")
-
-        exp10 = ("PeriodIndex(['2011-01-01', '2011-02-01'], "
-                 "dtype='period[3D]', freq='3D')")
-
-        for idx, expected in zip([idx1, idx2, idx3, idx4, idx5,
-                                  idx6, idx7, idx8, idx9, idx10],
-                                 [exp1, exp2, exp3, exp4, exp5,
-                                  exp6, exp7, exp8, exp9, exp10]):
-            for func in ['__repr__', '__unicode__', '__str__']:
-                result = getattr(idx, func)()
-                assert result == expected
-
-    def test_representation_to_series(self):
-        # GH 10971
-        idx1 = PeriodIndex([], freq='D')
-        idx2 = PeriodIndex(['2011-01-01'], freq='D')
-        idx3 = PeriodIndex(['2011-01-01', '2011-01-02'], freq='D')
-        idx4 = PeriodIndex(['2011-01-01', '2011-01-02',
-                            '2011-01-03'], freq='D')
-        idx5 = PeriodIndex(['2011', '2012', '2013'], freq='A')
-        idx6 = PeriodIndex(['2011-01-01 09:00', '2012-02-01 10:00',
-                            'NaT'], freq='H')
-
-        idx7 = pd.period_range('2013Q1', periods=1, freq="Q")
-        idx8 = pd.period_range('2013Q1', periods=2, freq="Q")
-        idx9 = pd.period_range('2013Q1', periods=3, freq="Q")
-
-        exp1 = """Series([], dtype: object)"""
-
-        exp2 = """0   2011-01-01
-dtype: object"""
-
-        exp3 = """0   2011-01-01
-1   2011-01-02
-dtype: object"""
-
-        exp4 = """0   2011-01-01
-1   2011-01-02
-2   2011-01-03
-dtype: object"""
-
-        exp5 = """0   2011
-1   2012
-2   2013
-dtype: object"""
-
-        exp6 = """0   2011-01-01 09:00
-1   2012-02-01 10:00
-2                NaT
-dtype: object"""
-
-        exp7 = """0   2013Q1
-dtype: object"""
-
-        exp8 = """0   2013Q1
-1   2013Q2
-dtype: object"""
-
-        exp9 = """0   2013Q1
-1   2013Q2
-2   2013Q3
-dtype: object"""
-
-        for idx, expected in zip([idx1, idx2, idx3, idx4, idx5,
-                                  idx6, idx7, idx8, idx9],
-                                 [exp1, exp2, exp3, exp4, exp5,
-                                  exp6, exp7, exp8, exp9]):
-            result = repr(pd.Series(idx))
-            assert result == expected
-
-    def test_summary(self):
-        # GH9116
-        idx1 = PeriodIndex([], freq='D')
-        idx2 = PeriodIndex(['2011-01-01'], freq='D')
-        idx3 = PeriodIndex(['2011-01-01', '2011-01-02'], freq='D')
-        idx4 = PeriodIndex(
-            ['2011-01-01', '2011-01-02', '2011-01-03'], freq='D')
-        idx5 = PeriodIndex(['2011', '2012', '2013'], freq='A')
-        idx6 = PeriodIndex(
-            ['2011-01-01 09:00', '2012-02-01 10:00', 'NaT'], freq='H')
-
-        idx7 = pd.period_range('2013Q1', periods=1, freq="Q")
-        idx8 = pd.period_range('2013Q1', periods=2, freq="Q")
-        idx9 = pd.period_range('2013Q1', periods=3, freq="Q")
-
-        exp1 = """PeriodIndex: 0 entries
-Freq: D"""
-
-        exp2 = """PeriodIndex: 1 entries, 2011-01-01 to 2011-01-01
-Freq: D"""
-
-        exp3 = """PeriodIndex: 2 entries, 2011-01-01 to 2011-01-02
-Freq: D"""
-
-        exp4 = """PeriodIndex: 3 entries, 2011-01-01 to 2011-01-03
-Freq: D"""
-
-        exp5 = """PeriodIndex: 3 entries, 2011 to 2013
-Freq: A-DEC"""
-
-        exp6 = """PeriodIndex: 3 entries, 2011-01-01 09:00 to NaT
-Freq: H"""
-
-        exp7 = """PeriodIndex: 1 entries, 2013Q1 to 2013Q1
-Freq: Q-DEC"""
-
-        exp8 = """PeriodIndex: 2 entries, 2013Q1 to 2013Q2
-Freq: Q-DEC"""
-
-        exp9 = """PeriodIndex: 3 entries, 2013Q1 to 2013Q3
-Freq: Q-DEC"""
-
-        for idx, expected in zip([idx1, idx2, idx3, idx4, idx5,
-                                  idx6, idx7, idx8, idx9],
-                                 [exp1, exp2, exp3, exp4, exp5,
-                                  exp6, exp7, exp8, exp9]):
-            result = idx.summary()
-            assert result == expected
+        errmsg = "the 'out' parameter is not supported"
+        tm.assert_raises_regex(
+            ValueError, errmsg, np.argmin, pr, out=0)
+        tm.assert_raises_regex(
+            ValueError, errmsg, np.argmax, pr, out=0)
 
     def test_resolution(self):
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H',
@@ -562,37 +367,49 @@ Freq: Q-DEC"""
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([1], dtype=np.intp))
 
-    def test_equals(self):
-        # GH 13107
-        for freq in ['D', 'M']:
-            idx = pd.PeriodIndex(['2011-01-01', '2011-01-02', 'NaT'],
-                                 freq=freq)
-            assert idx.equals(idx)
-            assert idx.equals(idx.copy())
-            assert idx.equals(idx.astype(object))
-            assert idx.astype(object).equals(idx)
-            assert idx.astype(object).equals(idx.astype(object))
-            assert not idx.equals(list(idx))
-            assert not idx.equals(pd.Series(idx))
+    @pytest.mark.parametrize('freq', ['D', 'M'])
+    def test_equals(self, freq):
+        # GH#13107
+        idx = pd.PeriodIndex(['2011-01-01', '2011-01-02', 'NaT'],
+                             freq=freq)
+        assert idx.equals(idx)
+        assert idx.equals(idx.copy())
+        assert idx.equals(idx.astype(object))
+        assert idx.astype(object).equals(idx)
+        assert idx.astype(object).equals(idx.astype(object))
+        assert not idx.equals(list(idx))
+        assert not idx.equals(pd.Series(idx))
 
-            idx2 = pd.PeriodIndex(['2011-01-01', '2011-01-02', 'NaT'],
-                                  freq='H')
-            assert not idx.equals(idx2)
-            assert not idx.equals(idx2.copy())
-            assert not idx.equals(idx2.astype(object))
-            assert not idx.astype(object).equals(idx2)
-            assert not idx.equals(list(idx2))
-            assert not idx.equals(pd.Series(idx2))
+        idx2 = pd.PeriodIndex(['2011-01-01', '2011-01-02', 'NaT'],
+                              freq='H')
+        assert not idx.equals(idx2)
+        assert not idx.equals(idx2.copy())
+        assert not idx.equals(idx2.astype(object))
+        assert not idx.astype(object).equals(idx2)
+        assert not idx.equals(list(idx2))
+        assert not idx.equals(pd.Series(idx2))
 
-            # same internal, different tz
-            idx3 = pd.PeriodIndex._simple_new(idx.asi8, freq='H')
-            tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
-            assert not idx.equals(idx3)
-            assert not idx.equals(idx3.copy())
-            assert not idx.equals(idx3.astype(object))
-            assert not idx.astype(object).equals(idx3)
-            assert not idx.equals(list(idx3))
-            assert not idx.equals(pd.Series(idx3))
+        # same internal, different tz
+        idx3 = pd.PeriodIndex._simple_new(idx.asi8, freq='H')
+        tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
+        assert not idx.equals(idx3)
+        assert not idx.equals(idx3.copy())
+        assert not idx.equals(idx3.astype(object))
+        assert not idx.astype(object).equals(idx3)
+        assert not idx.equals(list(idx3))
+        assert not idx.equals(pd.Series(idx3))
+
+    def test_freq_setter_deprecated(self):
+        # GH 20678
+        idx = pd.period_range('2018Q1', periods=4, freq='Q')
+
+        # no warning for getter
+        with tm.assert_produces_warning(None):
+            idx.freq
+
+        # warning for setter
+        with tm.assert_produces_warning(FutureWarning):
+            idx.freq = pd.offsets.Day()
 
 
 class TestPeriodIndexSeriesMethods(object):

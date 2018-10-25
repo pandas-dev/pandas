@@ -2,6 +2,7 @@
 Base and utility classes for pandas objects.
 """
 import warnings
+import textwrap
 from pandas import compat
 from pandas.compat import builtins
 import numpy as np
@@ -9,22 +10,21 @@ import numpy as np
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import (
+    is_datetimelike,
     is_object_dtype,
     is_list_like,
     is_scalar,
-    is_datetimelike,
     is_extension_type,
     is_extension_array_dtype)
 
 from pandas.util._validators import validate_bool_kwarg
-
+from pandas.errors import AbstractMethodError
 from pandas.core import common as com, algorithms
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
-from pandas.compat import PYPY
-from pandas.util._decorators import (Appender, cache_readonly,
-                                     deprecate_kwarg, Substitution)
+from pandas.compat import PYPY, OrderedDict
+from pandas.util._decorators import Appender, cache_readonly, Substitution
 
 from pandas.core.accessor import DirNamesMixin
 
@@ -46,7 +46,7 @@ class StringMixin(object):
     # Formatting
 
     def __unicode__(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def __str__(self):
         """
@@ -113,7 +113,7 @@ class PandasObject(StringMixin, DirNamesMixin):
 
     def __sizeof__(self):
         """
-        Generates the total memory usage for a object that returns
+        Generates the total memory usage for an object that returns
         either a value or Series of values
         """
         if hasattr(self, 'memory_usage'):
@@ -178,26 +178,28 @@ class SelectionMixin(object):
     _selection = None
     _internal_names = ['_cache', '__setstate__']
     _internal_names_set = set(_internal_names)
-    _builtin_table = {
-        builtins.sum: np.sum,
-        builtins.max: np.max,
-        builtins.min: np.min
-    }
-    _cython_table = {
-        builtins.sum: 'sum',
-        builtins.max: 'max',
-        builtins.min: 'min',
-        np.sum: 'sum',
-        np.mean: 'mean',
-        np.prod: 'prod',
-        np.std: 'std',
-        np.var: 'var',
-        np.median: 'median',
-        np.max: 'max',
-        np.min: 'min',
-        np.cumprod: 'cumprod',
-        np.cumsum: 'cumsum'
-    }
+    _builtin_table = OrderedDict((
+        (builtins.sum, np.sum),
+        (builtins.max, np.max),
+        (builtins.min, np.min),
+    ))
+    _cython_table = OrderedDict((
+        (builtins.sum, 'sum'),
+        (builtins.max, 'max'),
+        (builtins.min, 'min'),
+        (np.all, 'all'),
+        (np.any, 'any'),
+        (np.sum, 'sum'),
+        (np.mean, 'mean'),
+        (np.prod, 'prod'),
+        (np.std, 'std'),
+        (np.var, 'var'),
+        (np.median, 'median'),
+        (np.max, 'max'),
+        (np.min, 'min'),
+        (np.cumprod, 'cumprod'),
+        (np.cumsum, 'cumsum'),
+    ))
 
     @property
     def _selection_name(self):
@@ -243,8 +245,8 @@ class SelectionMixin(object):
 
     def __getitem__(self, key):
         if self._selection is not None:
-            raise Exception('Column(s) {selection} already selected'
-                            .format(selection=self._selection))
+            raise IndexError('Column(s) {selection} already selected'
+                             .format(selection=self._selection))
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass,
                             np.ndarray)):
@@ -278,10 +280,10 @@ class SelectionMixin(object):
             subset to act on
 
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def aggregate(self, func, *args, **kwargs):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     agg = aggregate
 
@@ -393,8 +395,8 @@ class SelectionMixin(object):
 
                     elif isinstance(obj, ABCSeries):
                         nested_renaming_depr()
-                    elif isinstance(obj, ABCDataFrame) and \
-                            k not in obj.columns:
+                    elif (isinstance(obj, ABCDataFrame) and
+                          k not in obj.columns):
                         raise KeyError(
                             "Column '{col}' does not exist!".format(col=k))
 
@@ -504,7 +506,7 @@ class SelectionMixin(object):
                            for r in compat.itervalues(result))
 
             if isinstance(result, list):
-                return concat(result, keys=keys, axis=1), True
+                return concat(result, keys=keys, axis=1, sort=True), True
 
             elif is_any_frame():
                 # we have a dict of DataFrames
@@ -578,7 +580,7 @@ class SelectionMixin(object):
                     results.append(colg.aggregate(a))
 
                     # make sure we find a good name
-                    name = com._get_callable_name(a) or a
+                    name = com.get_callable_name(a) or a
                     keys.append(name)
                 except (TypeError, DataError):
                     pass
@@ -587,9 +589,10 @@ class SelectionMixin(object):
 
         # multiples
         else:
-            for col in obj:
+            for index, col in enumerate(obj):
                 try:
-                    colg = self._gotitem(col, ndim=1, subset=obj[col])
+                    colg = self._gotitem(col, ndim=1,
+                                         subset=obj.iloc[:, index])
                     results.append(colg.aggregate(arg))
                     keys.append(col)
                 except (TypeError, DataError):
@@ -605,7 +608,7 @@ class SelectionMixin(object):
             raise ValueError("no results")
 
         try:
-            return concat(results, keys=keys, axis=1)
+            return concat(results, keys=keys, axis=1, sort=False)
         except TypeError:
 
             # we are concatting non-NDFrame objects,
@@ -644,54 +647,6 @@ class SelectionMixin(object):
         return self._builtin_table.get(arg, arg)
 
 
-class GroupByMixin(object):
-    """ provide the groupby facilities to the mixed object """
-
-    @staticmethod
-    def _dispatch(name, *args, **kwargs):
-        """ dispatch to apply """
-
-        def outer(self, *args, **kwargs):
-            def f(x):
-                x = self._shallow_copy(x, groupby=self._groupby)
-                return getattr(x, name)(*args, **kwargs)
-            return self._groupby.apply(f)
-        outer.__name__ = name
-        return outer
-
-    def _gotitem(self, key, ndim, subset=None):
-        """
-        sub-classes to define
-        return a sliced object
-
-        Parameters
-        ----------
-        key : string / list of selections
-        ndim : 1,2
-            requested ndim of result
-        subset : object, default None
-            subset to act on
-        """
-
-        # create a new object to prevent aliasing
-        if subset is None:
-            subset = self.obj
-
-        # we need to make a shallow copy of ourselves
-        # with the same groupby
-        kwargs = dict([(attr, getattr(self, attr))
-                       for attr in self._attributes])
-        self = self.__class__(subset,
-                              groupby=self._groupby[key],
-                              parent=self,
-                              **kwargs)
-        self._reset_cache()
-        if subset.ndim == 2:
-            if is_scalar(key) and key in subset or is_list_like(key):
-                self._selection = key
-        return self
-
-
 class IndexOpsMixin(object):
     """ common ops mixin to support a unified interface / docs for Series /
     Index
@@ -707,6 +662,21 @@ class IndexOpsMixin(object):
 
     T = property(transpose, doc="return the transpose, which is by "
                                 "definition self")
+
+    @property
+    def _is_homogeneous_type(self):
+        """Whether the object has a single dtype.
+
+        By definition, Series and Index are always considered homogeneous.
+        A MultiIndex may or may not be homogeneous, depending on the
+        dtypes of the levels.
+
+        See Also
+        --------
+        DataFrame._is_homogeneous_type
+        MultiIndex._is_homogeneous_type
+        """
+        return True
 
     @property
     def shape(self):
@@ -734,11 +704,17 @@ class IndexOpsMixin(object):
     @property
     def data(self):
         """ return the data pointer of the underlying data """
+        warnings.warn("{obj}.data is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
         return self.values.data
 
     @property
     def itemsize(self):
         """ return the size of the dtype of the item of the underlying data """
+        warnings.warn("{obj}.itemsize is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
         return self._ndarray_values.itemsize
 
     @property
@@ -749,6 +725,9 @@ class IndexOpsMixin(object):
     @property
     def strides(self):
         """ return the strides of the underlying data """
+        warnings.warn("{obj}.strides is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
         return self._ndarray_values.strides
 
     @property
@@ -759,6 +738,9 @@ class IndexOpsMixin(object):
     @property
     def flags(self):
         """ return the ndarray.flags for the underlying data """
+        warnings.warn("{obj}.flags is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
         return self.values.flags
 
     @property
@@ -766,10 +748,14 @@ class IndexOpsMixin(object):
         """ return the base object if the memory of the underlying data is
         shared
         """
+        warnings.warn("{obj}.base is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
         return self.values.base
 
     @property
     def _ndarray_values(self):
+        # type: () -> np.ndarray
         """The data as an ndarray, possibly losing information.
 
         The expectation is that this is cheap to compute, and is primarily
@@ -777,7 +763,6 @@ class IndexOpsMixin(object):
 
         - categorical -> codes
         """
-        # type: () -> np.ndarray
         if is_extension_array_dtype(self):
             return self.values._ndarray_values
         return self.values
@@ -787,7 +772,36 @@ class IndexOpsMixin(object):
         return not self.size
 
     def max(self):
-        """ The maximum value of the object """
+        """
+        Return the maximum value of the Index.
+
+        Returns
+        -------
+        scalar
+            Maximum value.
+
+        See Also
+        --------
+        Index.min : Return the minimum value in an Index.
+        Series.max : Return the maximum value in a Series.
+        DataFrame.max : Return the maximum values in a DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index([3, 2, 1])
+        >>> idx.max()
+        3
+
+        >>> idx = pd.Index(['c', 'b', 'a'])
+        >>> idx.max()
+        'c'
+
+        For a MultiIndex, the maximum is determined lexicographically.
+
+        >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
+        >>> idx.max()
+        ('b', 2)
+        """
         return nanops.nanmax(self.values)
 
     def argmax(self, axis=None):
@@ -801,7 +815,36 @@ class IndexOpsMixin(object):
         return nanops.nanargmax(self.values)
 
     def min(self):
-        """ The minimum value of the object """
+        """
+        Return the minimum value of the Index.
+
+        Returns
+        -------
+        scalar
+            Minimum value.
+
+        See Also
+        --------
+        Index.max : Return the maximum value of the object.
+        Series.min : Return the minimum value in a Series.
+        DataFrame.min : Return the minimum values in a DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index([3, 2, 1])
+        >>> idx.min()
+        1
+
+        >>> idx = pd.Index(['c', 'b', 'a'])
+        >>> idx.min()
+        'a'
+
+        For a MultiIndex, the minimum is determined lexicographically.
+
+        >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
+        >>> idx.min()
+        ('a', 1)
+        """
         return nanops.nanmin(self.values)
 
     def argmin(self, axis=None):
@@ -826,9 +869,10 @@ class IndexOpsMixin(object):
         --------
         numpy.ndarray.tolist
         """
-
-        if is_datetimelike(self):
-            return [com._maybe_box_datetimelike(x) for x in self._values]
+        if is_datetimelike(self._values):
+            return [com.maybe_box_datetimelike(x) for x in self._values]
+        elif is_extension_array_dtype(self._values):
+            return list(self._values)
         else:
             return self._values.tolist()
 
@@ -931,7 +975,7 @@ class IndexOpsMixin(object):
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
         """
-        Returns object containing counts of unique values.
+        Return a Series containing counts of unique values.
 
         The resulting object will be in descending order so that the
         first element is the most frequently-occurring element.
@@ -943,48 +987,75 @@ class IndexOpsMixin(object):
             If True then the object returned will contain the relative
             frequencies of the unique values.
         sort : boolean, default True
-            Sort by values
+            Sort by values.
         ascending : boolean, default False
-            Sort in ascending order
+            Sort in ascending order.
         bins : integer, optional
             Rather than count values, group them into half-open bins,
-            a convenience for pd.cut, only works with numeric data
+            a convenience for ``pd.cut``, only works with numeric data.
         dropna : boolean, default True
             Don't include counts of NaN.
 
         Returns
         -------
         counts : Series
+
+        See Also
+        --------
+        Series.count: number of non-NA elements in a Series
+        DataFrame.count: number of non-NA elements in a DataFrame
+
+        Examples
+        --------
+        >>> index = pd.Index([3, 1, 2, 3, 4, np.nan])
+        >>> index.value_counts()
+        3.0    2
+        4.0    1
+        2.0    1
+        1.0    1
+        dtype: int64
+
+        With `normalize` set to `True`, returns the relative frequency by
+        dividing all values by the sum of values.
+
+        >>> s = pd.Series([3, 1, 2, 3, 4, np.nan])
+        >>> s.value_counts(normalize=True)
+        3.0    0.4
+        4.0    0.2
+        2.0    0.2
+        1.0    0.2
+        dtype: float64
+
+        **bins**
+
+        Bins can be useful for going from a continuous variable to a
+        categorical variable; instead of counting unique
+        apparitions of values, divide the index in the specified
+        number of half-open bins.
+
+        >>> s.value_counts(bins=3)
+        (2.0, 3.0]      2
+        (0.996, 2.0]    2
+        (3.0, 4.0]      1
+        dtype: int64
+
+        **dropna**
+
+        With `dropna` set to `False` we can also see NaN index values.
+
+        >>> s.value_counts(dropna=False)
+        3.0    2
+        NaN    1
+        4.0    1
+        2.0    1
+        1.0    1
+        dtype: int64
         """
         from pandas.core.algorithms import value_counts
         result = value_counts(self, sort=sort, ascending=ascending,
                               normalize=normalize, bins=bins, dropna=dropna)
         return result
 
-    _shared_docs['unique'] = (
-        """
-        Return unique values in the object. Uniques are returned in order
-        of appearance, this does NOT sort. Hash table-based unique.
-
-        Parameters
-        ----------
-        values : 1d array-like
-
-        Returns
-        -------
-        unique values.
-          - If the input is an Index, the return is an Index
-          - If the input is a Categorical dtype, the return is a Categorical
-          - If the input is a Series/ndarray, the return will be an ndarray
-
-        See Also
-        --------
-        unique
-        Index.unique
-        Series.unique
-        """)
-
-    @Appender(_shared_docs['unique'] % _indexops_doc_kwargs)
     def unique(self):
         values = self._values
 
@@ -1092,24 +1163,16 @@ class IndexOpsMixin(object):
             v += lib.memory_usage_of_objects(self.values)
         return v
 
+    @Substitution(
+        values='', order='', size_hint='',
+        sort=textwrap.dedent("""\
+            sort : boolean, default False
+                Sort `uniques` and shuffle `labels` to maintain the
+                relationship.
+            """))
+    @Appender(algorithms._shared_docs['factorize'])
     def factorize(self, sort=False, na_sentinel=-1):
-        """
-        Encode the object as an enumerated type or categorical variable
-
-        Parameters
-        ----------
-        sort : boolean, default False
-            Sort by values
-        na_sentinel: int, default -1
-            Value to mark "not found"
-
-        Returns
-        -------
-        labels : the indexer to the original array
-        uniques : the unique Index
-        """
-        from pandas.core.algorithms import factorize
-        return factorize(self, sort=sort, na_sentinel=na_sentinel)
+        return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
     _shared_docs['searchsorted'] = (
         """Find indices where elements should be inserted to maintain order.
@@ -1165,48 +1228,24 @@ class IndexOpsMixin(object):
         >>> x.searchsorted([1, 3], side='right')
         array([1, 3])
 
-        >>> x = pd.Categorical(['apple', 'bread', 'bread', 'cheese', 'milk' ])
+        >>> x = pd.Categorical(['apple', 'bread', 'bread',
+                                'cheese', 'milk'], ordered=True)
         [apple, bread, bread, cheese, milk]
         Categories (4, object): [apple < bread < cheese < milk]
 
         >>> x.searchsorted('bread')
         array([1])     # Note: an array, not a scalar
 
-        >>> x.searchsorted(['bread'])
-        array([1])
-
-        >>> x.searchsorted(['bread', 'eggs'])
-        array([1, 4])
-
-        >>> x.searchsorted(['bread', 'eggs'], side='right')
-        array([3, 4])    # eggs before milk
+        >>> x.searchsorted(['bread'], side='right')
+        array([3])
         """)
 
     @Substitution(klass='IndexOpsMixin')
     @Appender(_shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         # needs coercion on the key (DatetimeIndex does already)
         return self.values.searchsorted(value, side=side, sorter=sorter)
 
-    _shared_docs['drop_duplicates'] = (
-        """Return %(klass)s with duplicate values removed
-
-        Parameters
-        ----------
-
-        keep : {'first', 'last', False}, default 'first'
-            - ``first`` : Drop duplicates except for the first occurrence.
-            - ``last`` : Drop duplicates except for the last occurrence.
-            - False : Drop all duplicates.
-        %(inplace)s
-
-        Returns
-        -------
-        deduplicated : %(klass)s
-        """)
-
-    @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(self, ABCIndexClass):
@@ -1220,24 +1259,6 @@ class IndexOpsMixin(object):
         else:
             return result
 
-    _shared_docs['duplicated'] = (
-        """Return boolean %(duplicated)s denoting duplicate values
-
-        Parameters
-        ----------
-        keep : {'first', 'last', False}, default 'first'
-            - ``first`` : Mark duplicates as ``True`` except for the first
-              occurrence.
-            - ``last`` : Mark duplicates as ``True`` except for the last
-              occurrence.
-            - False : Mark all duplicates as ``True``.
-
-        Returns
-        -------
-        duplicated : %(duplicated)s
-        """)
-
-    @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas.core.algorithms import duplicated
         if isinstance(self, ABCIndexClass):
@@ -1252,4 +1273,4 @@ class IndexOpsMixin(object):
     # abstracts
 
     def _update_inplace(self, result, **kwargs):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)

@@ -5,7 +5,7 @@ import pytest
 import pytz
 import dateutil.tz
 
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import timezones, conversion
 from pandas import Timestamp
 
 
@@ -35,3 +35,33 @@ def test_tzlocal():
     offset = dateutil.tz.tzlocal().utcoffset(datetime(2011, 1, 1))
     offset = offset.total_seconds() * 1000000000
     assert ts.value + offset == Timestamp('2011-01-01').value
+
+
+@pytest.mark.parametrize('eastern, localize', [
+    (pytz.timezone('US/Eastern'), lambda tz, x: tz.localize(x)),
+    (dateutil.tz.gettz('US/Eastern'), lambda tz, x: x.replace(tzinfo=tz))])
+def test_infer_tz(eastern, localize):
+    utc = pytz.utc
+
+    start_naive = datetime(2001, 1, 1)
+    end_naive = datetime(2009, 1, 1)
+
+    start = localize(eastern, start_naive)
+    end = localize(eastern, end_naive)
+
+    assert (timezones.infer_tzinfo(start, end) is
+            conversion.localize_pydatetime(start_naive, eastern).tzinfo)
+    assert (timezones.infer_tzinfo(start, None) is
+            conversion.localize_pydatetime(start_naive, eastern).tzinfo)
+    assert (timezones.infer_tzinfo(None, end) is
+            conversion.localize_pydatetime(end_naive, eastern).tzinfo)
+
+    start = utc.localize(start_naive)
+    end = utc.localize(end_naive)
+    assert timezones.infer_tzinfo(start, end) is utc
+
+    end = conversion.localize_pydatetime(end_naive, eastern)
+    with pytest.raises(Exception):
+        timezones.infer_tzinfo(start, end)
+    with pytest.raises(Exception):
+        timezones.infer_tzinfo(end, start)

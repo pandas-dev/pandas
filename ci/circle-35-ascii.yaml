@@ -1,0 +1,15 @@
+name: pandas
+channels:
+  - defaults
+dependencies:
+  - cython>=0.28.2
+  - nomkl
+  - numpy
+  - python-dateutil
+  - python=3.5*
+  - pytz
+  # universal
+  - pytest
+  - pytest-xdist
+  - pip:
+    - hypothesis>=3.58.0

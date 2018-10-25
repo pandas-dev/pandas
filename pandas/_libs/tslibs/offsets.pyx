@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 import time
-from cpython.datetime cimport datetime, timedelta, time as dt_time
+from cpython.datetime cimport (PyDateTime_IMPORT,
+                               datetime, timedelta,
+                               time as dt_time)
+PyDateTime_IMPORT
 
 from dateutil.relativedelta import relativedelta
 
@@ -18,26 +20,14 @@ cnp.import_array()
 from util cimport is_string_object, is_integer_object
 
 from ccalendar import MONTHS, DAYS
-from conversion cimport tz_convert_single, pydt_to_i8
-from frequencies cimport get_freq_code
+from ccalendar cimport get_days_in_month, dayofweek
+from conversion cimport tz_convert_single, pydt_to_i8, localize_pydatetime
 from nattype cimport NPY_NAT
-from np_datetime cimport (pandas_datetimestruct,
-                          dtstruct_to_dt64, dt64_to_dtstruct,
-                          is_leapyear, days_per_month_table, dayofweek)
+from np_datetime cimport (npy_datetimestruct,
+                          dtstruct_to_dt64, dt64_to_dtstruct)
 
 # ---------------------------------------------------------------------
 # Constants
-
-
-class WeekDay(object):
-    # TODO: Remove: This is not used outside of tests
-    MON = 0
-    TUE = 1
-    WED = 2
-    THU = 3
-    FRI = 4
-    SAT = 5
-    SUN = 6
 
 
 _offset_to_period_map = {
@@ -87,6 +77,15 @@ for _d in DAYS:
 
 # ---------------------------------------------------------------------
 # Misc Helpers
+
+cdef to_offset(object obj):
+    """
+    Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
+    imports
+    """
+    from pandas.tseries.frequencies import to_offset
+    return to_offset(obj)
+
 
 def as_datetime(obj):
     f = getattr(obj, 'to_pydatetime', None)
@@ -241,12 +240,10 @@ def _validate_business_time(t_input):
 # ---------------------------------------------------------------------
 # Constructor Helpers
 
-relativedelta_kwds = set([
-    'years', 'months', 'weeks', 'days',
-    'year', 'month', 'week', 'day', 'weekday',
-    'hour', 'minute', 'second', 'microsecond',
-    'nanosecond', 'nanoseconds',
-    'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds'])
+relativedelta_kwds = {'years', 'months', 'weeks', 'days', 'year', 'month',
+                      'day', 'weekday', 'hour', 'minute', 'second',
+                      'microsecond', 'nanosecond', 'nanoseconds', 'hours',
+                      'minutes', 'seconds', 'microseconds'}
 
 
 def _determine_offset(kwds):
@@ -285,11 +282,6 @@ class ApplyTypeError(TypeError):
     pass
 
 
-# TODO: unused.  remove?
-class CacheableOffset(object):
-    _cacheable = True
-
-
 # ---------------------------------------------------------------------
 # Base Classes
 
@@ -299,10 +291,50 @@ class _BaseOffset(object):
     and will (after pickle errors are resolved) go into a cdef class.
     """
     _typ = "dateoffset"
-    _normalize_cache = True
-    _cacheable = False
     _day_opt = None
     _attributes = frozenset(['n', 'normalize'])
+
+    def __init__(self, n=1, normalize=False):
+        n = self._validate_n(n)
+        object.__setattr__(self, "n", n)
+        object.__setattr__(self, "normalize", normalize)
+        object.__setattr__(self, "_cache", {})
+
+    def __setattr__(self, name, value):
+        raise AttributeError("DateOffset objects are immutable.")
+
+    def __eq__(self, other):
+        if is_string_object(other):
+            other = to_offset(other)
+
+        try:
+            return self._params == other._params
+        except AttributeError:
+            # other is not a DateOffset object
+            return False
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash(self._params)
+
+    @property
+    def _params(self):
+        """
+        Returns a tuple containing all of the attributes needed to evaluate
+        equality between two DateOffset objects.
+        """
+        # NB: non-cython subclasses override property with cache_readonly
+        all_paras = self.__dict__.copy()
+        if 'holidays' in all_paras and not all_paras['holidays']:
+            all_paras.pop('holidays')
+        exclude = ['kwds', 'name', 'calendar']
+        attrs = [(k, v) for k, v in all_paras.items()
+                 if (k not in exclude) and (k[0] != '_')]
+        attrs = sorted(set(attrs))
+        params = tuple([str(self.__class__)] + attrs)
+        return params
 
     @property
     def kwds(self):
@@ -311,12 +343,31 @@ class _BaseOffset(object):
                 if name not in ['n', 'normalize']}
         return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
+    def __add__(self, other):
+        if getattr(other, "_typ", None) in ["datetimeindex",
+                                            "series", "period"]:
+            # defer to the other class's implementation
+            return other + self
+        try:
+            return self.apply(other)
+        except ApplyTypeError:
+            return NotImplemented
+
+    def __sub__(self, other):
+        if isinstance(other, datetime):
+            raise TypeError('Cannot subtract datetime from offset.')
+        elif type(other) == type(self):
+            return type(self)(self.n - other.n, normalize=self.normalize,
+                              **self.kwds)
+        else:  # pragma: no cover
+            return NotImplemented
+
     def __call__(self, other):
         return self.apply(other)
 
     def __mul__(self, other):
-        return self.__class__(n=other * self.n, normalize=self.normalize,
-                              **self.kwds)
+        return type(self)(n=other * self.n, normalize=self.normalize,
+                          **self.kwds)
 
     def __neg__(self):
         # Note: we are defering directly to __mul__ instead of __rmul__, as
@@ -327,10 +378,6 @@ class _BaseOffset(object):
         # Note: we are defering directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
         return self * 1
-
-    # TODO: this is never true.  fix it or get rid of it
-    def _should_cache(self):
-        return self.isAnchored() and self._cacheable
 
     def __repr__(self):
         className = getattr(self, '_outputName', type(self).__name__)
@@ -379,6 +426,49 @@ class _BaseOffset(object):
                              'got {n}'.format(n=n))
         return nint
 
+    def __setstate__(self, state):
+        """Reconstruct an instance from a pickled state"""
+        if 'offset' in state:
+            # Older (<0.22.0) versions have offset attribute instead of _offset
+            if '_offset' in state:  # pragma: no cover
+                raise AssertionError('Unexpected key `_offset`')
+            state['_offset'] = state.pop('offset')
+            state['kwds']['offset'] = state['_offset']
+
+        if '_offset' in state and not isinstance(state['_offset'], timedelta):
+            # relativedelta, we need to populate using its kwds
+            offset = state['_offset']
+            odict = offset.__dict__
+            kwds = {key: odict[key] for key in odict if odict[key]}
+            state.update(kwds)
+
+        if '_cache' not in state:
+            state['_cache'] = {}
+
+        self.__dict__.update(state)
+
+        if 'weekmask' in state and 'holidays' in state:
+            calendar, holidays = _get_calendar(weekmask=self.weekmask,
+                                               holidays=self.holidays,
+                                               calendar=None)
+            object.__setattr__(self, "calendar", calendar)
+            object.__setattr__(self, "holidays", holidays)
+
+    def __getstate__(self):
+        """Return a pickleable state"""
+        state = self.__dict__.copy()
+
+        # we don't want to actually pickle the calendar object
+        # as its a np.busyday; we recreate on deserilization
+        if 'calendar' in state:
+            del state['calendar']
+        try:
+            state['kwds'].pop('calendar')
+        except KeyError:
+            pass
+
+        return state
+
 
 class BaseOffset(_BaseOffset):
     # Here we add __rfoo__ methods that don't play well with cdef classes
@@ -395,23 +485,50 @@ class BaseOffset(_BaseOffset):
         return -self + other
 
 
+class _Tick(object):
+    """
+    dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
+    can do isinstance checks on _Tick and avoid importing tseries.offsets
+    """
+    pass
+
+
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef inline int get_days_in_month(int year, int month) nogil:
-    return days_per_month_table[is_leapyear(year)][month - 1]
+cpdef datetime shift_day(datetime other, int days):
+    """
+    Increment the datetime `other` by the given number of days, retaining
+    the time-portion of the datetime.  For tz-naive datetimes this is
+    equivalent to adding a timedelta.  For tz-aware datetimes it is similar to
+    dateutil's relativedelta.__add__, but handles pytz tzinfo objects.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    days : int
+
+    Returns
+    -------
+    shifted: datetime or Timestamp
+    """
+    if other.tzinfo is None:
+        return other + timedelta(days=days)
+
+    tz = other.tzinfo
+    naive = other.replace(tzinfo=None)
+    shifted = naive + timedelta(days=days)
+    return localize_pydatetime(shifted, tz)
 
 
-cdef inline int year_add_months(pandas_datetimestruct dts, int months) nogil:
-    """new year number after shifting pandas_datetimestruct number of months"""
+cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
+    """new year number after shifting npy_datetimestruct number of months"""
     return dts.year + (dts.month + months - 1) / 12
 
 
-cdef inline int month_add_months(pandas_datetimestruct dts, int months) nogil:
+cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
     """
-    New month number after shifting pandas_datetimestruct
+    New month number after shifting npy_datetimestruct
     number of months.
     """
     cdef int new_month = (dts.month + months) % 12
@@ -440,7 +557,7 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
     """
     cdef:
         Py_ssize_t i
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int count = len(dtindex)
         int months_to_roll, months_since, n, compare_day
         bint roll_check
@@ -582,7 +699,7 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
     """
     cdef:
         Py_ssize_t i
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int count = len(dtindex)
         int months_to_roll
         bint roll_check

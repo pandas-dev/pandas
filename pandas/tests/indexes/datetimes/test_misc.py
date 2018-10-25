@@ -1,10 +1,14 @@
+import locale
+import calendar
+import unicodedata
+
 import pytest
 
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (Index, DatetimeIndex, datetime, offsets,
-                    date_range, Timestamp)
+                    date_range, Timestamp, compat)
 
 
 class TestTimeSeries(object):
@@ -83,21 +87,10 @@ class TestTimeSeries(object):
                              '1970-01-03', '1970-01-04'])
         tm.assert_index_equal(idx, exp)
 
-    def test_datetimeindex_repr_short(self):
-        dr = date_range(start='1/1/2012', periods=1)
-        repr(dr)
-
-        dr = date_range(start='1/1/2012', periods=2)
-        repr(dr)
-
-        dr = date_range(start='1/1/2012', periods=3)
-        repr(dr)
-
 
 class TestDatetime64(object):
 
     def test_datetimeindex_accessors(self):
-
         dti_naive = DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
                                   periods=365)
         # GH 13303
@@ -143,23 +136,6 @@ class TestDatetime64(object):
             assert dti.is_quarter_end[364]
             assert not dti.is_year_end[0]
             assert dti.is_year_end[364]
-
-            # GH 11128
-            assert dti.weekday_name[4] == u'Monday'
-            assert dti.weekday_name[5] == u'Tuesday'
-            assert dti.weekday_name[6] == u'Wednesday'
-            assert dti.weekday_name[7] == u'Thursday'
-            assert dti.weekday_name[8] == u'Friday'
-            assert dti.weekday_name[9] == u'Saturday'
-            assert dti.weekday_name[10] == u'Sunday'
-
-            assert Timestamp('2016-04-04').weekday_name == u'Monday'
-            assert Timestamp('2016-04-05').weekday_name == u'Tuesday'
-            assert Timestamp('2016-04-06').weekday_name == u'Wednesday'
-            assert Timestamp('2016-04-07').weekday_name == u'Thursday'
-            assert Timestamp('2016-04-08').weekday_name == u'Friday'
-            assert Timestamp('2016-04-09').weekday_name == u'Saturday'
-            assert Timestamp('2016-04-10').weekday_name == u'Sunday'
 
             assert len(dti.year) == 365
             assert len(dti.month) == 365
@@ -265,6 +241,70 @@ class TestDatetime64(object):
         expected = [52, 1, 1]
         assert dates.weekofyear.tolist() == expected
         assert [d.weekofyear for d in dates] == expected
+
+    # GH 12806
+    @pytest.mark.parametrize('time_locale', [
+        None] if tm.get_locales() is None else [None] + tm.get_locales())
+    def test_datetime_name_accessors(self, time_locale):
+        # Test Monday -> Sunday and January -> December, in that sequence
+        if time_locale is None:
+            # If the time_locale is None, day-name and month_name should
+            # return the english attributes
+            expected_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
+                             'Friday', 'Saturday', 'Sunday']
+            expected_months = ['January', 'February', 'March', 'April', 'May',
+                               'June', 'July', 'August', 'September',
+                               'October', 'November', 'December']
+        else:
+            with tm.set_locale(time_locale, locale.LC_TIME):
+                expected_days = calendar.day_name[:]
+                expected_months = calendar.month_name[1:]
+
+        # GH 11128
+        dti = DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
+                            periods=365)
+        english_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
+                        'Friday', 'Saturday', 'Sunday']
+        for day, name, eng_name in zip(range(4, 11),
+                                       expected_days,
+                                       english_days):
+            name = name.capitalize()
+            assert dti.weekday_name[day] == eng_name
+            assert dti.day_name(locale=time_locale)[day] == name
+            ts = Timestamp(datetime(2016, 4, day))
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                assert ts.weekday_name == eng_name
+            assert ts.day_name(locale=time_locale) == name
+        dti = dti.append(DatetimeIndex([pd.NaT]))
+        assert np.isnan(dti.day_name(locale=time_locale)[-1])
+        ts = Timestamp(pd.NaT)
+        assert np.isnan(ts.day_name(locale=time_locale))
+
+        # GH 12805
+        dti = DatetimeIndex(freq='M', start='2012', end='2013')
+        result = dti.month_name(locale=time_locale)
+        expected = Index([month.capitalize() for month in expected_months])
+
+        # work around different normalization schemes
+        # https://github.com/pandas-dev/pandas/issues/22342
+        if not compat.PY2:
+            result = result.str.normalize("NFD")
+            expected = expected.str.normalize("NFD")
+
+        tm.assert_index_equal(result, expected)
+
+        for date, expected in zip(dti, expected_months):
+            result = date.month_name(locale=time_locale)
+            expected = expected.capitalize()
+
+            if not compat.PY2:
+                result = unicodedata.normalize("NFD", result)
+                expected = unicodedata.normalize("NFD", result)
+
+            assert result == expected
+        dti = dti.append(DatetimeIndex([pd.NaT]))
+        assert np.isnan(dti.month_name(locale=time_locale)[-1])
 
     def test_nanosecond_field(self):
         dti = DatetimeIndex(np.arange(10))

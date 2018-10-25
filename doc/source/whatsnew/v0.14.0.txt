@@ -13,7 +13,7 @@ users upgrade to this version.
   - SQL interfaces updated to use ``sqlalchemy``, See :ref:`Here<whatsnew_0140.sql>`.
   - Display interface changes, See :ref:`Here<whatsnew_0140.display>`
   - MultiIndexing Using Slicers, See :ref:`Here<whatsnew_0140.slicers>`.
-  - Ability to join a singly-indexed DataFrame with a multi-indexed DataFrame, see :ref:`Here <merging.join_on_mi>`
+  - Ability to join a singly-indexed DataFrame with a MultiIndexed DataFrame, see :ref:`Here <merging.join_on_mi>`
   - More consistency in groupby results and more flexible groupby specifications, See :ref:`Here<whatsnew_0140.groupby>`
   - Holiday calendars are now supported in ``CustomBusinessDay``, see :ref:`Here <timeseries.holiday>`
   - Several improvements in plotting functions, including: hexbin, area and pie plots, see :ref:`Here<whatsnew_0140.plotting>`.
@@ -78,10 +78,10 @@ API changes
   - ``df.iloc[len(df)::-1]`` now enumerates all elements in reverse
 
 - The :meth:`DataFrame.interpolate` keyword ``downcast`` default has been changed from ``infer`` to
-  ``None``. This is to preseve the original dtype unless explicitly requested otherwise (:issue:`6290`).
+  ``None``. This is to preserve the original dtype unless explicitly requested otherwise (:issue:`6290`).
 - When converting a dataframe to HTML it used to return `Empty DataFrame`. This special case has
   been removed, instead a header with the column names is returned (:issue:`6062`).
-- ``Series`` and ``Index`` now internall share more common operations, e.g. ``factorize(),nunique(),value_counts()`` are
+- ``Series`` and ``Index`` now internally share more common operations, e.g. ``factorize(),nunique(),value_counts()`` are
   now supported on ``Index`` types as well. The ``Series.weekday`` property from is removed
   from Series for API consistency. Using a ``DatetimeIndex/PeriodIndex`` method on a Series will now raise a ``TypeError``.
   (:issue:`4551`, :issue:`4056`, :issue:`5519`, :issue:`6380`, :issue:`7206`).
@@ -294,7 +294,7 @@ Display Changes
 Text Parsing API Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-:func:`read_csv`/:func:`read_table` will now be noiser w.r.t invalid options rather than falling back to the ``PythonParser``.
+:func:`read_csv`/:func:`read_table` will now be noisier w.r.t invalid options rather than falling back to the ``PythonParser``.
 
 - Raise ``ValueError`` when ``sep`` specified with
   ``delim_whitespace=True`` in :func:`read_csv`/:func:`read_table`
@@ -466,8 +466,8 @@ Some other enhancements to the sql functions include:
 MultiIndexing Using Slicers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In 0.14.0 we added a new way to slice multi-indexed objects.
-You can slice a multi-index by providing multiple indexers.
+In 0.14.0 we added a new way to slice MultiIndexed objects.
+You can slice a MultiIndex by providing multiple indexers.
 
 You can provide any of the selectors as if you are indexing by label, see :ref:`Selection by Label <indexing.label>`,
 including slices, lists of labels, labels, and boolean indexers.
@@ -519,7 +519,7 @@ See also issues (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :is
                   columns=columns).sort_index().sort_index(axis=1)
    df
 
-Basic multi-index slicing using slices, lists, and labels.
+Basic MultiIndex slicing using slices, lists, and labels.
 
 .. ipython:: python
 
@@ -714,7 +714,7 @@ Deprecations
   Use the `percentiles` keyword instead, which takes a list of percentiles to display. The
   default output is unchanged.
 
-- The default return type of :func:`boxplot` will change from a dict to a matpltolib Axes
+- The default return type of :func:`boxplot` will change from a dict to a matplotlib Axes
   in a future release. You can use the future behavior now by passing ``return_type='axes'``
   to boxplot.
 
@@ -748,9 +748,9 @@ Enhancements
 - Add option to turn off escaping in ``DataFrame.to_latex`` (:issue:`6472`)
 - ``pd.read_clipboard`` will, if the keyword ``sep`` is unspecified, try to detect data copied from a spreadsheet
   and parse accordingly. (:issue:`6223`)
-- Joining a singly-indexed DataFrame with a multi-indexed DataFrame (:issue:`3662`)
+- Joining a singly-indexed DataFrame with a MultiIndexed DataFrame (:issue:`3662`)
 
-  See :ref:`the docs<merging.join_on_mi>`. Joining multi-index DataFrames on both the left and right is not yet supported ATM.
+  See :ref:`the docs<merging.join_on_mi>`. Joining MultiIndex DataFrames on both the left and right is not yet supported ATM.
 
   .. ipython:: python
 
@@ -852,7 +852,7 @@ Performance
 - Performance improvement when converting ``DatetimeIndex`` to floating ordinals
   using ``DatetimeConverter`` (:issue:`6636`)
 - Performance improvement for  ``DataFrame.shift`` (:issue:`5609`)
-- Performance improvement in indexing into a multi-indexed Series (:issue:`5567`)
+- Performance improvement in indexing into a MultiIndexed Series (:issue:`5567`)
 - Performance improvements in single-dtyped indexing (:issue:`6484`)
 - Improve performance of DataFrame construction with certain offsets, by removing faulty caching
   (e.g. MonthEnd,BusinessMonthEnd), (:issue:`6479`)
@@ -881,7 +881,7 @@ Bug Fixes
 - Prevent segfault due to MultiIndex not being supported in HDFStore table
   format (:issue:`1848`)
 - Bug in ``pd.DataFrame.sort_index`` where mergesort wasn't stable when ``ascending=False`` (:issue:`6399`)
-- Bug in ``pd.tseries.frequencies.to_offset`` when argument has leading zeroes (:issue:`6391`)
+- Bug in ``pd.tseries.frequencies.to_offset`` when argument has leading zeros (:issue:`6391`)
 - Bug in version string gen. for dev versions with shallow clones / install from tarball (:issue:`6127`)
 - Inconsistent tz parsing ``Timestamp`` / ``to_datetime`` for current year (:issue:`5958`)
 - Indexing bugs with reordered indexes (:issue:`6252`, :issue:`6254`)
@@ -896,7 +896,7 @@ Bug Fixes
 - Issue with groupby ``agg`` with a single function and a a mixed-type frame (:issue:`6337`)
 - Bug in ``DataFrame.replace()`` when passing a non- ``bool``
   ``to_replace`` argument (:issue:`6332`)
-- Raise when trying to align on different levels of a multi-index assignment (:issue:`3738`)
+- Raise when trying to align on different levels of a MultiIndex assignment (:issue:`3738`)
 - Bug in setting complex dtypes via boolean indexing (:issue:`6345`)
 - Bug in TimeGrouper/resample when presented with a non-monotonic DatetimeIndex that would return invalid results. (:issue:`4161`)
 - Bug in index name propagation in TimeGrouper/resample (:issue:`4161`)
@@ -922,7 +922,7 @@ Bug Fixes
 - Bug in ``Series.reindex`` when specifying a ``method`` with some nan values was inconsistent (noted on a resample) (:issue:`6418`)
 - Bug in :meth:`DataFrame.replace` where nested dicts were erroneously
   depending on the order of dictionary keys and values (:issue:`5338`).
-- Perf issue in concatting with empty objects (:issue:`3259`)
+- Performance issue in concatenating with empty objects (:issue:`3259`)
 - Clarify sorting of ``sym_diff`` on ``Index`` objects with ``NaN`` values (:issue:`6444`)
 - Regression in ``MultiIndex.from_product`` with a ``DatetimeIndex`` as input (:issue:`6439`)
 - Bug in ``str.extract`` when passed a non-default index (:issue:`6348`)
@@ -966,8 +966,8 @@ Bug Fixes
 - Bug in downcasting inference with empty arrays (:issue:`6733`)
 - Bug in ``obj.blocks`` on sparse containers dropping all but the last items of same for dtype (:issue:`6748`)
 - Bug in unpickling ``NaT (NaTType)`` (:issue:`4606`)
-- Bug in ``DataFrame.replace()`` where regex metacharacters were being treated
-  as regexs even when ``regex=False`` (:issue:`6777`).
+- Bug in ``DataFrame.replace()`` where regex meta characters were being treated
+  as regex even when ``regex=False`` (:issue:`6777`).
 - Bug in timedelta ops on 32-bit platforms (:issue:`6808`)
 - Bug in setting a tz-aware index directly via ``.index`` (:issue:`6785`)
 - Bug in expressions.py where numexpr would try to evaluate arithmetic ops
@@ -983,7 +983,7 @@ Bug Fixes
   would only replace the first occurrence of a value (:issue:`6689`)
 - Better error message when passing a frequency of 'MS' in ``Period`` construction (GH5332)
 - Bug in ``Series.__unicode__`` when ``max_rows=None`` and the Series has more than 1000 rows. (:issue:`6863`)
-- Bug in ``groupby.get_group`` where a datetlike wasn't always accepted (:issue:`5267`)
+- Bug in ``groupby.get_group`` where a datelike wasn't always accepted (:issue:`5267`)
 - Bug in ``groupBy.get_group`` created by ``TimeGrouper`` raises ``AttributeError`` (:issue:`6914`)
 - Bug in ``DatetimeIndex.tz_localize`` and ``DatetimeIndex.tz_convert`` converting ``NaT`` incorrectly (:issue:`5546`)
 - Bug in arithmetic operations affecting ``NaT`` (:issue:`6873`)
@@ -994,11 +994,11 @@ Bug Fixes
 - Bug in ``DataFrame.plot`` and ``Series.plot``, where the legend behave inconsistently when plotting to the same axes repeatedly (:issue:`6678`)
 - Internal tests for patching ``__finalize__`` / bug in merge not finalizing (:issue:`6923`, :issue:`6927`)
 - accept ``TextFileReader`` in ``concat``, which was affecting a common user idiom (:issue:`6583`)
-- Bug in C parser with leading whitespace (:issue:`3374`)
+- Bug in C parser with leading white space (:issue:`3374`)
 - Bug in C parser with ``delim_whitespace=True`` and ``\r``-delimited lines
-- Bug in python parser with explicit multi-index in row following column header (:issue:`6893`)
+- Bug in python parser with explicit MultiIndex in row following column header (:issue:`6893`)
 - Bug in ``Series.rank`` and ``DataFrame.rank`` that caused small floats (<1e-13) to all receive the same rank (:issue:`6886`)
-- Bug in ``DataFrame.apply`` with functions that used \*args`` or \*\*kwargs and returned
+- Bug in ``DataFrame.apply`` with functions that used ``*args`` or ``**kwargs`` and returned
   an empty result (:issue:`6952`)
 - Bug in sum/mean on 32-bit platforms on overflows (:issue:`6915`)
 - Moved ``Panel.shift`` to ``NDFrame.slice_shift`` and fixed to respect multiple dtypes. (:issue:`6959`)
@@ -1043,7 +1043,7 @@ Bug Fixes
 - Bug in ``query``/``eval`` where global constants were not looked up correctly
   (:issue:`7178`)
 - Bug in recognizing out-of-bounds positional list indexers with ``iloc`` and a multi-axis tuple indexer (:issue:`7189`)
-- Bug in setitem with a single value, multi-index and integer indices (:issue:`7190`, :issue:`7218`)
+- Bug in setitem with a single value, MultiIndex and integer indices (:issue:`7190`, :issue:`7218`)
 - Bug in expressions evaluation with reversed ops, showing in series-dataframe ops (:issue:`7198`, :issue:`7192`)
-- Bug in multi-axis indexing with > 2 ndim and a multi-index (:issue:`7199`)
+- Bug in multi-axis indexing with > 2 ndim and a MultiIndex (:issue:`7199`)
 - Fix a bug where invalid eval/query operations would blow the stack (:issue:`5198`)

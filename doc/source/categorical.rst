@@ -46,8 +46,13 @@ The categorical data type is useful in the following cases:
 
 See also the :ref:`API docs on categoricals<api.categorical>`.
 
+.. _categorical.objectcreation:
+
 Object Creation
 ---------------
+
+Series Creation
+~~~~~~~~~~~~~~~
 
 Categorical ``Series`` or columns in a ``DataFrame`` can be created in several ways:
 
@@ -77,7 +82,7 @@ discrete bins. See the :ref:`example on tiling <reshaping.tile.cut>` in the docs
     df['group'] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
     df.head(10)
 
-By passing a :class:`pandas.Categorical` object to a `Series` or assigning it to a `DataFrame`.
+By passing a :class:`pandas.Categorical` object to a ``Series`` or assigning it to a ``DataFrame``.
 
 .. ipython:: python
 
@@ -88,6 +93,55 @@ By passing a :class:`pandas.Categorical` object to a `Series` or assigning it to
     df = pd.DataFrame({"A":["a","b","c","a"]})
     df["B"] = raw_cat
     df
+
+Categorical data has a specific ``category`` :ref:`dtype <basics.dtypes>`:
+
+.. ipython:: python
+
+    df.dtypes
+
+DataFrame Creation
+~~~~~~~~~~~~~~~~~~
+
+Similar to the previous section where a single column was converted to categorical, all columns in a
+``DataFrame`` can be batch converted to categorical either during or after construction.
+
+This can be done during construction by specifying ``dtype="category"`` in the ``DataFrame`` constructor:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')}, dtype="category")
+    df.dtypes
+
+Note that the categories present in each column differ; the conversion is done column by column, so
+only labels present in a given column are categories:
+
+.. ipython:: python
+
+    df['A']
+    df['B']
+
+
+.. versionadded:: 0.23.0
+
+Analogously, all columns in an existing ``DataFrame`` can be batch converted using :meth:`DataFrame.astype`:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
+    df_cat = df.astype('category')
+    df_cat.dtypes
+
+This conversion is likewise done column by column:
+
+.. ipython:: python
+
+    df_cat['A']
+    df_cat['B']
+
+
+Controlling Behavior
+~~~~~~~~~~~~~~~~~~~~
 
 In the examples above where we passed ``dtype='category'``, we used the default 
 behavior:
@@ -108,21 +162,36 @@ of :class:`~pandas.api.types.CategoricalDtype`.
     s_cat = s.astype(cat_type)
     s_cat
 
-Categorical data has a specific ``category`` :ref:`dtype <basics.dtypes>`:
+Similarly, a ``CategoricalDtype`` can be used with a ``DataFrame`` to ensure that categories
+are consistent among all columns.
 
 .. ipython:: python
 
-    df.dtypes
+    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
+    cat_type = CategoricalDtype(categories=list('abcd'),
+                                ordered=True)
+    df_cat = df.astype(cat_type)
+    df_cat['A']
+    df_cat['B']
 
 .. note::
 
-    In contrast to R's `factor` function, categorical data is not converting input values to
-    strings and categories will end up the same data type as the original values.
+    To perform table-wise conversion, where all labels in the entire ``DataFrame`` are used as
+    categories for each column, the ``categories`` parameter can be determined programmatically by
+    ``categories = pd.unique(df.values.ravel())``.
 
-.. note::
+If you already have ``codes`` and ``categories``, you can use the 
+:func:`~pandas.Categorical.from_codes` constructor to save the factorize step 
+during normal constructor mode:
 
-    In contrast to R's `factor` function, there is currently no way to assign/change labels at
-    creation time. Use `categories` to change the categories after creation time.
+.. ipython:: python
+
+    splitter = np.random.choice([0,1], 5, p=[0.5,0.5])
+    s = pd.Series(pd.Categorical.from_codes(splitter, categories=["train", "test"]))
+
+
+Regaining Original Data
+~~~~~~~~~~~~~~~~~~~~~~~
 
 To get back to the original ``Series`` or NumPy array, use 
 ``Series.astype(original_dtype)`` or ``np.asarray(categorical)``:
@@ -136,14 +205,15 @@ To get back to the original ``Series`` or NumPy array, use
     s2.astype(str)
     np.asarray(s2)
 
-If you already have `codes` and `categories`, you can use the 
-:func:`~pandas.Categorical.from_codes` constructor to save the factorize step 
-during normal constructor mode:
+.. note::
 
-.. ipython:: python
+    In contrast to R's `factor` function, categorical data is not converting input values to
+    strings; categories will end up the same data type as the original values.
 
-    splitter = np.random.choice([0,1], 5, p=[0.5,0.5])
-    s = pd.Series(pd.Categorical.from_codes(splitter, categories=["train", "test"]))
+.. note::
+
+    In contrast to R's `factor` function, there is currently no way to assign/change labels at
+    creation time. Use `categories` to change the categories after creation time.
 
 .. _categorical.categoricaldtype:
 
@@ -288,10 +358,10 @@ Renaming categories is done by assigning new values to the
     s
     s.cat.categories = ["Group %s" % g for g in s.cat.categories]
     s
-    s.cat.rename_categories([1,2,3])
+    s = s.cat.rename_categories([1,2,3])
     s
     # You can also pass a dict-like object to map the renaming
-    s.cat.rename_categories({1: 'x', 2: 'y', 3: 'z'})
+    s = s.cat.rename_categories({1: 'x', 2: 'y', 3: 'z'})
     s
 
 .. note::
@@ -472,11 +542,11 @@ Comparisons
 
 Comparing categorical data with other objects is possible in three cases:
 
- * Comparing equality (``==`` and ``!=``) to a list-like object (list, Series, array,
-   ...) of the same length as the categorical data.
- * All comparisons (``==``, ``!=``, ``>``, ``>=``, ``<``, and ``<=``) of categorical data to
-   another categorical Series, when ``ordered==True`` and the `categories` are the same.
- * All comparisons of a categorical data to a scalar.
+* Comparing equality (``==`` and ``!=``) to a list-like object (list, Series, array,
+  ...) of the same length as the categorical data.
+* All comparisons (``==``, ``!=``, ``>``, ``>=``, ``<``, and ``<=``) of categorical data to
+  another categorical Series, when ``ordered==True`` and the `categories` are the same.
+* All comparisons of a categorical data to a scalar.
 
 All other comparisons, especially "non-equality" comparisons of two categoricals with different
 categories or a categorical with any list-like object, will raise a ``TypeError``.
