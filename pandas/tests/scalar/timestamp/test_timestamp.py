@@ -1,16 +1,15 @@
 """ test the scalar Timestamp """
-
-import pytz
-import pytest
-import dateutil
 import calendar
 import locale
 import unicodedata
-import numpy as np
-
-from dateutil.tz import tzutc
-from pytz import timezone, utc
 from datetime import datetime, timedelta
+
+import pytz
+from pytz import timezone, utc
+import pytest
+import dateutil
+from dateutil.tz import tzutc
+import numpy as np
 
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
@@ -200,7 +199,6 @@ class TestTimestampConstructors(object):
         base_expected = 1404205200000000000
 
         # confirm base representation is correct
-        import calendar
         assert (calendar.timegm(base_dt.timetuple()) * 1000000000 ==
                 base_expected)
 
@@ -250,13 +248,12 @@ class TestTimestampConstructors(object):
                     assert conversion.pydt_to_i8(result) == expected_utc
 
     def test_constructor_with_stringoffset(self):
-        # GH 7833
+        # GH#7833
         base_str = '2014-07-01 11:00:00+02:00'
         base_dt = datetime(2014, 7, 1, 9)
         base_expected = 1404205200000000000
 
         # confirm base representation is correct
-        import calendar
         assert (calendar.timegm(base_dt.timetuple()) * 1000000000 ==
                 base_expected)
 

@@ -1,11 +1,10 @@
-import pytest
-
-import pytz
-import numpy as np
 from datetime import datetime, date, timedelta
 
+import pytest
+import pytz
+import numpy as np
+
 import pandas as pd
-from pandas import Timedelta
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
 from pandas.compat import text_type, iteritems
@@ -15,7 +14,9 @@ from pandas._libs import tslib
 from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas._libs.tslibs.parsing import DateParseError
-from pandas import Period, Timestamp, offsets
+from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
+
+from pandas import Period, Timestamp, Timedelta, offsets, NaT
 
 
 class TestPeriodProperties(object):
@@ -23,7 +24,7 @@ class TestPeriodProperties(object):
 
     @pytest.mark.parametrize('freq', ['A', 'M', 'D', 'H'])
     def test_is_leap_year(self, freq):
-        # GH 13727
+        # GH#13727
         p = Period('2000-01-01 00:00:00', freq=freq)
         assert p.is_leap_year
         assert isinstance(p.is_leap_year, bool)
@@ -89,32 +90,32 @@ class TestPeriodProperties(object):
         assert isinstance(result, Period)
 
     def test_period_from_ordinal(self):
-        p = pd.Period('2011-01', freq='M')
-        res = pd.Period._from_ordinal(p.ordinal, freq='M')
+        p = Period('2011-01', freq='M')
+        res = Period._from_ordinal(p.ordinal, freq='M')
         assert p == res
         assert isinstance(res, Period)
 
     def test_period_cons_nat(self):
         p = Period('NaT', freq='M')
-        assert p is pd.NaT
+        assert p is NaT
 
         p = Period('nat', freq='W-SUN')
-        assert p is pd.NaT
+        assert p is NaT
 
         p = Period(tslib.iNaT, freq='D')
-        assert p is pd.NaT
+        assert p is NaT
 
         p = Period(tslib.iNaT, freq='3D')
-        assert p is pd.NaT
+        assert p is NaT
 
         p = Period(tslib.iNaT, freq='1D1H')
-        assert p is pd.NaT
+        assert p is NaT
 
         p = Period('NaT')
-        assert p is pd.NaT
+        assert p is NaT
 
         p = Period(tslib.iNaT)
-        assert p is pd.NaT
+        assert p is NaT
 
     def test_period_cons_mult(self):
         p1 = Period('2011-01', freq='3M')
@@ -274,12 +275,12 @@ class TestPeriodProperties(object):
         assert p.tz == dateutil_gettz('Europe/Brussels')
 
     def test_timestamp_mult(self):
-        p = pd.Period('2011-01', freq='M')
+        p = Period('2011-01', freq='M')
         assert p.to_timestamp(how='S') == Timestamp('2011-01-01')
         expected = Timestamp('2011-02-01') - Timedelta(1, 'ns')
         assert p.to_timestamp(how='E') == expected
 
-        p = pd.Period('2011-01', freq='3M')
+        p = Period('2011-01', freq='3M')
         assert p.to_timestamp(how='S') == Timestamp('2011-01-01')
         expected = Timestamp('2011-04-01') - Timedelta(1, 'ns')
         assert p.to_timestamp(how='E') == expected
@@ -518,7 +519,7 @@ class TestPeriodProperties(object):
                  "U": ["MICROSECOND", "MICROSECONDLY", "microsecond"],
                  "N": ["NANOSECOND", "NANOSECONDLY", "nanosecond"]}
 
-        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
+        msg = INVALID_FREQ_ERR_MSG
         for exp, freqs in iteritems(cases):
             for freq in freqs:
                 with tm.assert_raises_regex(ValueError, msg):
@@ -762,7 +763,7 @@ class TestPeriodProperties(object):
         exp = Period(freq='W', year=2012, month=2, day=1)
         assert exp.days_in_month == 29
 
-        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
+        msg = INVALID_FREQ_ERR_MSG
         with tm.assert_raises_regex(ValueError, msg):
             Period(freq='WK', year=2007, month=1, day=7)
 
@@ -859,7 +860,7 @@ class TestPeriodProperties(object):
         pytest.raises(ValueError, Period, 1.6, freq='D')
         pytest.raises(ValueError, Period, ordinal=1.6, freq='D')
         pytest.raises(ValueError, Period, ordinal=2, value=1, freq='D')
-        assert Period(None) is pd.NaT
+        assert Period(None) is NaT
         pytest.raises(ValueError, Period, month=1)
 
         p = Period('2007-01-01', freq='D')
@@ -995,8 +996,8 @@ class TestComparisons(object):
         p_nat = Period('NaT', freq='D')
         p = Period('2011-01-01', freq='D')
 
-        nat = pd.Timestamp('NaT')
-        t = pd.Timestamp('2011-01-01')
+        nat = Timestamp('NaT')
+        t = Timestamp('2011-01-01')
         # confirm Period('NaT') work identical with Timestamp('NaT')
         for left, right in [(p_nat, p), (p, p_nat), (p_nat, p_nat), (nat, t),
                             (t, nat), (nat, nat)]:
@@ -1017,13 +1018,13 @@ class TestMethods(object):
         assert 1 + dt1 == dt2
 
     def test_add_pdnat(self):
-        p = pd.Period('2011-01', freq='M')
-        assert p + pd.NaT is pd.NaT
-        assert pd.NaT + p is pd.NaT
+        p = Period('2011-01', freq='M')
+        assert p + NaT is NaT
+        assert NaT + p is NaT
 
-        p = pd.Period('NaT', freq='M')
-        assert p + pd.NaT is pd.NaT
-        assert pd.NaT + p is pd.NaT
+        p = Period('NaT', freq='M')
+        assert p + NaT is NaT
+        assert NaT + p is NaT
 
     def test_add_raises(self):
         # GH 4731
@@ -1046,9 +1047,9 @@ class TestMethods(object):
     @pytest.mark.parametrize('lbox', boxes, ids=ids)
     @pytest.mark.parametrize('rbox', boxes, ids=ids)
     def test_add_timestamp_raises(self, rbox, lbox):
-        # GH # 17983
-        ts = pd.Timestamp('2017')
-        per = pd.Period('2017', freq='M')
+        # GH#17983
+        ts = Timestamp('2017')
+        per = Period('2017', freq='M')
 
         # We may get a different message depending on which class raises
         # the error.
@@ -1074,7 +1075,7 @@ class TestMethods(object):
 
         msg = r"Input has different freq=M from Period\(freq=D\)"
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
-            dt1 - pd.Period('2011-02', freq='M')
+            dt1 - Period('2011-02', freq='M')
 
     def test_add_offset(self):
         # freq is DateOffset
@@ -1293,14 +1294,14 @@ class TestMethods(object):
                     assert o + p is tslib.NaT
 
     def test_sub_pdnat(self):
-        # GH 13071
-        p = pd.Period('2011-01', freq='M')
-        assert p - pd.NaT is pd.NaT
-        assert pd.NaT - p is pd.NaT
+        # GH#13071
+        p = Period('2011-01', freq='M')
+        assert p - NaT is NaT
+        assert NaT - p is NaT
 
-        p = pd.Period('NaT', freq='M')
-        assert p - pd.NaT is pd.NaT
-        assert pd.NaT - p is pd.NaT
+        p = Period('NaT', freq='M')
+        assert p - NaT is NaT
+        assert NaT - p is NaT
 
     def test_sub_offset(self):
         # freq is DateOffset
@@ -1421,11 +1422,11 @@ class TestMethods(object):
     def test_period_ops_offset(self):
         p = Period('2011-04-01', freq='D')
         result = p + offsets.Day()
-        exp = pd.Period('2011-04-02', freq='D')
+        exp = Period('2011-04-02', freq='D')
         assert result == exp
 
         result = p - offsets.Day(2)
-        exp = pd.Period('2011-03-30', freq='D')
+        exp = Period('2011-03-30', freq='D')
         assert result == exp
 
         msg = r"Input cannot be converted to Period\(freq=D\)"
@@ -1437,8 +1438,8 @@ class TestMethods(object):
 
 
 def test_period_immutable():
-    # see gh-17116
-    per = pd.Period('2014Q1')
+    # see GH#17116
+    per = Period('2014Q1')
     with pytest.raises(AttributeError):
         per.ordinal = 14
 

@@ -1,16 +1,14 @@
-import pytest
-
 from datetime import datetime, timedelta
-import pytz
 
+import pytest
+import pytz
 import numpy as np
+
 from pandas import (NaT, Index, Timestamp, Timedelta, Period,
                     DatetimeIndex, PeriodIndex,
                     TimedeltaIndex, Series, isna)
 from pandas.util import testing as tm
 from pandas._libs.tslib import iNaT
-
-from pandas.compat import callable
 
 
 @pytest.mark.parametrize('nat, idx', [(Timestamp('NaT'), DatetimeIndex),

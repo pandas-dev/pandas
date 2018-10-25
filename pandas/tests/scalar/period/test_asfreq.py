@@ -2,10 +2,11 @@ import pytest
 
 from pandas.errors import OutOfBoundsDatetime
 
-import pandas as pd
 from pandas import Period, offsets
 from pandas.util import testing as tm
-from pandas._libs.tslibs.frequencies import _period_code_map
+from pandas._libs.tslibs.frequencies import (
+    _period_code_map, INVALID_FREQ_ERR_MSG
+)
 
 
 class TestFreqConversion(object):
@@ -326,13 +327,13 @@ class TestFreqConversion(object):
 
         assert ival_W.asfreq('W') == ival_W
 
-        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
+        msg = INVALID_FREQ_ERR_MSG
         with tm.assert_raises_regex(ValueError, msg):
             ival_W.asfreq('WK')
 
     def test_conv_weekly_legacy(self):
         # frequency conversion tests: from Weekly Frequency
-        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
+        msg = INVALID_FREQ_ERR_MSG
         with tm.assert_raises_regex(ValueError, msg):
             Period(freq='WK', year=2007, month=1, day=1)
 
@@ -739,11 +740,11 @@ class TestFreqConversion(object):
 
         assert initial.asfreq(freq="M", how="S") == Period('2013-01', 'M')
 
-        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
+        msg = INVALID_FREQ_ERR_MSG
         with tm.assert_raises_regex(ValueError, msg):
             initial.asfreq(freq="MS", how="S")
 
         with tm.assert_raises_regex(ValueError, msg):
-            pd.Period('2013-01', 'MS')
+            Period('2013-01', 'MS')
 
         assert _period_code_map.get("MS") is None

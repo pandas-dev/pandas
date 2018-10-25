@@ -1,14 +1,14 @@
 """ test the scalar Timedelta """
-import pytest
-
-import numpy as np
 from datetime import timedelta
+
+import pytest
+import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
-                    to_timedelta, compat)
+                    to_timedelta, compat, Timestamp, offsets)
 from pandas._libs.tslib import iNaT, NaT
 
 
@@ -16,17 +16,17 @@ class TestTimedeltaArithmetic(object):
 
     def test_arithmetic_overflow(self):
         with pytest.raises(OverflowError):
-            pd.Timestamp('1700-01-01') + pd.Timedelta(13 * 19999, unit='D')
+            Timestamp('1700-01-01') + Timedelta(13 * 19999, unit='D')
 
         with pytest.raises(OverflowError):
-            pd.Timestamp('1700-01-01') + timedelta(days=13 * 19999)
+            Timestamp('1700-01-01') + timedelta(days=13 * 19999)
 
     def test_array_timedelta_floordiv(self):
         # https://github.com/pandas-dev/pandas/issues/19761
         ints = pd.date_range('2012-10-08', periods=4, freq='D').view('i8')
         msg = r"Use 'array // timedelta.value'"
         with tm.assert_produces_warning(FutureWarning) as m:
-            result = ints // pd.Timedelta(1, unit='s')
+            result = ints // Timedelta(1, unit='s')
 
         assert msg in str(m[0].message)
         expected = np.array([1349654400, 1349740800, 1349827200, 1349913600],
@@ -425,16 +425,15 @@ class TestTimedeltas(object):
         for freq in ['Y', 'M', 'foobar']:
             pytest.raises(ValueError, lambda: t1.round(freq))
 
-    def test_contains(self):
+    @pytest.mark.parametrize('naval', [NaT, None, float('nan'), np.nan])
+    def test_contains(self, naval):
         # Checking for any NaT-like objects
-        # GH 13603
-        td = to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
-        for v in [pd.NaT, None, float('nan'), np.nan]:
-            assert not (v in td)
+        # GH#13603
+        td = to_timedelta(range(5), unit='d') + offsets.Hour(1)
+        assert not (naval in td)
 
-        td = to_timedelta([pd.NaT])
-        for v in [pd.NaT, None, float('nan'), np.nan]:
-            assert (v in td)
+        td = to_timedelta([NaT])
+        assert (naval in td)
 
     def test_identity(self):
 
@@ -515,14 +514,14 @@ class TestTimedeltas(object):
         pytest.raises(ValueError, ct, '- 1days, 00')
 
     def test_overflow(self):
-        # GH 9442
+        # GH#9442
         s = Series(pd.date_range('20130101', periods=100000, freq='H'))
-        s[0] += pd.Timedelta('1s 1ms')
+        s[0] += Timedelta('1s 1ms')
 
         # mean
         result = (s - s.min()).mean()
-        expected = pd.Timedelta((pd.DatetimeIndex((s - s.min())).asi8 / len(s)
-                                 ).sum())
+        expected = Timedelta((pd.DatetimeIndex((s - s.min())).asi8 / len(s)
+                              ).sum())
 
         # the computation is converted to float so
         # might be some loss of precision
@@ -586,7 +585,7 @@ class TestTimedeltas(object):
             Timedelta(max_td.value + 1, 'ns')
 
     def test_total_seconds_precision(self):
-        # GH 19458
+        # GH#19458
         assert Timedelta('30S').total_seconds() == 30.0
         assert Timedelta('0').total_seconds() == 0.0
         assert Timedelta('-2S').total_seconds() == -2.0
@@ -594,27 +593,28 @@ class TestTimedeltas(object):
         assert (Timedelta('30S').total_seconds() - 30.0) < 1e-20
         assert (30.0 - Timedelta('30S').total_seconds()) < 1e-20
 
-    def test_timedelta_arithmetic(self):
+    @pytest.mark.parametrize('delta', [timedelta(days=1),
+                                       Timedelta(1, unit='D')])
+    def test_timedelta_arithmetic(self, delta):
         data = pd.Series(['nat', '32 days'], dtype='timedelta64[ns]')
-        deltas = [timedelta(days=1), Timedelta(1, unit='D')]
-        for delta in deltas:
-            result_method = data.add(delta)
-            result_operator = data + delta
-            expected = pd.Series(['nat', '33 days'], dtype='timedelta64[ns]')
-            tm.assert_series_equal(result_operator, expected)
-            tm.assert_series_equal(result_method, expected)
 
-            result_method = data.sub(delta)
-            result_operator = data - delta
-            expected = pd.Series(['nat', '31 days'], dtype='timedelta64[ns]')
-            tm.assert_series_equal(result_operator, expected)
-            tm.assert_series_equal(result_method, expected)
-            # GH 9396
-            result_method = data.div(delta)
-            result_operator = data / delta
-            expected = pd.Series([np.nan, 32.], dtype='float64')
-            tm.assert_series_equal(result_operator, expected)
-            tm.assert_series_equal(result_method, expected)
+        result_method = data.add(delta)
+        result_operator = data + delta
+        expected = pd.Series(['nat', '33 days'], dtype='timedelta64[ns]')
+        tm.assert_series_equal(result_operator, expected)
+        tm.assert_series_equal(result_method, expected)
+
+        result_method = data.sub(delta)
+        result_operator = data - delta
+        expected = pd.Series(['nat', '31 days'], dtype='timedelta64[ns]')
+        tm.assert_series_equal(result_operator, expected)
+        tm.assert_series_equal(result_method, expected)
+        # GH#9396
+        result_method = data.div(delta)
+        result_operator = data / delta
+        expected = pd.Series([np.nan, 32.], dtype='float64')
+        tm.assert_series_equal(result_operator, expected)
+        tm.assert_series_equal(result_method, expected)
 
     def test_apply_to_timedelta(self):
         timedelta_NaT = pd.to_timedelta('NaT')
@@ -625,7 +625,7 @@ class TestTimedeltas(object):
         # Can't compare until apply on a Series gives the correct dtype
         # assert_series_equal(a, b)
 
-        list_of_strings = ['00:00:01', np.nan, pd.NaT, timedelta_NaT]
+        list_of_strings = ['00:00:01', np.nan, NaT, timedelta_NaT]
 
         # TODO: unused?
         a = pd.to_timedelta(list_of_strings)  # noqa
@@ -653,7 +653,7 @@ class TestTimedeltas(object):
     (Timedelta(0, unit='ns'), False),
     (Timedelta(-10, unit='ns'), True),
     (Timedelta(None), True),
-    (pd.NaT, True),
+    (NaT, True),
 ])
 def test_truthiness(value, expected):
     # https://github.com/pandas-dev/pandas/issues/21484
