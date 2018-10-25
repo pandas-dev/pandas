@@ -336,6 +336,16 @@ class TestTimedeltaMultiplicationDivision(object):
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=2)
 
+    @pytest.mark.parametrize('nan', [np.nan, np.float64('NaN'), float('nan')])
+    def test_td_div_nan(self, nan):
+        # np.float64('NaN') has a 'dtype' attr, avoid treating as array
+        td = Timedelta(10, unit='d')
+        result = td / nan
+        assert result is NaT
+
+        result = td // nan
+        assert result is NaT
+
     # ---------------------------------------------------------------
     # Timedelta.__rdiv__
 
