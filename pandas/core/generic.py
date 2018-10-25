@@ -10267,44 +10267,6 @@ Aug    113
 dtype: int64
 """
 
-_max_examples = """\
-Examples
---------
-``MultiIndex`` series example of monthly rainfall
-
->>> index = [np.tile(['London', 'New York'], 3),
-...          np.repeat(['Jun', 'Jul', 'Aug'], 2)]
->>> s = pd.Series([47, 112, 35, 117, 54, 113], index=index)
->>> s.rename_axis(['city', 'month'], inplace=True)
->>> s
-city      month
-London    Jun       47
-New York  Jun      112
-London    Jul       35
-New York  Jul      117
-London    Aug       54
-New York  Aug      113
-dtype: int64
-
->>> s.max()
-117
-
-Max using level names, as well as indices
-
->>> s.max(level='city')
-city
-London       54
-New York    117
-dtype: int64
-
->>> s.max(level=1)
-month
-Jun    112
-Jul    117
-Aug    113
-dtype: int64
-"""
-
 _min_examples = """\
 Examples
 --------
