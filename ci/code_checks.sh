@@ -15,7 +15,7 @@
 #   $ ./ci/code_checks.sh doctests    # run doctests
 
 echo "inside $0"
-[[ $LINT ]] || { echo "NOT Linting. To lint use: LINT=true $0 $1"; exit 0; }
+[[ $LINT || $1 ]] || { echo "NOT Linting. To lint use: LINT=true $0 $1"; exit 0; }
 [[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" ]] || { echo "Unkown command $1. Usage: $0 [lint|patterns|doctests]"; exit 9999; }
 
 source activate pandas
@@ -44,6 +44,17 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     flake8 pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    echo "flake8-rst --version"
+    flake8-rst --version
+
+    MSG='Linting code-blocks in .py docstrings' ; echo $MSG
+    flake8-rst pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Linting code-blocks in .rst documentation' ; echo $MSG
+    flake8-rst doc --filename=*.rst
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # readability/casting: Warnings about C casting instead of C++ casting
     # runtime/int: Warnings about using C number types instead of C++ ones
     # build/include_subdir: Warnings about prefacing included header files with directory
@@ -55,6 +66,9 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     MSG='Linting .c and .h' ; echo $MSG
     cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime
     RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    echo "isort --version-number"
+    isort --version-number
 
     # Imports - Check formatting using isort see setup.cfg for settings
     MSG='Check import format using isort ' ; echo $MSG
