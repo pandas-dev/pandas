@@ -24,7 +24,7 @@ from pandas.compat import (
 from pandas.compat.numpy import function as nv
 from pandas.core import base, generic
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import ExtensionArray, SparseArray
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.config import get_option
 from pandas.core.dtypes.cast import (
@@ -1364,7 +1364,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # TODO: deprecate
         from pandas.core.sparse.series import SparseSeries
-        from pandas.core.arrays import SparseArray
 
         values = SparseArray(self, kind=kind, fill_value=fill_value)
         return SparseSeries(
