@@ -1,0 +1,29 @@
+name: pandas
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - bottleneck=1.2.0
+  - cython=0.28.2
+  - jinja2=2.8
+  - numexpr=2.6.1
+  - numpy=1.12.0
+  - openpyxl=2.5.5
+  - psycopg2
+  - pytables=3.4.2
+  - python-dateutil=2.5.0
+  - python=2.7*
+  - pytz=2013b
+  - scipy=0.18.1
+  - sqlalchemy=0.7.8
+  - xlrd=0.9.2
+  - xlsxwriter=0.5.2
+  - xlwt=0.7.5
+  # universal
+  - pytest
+  - pytest-xdist
+  - pip:
+    - html5lib==1.0b2
+    - beautifulsoup4==4.2.1
+    - pymysql==0.6.0
+    - hypothesis>=3.58.0

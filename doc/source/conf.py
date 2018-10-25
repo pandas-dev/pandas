@@ -16,8 +16,11 @@ import os
 import re
 import inspect
 import importlib
+import logging
 import warnings
+from sphinx.ext.autosummary import _import_by_name
 
+logger = logging.getLogger(__name__)
 
 try:
     raw_input          # Python 2
@@ -47,6 +50,10 @@ sys.path.extend([
 
 ])
 
+# numpydoc is available in the sphinxext directory, and can't be imported
+# until sphinxext is available in the Python path
+from numpydoc.docscrape import NumpyDocString
+
 # -- General configuration -----------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -59,10 +66,9 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.extlinks',
               'sphinx.ext.todo',
               'numpydoc',
-              'ipython_sphinxext.ipython_directive',
-              'ipython_sphinxext.ipython_console_highlighting',
-              # lowercase didn't work
+              'IPython.sphinxext.ipython_directive',
               'IPython.sphinxext.ipython_console_highlighting',
+              'matplotlib.sphinxext.plot_directive',
               'sphinx.ext.intersphinx',
               'sphinx.ext.coverage',
               'sphinx.ext.mathjax',
@@ -71,7 +77,18 @@ extensions = ['sphinx.ext.autodoc',
               'nbsphinx',
               ]
 
+try:
+    import sphinxcontrib.spelling  # noqa
+except ImportError as err:
+    logger.warn(('sphinxcontrib.spelling failed to import with error "{}". '
+                '`spellcheck` command is not available.'.format(err)))
+else:
+    extensions.append('sphinxcontrib.spelling')
+
 exclude_patterns = ['**.ipynb_checkpoints']
+
+spelling_word_list_filename = ['spelling_wordlist.txt', 'names_wordlist.txt']
+spelling_ignore_pypi_package_names = True
 
 with open("index.rst") as f:
     index_rst_lines = f.readlines()
@@ -84,6 +101,20 @@ autosummary_generate = False
 
 if any(re.match("\s*api\s*", l) for l in index_rst_lines):
     autosummary_generate = True
+
+# numpydoc
+# for now use old parameter listing (styling + **kwargs problem)
+numpydoc_use_blockquotes = True
+# use member listing for attributes
+numpydoc_attributes_as_param_list = False
+
+# matplotlib plot directive
+plot_include_source = True
+plot_formats = [("png", 90)]
+plot_html_show_formats = False
+plot_html_show_source_link = False
+plot_pre_code = """import numpy as np
+import pandas as pd"""
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['../_templates']
@@ -182,15 +213,15 @@ html_theme_path = ['themes']
 # of the sidebar.
 # html_logo = None
 
-# The name of an image file (within the static path) to use as favicon of the
-# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
-# pixels large.
-# html_favicon = None
-
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# The name of an image file (within the static path) to use as favicon of the
+# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
+# pixels large.
+html_favicon = os.path.join(html_static_path[0], 'favicon.ico')
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -335,6 +366,7 @@ latex_documents = [
 intersphinx_mapping = {
     'statsmodels': ('http://www.statsmodels.org/devel/', None),
     'matplotlib': ('http://matplotlib.org/', None),
+    'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
@@ -490,9 +522,27 @@ class PandasAutosummary(Autosummary):
             summary = 'Series plotting accessor and method'
         return (display_name, sig, summary, real_name)
 
+    @staticmethod
+    def _is_deprecated(real_name):
+        try:
+            obj, parent, modname = _import_by_name(real_name)
+        except ImportError:
+            return False
+        doc = NumpyDocString(obj.__doc__ or '')
+        summary = ''.join(doc['Summary'] + doc['Extended Summary'])
+        return '.. deprecated::' in summary
+
+    def _add_deprecation_prefixes(self, items):
+        for item in items:
+            display_name, sig, summary, real_name = item
+            if self._is_deprecated(real_name):
+                summary = '(DEPRECATED) %s' % summary
+            yield display_name, sig, summary, real_name
+
     def get_items(self, names):
         items = Autosummary.get_items(self, names)
         items = [self._replace_pandas_items(*item) for item in items]
+        items = list(self._add_deprecation_prefixes(items))
         return items
 
 

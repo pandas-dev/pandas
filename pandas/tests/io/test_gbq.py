@@ -2,14 +2,19 @@ import pytest
 from datetime import datetime
 import pytz
 import platform
-from time import sleep
 import os
+
+try:
+    from unittest import mock
+except ImportError:
+    mock = pytest.importorskip("mock")
 
 import numpy as np
 import pandas as pd
 from pandas import compat, DataFrame
-
 from pandas.compat import range
+import pandas.util.testing as tm
+
 
 pandas_gbq = pytest.importorskip('pandas_gbq')
 
@@ -48,16 +53,18 @@ def _in_travis_environment():
 def _get_project_id():
     if _in_travis_environment():
         return os.environ.get('GBQ_PROJECT_ID')
-    else:
-        return PROJECT_ID
+    return PROJECT_ID or os.environ.get('GBQ_PROJECT_ID')
 
 
 def _get_private_key_path():
     if _in_travis_environment():
         return os.path.join(*[os.environ.get('TRAVIS_BUILD_DIR'), 'ci',
                               'travis_gbq.json'])
-    else:
-        return PRIVATE_KEY_JSON_PATH
+
+    private_key_path = PRIVATE_KEY_JSON_PATH
+    if not private_key_path:
+        private_key_path = os.environ.get('GBQ_GOOGLE_APPLICATION_CREDENTIALS')
+    return private_key_path
 
 
 def clean_gbq_environment(private_key=None):
@@ -92,6 +99,17 @@ def make_mixed_dataframe_v2(test_size):
                      index=range(test_size))
 
 
+def test_read_gbq_without_dialect_warns_future_change(monkeypatch):
+    # Default dialect is changing to standard SQL. See:
+    # https://github.com/pydata/pandas-gbq/issues/195
+    mock_read_gbq = mock.Mock()
+    mock_read_gbq.return_value = DataFrame([[1.0]])
+    monkeypatch.setattr(pandas_gbq, 'read_gbq', mock_read_gbq)
+    with tm.assert_produces_warning(FutureWarning):
+        pd.read_gbq("SELECT 1")
+
+
+@pytest.mark.xfail(reason="failing for pandas-gbq >= 0.7.0")
 @pytest.mark.single
 class TestToGBQIntegrationWithServiceAccountKeyPath(object):
 
@@ -123,10 +141,8 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         test_size = 20001
         df = make_mixed_dataframe_v2(test_size)
 
-        df.to_gbq(destination_table, _get_project_id(), chunksize=10000,
+        df.to_gbq(destination_table, _get_project_id(), chunksize=None,
                   private_key=_get_private_key_path())
-
-        sleep(30)  # <- Curses Google!!!
 
         result = pd.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                              .format(destination_table),

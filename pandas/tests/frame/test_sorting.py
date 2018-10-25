@@ -10,7 +10,7 @@ import pandas as pd
 from pandas.compat import lrange
 from pandas.api.types import CategoricalDtype
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
-                    date_range, NaT, IntervalIndex)
+                    date_range, NaT, IntervalIndex, Categorical)
 
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 
@@ -161,7 +161,7 @@ class TestDataFrameSorting(TestData):
              'B': [5, 9, 2, nan, 5, 5, 4]},
             index=[2, 0, 3, 1, 6, 4, 5])
         sorted_df = df.sort_values(['A', 'B'], ascending=[
-                                   1, 0], na_position='first')
+            1, 0], na_position='first')
         assert_frame_equal(sorted_df, expected)
 
         # na_position='last', not order
@@ -170,7 +170,7 @@ class TestDataFrameSorting(TestData):
              'B': [4, 5, 5, nan, 2, 9, 5]},
             index=[5, 4, 6, 1, 3, 0, 2])
         sorted_df = df.sort_values(['A', 'B'], ascending=[
-                                   0, 1], na_position='last')
+            0, 1], na_position='last')
         assert_frame_equal(sorted_df, expected)
 
         # Test DataFrame with nan label
@@ -514,7 +514,7 @@ class TestDataFrameSortIndexKinds(TestData):
 
         df = (DataFrame({'A': np.arange(6, dtype='int64'),
                          'B': Series(list('aabbca'))
-                         .astype(CategoricalDtype(list('cab')))})
+                        .astype(CategoricalDtype(list('cab')))})
               .set_index('B'))
 
         result = df.sort_index()
@@ -550,18 +550,36 @@ class TestDataFrameSortIndexKinds(TestData):
         expected = frame.iloc[:, ::-1]
         assert_frame_equal(result, expected)
 
-    def test_sort_index_multiindex(self):
+    @pytest.mark.parametrize("level", ['A', 0])  # GH 21052
+    def test_sort_index_multiindex(self, level):
         # GH13496
 
         # sort rows by specified level of multi-index
-        mi = MultiIndex.from_tuples([[2, 1, 3], [1, 1, 1]], names=list('ABC'))
-        df = DataFrame([[1, 2], [3, 4]], mi)
+        mi = MultiIndex.from_tuples([
+            [2, 1, 3], [2, 1, 2], [1, 1, 1]], names=list('ABC'))
+        df = DataFrame([[1, 2], [3, 4], [5, 6]], index=mi)
 
-        # MI sort, but no level: sort_level has no effect
-        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
-        df = DataFrame([[1, 2], [3, 4]], mi)
-        result = df.sort_index(sort_remaining=False)
-        expected = df.sort_index()
+        expected_mi = MultiIndex.from_tuples([
+            [1, 1, 1],
+            [2, 1, 2],
+            [2, 1, 3]], names=list('ABC'))
+        expected = pd.DataFrame([
+            [5, 6],
+            [3, 4],
+            [1, 2]], index=expected_mi)
+        result = df.sort_index(level=level)
+        assert_frame_equal(result, expected)
+
+        # sort_remaining=False
+        expected_mi = MultiIndex.from_tuples([
+            [1, 1, 1],
+            [2, 1, 3],
+            [2, 1, 2]], names=list('ABC'))
+        expected = pd.DataFrame([
+            [5, 6],
+            [1, 2],
+            [3, 4]], index=expected_mi)
+        result = df.sort_index(level=level, sort_remaining=False)
         assert_frame_equal(result, expected)
 
     def test_sort_index_intervalindex(self):
@@ -573,10 +591,88 @@ class TestDataFrameSortIndexKinds(TestData):
                     bins=[-3, -0.5, 0, 0.5, 3])
         model = pd.concat([y, x1, x2], axis=1, keys=['Y', 'X1', 'X2'])
 
-        result = model.groupby(['X1', 'X2']).mean().unstack()
+        result = model.groupby(['X1', 'X2'], observed=True).mean().unstack()
         expected = IntervalIndex.from_tuples(
             [(-3.0, -0.5), (-0.5, 0.0),
              (0.0, 0.5), (0.5, 3.0)],
             closed='right')
         result = result.columns.levels[1].categories
         tm.assert_index_equal(result, expected)
+
+    def test_sort_index_na_position_with_categories(self):
+        # GH 22556
+        # Positioning missing value properly when column is Categorical.
+        categories = ['A', 'B', 'C']
+        category_indices = [0, 2, 4]
+        list_of_nans = [np.nan, np.nan]
+        na_indices = [1, 3]
+        na_position_first = 'first'
+        na_position_last = 'last'
+        column_name = 'c'
+
+        reversed_categories = sorted(categories, reverse=True)
+        reversed_category_indices = sorted(category_indices, reverse=True)
+        reversed_na_indices = sorted(na_indices, reverse=True)
+
+        df = pd.DataFrame({
+            column_name: pd.Categorical(['A', np.nan, 'B', np.nan, 'C'],
+                                        categories=categories,
+                                        ordered=True)})
+        # sort ascending with na first
+        result = df.sort_values(by=column_name,
+                                ascending=True,
+                                na_position=na_position_first)
+        expected = DataFrame({
+            column_name: Categorical(list_of_nans + categories,
+                                     categories=categories,
+                                     ordered=True)
+        }, index=na_indices + category_indices)
+
+        assert_frame_equal(result, expected)
+
+        # sort ascending with na last
+        result = df.sort_values(by=column_name,
+                                ascending=True,
+                                na_position=na_position_last)
+        expected = DataFrame({
+            column_name: Categorical(categories + list_of_nans,
+                                     categories=categories,
+                                     ordered=True)
+        }, index=category_indices + na_indices)
+
+        assert_frame_equal(result, expected)
+
+        # sort descending with na first
+        result = df.sort_values(by=column_name,
+                                ascending=False,
+                                na_position=na_position_first)
+        expected = DataFrame({
+            column_name: Categorical(list_of_nans + reversed_categories,
+                                     categories=categories,
+                                     ordered=True)
+        }, index=reversed_na_indices + reversed_category_indices)
+
+        assert_frame_equal(result, expected)
+
+        # sort descending with na last
+        result = df.sort_values(by=column_name,
+                                ascending=False,
+                                na_position=na_position_last)
+        expected = DataFrame({
+            column_name: Categorical(reversed_categories + list_of_nans,
+                                     categories=categories,
+                                     ordered=True)
+        }, index=reversed_category_indices + reversed_na_indices)
+
+        assert_frame_equal(result, expected)
+
+    def test_sort_index_na_position_with_categories_raises(self):
+        df = pd.DataFrame({
+            'c': pd.Categorical(['A', np.nan, 'B', np.nan, 'C'],
+                                categories=['A', 'B', 'C'],
+                                ordered=True)})
+
+        with pytest.raises(ValueError):
+            df.sort_values(by='c',
+                           ascending=False,
+                           na_position='bad_position')

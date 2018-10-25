@@ -10,35 +10,29 @@ import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
 from pandas.compat import PY3
-from pandas._libs import tslib
-from pandas._libs.tslibs.frequencies import _INVALID_FREQ_ERROR
+from pandas._libs.tslibs import conversion
+from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 from pandas import Timestamp, NaT
+from pandas.tseries.frequencies import to_offset
 
 
 class TestTimestampUnaryOps(object):
 
     # --------------------------------------------------------------
     # Timestamp.round
-
-    def test_round_day_naive(self):
-        dt = Timestamp('20130101 09:10:11')
-        result = dt.round('D')
-        expected = Timestamp('20130101')
-        assert result == expected
-
-        dt = Timestamp('20130101 19:10:11')
-        result = dt.round('D')
-        expected = Timestamp('20130102')
-        assert result == expected
-
-        dt = Timestamp('20130201 12:00:00')
-        result = dt.round('D')
-        expected = Timestamp('20130202')
-        assert result == expected
-
-        dt = Timestamp('20130104 12:00:00')
-        result = dt.round('D')
-        expected = Timestamp('20130105')
+    @pytest.mark.parametrize('timestamp, freq, expected', [
+        ('20130101 09:10:11', 'D', '20130101'),
+        ('20130101 19:10:11', 'D', '20130102'),
+        ('20130201 12:00:00', 'D', '20130202'),
+        ('20130104 12:00:00', 'D', '20130105'),
+        ('2000-01-05 05:09:15.13', 'D', '2000-01-05 00:00:00'),
+        ('2000-01-05 05:09:15.13', 'H', '2000-01-05 05:00:00'),
+        ('2000-01-05 05:09:15.13', 'S', '2000-01-05 05:09:15')
+    ])
+    def test_round_frequencies(self, timestamp, freq, expected):
+        dt = Timestamp(timestamp)
+        result = dt.round(freq)
+        expected = Timestamp(expected)
         assert result == expected
 
     def test_round_tzaware(self):
@@ -77,23 +71,13 @@ class TestTimestampUnaryOps(object):
         assert result == expected
 
     def test_round_nonstandard_freq(self):
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(False):
             Timestamp('2016-10-17 12:00:00.001501031').round('1010ns')
 
     def test_round_invalid_arg(self):
         stamp = Timestamp('2000-01-05 05:09:15.13')
-        with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
+        with tm.assert_raises_regex(ValueError, INVALID_FREQ_ERR_MSG):
             stamp.round('foo')
-
-    @pytest.mark.parametrize('freq, expected', [
-        ('D', Timestamp('2000-01-05 00:00:00')),
-        ('H', Timestamp('2000-01-05 05:00:00')),
-        ('S', Timestamp('2000-01-05 05:09:15'))])
-    def test_round_frequencies(self, freq, expected):
-        stamp = Timestamp('2000-01-05 05:09:15.13')
-
-        result = stamp.round(freq=freq)
-        assert result == expected
 
     @pytest.mark.parametrize('test_input, rounder, freq, expected', [
         ('2117-01-01 00:00:45', 'floor', '15s', '2117-01-01 00:00:45'),
@@ -118,6 +102,25 @@ class TestTimestampUnaryOps(object):
             expected = Timestamp(expected)
             assert result == expected
 
+    @pytest.mark.parametrize('test_input, freq, expected', [
+        ('2018-01-01 00:02:06', '2s', '2018-01-01 00:02:06'),
+        ('2018-01-01 00:02:00', '2T', '2018-01-01 00:02:00'),
+        ('2018-01-01 00:04:00', '4T', '2018-01-01 00:04:00'),
+        ('2018-01-01 00:15:00', '15T', '2018-01-01 00:15:00'),
+        ('2018-01-01 00:20:00', '20T', '2018-01-01 00:20:00'),
+        ('2018-01-01 03:00:00', '3H', '2018-01-01 03:00:00'),
+    ])
+    @pytest.mark.parametrize('rounder', ['ceil', 'floor', 'round'])
+    def test_round_minute_freq(self, test_input, freq, expected, rounder):
+        # Ensure timestamps that shouldnt round dont!
+        # GH#21262
+
+        dt = Timestamp(test_input)
+        expected = Timestamp(expected)
+        func = getattr(dt, rounder)
+        result = func(freq)
+        assert result == expected
+
     def test_ceil(self):
         dt = Timestamp('20130101 09:10:11')
         result = dt.ceil('D')
@@ -130,9 +133,70 @@ class TestTimestampUnaryOps(object):
         expected = Timestamp('20130101')
         assert result == expected
 
+    @pytest.mark.parametrize('method', ['ceil', 'round', 'floor'])
+    def test_round_dst_border(self, method):
+        # GH 18946 round near DST
+        ts = Timestamp('2017-10-29 00:00:00', tz='UTC').tz_convert(
+            'Europe/Madrid'
+        )
+        #
+        result = getattr(ts, method)('H', ambiguous=True)
+        assert result == ts
+
+        result = getattr(ts, method)('H', ambiguous=False)
+        expected = Timestamp('2017-10-29 01:00:00', tz='UTC').tz_convert(
+            'Europe/Madrid'
+        )
+        assert result == expected
+
+        result = getattr(ts, method)('H', ambiguous='NaT')
+        assert result is NaT
+
+        with pytest.raises(pytz.AmbiguousTimeError):
+            getattr(ts, method)('H', ambiguous='raise')
+
+    @pytest.mark.parametrize('timestamp', [
+        '2018-01-01 0:0:0.124999360',
+        '2018-01-01 0:0:0.125000367',
+        '2018-01-01 0:0:0.125500',
+        '2018-01-01 0:0:0.126500',
+        '2018-01-01 12:00:00',
+        '2019-01-01 12:00:00',
+    ])
+    @pytest.mark.parametrize('freq', [
+        '2ns', '3ns', '4ns', '5ns', '6ns', '7ns',
+        '250ns', '500ns', '750ns',
+        '1us', '19us', '250us', '500us', '750us',
+        '1s', '2s', '3s',
+        '1D',
+    ])
+    def test_round_int64(self, timestamp, freq):
+        """check that all rounding modes are accurate to int64 precision
+           see GH#22591
+        """
+        dt = Timestamp(timestamp)
+        unit = to_offset(freq).nanos
+
+        # test floor
+        result = dt.floor(freq)
+        assert result.value % unit == 0, "floor not a {} multiple".format(freq)
+        assert 0 <= dt.value - result.value < unit, "floor error"
+
+        # test ceil
+        result = dt.ceil(freq)
+        assert result.value % unit == 0, "ceil not a {} multiple".format(freq)
+        assert 0 <= result.value - dt.value < unit, "ceil error"
+
+        # test round
+        result = dt.round(freq)
+        assert result.value % unit == 0, "round not a {} multiple".format(freq)
+        assert abs(result.value - dt.value) <= unit // 2, "round error"
+        if unit % 2 == 0 and abs(result.value - dt.value) == unit // 2:
+            # round half to even
+            assert result.value // unit % 2 == 0, "round half to even error"
+
     # --------------------------------------------------------------
     # Timestamp.replace
-    timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
 
     def test_replace_naive(self):
         # GH#14621, GH#7825
@@ -141,8 +205,8 @@ class TestTimestampUnaryOps(object):
         expected = Timestamp('2016-01-01 00:00:00')
         assert result == expected
 
-    @pytest.mark.parametrize('tz', timezones)
-    def test_replace_aware(self, tz):
+    def test_replace_aware(self, tz_aware_fixture):
+        tz = tz_aware_fixture
         # GH#14621, GH#7825
         # replacing datetime components with and w/o presence of a timezone
         ts = Timestamp('2016-01-01 09:00:00', tz=tz)
@@ -150,16 +214,16 @@ class TestTimestampUnaryOps(object):
         expected = Timestamp('2016-01-01 00:00:00', tz=tz)
         assert result == expected
 
-    @pytest.mark.parametrize('tz', timezones)
-    def test_replace_preserves_nanos(self, tz):
+    def test_replace_preserves_nanos(self, tz_aware_fixture):
+        tz = tz_aware_fixture
         # GH#14621, GH#7825
         ts = Timestamp('2016-01-01 09:00:00.000000123', tz=tz)
         result = ts.replace(hour=0)
         expected = Timestamp('2016-01-01 00:00:00.000000123', tz=tz)
         assert result == expected
 
-    @pytest.mark.parametrize('tz', timezones)
-    def test_replace_multiple(self, tz):
+    def test_replace_multiple(self, tz_aware_fixture):
+        tz = tz_aware_fixture
         # GH#14621, GH#7825
         # replacing datetime components with and w/o presence of a timezone
         # test all
@@ -169,15 +233,15 @@ class TestTimestampUnaryOps(object):
         expected = Timestamp('2015-02-02 00:05:05.000005005', tz=tz)
         assert result == expected
 
-    @pytest.mark.parametrize('tz', timezones)
-    def test_replace_invalid_kwarg(self, tz):
+    def test_replace_invalid_kwarg(self, tz_aware_fixture):
+        tz = tz_aware_fixture
         # GH#14621, GH#7825
         ts = Timestamp('2016-01-01 09:00:00.000000123', tz=tz)
         with pytest.raises(TypeError):
             ts.replace(foo=5)
 
-    @pytest.mark.parametrize('tz', timezones)
-    def test_replace_integer_args(self, tz):
+    def test_replace_integer_args(self, tz_aware_fixture):
+        tz = tz_aware_fixture
         # GH#14621, GH#7825
         ts = Timestamp('2016-01-01 09:00:00.000000123', tz=tz)
         with pytest.raises(ValueError):
@@ -224,7 +288,7 @@ class TestTimestampUnaryOps(object):
         # GH#18319 check that 1) timezone is correctly normalized and
         # 2) that hour is not incorrectly changed by this normalization
         ts_naive = Timestamp('2017-12-03 16:03:30')
-        ts_aware = tslib._localize_pydatetime(ts_naive, tz)
+        ts_aware = conversion.localize_pydatetime(ts_naive, tz)
 
         # Preliminary sanity-check
         assert ts_aware == normalize(ts_aware)
@@ -238,6 +302,13 @@ class TestTimestampUnaryOps(object):
         # Check that post-replace object is appropriately normalized
         ts2b = normalize(ts2)
         assert ts2 == ts2b
+
+    def test_replace_dst_border(self):
+        # Gh 7825
+        t = Timestamp('2013-11-3', tz='America/Chicago')
+        result = t.replace(hour=3)
+        expected = Timestamp('2013-11-3 03:00:00', tz='America/Chicago')
+        assert result == expected
 
     # --------------------------------------------------------------
 
@@ -258,7 +329,6 @@ class TestTimestampUnaryOps(object):
         if PY3:
             # datetime.timestamp() converts in the local timezone
             with tm.set_timezone('UTC'):
-
                 # should agree with datetime.timestamp method
                 dt = ts.to_pydatetime()
                 assert dt.timestamp() == ts.timestamp()

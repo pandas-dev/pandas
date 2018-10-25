@@ -3,14 +3,16 @@
 import functools
 
 import numpy as np
-
 from matplotlib import pylab
-from pandas.core.indexes.period import Period
+
+from pandas._libs.tslibs.period import Period
+
+from pandas.core.dtypes.generic import (
+    ABCPeriodIndex, ABCDatetimeIndex, ABCTimedeltaIndex)
+
 from pandas.tseries.offsets import DateOffset
 import pandas.tseries.frequencies as frequencies
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
+
 from pandas.io.formats.printing import pprint_thing
 import pandas.compat as compat
 
@@ -23,6 +25,7 @@ from pandas.plotting._converter import (TimeSeries_DateLocator,
 
 
 def tsplot(series, plotf, ax=None, **kwargs):
+    import warnings
     """
     Plots a Series on the given Matplotlib axes or the current axes
 
@@ -35,7 +38,14 @@ def tsplot(series, plotf, ax=None, **kwargs):
     _____
     Supports same kwargs as Axes.plot
 
+
+    .. deprecated:: 0.23.0
+       Use Series.plot() instead
     """
+    warnings.warn("'tsplot' is deprecated and will be removed in a "
+                  "future version. Please use Series.plot() instead.",
+                  FutureWarning, stacklevel=2)
+
     # Used inferred freq is possible, need a test case for inferred
     if ax is None:
         import matplotlib.pyplot as plt
@@ -61,7 +71,7 @@ def _maybe_resample(series, ax, kwargs):
         raise ValueError('Cannot use dynamic axis without frequency info')
 
     # Convert DatetimeIndex to PeriodIndex
-    if isinstance(series.index, DatetimeIndex):
+    if isinstance(series.index, ABCDatetimeIndex):
         series = series.to_period(freq=freq)
 
     if ax_freq is not None and freq != ax_freq:
@@ -76,7 +86,6 @@ def _maybe_resample(series, ax, kwargs):
             freq = ax_freq
         elif frequencies.is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
-            ax_freq = freq
         else:  # pragma: no cover
             raise ValueError('Incompatible frequency conversion')
     return freq, series
@@ -231,7 +240,7 @@ def _use_dynamic_x(ax, data):
         return False
 
     # hack this for 0.10.1, creating more technical debt...sigh
-    if isinstance(data.index, DatetimeIndex):
+    if isinstance(data.index, ABCDatetimeIndex):
         base = frequencies.get_freq(freq)
         x = data.index
         if (base <= frequencies.FreqGroup.FR_DAY):
@@ -254,7 +263,7 @@ def _get_index_freq(data):
 def _maybe_convert_index(ax, data):
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
-    if isinstance(data.index, DatetimeIndex):
+    if isinstance(data.index, ABCDatetimeIndex):
         freq = getattr(data.index, 'freq', None)
 
         if freq is None:
@@ -312,7 +321,7 @@ def format_dateaxis(subplot, freq, index):
     # handle index specific formatting
     # Note: DatetimeIndex does not use this
     # interface. DatetimeIndex uses matplotlib.date directly
-    if isinstance(index, PeriodIndex):
+    if isinstance(index, ABCPeriodIndex):
 
         majlocator = TimeSeries_DateLocator(freq, dynamic_mode=True,
                                             minor_locator=False,
@@ -335,7 +344,7 @@ def format_dateaxis(subplot, freq, index):
         # x and y coord info
         subplot.format_coord = functools.partial(_format_coord, freq)
 
-    elif isinstance(index, TimedeltaIndex):
+    elif isinstance(index, ABCTimedeltaIndex):
         subplot.xaxis.set_major_formatter(
             TimeSeries_TimedeltaFormatter())
     else:

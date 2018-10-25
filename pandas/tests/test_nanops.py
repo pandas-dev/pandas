@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function
 
+import warnings
 from functools import partial
 
-import pytest
-import warnings
 import numpy as np
+import pytest
 
 import pandas as pd
-from pandas import Series, isna
-from pandas.core.dtypes.common import is_integer_dtype
 import pandas.core.nanops as nanops
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
+import pandas.util.testing as tm
+from pandas import Series, isna
 from pandas.compat.numpy import _np_version_under1p13
+from pandas.core.dtypes.common import is_integer_dtype
 
 use_bn = nanops._USE_BOTTLENECK
 
@@ -301,24 +301,6 @@ class TestnanopsDataFrame(object):
                                    allow_complex=allow_complex)
             self.check_fun(testfunc, targfunc, 'arr_obj', **kwargs)
 
-    def check_funs_ddof(self,
-                        testfunc,
-                        targfunc,
-                        allow_complex=True,
-                        allow_all_nan=True,
-                        allow_str=True,
-                        allow_date=False,
-                        allow_tdelta=False,
-                        allow_obj=True, ):
-        for ddof in range(3):
-            try:
-                self.check_funs(testfunc, targfunc, allow_complex,
-                                allow_all_nan, allow_str, allow_date,
-                                allow_tdelta, allow_obj, ddof=ddof)
-            except BaseException as exc:
-                exc.args += ('ddof %s' % ddof, )
-                raise
-
     def _badobj_wrap(self, value, func, allow_complex=True, **kwargs):
         if value.dtype.kind == 'O':
             if allow_complex:
@@ -377,41 +359,53 @@ class TestnanopsDataFrame(object):
 
     def test_nanmedian(self):
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
             self.check_funs(nanops.nanmedian, np.median, allow_complex=False,
                             allow_str=False, allow_date=False,
                             allow_tdelta=True, allow_obj='convert')
 
-    def test_nanvar(self):
-        self.check_funs_ddof(nanops.nanvar, np.var, allow_complex=False,
-                             allow_str=False, allow_date=False,
-                             allow_tdelta=True, allow_obj='convert')
+    @pytest.mark.parametrize('ddof', range(3))
+    def test_nanvar(self, ddof):
+        self.check_funs(nanops.nanvar, np.var, allow_complex=False,
+                        allow_str=False, allow_date=False,
+                        allow_tdelta=True, allow_obj='convert', ddof=ddof)
 
-    def test_nanstd(self):
-        self.check_funs_ddof(nanops.nanstd, np.std, allow_complex=False,
-                             allow_str=False, allow_date=False,
-                             allow_tdelta=True, allow_obj='convert')
+    @pytest.mark.parametrize('ddof', range(3))
+    def test_nanstd(self, ddof):
+        self.check_funs(nanops.nanstd, np.std, allow_complex=False,
+                        allow_str=False, allow_date=False,
+                        allow_tdelta=True, allow_obj='convert', ddof=ddof)
 
     @td.skip_if_no('scipy', min_version='0.17.0')
-    def test_nansem(self):
+    @pytest.mark.parametrize('ddof', range(3))
+    def test_nansem(self, ddof):
         from scipy.stats import sem
         with np.errstate(invalid='ignore'):
-            self.check_funs_ddof(nanops.nansem, sem, allow_complex=False,
-                                 allow_str=False, allow_date=False,
-                                 allow_tdelta=False, allow_obj='convert')
+            self.check_funs(nanops.nansem, sem, allow_complex=False,
+                            allow_str=False, allow_date=False,
+                            allow_tdelta=False, allow_obj='convert', ddof=ddof)
 
     def _minmax_wrap(self, value, axis=None, func=None):
+
+        # numpy warns if all nan
         res = func(value, axis)
         if res.dtype.kind == 'm':
             res = np.atleast_1d(res)
         return res
 
     def test_nanmin(self):
-        func = partial(self._minmax_wrap, func=np.min)
-        self.check_funs(nanops.nanmin, func, allow_str=False, allow_obj=False)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
+            func = partial(self._minmax_wrap, func=np.min)
+            self.check_funs(nanops.nanmin, func,
+                            allow_str=False, allow_obj=False)
 
     def test_nanmax(self):
-        func = partial(self._minmax_wrap, func=np.max)
-        self.check_funs(nanops.nanmax, func, allow_str=False, allow_obj=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            func = partial(self._minmax_wrap, func=np.max)
+            self.check_funs(nanops.nanmax, func,
+                            allow_str=False, allow_obj=False)
 
     def _argminmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
@@ -425,17 +419,17 @@ class TestnanopsDataFrame(object):
         return res
 
     def test_nanargmax(self):
-        func = partial(self._argminmax_wrap, func=np.argmax)
-        self.check_funs(nanops.nanargmax, func, allow_str=False,
-                        allow_obj=False, allow_date=True, allow_tdelta=True)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
+            func = partial(self._argminmax_wrap, func=np.argmax)
+            self.check_funs(nanops.nanargmax, func,
+                            allow_str=False, allow_obj=False,
+                            allow_date=True, allow_tdelta=True)
 
     def test_nanargmin(self):
-        func = partial(self._argminmax_wrap, func=np.argmin)
-        if tm.sys.version_info[0:2] == (2, 6):
-            self.check_funs(nanops.nanargmin, func, allow_date=True,
-                            allow_tdelta=True, allow_str=False,
-                            allow_obj=False)
-        else:
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
+            func = partial(self._argminmax_wrap, func=np.argmin)
             self.check_funs(nanops.nanargmin, func, allow_str=False,
                             allow_obj=False)
 
@@ -1047,3 +1041,29 @@ def test_numpy_ops_np_version_under1p13(numpy_op, expected):
             assert result == expected
     else:
         assert result == expected
+
+
+@pytest.mark.parametrize("operation", [
+    nanops.nanany,
+    nanops.nanall,
+    nanops.nansum,
+    nanops.nanmean,
+    nanops.nanmedian,
+    nanops.nanstd,
+    nanops.nanvar,
+    nanops.nansem,
+    nanops.nanargmax,
+    nanops.nanargmin,
+    nanops.nanmax,
+    nanops.nanmin,
+    nanops.nanskew,
+    nanops.nankurt,
+    nanops.nanprod,
+])
+def test_nanops_independent_of_mask_param(operation):
+    # GH22764
+    s = pd.Series([1, 2, np.nan, 3, np.nan, 4])
+    mask = s.isna()
+    median_expected = operation(s)
+    median_result = operation(s, mask=mask)
+    assert median_expected == median_result

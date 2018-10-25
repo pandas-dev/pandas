@@ -11,6 +11,9 @@ import matplotlib.dates as dates
 from matplotlib.ticker import Formatter, AutoLocator, Locator
 from matplotlib.transforms import nonsingular
 
+from pandas._libs import tslibs
+from pandas._libs.tslibs import resolution
+
 from pandas.core.dtypes.common import (
     is_float, is_integer,
     is_integer_dtype,
@@ -23,18 +26,14 @@ from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.compat import lrange
 import pandas.compat as compat
-from pandas._libs import tslib
 import pandas.core.common as com
 from pandas.core.index import Index
 
 from pandas.core.indexes.datetimes import date_range
 import pandas.core.tools.datetimes as tools
-from pandas._libs.tslibs import resolution
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
 from pandas.core.indexes.period import Period, PeriodIndex
-
-from pandas.plotting._compat import _mpl_le_2_0_0
 
 # constants
 HOURS_PER_DAY = 24.
@@ -52,7 +51,7 @@ _mpl_units = {}  # Cache for units overwritten by us
 
 def get_pairs():
     pairs = [
-        (tslib.Timestamp, DatetimeConverter),
+        (tslibs.Timestamp, DatetimeConverter),
         (Period, PeriodConverter),
         (pydt.datetime, DatetimeConverter),
         (pydt.date, DatetimeConverter),
@@ -312,18 +311,22 @@ class DatetimeConverter(dates.DateConverter):
         if isinstance(values, (datetime, pydt.date)):
             return _dt_to_float_ordinal(values)
         elif isinstance(values, np.datetime64):
-            return _dt_to_float_ordinal(tslib.Timestamp(values))
+            return _dt_to_float_ordinal(tslibs.Timestamp(values))
         elif isinstance(values, pydt.time):
             return dates.date2num(values)
         elif (is_integer(values) or is_float(values)):
             return values
         elif isinstance(values, compat.string_types):
             return try_parse(values)
-        elif isinstance(values, (list, tuple, np.ndarray, Index)):
+        elif isinstance(values, (list, tuple, np.ndarray, Index, ABCSeries)):
+            if isinstance(values, ABCSeries):
+                # https://github.com/matplotlib/matplotlib/issues/11391
+                # Series was skipped. Convert to DatetimeIndex to get asi8
+                values = Index(values)
             if isinstance(values, Index):
                 values = values.values
             if not isinstance(values, np.ndarray):
-                values = com._asarray_tuplesafe(values)
+                values = com.asarray_tuplesafe(values)
 
             if is_integer_dtype(values) or is_float_dtype(values):
                 return values
@@ -365,13 +368,6 @@ class PandasAutoDateFormatter(dates.AutoDateFormatter):
         # matplotlib.dates._UTC has no _utcoffset called by pandas
         if self._tz is dates.UTC:
             self._tz._utcoffset = self._tz.utcoffset(None)
-
-        # For mpl > 2.0 the format strings are controlled via rcparams
-        # so do not mess with them.  For mpl < 2.0 change the second
-        # break point and add a musec break point
-        if _mpl_le_2_0_0():
-            self.scaled[1. / SEC_PER_DAY] = '%H:%M:%S'
-            self.scaled[1. / MUSEC_PER_DAY] = '%H:%M:%S.%f'
 
 
 class PandasAutoDateLocator(dates.AutoDateLocator):

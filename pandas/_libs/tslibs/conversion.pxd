@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from cpython.datetime cimport datetime, tzinfo
 
 from numpy cimport int64_t, int32_t
 
-from np_datetime cimport pandas_datetimestruct
+from np_datetime cimport npy_datetimestruct
 
 
 cdef class _TSObject:
     cdef:
-        pandas_datetimestruct dts      # pandas_datetimestruct
+        npy_datetimestruct dts      # npy_datetimestruct
         int64_t value               # numpy dt64
         object tzinfo
 
@@ -31,3 +30,5 @@ cpdef int64_t pydt_to_i8(object pydt) except? -1
 cdef maybe_datetimelike_to_i8(object val)
 
 cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz)
+
+cpdef datetime localize_pydatetime(datetime dt, object tz)

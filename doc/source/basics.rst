@@ -50,9 +50,8 @@ Attributes and the raw ndarray(s)
 
 pandas objects have a number of attributes enabling you to access the metadata
 
-  * **shape**: gives the axis dimensions of the object, consistent with ndarray
-  * Axis labels
-
+* **shape**: gives the axis dimensions of the object, consistent with ndarray
+* Axis labels
     * **Series**: *index* (only axis)
     * **DataFrame**: *index* (rows) and *columns*
     * **Panel**: *items*, *major_axis*, and *minor_axis*
@@ -131,9 +130,9 @@ Flexible binary operations
 With binary operations between pandas data structures, there are two key points
 of interest:
 
-  * Broadcasting behavior between higher- (e.g. DataFrame) and
-    lower-dimensional (e.g. Series) objects.
-  * Missing data in computations.
+* Broadcasting behavior between higher- (e.g. DataFrame) and
+  lower-dimensional (e.g. Series) objects.
+* Missing data in computations.
 
 We will demonstrate how to manage these issues independently, though they can
 be handled simultaneously.
@@ -168,7 +167,7 @@ either match on the *index* or *columns* via the **axis** keyword:
 
    df_orig = df
 
-Furthermore you can align a level of a multi-indexed DataFrame with a Series.
+Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
 
 .. ipython:: python
 
@@ -462,10 +461,10 @@ produce an object of the same size. Generally speaking, these methods take an
 **axis** argument, just like *ndarray.{sum, std, ...}*, but the axis can be
 specified by name or integer:
 
-  - **Series**: no axis argument needed
-  - **DataFrame**: "index" (axis=0, default), "columns" (axis=1)
-  - **Panel**: "items" (axis=0), "major" (axis=1, default), "minor"
-    (axis=2)
+* **Series**: no axis argument needed
+* **DataFrame**: "index" (axis=0, default), "columns" (axis=1)
+* **Panel**: "items" (axis=0), "major" (axis=1, default), "minor"
+  (axis=2)
 
 For example:
 
@@ -593,7 +592,7 @@ categorical columns:
     frame = pd.DataFrame({'a': ['Yes', 'Yes', 'No', 'No'], 'b': range(4)})
     frame.describe()
 
-This behaviour can be controlled by providing a list of types as ``include``/``exclude``
+This behavior can be controlled by providing a list of types as ``include``/``exclude``
 arguments. The special value ``all`` can also be used:
 
 .. ipython:: python
@@ -1034,7 +1033,7 @@ Passing a single function to ``.transform()`` with a ``Series`` will yield a sin
 Transform with multiple functions
 +++++++++++++++++++++++++++++++++
 
-Passing multiple functions will yield a column multi-indexed DataFrame.
+Passing multiple functions will yield a column MultiIndexed DataFrame.
 The first level will be the original frame column names; the second level
 will be the names of the transforming functions.
 
@@ -1060,7 +1059,7 @@ Passing a dict of functions will allow selective transforming per column.
 
    tsdf.transform({'A': np.abs, 'B': lambda x: x+1})
 
-Passing a dict of lists will generate a multi-indexed DataFrame with these
+Passing a dict of lists will generate a MultiIndexed DataFrame with these
 selective transforms.
 
 .. ipython:: python
@@ -1187,11 +1186,11 @@ It is used to implement nearly all other features relying on label-alignment
 functionality. To *reindex* means to conform the data to match a given set of
 labels along a particular axis. This accomplishes several things:
 
-  * Reorders the existing data to match a new set of labels
-  * Inserts missing value (NA) markers in label locations where no data for
-    that label existed
-  * If specified, **fill** data for missing labels using logic (highly relevant
-    to working with time series data)
+* Reorders the existing data to match a new set of labels
+* Inserts missing value (NA) markers in label locations where no data for
+  that label existed
+* If specified, **fill** data for missing labels using logic (highly relevant
+  to working with time series data)
 
 Here is a simple example:
 
@@ -1889,12 +1888,12 @@ faster than sorting the entire Series and calling ``head(n)`` on the result.
    df.nsmallest(5, ['a', 'c'])
 
 
-.. _basics.multi-index_sorting:
+.. _basics.multiindex_sorting:
 
-Sorting by a multi-index column
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Sorting by a MultiIndex column
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You must be explicit about sorting when the column is a multi-index, and fully specify
+You must be explicit about sorting when the column is a MultiIndex, and fully specify
 all levels to ``by``.
 
 .. ipython:: python
@@ -1911,10 +1910,10 @@ the axis indexes, since they are immutable) and returns a new object. Note that
 **it is seldom necessary to copy objects**. For example, there are only a
 handful of ways to alter a DataFrame *in-place*:
 
-  * Inserting, deleting, or modifying a column.
-  * Assigning to the ``index`` or ``columns`` attributes.
-  * For homogeneous data, directly modifying the values via the ``values``
-    attribute or advanced indexing.
+* Inserting, deleting, or modifying a column.
+* Assigning to the ``index`` or ``columns`` attributes.
+* For homogeneous data, directly modifying the values via the ``values``
+  attribute or advanced indexing.
 
 To be clear, no pandas method has the side effect of modifying your data;
 almost every method returns a new object, leaving the original object
@@ -1925,11 +1924,24 @@ untouched. If the data is modified, it is because you did so explicitly.
 dtypes
 ------
 
-The main types stored in pandas objects are ``float``, ``int``, ``bool``,
-``datetime64[ns]`` and ``datetime64[ns, tz]``, ``timedelta[ns]``,
-``category`` and ``object``. In addition these dtypes have item sizes, e.g.
-``int64`` and ``int32``. See :ref:`Series with TZ <timeseries.timezone_series>`
-for more detail on ``datetime64[ns, tz]`` dtypes.
+For the most part, pandas uses NumPy arrays and dtypes for Series or individual
+columns of a DataFrame. The main types allowed in pandas objects are ``float``,
+``int``, ``bool``, and ``datetime64[ns]`` (note that NumPy does not support
+timezone-aware datetimes).
+
+In addition to NumPy's types, pandas :ref:`extends <extending.extension-types>`
+NumPy's type-system for a few cases.
+
+* :ref:`Categorical <categorical>`
+* :ref:`Datetime with Timezone <timeseries.timezone_series>`
+* :ref:`Period <timeseries.periods>`
+* :ref:`Interval <indexing.intervallindex>`
+
+Pandas uses the ``object`` dtype for storing strings.
+
+Finally, arbitrary objects may be stored using the ``object`` dtype, but should
+be avoided to the extent possible (for performance and interoperability with
+other libraries and methods. See :ref:`basics.object_conversion`).
 
 A convenient :attr:`~DataFrame.dtypes` attribute for DataFrame returns a Series
 with the data type of each column.
@@ -2112,14 +2124,14 @@ Because the data was transposed the original inference stored all columns as obj
 The following functions are available for one dimensional object arrays or scalars to perform
 hard conversion of objects to a specified type:
 
-- :meth:`~pandas.to_numeric` (conversion to numeric dtypes)
+* :meth:`~pandas.to_numeric` (conversion to numeric dtypes)
 
   .. ipython:: python
 
      m = ['1.1', 2, 3]
      pd.to_numeric(m)
 
-- :meth:`~pandas.to_datetime` (conversion to datetime objects)
+* :meth:`~pandas.to_datetime` (conversion to datetime objects)
 
   .. ipython:: python
 
@@ -2127,7 +2139,7 @@ hard conversion of objects to a specified type:
      m = ['2016-07-09', datetime.datetime(2016, 3, 2)]
      pd.to_datetime(m)
 
-- :meth:`~pandas.to_timedelta` (conversion to timedelta objects)
+* :meth:`~pandas.to_timedelta` (conversion to timedelta objects)
 
   .. ipython:: python
 

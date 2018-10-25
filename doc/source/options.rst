@@ -31,10 +31,10 @@ You can get/set options directly as attributes of the top-level ``options`` attr
 The API is composed of 5 relevant functions, available directly from the ``pandas``
 namespace:
 
-- :func:`~pandas.get_option` / :func:`~pandas.set_option` - get/set the value of a single option.
-- :func:`~pandas.reset_option` - reset one or more options to their default value.
-- :func:`~pandas.describe_option` - print the descriptions of one or more options.
-- :func:`~pandas.option_context` - execute a codeblock with a set of options
+* :func:`~pandas.get_option` / :func:`~pandas.set_option` - get/set the value of a single option.
+* :func:`~pandas.reset_option` - reset one or more options to their default value.
+* :func:`~pandas.describe_option` - print the descriptions of one or more options.
+* :func:`~pandas.option_context` - execute a codeblock with a set of options
   that revert to prior settings after execution.
 
 **Note:** Developers can check out `pandas/core/config.py <https://github.com/pandas-dev/pandas/blob/master/pandas/core/config.py>`_ for more information.
@@ -78,8 +78,8 @@ with no argument ``describe_option`` will print out the descriptions for all ava
 Getting and Setting Options
 ---------------------------
 
-As described above, :func:`~pandas.get_option` and :func:`~pandas.set_option` 
-are available from the pandas namespace.  To change an option, call 
+As described above, :func:`~pandas.get_option` and :func:`~pandas.set_option`
+are available from the pandas namespace.  To change an option, call
 ``set_option('option regex', new_value)``.
 
 .. ipython:: python
@@ -149,7 +149,7 @@ More information can be found in the `ipython documentation
 
 Frequently Used Options
 -----------------------
-The following is a walkthrough of the more frequently used display options.
+The following is a walk-through of the more frequently used display options.
 
 ``display.max_rows`` and ``display.max_columns`` sets the maximum number
 of rows and columns displayed when a frame is pretty-printed.  Truncated
@@ -230,7 +230,7 @@ can specify the option ``df.info(null_counts=True)`` to override on showing a pa
    df.info()
    pd.reset_option('max_info_rows')
 
-``display.precision`` sets the output display precision in terms of decimal places. 
+``display.precision`` sets the output display precision in terms of decimal places.
 This is only a suggestion.
 
 .. ipython:: python
@@ -323,21 +323,21 @@ display.latex.multicolumn_format        'l'          Alignment of multicolumn la
 display.latex.multirow                  False        Combines rows when using a MultiIndex.
                                                      Centered instead of top-aligned,
                                                      separated by clines.
-display.max_columns                     20           max_rows and max_columns are used
+display.max_columns                     0 or 20      max_rows and max_columns are used
                                                      in __repr__() methods to decide if
                                                      to_string() or info() is used to
                                                      render an object to a string.  In
-                                                     case python/IPython is running in
-                                                     a terminal this can be set to 0 and
+                                                     case Python/IPython is running in
+                                                     a terminal this is set to 0 by default and
                                                      pandas will correctly auto-detect
-                                                     the width the terminal and swap to
+                                                     the width of the terminal and switch to
                                                      a smaller format in case all columns
                                                      would not fit vertically. The IPython
                                                      notebook, IPython qtconsole, or IDLE
                                                      do not run in a terminal and hence
                                                      it is not possible to do correct
-                                                     auto-detection. 'None' value means
-                                                     unlimited.
+                                                     auto-detection, in which case the default
+                                                     is set to 20. 'None' value means unlimited.
 display.max_colwidth                    50           The maximum width in characters of
                                                      a column in the repr of a pandas
                                                      data structure. When the column overflows,
@@ -402,9 +402,9 @@ display.html.table_schema               False        Whether to publish a Table 
 display.html.border                     1            A ``border=value`` attribute is
                                                      inserted in the ``<table>`` tag
                                                      for the DataFrame HTML repr.
-display.html.use_mathjax                True         When True, Jupyter notebook will process 
-                                                     table contents using MathJax, rendering 
-                                                     mathematical expressions enclosed by the 
+display.html.use_mathjax                True         When True, Jupyter notebook will process
+                                                     table contents using MathJax, rendering
+                                                     mathematical expressions enclosed by the
                                                      dollar symbol.
 io.excel.xls.writer                     xlwt         The default Excel writer engine for
                                                      'xls' files.
@@ -422,7 +422,7 @@ io.hdf.dropna_table                     True         drop ALL nan rows when appe
 io.parquet.engine                       None         The engine to use as a default for
                                                      parquet reading and writing. If None
                                                      then try 'pyarrow' and 'fastparquet'
-mode.chained_assignment                 warn         Controls ``SettingWithCopyWarning``: 
+mode.chained_assignment                 warn         Controls ``SettingWithCopyWarning``:
                                                      'raise', 'warn', or None. Raise an
                                                      exception, warn, or no action if
                                                      trying to use :ref:`chained assignment <indexing.evaluation_order>`.

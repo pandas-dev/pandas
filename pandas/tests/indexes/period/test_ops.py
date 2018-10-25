@@ -5,8 +5,7 @@ import pytest
 import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
-from pandas import (DatetimeIndex, PeriodIndex, Series, Period,
-                    _np_version_under1p10, Index)
+from pandas import DatetimeIndex, PeriodIndex, Series, Period, Index
 
 from pandas.tests.test_base import Ops
 
@@ -73,12 +72,11 @@ class TestPeriodIndexOps(Ops):
         assert np.argmin(pr) == 0
         assert np.argmax(pr) == 5
 
-        if not _np_version_under1p10:
-            errmsg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmin, pr, out=0)
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmax, pr, out=0)
+        errmsg = "the 'out' parameter is not supported"
+        tm.assert_raises_regex(
+            ValueError, errmsg, np.argmin, pr, out=0)
+        tm.assert_raises_regex(
+            ValueError, errmsg, np.argmax, pr, out=0)
 
     def test_resolution(self):
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H',
@@ -400,6 +398,18 @@ class TestPeriodIndexOps(Ops):
         assert not idx.astype(object).equals(idx3)
         assert not idx.equals(list(idx3))
         assert not idx.equals(pd.Series(idx3))
+
+    def test_freq_setter_deprecated(self):
+        # GH 20678
+        idx = pd.period_range('2018Q1', periods=4, freq='Q')
+
+        # no warning for getter
+        with tm.assert_produces_warning(None):
+            idx.freq
+
+        # warning for setter
+        with tm.assert_produces_warning(FutureWarning):
+            idx.freq = pd.offsets.Day()
 
 
 class TestPeriodIndexSeriesMethods(object):

@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 """
 Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
 """
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
 from numpy cimport ndarray, int64_t, int32_t, int8_t
 cnp.import_array()
 
-
+from ccalendar import get_locale_names, MONTHS_FULL, DAYS_FULL
 from ccalendar cimport (get_days_in_month, is_leapyear, dayofweek,
                         get_week_of_year, get_day_of_year)
-from np_datetime cimport (pandas_datetimestruct, pandas_timedeltastruct,
+from np_datetime cimport (npy_datetimestruct, pandas_timedeltastruct,
                           dt64_to_dtstruct, td64_to_tdstruct)
 from nattype cimport NPY_NAT
 
@@ -47,7 +46,7 @@ def build_field_sarray(ndarray[int64_t] dtindex):
     """
     cdef:
         Py_ssize_t i, count = 0
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         ndarray[int32_t] years, months, days, hours, minutes, seconds, mus
 
     count = len(dtindex)
@@ -85,26 +84,26 @@ def build_field_sarray(ndarray[int64_t] dtindex):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_date_name_field(ndarray[int64_t] dtindex, object field):
+def get_date_name_field(int64_t[:] dtindex, object field, object locale=None):
     """
     Given a int64-based datetime index, return array of strings of date
     name based on requested field (e.g. weekday_name)
     """
     cdef:
         Py_ssize_t i, count = 0
-        ndarray[object] out
-        pandas_datetimestruct dts
+        ndarray[object] out, names
+        npy_datetimestruct dts
         int dow
-
-    _dayname = np.array(
-        ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
-            'Friday', 'Saturday', 'Sunday'],
-        dtype=np.object_)
 
     count = len(dtindex)
     out = np.empty(count, dtype=object)
 
-    if field == 'weekday_name':
+    if field == 'day_name' or field == 'weekday_name':
+        if locale is None:
+            names = np.array(DAYS_FULL, dtype=np.object_)
+        else:
+            names = np.array(get_locale_names('f_weekday', locale),
+                             dtype=np.object_)
         for i in range(count):
             if dtindex[i] == NPY_NAT:
                 out[i] = np.nan
@@ -112,14 +111,28 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field):
 
             dt64_to_dtstruct(dtindex[i], &dts)
             dow = dayofweek(dts.year, dts.month, dts.day)
-            out[i] = _dayname[dow]
+            out[i] = names[dow].capitalize()
+        return out
+    elif field == 'month_name':
+        if locale is None:
+            names = np.array(MONTHS_FULL, dtype=np.object_)
+        else:
+            names = np.array(get_locale_names('f_month', locale),
+                             dtype=np.object_)
+        for i in range(count):
+            if dtindex[i] == NPY_NAT:
+                out[i] = np.nan
+                continue
+
+            dt64_to_dtstruct(dtindex[i], &dts)
+            out[i] = names[dts.month].capitalize()
         return out
 
     raise ValueError("Field %s not supported" % field)
 
 
 @cython.wraparound(False)
-def get_start_end_field(ndarray[int64_t] dtindex, object field,
+def get_start_end_field(int64_t[:] dtindex, object field,
                         object freqstr=None, int month_kw=12):
     """
     Given an int64-based datetime index return array of indicators
@@ -135,7 +148,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
         ndarray[int8_t] out
         ndarray[int32_t, ndim=2] _month_offset
         bint isleap
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int mo_off, dom, doy, dow, ldom
 
     _month_offset = np.array(
@@ -374,7 +387,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     cdef:
         Py_ssize_t i, count = 0
         ndarray[int32_t] out
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
 
     count = len(dtindex)
     out = np.empty(count, dtype='i4')

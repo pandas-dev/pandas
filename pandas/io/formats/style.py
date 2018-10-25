@@ -14,10 +14,9 @@ try:
         PackageLoader, Environment, ChoiceLoader, FileSystemLoader
     )
 except ImportError:
-    msg = "pandas.Styler requires jinja2. "\
-          "Please install with `conda install Jinja2`\n"\
-          "or `pip install Jinja2`"
-    raise ImportError(msg)
+    raise ImportError("pandas.Styler requires jinja2. "
+                      "Please install with `conda install Jinja2`\n"
+                      "or `pip install Jinja2`")
 
 from pandas.core.dtypes.common import is_float, is_string_like
 
@@ -30,6 +29,8 @@ from pandas.core.generic import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.util._decorators import Appender
+from pandas.core.dtypes.generic import ABCSeries
+
 try:
     import matplotlib.pyplot as plt
     from matplotlib import colors
@@ -60,9 +61,14 @@ class Styler(object):
     table_styles: list-like, default None
         list of {selector: (attr, value)} dicts; see Notes
     uuid: str, default None
-        a unique identifier to avoid CSS collisons; generated automatically
+        a unique identifier to avoid CSS collisions; generated automatically
     caption: str, default None
         caption to attach to the table
+    cell_ids: bool, default True
+        If True, each cell will have an ``id`` attribute in their HTML tag.
+        The ``id`` takes the form ``T_<uuid>_row<num_row>_col<num_col>``
+        where ``<uuid>`` is the unique identifier, ``<num_row>`` is the row
+        number and ``<num_col>`` is the column number.
 
     Attributes
     ----------
@@ -79,7 +85,7 @@ class Styler(object):
 
     If using in the Jupyter notebook, Styler has defined a ``_repr_html_``
     to automatically render itself. Otherwise call Styler.render to get
-    the genterated HTML.
+    the generated HTML.
 
     CSS classes are attached to the generated HTML
 
@@ -111,7 +117,7 @@ class Styler(object):
     template = env.get_template("html.tpl")
 
     def __init__(self, data, precision=None, table_styles=None, uuid=None,
-                 caption=None, table_attributes=None):
+                 caption=None, table_attributes=None, cell_ids=True):
         self.ctx = defaultdict(list)
         self._todo = []
 
@@ -120,7 +126,7 @@ class Styler(object):
         if data.ndim == 1:
             data = data.to_frame()
         if not data.index.is_unique or not data.columns.is_unique:
-            raise ValueError("style is not supported for non-unique indicies.")
+            raise ValueError("style is not supported for non-unique indices.")
 
         self.data = data
         self.index = data.index
@@ -135,6 +141,7 @@ class Styler(object):
         self.table_attributes = table_attributes
         self.hidden_index = False
         self.hidden_columns = []
+        self.cell_ids = cell_ids
 
         # display_funcs maps (row, col) -> formatting function
 
@@ -305,14 +312,16 @@ class Styler(object):
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
                 formatter = self._display_funcs[(r, c)]
                 value = self.data.iloc[r, c]
-                row_es.append({
-                    "type": "td",
-                    "value": value,
-                    "class": " ".join(cs),
-                    "id": "_".join(cs[1:]),
-                    "display_value": formatter(value),
-                    "is_visible": (c not in hidden_columns)
-                })
+                row_dict = {"type": "td",
+                            "value": value,
+                            "class": " ".join(cs),
+                            "display_value": formatter(value),
+                            "is_visible": (c not in hidden_columns)}
+                # only add an id if the cell has a style
+                if (self.cell_ids or
+                        not(len(ctx[r, c]) == 1 and ctx[r, c][0] == '')):
+                    row_dict["id"] = "_".join(cs[1:])
+                row_es.append(row_dict)
                 props = []
                 for x in ctx[r, c]:
                     # have to handle empty styles like ['']
@@ -549,7 +558,7 @@ class Styler(object):
 
     def apply(self, func, axis=0, subset=None, **kwargs):
         """
-        Apply a function column-wise, row-wise, or table-wase,
+        Apply a function column-wise, row-wise, or table-wise,
         updating the HTML representation with the result.
 
         Parameters
@@ -577,7 +586,7 @@ class Styler(object):
         -----
         The output shape of ``func`` should match the input, i.e. if
         ``x`` is the input row, column, or table (depending on ``axis``),
-        then ``func(x.shape) == x.shape`` should be true.
+        then ``func(x).shape == x.shape`` should be true.
 
         This is similar to ``DataFrame.apply``, except that ``axis=None``
         applies the function to the entire DataFrame at once,
@@ -863,7 +872,7 @@ class Styler(object):
         return self
 
     def background_gradient(self, cmap='PuBu', low=0, high=0, axis=0,
-                            subset=None):
+                            subset=None, text_color_threshold=0.408):
         """
         Color the background in a gradient according to
         the data in each column (optionally row).
@@ -879,6 +888,12 @@ class Styler(object):
             1 or 'columns' for columnwise, 0 or 'index' for rowwise
         subset: IndexSlice
             a valid slice for ``data`` to limit the style application to
+        text_color_threshold: float or int
+            luminance threshold for determining text color. Facilitates text
+            visibility across varying background colors. From 0 to 1.
+            0 = all text is dark colored, 1 = all text is light colored.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -886,31 +901,78 @@ class Styler(object):
 
         Notes
         -----
-        Tune ``low`` and ``high`` to keep the text legible by
-        not using the entire range of the color map. These extend
-        the range of the data by ``low * (x.max() - x.min())``
-        and ``high * (x.max() - x.min())`` before normalizing.
+        Set ``text_color_threshold`` or tune ``low`` and ``high`` to keep the
+        text legible by not using the entire range of the color map. The range
+        of the data is extended by ``low * (x.max() - x.min())`` and ``high *
+        (x.max() - x.min())`` before normalizing.
+
+        Raises
+        ------
+        ValueError
+            If ``text_color_threshold`` is not a value from 0 to 1.
         """
         subset = _maybe_numeric_slice(self.data, subset)
         subset = _non_reducing_slice(subset)
         self.apply(self._background_gradient, cmap=cmap, subset=subset,
-                   axis=axis, low=low, high=high)
+                   axis=axis, low=low, high=high,
+                   text_color_threshold=text_color_threshold)
         return self
 
     @staticmethod
-    def _background_gradient(s, cmap='PuBu', low=0, high=0):
+    def _background_gradient(s, cmap='PuBu', low=0, high=0,
+                             text_color_threshold=0.408):
         """Color background in a range according to the data."""
+        if (not isinstance(text_color_threshold, (float, int)) or
+                not 0 <= text_color_threshold <= 1):
+            msg = "`text_color_threshold` must be a value from 0 to 1."
+            raise ValueError(msg)
+
         with _mpl(Styler.background_gradient) as (plt, colors):
-            rng = s.max() - s.min()
+            smin = s.values.min()
+            smax = s.values.max()
+            rng = smax - smin
             # extend lower / upper bounds, compresses color range
-            norm = colors.Normalize(s.min() - (rng * low),
-                                    s.max() + (rng * high))
-            # matplotlib modifies inplace?
+            norm = colors.Normalize(smin - (rng * low), smax + (rng * high))
+            # matplotlib colors.Normalize modifies inplace?
             # https://github.com/matplotlib/matplotlib/issues/5427
-            normed = norm(s.values)
-            c = [colors.rgb2hex(x) for x in plt.cm.get_cmap(cmap)(normed)]
-            return ['background-color: {color}'.format(color=color)
-                    for color in c]
+            rgbas = plt.cm.get_cmap(cmap)(norm(s.values))
+
+            def relative_luminance(rgba):
+                """
+                Calculate relative luminance of a color.
+
+                The calculation adheres to the W3C standards
+                (https://www.w3.org/WAI/GL/wiki/Relative_luminance)
+
+                Parameters
+                ----------
+                color : rgb or rgba tuple
+
+                Returns
+                -------
+                float
+                    The relative luminance as a value from 0 to 1
+                """
+                r, g, b = (
+                    x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055 ** 2.4)
+                    for x in rgba[:3]
+                )
+                return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+            def css(rgba):
+                dark = relative_luminance(rgba) < text_color_threshold
+                text_color = '#f1f1f1' if dark else '#000000'
+                return 'background-color: {b};color: {c};'.format(
+                    b=colors.rgb2hex(rgba), c=text_color
+                )
+
+            if s.ndim == 1:
+                return [css(rgba) for rgba in rgbas]
+            else:
+                return pd.DataFrame(
+                    [[css(rgba) for rgba in row] for row in rgbas],
+                    index=s.index, columns=s.columns
+                )
 
     def set_properties(self, subset=None, **kwargs):
         """
@@ -940,173 +1002,129 @@ class Styler(object):
         return self.applymap(f, subset=subset)
 
     @staticmethod
-    def _bar_left(s, color, width, base):
-        """
-        The minimum value is aligned at the left of the cell
-        Parameters
-        ----------
-        color: 2-tuple/list, of [``color_negative``, ``color_positive``]
-        width: float
-            A number between 0 or 100. The largest value will cover ``width``
-            percent of the cell's width
-        base: str
-            The base css format of the cell, e.g.:
-            ``base = 'width: 10em; height: 80%;'``
-        Returns
-        -------
-        self : Styler
-        """
-        normed = width * (s - s.min()) / (s.max() - s.min())
-        zero_normed = width * (0 - s.min()) / (s.max() - s.min())
-        attrs = (base + 'background: linear-gradient(90deg,{c} {w:.1f}%, '
-                        'transparent 0%)')
+    def _bar(s, align, colors, width=100, vmin=None, vmax=None):
+        """Draw bar chart in dataframe cells"""
 
-        return [base if x == 0 else attrs.format(c=color[0], w=x)
-                if x < zero_normed
-                else attrs.format(c=color[1], w=x) if x >= zero_normed
-                else base for x in normed]
+        # Get input value range.
+        smin = s.min() if vmin is None else vmin
+        if isinstance(smin, ABCSeries):
+            smin = smin.min()
+        smax = s.max() if vmax is None else vmax
+        if isinstance(smax, ABCSeries):
+            smax = smax.max()
+        if align == 'mid':
+            smin = min(0, smin)
+            smax = max(0, smax)
+        elif align == 'zero':
+            # For "zero" mode, we want the range to be symmetrical around zero.
+            smax = max(abs(smin), abs(smax))
+            smin = -smax
+        # Transform to percent-range of linear-gradient
+        normed = width * (s.values - smin) / (smax - smin + 1e-12)
+        zero = -width * smin / (smax - smin + 1e-12)
 
-    @staticmethod
-    def _bar_center_zero(s, color, width, base):
-        """
-        Creates a bar chart where the zero is centered in the cell
-        Parameters
-        ----------
-        color: 2-tuple/list, of [``color_negative``, ``color_positive``]
-        width: float
-            A number between 0 or 100. The largest value will cover ``width``
-            percent of the cell's width
-        base: str
-            The base css format of the cell, e.g.:
-            ``base = 'width: 10em; height: 80%;'``
-        Returns
-        -------
-        self : Styler
-        """
+        def css_bar(start, end, color):
+            """Generate CSS code to draw a bar from start to end."""
+            css = 'width: 10em; height: 80%;'
+            if end > start:
+                css += 'background: linear-gradient(90deg,'
+                if start > 0:
+                    css += ' transparent {s:.1f}%, {c} {s:.1f}%, '.format(
+                        s=start, c=color
+                    )
+                css += '{c} {e:.1f}%, transparent {e:.1f}%)'.format(
+                    e=min(end, width), c=color,
+                )
+            return css
 
-        # Either the min or the max should reach the edge
-        # (50%, centered on zero)
-        m = max(abs(s.min()), abs(s.max()))
+        def css(x):
+            if pd.isna(x):
+                return ''
 
-        normed = s * 50 * width / (100.0 * m)
+            # avoid deprecated indexing `colors[x > zero]`
+            color = colors[1] if x > zero else colors[0]
 
-        attrs_neg = (base + 'background: linear-gradient(90deg, transparent 0%'
-                     ', transparent {w:.1f}%, {c} {w:.1f}%, '
-                     '{c} 50%, transparent 50%)')
+            if align == 'left':
+                return css_bar(0, x, color)
+            else:
+                return css_bar(min(x, zero), max(x, zero), color)
 
-        attrs_pos = (base + 'background: linear-gradient(90deg, transparent 0%'
-                     ', transparent 50%, {c} 50%, {c} {w:.1f}%, '
-                     'transparent {w:.1f}%)')
-
-        return [attrs_pos.format(c=color[1], w=(50 + x)) if x >= 0
-                else attrs_neg.format(c=color[0], w=(50 + x))
-                for x in normed]
-
-    @staticmethod
-    def _bar_center_mid(s, color, width, base):
-        """
-        Creates a bar chart where the midpoint is centered in the cell
-        Parameters
-        ----------
-        color: 2-tuple/list, of [``color_negative``, ``color_positive``]
-        width: float
-            A number between 0 or 100. The largest value will cover ``width``
-            percent of the cell's width
-        base: str
-            The base css format of the cell, e.g.:
-            ``base = 'width: 10em; height: 80%;'``
-        Returns
-        -------
-        self : Styler
-        """
-
-        if s.min() >= 0:
-            # In this case, we place the zero at the left, and the max() should
-            # be at width
-            zero = 0.0
-            slope = width / s.max()
-        elif s.max() <= 0:
-            # In this case, we place the zero at the right, and the min()
-            # should be at 100-width
-            zero = 100.0
-            slope = width / -s.min()
+        if s.ndim == 1:
+            return [css(x) for x in normed]
         else:
-            slope = width / (s.max() - s.min())
-            zero = (100.0 + width) / 2.0 - slope * s.max()
-
-        normed = zero + slope * s
-
-        attrs_neg = (base + 'background: linear-gradient(90deg, transparent 0%'
-                     ', transparent {w:.1f}%, {c} {w:.1f}%, '
-                     '{c} {zero:.1f}%, transparent {zero:.1f}%)')
-
-        attrs_pos = (base + 'background: linear-gradient(90deg, transparent 0%'
-                     ', transparent {zero:.1f}%, {c} {zero:.1f}%, '
-                     '{c} {w:.1f}%, transparent {w:.1f}%)')
-
-        return [attrs_pos.format(c=color[1], zero=zero, w=x) if x > zero
-                else attrs_neg.format(c=color[0], zero=zero, w=x)
-                for x in normed]
+            return pd.DataFrame(
+                [[css(x) for x in row] for row in normed],
+                index=s.index, columns=s.columns
+            )
 
     def bar(self, subset=None, axis=0, color='#d65f5f', width=100,
-            align='left'):
+            align='left', vmin=None, vmax=None):
         """
-        Color the background ``color`` proptional to the values in each column.
-        Excludes non-numeric data by default.
+        Draw bar chart in the cell backgrounds.
 
         Parameters
         ----------
-        subset: IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to
-        axis: int
-        color: str or 2-tuple/list
+        subset : IndexSlice, optional
+            A valid slice for `data` to limit the style application to.
+        axis : int, str or None, default 0
+            Apply to each column (`axis=0` or `'index'`)
+            or to each row (`axis=1` or `'columns'`) or
+            to the entire DataFrame at once with `axis=None`.
+        color : str or 2-tuple/list
             If a str is passed, the color is the same for both
             negative and positive numbers. If 2-tuple/list is used, the
             first element is the color_negative and the second is the
-            color_positive (eg: ['#d65f5f', '#5fba7d'])
-        width: float
-            A number between 0 or 100. The largest value will cover ``width``
-            percent of the cell's width
+            color_positive (eg: ['#d65f5f', '#5fba7d']).
+        width : float, default 100
+            A number between 0 or 100. The largest value will cover `width`
+            percent of the cell's width.
         align : {'left', 'zero',' mid'}, default 'left'
-            - 'left' : the min value starts at the left of the cell
-            - 'zero' : a value of zero is located at the center of the cell
+            How to align the bars with the cells.
+
+            - 'left' : the min value starts at the left of the cell.
+            - 'zero' : a value of zero is located at the center of the cell.
             - 'mid' : the center of the cell is at (max-min)/2, or
               if values are all negative (positive) the zero is aligned
-              at the right (left) of the cell
+              at the right (left) of the cell.
 
               .. versionadded:: 0.20.0
+
+        vmin : float, optional
+            Minimum bar value, defining the left hand limit
+            of the bar drawing range, lower values are clipped to `vmin`.
+            When None (default): the minimum value of the data will be used.
+
+            .. versionadded:: 0.24.0
+
+        vmax : float, optional
+            Maximum bar value, defining the right hand limit
+            of the bar drawing range, higher values are clipped to `vmax`.
+            When None (default): the maximum value of the data will be used.
+
+            .. versionadded:: 0.24.0
+
 
         Returns
         -------
         self : Styler
         """
-        subset = _maybe_numeric_slice(self.data, subset)
-        subset = _non_reducing_slice(subset)
+        if align not in ('left', 'zero', 'mid'):
+            raise ValueError("`align` must be one of {'left', 'zero',' mid'}")
 
-        base = 'width: 10em; height: 80%;'
-
-        if not(is_list_like(color)):
+        if not (is_list_like(color)):
             color = [color, color]
         elif len(color) == 1:
             color = [color[0], color[0]]
         elif len(color) > 2:
-            msg = ("Must pass `color` as string or a list-like"
-                   " of length 2: [`color_negative`, `color_positive`]\n"
-                   "(eg: color=['#d65f5f', '#5fba7d'])")
-            raise ValueError(msg)
+            raise ValueError("`color` must be string or a list-like"
+                             " of length 2: [`color_neg`, `color_pos`]"
+                             " (eg: color=['#d65f5f', '#5fba7d'])")
 
-        if align == 'left':
-            self.apply(self._bar_left, subset=subset, axis=axis, color=color,
-                       width=width, base=base)
-        elif align == 'zero':
-            self.apply(self._bar_center_zero, subset=subset, axis=axis,
-                       color=color, width=width, base=base)
-        elif align == 'mid':
-            self.apply(self._bar_center_mid, subset=subset, axis=axis,
-                       color=color, width=width, base=base)
-        else:
-            msg = ("`align` must be one of {'left', 'zero',' mid'}")
-            raise ValueError(msg)
+        subset = _maybe_numeric_slice(self.data, subset)
+        subset = _non_reducing_slice(subset)
+        self.apply(self._bar, subset=subset, axis=axis,
+                   align=align, colors=color, width=width,
+                   vmin=vmin, vmax=vmax)
 
         return self
 
