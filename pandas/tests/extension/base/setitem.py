@@ -44,7 +44,7 @@ class BaseSetitemTests(BaseExtensionTests):
         if box_in_series:
             data = pd.Series(data)
         original = data.copy()
-        data[[]] = []
+        data[np.array([], dtype=int)] = []
         self.assert_equal(data, original)
 
     def test_setitem_sequence_broadcasts(self, data, box_in_series):
