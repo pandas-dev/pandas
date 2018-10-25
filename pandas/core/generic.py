@@ -54,6 +54,7 @@ from pandas.compat import (map, zip, lzip, lrange, string_types, to_str,
 from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
 from pandas.util._decorators import (Appender, Substitution,
+                                     rewrite_axis_style_signature,
                                      deprecate_kwarg)
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core import config
@@ -1102,9 +1103,12 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             return result.__finalize__(self)
 
+    @rewrite_axis_style_signature('mapper', [('copy', True),
+                                             ('inplace', False)])
     def rename_axis(self, mapper=None, **kwargs):
         """
-        Alter the name of the index or name of index backing the columns.
+        Alter the name of the index or name of Index object that is the
+        columns.
 
         Parameters
         ----------
@@ -1145,7 +1149,7 @@ class NDFrame(PandasObject, SelectionMixin):
         * ``(mapper, axis={'index', 'columns'}, ...)``
 
         The first calling convention will only modify the names of
-        the index and/or the names of the index backing the columns.
+        the index and/or the names of the Index object that is the columns.
         In this case, the parameter ``copy`` is ignored.
 
         The second calling convention will modify the names of the

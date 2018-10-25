@@ -461,7 +461,7 @@ def get_rename_function(mapper):
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.
     """
-    if isinstance(mapper, (dict, ABCSeries)):
+    if isinstance(mapper, (compat.Mapping, ABCSeries)):
 
         def f(x):
             if x in mapper:
