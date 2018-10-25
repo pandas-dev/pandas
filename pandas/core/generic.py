@@ -10253,10 +10253,11 @@ Examples
 --------
 ``MultiIndex`` series example of monthly rainfall
 
->>> index = [np.tile(['London', 'New York'], 3),
-...          np.repeat(['Jun', 'Jul', 'Aug'], 2)]
+>>> index = pd.MultiIndex.from_arrays(
+...     [np.tile(['London', 'New York'], 3),
+...      np.repeat(['Jun', 'Jul', 'Aug'], 2)],
+...      names=['city', 'month'])
 >>> s = pd.Series([47, 112, 35, 117, 54, 113], index=index)
->>> s.rename_axis(['city', 'month'], inplace=True)
 >>> s
 city      month
 London    Jun       47
