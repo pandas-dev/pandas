@@ -552,7 +552,8 @@ class TestDataFrameOperators(TestData):
         df = self.simple
 
         val1 = df.xs('a').values
-        added = DataFrame(df.values + val1, index=df.index, columns=df.columns)
+        added = DataFrame(df.values + val1, index=df.index,
+                          columns=df.columns)
         assert_frame_equal(df + val1, added)
 
         added = DataFrame((df.values.T + val1).T,

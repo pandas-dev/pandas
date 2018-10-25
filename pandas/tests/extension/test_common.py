@@ -78,7 +78,6 @@ def test_astype_no_copy():
 
 @pytest.mark.parametrize('dtype', [
     dtypes.DatetimeTZDtype('ns', 'US/Central'),
-    dtypes.PeriodDtype("D"),
 ])
 def test_is_not_extension_array_dtype(dtype):
     assert not isinstance(dtype, dtypes.ExtensionDtype)

@@ -14,7 +14,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
     ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
-    ABCDateOffset)
+    ABCDateOffset, ABCPeriodArray)
 from pandas.core.dtypes.inference import (  # noqa:F401
     is_bool, is_integer, is_float, is_number, is_decimal, is_complex,
     is_re, is_re_compilable, is_dict_like, is_string_like, is_file_like,
@@ -638,10 +638,10 @@ def is_period_arraylike(arr):
     True
     """
 
-    if isinstance(arr, ABCPeriodIndex):
+    if isinstance(arr, (ABCPeriodIndex, ABCPeriodArray)):
         return True
     elif isinstance(arr, (np.ndarray, ABCSeries)):
-        return arr.dtype == object and lib.infer_dtype(arr) == 'period'
+        return is_period_dtype(arr.dtype)
     return getattr(arr, 'inferred_type', None) == 'period'
 
 

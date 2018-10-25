@@ -270,8 +270,8 @@ class TestPeriodFrameArithmetic(object):
                                  pd.Period('2015-02', freq='M')],
                            'B': [pd.Period('2014-01', freq='M'),
                                  pd.Period('2014-02', freq='M')]})
-        assert df['A'].dtype == object
-        assert df['B'].dtype == object
+        assert df['A'].dtype == 'Period[M]'
+        assert df['B'].dtype == 'Period[M]'
 
         p = pd.Period('2015-03', freq='M')
         off = p.freq
@@ -285,8 +285,8 @@ class TestPeriodFrameArithmetic(object):
                                   pd.Period('2015-06', freq='M')],
                             'B': [pd.Period('2015-05', freq='M'),
                                   pd.Period('2015-06', freq='M')]})
-        assert df2['A'].dtype == object
-        assert df2['B'].dtype == object
+        assert df2['A'].dtype == 'Period[M]'
+        assert df2['B'].dtype == 'Period[M]'
 
         exp = pd.DataFrame({'A': np.array([4 * off, 4 * off], dtype=object),
                             'B': np.array([16 * off, 16 * off], dtype=object)})
@@ -642,7 +642,7 @@ class TestPeriodIndexArithmetic(object):
     def test_pi_add_sub_timedeltalike_freq_mismatch_daily(self, not_daily):
         other = not_daily
         rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
-        msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=D\\)'
+        msg = 'Input has different freq(=.+)? from Period.*?\\(freq=D\\)'
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng + other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
@@ -667,7 +667,7 @@ class TestPeriodIndexArithmetic(object):
     def test_pi_add_timedeltalike_mismatched_freq_hourly(self, not_hourly):
         other = not_hourly
         rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00', freq='H')
-        msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=H\\)'
+        msg = 'Input has different freq(=.+)? from Period.*?\\(freq=H\\)'
 
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng + other
@@ -702,7 +702,7 @@ class TestPeriodIndexArithmetic(object):
         other = mismatched_freq
         rng = pd.period_range('2014', '2024', freq='A')
         msg = ('Input has different freq(=.+)? '
-               'from PeriodIndex\\(freq=A-DEC\\)')
+               'from Period.*?\\(freq=A-DEC\\)')
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng + other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
@@ -726,7 +726,7 @@ class TestPeriodIndexArithmetic(object):
                                                             mismatched_freq):
         other = mismatched_freq
         rng = pd.period_range('2014-01', '2016-12', freq='M')
-        msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=M\\)'
+        msg = 'Input has different freq(=.+)? from Period.*?\\(freq=M\\)'
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng + other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
@@ -742,7 +742,7 @@ class TestPeriodSeriesArithmetic(object):
         # GH 13043
         ser = pd.Series([pd.Period('2015-01-01', freq='D'),
                          pd.Period('2015-01-02', freq='D')], name='xxx')
-        assert ser.dtype == object
+        assert ser.dtype == 'Period[D]'
 
         expected = pd.Series([pd.Period('2015-01-02', freq='D'),
                               pd.Period('2015-01-03', freq='D')], name='xxx')
@@ -763,7 +763,7 @@ class TestPeriodSeriesArithmetic(object):
         # GH 13043
         ser = pd.Series([pd.Period('2015-01-01', freq='D'),
                          pd.Period('2015-01-02', freq='D')], name='xxx')
-        assert ser.dtype == object
+        assert ser.dtype == "Period[D]"
 
         per = pd.Period('2015-01-10', freq='D')
         off = per.freq
@@ -774,7 +774,7 @@ class TestPeriodSeriesArithmetic(object):
 
         s2 = pd.Series([pd.Period('2015-01-05', freq='D'),
                         pd.Period('2015-01-04', freq='D')], name='xxx')
-        assert s2.dtype == object
+        assert s2.dtype == "Period[D]"
 
         expected = pd.Series([4 * off, 2 * off], name='xxx', dtype=object)
         tm.assert_series_equal(s2 - ser, expected)
@@ -916,9 +916,8 @@ class TestPeriodIndexSeriesMethods(object):
 
         # Series op is applied per Period instance, thus error is raised
         # from Period
-        msg_idx = r"Input has different freq from PeriodIndex\(freq=D\)"
-        msg_s = r"Input cannot be converted to Period\(freq=D\)"
-        for obj, msg in [(idx, msg_idx), (ser, msg_s)]:
+        msg = r"Input has different freq from Period.*?\(freq=D\)"
+        for obj in [idx, ser]:
             with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
                 obj + pd.offsets.Hour(2)
 

@@ -588,7 +588,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 str(self.tz) == str(other.tz))
 
 
-class PeriodDtype(PandasExtensionDtype):
+class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
     """
     A Period duck-typed class, suitable for holding a period with freq dtype.
 
@@ -705,6 +705,12 @@ class PeriodDtype(PandasExtensionDtype):
             else:
                 return False
         return super(PeriodDtype, cls).is_dtype(dtype)
+
+    @classmethod
+    def construct_array_type(cls):
+        from pandas.core.arrays import PeriodArray
+
+        return PeriodArray
 
 
 @register_extension_dtype

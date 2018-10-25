@@ -14,7 +14,8 @@ from pandas.core.indexes.datetimes import Timestamp
 
 from pandas.compat import range, lzip, isidentifier, string_types
 from pandas import (compat, Categorical, period_range, timedelta_range,
-                    DatetimeIndex, PeriodIndex, TimedeltaIndex)
+                    DatetimeIndex, TimedeltaIndex)
+from pandas.core.arrays import PeriodArray
 import pandas.io.formats.printing as printing
 from pandas.util.testing import (assert_series_equal,
                                  ensure_clean)
@@ -698,7 +699,7 @@ class TestCategoricalSeries(object):
 
         test_data = [
             ("Datetime", get_ops(DatetimeIndex), s_dr, c_dr),
-            ("Period", get_ops(PeriodIndex), s_pr, c_pr),
+            ("Period", get_ops(PeriodArray), s_pr, c_pr),
             ("Timedelta", get_ops(TimedeltaIndex), s_tdr, c_tdr)]
 
         assert isinstance(c_dr.dt, Properties)

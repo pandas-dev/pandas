@@ -143,11 +143,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         # other specific errors tested in the integer array specific tests
         pass
 
-    def test_add_series_with_extension_array(self, data):
-        super(TestArithmeticOps, self).test_add_series_with_extension_array(
-            data
-        )
-
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
 

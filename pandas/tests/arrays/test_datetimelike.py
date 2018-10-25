@@ -7,7 +7,7 @@ import pandas.util.testing as tm
 
 from pandas.core.arrays import (DatetimeArrayMixin,
                                 TimedeltaArrayMixin,
-                                PeriodArrayMixin)
+                                PeriodArray)
 
 
 # TODO: more freq variants
@@ -100,7 +100,7 @@ class TestDatetimeArray(object):
 
         expected = dti.to_period(freq=freqstr)
         result = arr.to_period(freq=freqstr)
-        assert isinstance(result, PeriodArrayMixin)
+        assert isinstance(result, PeriodArray)
 
         # placeholder until these become actual EA subclasses and we can use
         #  an EA-specific tm.assert_ function
@@ -181,7 +181,7 @@ class TestPeriodArray(object):
 
     def test_from_pi(self, period_index):
         pi = period_index
-        arr = PeriodArrayMixin(pi)
+        arr = PeriodArray(pi)
         assert list(arr) == list(pi)
 
         # Check that Index.__new__ knows what to do with PeriodArray
@@ -191,7 +191,7 @@ class TestPeriodArray(object):
 
     def test_astype_object(self, period_index):
         pi = period_index
-        arr = PeriodArrayMixin(pi)
+        arr = PeriodArray(pi)
         asobj = arr.astype('O')
         assert isinstance(asobj, np.ndarray)
         assert asobj.dtype == 'O'
@@ -200,7 +200,7 @@ class TestPeriodArray(object):
     @pytest.mark.parametrize('how', ['S', 'E'])
     def test_to_timestamp(self, how, period_index):
         pi = period_index
-        arr = PeriodArrayMixin(pi)
+        arr = PeriodArray(pi)
 
         expected = DatetimeArrayMixin(pi.to_timestamp(how=how))
         result = arr.to_timestamp(how=how)
@@ -210,21 +210,21 @@ class TestPeriodArray(object):
         #  an EA-specific tm.assert_ function
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
 
-    @pytest.mark.parametrize('propname', pd.PeriodIndex._bool_ops)
+    @pytest.mark.parametrize('propname', PeriodArray._bool_ops)
     def test_bool_properties(self, period_index, propname):
         # in this case _bool_ops is just `is_leap_year`
         pi = period_index
-        arr = PeriodArrayMixin(pi)
+        arr = PeriodArray(pi)
 
         result = getattr(arr, propname)
         expected = np.array(getattr(pi, propname))
 
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize('propname', pd.PeriodIndex._field_ops)
+    @pytest.mark.parametrize('propname', PeriodArray._field_ops)
     def test_int_properties(self, period_index, propname):
         pi = period_index
-        arr = PeriodArrayMixin(pi)
+        arr = PeriodArray(pi)
 
         result = getattr(arr, propname)
         expected = np.array(getattr(pi, propname))

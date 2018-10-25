@@ -309,7 +309,8 @@ class Base(object):
             index_type = index.__class__
             result = index_type(index.values, copy=True, **init_kwargs)
             tm.assert_index_equal(index, result)
-            tm.assert_numpy_array_equal(index.values, result.values,
+            tm.assert_numpy_array_equal(index._ndarray_values,
+                                        result._ndarray_values,
                                         check_same='copy')
 
             if isinstance(index, PeriodIndex):
