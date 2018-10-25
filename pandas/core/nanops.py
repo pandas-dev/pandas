@@ -350,7 +350,7 @@ def nanany(values, axis=None, skipna=True, mask=None):
     >>> nanops.nanany(s)
     False
     """
-    values, mask, dtype, _ = _get_values(values, skipna, False, copy=skipna,
+    values, mask, dtype, _, _ = _get_values(values, skipna, False, copy=skipna,
                                          mask=mask)
     return values.any(axis)
 
@@ -383,7 +383,7 @@ def nanall(values, axis=None, skipna=True, mask=None):
     >>> nanops.nanall(s)
     False
     """
-    values, mask, dtype, _ = _get_values(values, skipna, True, copy=skipna,
+    values, mask, dtype, _, _ = _get_values(values, skipna, True, copy=skipna,
                                          mask=mask)
     return values.all(axis)
 
@@ -413,7 +413,7 @@ def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
     >>> nanops.nansum(s)
     3.0
     """
-    values, mask, dtype, dtype_max = _get_values(values, skipna, 0, mask=mask)
+    values, mask, dtype, dtype_max, _ = _get_values(values, skipna, 0, mask=mask)
     dtype_sum = dtype_max
     if is_float_dtype(dtype):
         dtype_sum = dtype
