@@ -11,8 +11,8 @@ import pandas as pd
 import pandas.io.formats.printing as printing
 import pandas.util.testing as tm
 from pandas import (
-    Categorical, DataFrame, DatetimeIndex, Index, PeriodIndex, Series,
-    TimedeltaIndex, compat, date_range, period_range, timedelta_range
+    Categorical, DataFrame, DatetimeIndex, Index, Series, TimedeltaIndex,
+    compat, date_range, period_range, timedelta_range
 )
 from pandas.compat import isidentifier, lzip, range, string_types
 from pandas.core.arrays import PeriodArray
