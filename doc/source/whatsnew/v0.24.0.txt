@@ -424,6 +424,35 @@ that the dates have been converted to UTC
 
     pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
 
+.. _whatsnew_0240.api_breaking.timezone_databases:
+
+Writing Timezone Aware Data to Databases
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`to_sql` can now write timezone aware datetime data (``datetime64[ns, tz]`` dtype)
+as ``TIMESTAMP WITH TIME ZONE`` type to databases that support that type. (:issue:`9086`)
+
+However, databases that do not support timezones will now store timezone aware data
+as naive timestamps in local time instead of naive timestamps in UTC.
+
+Therefore, round-tripping timezone aware data from pandas to a database and back
+to pandas has changed behavior. Given timezone aware data that has been
+written to a database from pandas, the following table summarizes
+the timestamps that will be returned.
+
++----------+--------------------------------+-----------------------------------+
+|          | Database with timezone support | Database without timezone support |
++==========+================================+===================================+
+| Before   | tz-naive in UTC time           | tz-naive in UTC time              |
++----------+--------------------------------+-----------------------------------+
+| After    | tz-aware in UTC time           | tz-naive in local time            |
++----------+--------------------------------+-----------------------------------+
+
+Converting timezones read from ``TIMESTAMP WITH TIME ZONE`` types to UTC is
+consistent with prior behavior.
+
+See the :ref:`io.sql_datetime_data` for more information.
+
 .. _whatsnew_0240.api_breaking.calendarday:
 
 CalendarDay Offset
@@ -874,7 +903,6 @@ Datetimelike API Changes
 - :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 - :func:`cut` and :func:`qcut` now returns a :class:`DatetimeIndex` or :class:`TimedeltaIndex` bins when the input is datetime or timedelta dtype respectively and ``retbins=True`` (:issue:`19891`)
 - :meth:`DatetimeIndex.to_period` and :meth:`Timestamp.to_period` will issue a warning when timezone information will be lost (:issue:`21333`)
-- :meth:`DataFrame.to_sql` now writes timezone aware datetime data (``datetime64[ns, tz]`` dtype) as timezone unaware local timestamps instead of timezone unaware UTC timestamps for database dialects that don't support the ``TIMESTAMP WITH TIME ZONE`` type. See the :ref:`io.sql_datetime_data` for implications (:issue:`9086`).
 
 .. _whatsnew_0240.api.other:
 
