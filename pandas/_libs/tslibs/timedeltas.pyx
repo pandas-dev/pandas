@@ -1213,7 +1213,7 @@ class Timedelta(_Timedelta):
                 return other.delta * self
             return NotImplemented
 
-        elif util._checknan(other):
+        elif util.is_nan(other):
             # i.e. np.nan
             return NaT
 
@@ -1244,7 +1244,7 @@ class Timedelta(_Timedelta):
             # convert to Timedelta below
             pass
 
-        elif util._checknan(other):
+        elif util.is_nan(other):
             # i.e. np.nan
             return NaT
 
