@@ -1,11 +1,13 @@
 """ define extension dtypes """
 
 import re
+
 import numpy as np
+
 from pandas import compat
-from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
-from pandas._libs.tslibs import Period, NaT, Timestamp
 from pandas._libs.interval import Interval
+from pandas._libs.tslibs import NaT, Period, Timestamp
+from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
 
 from .base import ExtensionDtype, _DtypeOpsMixin
 

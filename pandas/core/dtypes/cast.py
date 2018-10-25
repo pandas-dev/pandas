@@ -1,40 +1,31 @@
 """ routings for casting """
 
+import warnings
 from datetime import datetime, timedelta
 
 import numpy as np
-import warnings
 
-from pandas._libs import tslib, lib, tslibs
-from pandas._libs.tslibs import iNaT, OutOfBoundsDatetime
-from pandas.compat import string_types, text_type, PY3
-from .common import (ensure_object, is_bool, is_integer, is_float,
-                     is_complex, is_datetimetz, is_categorical_dtype,
-                     is_datetimelike,
-                     is_extension_type,
-                     is_extension_array_dtype,
-                     is_object_dtype,
-                     is_datetime64tz_dtype, is_datetime64_dtype,
-                     is_datetime64_ns_dtype,
-                     is_timedelta64_dtype, is_timedelta64_ns_dtype,
-                     is_dtype_equal,
-                     is_float_dtype, is_complex_dtype,
-                     is_integer_dtype,
-                     is_unsigned_integer_dtype,
-                     is_datetime_or_timedelta_dtype,
-                     is_bool_dtype, is_scalar,
-                     is_string_dtype, _string_dtypes,
-                     pandas_dtype,
-                     ensure_int8, ensure_int16,
-                     ensure_int32, ensure_int64,
-                     _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
-                     _POSSIBLY_CAST_DTYPES)
-from .dtypes import (ExtensionDtype, PandasExtensionDtype, DatetimeTZDtype,
-                     PeriodDtype)
-from .generic import (ABCDatetimeIndex, ABCPeriodIndex,
-                      ABCSeries)
-from .missing import isna, notna
+from pandas._libs import lib, tslib, tslibs
+from pandas._libs.tslibs import OutOfBoundsDatetime, iNaT
+from pandas.compat import PY3, string_types, text_type
+
+from .common import (
+    _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE, _string_dtypes,
+    ensure_int8, ensure_int16, ensure_int32, ensure_int64, ensure_object,
+    is_bool, is_bool_dtype, is_categorical_dtype, is_complex, is_complex_dtype,
+    is_datetime64_dtype, is_datetime64_ns_dtype, is_datetime64tz_dtype,
+    is_datetime_or_timedelta_dtype, is_datetimelike, is_datetimetz,
+    is_dtype_equal, is_extension_array_dtype, is_extension_type, is_float,
+    is_float_dtype, is_integer, is_integer_dtype, is_object_dtype, is_scalar,
+    is_string_dtype, is_timedelta64_dtype, is_timedelta64_ns_dtype,
+    is_unsigned_integer_dtype, pandas_dtype
+)
+from .dtypes import (
+    DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype, PeriodDtype
+)
+from .generic import ABCDatetimeIndex, ABCPeriodIndex, ABCSeries
 from .inference import is_list_like
+from .missing import isna, notna
 
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max

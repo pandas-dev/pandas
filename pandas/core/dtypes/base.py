@@ -2,7 +2,7 @@
 import numpy as np
 
 from pandas import compat
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCDataFrame
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.errors import AbstractMethodError
 
 
