@@ -7,6 +7,7 @@ import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas import DatetimeIndex, PeriodIndex, Series, Period, Index
 
+from pandas.core.arrays import PeriodArray
 from pandas.tests.test_base import Ops
 
 
@@ -21,9 +22,9 @@ class TestPeriodIndexOps(Ops):
 
     def test_ops_properties(self):
         f = lambda x: isinstance(x, PeriodIndex)
-        self.check_ops_properties(PeriodIndex._field_ops, f)
-        self.check_ops_properties(PeriodIndex._object_ops, f)
-        self.check_ops_properties(PeriodIndex._bool_ops, f)
+        self.check_ops_properties(PeriodArray._field_ops, f)
+        self.check_ops_properties(PeriodArray._object_ops, f)
+        self.check_ops_properties(PeriodArray._bool_ops, f)
 
     def test_minmax(self):
 
@@ -92,7 +93,7 @@ class TestPeriodIndexOps(Ops):
         # GH 7735
         idx = pd.period_range('2011-01-01 09:00', freq='H', periods=10)
         # create repeated values, 'n'th element is repeated by n+1 times
-        idx = PeriodIndex(np.repeat(idx.values, range(1, len(idx) + 1)),
+        idx = PeriodIndex(np.repeat(idx._values, range(1, len(idx) + 1)),
                           freq='H')
 
         exp_idx = PeriodIndex(['2011-01-01 18:00', '2011-01-01 17:00',
@@ -379,7 +380,9 @@ class TestPeriodIndexOps(Ops):
         assert not idx.equals(pd.Series(idx2))
 
         # same internal, different tz
-        idx3 = pd.PeriodIndex._simple_new(idx.asi8, freq='H')
+        idx3 = pd.PeriodIndex._simple_new(
+            idx._values._simple_new(idx._values.asi8, freq="H")
+        )
         tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
         assert not idx.equals(idx3)
         assert not idx.equals(idx3.copy())
@@ -490,3 +493,12 @@ class TestPeriodIndexSeriesMethods(object):
         f = lambda x: tslib.NaT >= x
         exp = np.array([False, False, False, False], dtype=np.bool)
         self._check(idx, f, exp)
+
+
+@pytest.mark.parametrize("other", ["2017", 2017])
+def test_eq(other):
+    idx = pd.PeriodIndex(['2017', '2017', '2018'], freq="D")
+    expected = np.array([True, True, False])
+    result = idx == other
+
+    tm.assert_numpy_array_equal(result, expected)
