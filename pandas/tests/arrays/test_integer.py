@@ -560,7 +560,8 @@ def test_integer_array_constructor_copy():
         1.0,
         pd.date_range('20130101', periods=2),
         np.array(['foo']),
-        [[1, 2], [3, 4]]])
+        [[1, 2], [3, 4]],
+        [np.nan, {'a': 1}]])
 def test_to_integer_array_error(values):
     # error in converting existing arrays to IntegerArrays
     with pytest.raises(TypeError):
