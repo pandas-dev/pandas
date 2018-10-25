@@ -611,7 +611,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # No conversion since timestamps are all UTC to begin with
         return self._shallow_copy(tz=tz)
 
-    def tz_localize(self, tz, ambiguous='raise', errors='raise'):
+    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
+                    errors=None):
         """
         Localize tz-naive Datetime Array/Index to tz-aware
         Datetime Array/Index.
@@ -627,8 +628,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
-        ambiguous : str {'infer', 'NaT', 'raise'} or bool array,
-            default 'raise'
+        ambiguous : 'infer', 'NaT', bool array, default 'raise'
 
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
@@ -639,15 +639,27 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
 
-        errors : {'raise', 'coerce'}, default 'raise'
+        nonexistent : 'shift', 'NaT' default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent times forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
+
+        errors : {'raise', 'coerce'}, default None
 
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
               valid in the specified time zone (e.g. due to a transition from
-              or to DST time)
+              or to DST time). Use ``nonexistent='raise'`` instead.
             - 'coerce' will return NaT if the timestamp can not be converted
-              to the specified time zone
+              to the specified time zone. Use ``nonexistent='NaT'`` instead.
 
-            .. versionadded:: 0.19.0
+            .. deprecated:: 0.24.0
 
         Returns
         -------
@@ -689,6 +701,23 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                        '2018-03-03 09:00:00'],
                       dtype='datetime64[ns]', freq='D')
         """
+        if errors is not None:
+            warnings.warn("The errors argument is deprecated and will be "
+                          "removed in a future release. Use "
+                          "nonexistent='NaT' or nonexistent='raise' "
+                          "instead.", FutureWarning)
+            if errors == 'coerce':
+                nonexistent = 'NaT'
+            elif errors == 'raise':
+                nonexistent = 'raise'
+            else:
+                raise ValueError("The errors argument must be either 'coerce' "
+                                 "or 'raise'.")
+
+        if nonexistent not in ('raise', 'NaT', 'shift'):
+            raise ValueError("The nonexistent argument must be one of 'raise',"
+                             " 'NaT' or 'shift'")
+
         if self.tz is not None:
             if tz is None:
                 new_dates = conversion.tz_convert(self.asi8, 'UTC', self.tz)
@@ -698,9 +727,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             tz = timezones.maybe_get_tz(tz)
             # Convert to UTC
 
-            new_dates = conversion.tz_localize_to_utc(self.asi8, tz,
-                                                      ambiguous=ambiguous,
-                                                      errors=errors)
+            new_dates = conversion.tz_localize_to_utc(
+                self.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent,
+            )
         new_dates = new_dates.view(_NS_DTYPE)
         return self._shallow_copy(new_dates, tz=tz)
 
