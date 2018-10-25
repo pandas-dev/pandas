@@ -2,12 +2,11 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, date_range, timedelta_range, concat, read_json
 
-from ..pandas_vb_common import setup, BaseIO  # noqa
+from ..pandas_vb_common import BaseIO
 
 
 class ReadJSON(BaseIO):
 
-    goal_time = 0.2
     fname = "__test__.json"
     params = (['split', 'index', 'records'], ['int', 'datetime'])
     param_names = ['orient', 'index']
@@ -27,7 +26,6 @@ class ReadJSON(BaseIO):
 
 class ReadJSONLines(BaseIO):
 
-    goal_time = 0.2
     fname = "__test_lines__.json"
     params = ['int', 'datetime']
     param_names = ['index']
@@ -58,7 +56,6 @@ class ReadJSONLines(BaseIO):
 
 class ToJSON(BaseIO):
 
-    goal_time = 0.2
     fname = "__test__.json"
     params = ['split', 'columns', 'index']
     param_names = ['orient']
@@ -125,3 +122,6 @@ class ToJSON(BaseIO):
 
     def time_float_int_str_lines(self, orient):
         self.df_int_float_str.to_json(self.fname, orient='records', lines=True)
+
+
+from ..pandas_vb_common import setup  # noqa: F401

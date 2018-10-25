@@ -157,8 +157,8 @@ class Grouper(object):
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
-            if getattr(self.grouper, 'name', None) == key and \
-                    isinstance(obj, ABCSeries):
+            if (getattr(self.grouper, 'name', None) == key and
+                    isinstance(obj, ABCSeries)):
                 ax = self._grouper.take(obj.index)
             else:
                 if key not in obj._info_axis:
@@ -530,9 +530,9 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     except Exception:
         all_in_columns_index = False
 
-    if not any_callable and not all_in_columns_index and \
-       not any_arraylike and not any_groupers and \
-       match_axis_length and level is None:
+    if (not any_callable and not all_in_columns_index and
+            not any_arraylike and not any_groupers and
+            match_axis_length and level is None):
         keys = [com.asarray_tuplesafe(keys)]
 
     if isinstance(level, (tuple, list)):
@@ -593,15 +593,15 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
         # create the Grouping
         # allow us to passing the actual Grouping as the gpr
-        ping = Grouping(group_axis,
-                        gpr,
-                        obj=obj,
-                        name=name,
-                        level=level,
-                        sort=sort,
-                        observed=observed,
-                        in_axis=in_axis) \
-            if not isinstance(gpr, Grouping) else gpr
+        ping = (Grouping(group_axis,
+                         gpr,
+                         obj=obj,
+                         name=name,
+                         level=level,
+                         sort=sort,
+                         observed=observed,
+                         in_axis=in_axis)
+                if not isinstance(gpr, Grouping) else gpr)
 
         groupings.append(ping)
 

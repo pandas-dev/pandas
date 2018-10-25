@@ -578,8 +578,8 @@ b  2""")
             # a little trickery for aggregation functions that need an axis
             # argument
             kwargs_with_axis = kwargs.copy()
-            if 'axis' not in kwargs_with_axis or \
-               kwargs_with_axis['axis'] is None:
+            if ('axis' not in kwargs_with_axis or
+                    kwargs_with_axis['axis'] is None):
                 kwargs_with_axis['axis'] = self.axis
 
             def curried_with_axis(x):
@@ -1490,8 +1490,10 @@ class GroupBy(_GroupBy):
         self._set_group_selection()
 
         if not dropna:
-            mask = np.in1d(self._cumcount_array(), nth_values) | \
-                np.in1d(self._cumcount_array(ascending=False) + 1, -nth_values)
+            mask_left = np.in1d(self._cumcount_array(), nth_values)
+            mask_right = np.in1d(self._cumcount_array(ascending=False) + 1,
+                                 -nth_values)
+            mask = mask_left | mask_right
 
             out = self._selected_obj[mask]
             if not self.as_index:
@@ -1552,8 +1554,8 @@ class GroupBy(_GroupBy):
             result.loc[mask] = np.nan
 
         # reset/reindex to the original groups
-        if len(self.obj) == len(dropped) or \
-           len(result) == len(self.grouper.result_index):
+        if (len(self.obj) == len(dropped) or
+                len(result) == len(self.grouper.result_index)):
             result.index = self.grouper.result_index
         else:
             result = result.reindex(self.grouper.result_index)

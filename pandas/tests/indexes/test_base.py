@@ -1379,7 +1379,7 @@ class TestIndex(Base):
         index = pd.Index(arr, dtype=np.object)
         result = index.get_indexer([unique_nulls_fixture,
                                     unique_nulls_fixture2, 'Unknown'])
-        expected = np.array([0, 1, -1], dtype=np.int64)
+        expected = np.array([0, 1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("method", [None, 'pad', 'backfill', 'nearest'])
@@ -2427,10 +2427,10 @@ class TestMixedIntIndex(Base):
         pd.to_datetime(['2000-01-01', 'NaT', '2000-01-02']),
         pd.to_timedelta(['1 day', 'NaT'])])
     def test_is_monotonic_na(self, index):
-        assert not index.is_monotonic_increasing
-        assert not index.is_monotonic_decreasing
-        assert not index._is_strictly_monotonic_increasing
-        assert not index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic_increasing is False
+        assert index.is_monotonic_decreasing is False
+        assert index._is_strictly_monotonic_increasing is False
+        assert index._is_strictly_monotonic_decreasing is False
 
     def test_repr_summary(self):
         with cf.option_context('display.max_seq_items', 10):
@@ -2530,3 +2530,32 @@ def test_index_subclass_constructor_wrong_kwargs(index_maker):
     # GH #19348
     with tm.assert_raises_regex(TypeError, 'unexpected keyword argument'):
         index_maker(foo='bar')
+
+
+def test_deprecated_fastpath():
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx = pd.Index(
+            np.array(['a', 'b'], dtype=object), name='test', fastpath=True)
+
+    expected = pd.Index(['a', 'b'], name='test')
+    tm.assert_index_equal(idx, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx = pd.Int64Index(
+            np.array([1, 2, 3], dtype='int64'), name='test', fastpath=True)
+
+    expected = pd.Index([1, 2, 3], name='test', dtype='int64')
+    tm.assert_index_equal(idx, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx = pd.RangeIndex(0, 5, 2, name='test', fastpath=True)
+
+    expected = pd.RangeIndex(0, 5, 2, name='test')
+    tm.assert_index_equal(idx, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx = pd.CategoricalIndex(['a', 'b', 'c'], name='test', fastpath=True)
+
+    expected = pd.CategoricalIndex(['a', 'b', 'c'], name='test')
+    tm.assert_index_equal(idx, expected)
