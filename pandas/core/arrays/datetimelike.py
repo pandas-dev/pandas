@@ -221,7 +221,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         """ return if I have any nans; enables various perf speedups """
         return self._isnan.any()
 
-    def _maybe_mask_results(self, result, fill_value=None, convert=None):
+    def _maybe_mask_results(self, result, fill_value=iNaT, convert=None):
         """
         Parameters
         ----------
@@ -384,7 +384,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         inc = delta_to_nanoseconds(other)
         new_values = checked_add_with_arr(self.asi8, inc,
                                           arr_mask=self._isnan).view('i8')
-        new_values = self._maybe_mask_results(new_values, fill_value=iNaT)
+        new_values = self._maybe_mask_results(new_values)
         return new_values.view('i8')
 
     def _add_delta_tdi(self, other):

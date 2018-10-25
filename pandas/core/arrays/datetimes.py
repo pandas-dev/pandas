@@ -75,11 +75,12 @@ def _field_accessor(name, field, docstring=None):
 
         if field in self._object_ops:
             result = fields.get_date_name_field(values, field)
-            result = self._maybe_mask_results(result)
+            result = self._maybe_mask_results(result, fill_value=None)
 
         else:
             result = fields.get_date_field(values, field)
-            result = self._maybe_mask_results(result, convert='float64')
+            result = self._maybe_mask_results(result, fill_value=None,
+                                              convert='float64')
 
         return result
 
@@ -481,7 +482,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         i8 = self.asi8
         result = checked_add_with_arr(i8, -other.value,
                                       arr_mask=self._isnan)
-        result = self._maybe_mask_results(result, fill_value=iNaT)
+        result = self._maybe_mask_results(result)
         return result.view('timedelta64[ns]')
 
     @Appender((dtl.DatetimeLikeArrayMixin._add_delta.__doc__ or "").replace(
@@ -869,7 +870,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         result = fields.get_date_name_field(values, 'month_name',
                                             locale=locale)
-        result = self._maybe_mask_results(result)
+        result = self._maybe_mask_results(result, fill_value=None)
         return result
 
     def day_name(self, locale=None):
@@ -905,7 +906,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         result = fields.get_date_name_field(values, 'day_name',
                                             locale=locale)
-        result = self._maybe_mask_results(result)
+        result = self._maybe_mask_results(result, fill_value=None)
         return result
 
     @property

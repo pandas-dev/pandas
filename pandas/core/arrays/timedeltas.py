@@ -47,7 +47,8 @@ def _field_accessor(name, alias, docstring=None):
         values = self.asi8
         result = get_timedelta_field(values, alias)
         if self.hasnans:
-            result = self._maybe_mask_results(result, convert='float64')
+            result = self._maybe_mask_results(result, fill_value=None,
+                                              convert='float64')
 
         return result
 
@@ -220,7 +221,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         i8 = self.asi8
         result = checked_add_with_arr(i8, other.value,
                                       arr_mask=self._isnan)
-        result = self._maybe_mask_results(result, fill_value=iNaT)
+        result = self._maybe_mask_results(result)
         return DatetimeArrayMixin(result, tz=other.tz)
 
     def _addsub_offset_array(self, other, op):
@@ -256,7 +257,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                     result = op(left, right)
                 else:
                     result = op(left, np.float64(right))
-                result = self._maybe_mask_results(result, convert='float64')
+                result = self._maybe_mask_results(result, fill_value=None,
+                                                  convert='float64')
                 return result
 
         return NotImplemented
@@ -319,7 +321,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         Float64Index([0.0, 86400.0, 172800.0, 259200.00000000003, 345600.0],
                      dtype='float64')
         """
-        return self._maybe_mask_results(1e-9 * self.asi8)
+        return self._maybe_mask_results(1e-9 * self.asi8, fill_value=None)
 
     def to_pytimedelta(self):
         """
