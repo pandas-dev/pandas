@@ -856,10 +856,8 @@ Sparse
    :template: autosummary/accessor_attribute.rst
 
    Series.sparse.npoints
-   Series.sparse.kind
    Series.sparse.density
    Series.sparse.fill_value
-   Series.sparse.sp_index
    Series.sparse.sp_values
 
 
