@@ -11,7 +11,6 @@ import pandas as pd
 import pandas.util.testing as tm
 
 from pandas.errors import PerformanceWarning
-from pandas._libs.tslibs.period import IncompatibleFrequency
 
 import pandas.core.indexes.period as period
 from pandas.core import ops
@@ -30,75 +29,107 @@ class TestPeriodIndexComparisons(object):
         tm.assert_numpy_array_equal(result, exp)
 
     @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
-    def test_pi_cmp_pi(self, freq):
+    def test_parr_cmp_period_scalar(self, freq, box):
+        # GH#13200
+        xbox = np.ndarray if box is pd.Index else box
+
         base = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                            freq=freq)
+        base = tm.box_expected(base, box)
         per = Period('2011-02', freq=freq)
 
         exp = np.array([False, True, False, False])
-        tm.assert_numpy_array_equal(base == per, exp)
-        tm.assert_numpy_array_equal(per == base, exp)
+        exp = tm.box_expected(exp, xbox)
+        tm.assert_equal(base == per, exp)
+        tm.assert_equal(per == base, exp)
 
         exp = np.array([True, False, True, True])
-        tm.assert_numpy_array_equal(base != per, exp)
-        tm.assert_numpy_array_equal(per != base, exp)
+        exp = tm.box_expected(exp, xbox)
+        tm.assert_equal(base != per, exp)
+        tm.assert_equal(per != base, exp)
 
         exp = np.array([False, False, True, True])
-        tm.assert_numpy_array_equal(base > per, exp)
-        tm.assert_numpy_array_equal(per < base, exp)
+        exp = tm.box_expected(exp, xbox)
+        tm.assert_equal(base > per, exp)
+        tm.assert_equal(per < base, exp)
 
         exp = np.array([True, False, False, False])
-        tm.assert_numpy_array_equal(base < per, exp)
-        tm.assert_numpy_array_equal(per > base, exp)
+        exp = tm.box_expected(exp, xbox)
+        tm.assert_equal(base < per, exp)
+        tm.assert_equal(per > base, exp)
 
         exp = np.array([False, True, True, True])
-        tm.assert_numpy_array_equal(base >= per, exp)
-        tm.assert_numpy_array_equal(per <= base, exp)
+        exp = tm.box_expected(exp, xbox)
+        tm.assert_equal(base >= per, exp)
+        tm.assert_equal(per <= base, exp)
 
         exp = np.array([True, True, False, False])
-        tm.assert_numpy_array_equal(base <= per, exp)
-        tm.assert_numpy_array_equal(per >= base, exp)
+        exp = tm.box_expected(exp, xbox)
+        tm.assert_equal(base <= per, exp)
+        tm.assert_equal(per >= base, exp)
 
+    @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
+    def test_parr_cmp_pi(self, freq, box_df_fail):
+        # GH#13200
+        box = box_df_fail
+        xbox = np.ndarray if box is pd.Index else box
+
+        base = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
+                           freq=freq)
+        base = tm.box_expected(base, box)
+
+        # TODO: could also box idx?
         idx = PeriodIndex(['2011-02', '2011-01', '2011-03', '2011-05'],
                           freq=freq)
 
         exp = np.array([False, False, True, False])
-        tm.assert_numpy_array_equal(base == idx, exp)
+        exp = tm.box_expected(exp, xbox)
+        tm.assert_equal(base == idx, exp)
 
         exp = np.array([True, True, False, True])
-        tm.assert_numpy_array_equal(base != idx, exp)
+        exp = tm.box_expected(exp, xbox)
+        tm.assert_equal(base != idx, exp)
 
         exp = np.array([False, True, False, False])
-        tm.assert_numpy_array_equal(base > idx, exp)
+        exp = tm.box_expected(exp, xbox)
+        tm.assert_equal(base > idx, exp)
 
         exp = np.array([True, False, False, True])
-        tm.assert_numpy_array_equal(base < idx, exp)
+        exp = tm.box_expected(exp, xbox)
+        tm.assert_equal(base < idx, exp)
 
         exp = np.array([False, True, True, False])
-        tm.assert_numpy_array_equal(base >= idx, exp)
+        exp = tm.box_expected(exp, xbox)
+        tm.assert_equal(base >= idx, exp)
 
         exp = np.array([True, False, True, True])
-        tm.assert_numpy_array_equal(base <= idx, exp)
+        exp = tm.box_expected(exp, xbox)
+        tm.assert_equal(base <= idx, exp)
 
     @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
-    def test_pi_cmp_pi_mismatched_freq_raises(self, freq):
+    def test_parr_cmp_pi_mismatched_freq_raises(self, freq, box_df_fail):
+        # GH#13200
         # different base freq
+        box = box_df_fail
+
         base = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                            freq=freq)
+        base = tm.box_expected(base, box)
 
-        msg = "Input has different freq=A-DEC from PeriodIndex"
+        msg = "Input has different freq=A-DEC from "
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             base <= Period('2011', freq='A')
 
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             Period('2011', freq='A') >= base
 
+        # TODO: Could parametrize over boxes for idx?
         idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='A')
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             base <= idx
 
         # Different frequency
-        msg = "Input has different freq=4M from PeriodIndex"
+        msg = "Input has different freq=4M from "
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             base <= Period('2011', freq='4M')
 
@@ -197,80 +228,6 @@ class TestPeriodIndexComparisons(object):
 
 
 class TestPeriodSeriesComparisons(object):
-    @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
-    def test_cmp_series_period_scalar(self, freq):
-        # GH 13200
-        base = Series([Period(x, freq=freq) for x in
-                       ['2011-01', '2011-02', '2011-03', '2011-04']])
-        p = Period('2011-02', freq=freq)
-
-        exp = Series([False, True, False, False])
-        tm.assert_series_equal(base == p, exp)
-        tm.assert_series_equal(p == base, exp)
-
-        exp = Series([True, False, True, True])
-        tm.assert_series_equal(base != p, exp)
-        tm.assert_series_equal(p != base, exp)
-
-        exp = Series([False, False, True, True])
-        tm.assert_series_equal(base > p, exp)
-        tm.assert_series_equal(p < base, exp)
-
-        exp = Series([True, False, False, False])
-        tm.assert_series_equal(base < p, exp)
-        tm.assert_series_equal(p > base, exp)
-
-        exp = Series([False, True, True, True])
-        tm.assert_series_equal(base >= p, exp)
-        tm.assert_series_equal(p <= base, exp)
-
-        exp = Series([True, True, False, False])
-        tm.assert_series_equal(base <= p, exp)
-        tm.assert_series_equal(p >= base, exp)
-
-        # different base freq
-        msg = "Input has different freq=A-DEC from Period"
-        with tm.assert_raises_regex(IncompatibleFrequency, msg):
-            base <= Period('2011', freq='A')
-
-        with tm.assert_raises_regex(IncompatibleFrequency, msg):
-            Period('2011', freq='A') >= base
-
-    @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
-    def test_cmp_series_period_series(self, freq):
-        # GH#13200
-        base = Series([Period(x, freq=freq) for x in
-                       ['2011-01', '2011-02', '2011-03', '2011-04']])
-
-        ser = Series([Period(x, freq=freq) for x in
-                      ['2011-02', '2011-01', '2011-03', '2011-05']])
-
-        exp = Series([False, False, True, False])
-        tm.assert_series_equal(base == ser, exp)
-
-        exp = Series([True, True, False, True])
-        tm.assert_series_equal(base != ser, exp)
-
-        exp = Series([False, True, False, False])
-        tm.assert_series_equal(base > ser, exp)
-
-        exp = Series([True, False, False, True])
-        tm.assert_series_equal(base < ser, exp)
-
-        exp = Series([False, True, True, False])
-        tm.assert_series_equal(base >= ser, exp)
-
-        exp = Series([True, False, True, True])
-        tm.assert_series_equal(base <= ser, exp)
-
-        ser2 = Series([Period(x, freq='A') for x in
-                       ['2011', '2011', '2011', '2011']])
-
-        # different base freq
-        msg = "Input has different freq=A-DEC from Period"
-        with tm.assert_raises_regex(IncompatibleFrequency, msg):
-            base <= ser2
-
     def test_cmp_series_period_series_mixed_freq(self):
         # GH#13200
         base = Series([Period('2011', freq='A'),
@@ -405,9 +362,13 @@ class TestPeriodIndexArithmetic(object):
     @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
     @pytest.mark.parametrize('op', [operator.add, ops.radd,
                                     operator.sub, ops.rsub])
-    def test_pi_add_sub_float(self, op, other):
+    def test_pi_add_sub_float(self, op, other, box):
+        if box is pd.DataFrame and isinstance(other, np.ndarray):
+            pytest.xfail(reason="Tries to broadcast incorrectly")
+
         dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
         pi = dti.to_period('D')
+        pi = tm.box_expected(pi, box)
         with pytest.raises(TypeError):
             op(pi, other)
 
@@ -678,7 +639,7 @@ class TestPeriodIndexArithmetic(object):
         rng -= other
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_iadd_timedeltalike_freq_mismatch_daily(self, not_daily):
+    def test_pi_add_sub_timedeltalike_freq_mismatch_daily(self, not_daily):
         other = not_daily
         rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
         msg = 'Input has different freq(=.+)? from Period.*?\\(freq=D\\)'
@@ -686,13 +647,10 @@ class TestPeriodIndexArithmetic(object):
             rng + other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng += other
-
-    def test_pi_sub_timedeltalike_freq_mismatch_daily(self, not_daily):
-        other = not_daily
-        rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
-        msg = 'Input has different freq(=.+)? from Period.*?\\(freq=D\\)'
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng - other
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+            rng -= other
 
     def test_pi_add_iadd_timedeltalike_hourly(self, two_hours):
         other = two_hours
@@ -739,8 +697,8 @@ class TestPeriodIndexArithmetic(object):
         rng += pd.offsets.YearEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_iadd_timedeltalike_freq_mismatch_annual(self,
-                                                            mismatched_freq):
+    def test_pi_add_sub_timedeltalike_freq_mismatch_annual(self,
+                                                           mismatched_freq):
         other = mismatched_freq
         rng = pd.period_range('2014', '2024', freq='A')
         msg = ('Input has different freq(=.+)? '
@@ -749,13 +707,6 @@ class TestPeriodIndexArithmetic(object):
             rng + other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng += other
-
-    def test_pi_sub_isub_timedeltalike_freq_mismatch_annual(self,
-                                                            mismatched_freq):
-        other = mismatched_freq
-        rng = pd.period_range('2014', '2024', freq='A')
-        msg = ('Input has different freq(=.+)? '
-               'from Period.*?\\(freq=A-DEC\\)')
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng - other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
@@ -771,8 +722,8 @@ class TestPeriodIndexArithmetic(object):
         rng += pd.offsets.MonthEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_iadd_timedeltalike_freq_mismatch_monthly(self,
-                                                             mismatched_freq):
+    def test_pi_add_sub_timedeltalike_freq_mismatch_monthly(self,
+                                                            mismatched_freq):
         other = mismatched_freq
         rng = pd.period_range('2014-01', '2016-12', freq='M')
         msg = 'Input has different freq(=.+)? from Period.*?\\(freq=M\\)'
@@ -780,12 +731,6 @@ class TestPeriodIndexArithmetic(object):
             rng + other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng += other
-
-    def test_pi_sub_isub_timedeltalike_freq_mismatch_monthly(self,
-                                                             mismatched_freq):
-        other = mismatched_freq
-        rng = pd.period_range('2014-01', '2016-12', freq='M')
-        msg = 'Input has different freq(=.+)? from Period.*?\\(freq=M\\)'
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng - other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
@@ -842,11 +787,7 @@ class TestPeriodIndexSeriesMethods(object):
     def _check(self, values, func, expected):
         idx = pd.PeriodIndex(values)
         result = func(idx)
-        if isinstance(expected, pd.Index):
-            tm.assert_index_equal(result, expected)
-        else:
-            # comp op results in bool
-            tm.assert_numpy_array_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         ser = pd.Series(values)
         result = func(ser)
@@ -874,35 +815,34 @@ class TestPeriodIndexSeriesMethods(object):
         tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize('ng', ["str", 1.5])
-    def test_pi_ops_errors(self, ng):
+    def test_pi_ops_errors(self, ng, box):
         idx = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                           freq='M', name='idx')
-        ser = pd.Series(idx)
+        obj = tm.box_expected(idx, box)
 
         msg = r"unsupported operand type\(s\)"
 
-        for obj in [idx, ser]:
-            with tm.assert_raises_regex(TypeError, msg):
-                obj + ng
+        with tm.assert_raises_regex(TypeError, msg):
+            obj + ng
 
-            with pytest.raises(TypeError):
-                # error message differs between PY2 and 3
-                ng + obj
+        with pytest.raises(TypeError):
+            # error message differs between PY2 and 3
+            ng + obj
 
-            with tm.assert_raises_regex(TypeError, msg):
-                obj - ng
+        with tm.assert_raises_regex(TypeError, msg):
+            obj - ng
 
-            with pytest.raises(TypeError):
-                np.add(obj, ng)
+        with pytest.raises(TypeError):
+            np.add(obj, ng)
 
-            with pytest.raises(TypeError):
-                np.add(ng, obj)
+        with pytest.raises(TypeError):
+            np.add(ng, obj)
 
-            with pytest.raises(TypeError):
-                np.subtract(obj, ng)
+        with pytest.raises(TypeError):
+            np.subtract(obj, ng)
 
-            with pytest.raises(TypeError):
-                np.subtract(ng, obj)
+        with pytest.raises(TypeError):
+            np.subtract(ng, obj)
 
     def test_pi_ops_nat(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-04'],

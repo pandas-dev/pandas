@@ -724,27 +724,12 @@ cdef class _Timedelta(timedelta):
                     if is_timedelta64_object(other):
                         other = Timedelta(other)
                     else:
-                        if op == Py_EQ:
-                            return False
-                        elif op == Py_NE:
-                            return True
-
-                        # only allow ==, != ops
-                        raise TypeError('Cannot compare type {cls} with '
-                                        'type {other}'
-                                        .format(cls=type(self).__name__,
-                                                other=type(other).__name__))
+                        return NotImplemented
                 if util.is_array(other):
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
-                if op == Py_EQ:
-                    return False
-                elif op == Py_NE:
-                    return True
-                raise TypeError('Cannot compare type {cls} with type {other}'
-                                .format(cls=type(self).__name__,
-                                        other=type(other).__name__))
+                return NotImplemented
 
         return cmp_scalar(self.value, ots.value, op)
 
