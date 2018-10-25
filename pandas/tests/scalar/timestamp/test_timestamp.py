@@ -14,15 +14,13 @@ import numpy as np
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
-from pandas.tseries import offsets
-
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
 
 from pandas.errors import OutOfBoundsDatetime
 from pandas.compat import long, PY3, PY2
 from pandas.compat.numpy import np_datetime64_compat
-from pandas import Timestamp, Period, Timedelta, NaT
+from pandas import Timestamp, Period, Timedelta, NaT, offsets
 
 
 class TestTimestampProperties(object):

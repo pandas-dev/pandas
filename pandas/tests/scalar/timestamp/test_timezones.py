@@ -3,8 +3,8 @@
 Tests for Timestamp timezone-related methods
 """
 from datetime import datetime, date, timedelta
-
 from distutils.version import LooseVersion
+
 import pytest
 import pytz
 from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError

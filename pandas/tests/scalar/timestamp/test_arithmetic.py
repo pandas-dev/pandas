@@ -5,8 +5,7 @@ import pytest
 import numpy as np
 
 from pandas.compat import long
-from pandas.tseries import offsets
-from pandas import Timestamp, Timedelta
+from pandas import Timestamp, Timedelta, offsets
 
 
 class TestTimestampArithmetic(object):
