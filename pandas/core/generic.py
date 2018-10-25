@@ -10232,7 +10232,7 @@ dtype: int64
 >>> s.max()
 117
 
-Sum using level names, as well as indices
+Max using level names, as well as indices
 
 >>> s.max(level='city')
 city
