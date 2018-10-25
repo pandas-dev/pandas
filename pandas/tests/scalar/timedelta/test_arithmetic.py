@@ -8,7 +8,6 @@ import operator
 import numpy as np
 import pytest
 
-import pandas as pd
 import pandas.util.testing as tm
 from pandas.core import ops
 from pandas import Timedelta, Timestamp, NaT, offsets
@@ -400,13 +399,6 @@ class TestTimedeltaMultiplicationDivision(object):
         expected = np.array([10, np.nan])
         tm.assert_numpy_array_equal(res, expected)
 
-    def test_td_floordiv_numeric_series(self):
-        # GH#18846
-        td = Timedelta(hours=3, minutes=4)
-        ser = pd.Series([1], dtype=np.int64)
-        res = td // ser
-        assert res.dtype.kind == 'm'
-
     # ---------------------------------------------------------------
     # Timedelta.__rfloordiv__
 
@@ -477,16 +469,6 @@ class TestTimedeltaMultiplicationDivision(object):
         res = td.__rfloordiv__(arr)
         expected = np.array([10, np.nan])
         tm.assert_numpy_array_equal(res, expected)
-
-    def test_td_rfloordiv_numeric_series(self):
-        # GH#18846
-        td = Timedelta(hours=3, minutes=3)
-        ser = pd.Series([1], dtype=np.int64)
-        res = td.__rfloordiv__(ser)
-        assert res is NotImplemented
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # TODO: GH-19761. Change to TypeError.
-            ser // td
 
     def test_mod_timedeltalike(self):
         # GH#19365
