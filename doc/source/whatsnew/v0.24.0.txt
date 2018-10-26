@@ -1094,6 +1094,7 @@ Interval
 - Bug in the ``IntervalIndex`` repr where a trailing comma was missing after the list of intervals (:issue:`20611`)
 - Bug in :class:`Interval` where scalar arithmetic operations did not retain the ``closed`` value (:issue:`22313`)
 - Bug in :class:`IntervalIndex` where indexing with datetime-like values raised a ``KeyError`` (:issue:`20636`)
+- Bug in ``IntervalTree`` where data containing ``NaN`` triggered a warning and resulted in incorrect indexing queries with :class:`IntervalIndex` (:issue:`23352`)
 
 Indexing
 ^^^^^^^^

@@ -13,13 +13,26 @@ def dtype(request):
     return request.param
 
 
-@pytest.fixture(scope='class')
-def tree(dtype):
-    left = np.arange(5, dtype=dtype)
+@pytest.fixture(scope='class', params=[
+    np.arange(5, dtype='int64'),
+    np.arange(5, dtype='int32'),
+    np.arange(5, dtype='uint64'),
+    np.arange(5, dtype='float64'),
+    np.arange(5, dtype='float32'),
+    np.array([0, 1, 2, 3, 4, np.nan], dtype='float64'),
+    np.array([0, 1, 2, 3, 4, np.nan], dtype='float32')])
+def tree(request):
+    left = request.param
     return IntervalTree(left, left + 2)
 
 
 class TestIntervalTree(object):
+
+    def test_construction_nan(self):
+        # GH 23352
+        left, right = [0, 1, 2, np.nan], [1, 2, 3, np.nan]
+        with tm.assert_produces_warning(None):
+            IntervalTree(left, right, leaf_size=2)
 
     def test_get_loc(self, tree):
         tm.assert_numpy_array_equal(tree.get_loc(1),
