@@ -898,7 +898,7 @@ custom date increment logic, such as adding business days:
 .. code-block:: python
 
     class BDay(DateOffset):
-	"""DateOffset increments between business days"""
+    """DateOffset increments between business days"""
         def apply(self, other):
             ...
 
@@ -2133,7 +2133,8 @@ To convert from an ``int64`` based YYYYMMDD representation.
    s
 
    def conv(x):
-       return pd.Period(year = x // 10000, month = x//100 % 100, day = x%100, freq='D')
+       return pd.Period(year=x // 10000, month=x // 100 % 100,
+                        day=x % 100, freq='D')
 
    s.apply(conv)
    s.apply(conv)[2]

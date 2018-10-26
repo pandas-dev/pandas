@@ -298,7 +298,7 @@ advanced Cython techniques:
 
 Even faster, with the caveat that a bug in our Cython code (an off-by-one error,
 for example) might cause a segfault because memory access isn't checked.
-For more about ``boundscheck`` and ``wraparound``, see the Cython docs on 
+For more about ``boundscheck`` and ``wraparound``, see the Cython docs on
 `compiler directives <http://cython.readthedocs.io/en/latest/src/reference/compilation.html?highlight=wraparound#compiler-directives>`__.
 
 .. _enhancingperf.numba:
@@ -323,7 +323,7 @@ Numba works by generating optimized machine code using the LLVM compiler infrast
 Jit
 ~~~
 
-We demonstrate how to use Numba to just-in-time compile our code. We simply 
+We demonstrate how to use Numba to just-in-time compile our code. We simply
 take the plain Python code from above and annotate with the ``@jit`` decorator.
 
 .. code-block:: python
@@ -332,35 +332,38 @@ take the plain Python code from above and annotate with the ``@jit`` decorator.
 
     @numba.jit
     def f_plain(x):
-       return x * (x - 1)
+        return x * (x - 1)
+
 
     @numba.jit
     def integrate_f_numba(a, b, N):
-       s = 0
-       dx = (b - a) / N
-       for i in range(N):
-           s += f_plain(a + i * dx)
-       return s * dx
+        s = 0
+        dx = (b - a) / N
+        for i in range(N):
+            s += f_plain(a + i * dx)
+        return s * dx
+
 
     @numba.jit
     def apply_integrate_f_numba(col_a, col_b, col_N):
-       n = len(col_N)
-       result = np.empty(n, dtype='float64')
-       assert len(col_a) == len(col_b) == n
-       for i in range(n):
-          result[i] = integrate_f_numba(col_a[i], col_b[i], col_N[i])
-       return result
+        n = len(col_N)
+        result = np.empty(n, dtype='float64')
+        assert len(col_a) == len(col_b) == n
+        for i in range(n):
+            result[i] = integrate_f_numba(col_a[i], col_b[i], col_N[i])
+        return result
+
 
     def compute_numba(df):
-       result = apply_integrate_f_numba(df['a'].values, df['b'].values, df['N'].values)
-       return pd.Series(result, index=df.index, name='result')
+        result = apply_integrate_f_numba(df['a'].values, df['b'].values,
+                                         df['N'].values)
+        return pd.Series(result, index=df.index, name='result')
 
-Note that we directly pass NumPy arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a nicer interface by passing/returning pandas objects.
+Note that we directly pass NumPy arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a
+nicer interface by passing/returning pandas objects.
 
-.. code-block:: ipython
-
-    In [4]: %timeit compute_numba(df)
-    1000 loops, best of 3: 798 us per loop
+>>> %timeit compute_numba(df)
+1000 loops, best of 3: 798 us per loop
 
 In this example, using Numba was faster than Cython.
 
@@ -376,24 +379,25 @@ Consider the following toy example of doubling each observation:
     import numba
 
     def double_every_value_nonumba(x):
-        return x*2
+        return x * 2
+
 
     @numba.vectorize
     def double_every_value_withnumba(x):
-        return x*2
+        return x * 2
 
 
-    # Custom function without numba
-    In [5]: %timeit df['col1_doubled'] = df.a.apply(double_every_value_nonumba)
-    1000 loops, best of 3: 797 us per loop
+>>> # Custom function without numba
+>>> %timeit df['col1_doubled'] = df.a.apply(double_every_value_nonumba)
+1000 loops, best of 3: 797 us per loop
 
-    # Standard implementation (faster than a custom function)
-    In [6]: %timeit df['col1_doubled'] = df.a*2
-    1000 loops, best of 3: 233 us per loop
+>>> # Standard implementation (faster than a custom function)
+>>> %timeit df['col1_doubled'] = df.a*2
+1000 loops, best of 3: 233 us per loop
 
-    # Custom function with numba
-    In [7]: %timeit df['col1_doubled'] = double_every_value_withnumba(df.a.values)
-    1000 loops, best of 3: 145 us per loop
+>>> # Custom function with numba
+>>> %timeit df['col1_doubled'] = double_every_value_withnumba(df.a.values)
+1000 loops, best of 3: 145 us per loop
 
 Caveats
 ~~~~~~~
@@ -402,18 +406,18 @@ Caveats
 
     Numba will execute on any function, but can only accelerate certain classes of functions.
 
-Numba is best at accelerating functions that apply numerical functions to NumPy 
-arrays. When passed a function that only uses operations it knows how to 
+Numba is best at accelerating functions that apply numerical functions to NumPy
+arrays. When passed a function that only uses operations it knows how to
 accelerate, it will execute in ``nopython`` mode.
 
-If Numba is passed a function that includes something it doesn't know how to 
-work with -- a category that currently includes sets, lists, dictionaries, or 
-string functions -- it will revert to ``object mode``. In ``object mode``, 
-Numba will execute but your code will not speed up significantly. If you would 
-prefer that Numba throw an error if it cannot compile a function in a way that 
-speeds up your code, pass Numba the argument 
-``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on 
-troubleshooting Numba modes, see the `Numba troubleshooting page 
+If Numba is passed a function that includes something it doesn't know how to
+work with -- a category that currently includes sets, lists, dictionaries, or
+string functions -- it will revert to ``object mode``. In ``object mode``,
+Numba will execute but your code will not speed up significantly. If you would
+prefer that Numba throw an error if it cannot compile a function in a way that
+speeds up your code, pass Numba the argument
+``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on
+troubleshooting Numba modes, see the `Numba troubleshooting page
 <http://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
 
 Read more in the `Numba docs <http://numba.pydata.org/>`__.
