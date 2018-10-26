@@ -7,48 +7,40 @@ which here returns a DataFrameGroupBy object.
 """
 
 import collections
-import warnings
 import copy
-from textwrap import dedent
+import warnings
 from functools import partial
+from textwrap import dedent
 
 import numpy as np
 
-from pandas._libs import lib, Timestamp
-from pandas.util._decorators import Substitution, Appender
-from pandas import compat
-
-import pandas.core.indexes.base as ibase
-import pandas.core.common as com
-from pandas.core.panel import Panel
-from pandas.compat import lzip, map
-
-from pandas.core.series import Series
-from pandas.core.generic import _shared_docs
-from pandas.core.groupby.groupby import (
-    GroupBy, _apply_docs, _transform_template)
-from pandas.core.generic import NDFrame
-from pandas.core.groupby import base
-from pandas.core.dtypes.common import (
-    is_scalar,
-    is_bool,
-    is_datetimelike,
-    is_numeric_dtype,
-    is_integer_dtype,
-    is_interval_dtype,
-    ensure_platform_int,
-    ensure_int64)
-from pandas.core.dtypes.missing import isna, notna
 import pandas.core.algorithms as algorithms
-from pandas.core.frame import DataFrame
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
-from pandas.core.base import SpecificationError, DataError
-from pandas.core.index import Index, MultiIndex, CategoricalIndex
-from pandas.core.arrays import Categorical
-from pandas.core.internals import BlockManager, make_block
+import pandas.core.common as com
+import pandas.core.indexes.base as ibase
+from pandas import compat
+from pandas._libs import Timestamp, lib
+from pandas.compat import lzip, map
 from pandas.compat.numpy import _np_version_under1p13
-
+from pandas.core.arrays import Categorical
+from pandas.core.base import DataError, SpecificationError
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.common import (
+    ensure_int64, ensure_platform_int, is_bool, is_datetimelike,
+    is_integer_dtype, is_interval_dtype, is_numeric_dtype, is_scalar
+)
+from pandas.core.dtypes.missing import isna, notna
+from pandas.core.frame import DataFrame
+from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.groupby import base
+from pandas.core.groupby.groupby import (
+    GroupBy, _apply_docs, _transform_template
+)
+from pandas.core.index import CategoricalIndex, Index, MultiIndex
+from pandas.core.internals import BlockManager, make_block
+from pandas.core.panel import Panel
+from pandas.core.series import Series
 from pandas.plotting._core import boxplot_frame_groupby
+from pandas.util._decorators import Appender, Substitution
 
 
 class NDFrameGroupBy(GroupBy):
