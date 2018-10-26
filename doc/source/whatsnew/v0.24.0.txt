@@ -145,11 +145,11 @@ Current Behavior:
 
 .. _whatsnew_0240.enhancements.interval:
 
-Storing Interval Data in Series and DataFrame
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Storing Interval and Period Data in Series and DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Interval data may now be stored in a ``Series`` or ``DataFrame``, in addition to an
-:class:`IntervalIndex` like previously (:issue:`19453`).
+Interval and Period data may now be stored in a ``Series`` or ``DataFrame``, in addition to an
+:class:`IntervalIndex` and :class:`PeriodIndex` like previously (:issue:`19453`, :issue:`22862`).
 
 .. ipython:: python
 
@@ -157,20 +157,28 @@ Interval data may now be stored in a ``Series`` or ``DataFrame``, in addition to
    ser
    ser.dtype
 
-Previously, these would be cast to a NumPy array of ``Interval`` objects. In general,
-this should result in better performance when storing an array of intervals in
-a :class:`Series`.
+And for periods:
 
-Note that the ``.values`` of a ``Series`` containing intervals is no longer a NumPy
+.. ipython:: python
+
+   pser = pd.Series(pd.date_range("2000", freq="D", periods=5))
+   pser
+   pser.dtype
+
+Previously, these would be cast to a NumPy array with object dtype. In general,
+this should result in better performance when storing an array of intervals or periods
+in a :class:`Series` or column of a :class:`DataFrame`.
+
+Note that the ``.values`` of a ``Series`` containing one of these types is no longer a NumPy
 array, but rather an ``ExtensionArray``:
 
 .. ipython:: python
 
    ser.values
+   pser.values
 
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
-
 
 .. _whatsnew_0240.enhancements.other:
 
@@ -205,6 +213,7 @@ Other Enhancements
 - New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295`).
 - Compatibility with Matplotlib 3.0 (:issue:`22790`).
 - Added :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` for determining overlaps between interval-like objects (:issue:`21998`)
+- :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have gained the ``nonexistent`` argument for alternative handling of nonexistent times. See :ref:`timeseries.timezone_nonexsistent` (:issue:`8917`)
 
 .. _whatsnew_0240.api_breaking:
 
@@ -359,7 +368,7 @@ New Behavior:
 This mirrors ``CategoricalIndex.values``, which returns a ``Categorical``.
 
 For situations where you need an ``ndarray`` of ``Interval`` objects, use
-:meth:`numpy.asarray` or ``idx.astype(object)``.
+:meth:`numpy.asarray`.
 
 .. ipython:: python
 
@@ -809,6 +818,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - Updated the ``.type`` attribute for ``PeriodDtype``, ``DatetimeTZDtype``, and ``IntervalDtype`` to be instances of the dtype (``Period``, ``Timestamp``, and ``Interval`` respectively) (:issue:`22938`)
 - :func:`ExtensionArray.isna` is allowed to return an ``ExtensionArray`` (:issue:`22325`).
 - Support for reduction operations such as ``sum``, ``mean`` via opt-in base class method override (:issue:`22762`)
+- :meth:`Series.unstack` no longer converts extension arrays to object-dtype ndarrays. The output ``DataFrame`` will now have the same dtype as the input. This changes behavior for Categorical and Sparse data (:issue:`23077`).
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -912,6 +922,7 @@ Deprecations
 - :meth:`FrozenNDArray.searchsorted` has deprecated the ``v`` parameter in favor of ``value`` (:issue:`14645`)
 - :func:`DatetimeIndex.shift` and :func:`PeriodIndex.shift` now accept ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`, :issue:`22912`)
 - The ``fastpath`` keyword of the different Index constructors is deprecated (:issue:`23110`).
+- :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have deprecated the ``errors`` argument in favor of the ``nonexistent`` argument (:issue:`8917`)
 
 .. _whatsnew_0240.prior_deprecations:
 
@@ -1001,6 +1012,7 @@ Datetimelike
 - Bug in :func:`to_datetime` with an :class:`Index` argument that would drop the ``name`` from the result (:issue:`21697`)
 - Bug in :class:`PeriodIndex` where adding or subtracting a :class:`timedelta` or :class:`Tick` object produced incorrect results (:issue:`22988`)
 - Bug in :func:`date_range` when decrementing a start date to a past end date by a negative frequency (:issue:`23270`)
+- Bug in :func:`DataFrame.combine` with datetimelike values raising a TypeError (:issue:`23079`)
 
 Timedelta
 ^^^^^^^^^
@@ -1091,6 +1103,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` when indexing with an :class:`IntervalIndex` (:issue:`19977`)
 - :class:`Index` no longer mangles ``None``, ``NaN`` and ``NaT``, i.e. they are treated as three different keys. However, for numeric Index all three are still coerced to a ``NaN`` (:issue:`22332`)
 - Bug in `scalar in Index` if scalar is a float while the ``Index`` is of integer dtype (:issue:`22085`)
+- Bug in `MultiIndex.set_levels` when levels value is not subscriptable (:issue:`23273`)
 
 Missing
 ^^^^^^^

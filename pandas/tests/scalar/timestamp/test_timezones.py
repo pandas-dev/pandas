@@ -79,20 +79,44 @@ class TestTimestampTZOperations(object):
         ('2015-03-08 02:30', 'US/Pacific'),
         ('2015-03-29 02:00', 'Europe/Paris'),
         ('2015-03-29 02:30', 'Europe/Belgrade')])
+    @pytest.mark.filterwarnings('ignore::FutureWarning')
     def test_tz_localize_nonexistent(self, stamp, tz):
         # GH#13057
         ts = Timestamp(stamp)
         with pytest.raises(NonExistentTimeError):
             ts.tz_localize(tz)
+        # GH 22644
         with pytest.raises(NonExistentTimeError):
-            ts.tz_localize(tz, errors='raise')
-        assert ts.tz_localize(tz, errors='coerce') is NaT
+            with tm.assert_produces_warning(FutureWarning):
+                ts.tz_localize(tz, errors='raise')
+        with tm.assert_produces_warning(FutureWarning):
+            assert ts.tz_localize(tz, errors='coerce') is NaT
 
     def test_tz_localize_errors_ambiguous(self):
         # GH#13057
         ts = Timestamp('2015-11-1 01:00')
         with pytest.raises(AmbiguousTimeError):
-            ts.tz_localize('US/Pacific', errors='coerce')
+            with tm.assert_produces_warning(FutureWarning):
+                ts.tz_localize('US/Pacific', errors='coerce')
+
+    @pytest.mark.filterwarnings('ignore::FutureWarning')
+    def test_tz_localize_errors_invalid_arg(self):
+        # GH 22644
+        tz = 'Europe/Warsaw'
+        ts = Timestamp('2015-03-29 02:00:00')
+        with pytest.raises(ValueError):
+            with tm.assert_produces_warning(FutureWarning):
+                ts.tz_localize(tz, errors='foo')
+
+    def test_tz_localize_errors_coerce(self):
+        # GH 22644
+        # make sure errors='coerce' gets mapped correctly to nonexistent
+        tz = 'Europe/Warsaw'
+        ts = Timestamp('2015-03-29 02:00:00')
+        with tm.assert_produces_warning(FutureWarning):
+            result = ts.tz_localize(tz, errors='coerce')
+        expected = ts.tz_localize(tz, nonexistent='NaT')
+        assert result is expected
 
     @pytest.mark.parametrize('stamp', ['2014-02-01 09:00', '2014-07-08 09:00',
                                        '2014-11-01 17:00', '2014-11-05 00:00'])
@@ -157,6 +181,30 @@ class TestTimestampTZOperations(object):
         expected = Timestamp('3/11/2012 04:00', tz=tz)
         assert result.hour == expected.hour
         assert result == expected
+
+    @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
+    def test_timestamp_tz_localize_nonexistent_shift(self, tz):
+        # GH 8917
+        ts = Timestamp('2015-03-29 02:20:00')
+        result = ts.tz_localize(tz, nonexistent='shift')
+        expected = Timestamp('2015-03-29 03:00:00').tz_localize(tz)
+        assert result == expected
+
+    @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
+    def test_timestamp_tz_localize_nonexistent_NaT(self, tz):
+        # GH 8917
+        ts = Timestamp('2015-03-29 02:20:00')
+        result = ts.tz_localize(tz, nonexistent='NaT')
+        assert result is NaT
+
+    @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
+    def test_timestamp_tz_localize_nonexistent_raise(self, tz):
+        # GH 8917
+        ts = Timestamp('2015-03-29 02:20:00')
+        with pytest.raises(pytz.NonExistentTimeError):
+            ts.tz_localize(tz, nonexistent='raise')
+        with pytest.raises(ValueError):
+            ts.tz_localize(tz, nonexistent='foo')
 
     # ------------------------------------------------------------------
     # Timestamp.tz_convert
