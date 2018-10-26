@@ -80,7 +80,7 @@ class TestTimestampEquivDateRange(object):
 
 class TestDateRanges(TestData):
     def test_date_range_out_of_bounds(self):
-        # GH#19740
+        # GH#14187
         with pytest.raises(OutOfBoundsDatetime):
             date_range('2016-01-01', periods=100000, freq='D')
         with pytest.raises(OutOfBoundsDatetime):

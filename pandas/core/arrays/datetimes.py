@@ -1393,7 +1393,7 @@ def _generate_range_overflow_safe(endpoint, periods, stride, side='start'):
     ------
     OutOfBoundsDatetime
     """
-    # GH#19740 raise instead of incorrectly wrapping around
+    # GH#14187 raise instead of incorrectly wrapping around
     assert side in ['start', 'end']
     if side == 'end':
         stride *= -1
