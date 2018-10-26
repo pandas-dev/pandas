@@ -279,7 +279,6 @@ def _wrap_results(result, dtype, fill_value=None):
             result = result.view(dtype)
     elif is_timedelta64_dtype(dtype):
         if not isinstance(result, np.ndarray):
-            assert not isna(fill_value), "Expected non-null fill_value"
             if result == fill_value:
                 result = np.nan
 
