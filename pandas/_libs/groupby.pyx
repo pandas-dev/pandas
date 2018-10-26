@@ -99,16 +99,16 @@ cdef inline float64_t kth_smallest_c(float64_t* a,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_median_float64(ndarray[float64_t, ndim=2] out,
-                         ndarray[int64_t] counts,
+                         int64_t[:] counts,
                          ndarray[float64_t, ndim=2] values,
-                         ndarray[int64_t] labels,
+                         int64_t[:] labels,
                          Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, ngroups, size
-        ndarray[int64_t] _counts
+        int64_t[:] _counts
         ndarray data
         float64_t* ptr
 
@@ -217,7 +217,7 @@ def group_cumsum(numeric[:, :] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_shift_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
+def group_shift_indexer(int64_t[:] out, int64_t[:] labels,
                         int ngroups, int periods):
     cdef:
         Py_ssize_t N, i, j, ii
@@ -269,8 +269,8 @@ def group_shift_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
-                         ndarray[uint8_t] mask, object direction,
+def group_fillna_indexer(int64_t[:] out, ndarray[int64_t] labels,
+                         uint8_t[:] mask, object direction,
                          int64_t limit):
     """Indexes how to fill values forwards or backwards within a group
 
@@ -328,9 +328,9 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_any_all(ndarray[uint8_t] out,
-                  ndarray[int64_t] labels,
-                  ndarray[uint8_t] values,
-                  ndarray[uint8_t] mask,
+                  int64_t[:] labels,
+                  uint8_t[:] values,
+                  uint8_t[:] mask,
                   object val_test,
                   bint skipna):
     """Aggregated boolean values to show truthfulness of group elements
@@ -353,7 +353,7 @@ def group_any_all(ndarray[uint8_t] out,
     The returned values will either be 0 or 1 (False or True, respectively).
     """
     cdef:
-        Py_ssize_t i, N=len(labels)
+        Py_ssize_t i, N = len(labels)
         int64_t lab
         uint8_t flag_val
 

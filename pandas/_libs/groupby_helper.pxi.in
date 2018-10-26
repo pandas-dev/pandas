@@ -30,9 +30,9 @@ def get_dispatch(dtypes):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_add_{{name}}(ndarray[{{c_type}}, ndim=2] out,
-                       ndarray[int64_t] counts,
+                       int64_t[:] counts,
                        ndarray[{{c_type}}, ndim=2] values,
-                       ndarray[int64_t] labels,
+                       int64_t[:] labels,
                        Py_ssize_t min_count=0):
     """
     Only aggregates on axis=0
@@ -40,7 +40,7 @@ def group_add_{{name}}(ndarray[{{c_type}}, ndim=2] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         {{c_type}} val, count
-        ndarray[{{c_type}}, ndim=2] sumx, nobs
+        {{c_type}}[:, :] sumx, nobs
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
@@ -77,9 +77,9 @@ def group_add_{{name}}(ndarray[{{c_type}}, ndim=2] out,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_prod_{{name}}(ndarray[{{c_type}}, ndim=2] out,
-                        ndarray[int64_t] counts,
+                        int64_t[:] counts,
                         ndarray[{{c_type}}, ndim=2] values,
-                        ndarray[int64_t] labels,
+                        int64_t[:] labels,
                         Py_ssize_t min_count=0):
     """
     Only aggregates on axis=0
@@ -87,7 +87,7 @@ def group_prod_{{name}}(ndarray[{{c_type}}, ndim=2] out,
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         {{c_type}} val, count
-        ndarray[{{c_type}}, ndim=2] prodx, nobs
+        {{c_type}}[:, :] prodx, nobs
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
@@ -124,14 +124,14 @@ def group_prod_{{name}}(ndarray[{{c_type}}, ndim=2] out,
 @cython.boundscheck(False)
 @cython.cdivision(True)
 def group_var_{{name}}(ndarray[{{c_type}}, ndim=2] out,
-                       ndarray[int64_t] counts,
+                       int64_t[:] counts,
                        ndarray[{{c_type}}, ndim=2] values,
-                       ndarray[int64_t] labels,
+                       int64_t[:] labels,
                        Py_ssize_t min_count=-1):
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         {{c_type}} val, ct, oldmean
-        ndarray[{{c_type}}, ndim=2] nobs, mean
+        {{c_type}}[:, :] nobs, mean
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
@@ -176,14 +176,14 @@ def group_var_{{name}}(ndarray[{{c_type}}, ndim=2] out,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_mean_{{name}}(ndarray[{{c_type}}, ndim=2] out,
-                        ndarray[int64_t] counts,
+                        int64_t[:] counts,
                         ndarray[{{c_type}}, ndim=2] values,
                         ndarray[int64_t] labels,
                         Py_ssize_t min_count=-1):
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         {{c_type}} val, count
-        ndarray[{{c_type}}, ndim=2] sumx, nobs
+        {{c_type}}[:, :] sumx, nobs
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
@@ -221,9 +221,9 @@ def group_mean_{{name}}(ndarray[{{c_type}}, ndim=2] out,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_ohlc_{{name}}(ndarray[{{c_type}}, ndim=2] out,
-                  ndarray[int64_t] counts,
+                  int64_t[:] counts,
                   ndarray[{{c_type}}, ndim=2] values,
-                  ndarray[int64_t] labels,
+                  int64_t[:] labels,
                   Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0

@@ -1,16 +1,6 @@
 """
 Template for each `dtype` helper function using 1-d template
 
-# 1-d template
-- pad
-- pad_1d
-- pad_2d
-- backfill
-- backfill_1d
-- backfill_2d
-- is_monotonic
-- arrmap
-
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
@@ -39,7 +29,7 @@ def get_dispatch(dtypes):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d_{{name}}(ndarray[{{c_type}}, ndim=2] arr,
-                     ndarray[{{dest_type}}, ndim=2] out,
+                     {{dest_type}}[:, :] out,
                      Py_ssize_t periods, int axis):
     cdef:
         Py_ssize_t i, j, sx, sy
@@ -83,7 +73,7 @@ def diff_2d_{{name}}(ndarray[{{c_type}}, ndim=2] arr,
 
 def put2d_{{name}}_{{dest_name}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
                                  ndarray[int64_t] indexer, Py_ssize_t loc,
-                                 ndarray[{{dest_type}}] out):
+                                 {{dest_type}}[:, :] out):
     cdef:
         Py_ssize_t i, j, k
 

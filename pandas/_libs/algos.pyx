@@ -77,7 +77,7 @@ class NegInfinity(object):
     __ge__ = lambda self, other: isinstance(other, NegInfinity)
 
 
-cpdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
+cpdef ndarray[int64_t, ndim=1] unique_deltas(int64_t[:] arr):
     """
     Efficiently find the unique first-differences of the given array.
 
@@ -236,7 +236,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
         Py_ssize_t i, j, xi, yi, N, K
         bint minpv
         ndarray[float64_t, ndim=2] result
-        ndarray[uint8_t, ndim=2] mask
+        uint8_t[:, :] mask
         int64_t nobs = 0
         float64_t vx, vy, sumx, sumy, sumxx, sumyy, meanx, meany, divisor
 
@@ -301,7 +301,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
         ndarray[float64_t, ndim=2] result
         ndarray[float64_t, ndim=1] maskedx
         ndarray[float64_t, ndim=1] maskedy
-        ndarray[uint8_t, ndim=2] mask
+        uint8_t[:, :] mask
         int64_t nobs = 0
         float64_t vx, vy, sumx, sumxx, sumyy, mean, divisor
 
@@ -475,10 +475,7 @@ pad_bool = pad["uint8_t"]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_inplace(algos_t[:] values,
-                ndarray[uint8_t, cast=True] mask,
-                # TODO: What does the cast=True mean?  If unneeded, use bint[:]?
-                limit=None):
+def pad_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
     cdef:
         Py_ssize_t i, N
         algos_t val
@@ -522,9 +519,7 @@ pad_inplace_bool = pad_inplace["uint8_t"]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_2d_inplace(ndarray[algos_t, ndim=2] values,
-                   ndarray[uint8_t, ndim=2] mask,
-                   limit=None):
+def pad_2d_inplace(algos_t[:, :] values, uint8_t[:, :] mask, limit=None):
     cdef:
         Py_ssize_t i, j, N, K
         algos_t val
@@ -675,9 +670,7 @@ backfill_bool = backfill["uint8_t"]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_inplace(algos_t[:] values,
-                     ndarray[uint8_t, cast=True] mask,
-                     limit=None):
+def backfill_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
     cdef:
         Py_ssize_t i, N
         algos_t val
@@ -721,9 +714,7 @@ backfill_inplace_bool = backfill_inplace["uint8_t"]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_2d_inplace(ndarray[algos_t, ndim=2] values,
-                        ndarray[uint8_t, ndim=2] mask,
-                        limit=None):
+def backfill_2d_inplace(algos_t[:, :] values, uint8_t[:, :] mask, limit=None):
     cdef:
         Py_ssize_t i, j, N, K
         algos_t val

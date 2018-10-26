@@ -329,7 +329,7 @@ def fast_zip(list ndarrays):
     return result
 
 
-def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
+def get_reverse_indexer(int64_t[:] indexer, Py_ssize_t length):
     """
     Reverse indexing operation.
 
@@ -356,7 +356,7 @@ def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
     return rev_indexer
 
 
-def has_infs_f4(ndarray[float32_t] arr) -> bint:
+def has_infs_f4(float32_t[:] arr) -> bint:
     cdef:
         Py_ssize_t i, n = len(arr)
         float32_t inf, neginf, val
@@ -371,7 +371,7 @@ def has_infs_f4(ndarray[float32_t] arr) -> bint:
     return False
 
 
-def has_infs_f8(ndarray[float64_t] arr) -> bint:
+def has_infs_f8(float64_t[:] arr) -> bint:
     cdef:
         Py_ssize_t i, n = len(arr)
         float64_t inf, neginf, val
@@ -473,7 +473,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bint:
     return True
 
 
-def astype_intsafe(ndarray[object] arr, new_dtype):
+def astype_intsafe(object[:] arr, new_dtype):
     cdef:
         Py_ssize_t i, n = len(arr)
         object v
@@ -494,8 +494,7 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
     return result
 
 
-def astype_unicode(arr: ndarray,
-                   skipna: bool=False) -> ndarray[object]:
+def astype_unicode(arr: ndarray, skipna: bool=False) -> ndarray[object]:
     """
     Convert all elements in an array to unicode.
 
@@ -528,8 +527,7 @@ def astype_unicode(arr: ndarray,
     return result
 
 
-def astype_str(arr: ndarray,
-               skipna: bool=False) -> ndarray[object]:
+def astype_str(arr: ndarray, skipna: bool=False) -> ndarray[object]:
     """
     Convert all elements in an array to string.
 
@@ -605,7 +603,7 @@ def clean_index_list(list obj):
 # is a general, O(max(len(values), len(binner))) method.
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
+def generate_bins_dt64(ndarray[int64_t] values, int64_t[:] binner,
                        object closed='left', bint hasnans=0):
     """
     Int64 (datetime64) version of generic python version in groupby.py
@@ -712,8 +710,7 @@ def row_bool_subset_object(ndarray[object, ndim=2] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_level_sorter(ndarray[int64_t, ndim=1] label,
-                     ndarray[int64_t, ndim=1] starts):
+def get_level_sorter(ndarray[int64_t, ndim=1] label, int64_t[:] starts):
     """
     argsort for a single level of a multi-index, keeping the order of higher
     levels unchanged. `starts` points to starts of same-key indices w.r.t
@@ -736,7 +733,7 @@ def get_level_sorter(ndarray[int64_t, ndim=1] label,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
-                   ndarray[int64_t, ndim=1] labels,
+                   int64_t[:] labels,
                    Py_ssize_t max_bin,
                    int axis):
     cdef:
@@ -763,7 +760,7 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     return counts
 
 
-def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
+def generate_slices(int64_t[:] labels, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, group_size, n, start
         int64_t lab
@@ -792,7 +789,7 @@ def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
     return starts, ends
 
 
-def indices_fast(object index, ndarray[int64_t] labels, list keys,
+def indices_fast(object index, int64_t[:] labels, list keys,
                  list sorted_labels):
     cdef:
         Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
@@ -1909,7 +1906,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def maybe_convert_objects(ndarray[object, ndim=1] objects, bint try_float=0,
+def maybe_convert_objects(object[:] objects, bint try_float=0,
                           bint safe=0, bint convert_datetime=0,
                           bint convert_timedelta=0):
     """
@@ -1922,11 +1919,17 @@ def maybe_convert_objects(ndarray[object, ndim=1] objects, bint try_float=0,
         ndarray[int64_t] ints
         ndarray[uint64_t] uints
         ndarray[uint8_t] bools
-        ndarray[int64_t] idatetimes
-        ndarray[int64_t] itimedeltas
+        int64_t[:] idatetimes
+        int64_t[:] itimedeltas
         Seen seen = Seen()
         object val
         float64_t fval, fnan
+
+    if objects is None:
+        # Without explicitly raising, groupby.ops _aggregate_series_pure_python
+        #  can pass None and incorrectly raise an AttributeError when trying
+        #  to access `objects.base` below.
+        raise TypeError
 
     n = len(objects)
 
@@ -2036,7 +2039,7 @@ def maybe_convert_objects(ndarray[object, ndim=1] objects, bint try_float=0,
     if seen.datetimetz_:
         if len({getattr(val, 'tzinfo', None) for val in objects}) == 1:
             from pandas import DatetimeIndex
-            return DatetimeIndex(objects)
+            return DatetimeIndex(objects.base)
         seen.object_ = 1
 
     if not seen.object_:
@@ -2101,11 +2104,10 @@ def maybe_convert_objects(ndarray[object, ndim=1] objects, bint try_float=0,
                 elif seen.is_bool:
                     return bools.view(np.bool_)
 
-    return objects
+    return objects.base  # `.base` to access underlying np.ndarray
 
 
-def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,
-                   bint convert=1):
+def map_infer_mask(ndarray arr, object f, uint8_t[:] mask, bint convert=1):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference
 
