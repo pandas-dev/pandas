@@ -1255,7 +1255,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 # and not a list or scalar, then call rename
                 msg = ("Using 'rename_axis' to alter labels is deprecated. "
                        "Use '.rename' instead")
-                warnings.warn(msg, FutureWarning, stacklevel=2)
+                warnings.warn(msg, FutureWarning, stacklevel=3)
                 axis = self._get_axis_name(axis)
                 d = {'copy': copy, 'inplace': inplace}
                 d[axis] = mapper
