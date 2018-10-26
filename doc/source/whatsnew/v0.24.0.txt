@@ -1079,6 +1079,7 @@ Numeric
 - Bug in :meth:`DataFrame.astype` to extension dtype may raise ``AttributeError`` (:issue:`22578`)
 - Bug in :class:`DataFrame` with ``timedelta64[ns]`` dtype arithmetic operations with ``ndarray`` with integer dtype incorrectly treating the narray as ``timedelta64[ns]`` dtype (:issue:`23114`)
 - Bug in :meth:`Series.rpow` with object dtype ``NaN`` for ``1 ** NA`` instead of ``1`` (:issue:`22922`).
+- Bug in calling a reducing numpy ufunc on a Series or Index where the scalar result was broadcasted to the original shape of the Series or Index (:issue:`23312`).
 
 Strings
 ^^^^^^^
