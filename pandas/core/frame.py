@@ -5141,22 +5141,14 @@ class DataFrame(NDFrame):
                 if not is_dtype_equal(other_dtype, new_dtype):
                     otherSeries = otherSeries.astype(new_dtype)
 
-            # see if we need to be represented as i8 (datetimelike)
-            # try to keep us at this dtype
-            needs_i8_conversion_i = needs_i8_conversion(new_dtype)
-            if needs_i8_conversion_i:
-                arr = func(series, otherSeries, True)
-            else:
-                arr = func(series, otherSeries)
-
+            arr = func(series, otherSeries)
             arr = maybe_downcast_to_dtype(arr, this_dtype)
 
             result[col] = arr
 
         # convert_objects just in case
         return self._constructor(result, index=new_index,
-                                 columns=new_columns)._convert(datetime=True,
-                                                               copy=False)
+                                 columns=new_columns)
 
     def combine_first(self, other):
         """
@@ -5203,15 +5195,28 @@ class DataFrame(NDFrame):
         """
         import pandas.core.computation.expressions as expressions
 
-        def combiner(x, y, needs_i8_conversion=False):
-            x_values = x.values if hasattr(x, 'values') else x
-            y_values = y.values if hasattr(y, 'values') else y
-            if needs_i8_conversion:
-                mask = isna(x)
-                x_values = x_values.view('i8')
-                y_values = y_values.view('i8')
-            else:
-                mask = isna(x_values)
+        def extract_values(arr):
+            # Does two things:
+            # 1. maybe gets the values from the Series / Index
+            # 2. convert datelike to i8
+            if isinstance(arr, (ABCIndexClass, ABCSeries)):
+                arr = arr._values
+
+            if needs_i8_conversion(arr):
+                # TODO(DatetimelikeArray): just use .asi8
+                if is_extension_array_dtype(arr.dtype):
+                    arr = arr.asi8
+                else:
+                    arr = arr.view('i8')
+            return arr
+
+        def combiner(x, y):
+            mask = isna(x)
+            if isinstance(mask, (ABCIndexClass, ABCSeries)):
+                mask = mask._values
+
+            x_values = extract_values(x)
+            y_values = extract_values(y)
 
             # If the column y in other DataFrame is not in first DataFrame,
             # just return y_values.
