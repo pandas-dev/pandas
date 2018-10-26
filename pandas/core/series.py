@@ -3,54 +3,47 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import division
 
-import warnings
 from textwrap import dedent
+import warnings
 
 import numpy as np
 import numpy.ma as ma
 
-import pandas.core.algorithms as algorithms
-import pandas.core.common as com
-import pandas.core.indexes.base as ibase
-import pandas.core.nanops as nanops
-import pandas.core.ops as ops
-import pandas.io.formats.format as fmt
-import pandas.plotting._core as gfx
-from pandas import compat
 from pandas._libs import iNaT, index as libindex, lib, tslibs
 from pandas.compat import (
-    PY36, OrderedDict, StringIO, get_range_parameters, range, u, zip
-)
+    PY36, OrderedDict, StringIO, get_range_parameters, range, u, zip)
 from pandas.compat.numpy import function as nv
-from pandas.core import base, generic
-from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray, SparseArray, period_array
-from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
-from pandas.core.arrays.sparse import SparseAccessor
-from pandas.core.config import get_option
+from pandas.util._decorators import Appender, Substitution, deprecate
+from pandas.util._validators import validate_bool_kwarg
+
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar, construct_1d_ndarray_preserving_na,
     construct_1d_object_array_from_listlike, infer_dtype_from_scalar,
     maybe_cast_to_datetime, maybe_cast_to_integer_array, maybe_castable,
-    maybe_convert_platform, maybe_upcast
-)
+    maybe_convert_platform, maybe_upcast)
 from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
     is_categorical_dtype, is_datetime64tz_dtype, is_datetimelike, is_dict_like,
     is_extension_array_dtype, is_extension_type, is_float_dtype, is_hashable,
     is_integer, is_integer_dtype, is_iterator, is_list_like, is_object_dtype,
-    is_scalar, is_string_like, is_timedelta64_dtype, pandas_dtype
-)
+    is_scalar, is_string_like, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries
-)
+    ABCDataFrame, ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
 from pandas.core.dtypes.missing import (
-    isna, na_value_for_dtype, notna, remove_na_arraylike
-)
+    isna, na_value_for_dtype, notna, remove_na_arraylike)
+
+from pandas import compat
+from pandas.core import algorithms, base, generic, nanops, ops
+from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray, SparseArray, period_array
+from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
+from pandas.core.arrays.sparse import SparseAccessor
+import pandas.core.common as com
+from pandas.core.config import get_option
 from pandas.core.index import (
-    Float64Index, Index, InvalidIndexError, MultiIndex, ensure_index
-)
+    Float64Index, Index, InvalidIndexError, MultiIndex, ensure_index)
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
+import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -58,9 +51,10 @@ from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core.internals import SingleBlockManager
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
+
+import pandas.io.formats.format as fmt
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.util._decorators import Appender, Substitution, deprecate
-from pandas.util._validators import validate_bool_kwarg
+import pandas.plotting._core as gfx
 
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
