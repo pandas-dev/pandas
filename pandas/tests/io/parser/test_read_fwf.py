@@ -143,13 +143,18 @@ bar2,12,13,14,15
 
     def test_fwf_colspecs_infer_nrows(self):
         # GH 15138
-        # infer_nrows = 1 should have colspec == [(2, 3), (5, 6)]
         data = """\
   1  2
 123 98
 """
+        # infer_nrows == 1 should have colspec == [(2, 3), (5, 6)]
         df = read_fwf(StringIO(data), header=None, infer_nrows=1)
         expected = pd.DataFrame([[1, 2], [3, 8]])
+        tm.assert_frame_equal(df, expected)
+
+        # test for infer_nrows > number of rows
+        df = read_fwf(StringIO(data), header=None, infer_nrows=10)
+        expected = pd.DataFrame([[1, 2], [123, 98]])
         tm.assert_frame_equal(df, expected)
 
     def test_fwf_regression(self):
