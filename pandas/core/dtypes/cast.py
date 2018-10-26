@@ -24,7 +24,6 @@ from .dtypes import (
     DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype, PeriodDtype
 )
 from .generic import ABCDatetimeIndex, ABCPeriodIndex, ABCSeries
-from .missing import isna, notna
 from .inference import is_list_like
 from .missing import isna, notna
 
