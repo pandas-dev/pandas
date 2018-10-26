@@ -145,6 +145,13 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-crosstab -pivot_table -cut"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Doctests interval classes' ; echo $MSG
+    pytest --doctest-modules -v \
+        pandas/core/indexes/interval.py \
+        pandas/core/arrays/interval.py \
+        -k"-from_arrays -from_breaks -from_intervals -from_tuples -get_loc -set_closed -to_tuples -interval_range"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
 fi
 
 exit $RET
