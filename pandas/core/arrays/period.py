@@ -739,7 +739,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # Note: when calling parent class's _add_delta_td, it will call
         #  delta_to_nanoseconds(delta).  Because delta here is an integer,
         #  delta_to_nanoseconds will return it unchanged.
-        result = super(PeriodArray, self)._add_delta_td(self, other.n)
+        result = super(PeriodArray, self)._add_delta_td(other.n)
         return type(self)(result, freq=self.freq)
 
     def _add_delta_td(self, other):
@@ -781,7 +781,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                                         .format(cls=type(self).__name__,
                                                 freqstr=self.freqstr))
 
-        new_ordinals = super(PeriodArray, self)._add_delta(self, other)
+        new_ordinals = super(PeriodArray, self)._add_delta(other)
         return type(self)(new_ordinals, freq=self.freq)
 
     def _check_timedeltalike_freq_compat(self, other):
