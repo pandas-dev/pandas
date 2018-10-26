@@ -635,7 +635,7 @@ class Block(PandasObject):
 
         if klass is None:
             if is_sparse(self.values):
-                # Series[Sparse].astype(object) is sparse.
+                # special case sparse, Series[Sparse].astype(object) is sparse
                 klass = ExtensionBlock
             elif is_object_dtype(dtype):
                 klass = ObjectBlock
@@ -1776,8 +1776,30 @@ class NonConsolidatableMixIn(object):
                   for vals, place in zip(new_values, new_placement)]
         return blocks, mask
 
-    @staticmethod
-    def _get_unstack_items(unstacker, new_columns):
+    def _get_unstack_items(self, unstacker, new_columns):
+        """
+        Get the placement, values, and mask for a Block unstack.
+
+        This is shared between ObjectBlock and ExtensionBlock. They
+        differ in that ObjectBlock passes the values, while ExtensionBlock
+        passes the dummy ndarray of positions to be used by a take
+        later.
+
+        Parameters
+        ----------
+        unstacker : pandas.core.reshape.reshape._Unstacker
+        new_columns : Index
+            All columns of the unstacked BlockManager.
+
+        Returns
+        -------
+        new_placement : ndarray[int]
+            The placement of the new columns in `new_columns`.
+        new_values : Union[ndarray, ExtensionArray]
+            The first return value from _Unstacker.get_new_values.
+        mask : ndarray[bool]
+            The second return value from _Unstacker.get_new_values.
+        """
         # shared with ExtensionBlock
         new_items = unstacker.get_new_columns()
         new_placement = new_columns.get_indexer(new_items)
@@ -1974,6 +1996,12 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return getattr(self.values, '_pandas_ftype', Block._ftype)
 
     def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
+        # ExtensionArray-safe unstack.
+        # We override ObjectBlock._unstack, which unstacks directly on the
+        # values of the array. For EA-backed blocks, this would require
+        # converting to a 2-D ndarray of objects.
+        # Instead, we unstack an ndarray of integer positions, followed by
+        # a `take` on the actual values.
         dummy_arr = np.arange(n_rows)
         dummy_unstacker = functools.partial(unstacker_func, fill_value=-1)
         unstacker = dummy_unstacker(dummy_arr)
