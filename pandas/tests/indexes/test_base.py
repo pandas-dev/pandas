@@ -2427,10 +2427,10 @@ class TestMixedIntIndex(Base):
         pd.to_datetime(['2000-01-01', 'NaT', '2000-01-02']),
         pd.to_timedelta(['1 day', 'NaT'])])
     def test_is_monotonic_na(self, index):
-        assert not index.is_monotonic_increasing
-        assert not index.is_monotonic_decreasing
-        assert not index._is_strictly_monotonic_increasing
-        assert not index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic_increasing is False
+        assert index.is_monotonic_decreasing is False
+        assert index._is_strictly_monotonic_increasing is False
+        assert index._is_strictly_monotonic_decreasing is False
 
     def test_repr_summary(self):
         with cf.option_context('display.max_seq_items', 10):

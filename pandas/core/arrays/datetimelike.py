@@ -474,17 +474,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         result : same class as self
         """
         assert op in [operator.add, operator.sub]
-        if is_period_dtype(self):
-            # easy case for PeriodIndex
-            if op is operator.sub:
-                other = -other
-            res_values = checked_add_with_arr(self.asi8, other,
-                                              arr_mask=self._isnan)
-            res_values = res_values.view('i8')
-            res_values[self._isnan] = iNaT
-            return self._from_ordinals(res_values, freq=self.freq)
 
-        elif self.freq is None:
+        if self.freq is None:
             # GH#19123
             raise NullFrequencyError("Cannot shift with no freq")
 
@@ -524,10 +515,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         left = lib.values_from_object(self.astype('O'))
 
         res_values = op(left, np.array(other))
-        kwargs = {}
         if not is_period_dtype(self):
-            kwargs['freq'] = 'infer'
-        return type(self)(res_values, **kwargs)
+            return type(self)(res_values, freq='infer')
+        return self._from_sequence(res_values)
 
     @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
     def shift(self, periods, freq=None):
@@ -595,9 +585,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         start = self[0] + periods * self.freq
         end = self[-1] + periods * self.freq
-        attribs = self._get_attributes_dict()
+
+        # Note: in the DatetimeTZ case, _generate_range will infer the
+        #  appropriate timezone from `start` and `end`, so tz does not need
+        #  to be passed explicitly.
         return self._generate_range(start=start, end=end, periods=None,
-                                    **attribs)
+                                    freq=self.freq)
 
     @classmethod
     def _add_datetimelike_methods(cls):

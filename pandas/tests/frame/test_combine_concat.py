@@ -31,6 +31,24 @@ class TestDataFrameConcatCommon(TestData):
         expected = Series(dict(float64=2, float32=2))
         assert_series_equal(results, expected)
 
+    @pytest.mark.parametrize('data', [
+        pd.date_range('2000', periods=4),
+        pd.date_range('2000', periods=4, tz="US/Central"),
+        pd.period_range('2000', periods=4),
+        pd.timedelta_range(0, periods=4),
+    ])
+    def test_combine_datetlike_udf(self, data):
+        # https://github.com/pandas-dev/pandas/issues/23079
+        df = pd.DataFrame({"A": data})
+        other = df.copy()
+        df.iloc[1, 0] = None
+
+        def combiner(a, b):
+            return b
+
+        result = df.combine(other, combiner)
+        tm.assert_frame_equal(result, other)
+
     def test_concat_multiple_tzs(self):
         # GH 12467
         # combining datetime tz-aware and naive DataFrames
@@ -755,7 +773,7 @@ class TestDataFrameCombineFirst(TestData):
                                  freq='M')
         exp = pd.DataFrame({'P': exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
-        assert res['P'].dtype == 'object'
+        assert res['P'].dtype == data1.dtype
 
         # different freq
         dts2 = pd.PeriodIndex(['2012-01-01', '2012-01-02',

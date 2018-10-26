@@ -464,7 +464,16 @@ def validate_one(func_name):
                 if doc.parameter_type(param)[-1] == '.':
                     param_errs.append('Parameter "{}" type should '
                                       'not finish with "."'.format(param))
-
+                common_type_errors = [('integer', 'int'),
+                                      ('boolean', 'bool'),
+                                      ('string', 'str')]
+                for incorrect_type, correct_type in common_type_errors:
+                    if incorrect_type in doc.parameter_type(param):
+                        param_errs.append('Parameter "{}" type should use '
+                                          '"{}" instead of "{}"'
+                                          .format(param,
+                                                  correct_type,
+                                                  incorrect_type))
         if not doc.parameter_desc(param):
             param_errs.append('Parameter "{}" '
                               'has no description'.format(param))
@@ -496,7 +505,14 @@ def validate_one(func_name):
         wrns.append('See Also section not found')
     else:
         for rel_name, rel_desc in doc.see_also.items():
-            if not rel_desc:
+            if rel_desc:
+                if not rel_desc.endswith('.'):
+                    errs.append('Missing period at end of description for '
+                                'See Also "{}" reference'.format(rel_name))
+                if not rel_desc[0].isupper():
+                    errs.append('Description should be capitalized for '
+                                'See Also "{}" reference'.format(rel_name))
+            else:
                 errs.append('Missing description for '
                             'See Also "{}" reference'.format(rel_name))
 
