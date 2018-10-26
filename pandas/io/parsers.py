@@ -349,13 +349,16 @@ colspecs : list of pairs (int, int) or 'infer', default 'infer'
     detecting the column specifications from the first 100 rows of
     the data which are not being skipped via skiprows (default='infer'),
     or by using the `infer_nrows` parameter.
+widths : list of ints, optional
+    A list of field widths which can be used instead of `colspecs` if
+    the intervals are contiguous.
 infer_nrows : int, default None
     The number of rows to consider when letting the parser determine the
     ``colspecs``. If not set (or set to `None`), default behavior of 100
     rows is used.
-widths : list of ints, optional
-    A list of field widths which can be used instead of `colspecs` if
-    the intervals are contiguous.
+
+    .. versionadded:: 0.24.0
+
 delimiter : str, default ``'\t' + ' '``
     Characters to consider as filler characters in the fixed-width file.
     Can be used to specify the filler character of the fields
