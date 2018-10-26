@@ -3,28 +3,33 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - blosc
-  - bottleneck
-  - boost-cpp<1.67
-  - fastparquet
-  - feather-format
+  - beautifulsoup4
+  - cython>=0.28.2
+  - html5lib
+  - ipython
+  - jinja2
+  - lxml
   - matplotlib
+  - nomkl
   - numexpr
-  - numpy=1.14*
+  - numpy
   - openpyxl=2.5.5
-  - parquet-cpp
-  - pyarrow
+  - psycopg2
+  - pymysql
   - pytables
   - python-dateutil
-  - python=3.6.6
+  - python=3.6*
   - pytz
+  - s3fs
   - scipy
-  - thrift=0.10*
+  - sqlalchemy
+  - xarray
   - xlrd
   - xlsxwriter
   - xlwt
   # universal
-  - cython>=0.28.2
   - pytest
   - pytest-xdist
-  - hypothesis>=3.58.0
+  - moto
+  - pip:
+    - hypothesis>=3.58.0

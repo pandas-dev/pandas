@@ -456,7 +456,7 @@ def _pipe(obj, func, *args, **kwargs):
         return func(obj, *args, **kwargs)
 
 
-def get_rename_function(mapper):
+def _get_rename_function(mapper):
     """
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.

@@ -35,6 +35,7 @@ from pandas.core import common as com, algorithms, ops
 
 import pandas.io.formats.printing as printing
 
+from pandas.core.arrays import PeriodArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
@@ -369,6 +370,9 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             if not ascending:
                 sorted_values = sorted_values[::-1]
 
+            sorted_values = self._maybe_box_as_values(sorted_values,
+                                                      **attribs)
+
             return self._simple_new(sorted_values, **attribs)
 
     @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
@@ -685,7 +689,18 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             return _concat._concat_datetimetz(to_concat, name)
         else:
             new_data = np.concatenate([c.asi8 for c in to_concat])
+
+        new_data = self._maybe_box_as_values(new_data, **attribs)
         return self._simple_new(new_data, **attribs)
+
+    def _maybe_box_as_values(self, values, **attribs):
+        # TODO(DatetimeArray): remove
+        # This is a temporary shim while PeriodArray is an ExtensoinArray,
+        # but others are not. When everyone is an ExtensionArray, this can
+        # be removed. Currently used in
+        # - sort_values
+        # - _concat_same_dtype
+        return values
 
     def astype(self, dtype, copy=True):
         if is_object_dtype(dtype):
@@ -693,6 +708,9 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
             return Index(self.format(), name=self.name, dtype=object)
         elif is_integer_dtype(dtype):
+            # TODO(DatetimeArray): use self._values here.
+            # Can't use ._values currently, because that returns a
+            # DatetimeIndex, which throws us in an infinite loop.
             return Index(self.values.astype('i8', copy=copy), name=self.name,
                          dtype='i8')
         elif (is_datetime_or_timedelta_dtype(dtype) and
@@ -727,7 +745,7 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
     """
     if is_scalar(other) and isna(other):
         return iNaT
-    elif isinstance(other, ABCIndexClass):
+    elif isinstance(other, (PeriodArray, ABCIndexClass)):
         # convert tz if needed
         if getattr(other, 'tz', None) is not None:
             if to_utc:
