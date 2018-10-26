@@ -37,9 +37,9 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
           if False returns a np.timedelta64 or ndarray of values of dtype
           timedelta64[ns].
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
-          If 'raise', then invalid parsing will raise an exception.
-          If 'coerce', then invalid parsing will be set as NaT.
-          If 'ignore', then invalid parsing will return the input.
+        - If 'raise', then invalid parsing will raise an exception.
+        - If 'coerce', then invalid parsing will be set as NaT.
+        - If 'ignore', then invalid parsing will return the input.
 
     Returns
     -------
@@ -80,9 +80,12 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
 
     >>> pd.to_timedelta(np.arange(5), box=False)
     array([0, 1, 2, 3, 4], dtype='timedelta64[ns]')
+<<<<<<< HEAD
 
     See also
 
+=======
+>>>>>>> improved styling
     """
     unit = parse_timedelta_unit(unit)
 
