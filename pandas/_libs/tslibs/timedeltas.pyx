@@ -119,8 +119,6 @@ def ints_to_pytimedelta(int64_t[:] arr, box=False):
 # ----------------------------------------------------------------------
 
 cpdef int64_t delta_to_nanoseconds(delta) except? -1:
-    if util.is_array(delta):
-        return delta.astype('m8[ns]').astype('int64')
     if hasattr(delta, 'nanos'):
         return delta.nanos
     if hasattr(delta, 'delta'):
@@ -129,10 +127,12 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
         return delta.astype("timedelta64[ns]").item()
     if is_integer_object(delta):
         return delta
+    if PyDelta_Check(delta):
+        return (delta.days * 24 * 60 * 60 * 1000000 +
+                delta.seconds * 1000000 +
+                delta.microseconds) * 1000
 
-    return (delta.days * 24 * 60 * 60 * 1000000 +
-            delta.seconds * 1000000 +
-            delta.microseconds) * 1000
+    raise TypeError(type(delta))
 
 
 cpdef convert_to_timedelta64(object ts, object unit):
@@ -198,7 +198,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
     return ts.astype('timedelta64[ns]')
 
 
-cpdef array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
+def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
@@ -235,7 +235,7 @@ cpdef array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     return iresult.base  # .base to access underlying np.ndarray
 
 
-cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
+cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     """ return a casting of the unit represented to nanoseconds
         round the fractional part of a float to our precision, p """
     cdef:

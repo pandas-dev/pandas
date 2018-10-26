@@ -322,7 +322,7 @@ cpdef bint tz_compare(object start, object end):
     return get_timezone(start) == get_timezone(end)
 
 
-cpdef tz_standardize(object tz):
+def tz_standardize(tz: object):
     """
     If the passed tz is a pytz timezone object, "normalize" it to the a
     consistent version
