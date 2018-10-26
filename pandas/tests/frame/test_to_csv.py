@@ -223,6 +223,7 @@ class TestDataFrameToCSV(TestData):
         cols = ['b', 'a']
         _check_df(df, cols)
 
+    @pytest.mark.single
     @pytest.mark.slow
     def test_to_csv_dtnat(self):
         # GH3437

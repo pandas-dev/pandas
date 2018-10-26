@@ -62,6 +62,7 @@ class TestSAS7BDAT(object):
                 tm.assert_frame_equal(df, df0, check_exact=False)
                 rdr.close()
 
+    @pytest.mark.slow
     def test_from_iterator(self):
         for j in 0, 1:
             df0 = self.data[j]
@@ -97,6 +98,7 @@ class TestSAS7BDAT(object):
                 df = pd.read_sas(fname, encoding='utf-8')
                 tm.assert_frame_equal(df, df0)
 
+    @pytest.mark.slow
     def test_iterator_loop(self):
         # github #13654
         for j in 0, 1:

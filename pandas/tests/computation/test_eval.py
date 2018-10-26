@@ -1010,6 +1010,7 @@ class TestAlignment(object):
                 assert res.shape == expected.shape
                 assert_frame_equal(res, expected)
 
+    @pytest.mark.slow
     def test_performance_warning_for_poor_alignment(self, engine, parser):
         df = DataFrame(randn(1000, 10))
         s = Series(randn(10000))

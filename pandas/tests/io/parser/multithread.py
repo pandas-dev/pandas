@@ -10,6 +10,7 @@ from __future__ import division
 from multiprocessing.pool import ThreadPool
 
 import numpy as np
+import pytest
 
 from pandas.compat import BytesIO, range
 
@@ -31,6 +32,8 @@ def _construct_dataframe(num_rows):
     return df
 
 
+@pytest.mark.single
+@pytest.mark.slow
 class MultithreadTests(object):
 
     def _generate_multithread_dataframe(self, path, num_rows, num_tasks):

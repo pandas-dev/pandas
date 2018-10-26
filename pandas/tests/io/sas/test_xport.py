@@ -27,6 +27,7 @@ class TestXport(object):
         self.file03 = os.path.join(self.dirpath, "DRXFCD_G.xpt")
         self.file04 = os.path.join(self.dirpath, "paxraw_d_short.xpt")
 
+    @pytest.mark.slow
     def test1_basic(self):
         # Tests with DEMO_G.xpt (all numeric file)
 

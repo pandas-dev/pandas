@@ -650,6 +650,7 @@ class Base(object):
     def test_resample_interpolate(self):
         # # 12925
         df = self.create_series().to_frame('value')
+        df = df.iloc[0:(len(df) // 2)]
         assert_frame_equal(
             df.resample('1T').asfreq().interpolate(),
             df.resample('1T').interpolate())
