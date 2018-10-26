@@ -201,6 +201,7 @@ Other Enhancements
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
 - New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295`).
 - Compatibility with Matplotlib 3.0 (:issue:`22790`).
+- :func:`read_fwf` now accepts keyword `infer_nrows` (:issue:`15138`).
 
 .. _whatsnew_0240.api_breaking:
 
