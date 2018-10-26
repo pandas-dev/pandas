@@ -24,6 +24,7 @@ from .dtypes import (
     DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype, PeriodDtype
 )
 from .generic import ABCDatetimeIndex, ABCPeriodIndex, ABCSeries
+from .missing import isna, notna
 from .inference import is_list_like
 from .missing import isna, notna
 
@@ -154,6 +155,12 @@ def maybe_downcast_to_dtype(result, dtype):
                     from pandas import to_datetime
                     result = to_datetime(result).tz_localize('utc')
                     result = result.tz_convert(dtype.tz)
+
+        elif dtype.type == Period:
+            # TODO(DatetimeArray): merge with previous elif
+            from pandas.core.arrays import PeriodArray
+
+            return PeriodArray(result, freq=dtype.freq)
 
     except Exception:
         pass

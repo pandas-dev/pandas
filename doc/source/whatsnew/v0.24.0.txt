@@ -532,13 +532,19 @@ changes were made:
 - ``SparseDataFrame.combine`` and ``DataFrame.combine_first`` no longer supports combining a sparse column with a dense column while preserving the sparse subtype. The result will be an object-dtype SparseArray.
 - Setting :attr:`SparseArray.fill_value` to a fill value with a different dtype is now allowed.
 
-
 Some new warnings are issued for operations that require or are likely to materialize a large dense array:
 
 - A :class:`errors.PerformanceWarning` is issued when using fillna with a ``method``, as a dense array is constructed to create the filled array. Filling with a ``value`` is the efficient way to fill a sparse array.
 - A :class:`errors.PerformanceWarning` is now issued when concatenating sparse Series with differing fill values. The fill value from the first sparse array continues to be used.
 
 In addition to these API breaking changes, many :ref:`performance improvements and bug fixes have been made <whatsnew_0240.bug_fixes.sparse>`.
+
+Finally, a ``Series.sparse`` accessor was added to provide sparse-specific methods like :meth:`Series.sparse.from_coo`.
+
+.. ipython:: python
+
+   s = pd.Series([0, 0, 1, 1, 1], dtype='Sparse[int]')
+   s.sparse.density
 
 .. _whatsnew_0240.api_breaking.frame_to_dict_index_orient:
 
@@ -948,9 +954,11 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Very large improvement in performance of slicing when the index is a :class:`CategoricalIndex`,
-  both when indexing by label (using .loc) and position(.iloc).
-  Likewise, slicing a ``CategoricalIndex`` itself (i.e. ``ci[100:200]``) shows similar speed improvements (:issue:`21659`)
+- Slicing Series and Dataframes with an monotonically increasing :class:`CategoricalIndex`
+  is now very fast and has speed comparable to slicing with an ``Int64Index``.
+  The speed increase is both when indexing by label (using .loc) and position(.iloc) (:issue:`20395`)
+  Slicing a monotonically increasing :class:`CategoricalIndex` itself (i.e. ``ci[1000:2000]``)
+  shows similar speed improvements as above (:issue:`21659`)
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 - Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`, :issue:`21606`)
