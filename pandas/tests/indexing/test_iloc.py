@@ -1,16 +1,16 @@
 """ test positional based indexing with iloc """
 
-import pytest
-
 from warnings import catch_warnings, filterwarnings, simplefilter
+
 import numpy as np
 
 import pandas as pd
-from pandas.compat import lrange, lmap
-from pandas import Series, DataFrame, date_range, concat, isna
-from pandas.util import testing as tm
-from pandas.tests.indexing.common import Base
+import pytest
+from pandas import DataFrame, Series, concat, date_range, isna
 from pandas.api.types import is_scalar
+from pandas.compat import lmap, lrange
+from pandas.tests.indexing.common import Base
+from pandas.util import testing as tm
 
 
 class TestiLoc(Base):

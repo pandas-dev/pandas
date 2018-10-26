@@ -1,8 +1,8 @@
-import pytest
+import numpy as np
 
 import pandas as pd
+import pytest
 from pandas.util import testing as tm
-import numpy as np
 
 
 class TestTimedeltaIndexing(object):

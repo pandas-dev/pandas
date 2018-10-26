@@ -1,10 +1,12 @@
-import pytest
-
 import numpy as np
+
 import pandas as pd
+import pytest
+from pandas import (
+    DataFrame, MultiIndex, Series, Timestamp, compat, date_range,
+    option_context
+)
 from pandas.core import common as com
-from pandas import (compat, DataFrame, option_context,
-                    Series, MultiIndex, date_range, Timestamp)
 from pandas.util import testing as tm
 
 

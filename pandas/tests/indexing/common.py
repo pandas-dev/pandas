@@ -2,15 +2,18 @@
 
 import itertools
 from warnings import catch_warnings, filterwarnings
-import pytest
+
 import numpy as np
 
+import pytest
+from pandas import (
+    DataFrame, Float64Index, MultiIndex, Panel, Series, UInt64Index,
+    date_range
+)
 from pandas.compat import lrange
 from pandas.core.dtypes.common import is_scalar
-from pandas import (Series, DataFrame, Panel, date_range, UInt64Index,
-                    Float64Index, MultiIndex)
-from pandas.util import testing as tm
 from pandas.io.formats.printing import pprint_thing
+from pandas.util import testing as tm
 
 _verbose = False
 

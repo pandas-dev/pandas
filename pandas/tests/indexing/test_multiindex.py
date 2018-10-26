@@ -1,12 +1,15 @@
 from warnings import catch_warnings
-import pytest
+
 import numpy as np
+
 import pandas as pd
-from pandas import (Panel, Series, MultiIndex, DataFrame,
-                    Timestamp, Index, date_range)
-from pandas.util import testing as tm
+import pytest
+from pandas import (
+    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, date_range
+)
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.tests.indexing.common import _mklbl
+from pandas.util import testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")

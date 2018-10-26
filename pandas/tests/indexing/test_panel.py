@@ -1,9 +1,10 @@
-import pytest
 from warnings import catch_warnings
 
 import numpy as np
+
+import pytest
+from pandas import DataFrame, Panel, date_range
 from pandas.util import testing as tm
-from pandas import Panel, date_range, DataFrame
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")

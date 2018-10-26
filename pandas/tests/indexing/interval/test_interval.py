@@ -1,9 +1,9 @@
-import pytest
 import numpy as np
-import pandas as pd
 
-from pandas import Series, DataFrame, IntervalIndex, Interval
+import pandas as pd
 import pandas.util.testing as tm
+import pytest
+from pandas import DataFrame, Interval, IntervalIndex, Series
 
 
 class TestIntervalIndex(object):
