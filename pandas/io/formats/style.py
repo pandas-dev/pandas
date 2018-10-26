@@ -1222,6 +1222,35 @@ class Styler(object):
 
         return MyStyler
 
+    def pipe(self, func, *args, **kwargs):
+        """
+        Apply func(self, *args, **kwargs)
+
+        Parameters
+        ----------
+        func : function
+            function to apply to the Styler.
+            ``args``, and ``kwargs`` are passed into ``func``.
+            Alternatively a ``(callable, data_keyword)`` tuple where
+            ``data_keyword`` is a string indicating the keyword of
+            ``callable`` that expects the Styler.
+        args : iterable, optional
+            positional arguments passed into ``func``.
+        kwargs : mapping, optional
+            a dictionary of keyword arguments passed into ``func``.
+
+        Returns
+        -------
+        result : the value returned by ``func``.
+
+        See Also
+        --------
+        Styler.apply
+        Styler.applymap
+        pandas.DataFrame.pipe
+        """
+        return com._pipe(self, func, *args, **kwargs)
+
 
 def _is_visible(idx_row, idx_col, lengths):
     """
