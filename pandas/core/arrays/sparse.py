@@ -2,57 +2,47 @@
 SparseArray data structure
 """
 from __future__ import division
-# pylint: disable=E1101,E1103,W0231
 
-import re
-import operator
 import numbers
-import numpy as np
+import operator
+import re
 import warnings
 
-import pandas as pd
-from pandas.core.base import PandasObject
-
-from pandas import compat
-from pandas.errors import PerformanceWarning
-from pandas.compat.numpy import function as nv
-
-from pandas.core.accessor import PandasDelegate, delegate_names
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
-import pandas.core.common as com
-from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import (
-    ABCSparseSeries, ABCSeries, ABCIndexClass
-)
-from pandas.core.dtypes.common import (
-    is_datetime64_any_dtype,
-    is_integer,
-    is_object_dtype,
-    is_array_like,
-    pandas_dtype,
-    is_bool_dtype,
-    is_list_like,
-    is_string_dtype,
-    is_scalar, is_dtype_equal)
-from pandas.core.dtypes.cast import (
-    maybe_convert_platform,
-    astype_nansafe, find_common_type, infer_dtype_from_scalar,
-    construct_1d_arraylike_from_scalar)
-from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
-from pandas.core.missing import interpolate_2d
+import numpy as np
 
 import pandas._libs.sparse as splib
-from pandas._libs.sparse import BlockIndex, IntIndex
-from pandas._libs import index as libindex
-from pandas._libs import lib
 import pandas.core.algorithms as algos
+import pandas.core.common as com
 import pandas.io.formats.printing as printing
+from pandas import compat
+from pandas._libs import index as libindex, lib
+from pandas._libs.sparse import BlockIndex, IntIndex
+from pandas._libs.tslibs import NaT
+from pandas.compat.numpy import function as nv
+from pandas.core.accessor import PandasDelegate, delegate_names
+from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.base import PandasObject
+from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import (
+    astype_nansafe, construct_1d_arraylike_from_scalar, find_common_type,
+    infer_dtype_from_scalar, maybe_convert_platform
+)
+from pandas.core.dtypes.common import (
+    is_array_like, is_bool_dtype, is_datetime64_any_dtype, is_dtype_equal,
+    is_integer, is_list_like, is_object_dtype, is_scalar, is_string_dtype,
+    pandas_dtype
+)
+from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.generic import (
+    ABCIndexClass, ABCSeries, ABCSparseSeries
+)
+from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
+from pandas.core.missing import interpolate_2d
+from pandas.errors import PerformanceWarning
 
 
 # ----------------------------------------------------------------------------
 # Dtype
-
 @register_extension_dtype
 class SparseDtype(ExtensionDtype):
     """
@@ -620,7 +610,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             if is_datetime64_any_dtype(self.sp_values.dtype):
                 # However, we *do* special-case the common case of
                 # a datetime64 with pandas NaT.
-                if fill_value is pd.NaT:
+                if fill_value is NaT:
                     # Can't put pd.NaT in a datetime64[ns]
                     fill_value = np.datetime64('NaT')
             try:
@@ -710,7 +700,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     def _fill_value_matches(self, fill_value):
         if self._null_fill_value:
-            return pd.isna(fill_value)
+            return isna(fill_value)
         else:
             return self.fill_value == fill_value
 
@@ -855,7 +845,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return np.searchsorted(diff, 2) + 1
 
     def unique(self):
-        uniques = list(pd.unique(self.sp_values))
+        uniques = list(algos.unique(self.sp_values))
         fill_loc = self._first_fill_value_loc()
         if fill_loc >= 0:
             uniques.insert(fill_loc, self.fill_value)
@@ -871,8 +861,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # ExtensionArray.factorize -> Tuple[EA, EA]
         # Given that we have to return a dense array of labels, why bother
         # implementing an efficient factorize?
-        labels, uniques = pd.factorize(np.asarray(self),
-                                       na_sentinel=na_sentinel)
+        labels, uniques = algos.factorize(np.asarray(self),
+                                          na_sentinel=na_sentinel)
         uniques = SparseArray(uniques, dtype=self.dtype)
         return labels, uniques
 
@@ -889,6 +879,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         -------
         counts : Series
         """
+        from pandas import Index, Series
+
         keys, counts = algos._value_counts_arraylike(self.sp_values,
                                                      dropna=dropna)
         fcounts = self.sp_index.ngaps
@@ -897,7 +889,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 pass
             else:
                 if self._null_fill_value:
-                    mask = pd.isna(keys)
+                    mask = isna(keys)
                 else:
                     mask = keys == self.fill_value
 
@@ -907,9 +899,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     keys = np.insert(keys, 0, self.fill_value)
                     counts = np.insert(counts, 0, fcounts)
 
-        if not isinstance(keys, pd.Index):
-            keys = pd.Index(keys)
-        result = pd.Series(counts, index=keys)
+        if not isinstance(keys, ABCIndexClass):
+            keys = Index(keys)
+        result = Series(counts, index=keys)
         return result
 
     # --------
