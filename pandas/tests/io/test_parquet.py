@@ -1,6 +1,8 @@
 """ test parquet compat """
 
 import pytest
+import tempfile
+import shutil
 import datetime
 from distutils.version import LooseVersion
 from warnings import catch_warnings
@@ -478,6 +480,24 @@ class TestParquetPyArrow(Base):
         check_round_trip(df_compat, pa,
                          path='s3://pandas-test/pyarrow.parquet')
 
+    def test_partition_cols_supported(self, pa_ge_070, df_full):
+        partition_cols = ['bool', 'int']
+        df = df_full
+        path = tempfile.mkdtemp()
+        df.to_parquet(path, partition_cols=partition_cols,
+                      compression=None)
+        import pyarrow.parquet as pq
+        dataset = pq.ParquetDataset(path, validate_schema=False)
+        assert len(dataset.pieces) == 2
+        assert len(dataset.partitions.partition_names) == 2
+        assert dataset.partitions.partition_names == set(partition_cols)
+        shutil.rmtree(path)
+
+    def test_ignore_partition_cols_lt_070(self, pa_lt_070, df_full):
+        partition_cols = ['bool', 'int']
+        pa = pa_lt_070
+        df = df_full
+        check_round_trip(df, pa, write_kwargs={'partition_cols': partition_cols})
 
 class TestParquetFastParquet(Base):
 
