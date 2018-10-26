@@ -98,3 +98,9 @@ def data_for_grouping():
     Where A < B < C and NA is missing
     """
     raise NotImplementedError
+
+
+@pytest.fixture(params=[True, False])
+def box_in_series(request):
+    """Whether to box the data in a Series"""
+    return request.param
