@@ -505,7 +505,14 @@ def validate_one(func_name):
         wrns.append('See Also section not found')
     else:
         for rel_name, rel_desc in doc.see_also.items():
-            if not rel_desc:
+            if rel_desc:
+                if not rel_desc.endswith('.'):
+                    errs.append('Missing period at end of description for '
+                                'See Also "{}" reference'.format(rel_name))
+                if not rel_desc[0].isupper():
+                    errs.append('Description should be capitalized for '
+                                'See Also "{}" reference'.format(rel_name))
+            else:
                 errs.append('Missing description for '
                             'See Also "{}" reference'.format(rel_name))
 
