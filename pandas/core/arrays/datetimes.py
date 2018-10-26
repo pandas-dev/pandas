@@ -1004,13 +1004,15 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         Returns
         -------
         Series or array
-            For Series, returns a Series with bool.
-            For DatetimeIndex, returns a bool array.
+            For Series, returns a Series with boolean values.
+            For DatetimeIndex, returns a boolean array.
 
         See Also
         --------
-        is_month_{end_or_start} : Return a boolean indicating whether the date
-            is the {last_or_first} day of the month.
+        is_month_start : Return a boolean indicating whether the date
+            is the first day of the month.
+        is_month_end : Return a boolean indicating whether the date
+            is the last day of the month.
 
         Examples
         --------
@@ -1023,37 +1025,33 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         1   2018-02-28
         2   2018-03-01
         dtype: datetime64[ns]
-        >>> s.dt.is_month_{start_or_end}
-        0    {FT[0]}
-        1    {FT[1]}
-        2    {FT[2]}
+        >>> s.dt.is_month_start
+        0    False
+        1    False
+        2    True
+        dtype: bool
+        >>> s.dt.is_month_end
+        0    False
+        1    True
+        2    False
         dtype: bool
 
         >>> idx = pd.date_range("2018-02-27", periods=3)
-        >>> idx.is_month_{start_or_end}
-        array([{FT[3]}, {FT[4]}, {FT[5]}])
+        >>> idx.is_month_start
+        array([False, False, True])
+        >>> idx.is_month_end
+        array([False, True, False])
     """
     is_month_start = _field_accessor(
         'is_month_start',
         'is_month_start',
-        _is_month_doc.format(
-            first_or_last='first',
-            start_or_end='start',
-            FT=[False, False, True, False, False, True],
-            end_or_start='end',
-            last_or_first='last'
-        ))
+        _is_month_doc.format(first_or_last='first'))
 
     is_month_end = _field_accessor(
         'is_month_end',
         'is_month_end',
-        _is_month_doc.format(
-            first_or_last='last',
-            start_or_end='end',
-            FT=[False, True, False, False, True, False],
-            end_or_start='start',
-            last_or_first='first'
-        ))
+        _is_month_doc.format(first_or_last='last'))
+
     is_quarter_start = _field_accessor(
         'is_quarter_start',
         'is_quarter_start',
