@@ -1,8 +1,8 @@
 from warnings import catch_warnings
 
 import numpy as np
-
 import pytest
+
 from pandas import DataFrame, Panel, date_range
 from pandas.util import testing as tm
 

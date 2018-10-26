@@ -3,9 +3,9 @@
 from warnings import catch_warnings, filterwarnings, simplefilter
 
 import numpy as np
+import pytest
 
 import pandas as pd
-import pytest
 from pandas import DataFrame, Series, concat, date_range, isna
 from pandas.api.types import is_scalar
 from pandas.compat import lmap, lrange

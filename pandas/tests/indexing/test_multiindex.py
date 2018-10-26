@@ -1,9 +1,9 @@
 from warnings import catch_warnings
 
 import numpy as np
+import pytest
 
 import pandas as pd
-import pytest
 from pandas import (
     DataFrame, Index, MultiIndex, Panel, Series, Timestamp, date_range
 )

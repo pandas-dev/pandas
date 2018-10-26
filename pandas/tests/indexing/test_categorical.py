@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.compat as compat
-import pytest
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, Index, Interval, Series,
     Timestamp

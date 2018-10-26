@@ -3,9 +3,9 @@
 from warnings import catch_warnings
 
 import numpy as np
+import pytest
 
 import pandas as pd
-import pytest
 from pandas import DataFrame, MultiIndex, Series, option_context
 from pandas.compat import lrange
 from pandas.core.dtypes.common import is_scalar

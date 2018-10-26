@@ -7,9 +7,9 @@ TOD: these should be split among the indexer tests
 from warnings import catch_warnings
 
 import numpy as np
+import pytest
 
 import pandas as pd
-import pytest
 from pandas import DataFrame, Index, Panel, Series, date_range
 from pandas.util import testing as tm
 

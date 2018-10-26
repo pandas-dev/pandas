@@ -3,11 +3,11 @@
 import itertools
 
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.compat as compat
 import pandas.util.testing as tm
-import pytest
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions

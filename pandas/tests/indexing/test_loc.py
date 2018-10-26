@@ -4,9 +4,9 @@ import itertools
 from warnings import catch_warnings, filterwarnings
 
 import numpy as np
+import pytest
 
 import pandas as pd
-import pytest
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
 from pandas.api.types import is_scalar
 from pandas.compat import PY2, StringIO, lrange

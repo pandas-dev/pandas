@@ -3,9 +3,9 @@
 from warnings import catch_warnings
 
 import numpy as np
+import pytest
 
 import pandas.util.testing as tm
-import pytest
 from pandas import (
     DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series
 )

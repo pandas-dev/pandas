@@ -4,8 +4,8 @@ import itertools
 from warnings import catch_warnings, filterwarnings
 
 import numpy as np
-
 import pytest
+
 from pandas import (
     DataFrame, Float64Index, MultiIndex, Panel, Series, UInt64Index,
     date_range

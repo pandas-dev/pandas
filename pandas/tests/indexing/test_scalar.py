@@ -1,8 +1,8 @@
 """ test scalar indexing, including at and iat """
 
 import numpy as np
-
 import pytest
+
 from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
 from pandas.tests.indexing.common import Base
 from pandas.util import testing as tm

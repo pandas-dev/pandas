@@ -1,7 +1,7 @@
 import numpy as np
+import pytest
 
 import pandas as pd
-import pytest
 from pandas import (
     DataFrame, MultiIndex, Series, Timestamp, compat, date_range,
     option_context
