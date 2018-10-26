@@ -45,8 +45,6 @@ from pandas.core.dtypes.generic import (
     ABCIndex, ABCIndexClass,
     ABCSparseSeries, ABCSparseArray)
 
-from pandas.tseries.offsets import Tick
-
 
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities
@@ -127,7 +125,7 @@ def maybe_upcast_for_op(obj):
     Be careful to call this *after* determining the `name` attribute to be
     attached to the result of the arithmetic operation.
     """
-    if isinstance(obj, (datetime.timedelta, Tick)):
+    if type(obj) is datetime.timedelta:
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError

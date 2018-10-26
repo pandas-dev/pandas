@@ -148,6 +148,10 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
         tm.assert_equal(commute, expected)
 
     def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box):
+
+        if box is not pd.Index and isinstance(three_days, pd.offsets.Tick):
+            raise pytest.xfail("Tick division not implemented")
+
         index = numeric_idx[1:3]
 
         expected = TimedeltaIndex(['3 Days', '36 Hours'])
