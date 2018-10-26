@@ -82,7 +82,7 @@ _no_input = object()
 # ----------------------------------------------------------------------
 # API
 
-def ints_to_pytimedelta(int64_t[:] arr, box=False):
+def ints_to_pytimedelta(int64_t[:] arr, bint box=False):
     """
     convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
     True)

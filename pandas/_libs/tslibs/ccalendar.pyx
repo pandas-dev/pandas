@@ -54,7 +54,7 @@ weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef inline int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
+cpdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
     """Return the number of days in the given month of the given year.
 
     Parameters

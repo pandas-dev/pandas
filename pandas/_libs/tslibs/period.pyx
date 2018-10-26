@@ -2,7 +2,6 @@
 from datetime import datetime, date
 
 from cpython cimport (
-    PyUnicode_Check,
     PyObject_RichCompareBool,
     Py_EQ, Py_NE)
 
@@ -14,9 +13,9 @@ from libc.stdlib cimport free, malloc
 from libc.time cimport strftime, tm
 from libc.string cimport strlen, memset
 
-cimport cython
+import cython
 
-from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check,
+from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check, PyDate_Check,
                                PyDateTime_IMPORT)
 # import datetime C API
 PyDateTime_IMPORT
@@ -551,7 +550,7 @@ cdef int64_t asfreq_AtoA(int64_t ordinal, asfreq_info *af_info):
 cdef int64_t asfreq_AtoQ(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_AtoDT,
-                             <freq_conv_func>asfreq_DTtoQ);
+                             <freq_conv_func>asfreq_DTtoQ)
 
 
 cdef int64_t asfreq_AtoM(int64_t ordinal, asfreq_info *af_info):
@@ -1106,7 +1105,7 @@ cdef inline int calc_week_end(int freq, int group) nogil:
     return freq - group
 
 
-def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
+def period_asfreq_arr(int64_t[:] arr, int freq1, int freq2, bint end):
     """
     Convert int64-array of period ordinals from one frequency to another, and
     if upsampling, choose to use start ('S') or end ('E') of period.
@@ -1124,21 +1123,13 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     func = get_asfreq_func(freq1, freq2)
     get_asfreq_info(freq1, freq2, end, &af_info)
 
-    mask = arr == iNaT
-    if mask.any():      # NaT process
-        for i in range(n):
-            val = arr[i]
-            if val != iNaT:
-                val = func(val, &af_info)
-                if val == INT32_MIN:
-                    raise ValueError("Unable to convert to desired frequency.")
-            result[i] = val
-    else:
-        for i in range(n):
-            val = func(arr[i], &af_info)
+    for i in range(n):
+        val = arr[i]
+        if val != iNaT:
+            val = func(val, &af_info)
             if val == INT32_MIN:
                 raise ValueError("Unable to convert to desired frequency.")
-            result[i] = val
+        result[i] = val
 
     return result.base  # .base to access underlying np.ndarray
 
@@ -1248,7 +1239,7 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
         list found_pat = [False] * len(extra_fmts)
         int year, quarter
 
-    if PyUnicode_Check(fmt):
+    if isinstance(fmt, unicode):
         fmt = fmt.encode('utf-8')
 
     get_date_info(value, freq, &dts)
@@ -2459,7 +2450,7 @@ class Period(_Period):
                         "Invalid frequency or could not infer: {reso}"
                         .format(reso=reso))
 
-        elif isinstance(value, datetime):
+        elif PyDateTime_Check(value):
             dt = value
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
@@ -2467,7 +2458,7 @@ class Period(_Period):
             dt = Timestamp(value)
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
-        elif isinstance(value, date):
+        elif PyDate_Check(value):
             dt = datetime(year=value.year, month=value.month, day=value.day)
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')

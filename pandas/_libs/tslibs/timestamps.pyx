@@ -267,7 +267,8 @@ cdef class _Timestamp(datetime):
 
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
-        cdef datetime dtval = self.to_pydatetime()
+        cdef:
+            datetime dtval = self.to_pydatetime()
 
         self._assert_tzawareness_compat(other)
 
@@ -287,8 +288,7 @@ cdef class _Timestamp(datetime):
             elif op == Py_GE:
                 return dtval >= other
 
-    cdef int _assert_tzawareness_compat(_Timestamp self,
-                                        object other) except -1:
+    cdef _assert_tzawareness_compat(_Timestamp self, datetime other):
         if self.tzinfo is None:
             if other.tzinfo is not None:
                 raise TypeError('Cannot compare tz-naive and tz-aware '
@@ -296,7 +296,7 @@ cdef class _Timestamp(datetime):
         elif other.tzinfo is None:
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 
-    cpdef datetime to_pydatetime(_Timestamp self, warn=True):
+    cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):
         """
         Convert a Timestamp object to a native Python datetime object.
 
@@ -315,7 +315,8 @@ cdef class _Timestamp(datetime):
         return np.datetime64(self.value, 'ns')
 
     def __add__(self, other):
-        cdef int64_t other_int, nanos
+        cdef:
+            int64_t other_int, nanos
 
         if is_timedelta64_object(other):
             other_int = other.astype('timedelta64[ns]').view('i8')
@@ -916,49 +917,49 @@ class Timestamp(_Timestamp):
         return getattr(self.freq, 'freqstr', self.freq)
 
     @property
-    def is_month_start(self):
+    def is_month_start(self) -> bool:
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.day == 1
         return self._get_start_end_field('is_month_start')
 
     @property
-    def is_month_end(self):
+    def is_month_end(self) -> bool:
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.day == self.days_in_month
         return self._get_start_end_field('is_month_end')
 
     @property
-    def is_quarter_start(self):
+    def is_quarter_start(self) -> bool:
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.day == 1 and self.month % 3 == 1
         return self._get_start_end_field('is_quarter_start')
 
     @property
-    def is_quarter_end(self):
+    def is_quarter_end(self) -> bool:
         if self.freq is None:
             # fast-path for non-business frequencies
             return (self.month % 3) == 0 and self.day == self.days_in_month
         return self._get_start_end_field('is_quarter_end')
 
     @property
-    def is_year_start(self):
+    def is_year_start(self) -> bool:
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.day == self.month == 1
         return self._get_start_end_field('is_year_start')
 
     @property
-    def is_year_end(self):
+    def is_year_end(self) -> bool:
         if self.freq is None:
             # fast-path for non-business frequencies
             return self.month == 12 and self.day == 31
         return self._get_start_end_field('is_year_end')
 
     @property
-    def is_leap_year(self):
+    def is_leap_year(self) -> bool:
         return bool(ccalendar.is_leapyear(self.year))
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',

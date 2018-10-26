@@ -5,6 +5,7 @@ from cython import Py_ssize_t
 
 import time
 from cpython.datetime cimport (PyDateTime_IMPORT,
+                               PyDateTime_Check,
                                datetime, timedelta,
                                time as dt_time)
 PyDateTime_IMPORT
@@ -354,7 +355,7 @@ class _BaseOffset(object):
             return NotImplemented
 
     def __sub__(self, other):
-        if isinstance(other, datetime):
+        if PyDateTime_Check(other):
             raise TypeError('Cannot subtract datetime from offset.')
         elif type(other) == type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
