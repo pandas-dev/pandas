@@ -844,8 +844,9 @@ class TestUFuncCompat(object):
         assert result == 15
 
         result = np.logical_and.reduce(idx)
+        expected = np.array(True)
         assert not isinstance(result, box)
-        assert result is True
+        assert tm.assert_numpy_array_equal(result, expected)
 
 
 class TestObjectDtypeEquivalence(object):
