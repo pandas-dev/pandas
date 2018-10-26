@@ -24,8 +24,9 @@ from pandas.compat import (
 from pandas.compat.numpy import function as nv
 from pandas.core import base, generic
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import ExtensionArray, SparseArray, period_array
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
+from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.config import get_option
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar, construct_1d_ndarray_preserving_na,
@@ -135,13 +136,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         RangeIndex (0, 1, 2, ..., n) if not provided. If both a dict and index
         sequence are used, the index will override the keys found in the
         dict.
-    dtype : numpy.dtype or None
-        If None, dtype will be inferred
+    dtype : str, numpy.dtype, or ExtensionDtype, optional
+        dtype for the output Series. If not specified, this will be
+        inferred from `data`.
     copy : boolean, default False
         Copy input data
     """
     _metadata = ['name']
-    _accessors = {'dt', 'cat', 'str'}
+    _accessors = {'dt', 'cat', 'str', 'sparse'}
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
@@ -643,7 +645,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # nice error message for non-ufunc types
         if (context is not None and
-                not isinstance(self._values, (np.ndarray, ABCSparseArray))):
+                (not isinstance(self._values, (np.ndarray, ExtensionArray))
+                 or isinstance(self._values, Categorical))):
             obj = context[1][0]
             raise TypeError("{obj} with dtype {dtype} cannot perform "
                             "the numpy op {op}".format(
@@ -1364,7 +1367,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # TODO: deprecate
         from pandas.core.sparse.series import SparseSeries
-        from pandas.core.arrays import SparseArray
 
         values = SparseArray(self, kind=kind, fill_value=fill_value)
         return SparseSeries(
@@ -4149,6 +4151,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
     cat = CachedAccessor("cat", CategoricalAccessor)
     plot = CachedAccessor("plot", gfx.SeriesPlotMethods)
+    sparse = CachedAccessor("sparse", SparseAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
@@ -4356,5 +4359,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             if not np.all(isna(data)):
                 data = np.array(data, dtype=dtype, copy=False)
             subarr = np.array(data, dtype=object, copy=copy)
+
+    if is_object_dtype(subarr.dtype) and dtype != 'object':
+        inferred = lib.infer_dtype(subarr)
+        if inferred == 'period':
+            try:
+                subarr = period_array(subarr)
+            except tslibs.period.IncompatibleFrequency:
+                pass
 
     return subarr

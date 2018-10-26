@@ -533,32 +533,20 @@ class TestSparseArray(object):
         out = SparseArray(data, dtype=dtype)
         assert out.shape == shape
 
-    def test_to_dense(self):
-        vals = np.array([1, np.nan, np.nan, 3, np.nan])
-        res = SparseArray(vals).to_dense()
-        tm.assert_numpy_array_equal(res, vals)
+    @pytest.mark.parametrize("vals", [
+        [np.nan, np.nan, np.nan, np.nan, np.nan],
+        [1, np.nan, np.nan, 3, np.nan],
+        [1, np.nan, 0, 3, 0],
+    ])
+    @pytest.mark.parametrize("method", ["to_dense", "get_values"])
+    @pytest.mark.parametrize("fill_value", [None, 0])
+    def test_dense_repr(self, vals, fill_value, method):
+        vals = np.array(vals)
+        arr = SparseArray(vals, fill_value=fill_value)
+        dense_func = getattr(arr, method)
 
-        res = SparseArray(vals, fill_value=0).to_dense()
+        res = dense_func()
         tm.assert_numpy_array_equal(res, vals)
-
-        vals = np.array([1, np.nan, 0, 3, 0])
-        res = SparseArray(vals).to_dense()
-        tm.assert_numpy_array_equal(res, vals)
-
-        res = SparseArray(vals, fill_value=0).to_dense()
-        tm.assert_numpy_array_equal(res, vals)
-
-        vals = np.array([np.nan, np.nan, np.nan, np.nan, np.nan])
-        res = SparseArray(vals).to_dense()
-        tm.assert_numpy_array_equal(res, vals)
-
-        res = SparseArray(vals, fill_value=0).to_dense()
-        tm.assert_numpy_array_equal(res, vals)
-
-        # see gh-14647
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            SparseArray(vals).to_dense(fill=2)
 
     def test_getitem(self):
         def _checkit(i):
@@ -1007,6 +995,55 @@ class TestSparseArrayAnalytics(object):
             pd.to_datetime(['2012', None, None, '2013'])
         )
         np.asarray(s)
+
+    def test_density(self):
+        arr = SparseArray([0, 1])
+        assert arr.density == 0.5
+
+    def test_npoints(self):
+        arr = SparseArray([0, 1])
+        assert arr.npoints == 1
+
+
+class TestAccessor(object):
+
+    @pytest.mark.parametrize('attr', [
+        'npoints', 'density', 'fill_value', 'sp_values',
+    ])
+    def test_get_attributes(self, attr):
+        arr = SparseArray([0, 1])
+        ser = pd.Series(arr)
+
+        result = getattr(ser.sparse, attr)
+        expected = getattr(arr, attr)
+        assert result == expected
+
+    def test_from_coo(self):
+        sparse = pytest.importorskip("scipy.sparse")
+
+        row = [0, 3, 1, 0]
+        col = [0, 3, 1, 2]
+        data = [4, 5, 7, 9]
+        sp_array = sparse.coo_matrix(data, (row, col))
+        result = pd.Series.sparse.from_coo(sp_array)
+
+        index = pd.MultiIndex.from_product([[0], [0, 1, 2, 3]])
+        expected = pd.Series(data, index=index, dtype='Sparse[int]')
+        tm.assert_series_equal(result, expected)
+
+    def test_to_coo(self):
+        sparse = pytest.importorskip("scipy.sparse")
+        ser = pd.Series([1, 2, 3],
+                        index=pd.MultiIndex.from_product([[0], [1, 2, 3]],
+                                                         names=['a', 'b']),
+                        dtype='Sparse[int]')
+        A, _, _ = ser.sparse.to_coo()
+        assert isinstance(A, sparse.coo.coo_matrix)
+
+    def test_non_sparse_raises(self):
+        ser = pd.Series([1, 2, 3])
+        with tm.assert_raises_regex(AttributeError, '.sparse'):
+            ser.sparse.density
 
 
 def test_setting_fill_value_fillna_still_works():

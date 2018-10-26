@@ -666,8 +666,8 @@ class TestMerge(object):
                               'value_y': [pd.NaT] + list(exp_y)})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
-        assert result['value_x'].dtype == 'object'
-        assert result['value_y'].dtype == 'object'
+        assert result['value_x'].dtype == 'Period[D]'
+        assert result['value_y'].dtype == 'Period[D]'
 
     def test_indicator(self):
         # PR #10054. xref #7412 and closes #8790.

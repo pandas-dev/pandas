@@ -48,12 +48,15 @@ from pandas.core.arrays.interval import (IntervalArray,
 
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
+
+# TODO(jschendel) remove constructor key when IntervalArray is public (GH22860)
 _index_doc_kwargs.update(
     dict(klass='IntervalIndex',
+         constructor='pd.IntervalIndex',
          target_klass='IntervalIndex or list of Intervals',
          name=textwrap.dedent("""\
          name : object, optional
-              to be stored in the index.
+              Name to be stored in the index.
          """),
          ))
 
@@ -116,15 +119,15 @@ def _new_IntervalIndex(cls, d):
     versionadded="0.20.0",
     extra_methods="contains\n",
     examples=textwrap.dedent("""\
-
     Examples
     --------
     A new ``IntervalIndex`` is typically constructed using
     :func:`interval_range`:
 
     >>> pd.interval_range(start=0, end=5)
-    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
-                  closed='right', dtype='interval[int64]')
+    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
+                  closed='right',
+                  dtype='interval[int64]')
 
     It may also be constructed using one of the constructor
     methods: :meth:`IntervalIndex.from_arrays`,
@@ -1027,6 +1030,10 @@ class IntervalIndex(IntervalMixin, Index):
         return (self.left.equals(other.left) and
                 self.right.equals(other.right) and
                 self.closed == other.closed)
+
+    @Appender(_interval_shared_docs['overlaps'] % _index_doc_kwargs)
+    def overlaps(self, other):
+        return self._data.overlaps(other)
 
     def _setop(op_name):
         def func(self, other):

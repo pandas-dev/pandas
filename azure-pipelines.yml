@@ -7,10 +7,10 @@ jobs:
   parameters:
     name: macOS
     vmImage: xcode9-macos10.13
-# - template: ci/azure/linux.yml
-#   parameters:
-#     name: Linux
-#     vmImage: ubuntu-16.04
+- template: ci/azure/linux.yml
+  parameters:
+    name: Linux
+    vmImage: ubuntu-16.04
 
 # Windows Python 2.7 needs VC 9.0 installed, and not sure
 # how to make that a conditional task, so for now these are
