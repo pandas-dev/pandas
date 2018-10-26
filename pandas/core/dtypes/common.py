@@ -12,7 +12,8 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCCategoricalIndex, ABCDateOffset, ABCDatetimeIndex,
-    ABCIndexClass, ABCPeriodIndex, ABCSeries, ABCSparseArray, ABCSparseSeries
+    ABCIndexClass, ABCPeriodArray, ABCPeriodIndex, ABCSeries, ABCSparseArray,
+    ABCSparseSeries
 )
 from pandas.core.dtypes.inference import (  # noqa:F401
     is_array_like, is_bool, is_complex, is_decimal, is_dict_like, is_file_like,
