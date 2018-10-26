@@ -101,6 +101,12 @@ class TestPeriodIndex(object):
         tm.assert_index_equal(result.index, exp_index)
         assert result.name == 'foo'
 
+    def test_to_timestamp_freq(self):
+        idx = pd.period_range('2017', periods=12, freq="A-DEC")
+        result = idx.to_timestamp()
+        expected = pd.date_range("2017", periods=12, freq="AS-JAN")
+        tm.assert_index_equal(result, expected)
+
     def test_to_timestamp_repr_is_code(self):
         zs = [Timestamp('99-04-17 00:00:00', tz='UTC'),
               Timestamp('2001-04-17 00:00:00', tz='UTC'),
