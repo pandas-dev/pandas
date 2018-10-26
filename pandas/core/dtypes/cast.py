@@ -6,7 +6,7 @@ import numpy as np
 import warnings
 
 from pandas._libs import tslib, lib, tslibs
-from pandas._libs.tslibs import iNaT, OutOfBoundsDatetime
+from pandas._libs.tslibs import iNaT, OutOfBoundsDatetime, Period
 from pandas.compat import string_types, text_type, PY3
 from .common import (ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
@@ -163,6 +163,12 @@ def maybe_downcast_to_dtype(result, dtype):
                     from pandas import to_datetime
                     result = to_datetime(result).tz_localize('utc')
                     result = result.tz_convert(dtype.tz)
+
+        elif dtype.type == Period:
+            # TODO(DatetimeArray): merge with previous elif
+            from pandas.core.arrays import PeriodArray
+
+            return PeriodArray(result, freq=dtype.freq)
 
     except Exception:
         pass
