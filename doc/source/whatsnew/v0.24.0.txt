@@ -948,9 +948,11 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Very large improvement in performance of slicing when the index is a :class:`CategoricalIndex`,
-  both when indexing by label (using .loc) and position(.iloc).
-  Likewise, slicing a ``CategoricalIndex`` itself (i.e. ``ci[100:200]``) shows similar speed improvements (:issue:`21659`)
+- Slicing Series and Dataframes with an monotonically increasing :class:`CategoricalIndex`
+  is now very fast and has speed comparable to slicing with an ``Int64Index``.
+  The speed increase is both when indexing by label (using .loc) and position(.iloc) (:issue:`20395`)
+  Slicing a monotonically increasing :class:`CategoricalIndex` itself (i.e. ``ci[1000:2000]``)
+  shows similar speed improvements as above (:issue:`21659`)
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 - Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`, :issue:`21606`)
@@ -1012,6 +1014,7 @@ Datetimelike
 - Bug in :func:`to_datetime` with an :class:`Index` argument that would drop the ``name`` from the result (:issue:`21697`)
 - Bug in :class:`PeriodIndex` where adding or subtracting a :class:`timedelta` or :class:`Tick` object produced incorrect results (:issue:`22988`)
 - Bug in :func:`date_range` when decrementing a start date to a past end date by a negative frequency (:issue:`23270`)
+- Bug in :func:`DataFrame.combine` with datetimelike values raising a TypeError (:issue:`23079`)
 - Bug in :class:`PeriodIndex` with attribute ``freq.n`` greater than 1 where adding a :class:`DateOffset` object would return incorrect results (:issue:`23215`)
 
 Timedelta
