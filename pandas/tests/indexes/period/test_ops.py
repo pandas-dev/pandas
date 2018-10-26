@@ -5,8 +5,7 @@ import pytest
 import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
-from pandas import DatetimeIndex, PeriodIndex, Series, Period, Index
-
+from pandas import DatetimeIndex, Index, Period, PeriodIndex, Series
 from pandas.core.arrays import PeriodArray
 from pandas.tests.test_base import Ops
 
