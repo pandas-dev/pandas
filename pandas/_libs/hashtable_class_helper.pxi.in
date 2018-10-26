@@ -355,7 +355,7 @@ cdef class {{name}}HashTable(HashTable):
 
         return np.asarray(locs)
 
-    def unique(self, const {{dtype}}_t[:] values, bint return_inverse):
+    def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -363,7 +363,7 @@ cdef class {{name}}HashTable(HashTable):
         ----------
         values : ndarray[{{dtype}}]
             Array of values of which unique will be calculated
-        return_inverse : boolean
+        return_inverse : boolean, default False
             Whether the mapping of the original array values to their location
             in the vector of uniques should be returned.
 
@@ -376,14 +376,12 @@ cdef class {{name}}HashTable(HashTable):
         """
         uniques = {{name}}Vector()
         # explicitly compile path without inverse for performance
-        # the last three arguments are not relevant for this method, but we
-        # don't use kwargs to avoid cython perf hit (just using default values)
         if return_inverse:
-            return self._unique_with_inverse(values, uniques, 0, -1, None)
-        return self._unique_no_inverse(values, uniques, 0, -1, None)
+            return self._unique_with_inverse(values, uniques)
+        return self._unique_no_inverse(values, uniques)
 
-    def factorize(self, const {{dtype}}_t[:] values, Py_ssize_t na_sentinel,
-                  object na_value):
+    def factorize(self, const {{dtype}}_t[:] values, Py_ssize_t na_sentinel=-1,
+                  object na_value=None):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -427,8 +425,8 @@ unique_funcs = [('_unique_no_inverse', False, False),
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def {{func_name}}(self, const {{dtype}}_t[:] values,
-                      {{name}}Vector uniques, Py_ssize_t count_prior,
-                      Py_ssize_t na_sentinel, object na_value):
+                      {{name}}Vector uniques, Py_ssize_t count_prior=0,
+                      Py_ssize_t na_sentinel=-1, object na_value=None):
         """
         Calculate unique values and labels (no sorting!)
 {{if func_name == '_factorize' or func_name == 'get_labels'}}
@@ -443,11 +441,11 @@ unique_funcs = [('_unique_no_inverse', False, False),
             Array of values of which unique will be calculated
         uniques : {{name}}Vector
             Vector into which uniques will be written
-        count_prior : Py_ssize_t
+        count_prior : Py_ssize_t, default 0
             Number of existing entries in uniques
-        na_sentinel : Py_ssize_t
+        na_sentinel : Py_ssize_t, default -1
             Sentinel value used for all NA-values in inverse
-        na_value : object
+        na_value : object, default None
             Value to identify as missing. If na_value is None, then
             any value "val" satisfying val != val is considered missing.
             If na_value is not None, then _additionally_, any value "val"
@@ -727,7 +725,7 @@ cdef class StringHashTable(HashTable):
                 self.table.vals[k] = i
         free(vecs)
 
-    def unique(self, ndarray[object] values, bint return_inverse):
+    def unique(self, ndarray[object] values, bint return_inverse=False):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -735,7 +733,7 @@ cdef class StringHashTable(HashTable):
         ----------
         values : ndarray[object]
             Array of values of which unique will be calculated
-        return_inverse : boolean
+        return_inverse : boolean, default False
             Whether the mapping of the original array values to their location
             in the vector of uniques should be returned.
 
@@ -748,14 +746,12 @@ cdef class StringHashTable(HashTable):
         """
         uniques = ObjectVector()
         # explicitly compile path without inverse for performance
-        # the last three arguments are not relevant for this method, but we
-        # don't use kwargs to avoid cython perf hit (just using default values)
         if return_inverse:
-            return self._unique_with_inverse(values, uniques, 0, -1, None)
-        return self._unique_no_inverse(values, uniques, 0, -1, None)
+            return self._unique_with_inverse(values, uniques)
+        return self._unique_no_inverse(values, uniques)
 
-    def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel,
-                  object na_value):
+    def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel=-1,
+                  object na_value=None):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -799,8 +795,8 @@ unique_funcs = [('_unique_no_inverse', False, False),
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def {{func_name}}(self, ndarray[object] values, ObjectVector uniques,
-                      Py_ssize_t count_prior, Py_ssize_t na_sentinel,
-                      object na_value):
+                      Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
+                      object na_value=None):
         """
         Calculate unique values and labels (no sorting!)
 {{if func_name == '_factorize' or func_name == 'get_labels'}}
@@ -815,11 +811,11 @@ unique_funcs = [('_unique_no_inverse', False, False),
             Array of values of which unique will be calculated
         uniques : ObjectVector
             Vector into which uniques will be written
-        count_prior : Py_ssize_t
+        count_prior : Py_ssize_t, default 0
             Number of existing entries in uniques
-        na_sentinel : Py_ssize_t
+        na_sentinel : Py_ssize_t, default -1
             Sentinel value used for all NA-values in inverse
-        na_value : object
+        na_value : object, default None
             Value to identify as missing. If na_value is None, then any value
             that is not a string is considered missing. If na_value is
             not None, then _additionally_ any value "val" satisfying
@@ -1002,7 +998,7 @@ cdef class PyObjectHashTable(HashTable):
 
         return np.asarray(locs)
 
-    def unique(self, ndarray[object] values, bint return_inverse):
+    def unique(self, ndarray[object] values, bint return_inverse=False):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -1010,7 +1006,7 @@ cdef class PyObjectHashTable(HashTable):
         ----------
         values : ndarray[object]
             Array of values of which unique will be calculated
-        return_inverse : boolean
+        return_inverse : boolean, default False
             Whether the mapping of the original array values to their location
             in the vector of uniques should be returned.
 
@@ -1023,14 +1019,12 @@ cdef class PyObjectHashTable(HashTable):
         """
         uniques = ObjectVector()
         # explicitly compile path without inverse for performance
-        # the last three arguments are not relevant for this method, but we
-        # don't use kwargs to avoid cython perf hit (just using default values)
         if return_inverse:
-            return self._unique_with_inverse(values, uniques, 0, -1, None)
-        return self._unique_no_inverse(values, uniques, 0, -1, None)
+            return self._unique_with_inverse(values, uniques)
+        return self._unique_no_inverse(values, uniques)
 
-    def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel,
-                  object na_value):
+    def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel=-1,
+                  object na_value=None):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -1074,8 +1068,8 @@ unique_funcs = [('_unique_no_inverse', False, False),
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def {{func_name}}(self, ndarray[object] values, ObjectVector uniques,
-                      Py_ssize_t count_prior, Py_ssize_t na_sentinel,
-                      object na_value):
+                      Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
+                      object na_value=None):
         """
         Calculate unique values and labels (no sorting!)
 {{if func_name == '_factorize' or func_name == 'get_labels'}}
@@ -1090,9 +1084,9 @@ unique_funcs = [('_unique_no_inverse', False, False),
             Array of values of which unique will be calculated
         uniques : ObjectVector
             Vector into which uniques will be written
-        count_prior : Py_ssize_t
+        count_prior : Py_ssize_t, default 0
             Number of existing entries in uniques
-        na_sentinel : Py_ssize_t
+        na_sentinel : Py_ssize_t, default -1
             Sentinel value used for all NA-values in inverse
         na_value : object
             Value to identify as missing. If na_value is None, then None _plus_

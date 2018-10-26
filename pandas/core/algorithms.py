@@ -365,7 +365,7 @@ def unique(values):
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
 
     table = htable(len(values))
-    uniques = table.unique(values, False)
+    uniques = table.unique(values)
     uniques = _reconstruct_data(uniques, dtype, original)
 
     if isinstance(original, ABCSeries) and is_datetime64tz_dtype(dtype):
@@ -470,7 +470,8 @@ def _factorize_array(values, na_sentinel=-1, size_hint=None,
     (hash_klass, _), values = _get_data_algo(values, _hashtables)
 
     table = hash_klass(size_hint or len(values))
-    labels, uniques = table.factorize(values, na_sentinel, na_value)
+    labels, uniques = table.factorize(values, na_sentinel=na_sentinel,
+                                      na_value=na_value)
 
     labels = ensure_platform_int(labels)
     return labels, uniques
