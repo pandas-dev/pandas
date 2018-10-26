@@ -9,16 +9,29 @@ jobs:
   strategy:
     maxParallel: 11
     matrix:
-      py35_np_120:
-        ENV_FILE: ci/azure-macos-35.yaml
-        CONDA_PY: "35"
+      py27_np_19:
+        ENV_FILE: ci/azure-27-compat.yaml
+        CONDA_PY: "27"
         CONDA_ENV: pandas
         TEST_ARGS: "--skip-slow --skip-network"
+
+      py36_locale:
+        ENV_FILE: ci/azure-37-locale.yaml
+        CONDA_PY: "37"
+        CONDA_ENV: pandas
+        TEST_ARGS: "--skip-slow --skip-network"
+        LOCALE_OVERRIDE: "zh_CN.UTF-8"
+
+      py36_locale_slow:
+        ENV_FILE: ci/azure-36-locale_slow.yaml
+        CONDA_PY: "36"
+        CONDA_ENV: pandas
+        TEST_ARGS: "--only-slow --skip-network"
 
   steps:
     - script: |
         if [ "$(uname)" == "Linux" ]; then sudo apt-get install -y libc6-dev-i386; fi
-        echo "Installing Miniconda"
+        echo "Installing Miniconda"{
         ci/incremental/install_miniconda.sh
         export PATH=$HOME/miniconda3/bin:$PATH
         echo "Setting up Conda environment"
@@ -40,4 +53,4 @@ jobs:
     - task: PublishTestResults@2
       inputs:
         testResultsFiles: 'test-data-*.xml'
-        testRunTitle: 'MacOS-35'
+        testRunTitle: 'Linux'
