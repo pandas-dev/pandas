@@ -494,7 +494,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             Frequency increment to shift by.
         """
         if freq is not None:
-            raise NotImplementedError  # TODO: ??
+            # TODO: don't silently ignore kwarg
+            raise NotImplementedError
         values = self.asi8 + n * self.freq.n
         if self.hasnans:
             values[self._isnan] = iNaT
