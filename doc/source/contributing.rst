@@ -656,17 +656,26 @@ See :ref:`contributing.warnings` for more.
 Testing With Continuous Integration
 -----------------------------------
 
-The *pandas* test suite will run automatically on the `Travis-CI <https://travis-ci.org/>`__,
-and  `Azure-DevOps <https://dev.azure.com>`__ services, once your pull request is submitted.
+The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__,
+`Azure Pipelines <https://azure.microsoft.com/en-us/services/devops/pipelines/>`__,
+and `Circle CI <https://circleci.com/>`__ continuous integration services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
 then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
-for `Travis-CI <https://about.travis-ci.org/docs/user/getting-started/>`__.
+for `Travis-CI <http://about.travis-ci.org/docs/user/getting-started/>`__,
+`Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/>`__, and `CircleCI <https://circleci.com/>`__.
 
 A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
 then you will get a red 'X', where you can click through to see the individual failed tests.
 This is an example of a green build.
 
 .. image:: _static/ci.png
+
+.. note::
+
+   Each time you push to *your* fork, a *new* run of the tests will be triggered on the CI.
+   You can enable the auto-cancel feature, which removes any non-currently-running tests for that same pull-request, for
+   `Travis-CI here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__ and
+   for `CircleCI here <https://circleci.com/changelog-legacy/#option-to-auto-cancel-redundant-builds>`__.
 
 .. _contributing.tdd:
 
