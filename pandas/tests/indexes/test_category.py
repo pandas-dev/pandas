@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+import numpy as np
 
 import pandas.util.testing as tm
 from pandas.core.indexes.api import Index, CategoricalIndex
 from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas._libs import index as libindex
 from .common import Base
 
 from pandas.compat import range, PY3
-
-import numpy as np
 
 from pandas import Categorical, IntervalIndex, compat
 from pandas.util.testing import assert_almost_equal
@@ -1117,3 +1117,23 @@ class TestCategoricalIndex(Base):
         msg = "the 'mode' parameter is not supported"
         tm.assert_raises_regex(ValueError, msg, idx.take,
                                indices, mode='clip')
+
+    @pytest.mark.parametrize('dtype, engine_type', [
+        (np.int8, libindex.Int8Engine),
+        (np.int16, libindex.Int16Engine),
+        (np.int32, libindex.Int32Engine),
+        (np.int64, libindex.Int64Engine),
+    ])
+    def test_engine_type(self, dtype, engine_type):
+        if dtype != np.int64:
+            # num. of uniques required to push CategoricalIndex.codes to a
+            # dtype (128 categories required for .codes dtype to be int16 etc.)
+            num_uniques = {np.int8: 1, np.int16: 128, np.int32: 32768}[dtype]
+            ci = pd.CategoricalIndex(range(num_uniques))
+        else:
+            # having 2**32 - 2**31 categories would be very memory-intensive,
+            # so we cheat a bit with the dtype
+            ci = pd.CategoricalIndex(range(32768))  # == 2**16 - 2**(16 - 1)
+            ci.values._codes = ci.values._codes.astype('int64')
+        assert np.issubdtype(ci.codes.dtype, dtype)
+        assert isinstance(ci._engine, engine_type)
