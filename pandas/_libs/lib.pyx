@@ -18,7 +18,7 @@ PyDateTime_IMPORT
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, PyArray_NDIM, PyArray_GETITEM,
+from numpy cimport (ndarray, PyArray_GETITEM,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
                     flatiter, NPY_OBJECT,
                     int64_t,
@@ -74,9 +74,9 @@ cdef bint PY2 = sys.version_info[0] == 2
 cdef double nan = <double>np.NaN
 
 
-def values_from_object(object obj):
+def values_from_object(obj: object):
     """ return my values or the object if we are say an ndarray """
-    cdef func  # TODO: Does declaring this without a type accomplish anything?
+    func: object
 
     func = getattr(obj, 'get_values', None)
     if func is not None:
@@ -170,7 +170,7 @@ def item_from_zerodim(val: object) -> object:
 @cython.boundscheck(False)
 def fast_unique_multiple(list arrays):
     cdef:
-        ndarray[object] buf
+        object[:] buf
         Py_ssize_t k = len(arrays)
         Py_ssize_t i, j, n
         list uniques = []
@@ -586,7 +586,7 @@ def clean_index_list(list obj):
         return np.asarray(obj, dtype=object), 0
     elif inferred in ['integer']:
 
-        # TODO: we infer an integer but it *could* be a unint64
+        # TODO: we infer an integer but it *could* be a uint64
         try:
             return np.asarray(obj, dtype='int64'), 0
         except OverflowError:
@@ -688,13 +688,13 @@ def row_bool_subset(ndarray[float64_t, ndim=2] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def row_bool_subset_object(ndarray[object, ndim=2] values,
+def row_bool_subset_object(object[:, :] values,
                            ndarray[uint8_t, cast=True] mask):
     cdef:
         Py_ssize_t i, j, n, k, pos = 0
         ndarray[object, ndim=2] out
 
-    n, k = (<object> values).shape
+    n, k = (<object>values).shape
     assert (n == len(mask))
 
     out = np.empty((mask.sum(), k), dtype=object)
@@ -2129,11 +2129,11 @@ def map_infer_mask(ndarray arr, object f, uint8_t[:] mask, bint convert=1):
     result = np.empty(n, dtype=object)
     for i in range(n):
         if mask[i]:
-            val = util.get_value_at(arr, i)
+            val = arr[i]
         else:
-            val = f(util.get_value_at(arr, i))
+            val = f(arr[i])
 
-            if util.is_array(val) and PyArray_NDIM(val) == 0:
+            if cnp.PyArray_IsZeroDim(val):
                 # unbox 0-dim arrays, GH#690
                 # TODO: is there a faster way to unbox?
                 #   item_from_zerodim?
@@ -2165,15 +2165,15 @@ def map_infer(ndarray arr, object f, bint convert=1):
     """
     cdef:
         Py_ssize_t i, n
-        ndarray[object] result
+        object[:] result
         object val
 
     n = len(arr)
     result = np.empty(n, dtype=object)
     for i in range(n):
-        val = f(util.get_value_at(arr, i))
+        val = f(arr[i])
 
-        if util.is_array(val) and PyArray_NDIM(val) == 0:
+        if cnp.PyArray_IsZeroDim(val):
             # unbox 0-dim arrays, GH#690
             # TODO: is there a faster way to unbox?
             #   item_from_zerodim?
@@ -2187,7 +2187,7 @@ def map_infer(ndarray arr, object f, bint convert=1):
                                      convert_datetime=0,
                                      convert_timedelta=0)
 
-    return result
+    return result.base  # `.base` to access underlying np.ndarray
 
 
 def to_object_array(list rows, int min_width=0):
@@ -2284,7 +2284,7 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
     cdef:
         Py_ssize_t i, n = len(keys)
         object val
-        ndarray[object] output = np.empty(n, dtype='O')
+        object[:] output = np.empty(n, dtype='O')
 
     if n == 0:
         # kludge, for Series

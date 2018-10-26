@@ -764,7 +764,7 @@ def arrmap(algos_t[:] index, object func):
     cdef:
         Py_ssize_t length = index.shape[0]
         Py_ssize_t i = 0
-        ndarray[object] result = np.empty(length, dtype=np.object_)
+        object[:] result = np.empty(length, dtype=np.object_)
 
     from pandas._libs.lib import maybe_convert_objects
 
@@ -785,7 +785,7 @@ arrmap_bool = arrmap["uint8_t"]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def is_monotonic(algos_t[:] arr, bint timelike):
+def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     """
     Returns
     -------

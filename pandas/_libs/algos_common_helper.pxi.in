@@ -72,7 +72,7 @@ def diff_2d_{{name}}(ndarray[{{c_type}}, ndim=2] arr,
 
 
 def put2d_{{name}}_{{dest_name}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
-                                 ndarray[int64_t] indexer, Py_ssize_t loc,
+                                 int64_t[:] indexer, Py_ssize_t loc,
                                  {{dest_type}}[:, :] out):
     cdef:
         Py_ssize_t i, j, k
