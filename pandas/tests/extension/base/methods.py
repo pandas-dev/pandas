@@ -111,12 +111,9 @@ class BaseMethodsTests(BaseExtensionTests):
 
         filled_val = df.iloc[0, 0]
         result = df.fillna(filled_val)
-        assert df.values.base is not result.values.base
 
-        if isinstance(arr, pd.SparseArray):
-            assert df.A._values.to_dense() is arr.to_dense()
-        else:
-            assert df.A._values is arr
+        assert df.values.base is not result.values.base
+        assert df.A._values is arr
 
     def test_fillna_copy_series(self, data_missing):
         arr = data_missing.take([1, 1])
@@ -124,12 +121,9 @@ class BaseMethodsTests(BaseExtensionTests):
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
-        assert ser._values is not result._values
 
-        if isinstance(arr, pd.SparseArray):
-            assert ser._values.to_dense() is arr.to_dense()
-        else:
-            assert ser._values is arr
+        assert ser._values is not result._values
+        assert ser._values is arr
 
     def test_fillna_length_mismatch(self, data_missing):
         with (tm.assert_raises_regex(ValueError,
