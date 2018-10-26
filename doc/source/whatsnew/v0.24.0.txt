@@ -532,13 +532,19 @@ changes were made:
 - ``SparseDataFrame.combine`` and ``DataFrame.combine_first`` no longer supports combining a sparse column with a dense column while preserving the sparse subtype. The result will be an object-dtype SparseArray.
 - Setting :attr:`SparseArray.fill_value` to a fill value with a different dtype is now allowed.
 
-
 Some new warnings are issued for operations that require or are likely to materialize a large dense array:
 
 - A :class:`errors.PerformanceWarning` is issued when using fillna with a ``method``, as a dense array is constructed to create the filled array. Filling with a ``value`` is the efficient way to fill a sparse array.
 - A :class:`errors.PerformanceWarning` is now issued when concatenating sparse Series with differing fill values. The fill value from the first sparse array continues to be used.
 
 In addition to these API breaking changes, many :ref:`performance improvements and bug fixes have been made <whatsnew_0240.bug_fixes.sparse>`.
+
+Finally, a ``Series.sparse`` accessor was added to provide sparse-specific methods like :meth:`Series.sparse.from_coo`.
+
+.. ipython:: python
+
+   s = pd.Series([0, 0, 1, 1, 1], dtype='Sparse[int]')
+   s.sparse.density
 
 .. _whatsnew_0240.api_breaking.frame_to_dict_index_orient:
 
