@@ -898,7 +898,7 @@ custom date increment logic, such as adding business days:
 .. code-block:: python
 
     class BDay(DateOffset):
-    """DateOffset increments between business days"""
+        """DateOffset increments between business days"""
         def apply(self, other):
             ...
 

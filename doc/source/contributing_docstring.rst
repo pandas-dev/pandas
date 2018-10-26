@@ -189,7 +189,7 @@ infinitive verb.
 
 .. code-block:: python
 
-    def astype(dtype):
+    def astype(dtype):    # noqa: F811
         """
         Casts Series type.
 
@@ -197,7 +197,8 @@ infinitive verb.
         """
         pass
 
-    def astype(dtype):
+
+    def astype(dtype):    # noqa: F811
         """
         Method to cast Series type.
 
@@ -205,7 +206,8 @@ infinitive verb.
         """
         pass
 
-    def astype(dtype):
+
+    def astype(dtype):    # noqa: F811
         """
         Cast Series type
 
@@ -213,7 +215,8 @@ infinitive verb.
         """
         pass
 
-    def astype(dtype):
+
+    def astype(dtype):    # noqa: F811
         """
         Cast Series type from its current type to the new type defined in
         the parameter dtype.
@@ -624,6 +627,7 @@ A simple example could be:
 .. code-block:: python
 
     class Series:
+
         def head(self, n=5):
             """
             Return the first elements of the Series.
@@ -684,9 +688,8 @@ shown:
     import numpy as np
     import pandas as pd
 
-
 Any other module used in the examples must be explicitly imported, one per line (as
-recommended in `PEP-8 <https://www.python.org/dev/peps/pep-0008/#imports>`_)
+recommended in :pep:`8#imports`)
 and avoiding aliases. Avoid excessive imports, but if needed, imports from
 the standard library go first, followed by third-party libraries (like
 matplotlib).
@@ -720,6 +723,7 @@ positional arguments ``head(3)``.
 .. code-block:: python
 
     class Series:
+
         def mean(self):
             """
             Compute the mean of the input.
@@ -946,11 +950,13 @@ substitute the children's class names in this docstring.
            """Apply my function to %(klass)s."""
            ...
 
+
    class ChildA(Parent):
        @Substitution(klass="ChildA")
        @Appender(Parent.my_function.__doc__)
        def my_function(self):
            ...
+
 
    class ChildB(Parent):
        @Substitution(klass="ChildB")

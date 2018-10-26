@@ -298,8 +298,8 @@ see the :ref:`timeseries documentation<timeseries>` for more details.
 .. ipython:: python
    :suppress:
 
-   tips = tips.drop(['date1','date2','date1_year',
-      'date2_month','date1_next','months_between'], axis=1)
+   tips = tips.drop(['date1', 'date2', 'date1_year', 'date2_month',
+                     'date1_next', 'months_between'], axis=1)
 
 Selection of Columns
 ~~~~~~~~~~~~~~~~~~~~
@@ -744,12 +744,9 @@ XPORT is a relatively limited format and the parsing of it is not as
 optimized as some of the other pandas readers. An alternative way
 to interop data between SAS and pandas is to serialize to csv.
 
-.. code-block:: python
+>>> # version 0.17, 10M rows
+>>> %time df = pd.read_sas('big.xpt')
+Wall time: 14.6 s
 
-   # version 0.17, 10M rows
-
-   In [8]: %time df = pd.read_sas('big.xpt')
-   Wall time: 14.6 s
-
-   In [9]: %time df = pd.read_csv('big.csv')
-   Wall time: 4.86 s
+>>> %time df = pd.read_csv('big.csv')
+Wall time: 4.86 s

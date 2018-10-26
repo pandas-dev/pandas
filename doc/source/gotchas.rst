@@ -96,40 +96,32 @@ something to a ``bool``. This happens in an ``if``-statement or when using the
 boolean operations: ``and``, ``or``, and ``not``. It is not clear what the result
 of the following code should be:
 
-.. code-block:: python
-
-    >>> if pd.Series([False, True, False]):
-         ...
+>>> if pd.Series([False, True, False]):
+...     print("I was true")
 
 Should it be ``True`` because it's not zero-length, or ``False`` because there 
 are ``False`` values? It is unclear, so instead, pandas raises a ``ValueError``:
 
-.. code-block:: python
-
-    >>> if pd.Series([False, True, False]):
-        print("I was true")
-    Traceback
-        ...
-    ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
+>>> if pd.Series([False, True, False]):
+...     print("I was true")
+Traceback
+    ...
+ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
 
 You need to explicitly choose what you want to do with the ``DataFrame``, e.g.
 use :meth:`~DataFrame.any`, :meth:`~DataFrame.all` or :meth:`~DataFrame.empty`.
 Alternatively, you might want to compare if the pandas object is ``None``:
 
-.. code-block:: python
-
-    >>> if pd.Series([False, True, False]) is not None:
-           print("I was not None")
-    >>> I was not None
+>>> if pd.Series([False, True, False]) is not None:
+...    print("I was not None")
+I was not None
 
 
 Below is how to check if any of the values are ``True``:
 
-.. code-block:: python
-
-    >>> if pd.Series([False, True, False]).any():
-           print("I am any")
-    >>> I am any
+>>> if pd.Series([False, True, False]).any():
+...     print("I am any")
+I am any
 
 To evaluate single-element pandas objects in a boolean context, use the method 
 :meth:`~DataFrame.bool`:
@@ -316,7 +308,7 @@ Occasionally you may have to deal with data that were created on a machine with
 a different byte order than the one on which you are running Python. A common 
 symptom of this issue is an error like:
 
-.. code-block:: python
+.. code-block:: console
 
     Traceback
         ...

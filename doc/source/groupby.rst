@@ -79,12 +79,12 @@ pandas objects can be split on any of their axes. The abstract definition of
 grouping is to provide a mapping of labels to group names. To create a GroupBy
 object (more on what the GroupBy object is later), you may do the following:
 
-.. code-block:: ipython
+.. code-block:: python
 
-   # default is axis=0
-   >>> grouped = obj.groupby(key)
-   >>> grouped = obj.groupby(key, axis=1)
-   >>> grouped = obj.groupby([key1, key2])
+    # default is axis=0
+    >>> grouped = obj.groupby(key)
+    >>> grouped = obj.groupby(key, axis=1)
+    >>> grouped = obj.groupby([key1, key2])
 
 The mapping can be specified many different ways:
 
@@ -1272,7 +1272,7 @@ arbitrary function, for example:
 
 .. code-block:: python
 
-   (df.groupby(['Store', 'Product']).pipe(report_func)
+   df.groupby(['Store', 'Product']).pipe(report_func)
 
 where ``report_func`` takes a GroupBy object and creates a report
 from that.
