@@ -638,10 +638,10 @@ def is_period_arraylike(arr):
     True
     """
 
-    if isinstance(arr, ABCPeriodIndex):
+    if isinstance(arr, (ABCPeriodIndex, ABCPeriodArray)):
         return True
     elif isinstance(arr, (np.ndarray, ABCSeries)):
-        return arr.dtype == object and lib.infer_dtype(arr) == 'period'
+        return is_period_dtype(arr.dtype)
     return getattr(arr, 'inferred_type', None) == 'period'
 
 

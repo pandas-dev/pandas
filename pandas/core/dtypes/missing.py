@@ -181,10 +181,18 @@ def _use_inf_as_na(key):
 
 
 def _isna_ndarraylike(obj):
-    values = getattr(obj, 'values', obj)
+    is_extension = is_extension_array_dtype(obj)
+
+    if not is_extension:
+        # Avoid accessing `.values` on things like
+        # PeriodIndex, which may be expensive.
+        values = getattr(obj, 'values', obj)
+    else:
+        values = obj
+
     dtype = values.dtype
 
-    if is_extension_array_dtype(obj):
+    if is_extension:
         if isinstance(obj, (ABCIndexClass, ABCSeries)):
             values = obj._values
         else:

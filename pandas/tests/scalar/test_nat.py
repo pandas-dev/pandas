@@ -5,8 +5,9 @@ import pytz
 
 import numpy as np
 from pandas import (NaT, Index, Timestamp, Timedelta, Period,
-                    DatetimeIndex, PeriodIndex,
+                    DatetimeIndex,
                     TimedeltaIndex, Series, isna)
+from pandas.core.arrays import PeriodArray
 from pandas.util import testing as tm
 from pandas._libs.tslib import iNaT
 
@@ -15,7 +16,7 @@ from pandas.compat import callable
 
 @pytest.mark.parametrize('nat, idx', [(Timestamp('NaT'), DatetimeIndex),
                                       (Timedelta('NaT'), TimedeltaIndex),
-                                      (Period('NaT', freq='M'), PeriodIndex)])
+                                      (Period('NaT', freq='M'), PeriodArray)])
 def test_nat_fields(nat, idx):
 
     for field in idx._field_ops:
