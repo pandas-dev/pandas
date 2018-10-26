@@ -2201,6 +2201,18 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('idx.', 4))
 
+    def test_to_index(self, indices):
+        # 22866
+        if isinstance(indices, MultiIndex):
+            pytest.skip("Separate expectation for MultiIndex")
+
+        result = indices.to_index()
+        tm.assert_index_equal(result, indices)
+
+    def test_to_index_sep_raises(self, indices):
+        with pytest.raises(NotImplementedError):
+            indices.to_index(sep="")
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ

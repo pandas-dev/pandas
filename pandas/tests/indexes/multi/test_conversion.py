@@ -178,8 +178,3 @@ def test_to_index(idx):
                         tupleize_cols=False)
     result = idx.to_index()
     tm.assert_index_equal(result, expected)
-
-
-def test_to_index_sep_raises(idx):
-    with pytest.raises(NotImplementedError):
-        idx.to_index(sep="")

@@ -1105,6 +1105,28 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return format_object_attrs(self)
 
+    def to_index(self, sep=None):
+        """
+        Convert a MultiIndex to an Index of Tuples containing the level values.
+
+        .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        pd.Index : an Index with the MultiIndex data represented in Tuples.
+
+        See also
+        --------
+        Index
+        """
+        if sep is not None:
+            # TODO: Add support for separator to return strs instad of tuples
+            raise NotImplementedError
+        else:
+            idx = Index(self.values, tupleize_cols=False)
+
+        return idx
+
     def to_series(self, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
