@@ -127,7 +127,7 @@ def maybe_upcast_for_op(obj):
     Be careful to call this *after* determining the `name` attribute to be
     attached to the result of the arithmetic operation.
     """
-    if type(obj) is datetime.timedelta or isinstance(obj, Tick):
+    if isinstance(obj, (datetime.timedelta, Tick)):
         # GH#22390  cast up to Timedelta to rely on Timedelta
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
