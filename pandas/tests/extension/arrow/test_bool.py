@@ -1,12 +1,14 @@
 import numpy as np
 import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.tests.extension import base
 
+from .bool import ArrowBoolArray, ArrowBoolDtype
+
 pytest.importorskip('pyarrow', minversion="0.10.0")
 
-from .bool import ArrowBoolDtype, ArrowBoolArray
 
 
 @pytest.fixture
