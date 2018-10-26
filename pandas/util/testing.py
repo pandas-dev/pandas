@@ -1,57 +1,46 @@
 from __future__ import division
-# pylint: disable-msg=W0402
 
+import locale
+import os
 import re
 import string
+import subprocess
 import sys
 import tempfile
-import warnings
-import os
-import subprocess
-import locale
 import traceback
-
+import warnings
+from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-from contextlib import contextmanager
 
-from numpy.random import randn, rand
 import numpy as np
+from numpy.random import rand, randn
 
 import pandas as pd
-from pandas.core.arrays import (
-    ExtensionArray,
-    IntervalArray,
-    PeriodArray,
+import pandas.compat as compat
+import pandas.core.common as com
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
+    IntervalIndex, MultiIndex, Panel, PeriodIndex, RangeIndex, Series,
+    TimedeltaIndex, bdate_range
+)
+from pandas._libs import testing as _testing
+from pandas.compat import (
+    PY2, PY3, Counter, StringIO, callable, filter, httplib, lmap, lrange, lzip,
+    map, raise_with_traceback, range, string_types, u, unichr, zip
+)
+from pandas.core.algorithms import take_1d
+from pandas.core.arrays import ExtensionArray, IntervalArray, PeriodArray
+from pandas.core.dtypes.common import (
+    is_bool, is_categorical_dtype, is_datetimelike_v_numeric,
+    is_datetimelike_v_object, is_extension_array_dtype, is_interval_dtype,
+    is_list_like, is_number, is_sequence, needs_i8_conversion
 )
 from pandas.core.dtypes.missing import array_equivalent
-from pandas.core.dtypes.common import (
-    is_datetimelike_v_numeric,
-    is_datetimelike_v_object,
-    is_number, is_bool,
-    needs_i8_conversion,
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_sequence,
-    is_list_like,
-    is_extension_array_dtype)
-from pandas.io.formats.printing import pprint_thing
-from pandas.core.algorithms import take_1d
-import pandas.core.common as com
-
-import pandas.compat as compat
-from pandas.compat import (
-    filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, StringIO, string_types, PY3, PY2)
-
-from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
-                    DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
-                    Index, MultiIndex,
-                    Series, DataFrame, Panel)
-
-from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
+from pandas.io.formats.printing import pprint_thing
 
+# pylint: disable-msg=W0402
 
 N = 30
 K = 4

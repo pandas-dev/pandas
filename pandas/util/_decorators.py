@@ -1,9 +1,10 @@
-from pandas.compat import callable, signature, PY2
-from pandas._libs.properties import cache_readonly  # noqa
 import inspect
 import warnings
+from functools import WRAPPER_ASSIGNMENTS, update_wrapper, wraps
 from textwrap import dedent, wrap
-from functools import wraps, update_wrapper, WRAPPER_ASSIGNMENTS
+
+from pandas._libs.properties import cache_readonly  # noqa
+from pandas.compat import PY2, callable, signature
 
 
 def deprecate(name, alternative, version, alt_name=None,
