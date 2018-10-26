@@ -612,6 +612,30 @@ Alternatively, you can install the ``grep`` and ``xargs`` commands via the
 `MinGW <http://www.mingw.org/>`__ toolchain, and it will allow you to run the
 commands above.
 
+Import Formatting
+~~~~~~~~~~~~~~~~~
+*pandas* uses `isort <https://pypi.org/project/isort/>`__ to standardise import
+formatting across the codebase. As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
+
+    isort --recursive --check-only pandas
+
+to check that imports are correctly formatted as per the `setup.cfg`.
+
+If you see output like the below in :ref:`Continuous Integration <contributing.ci>` checks:
+
+.. code-block:: shell
+
+   Check import format using isort
+   ERROR: /home/travis/build/pandas-dev/pandas/pandas/io/pytables.py Imports are incorrectly sorted
+   Check import format using isort DONE
+   The command "ci/code_checks.sh" exited with 1
+
+You should run::
+
+    isort pandas/io/pytables.py
+
+to automatically format imports correctly. (Note pass the `--recursive` flag to sort all files in a directory)
+
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
