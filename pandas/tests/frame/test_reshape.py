@@ -277,8 +277,6 @@ class TestDataFrameReshape(TestData):
                              index=['x', 'y', 'z'])
         assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(reason="GH-23077",
-                       strict=True)
     def test_unstack_fill_frame_period(self):
 
         # Test unstacking with period
