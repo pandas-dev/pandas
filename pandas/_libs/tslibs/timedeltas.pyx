@@ -6,6 +6,7 @@ import warnings
 import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
+import cython
 from cython import Py_ssize_t
 
 from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
@@ -82,6 +83,8 @@ _no_input = object()
 # ----------------------------------------------------------------------
 # API
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def ints_to_pytimedelta(int64_t[:] arr, bint box=False):
     """
     convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
@@ -198,6 +201,8 @@ cpdef convert_to_timedelta64(object ts, object unit):
     return ts.astype('timedelta64[ns]')
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',

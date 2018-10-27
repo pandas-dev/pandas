@@ -40,6 +40,8 @@ def get_time_micros(ndarray[int64_t] dtindex):
     return micros
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def build_field_sarray(int64_t[:] dtindex):
     """
     Datetime as int64 representation to a structured array of fields
@@ -134,6 +136,7 @@ def get_date_name_field(int64_t[:] dtindex, object field, object locale=None):
 
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def get_start_end_field(int64_t[:] dtindex, object field,
                         object freqstr=None, int month_kw=12):
     """
