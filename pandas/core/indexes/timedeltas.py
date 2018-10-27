@@ -147,12 +147,10 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
 
         if data is None:
             # TODO: Remove this block and associated kwargs; GH#20535
-            if freq is None and com._any_none(periods, start, end):
-                raise ValueError('Must provide freq argument if no data is '
-                                 'supplied')
-            periods = dtl.validate_periods(periods)
-            return cls._generate_range(start, end, periods, name, freq,
-                                       closed=closed)
+            result = cls._generate_range(start, end, periods, freq,
+                                         closed=closed)
+            result.name = name
+            return result
 
         if unit is not None:
             data = to_timedelta(data, unit=unit, box=False)
@@ -180,16 +178,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 subarr.freq = to_offset(inferred)
 
         return subarr
-
-    @classmethod
-    def _generate_range(cls, start, end, periods,
-                        name=None, freq=None, closed=None):
-        # TimedeltaArray gets `name` via **kwargs, so we need to explicitly
-        # override it if name is passed as a positional argument
-        return super(TimedeltaIndex, cls)._generate_range(start, end,
-                                                          periods, freq,
-                                                          name=name,
-                                                          closed=closed)
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
@@ -511,59 +499,19 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
 
         return label
 
-    def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
-        freq = getattr(self, 'freqstr',
-                       getattr(self, 'inferred_freq', None))
+    def _get_string_slice(self, key):
         if is_integer(key) or is_float(key) or key is NaT:
             self._invalid_indexer('slice', key)
-        loc = self._partial_td_slice(key, freq, use_lhs=use_lhs,
-                                     use_rhs=use_rhs)
+        loc = self._partial_td_slice(key)
         return loc
 
-    def _partial_td_slice(self, key, freq, use_lhs=True, use_rhs=True):
+    def _partial_td_slice(self, key):
 
         # given a key, try to figure out a location for a partial slice
         if not isinstance(key, compat.string_types):
             return key
 
         raise NotImplementedError
-
-        # TODO(wesm): dead code
-        # parsed = _coerce_scalar_to_timedelta_type(key, box=True)
-
-        # is_monotonic = self.is_monotonic
-
-        # # figure out the resolution of the passed td
-        # # and round to it
-
-        # # t1 = parsed.round(reso)
-
-        # t2 = t1 + to_offset(parsed.resolution) - Timedelta(1, 'ns')
-
-        # stamps = self.asi8
-
-        # if is_monotonic:
-
-        #     # we are out of range
-        #     if (len(stamps) and ((use_lhs and t1.value < stamps[0] and
-        #                           t2.value < stamps[0]) or
-        #                          ((use_rhs and t1.value > stamps[-1] and
-        #                            t2.value > stamps[-1])))):
-        #         raise KeyError
-
-        #     # a monotonic (sorted) series can be sliced
-        #     left = (stamps.searchsorted(t1.value, side='left')
-        #             if use_lhs else None)
-        #     right = (stamps.searchsorted(t2.value, side='right')
-        #              if use_rhs else None)
-
-        #     return slice(left, right)
-
-        # lhs_mask = (stamps >= t1.value) if use_lhs else True
-        # rhs_mask = (stamps <= t2.value) if use_rhs else True
-
-        # # try to find a the dates
-        # return (lhs_mask & rhs_mask).nonzero()[0]
 
     @Substitution(klass='TimedeltaIndex')
     @Appender(_shared_docs['searchsorted'])

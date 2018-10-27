@@ -6,7 +6,7 @@ import numpy as np
 import warnings
 
 from pandas._libs import tslib, lib, tslibs
-from pandas._libs.tslibs import iNaT, OutOfBoundsDatetime
+from pandas._libs.tslibs import iNaT, OutOfBoundsDatetime, Period
 from pandas.compat import string_types, text_type, PY3
 from .common import (ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
@@ -163,6 +163,12 @@ def maybe_downcast_to_dtype(result, dtype):
                     from pandas import to_datetime
                     result = to_datetime(result).tz_localize('utc')
                     result = result.tz_convert(dtype.tz)
+
+        elif dtype.type == Period:
+            # TODO(DatetimeArray): merge with previous elif
+            from pandas.core.arrays import PeriodArray
+
+            return PeriodArray(result, freq=dtype.freq)
 
     except Exception:
         pass
@@ -645,9 +651,9 @@ def coerce_to_dtypes(result, dtypes):
     return [conv(r, dtype) for r, dtype in zip(result, dtypes)]
 
 
-def astype_nansafe(arr, dtype, copy=True):
-    """ return a view if copy is False, but
-        need to be very careful as the result shape could change!
+def astype_nansafe(arr, dtype, copy=True, skipna=False):
+    """
+    Cast the elements of an array to a given dtype a nan-safe manner.
 
     Parameters
     ----------
@@ -655,7 +661,9 @@ def astype_nansafe(arr, dtype, copy=True):
     dtype : np.dtype
     copy : bool, default True
         If False, a view will be attempted but may fail, if
-        e.g. the itemsizes don't align.
+        e.g. the item sizes don't align.
+    skipna: bool, default False
+        Whether or not we should skip NaN when casting as a string-type.
     """
 
     # dispatch on extension dtype if needed
@@ -668,10 +676,12 @@ def astype_nansafe(arr, dtype, copy=True):
 
     if issubclass(dtype.type, text_type):
         # in Py3 that's str, in Py2 that's unicode
-        return lib.astype_unicode(arr.ravel()).reshape(arr.shape)
+        return lib.astype_unicode(arr.ravel(),
+                                  skipna=skipna).reshape(arr.shape)
 
     elif issubclass(dtype.type, string_types):
-        return lib.astype_str(arr.ravel()).reshape(arr.shape)
+        return lib.astype_str(arr.ravel(),
+                              skipna=skipna).reshape(arr.shape)
 
     elif is_datetime64_dtype(arr):
         if is_object_dtype(dtype):
