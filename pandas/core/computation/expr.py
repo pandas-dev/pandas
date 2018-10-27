@@ -3,24 +3,23 @@
 
 import ast
 import tokenize
-
 from functools import partial
+
 import numpy as np
 
 import pandas as pd
-from pandas import compat
-from pandas.compat import StringIO, lmap, zip, reduce, string_types
-from pandas.core.base import StringMixin
-from pandas.core import common as com
 import pandas.io.formats.printing as printing
-from pandas.core.reshape.util import compose
+from pandas import compat
+from pandas.compat import StringIO, lmap, reduce, string_types, zip
+from pandas.core import common as com
+from pandas.core.base import StringMixin
 from pandas.core.computation.ops import (
-    _cmp_ops_syms, _bool_ops_syms,
-    _arith_ops_syms, _unary_ops_syms, is_term)
-from pandas.core.computation.ops import _reductions, _mathops, _LOCAL_TAG
-from pandas.core.computation.ops import Op, BinOp, UnaryOp, Term, Constant, Div
-from pandas.core.computation.ops import UndefinedVariableError, FuncNode
+    _LOCAL_TAG, BinOp, Constant, Div, FuncNode, Op, Term, UnaryOp,
+    UndefinedVariableError, _arith_ops_syms, _bool_ops_syms, _cmp_ops_syms,
+    _mathops, _reductions, _unary_ops_syms, is_term
+)
 from pandas.core.computation.scope import Scope
+from pandas.core.reshape.util import compose
 
 
 def tokenize_string(source):

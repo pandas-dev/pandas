@@ -2,20 +2,19 @@
 Module for scope operations
 """
 
-import sys
-import struct
-import inspect
 import datetime
+import inspect
 import itertools
 import pprint
+import struct
+import sys
 
 import numpy as np
 
-import pandas
 import pandas as pd  # noqa
-from pandas.compat import DeepChainMap, map, StringIO
-from pandas.core.base import StringMixin
 import pandas.core.computation as compu
+from pandas.compat import DeepChainMap, StringIO, map
+from pandas.core.base import StringMixin
 
 
 def _ensure_scope(level, global_dict=None, local_dict=None, resolvers=(),

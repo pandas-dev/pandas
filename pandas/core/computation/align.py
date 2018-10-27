@@ -3,15 +3,15 @@
 
 import warnings
 from functools import partial, wraps
-from pandas.compat import zip, range
 
 import numpy as np
 
 import pandas as pd
-from pandas import compat
-from pandas.errors import PerformanceWarning
 import pandas.core.common as com
+from pandas import compat
+from pandas.compat import range, zip
 from pandas.core.computation.common import _result_type_many
+from pandas.errors import PerformanceWarning
 
 
 def _align_core_single_unary_op(term):

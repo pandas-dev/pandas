@@ -3,12 +3,13 @@
 """Top level ``eval`` module.
 """
 
-import warnings
 import tokenize
-from pandas.io.formats.printing import pprint_thing
-from pandas.core.computation.scope import _ensure_scope
+import warnings
+
 from pandas.compat import string_types
 from pandas.core.computation.engines import _engines
+from pandas.core.computation.scope import _ensure_scope
+from pandas.io.formats.printing import pprint_thing
 from pandas.util._validators import validate_bool_kwarg
 
 

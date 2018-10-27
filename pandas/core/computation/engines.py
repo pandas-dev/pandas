@@ -4,14 +4,13 @@ Engine classes for :func:`~pandas.eval`
 
 import abc
 
+import pandas.io.formats.printing as printing
 from pandas import compat
 from pandas.compat import map
-import pandas.io.formats.printing as printing
 from pandas.core.computation.align import _align, _reconstruct_object
 from pandas.core.computation.ops import (
-    UndefinedVariableError,
-    _mathops, _reductions)
-
+    UndefinedVariableError, _mathops, _reductions
+)
 
 _ne_builtins = frozenset(_mathops + _reductions)
 
