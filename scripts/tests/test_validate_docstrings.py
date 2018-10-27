@@ -514,33 +514,6 @@ class BadReturns(object):
         return "Hello world!"
 
 
-class BadExamples(object):
-
-    def numpy_import(self):
-        """
-        Provide example with numpy import.
-
-        Examples
-        --------
-        This example does not import pandas.
-        >>> import numpy as np
-        >>> import datetime
-        """
-        pass
-
-    def pandas_import(self):
-        """
-        Provide example with pandas import.
-
-        Examples
-        --------
-        This example does not import numpy.
-        >>> import pandas as pd
-        >>> import pickle
-        """
-        pass
-
-
 class TestValidator(object):
 
     def _import_path(self, klass=None, func=None):
@@ -641,9 +614,9 @@ class TestValidator(object):
         pytest.param('BadReturns', 'no_punctuation', ('foo',),
                      marks=pytest.mark.xfail),
         # Examples tests
-        ('BadExamples', 'numpy_import',
+        ('BadGenericDocStrings', 'method',
          ('Examples should not have `import numpy` ',)),
-        ('BadExamples', 'pandas_import',
+        ('BadGenericDocStrings', 'method',
          ('Examples should not have `import pandas` ',))
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
