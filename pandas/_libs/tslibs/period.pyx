@@ -307,6 +307,7 @@ cdef inline int64_t transform_via_day(int64_t ordinal,
     result = second_func(result, af_info)
     return result
 
+
 # --------------------------------------------------------------------
 # Conversion _to_ Daily Freq
 
@@ -976,7 +977,6 @@ cdef inline int month_to_quarter(int month):
 # ----------------------------------------------------------------------
 # Period logic
 
-
 def dt64arr_to_periodarr(int64_t[:] dtarr, int freq, tz=None):
     """
     Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
@@ -1227,6 +1227,7 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
                             "^`GH`^", "^`IJ`^", "^`KL`^"]
 
+
 cdef object _period_strftime(int64_t value, int freq, object fmt):
     cdef:
         Py_ssize_t i
@@ -1235,7 +1236,6 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
         object pat, repl, result
         list found_pat = [False] * len(extra_fmts)
         int year, quarter
-
 
     if isinstance(fmt, unicode):
         fmt = fmt.encode('utf-8')
