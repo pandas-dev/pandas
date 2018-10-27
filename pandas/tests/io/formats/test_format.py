@@ -452,7 +452,7 @@ class TestDataFrameFormatting(object):
         for line in rs[1:]:
             try:
                 line = line.decode(get_option("display.encoding"))
-            except UnicodeDecodeError:
+            except AttributeError:
                 pass
             if not line.startswith('dtype:'):
                 assert len(line) == line_len

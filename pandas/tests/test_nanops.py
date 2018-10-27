@@ -141,7 +141,7 @@ class TestnanopsDataFrame(object):
             if axis != 0 and hasattr(
                     targ, 'shape') and targ.ndim and targ.shape != res.shape:
                 res = np.split(res, [targ.shape[0]], axis=0)[0]
-        except ValueError:
+        except (ValueError, IndexError):
             targ, res = _coerce_tds(targ, res)
 
         try:
