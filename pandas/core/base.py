@@ -889,7 +889,7 @@ class IndexOpsMixin(object):
     @cache_readonly
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
-        return isna(self).any()
+        return bool(isna(self).any())
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
