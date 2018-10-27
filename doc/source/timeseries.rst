@@ -8,6 +8,7 @@
    import numpy as np
    import pandas as pd
    from pandas import offsets
+   from pandas.tseries.offsets import *
    np.random.seed(123456)
    randn = np.random.randn
    randint = np.random.randint
@@ -110,12 +111,12 @@ However, :class:`Series` and :class:`DataFrame` can directly also support the ti
 
    pd.Series(pd.date_range('2000', freq='D', periods=3))
 
-:class:`Series` and :class:`DataFrame` have extended data type support and functionality for ``datetime`` and ``timedelta``
-data when the time data is used as data itself. The ``Period`` and ``DateOffset`` data will be stored as ``object`` data.
+:class:`Series` and :class:`DataFrame` have extended data type support and functionality for ``datetime``, ``timedelta``
+and ``Period`` data when the time data is used as data itself. The ``DateOffset`` data will be stored as ``object`` data.
 
 .. ipython:: python
 
-   pd.Series(pd.period_range('1/1/2011', freq='M', periods=3))
+   pd.Series([pd.DateOffset(1), pd.DateOffset(2)])
    pd.Series(pd.date_range('1/1/2011', freq='M', periods=3))
 
 Lastly, pandas represents null date times, time deltas, and time spans as ``NaT`` which
@@ -823,106 +824,100 @@ on :ref:`.dt accessors<basics.dt_accessors>`.
 DateOffset Objects
 ------------------
 
-In the preceding examples, we created ``DatetimeIndex`` objects at various
-frequencies by passing in :ref:`frequency strings <timeseries.offset_aliases>`
-like 'M', 'W', and 'BM' to the ``freq`` keyword. Under the hood, these frequency
-strings are being translated into an instance of :class:`DateOffset`,
-which represents a regular frequency increment. Specific offset logic like
-"month", "business day", or "one hour" is represented in its various subclasses.
+In the preceding examples, frequency strings (e.g. ``'D'``) were used to specify
+a frequency that defined:
+
+* how the date times in :class:`DatetimeIndex` were spaced when using :meth:`date_range`
+* the frequency of a :class:`Period` or :class:`PeriodIndex`
+
+These frequency strings map to a :class:`DateOffset` object and its subclasses. A :class:`DateOffset`
+is similar to a :class:`Timedelta` that represents a duration of time but follows specific calendar duration rules.
+However, the following date offsets behave like :class:`Timedelta` and respect absolute time:
+
+* ``Hour``
+* ``Minute``
+* ``Second``
+* ``Milli``
+* ``Micro``
+* ``Nano``
+
+The basic :class:`DateOffset` acts similar to ``dateutil.relativedelta`` that shifts a date time
+by the corresponding calendar duration specified.
+
+.. ipython:: python
+
+   # This particular day contains a day light savings time transition
+   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+   # Respects absolute time
+   ts + pd.Timedelta(days=1)
+   # Respects calendar time
+   ts + pd.DateOffset(days=1)
+   friday = pd.Timestamp('2018-01-05')
+   friday.day_name()
+   # Add 1 business day (Friday --> Monday)
+   monday = friday + pd.tseries.offsets.BDay()
+   monday.day_name()
+
+The available date offsets and associated frequency strings can be found below:
 
 .. csv-table::
-    :header: "Class name", "Description"
-    :widths: 15, 65
+    :header: "Date Offset", "Frequency String", "Description"
+    :widths: 15, 15, 65
 
-    DateOffset, "Generic offset class, defaults to 1 calendar day"
-    BDay, "business day (weekday)"
-    CDay, "custom business day"
-    Week, "one week, optionally anchored on a day of the week"
-    WeekOfMonth, "the x-th day of the y-th week of each month"
-    LastWeekOfMonth, "the x-th day of the last week of each month"
-    MonthEnd, "calendar month end"
-    MonthBegin, "calendar month begin"
-    BMonthEnd, "business month end"
-    BMonthBegin, "business month begin"
-    CBMonthEnd, "custom business month end"
-    CBMonthBegin, "custom business month begin"
-    SemiMonthEnd, "15th (or other day_of_month) and calendar month end"
-    SemiMonthBegin, "15th (or other day_of_month) and calendar month begin"
-    QuarterEnd, "calendar quarter end"
-    QuarterBegin, "calendar quarter begin"
-    BQuarterEnd, "business quarter end"
-    BQuarterBegin, "business quarter begin"
-    FY5253Quarter, "retail (aka 52-53 week) quarter"
-    YearEnd, "calendar year end"
-    YearBegin, "calendar year begin"
-    BYearEnd, "business year end"
-    BYearBegin, "business year begin"
-    FY5253, "retail (aka 52-53 week) year"
-    BusinessHour, "business hour"
-    CustomBusinessHour, "custom business hour"
-    Hour, "one hour"
-    Minute, "one minute"
-    Second, "one second"
-    Milli, "one millisecond"
-    Micro, "one microsecond"
-    Nano, "one nanosecond"
+    ``DateOffset``, None, "Generic offset class, defaults to 1 calendar day"
+    ``BDay`` or ``BusinessDay``, ``'B'``,"business day (weekday)"
+    ``CDay`` or ``CustomBusinessDay``, ``'C'``, "custom business day"
+    ``Week``, ``'W'``, "one week, optionally anchored on a day of the week"
+    ``WeekOfMonth``, ``'WOM'``, "the x-th day of the y-th week of each month"
+    ``LastWeekOfMonth``, ``'LWOM'``, "the x-th day of the last week of each month"
+    ``MonthEnd``, ``'M'``, "calendar month end"
+    ``MonthBegin``, ``'MS'``, "calendar month begin"
+    ``BMonthEnd`` or ``BusinessMonthEnd``, ``'BM'``, "business month end"
+    ``BMonthBegin`` or ``BusinessMonthBegin``, ``'BMS'``, "business month begin"
+    ``CBMonthEnd`` or ``CustomBusinessMonthEnd``, ``'CBM'``, "custom business month end"
+    ``CBMonthBegin`` or ``CustomBusinessMonthBegin``, ``'CBMS'``, "custom business month begin"
+    ``SemiMonthEnd``, ``'SM'``, "15th (or other day_of_month) and calendar month end"
+    ``SemiMonthBegin``, ``'SMS'``, "15th (or other day_of_month) and calendar month begin"
+    ``QuarterEnd``, ``'Q'``, "calendar quarter end"
+    ``QuarterBegin``, ``'QS'``, "calendar quarter begin"
+    ``BQuarterEnd``, ``'BQ``, "business quarter end"
+    ``BQuarterBegin``, ``'BQS'``, "business quarter begin"
+    ``FY5253Quarter``, ``'REQ'``, "retail (aka 52-53 week) quarter"
+    ``YearEnd``, ``'A'``, "calendar year end"
+    ``YearBegin``, ``'AS'`` or ``'BYS'``,"calendar year begin"
+    ``BYearEnd``, ``'BA'``, "business year end"
+    ``BYearBegin``, ``'BAS'``, "business year begin"
+    ``FY5253``, ``'RE'``, "retail (aka 52-53 week) year"
+    ``Easter``, None, "Easter holiday"
+    ``BusinessHour``, ``'BH'``, "business hour"
+    ``CustomBusinessHour``, ``'CBH'``, "custom business hour"
+    ``Day``, ``'D'``, "one absolute day"
+    ``Hour``, ``'H'``, "one hour"
+    ``Minute``, ``'T'`` or ``'min'``,"one minute"
+    ``Second``, ``'S'``, "one second"
+    ``Milli``, ``'L'`` or ``'ms'``, "one millisecond"
+    ``Micro``, ``'U'`` or ``'us'``, "one microsecond"
+    ``Nano``, ``'N'``, "one nanosecond"
 
-The basic ``DateOffset`` takes the same arguments as
-``dateutil.relativedelta``, which works as follows:
-
-.. ipython:: python
-
-   d = datetime(2008, 8, 18, 9, 0)
-   d + relativedelta(months=4, days=5)
-
-We could have done the same thing with ``DateOffset``:
+:class:`DateOffset` additionally have a :meth:`rollforward` and :meth:`rollback`
+methods for moving a date forward or backward respectively to a valid offset
+date relative to the offset
 
 .. ipython:: python
 
-   from pandas.tseries.offsets import *
-   d + DateOffset(months=4, days=5)
+   ts = pd.Timestamp('2018-01-06 00:00:00')
+   ts.day_name()
+   # BusinessHour's valid offset dates are Monday through Friday
+   offset = pd.tseries.offsets.BusinessHour(start='09:00')
+   # Bring the date to the closest offset date (Monday)
+   offset.rollforward(ts)
+   # Date is brought to the closest offset date first and then the hour is added
+   ts + offset
 
-The key features of a ``DateOffset`` object are:
-
-* It can be added / subtracted to/from a datetime object to obtain a
-  shifted date.
-* It can be multiplied by an integer (positive or negative) so that the
-  increment will be applied multiple times.
-* It has :meth:`~pandas.DateOffset.rollforward` and
-  :meth:`~pandas.DateOffset.rollback` methods for moving a date forward or 
-  backward to the next or previous "offset date".
-
-Subclasses of ``DateOffset`` define the ``apply`` function which dictates
-custom date increment logic, such as adding business days:
-
-.. code-block:: python
-
-    class BDay(DateOffset):
-	"""DateOffset increments between business days"""
-        def apply(self, other):
-            ...
-
-.. ipython:: python
-
-   d - 5 * BDay()
-   d + BMonthEnd()
-
-The ``rollforward`` and ``rollback`` methods do exactly what you would expect:
-
-.. ipython:: python
-
-   d
-   offset = BMonthEnd()
-   offset.rollforward(d)
-   offset.rollback(d)
-
-It's definitely worth exploring the ``pandas.tseries.offsets`` module and the
-various docstrings for the classes.
-
-These operations (``apply``, ``rollforward`` and ``rollback``) preserve time 
-(hour, minute, etc) information by default. To reset time, use ``normalize``
-before or after applying the operation (depending on whether you want the
-time information included in the operation.
+These operations preserve time  (hour, minute, etc) information by default.
+To reset time to midnight, use :meth:`normalize` before or after applying
+the operation (depending on whether you want the time information included
+in the operation).
 
 .. ipython:: python
 
@@ -968,6 +963,7 @@ particular day of the week:
 
 .. ipython:: python
 
+   d = datetime(2008, 8, 18, 9, 0)
    d
    d + Week()
    d + Week(weekday=4)
@@ -2371,7 +2367,8 @@ can be controlled by the ``nonexistent`` argument. The following options are ava
 * ``shift``: Shifts nonexistent times forward to the closest real time
 
 .. ipython:: python
-    dti = date_range(start='2015-03-29 01:30:00', periods=3, freq='H')
+
+    dti = pd.date_range(start='2015-03-29 02:30:00', periods=3, freq='H')
     # 2:30 is a nonexistent time
 
 Localization of nonexistent times will raise an error by default.
@@ -2384,6 +2381,7 @@ Localization of nonexistent times will raise an error by default.
 Transform nonexistent times to ``NaT`` or the closest real time forward in time.
 
 .. ipython:: python
+
     dti
     dti.tz_localize('Europe/Warsaw', nonexistent='shift')
     dti.tz_localize('Europe/Warsaw', nonexistent='NaT')
