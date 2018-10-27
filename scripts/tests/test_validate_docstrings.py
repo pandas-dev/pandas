@@ -334,33 +334,6 @@ class BadGenericDocStrings(object):
         pass
 
 
-class BadSeeAlso(object):
-
-    def desc_no_period(self):
-        """
-        Return the first 5 elements of the Series.
-
-        See Also
-        --------
-        Series.tail : Return the last 5 elements of the Series.
-        Series.iloc : Return a slice of the elements in the Series,
-            which can also be used to return the first or last n
-        """
-        pass
-
-    def desc_first_letter_lowercase(self):
-        """
-        Return the first 5 elements of the Series.
-
-        See Also
-        --------
-        Series.tail : return the last 5 elements of the Series.
-        Series.iloc : Return a slice of the elements in the Series,
-            which can also be used to return the first or last n.
-        """
-        pass
-
-
 class BadSummaries(object):
 
     def wrong_line(self):
@@ -574,6 +547,30 @@ class BadReturns(object):
 
 
 class BadSeeAlso(object):
+
+    def desc_no_period(self):
+        """
+        Return the first 5 elements of the Series.
+
+        See Also
+        --------
+        Series.tail : Return the last 5 elements of the Series.
+        Series.iloc : Return a slice of the elements in the Series,
+            which can also be used to return the first or last n
+        """
+        pass
+
+    def desc_first_letter_lowercase(self):
+        """
+        Return the first 5 elements of the Series.
+
+        See Also
+        --------
+        Series.tail : return the last 5 elements of the Series.
+        Series.iloc : Return a slice of the elements in the Series,
+            which can also be used to return the first or last n.
+        """
+        pass
 
     def prefix_pandas(self):
         """
