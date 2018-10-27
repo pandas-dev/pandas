@@ -1115,15 +1115,23 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         pd.Index : an Index with the MultiIndex data represented in Tuples.
 
-        See also
+        Notes
+        -----
+        This method will simply return the caller if called by anything other
+        than a MultiIndex.
+
+        See Also
         --------
         Index
         """
         if sep is not None:
             # TODO: Add support for separator to return strs instad of tuples
             raise NotImplementedError
-        else:
-            idx = Index(self.values, tupleize_cols=False)
+
+        if not isinstance(self, ABCMultiIndex):
+            return self
+
+        idx = Index(self.values, tupleize_cols=False)
 
         return idx
 
