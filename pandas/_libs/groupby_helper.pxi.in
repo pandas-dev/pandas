@@ -735,11 +735,6 @@ def group_min(ndarray[groupby_t, ndim=2] out,
                     out[i, j] = minx[i, j]
 
 
-group_min_float64 = group_min["float64_t"]
-group_min_float32 = group_min["float32_t"]
-group_min_int64 = group_min["int64_t"]
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cummin(groupby_t[:, :] out,
@@ -788,11 +783,6 @@ def group_cummin(groupby_t[:, :] out,
                         out[i, j] = mval
 
 
-group_cummin_float64 = group_cummin["float64_t"]
-group_cummin_float32 = group_cummin["float32_t"]
-group_cummin_int64 = group_cummin["int64_t"]
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cummax(groupby_t[:, :] out,
@@ -838,8 +828,3 @@ def group_cummax(groupby_t[:, :] out,
                         if val > mval:
                             accum[lab, j] = mval = val
                         out[i, j] = mval
-
-
-group_cummax_float64 = group_cummax["float64_t"]
-group_cummax_float32 = group_cummax["float32_t"]
-group_cummax_int64 = group_cummax["int64_t"]
