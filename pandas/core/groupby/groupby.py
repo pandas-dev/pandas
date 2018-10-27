@@ -27,7 +27,9 @@ from pandas.core.base import (
 )
 from pandas.core.config import option_context
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
-from pandas.core.dtypes.common import ensure_float, is_numeric_dtype, is_scalar, is_extension_array_dtype
+from pandas.core.dtypes.common import (
+    ensure_float, is_numeric_dtype, is_scalar, is_extension_array_dtype
+)
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
