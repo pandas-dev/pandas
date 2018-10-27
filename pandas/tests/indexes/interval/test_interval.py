@@ -93,7 +93,7 @@ class TestIntervalIndex(Base):
 
     def test_with_nans(self, closed):
         index = self.create_index(closed=closed)
-        assert not index.hasnans
+        assert index.hasnans is False
 
         result = index.isna()
         expected = np.repeat(False, len(index))
@@ -104,7 +104,7 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(result, expected)
 
         index = self.create_index_with_nan(closed=closed)
-        assert index.hasnans
+        assert index.hasnans is True
 
         result = index.isna()
         expected = np.array([False, True] + [False] * (len(index) - 2))

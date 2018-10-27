@@ -2221,7 +2221,7 @@ class Index(IndexOpsMixin, PandasObject):
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
         if self._can_hold_na:
-            return self._isnan.any()
+            return bool(self._isnan.any())
         else:
             return False
 

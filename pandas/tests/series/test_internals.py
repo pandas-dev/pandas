@@ -315,11 +315,11 @@ class TestSeriesInternals(object):
 def test_hasnans_unchached_for_series():
     # GH#19700
     idx = pd.Index([0, 1])
-    assert not idx.hasnans
+    assert idx.hasnans is False
     assert 'hasnans' in idx._cache
     ser = idx.to_series()
-    assert not ser.hasnans
+    assert ser.hasnans is False
     assert not hasattr(ser, '_cache')
     ser.iloc[-1] = np.nan
-    assert ser.hasnans
+    assert ser.hasnans is True
     assert pd.Series.hasnans.__doc__ == pd.Index.hasnans.__doc__

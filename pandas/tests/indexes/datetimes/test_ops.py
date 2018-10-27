@@ -356,7 +356,7 @@ class TestDatetimeIndexOps(Ops):
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
-        assert not idx.hasnans
+        assert idx.hasnans is False
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([], dtype=np.intp))
 
@@ -364,7 +364,7 @@ class TestDatetimeIndexOps(Ops):
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
-        assert idx.hasnans
+        assert idx.hasnans is True
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([1], dtype=np.intp))
 

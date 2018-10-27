@@ -417,7 +417,7 @@ class Base(object):
         # and doesn't contain nans.
         assert idx_unique.is_unique is True
         try:
-            assert not idx_unique.hasnans
+            assert idx_unique.hasnans is False
         except NotImplementedError:
             pass
 
@@ -916,7 +916,7 @@ class Base(object):
                 # cases in indices doesn't include NaN
                 expected = np.array([False] * len(idx), dtype=bool)
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                assert not idx.hasnans
+                assert idx.hasnans is False
 
                 idx = index.copy()
                 values = np.asarray(idx.values)
@@ -938,7 +938,7 @@ class Base(object):
                 expected = np.array([False] * len(idx), dtype=bool)
                 expected[1] = True
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                assert idx.hasnans
+                assert idx.hasnans is True
 
     def test_fillna(self):
         # GH 11343
@@ -978,7 +978,7 @@ class Base(object):
                 expected = np.array([False] * len(idx), dtype=bool)
                 expected[1] = True
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                assert idx.hasnans
+                assert idx.hasnans is True
 
     def test_nulls(self):
         # this is really a smoke test for the methods
