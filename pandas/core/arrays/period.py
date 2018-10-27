@@ -494,8 +494,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             Frequency increment to shift by.
         """
         if freq is not None:
-            # TODO: don't silently ignore kwarg
-            raise NotImplementedError
+            raise TypeError("`freq` argument is not supported for "
+                            "{cls}._time_shift"
+                            .format(cls=type(self).__name__))
         values = self.asi8 + n * self.freq.n
         if self.hasnans:
             values[self._isnan] = iNaT
