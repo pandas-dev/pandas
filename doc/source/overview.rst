@@ -117,13 +117,22 @@ Institutional Partners
 
 The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about.html>`__.
 
-Modules Privacy
+Private Modules
 ----------------
 
 The following modules in pandas are considered private:
 
   * ``pandas.core`` and all sub-modules
   * ``pandas.compat`` and all sub-modules
+  
+Public Modules
+-----------------
+
+The following modules in pandas are considered public:
+
+  * ``pandas.error``
+  * ``pandas.testing``
+  * ``pandas.plotting`` 
 
 License
 -------
