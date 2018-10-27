@@ -171,7 +171,7 @@ def test_set_levels_labels_directly(idx):
 
 
 def test_set_levels(idx):
-    # side note - you probably wouldn't want to use levels and labels
+    # side note - you probably wouldn't want to use levels and codes
     # directly like this - but it is possible.
     levels = idx.levels
     new_levels = [[lev + 'a' for lev in level] for level in levels]
@@ -231,9 +231,15 @@ def test_set_levels(idx):
         assert_matching(idx.levels, original_index.levels,
                         check_dtype=True)
 
+<<<<<<< HEAD
         with pytest.raises(ValueError, match="^On"):
             idx.set_labels([0, 1, 2, 3, 4, 5], level=0,
                            inplace=inplace)
+=======
+        with tm.assert_raises_regex(ValueError, "^On"):
+            idx.set_codes([0, 1, 2, 3, 4, 5], level=0,
+                          inplace=inplace)
+>>>>>>> MultiIndex.set_labels -> set_codes
         assert_matching(idx.labels, original_index.labels,
                         check_dtype=True)
 
@@ -242,92 +248,118 @@ def test_set_levels(idx):
         assert_matching(idx.levels, original_index.levels,
                         check_dtype=True)
 
+<<<<<<< HEAD
         with pytest.raises(TypeError, match="^Labels"):
             idx.set_labels(1, level=0, inplace=inplace)
+=======
+        with tm.assert_raises_regex(TypeError, "^Codes"):
+            idx.set_codes(1, level=0, inplace=inplace)
+>>>>>>> MultiIndex.set_labels -> set_codes
         assert_matching(idx.labels, original_index.labels,
                         check_dtype=True)
 
 
-def test_set_labels(idx):
-    # side note - you probably wouldn't want to use levels and labels
+def test_set_codes(idx):
+    # side note - you probably wouldn't want to use levels and codes
     # directly like this - but it is possible.
-    labels = idx.labels
-    major_labels, minor_labels = labels
-    major_labels = [(x + 1) % 3 for x in major_labels]
-    minor_labels = [(x + 1) % 1 for x in minor_labels]
-    new_labels = [major_labels, minor_labels]
+    codes = idx.labels
+    major_codes, minor_codes = codes
+    major_codes = [(x + 1) % 3 for x in major_codes]
+    minor_codes = [(x + 1) % 1 for x in minor_codes]
+    new_codes = [major_codes, minor_codes]
 
-    # label changing [w/o mutation]
-    ind2 = idx.set_labels(new_labels)
-    assert_matching(ind2.labels, new_labels)
-    assert_matching(idx.labels, labels)
+    # changing codes w/o mutation
+    ind2 = idx.set_codes(new_codes)
+    assert_matching(ind2.labels, new_codes)
+    assert_matching(idx.labels, codes)
 
-    # label changing [w/ mutation]
+    # changing label w/ mutation
     ind2 = idx.copy()
-    inplace_return = ind2.set_labels(new_labels, inplace=True)
+    inplace_return = ind2.set_codes(new_codes, inplace=True)
     assert inplace_return is None
-    assert_matching(ind2.labels, new_labels)
+    assert_matching(ind2.labels, new_codes)
 
-    # label changing specific level [w/o mutation]
-    ind2 = idx.set_labels(new_labels[0], level=0)
-    assert_matching(ind2.labels, [new_labels[0], labels[1]])
-    assert_matching(idx.labels, labels)
+    # codes changing specific level w/o mutation
+    ind2 = idx.set_codes(new_codes[0], level=0)
+    assert_matching(ind2.labels, [new_codes[0], codes[1]])
+    assert_matching(idx.labels, codes)
 
-    ind2 = idx.set_labels(new_labels[1], level=1)
-    assert_matching(ind2.labels, [labels[0], new_labels[1]])
-    assert_matching(idx.labels, labels)
+    ind2 = idx.set_codes(new_codes[1], level=1)
+    assert_matching(ind2.labels, [codes[0], new_codes[1]])
+    assert_matching(idx.labels, codes)
 
-    # label changing multiple levels [w/o mutation]
-    ind2 = idx.set_labels(new_labels, level=[0, 1])
-    assert_matching(ind2.labels, new_labels)
-    assert_matching(idx.labels, labels)
+    # codes changing multiple levels w/o mutation
+    ind2 = idx.set_codes(new_codes, level=[0, 1])
+    assert_matching(ind2.labels, new_codes)
+    assert_matching(idx.labels, codes)
 
-    # label changing specific level [w/ mutation]
+    # label changing specific level w/ mutation
     ind2 = idx.copy()
-    inplace_return = ind2.set_labels(new_labels[0], level=0, inplace=True)
+    inplace_return = ind2.set_codes(new_codes[0], level=0, inplace=True)
     assert inplace_return is None
-    assert_matching(ind2.labels, [new_labels[0], labels[1]])
-    assert_matching(idx.labels, labels)
+    assert_matching(ind2.labels, [new_codes[0], codes[1]])
+    assert_matching(idx.labels, codes)
 
     ind2 = idx.copy()
-    inplace_return = ind2.set_labels(new_labels[1], level=1, inplace=True)
+    inplace_return = ind2.set_codes(new_codes[1], level=1, inplace=True)
     assert inplace_return is None
-    assert_matching(ind2.labels, [labels[0], new_labels[1]])
-    assert_matching(idx.labels, labels)
+    assert_matching(ind2.labels, [codes[0], new_codes[1]])
+    assert_matching(idx.labels, codes)
 
-    # label changing multiple levels [w/ mutation]
+    # codes changing multiple levels [w/ mutation]
     ind2 = idx.copy()
-    inplace_return = ind2.set_labels(new_labels, level=[0, 1],
-                                     inplace=True)
+    inplace_return = ind2.set_codes(new_codes, level=[0, 1],
+                                    inplace=True)
     assert inplace_return is None
-    assert_matching(ind2.labels, new_labels)
-    assert_matching(idx.labels, labels)
+    assert_matching(ind2.labels, new_codes)
+    assert_matching(idx.labels, codes)
 
     # label changing for levels of different magnitude of categories
+    ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
+    new_codes = range(129, -1, -1)
+    expected = pd.MultiIndex.from_tuples(
+        [(0, i) for i in new_codes])
+
+    # [w/o mutation]
+    result = ind.set_codes(codes=new_codes, level=1)
+    assert result.equals(expected)
+
+    # [w/ mutation]
+    result = ind.copy()
+    result.set_codes(codes=new_codes, level=1, inplace=True)
+    assert result.equals(expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        ind.set_codes(labels=new_codes, level=1)
+
+
+def test_set_labels_deprecated():
     ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
     new_labels = range(129, -1, -1)
     expected = pd.MultiIndex.from_tuples(
         [(0, i) for i in new_labels])
 
     # [w/o mutation]
-    result = ind.set_labels(labels=new_labels, level=1)
+    with tm.assert_produces_warning(FutureWarning):
+        result = ind.set_labels(labels=new_labels, level=1)
     assert result.equals(expected)
 
     # [w/ mutation]
     result = ind.copy()
-    result.set_labels(labels=new_labels, level=1, inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        result.set_labels(labels=new_labels, level=1, inplace=True)
     assert result.equals(expected)
 
 
-def test_set_levels_labels_names_bad_input(idx):
-    levels, labels = idx.levels, idx.labels
+def test_set_levels_codes_names_bad_input(idx):
+    levels, codes = idx.levels, idx.labels
     names = idx.names
 
     with pytest.raises(ValueError, match='Length of levels'):
         idx.set_levels([levels[0]])
 
-    with pytest.raises(ValueError, match='Length of labels'):
-        idx.set_labels([labels[0]])
+    with tm.assert_raises_regex(ValueError, 'Length of codes'):
+        idx.set_codes([codes[0]])
 
     with pytest.raises(ValueError, match='Length of names'):
         idx.set_names([names[0]])
@@ -337,8 +369,13 @@ def test_set_levels_labels_names_bad_input(idx):
         idx.set_levels(levels[0])
 
     # shouldn't scalar data error, instead should demand list-like
+<<<<<<< HEAD
     with pytest.raises(TypeError, match='list of lists-like'):
         idx.set_labels(labels[0])
+=======
+    with tm.assert_raises_regex(TypeError, 'list of lists-like'):
+        idx.set_codes(codes[0])
+>>>>>>> MultiIndex.set_labels -> set_codes
 
     # shouldn't scalar data error, instead should demand list-like
     with pytest.raises(TypeError, match='list-like'):
@@ -352,11 +389,19 @@ def test_set_levels_labels_names_bad_input(idx):
         idx.set_levels(levels, level=0)
 
     # should have equal lengths
+<<<<<<< HEAD
     with pytest.raises(TypeError, match='list of lists-like'):
         idx.set_labels(labels[0], level=[0, 1])
 
     with pytest.raises(TypeError, match='list-like'):
         idx.set_labels(labels, level=0)
+=======
+    with tm.assert_raises_regex(TypeError, 'list of lists-like'):
+        idx.set_codes(codes[0], level=[0, 1])
+
+    with tm.assert_raises_regex(TypeError, 'list-like'):
+        idx.set_codes(codes, level=0)
+>>>>>>> MultiIndex.set_labels -> set_codes
 
     # should have equal lengths
     with pytest.raises(ValueError, match='Length of names'):
