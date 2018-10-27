@@ -87,13 +87,13 @@ def test_constructor_mismatched_label_levels(idx):
 
 def test_copy_in_constructor():
     levels = np.array(["a", "b", "c"])
-    labels = np.array([1, 1, 2, 0, 0, 1, 1])
-    val = labels[0]
-    mi = MultiIndex(levels=[levels, levels], labels=[labels, labels],
+    codes = np.array([1, 1, 2, 0, 0, 1, 1])
+    val = codes[0]
+    mi = MultiIndex(levels=[levels, levels], labels=[codes, codes],
                     copy=True)
-    assert mi.labels[0][0] == val
-    labels[0] = 15
-    assert mi.labels[0][0] == val
+    assert mi.codes[0][0] == val
+    codes[0] = 15
+    assert mi.codes[0][0] == val
     val = levels[0]
     levels[0] = "PANDA"
     assert mi.levels[0][0] == val
@@ -101,8 +101,8 @@ def test_copy_in_constructor():
 
 def test_from_arrays(idx):
     arrays = []
-    for lev, lab in zip(idx.levels, idx.labels):
-        arrays.append(np.asarray(lev).take(lab))
+    for lev, level_codes in zip(idx.levels, idx.codes):
+        arrays.append(np.asarray(lev).take(level_codes))
 
     # list of arrays as input
     result = MultiIndex.from_arrays(arrays, names=idx.names)
@@ -118,8 +118,8 @@ def test_from_arrays(idx):
 def test_from_arrays_iterator(idx):
     # GH 18434
     arrays = []
-    for lev, lab in zip(idx.levels, idx.labels):
-        arrays.append(np.asarray(lev).take(lab))
+    for lev, level_codes in zip(idx.levels, idx.codes):
+        arrays.append(np.asarray(lev).take(level_codes))
 
     # iterator as input
     result = MultiIndex.from_arrays(iter(arrays), names=idx.names)

@@ -16,19 +16,19 @@ def test_labels_dtypes():
 
     # GH 8456
     i = MultiIndex.from_tuples([('A', 1), ('A', 2)])
-    assert i.labels[0].dtype == 'int8'
-    assert i.labels[1].dtype == 'int8'
+    assert i.codes[0].dtype == 'int8'
+    assert i.codes[1].dtype == 'int8'
 
     i = MultiIndex.from_product([['a'], range(40)])
-    assert i.labels[1].dtype == 'int8'
+    assert i.codes[1].dtype == 'int8'
     i = MultiIndex.from_product([['a'], range(400)])
-    assert i.labels[1].dtype == 'int16'
+    assert i.codes[1].dtype == 'int16'
     i = MultiIndex.from_product([['a'], range(40000)])
-    assert i.labels[1].dtype == 'int32'
+    assert i.codes[1].dtype == 'int32'
 
     i = pd.MultiIndex.from_product([['a'], range(1000)])
-    assert (i.labels[0] >= 0).all()
-    assert (i.labels[1] >= 0).all()
+    assert (i.codes[0] >= 0).all()
+    assert (i.codes[1] >= 0).all()
 
 
 def test_values_boxed():
@@ -194,7 +194,7 @@ def test_can_hold_identifiers(idx):
 
 
 def test_metadata_immutable(idx):
-    levels, labels = idx.levels, idx.labels
+    levels, codes = idx.levels, idx.codes
     # shouldn't be able to set at either the top level or base level
     mutable_regex = re.compile('does not support mutable operations')
     with pytest.raises(TypeError, match=mutable_regex):
@@ -202,10 +202,10 @@ def test_metadata_immutable(idx):
     with pytest.raises(TypeError, match=mutable_regex):
         levels[0][0] = levels[0][0]
     # ditto for labels
-    with pytest.raises(TypeError, match=mutable_regex):
-        labels[0] = labels[0]
-    with pytest.raises(TypeError, match=mutable_regex):
-        labels[0][0] = labels[0][0]
+    with pytest.raises(TypeError, mutable_regex):
+        codes[0] = codes[0]
+    with pytest.raises(TypeError, mutable_regex):
+        codes[0][0] = codes[0][0]
     # and for names
     names = idx.names
     with pytest.raises(TypeError, match=mutable_regex):

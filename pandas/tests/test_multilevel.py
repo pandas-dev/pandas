@@ -664,7 +664,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         ymd = self.ymd.T
         result = ymd[2000, 2]
 
-        expected = ymd.reindex(columns=ymd.columns[ymd.columns.labels[1] == 1])
+        expected = ymd.reindex(columns=ymd.columns[ymd.columns.codes[1] == 1])
         expected.columns = expected.columns.droplevel(0).droplevel(0)
         tm.assert_frame_equal(result, expected)
 
@@ -701,8 +701,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tm.assert_frame_equal(result, expected)
 
         result = self.ymd.loc[(2000, 2):(2000, 4)]
-        lev = self.ymd.index.labels[1]
-        expected = self.ymd[(lev >= 1) & (lev <= 3)]
+        level_codes = self.ymd.index.codes[1]
+        expected = self.ymd[(level_codes >= 1) & (level_codes <= 3)]
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_partial_column_select(self):
@@ -1198,9 +1198,9 @@ Thur,Lunch,Yes,51.51,17"""
     def test_unstack_unobserved_keys(self):
         # related to #2278 refactoring
         levels = [[0, 1], [0, 1, 2, 3]]
-        labels = [[0, 0, 1, 1], [0, 2, 0, 2]]
+        codes = [[0, 0, 1, 1], [0, 2, 0, 2]]
 
-        index = MultiIndex(levels, labels)
+        index = MultiIndex(levels, codes)
 
         df = DataFrame(np.random.randn(4, 2), index=index)
 
@@ -1575,11 +1575,11 @@ Thur,Lunch,Yes,51.51,17"""
         assert unstacked['F', 1].dtype == np.float64
 
     def test_unstack_group_index_overflow(self):
-        labels = np.tile(np.arange(500), 2)
+        codes = np.tile(np.arange(500), 2)
         level = np.arange(500)
 
         index = MultiIndex(levels=[level] * 8 + [[0, 1]],
-                           labels=[labels] * 8 + [np.arange(2).repeat(500)])
+                           labels=[codes] * 8 + [np.arange(2).repeat(500)])
 
         s = Series(np.arange(1000), index=index)
         result = s.unstack()
@@ -1591,7 +1591,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # put it at beginning
         index = MultiIndex(levels=[[0, 1]] + [level] * 8,
-                           labels=[np.arange(2).repeat(500)] + [labels] * 8)
+                           labels=[np.arange(2).repeat(500)] + [codes] * 8)
 
         s = Series(np.arange(1000), index=index)
         result = s.unstack(0)
@@ -1599,8 +1599,8 @@ Thur,Lunch,Yes,51.51,17"""
 
         # put it in middle
         index = MultiIndex(levels=[level] * 4 + [[0, 1]] + [level] * 4,
-                           labels=([labels] * 4 + [np.arange(2).repeat(500)] +
-                                   [labels] * 4))
+                           labels=([codes] * 4 + [np.arange(2).repeat(500)] +
+                                   [codes] * 4))
 
         s = Series(np.arange(1000), index=index)
         result = s.unstack(4)
@@ -1955,8 +1955,8 @@ Thur,Lunch,Yes,51.51,17"""
     def test_unicode_repr_issues(self):
         levels = [Index([u('a/\u03c3'), u('b/\u03c3'), u('c/\u03c3')]),
                   Index([0, 1])]
-        labels = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
-        index = MultiIndex(levels=levels, labels=labels)
+        codes = [np.arange(3).repeat(2), np.tile(np.arange(2), 3)]
+        index = MultiIndex(levels=levels, labels=codes)
 
         repr(index.levels)
 

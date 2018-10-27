@@ -859,9 +859,9 @@ class _MergeOperation(object):
                     left_keys.append(left._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
-                right_keys = [lev._values.take(lab)
-                              for lev, lab in zip(self.right.index.levels,
-                                                  self.right.index.labels)]
+                right_keys = [lev._values.take(lev_codes) for lev, lev_codes
+                              in zip(self.right.index.levels,
+                                     self.right.index.codes)]
             else:
                 right_keys = [self.right.index.values]
         elif _any(self.right_on):
@@ -873,9 +873,9 @@ class _MergeOperation(object):
                     right_keys.append(right._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
-                left_keys = [lev._values.take(lab)
-                             for lev, lab in zip(self.left.index.levels,
-                                                 self.left.index.labels)]
+                left_keys = [lev._values.take(lev_codes) for lev, lev_codes
+                             in zip(self.left.index.levels,
+                                    self.left.index.codes)]
             else:
                 left_keys = [self.left.index.values]
 
@@ -1421,27 +1421,29 @@ def _get_multiindex_indexer(join_keys, index, sort):
     fkeys = partial(_factorize_keys, sort=sort)
 
     # left & right join labels and num. of levels at each location
-    rlab, llab, shape = map(list, zip(* map(fkeys, index.levels, join_keys)))
+    rcodes, lcodes, shape = map(list, zip(* map(fkeys,
+                                                index.levels,
+                                                join_keys)))
     if sort:
-        rlab = list(map(np.take, rlab, index.labels))
+        rcodes = list(map(np.take, rcodes, index.codes))
     else:
         i8copy = lambda a: a.astype('i8', subok=False, copy=True)
-        rlab = list(map(i8copy, index.labels))
+        rcodes = list(map(i8copy, index.codes))
 
     # fix right labels if there were any nulls
     for i in range(len(join_keys)):
-        mask = index.labels[i] == -1
+        mask = index.codes[i] == -1
         if mask.any():
             # check if there already was any nulls at this location
             # if there was, it is factorized to `shape[i] - 1`
-            a = join_keys[i][llab[i] == shape[i] - 1]
+            a = join_keys[i][lcodes[i] == shape[i] - 1]
             if a.size == 0 or not a[0] != a[0]:
                 shape[i] += 1
 
-            rlab[i][mask] = shape[i] - 1
+            rcodes[i][mask] = shape[i] - 1
 
     # get flat i8 join keys
-    lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
+    lkey, rkey = _get_join_keys(lcodes, rcodes, shape, sort)
 
     # factorize keys to a dense i8 space
     lkey, rkey, count = fkeys(lkey, rkey)

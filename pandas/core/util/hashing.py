@@ -148,7 +148,7 @@ def hash_tuples(vals, encoding='utf8', hash_key=None):
         vals = MultiIndex.from_tuples(vals)
 
     # create a list-of-Categoricals
-    vals = [Categorical(vals.labels[level],
+    vals = [Categorical(vals.codes[level],
                         vals.levels[level],
                         ordered=False,
                         fastpath=True)

@@ -555,9 +555,9 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             levels = [ensure_index(x) for x in levels]
 
     if not _all_indexes_same(indexes):
-        label_list = []
+        codes_list = []
 
-        # things are potentially different sizes, so compute the exact labels
+        # things are potentially different sizes, so compute the exact codes
         # for each level and pass those to MultiIndex.from_arrays
 
         for hlevel, level in zip(zipped, levels):
@@ -570,18 +570,18 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
                                      .format(key=key, level=level))
 
                 to_concat.append(np.repeat(i, len(index)))
-            label_list.append(np.concatenate(to_concat))
+            codes_list.append(np.concatenate(to_concat))
 
         concat_index = _concat_indexes(indexes)
 
         # these go at the end
         if isinstance(concat_index, MultiIndex):
             levels.extend(concat_index.levels)
-            label_list.extend(concat_index.labels)
+            codes_list.extend(concat_index.codes)
         else:
             codes, categories = _factorize_from_iterable(concat_index)
             levels.append(categories)
-            label_list.append(codes)
+            codes_list.append(codes)
 
         if len(names) == len(levels):
             names = list(names)
@@ -594,7 +594,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             # also copies
             names = names + _get_consensus_names(indexes)
 
-        return MultiIndex(levels=levels, labels=label_list, names=names,
+        return MultiIndex(levels=levels, labels=codes_list, names=names,
                           verify_integrity=False)
 
     new_index = indexes[0]
@@ -605,8 +605,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     new_names = list(names)
     new_levels = list(levels)
 
-    # construct labels
-    new_labels = []
+    # construct codes
+    new_codes = []
 
     # do something a bit more speedy
 
@@ -619,17 +619,17 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             raise ValueError('Values not found in passed level: {hlevel!s}'
                              .format(hlevel=hlevel[mask]))
 
-        new_labels.append(np.repeat(mapped, n))
+        new_codes.append(np.repeat(mapped, n))
 
     if isinstance(new_index, MultiIndex):
         new_levels.extend(new_index.levels)
-        new_labels.extend([np.tile(lab, kpieces) for lab in new_index.labels])
+        new_codes.extend([np.tile(lab, kpieces) for lab in new_index.codes])
     else:
         new_levels.append(new_index)
-        new_labels.append(np.tile(np.arange(n), kpieces))
+        new_codes.append(np.tile(np.arange(n), kpieces))
 
     if len(new_names) < len(new_levels):
         new_names.extend(new_index.names)
 
-    return MultiIndex(levels=new_levels, labels=new_labels, names=new_names,
+    return MultiIndex(levels=new_levels, labels=new_codes, names=new_names,
                       verify_integrity=False)

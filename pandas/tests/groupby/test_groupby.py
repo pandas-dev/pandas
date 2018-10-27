@@ -76,7 +76,7 @@ def test_basic(dtype):
 
 
 def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
-    key = mframe.index.labels[0]
+    key = mframe.index.codes[0]
     grouped = mframe.groupby(key)
     result = grouped.sum()
 

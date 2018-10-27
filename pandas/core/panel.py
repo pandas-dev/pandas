@@ -949,26 +949,26 @@ class Panel(NDFrame):
 
         def construct_multi_parts(idx, n_repeat, n_shuffle=1):
             # Replicates and shuffles MultiIndex, returns individual attributes
-            labels = [np.repeat(x, n_repeat) for x in idx.labels]
+            codes = [np.repeat(x, n_repeat) for x in idx.codes]
             # Assumes that each label is divisible by n_shuffle
-            labels = [x.reshape(n_shuffle, -1).ravel(order='F')
-                      for x in labels]
-            labels = [x[selector] for x in labels]
+            codes = [x.reshape(n_shuffle, -1).ravel(order='F')
+                     for x in codes]
+            codes = [x[selector] for x in codes]
             levels = idx.levels
             names = idx.names
-            return labels, levels, names
+            return codes, levels, names
 
         def construct_index_parts(idx, major=True):
             levels = [idx]
             if major:
-                labels = [np.arange(N).repeat(K)[selector]]
+                codes = [np.arange(N).repeat(K)[selector]]
                 names = idx.name or 'major'
             else:
-                labels = np.arange(K).reshape(1, K)[np.zeros(N, dtype=int)]
-                labels = [labels.ravel()[selector]]
+                codes = np.arange(K).reshape(1, K)[np.zeros(N, dtype=int)]
+                codes = [codes.ravel()[selector]]
                 names = idx.name or 'minor'
             names = [names]
-            return labels, levels, names
+            return codes, levels, names
 
         if isinstance(self.major_axis, MultiIndex):
             major_labels, major_levels, major_names = construct_multi_parts(

@@ -269,13 +269,13 @@ class MultiIndex(Index):
         """
         # NOTE: Currently does not check, among other things, that cached
         # nlevels matches nor that sortorder matches actually sortorder.
-        codes = codes or self.labels
+        codes = codes or self.codes
         levels = levels or self.levels
 
         if len(levels) != len(codes):
             raise ValueError("Length of levels and codes must match. NOTE:"
                              " this index is in an inconsistent state.")
-        codes_length = len(self.labels[0])
+        codes_length = len(self.codes[0])
         for i, (level, level_codes) in enumerate(zip(levels, codes)):
             if len(level_codes) != codes_length:
                 raise ValueError("Unequal code lengths: %s" %
@@ -420,7 +420,7 @@ class MultiIndex(Index):
             return idx
 
     @property
-    def labels(self):
+    def codes(self):
         return self._codes
 
     def _set_codes(self, codes, level=None, copy=False, validate=True,
@@ -554,12 +554,12 @@ class MultiIndex(Index):
             if levels is None:
                 levels = deepcopy(self.levels)
             if labels is None:
-                labels = deepcopy(self.labels)
+                labels = deepcopy(self.codes)
         else:
             if levels is None:
                 levels = self.levels
             if labels is None:
-                labels = self.labels
+                labels = self.codes
         return MultiIndex(levels=levels, labels=labels, names=names,
                           sortorder=self.sortorder, verify_integrity=False,
                           _set_identity=_set_identity)
@@ -640,7 +640,7 @@ class MultiIndex(Index):
         objsize = 24
 
         level_nbytes = sum(i.memory_usage(deep=deep) for i in self.levels)
-        label_nbytes = sum(i.nbytes for i in self.labels)
+        label_nbytes = sum(i.nbytes for i in self.codes)
         names_nbytes = sum(getsizeof(i, objsize) for i in self.names)
         result = level_nbytes + label_nbytes + names_nbytes
 
@@ -671,7 +671,7 @@ class MultiIndex(Index):
         return None
 
     def __len__(self):
-        return len(self.labels[0])
+        return len(self.codes[0])
 
     def _get_names(self):
         return FrozenList(level.name for level in self.levels)
@@ -736,7 +736,7 @@ class MultiIndex(Index):
         new_labels = []
 
         # go through the levels and format them
-        for level, label in zip(self.levels, self.labels):
+        for level, label in zip(self.levels, self.codes):
             level = level._format_native_types(na_rep=na_rep, **kwargs)
             # add nan values, if there are any
             mask = (label == -1)
@@ -759,7 +759,7 @@ class MultiIndex(Index):
 
     @Appender(_index_shared_docs['_get_grouper_for_level'])
     def _get_grouper_for_level(self, mapper, level):
-        indexer = self.labels[level]
+        indexer = self.codes[level]
         level_index = self.levels[level]
 
         if mapper is not None:
@@ -840,8 +840,8 @@ class MultiIndex(Index):
         # Check the total number of bits needed for our representation:
         if lev_bits[0] > 64:
             # The levels would overflow a 64 bit uint - use Python integers:
-            return MultiIndexPyIntEngine(self.levels, self.labels, offsets)
-        return MultiIndexUIntEngine(self.levels, self.labels, offsets)
+            return MultiIndexPyIntEngine(self.levels, self.codes, offsets)
+        return MultiIndexUIntEngine(self.levels, self.codes, offsets)
 
     @property
     def values(self):
@@ -952,7 +952,7 @@ class MultiIndex(Index):
         from pandas._libs.hashtable import duplicated_int64
 
         shape = map(len, self.levels)
-        ids = get_group_index(self.labels, shape, sort=False, xnull=False)
+        ids = get_group_index(self.codes, shape, sort=False, xnull=False)
 
         return duplicated_int64(ids, keep)
 
@@ -964,7 +964,7 @@ class MultiIndex(Index):
 
     @Appender(_index_shared_docs['dropna'])
     def dropna(self, how='any'):
-        nans = [label == -1 for label in self.labels]
+        nans = [label == -1 for label in self.codes]
         if how == 'any':
             indexer = np.any(nans, axis=0)
         elif how == 'all':
@@ -972,7 +972,7 @@ class MultiIndex(Index):
         else:
             raise ValueError("invalid how option: {0}".format(how))
 
-        new_labels = [label[~indexer] for label in self.labels]
+        new_labels = [label[~indexer] for label in self.codes]
         return self.copy(labels=new_labels, deep=True)
 
     def get_value(self, series, key):
@@ -1054,7 +1054,7 @@ class MultiIndex(Index):
         """
 
         values = self.levels[level]
-        labels = self.labels[level]
+        labels = self.codes[level]
         if unique:
             labels = algos.unique(labels)
         filled = algos.take_1d(values._values, labels,
@@ -1113,7 +1113,7 @@ class MultiIndex(Index):
             return []
 
         stringified_levels = []
-        for lev, lab in zip(self.levels, self.labels):
+        for lev, lab in zip(self.levels, self.codes):
             na = na_rep if na_rep is not None else _get_na_rep(lev.dtype.type)
 
             if len(lev) > 0:
@@ -1253,7 +1253,7 @@ class MultiIndex(Index):
                            [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1]])
         """
         levels = self.levels
-        labels = [np.repeat(x, n_repeat) for x in self.labels]
+        labels = [np.repeat(x, n_repeat) for x in self.codes]
         # Assumes that each label is divisible by n_shuffle
         labels = [x.reshape(n_shuffle, -1).ravel(order='F') for x in labels]
         names = self.names
@@ -1280,7 +1280,7 @@ class MultiIndex(Index):
             else:
                 return 0
 
-        int64_labels = [ensure_int64(lab) for lab in self.labels]
+        int64_labels = [ensure_int64(lab) for lab in self.codes]
         for k in range(self.nlevels, 0, -1):
             if libalgos.is_lexsorted(int64_labels[:k]):
                 return k
@@ -1472,7 +1472,7 @@ class MultiIndex(Index):
         new_levels = []
         new_labels = []
 
-        for lev, lab in zip(self.levels, self.labels):
+        for lev, lab in zip(self.levels, self.codes):
 
             if not lev.is_monotonic:
                 try:
@@ -1534,7 +1534,7 @@ class MultiIndex(Index):
         new_labels = []
 
         changed = False
-        for lev, lab in zip(self.levels, self.labels):
+        for lev, lab in zip(self.levels, self.codes):
 
             # Since few levels are typically unused, bincount() is more
             # efficient than unique() - however it only accepts positive values
@@ -1591,7 +1591,7 @@ class MultiIndex(Index):
     def __reduce__(self):
         """Necessary for making this object picklable"""
         d = dict(levels=[lev for lev in self.levels],
-                 labels=[label for label in self.labels],
+                 labels=[label for label in self.codes],
                  sortorder=self.sortorder, names=list(self.names))
         return ibase._new_Index, (self.__class__, d), None
 
@@ -1621,7 +1621,7 @@ class MultiIndex(Index):
             key = com.cast_scalar_indexer(key)
 
             retval = []
-            for lev, lab in zip(self.levels, self.labels):
+            for lev, lab in zip(self.levels, self.codes):
                 if lab[key] == -1:
                     retval.append(np.nan)
                 else:
@@ -1639,7 +1639,7 @@ class MultiIndex(Index):
                 if isinstance(key, Index):
                     key = np.asarray(key)
 
-            new_labels = [lab[key] for lab in self.labels]
+            new_labels = [lab[key] for lab in self.codes]
 
             return MultiIndex(levels=self.levels, labels=new_labels,
                               names=self.names, sortorder=sortorder,
@@ -1650,7 +1650,7 @@ class MultiIndex(Index):
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)
-        taken = self._assert_take_fillable(self.labels, indices,
+        taken = self._assert_take_fillable(self.codes, indices,
                                            allow_fill=allow_fill,
                                            fill_value=fill_value,
                                            na_value=-1)
@@ -1666,7 +1666,7 @@ class MultiIndex(Index):
                 msg = ('When allow_fill=True and fill_value is not None, '
                        'all indices must be >= -1')
                 raise ValueError(msg)
-            taken = [lab.take(indices) for lab in self.labels]
+            taken = [lab.take(indices) for lab in self.codes]
             mask = indices == -1
             if mask.any():
                 masked = []
@@ -1676,7 +1676,7 @@ class MultiIndex(Index):
                     masked.append(np.asarray(label_values))
                 taken = masked
         else:
-            taken = [lab.take(indices) for lab in self.labels]
+            taken = [lab.take(indices) for lab in self.codes]
         return taken
 
     def append(self, other):
@@ -1719,7 +1719,7 @@ class MultiIndex(Index):
         nv.validate_repeat(args, kwargs)
         return MultiIndex(levels=self.levels,
                           labels=[label.view(np.ndarray).repeat(repeats)
-                                  for label in self.labels], names=self.names,
+                                  for label in self.codes], names=self.names,
                           sortorder=self.sortorder, verify_integrity=False)
 
     def where(self, cond, other=None):
@@ -1789,7 +1789,7 @@ class MultiIndex(Index):
         index = self.levels[i]
         values = index.get_indexer(labels)
 
-        mask = ~algos.isin(self.labels[i], values)
+        mask = ~algos.isin(self.codes[i], values)
 
         return self[mask]
 
@@ -1836,7 +1836,7 @@ class MultiIndex(Index):
            labels=[[0, 1, 0, 1], [0, 0, 1, 1]])
         """
         new_levels = list(self.levels)
-        new_labels = list(self.labels)
+        new_labels = list(self.codes)
         new_names = list(self.names)
 
         i = self._get_level_number(i)
@@ -1862,7 +1862,7 @@ class MultiIndex(Index):
                                  'number of levels (%d), got %d' %
                                  (self.nlevels, len(order)))
         new_levels = [self.levels[i] for i in order]
-        new_labels = [self.labels[i] for i in order]
+        new_labels = [self.codes[i] for i in order]
         new_names = [self.names[i] for i in order]
 
         return MultiIndex(levels=new_levels, labels=new_labels,
@@ -1886,7 +1886,7 @@ class MultiIndex(Index):
                              dtype=label.dtype)
 
         return [Categorical.from_codes(label, cats(label), ordered=True)
-                for label in self.labels]
+                for label in self.codes]
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
@@ -1924,13 +1924,13 @@ class MultiIndex(Index):
                 raise ValueError("level must have same length as ascending")
 
             from pandas.core.sorting import lexsort_indexer
-            indexer = lexsort_indexer([self.labels[lev] for lev in level],
+            indexer = lexsort_indexer([self.codes[lev] for lev in level],
                                       orders=ascending)
 
         # level ordering
         else:
 
-            labels = list(self.labels)
+            labels = list(self.codes)
             shape = list(self.levshape)
 
             # partition labels and shape
@@ -1950,7 +1950,7 @@ class MultiIndex(Index):
                 indexer = indexer[::-1]
 
         indexer = ensure_platform_int(indexer)
-        new_labels = [lab.take(indexer) for lab in self.labels]
+        new_labels = [lab.take(indexer) for lab in self.codes]
 
         new_index = MultiIndex(labels=new_labels, levels=self.levels,
                                names=self.names, sortorder=sortorder,
@@ -2167,7 +2167,7 @@ class MultiIndex(Index):
 
         n = len(tup)
         start, end = 0, len(self)
-        zipped = zip(tup, self.levels, self.labels)
+        zipped = zip(tup, self.levels, self.codes)
         for k, (lab, lev, labs) in enumerate(zipped):
             section = labs[start:end]
 
@@ -2279,7 +2279,7 @@ class MultiIndex(Index):
         loc = np.arange(start, stop, dtype='int64')
 
         for i, k in enumerate(follow_key, len(lead_key)):
-            mask = self.labels[i][loc] == self.levels[i].get_loc(k)
+            mask = self.codes[i][loc] == self.levels[i].get_loc(k)
             if not mask.all():
                 loc = loc[mask]
             if not len(loc):
@@ -2430,7 +2430,7 @@ class MultiIndex(Index):
         # if the indexer is provided, then use this
 
         level_index = self.levels[level]
-        labels = self.labels[level]
+        labels = self.codes[level]
 
         def convert_indexer(start, stop, step, indexer=indexer, labels=labels):
             # given the inputs and the labels/indexer, compute an indexer set
@@ -2662,7 +2662,7 @@ class MultiIndex(Index):
         new_levels = list(self.levels)
         new_levels[0] = new_levels[0][i:j]
 
-        new_labels = [lab[left:right] for lab in self.labels]
+        new_labels = [lab[left:right] for lab in self.codes]
         new_labels[0] = new_labels[0] - i
 
         return MultiIndex(levels=new_levels, labels=new_labels,
@@ -2694,12 +2694,12 @@ class MultiIndex(Index):
             return False
 
         for i in range(self.nlevels):
-            slabels = self.labels[i]
+            slabels = self.codes[i]
             slabels = slabels[slabels != -1]
             svalues = algos.take_nd(np.asarray(self.levels[i]._values),
                                     slabels, allow_fill=False)
 
-            olabels = other.labels[i]
+            olabels = other.codes[i]
             olabels = olabels[olabels != -1]
             ovalues = algos.take_nd(
                 np.asarray(other.levels[i]._values),
@@ -2871,7 +2871,7 @@ class MultiIndex(Index):
 
         new_levels = []
         new_labels = []
-        for k, level, labels in zip(item, self.levels, self.labels):
+        for k, level, labels in zip(item, self.levels, self.codes):
             if k not in level:
                 # have to insert into level
                 # must insert at end otherwise you have to recompute all the
@@ -2895,7 +2895,7 @@ class MultiIndex(Index):
         -------
         new_index : MultiIndex
         """
-        new_labels = [np.delete(lab, loc) for lab in self.labels]
+        new_labels = [np.delete(lab, loc) for lab in self.codes]
         return MultiIndex(levels=self.levels, labels=new_labels,
                           names=self.names, verify_integrity=False)
 
@@ -2912,7 +2912,7 @@ class MultiIndex(Index):
         else:
             num = self._get_level_number(level)
             levs = self.levels[num]
-            labs = self.labels[num]
+            labs = self.codes[num]
 
             sought_labels = levs.isin(values).nonzero()[0]
             if levs.size == 0:

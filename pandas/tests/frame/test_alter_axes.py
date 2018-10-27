@@ -748,9 +748,9 @@ class TestDataFrameAlterAxes():
         names = ['first', 'second']
         stacked.index.names = names
         deleveled = stacked.reset_index()
-        for i, (lev, lab) in enumerate(zip(stacked.index.levels,
-                                           stacked.index.labels)):
-            values = lev.take(lab)
+        for i, (lev, level_codes) in enumerate(zip(stacked.index.levels,
+                                                   stacked.index.codes)):
+            values = lev.take(level_codes)
             name = names[i]
             tm.assert_index_equal(values, Index(deleveled[name]))
 
@@ -1084,7 +1084,7 @@ class TestDataFrameAlterAxes():
             df.rename(id, mapper=id)
 
     def test_reindex_api_equivalence(self):
-        # equivalence of the labels/axis and index/columns API's
+            # equivalence of the labels/axis and index/columns API's
         df = DataFrame([[1, 2, 3], [3, 4, 5], [5, 6, 7]],
                        index=['a', 'b', 'c'],
                        columns=['d', 'e', 'f'])

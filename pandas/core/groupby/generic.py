@@ -1111,7 +1111,7 @@ class SeriesGroupBy(GroupBy):
             lab = cut(Series(val), bins, include_lowest=True)
             lev = lab.cat.categories
             lab = lev.take(lab.cat.codes)
-            llab = lambda lab, inc: lab[inc]._multiindex.labels[-1]
+            llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if is_interval_dtype(lab):
             # TODO: should we do this inside II?
