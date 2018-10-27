@@ -11,6 +11,7 @@ from pandas import Series
 # ------------------------------------------------------------------
 # Comparisons
 
+
 class TestSeriesComparison(object):
 
     @pytest.mark.parametrize('opname', ['eq', 'ne', 'gt', 'lt', 'ge', 'le'])
