@@ -1051,7 +1051,7 @@ cdef _try_infer_map(v):
     return None
 
 
-def infer_dtype(value: object, skipna: bint = False) -> bint:
+def infer_dtype(value: object, skipna: bint = False) -> str:
     """
     Efficiently infer the type of a passed val, or list-like
     array of values. Return a string describing the type.
