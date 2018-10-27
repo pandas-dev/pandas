@@ -19,7 +19,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     Convert argument to timedelta.
 
     Timedeltas are absolute differences in times, expressed in difference
-    units e.g. days, hours, minutes, seconds. This method converts an argument
+    units e.g. (days, hours, minutes, seconds). This method converts an argument
     from a recognized timedelta format / value into a Timedelta type.
 
     Parameters
@@ -43,7 +43,8 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
 
     Returns
     -------
-    ret : timedelta64/arrays of timedelta64 if parsing succeeded
+    timedelta64 or numpy.array of timedelta64
+        Output type returned if parsing succeeded.
 
     See also
     --------
