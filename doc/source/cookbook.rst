@@ -968,14 +968,11 @@ Parsing date components in multi-columns
 
 Parsing date components in multi-columns is faster with a format
 
-.. code-block:: python
+.. code-block::
 
-    In [30]: i = pd.date_range('20000101',periods=10000)
-
-    In [31]: df = pd.DataFrame(dict(year = i.year, month = i.month, day = i.day))
-
-    In [32]: df.head()
-    Out[32]:
+    >>> i = pd.date_range('20000101', periods=10000)
+    >>> df = pd.DataFrame({year: i.year, month: i.month, day: i.day})
+    >>> df.head()
        day  month  year
     0    1      1  2000
     1    2      1  2000
@@ -983,14 +980,14 @@ Parsing date components in multi-columns is faster with a format
     3    4      1  2000
     4    5      1  2000
 
-    In [33]: %timeit pd.to_datetime(df.year*10000+df.month*100+df.day,format='%Y%m%d')
+    >>> %timeit pd.to_datetime(df.year * 10000 + df.month * 100 + df.day,
+    ...                        format='%Y%m%d')
     100 loops, best of 3: 7.08 ms per loop
 
     # simulate combinging into a string, then parsing
-    In [34]: ds = df.apply(lambda x: "%04d%02d%02d" % (x['year'],x['month'],x['day']),axis=1)
-
-    In [35]: ds.head()
-    Out[35]:
+    >>> ds = df.apply(lambda x: "%04d%02d%02d" %
+    ...               (x['year'], x['month'], x['day']), axis=1)
+    >>> ds.head()
     0    20000101
     1    20000102
     2    20000103
@@ -998,7 +995,7 @@ Parsing date components in multi-columns is faster with a format
     4    20000105
     dtype: object
 
-    In [36]: %timeit pd.to_datetime(ds)
+    >>> %timeit pd.to_datetime(ds)
     1 loops, best of 3: 488 ms per loop
 
 Skip row between header and data
@@ -1254,6 +1251,7 @@ The `method` argument within `DataFrame.corr` can accept a callable in addition 
     ...     std_b = np.sqrt(np.sqrt(np.nansum(B**2)) / n)
     ...
     ...     return cov_ab / std_a / std_b
+    ...
     ...
     >>> df = pd.DataFrame(np.random.normal(size=(100, 3)))
     ...
