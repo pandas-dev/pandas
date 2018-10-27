@@ -1111,6 +1111,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         .. versionadded:: 0.24.0
 
+        Parameters
+        ----------
+        sep : str, optional
+            Not yet implemented.
+
         Returns
         -------
         pd.Index : an Index with the MultiIndex data represented in Tuples.
@@ -1122,7 +1127,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index
+        to_series : Similar method to construct a Series.
+        to_frame : Similar method to construct a DataFrame.
+
+        Examples
+        --------
+        >>> index = pd.MultiIndex.from_product(
+        ...     [['foo', 'bar'], ['baz', 'qux']],
+        ...     names=['a', 'b'])
+        >>> index.to_index()
+        Index([('foo', 'baz'), ('foo', 'qux'),
+               ('bar', 'baz'), ('bar', 'qux')],
+              dtype='object')
         """
         if sep is not None:
             # TODO: Add support for separator to return strs instad of tuples
