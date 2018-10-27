@@ -15,13 +15,6 @@ from .common import TestData
 
 class TestSeriesSorting(TestData):
 
-    def test_sortlevel_deprecated(self):
-        ts = self.ts.copy()
-
-        # see gh-9816
-        with tm.assert_produces_warning(FutureWarning):
-            ts.sortlevel()
-
     def test_sort_values(self):
 
         # check indexes are reordered corresponding with the values
