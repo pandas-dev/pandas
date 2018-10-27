@@ -858,7 +858,8 @@ by the corresponding calendar duration specified.
    monday = friday + pd.tseries.offsets.BDay()
    monday.day_name()
 
-The available date offsets and associated frequency strings can be found below:
+Most ``DateOffsets`` have associated frequencies strings, or offset aliases, that can be passed
+into ``freq`` keyword arguments. The available date offsets and associated frequency strings can be found below:
 
 .. csv-table::
     :header: "Date Offset", "Frequency String", "Description"
