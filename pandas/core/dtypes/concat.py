@@ -470,10 +470,10 @@ def _concat_datetime(to_concat, axis=0, typs=None):
                                axis=axis).view(_TD_DTYPE)
 
     elif any(typ.startswith('period') for typ in typs):
-        # PeriodIndex must be handled by PeriodIndex,
-        # Thus can't meet this condition ATM
-        # Must be changed when we adding PeriodDtype
-        raise NotImplementedError("unable to concat PeriodDtype")
+        assert len(typs) == 1
+        cls = to_concat[0]
+        new_values = cls._concat_same_type(to_concat)
+        return new_values
 
 
 def _convert_datetimelike_to_object(x):
@@ -556,15 +556,10 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     a single array, preserving the combined dtypes
     """
 
-    from pandas.core.sparse.array import SparseArray
+    from pandas.core.arrays import SparseArray
 
     fill_values = [x.fill_value for x in to_concat
                    if isinstance(x, SparseArray)]
-
-    if len(set(fill_values)) > 1:
-        raise ValueError("Cannot concatenate SparseArrays with different "
-                         "fill values")
-
     fill_value = fill_values[0]
 
     # TODO: Fix join unit generation so we aren't passed this.

@@ -9,7 +9,7 @@ jobs:
   strategy:
     maxParallel: 11
     matrix:
-      py35_np_110:
+      py35_np_120:
         ENV_FILE: ci/azure-macos-35.yaml
         CONDA_PY: "35"
         CONDA_ENV: pandas
@@ -39,5 +39,5 @@ jobs:
         source activate pandas && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
     - task: PublishTestResults@2
       inputs:
-        testResultsFiles: '/tmp/*.xml'
+        testResultsFiles: 'test-data-*.xml'
         testRunTitle: 'MacOS-35'

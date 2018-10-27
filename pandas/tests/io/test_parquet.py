@@ -437,10 +437,13 @@ class TestParquetPyArrow(Base):
                           columns=list('aaa')).copy()
         self.check_error_on_write(df, pa, ValueError)
 
+    @pytest.mark.xfail(reason="failing for pyarrow < 0.11.0")
     def test_unsupported(self, pa):
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
-        self.check_error_on_write(df, pa, ValueError)
+        # pyarrow 0.11 raises ArrowTypeError
+        # older pyarrows raise ArrowInvalid
+        self.check_error_on_write(df, pa, Exception)
 
         # timedelta
         df = pd.DataFrame({'a': pd.timedelta_range('1 day',
@@ -449,7 +452,9 @@ class TestParquetPyArrow(Base):
 
         # mixed python objects
         df = pd.DataFrame({'a': ['a', 1, 2.0]})
-        self.check_error_on_write(df, pa, ValueError)
+        # pyarrow 0.11 raises ArrowTypeError
+        # older pyarrows raise ArrowInvalid
+        self.check_error_on_write(df, pa, Exception)
 
     def test_categorical(self, pa_ge_070):
         pa = pa_ge_070

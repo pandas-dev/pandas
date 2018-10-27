@@ -16,33 +16,30 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 {{py:
 
-# name, c_type, dest_type, dest_dtype
-dtypes = [('float64', 'float64_t', 'float64_t', 'np.float64'),
-          ('float32', 'float32_t', 'float32_t', 'np.float32'),
-          ('int8',  'int8_t',  'float32_t', 'np.float32'),
-          ('int16', 'int16_t', 'float32_t', 'np.float32'),
-          ('int32', 'int32_t', 'float64_t', 'np.float64'),
-          ('int64', 'int64_t', 'float64_t', 'np.float64')]
+# name, c_type, dest_type
+dtypes = [('float64', 'float64_t', 'float64_t'),
+          ('float32', 'float32_t', 'float32_t'),
+          ('int8',  'int8_t',  'float32_t'),
+          ('int16', 'int16_t', 'float32_t'),
+          ('int32', 'int32_t', 'float64_t'),
+          ('int64', 'int64_t', 'float64_t')]
 
 def get_dispatch(dtypes):
 
-    for name, c_type, dest_type, dest_dtype, in dtypes:
-
-        dest_type2 = dest_type
-        dest_type = dest_type.replace('_t', '')
-
-        yield name, c_type, dest_type, dest_type2, dest_dtype
+    for name, c_type, dest_type, in dtypes:
+        dest_name = dest_type[:-2]  # i.e. strip "_t"
+        yield name, c_type, dest_type, dest_name
 
 }}
 
-{{for name, c_type, dest_type, dest_type2, dest_dtype
+{{for name, c_type, dest_type, dest_name
       in get_dispatch(dtypes)}}
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d_{{name}}(ndarray[{{c_type}}, ndim=2] arr,
-                     ndarray[{{dest_type2}}, ndim=2] out,
+                     ndarray[{{dest_type}}, ndim=2] out,
                      Py_ssize_t periods, int axis):
     cdef:
         Py_ssize_t i, j, sx, sy
@@ -84,9 +81,9 @@ def diff_2d_{{name}}(ndarray[{{c_type}}, ndim=2] arr,
                     out[i, j] = arr[i, j] - arr[i, j - periods]
 
 
-def put2d_{{name}}_{{dest_type}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
+def put2d_{{name}}_{{dest_name}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
                                  ndarray[int64_t] indexer, Py_ssize_t loc,
-                                 ndarray[{{dest_type2}}] out):
+                                 ndarray[{{dest_type}}] out):
     cdef:
         Py_ssize_t i, j, k
 
@@ -136,6 +133,9 @@ dtypes = [('float64', 'FLOAT64', 'float64'),
           ('int16', 'INT16', 'int16'),
           ('int32', 'INT32', 'int32'),
           ('int64', 'INT64', 'int64'),
+          ('uint8', 'UINT8', 'uint8'),
+          ('uint16', 'UINT16', 'uint16'),
+          ('uint32', 'UINT32', 'uint32'),
           ('uint64', 'UINT64', 'uint64'),
           # ('platform_int', 'INT', 'int_'),
           # ('object', 'OBJECT', 'object_'),

@@ -24,9 +24,10 @@ import pandas.core.ops as ops
 import pandas._libs.index as libindex
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.sparse.array import (
+from pandas.core.arrays import (
     SparseArray,
 )
+from pandas.core.arrays.sparse import SparseAccessor
 from pandas._libs.sparse import BlockIndex, IntIndex
 import pandas._libs.sparse as splib
 
@@ -183,7 +184,7 @@ class SparseSeries(Series):
 
     @property
     def npoints(self):
-        return self.sp_index.npoints
+        return self.values.npoints
 
     @classmethod
     def from_array(cls, arr, index=None, name=None, copy=False,
@@ -439,38 +440,20 @@ class SparseSeries(Series):
                              kind=self.kind)
         self._data = SingleBlockManager(values, self.index)
 
-    def to_dense(self, sparse_only=False):
+    def to_dense(self):
         """
         Convert SparseSeries to a Series.
-
-        Parameters
-        ----------
-        sparse_only : bool, default False
-            .. deprecated:: 0.20.0
-                This argument will be removed in a future version.
-
-            If True, return just the non-sparse values, or the dense version
-            of `self.values` if False.
 
         Returns
         -------
         s : Series
         """
-        if sparse_only:
-            warnings.warn(("The 'sparse_only' parameter has been deprecated "
-                           "and will be removed in a future version."),
-                          FutureWarning, stacklevel=2)
-            int_index = self.sp_index.to_int_index()
-            index = self.index.take(int_index.indices)
-            return Series(self.sp_values, index=index, name=self.name)
-        else:
-            return Series(self.values.to_dense(), index=self.index,
-                          name=self.name)
+        return Series(self.values.to_dense(), index=self.index,
+                      name=self.name)
 
     @property
     def density(self):
-        r = float(self.sp_index.npoints) / float(self.sp_index.length)
-        return r
+        return self.values.density
 
     def copy(self, deep=True):
         """
@@ -597,99 +580,16 @@ class SparseSeries(Series):
         dense_combined = self.to_dense().combine_first(other)
         return dense_combined.to_sparse(fill_value=self.fill_value)
 
+    @Appender(SparseAccessor.to_coo.__doc__)
     def to_coo(self, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
-        """
-        Create a scipy.sparse.coo_matrix from a SparseSeries with MultiIndex.
-
-        Use row_levels and column_levels to determine the row and column
-        coordinates respectively. row_levels and column_levels are the names
-        (labels) or numbers of the levels. {row_levels, column_levels} must be
-        a partition of the MultiIndex level names (or numbers).
-
-        Parameters
-        ----------
-        row_levels : tuple/list
-        column_levels : tuple/list
-        sort_labels : bool, default False
-            Sort the row and column labels before forming the sparse matrix.
-
-        Returns
-        -------
-        y : scipy.sparse.coo_matrix
-        rows : list (row labels)
-        columns : list (column labels)
-
-        Examples
-        --------
-        >>> s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
-        >>> s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
-                                                (1, 2, 'a', 1),
-                                                (1, 1, 'b', 0),
-                                                (1, 1, 'b', 1),
-                                                (2, 1, 'b', 0),
-                                                (2, 1, 'b', 1)],
-                                                names=['A', 'B', 'C', 'D'])
-        >>> ss = s.to_sparse()
-        >>> A, rows, columns = ss.to_coo(row_levels=['A', 'B'],
-                                         column_levels=['C', 'D'],
-                                         sort_labels=True)
-        >>> A
-        <3x4 sparse matrix of type '<class 'numpy.float64'>'
-                with 3 stored elements in COOrdinate format>
-        >>> A.todense()
-        matrix([[ 0.,  0.,  1.,  3.],
-        [ 3.,  0.,  0.,  0.],
-        [ 0.,  0.,  0.,  0.]])
-        >>> rows
-        [(1, 1), (1, 2), (2, 1)]
-        >>> columns
-        [('a', 0), ('a', 1), ('b', 0), ('b', 1)]
-        """
         A, rows, columns = _sparse_series_to_coo(self, row_levels,
                                                  column_levels,
                                                  sort_labels=sort_labels)
         return A, rows, columns
 
     @classmethod
+    @Appender(SparseAccessor.from_coo.__doc__)
     def from_coo(cls, A, dense_index=False):
-        """
-        Create a SparseSeries from a scipy.sparse.coo_matrix.
-
-        Parameters
-        ----------
-        A : scipy.sparse.coo_matrix
-        dense_index : bool, default False
-            If False (default), the SparseSeries index consists of only the
-            coords of the non-null entries of the original coo_matrix.
-            If True, the SparseSeries index consists of the full sorted
-            (row, col) coordinates of the coo_matrix.
-
-        Returns
-        -------
-        s : SparseSeries
-
-        Examples
-        ---------
-        >>> from scipy import sparse
-        >>> A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
-                               shape=(3, 4))
-        >>> A
-        <3x4 sparse matrix of type '<class 'numpy.float64'>'
-                with 3 stored elements in COOrdinate format>
-        >>> A.todense()
-        matrix([[ 0.,  0.,  1.,  2.],
-                [ 3.,  0.,  0.,  0.],
-                [ 0.,  0.,  0.,  0.]])
-        >>> ss = pd.SparseSeries.from_coo(A)
-        >>> ss
-        0  2    1
-           3    2
-        1  0    3
-        dtype: float64
-        BlockIndex
-        Block locations: array([0], dtype=int32)
-        Block lengths: array([3], dtype=int32)
-        """
         return _coo_to_sparse_series(A, dense_index=dense_index)
 
 

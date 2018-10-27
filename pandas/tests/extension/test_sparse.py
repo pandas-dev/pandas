@@ -2,8 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from pandas.core.sparse.dtype import SparseDtype
-from pandas import SparseArray
+from pandas import SparseArray, SparseDtype
 from pandas.errors import PerformanceWarning
 from pandas.tests.extension import base
 import pandas.util.testing as tm
@@ -13,7 +12,7 @@ def make_data(fill_value):
     if np.isnan(fill_value):
         data = np.random.uniform(size=100)
     else:
-        data = np.random.randint(0, 100, size=100)
+        data = np.random.randint(1, 100, size=100)
 
     data[2::3] = fill_value
     return data

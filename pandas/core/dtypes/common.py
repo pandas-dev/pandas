@@ -1,5 +1,4 @@
 """ common type operations """
-
 import numpy as np
 from pandas.compat import (string_types, text_type, binary_type,
                            PY3, PY36)
@@ -12,17 +11,15 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype, IntervalDtype,
     PandasExtensionDtype, ExtensionDtype,
     _pandas_registry)
-from pandas.core.sparse.dtype import SparseDtype
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
     ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
-    ABCDateOffset)
+    ABCDateOffset, ABCPeriodArray)
 from pandas.core.dtypes.inference import (  # noqa:F401
-    is_bool, is_integer, is_hashable, is_iterator, is_float,
-    is_dict_like, is_scalar, is_string_like, is_list_like, is_number,
-    is_file_like, is_re, is_re_compilable, is_sequence, is_nested_list_like,
-    is_named_tuple, is_array_like, is_decimal, is_complex, is_interval)
-
+    is_bool, is_integer, is_float, is_number, is_decimal, is_complex,
+    is_re, is_re_compilable, is_dict_like, is_string_like, is_file_like,
+    is_list_like, is_nested_list_like, is_sequence, is_named_tuple,
+    is_hashable, is_iterator, is_array_like, is_scalar, is_interval)
 
 _POSSIBLY_CAST_DTYPES = {np.dtype(t).name
                          for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
@@ -181,7 +178,7 @@ def is_sparse(arr):
     >>> is_sparse(bsr_matrix([1, 2, 3]))
     False
     """
-    from pandas.core.sparse.dtype import SparseDtype
+    from pandas.core.arrays.sparse import SparseDtype
 
     dtype = getattr(arr, 'dtype', arr)
     return isinstance(dtype, SparseDtype)
@@ -641,10 +638,10 @@ def is_period_arraylike(arr):
     True
     """
 
-    if isinstance(arr, ABCPeriodIndex):
+    if isinstance(arr, (ABCPeriodIndex, ABCPeriodArray)):
         return True
     elif isinstance(arr, (np.ndarray, ABCSeries)):
-        return arr.dtype == object and lib.infer_dtype(arr) == 'period'
+        return is_period_dtype(arr.dtype)
     return getattr(arr, 'inferred_type', None) == 'period'
 
 
@@ -1928,10 +1925,13 @@ def _get_dtype_type(arr_or_dtype):
         elif is_interval_dtype(arr_or_dtype):
             return Interval
         return _get_dtype_type(np.dtype(arr_or_dtype))
-    elif isinstance(arr_or_dtype, (ABCSparseSeries, ABCSparseArray,
-                                   SparseDtype)):
-        dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
-        return dtype.type
+    else:
+        from pandas.core.arrays.sparse import SparseDtype
+        if isinstance(arr_or_dtype, (ABCSparseSeries,
+                                     ABCSparseArray,
+                                     SparseDtype)):
+            dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
+            return dtype.type
     try:
         return arr_or_dtype.dtype.type
     except AttributeError:
