@@ -685,8 +685,8 @@ shown:
 
 .. code-block:: python
 
-    import numpy as np
-    import pandas as pd
+    import numpy as np          # noqa: F401
+    import pandas as pd         # noqa: F401
 
 Any other module used in the examples must be explicitly imported, one per line (as
 recommended in :pep:`8#imports`)

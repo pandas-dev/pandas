@@ -5350,7 +5350,6 @@ And here's the code:
    import pandas as pd
    import sqlite3
    from numpy.random import randn
-   from pandas.io import sql
 
    sz = 1000000
    df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
