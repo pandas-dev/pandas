@@ -117,7 +117,7 @@ def _maybe_remove(store, key):
     no content from previous tests using the same table name."""
     try:
         store.remove(key)
-    except ValueError:
+    except (ValueError, KeyError):
         pass
 
 
@@ -4621,7 +4621,7 @@ class TestHDFStore(Base):
                     safe_close(tstore)
                     try:
                         os.close(fd)
-                    except OSError:
+                    except (OSError, ValueError):
                         pass
                     safe_remove(new_f)
 
