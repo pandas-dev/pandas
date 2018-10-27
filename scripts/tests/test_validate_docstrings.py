@@ -346,33 +346,6 @@ class BadGenericDocStrings(object):
         pass
 
 
-class BadSeeAlso(object):
-
-    def desc_no_period(self):
-        """
-        Return the first 5 elements of the Series.
-
-        See Also
-        --------
-        Series.tail : Return the last 5 elements of the Series.
-        Series.iloc : Return a slice of the elements in the Series,
-            which can also be used to return the first or last n
-        """
-        pass
-
-    def desc_first_letter_lowercase(self):
-        """
-        Return the first 5 elements of the Series.
-
-        See Also
-        --------
-        Series.tail : return the last 5 elements of the Series.
-        Series.iloc : Return a slice of the elements in the Series,
-            which can also be used to return the first or last n.
-        """
-        pass
-
-
 class BadSummaries(object):
 
     def wrong_line(self):
@@ -585,6 +558,44 @@ class BadReturns(object):
         return "Hello world!"
 
 
+class BadSeeAlso(object):
+
+    def desc_no_period(self):
+        """
+        Return the first 5 elements of the Series.
+
+        See Also
+        --------
+        Series.tail : Return the last 5 elements of the Series.
+        Series.iloc : Return a slice of the elements in the Series,
+            which can also be used to return the first or last n
+        """
+        pass
+
+    def desc_first_letter_lowercase(self):
+        """
+        Return the first 5 elements of the Series.
+
+        See Also
+        --------
+        Series.tail : return the last 5 elements of the Series.
+        Series.iloc : Return a slice of the elements in the Series,
+            which can also be used to return the first or last n.
+        """
+        pass
+
+    def prefix_pandas(self):
+        """
+        Have `pandas` prefix in See Also section.
+
+        See Also
+        --------
+        pandas.Series.rename : Alter Series index labels or name.
+        DataFrame.head : The first `n` rows of the caller object.
+        """
+        pass
+
+
 class TestValidator(object):
 
     def _import_path(self, klass=None, func=None):
@@ -705,7 +716,11 @@ class TestValidator(object):
         ('BadGenericDocStrings', 'method',
          ('Examples should not have `import numpy` ',)),
         ('BadGenericDocStrings', 'method',
-         ('Examples should not have `import pandas` ',))
+         ('Examples should not have `import pandas` ',)),
+        # See Also tests
+        ('BadSeeAlso', 'prefix_pandas',
+         ('pandas.Series.rename in `See Also` section '
+          'does not need `pandas` prefix',))
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
