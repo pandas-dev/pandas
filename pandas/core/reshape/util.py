@@ -1,9 +1,8 @@
 import numpy as np
 
-from pandas.core.dtypes.common import is_list_like
-
 from pandas.compat import reduce
 from pandas.core import common as com
+from pandas.core.dtypes.common import is_list_like
 
 
 def cartesian_product(X):

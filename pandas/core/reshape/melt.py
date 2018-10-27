@@ -1,21 +1,18 @@
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
+import re
+
 import numpy as np
 
-from pandas.core.dtypes.common import is_list_like
 from pandas import compat
 from pandas.core.arrays import Categorical
-
+from pandas.core.dtypes.common import is_extension_type, is_list_like
 from pandas.core.dtypes.generic import ABCMultiIndex
-
-from pandas.core.frame import _shared_docs
-from pandas.util._decorators import Appender
-
-import re
 from pandas.core.dtypes.missing import notna
-from pandas.core.dtypes.common import is_extension_type
-from pandas.core.tools.numeric import to_numeric
+from pandas.core.frame import _shared_docs
 from pandas.core.reshape.concat import concat
+from pandas.core.tools.numeric import to_numeric
+from pandas.util._decorators import Appender
 
 
 @Appender(_shared_docs['melt'] %

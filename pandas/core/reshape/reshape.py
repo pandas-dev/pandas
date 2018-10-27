@@ -1,36 +1,31 @@
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
-from pandas.compat import range, text_type, zip, u, PY2
-from pandas import compat
-from functools import partial
 import itertools
+from functools import partial
 
 import numpy as np
 
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_list_like, is_bool_dtype,
-    is_extension_array_dtype,
-    needs_i8_conversion, is_sparse, is_object_dtype)
-from pandas.core.dtypes.cast import maybe_promote
-from pandas.core.dtypes.missing import notna
-
-from pandas.core.series import Series
-from pandas.core.frame import DataFrame
-
-from pandas.core.sparse.api import SparseDataFrame, SparseSeries
-from pandas.core.arrays import SparseArray
-from pandas._libs.sparse import IntIndex
-
-from pandas.core.arrays import Categorical
-from pandas.core.arrays.categorical import _factorize_from_iterable
-from pandas.core.sorting import (get_group_index, get_compressed_ids,
-                                 compress_group_index, decons_obs_group_ids)
-
 import pandas.core.algorithms as algos
+from pandas import compat
 from pandas._libs import algos as _algos, reshape as _reshape
-
+from pandas._libs.sparse import IntIndex
+from pandas.compat import PY2, range, text_type, u, zip
+from pandas.core.arrays import Categorical, SparseArray
+from pandas.core.arrays.categorical import _factorize_from_iterable
+from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.common import (
+    ensure_platform_int, is_bool_dtype, is_extension_array_dtype, is_list_like,
+    is_object_dtype, is_sparse, needs_i8_conversion
+)
+from pandas.core.dtypes.missing import notna
+from pandas.core.frame import DataFrame
 from pandas.core.index import Index, MultiIndex
+from pandas.core.series import Series
+from pandas.core.sorting import (
+    compress_group_index, decons_obs_group_ids, get_compressed_ids,
+    get_group_index
+)
+from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 
 
 class _Unstacker(object):

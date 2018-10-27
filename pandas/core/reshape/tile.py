@@ -3,25 +3,21 @@ Quantilization functions and related stuff
 """
 from functools import partial
 
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.common import (
-    is_integer,
-    is_scalar,
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-    is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
-    ensure_int64)
+import numpy as np
 
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
+from pandas import (
+    Categorical, Index, Interval, IntervalIndex, Series, Timedelta, Timestamp,
+    to_datetime, to_timedelta
+)
 from pandas._libs.lib import infer_dtype
-from pandas import (to_timedelta, to_datetime,
-                    Categorical, Timestamp, Timedelta,
-                    Series, Index, Interval, IntervalIndex)
-
-import numpy as np
+from pandas.core.dtypes.common import (
+    ensure_int64, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_datetime_or_timedelta_dtype, is_integer,
+    is_scalar, is_timedelta64_dtype
+)
+from pandas.core.dtypes.missing import isna
 
 
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,

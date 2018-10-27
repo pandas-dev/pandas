@@ -3,49 +3,34 @@ SQL-style merge routines
 """
 
 import copy
-import warnings
 import string
+import warnings
 
 import numpy as np
-from pandas.compat import range, lzip, zip, map, filter
+
 import pandas.compat as compat
-
-from pandas import (Categorical, DataFrame,
-                    Index, MultiIndex, Timedelta, Series)
-from pandas.core.arrays.categorical import _recode_for_categories
-from pandas.core.frame import _merge_doc
-from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
-    is_datetime64_dtype,
-    needs_i8_conversion,
-    is_int64_dtype,
-    is_array_like,
-    is_categorical_dtype,
-    is_integer_dtype,
-    is_float_dtype,
-    is_number,
-    is_numeric_dtype,
-    is_integer,
-    is_int_or_datetime_dtype,
-    is_dtype_equal,
-    is_bool,
-    is_bool_dtype,
-    is_list_like,
-    is_datetimelike,
-    ensure_int64,
-    ensure_float64,
-    ensure_object)
-from pandas.core.dtypes.missing import na_value_for_dtype, isnull
-from pandas.core.internals import (items_overlap_with_suffix,
-                                   concatenate_block_managers)
-from pandas.util._decorators import Appender, Substitution
-
-from pandas.core.sorting import is_int64_overflow_possible
 import pandas.core.algorithms as algos
-import pandas.core.sorting as sorting
 import pandas.core.common as com
+import pandas.core.sorting as sorting
+from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timedelta
 from pandas._libs import hashtable as libhashtable, join as libjoin, lib
+from pandas.compat import filter, lzip, map, range, zip
+from pandas.core.arrays.categorical import _recode_for_categories
+from pandas.core.dtypes.common import (
+    ensure_float64, ensure_int64, ensure_object, is_array_like, is_bool,
+    is_bool_dtype, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_datetimelike, is_dtype_equal, is_float_dtype,
+    is_int64_dtype, is_int_or_datetime_dtype, is_integer, is_integer_dtype,
+    is_list_like, is_number, is_numeric_dtype, needs_i8_conversion
+)
+from pandas.core.dtypes.missing import isnull, na_value_for_dtype
+from pandas.core.frame import _merge_doc
+from pandas.core.internals import (
+    concatenate_block_managers, items_overlap_with_suffix
+)
+from pandas.core.sorting import is_int64_overflow_possible
 from pandas.errors import MergeError
+from pandas.util._decorators import Appender, Substitution
 
 
 @Substitution('\nleft : DataFrame')
