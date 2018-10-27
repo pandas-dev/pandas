@@ -7,43 +7,36 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 expose these user-facing objects to provide specific functionailty.
 """
 
-import types
-from functools import wraps, partial
-import datetime
 import collections
+import datetime
+import types
 import warnings
 from contextlib import contextmanager
+from functools import partial, wraps
 
 import numpy as np
 
-from pandas._libs import groupby as libgroupby, Timestamp
-from pandas.util._validators import validate_kwargs
-from pandas.util._decorators import (
-    cache_readonly, Substitution, Appender)
-
+import pandas.core.algorithms as algorithms
+import pandas.core.common as com
 from pandas import compat
-from pandas.compat import zip, range, callable, set_function_name
+from pandas._libs import Timestamp, groupby as libgroupby
+from pandas.compat import callable, range, set_function_name, zip
 from pandas.compat.numpy import function as nv
-
-from pandas.core.dtypes.common import (
-    is_numeric_dtype,
-    is_extension_array_dtype,
-    is_scalar,
-    ensure_float)
+from pandas.core.base import (
+    DataError, GroupByError, PandasObject, SelectionMixin, SpecificationError
+)
+from pandas.core.config import option_context
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.common import ensure_float, is_numeric_dtype, is_scalar, is_extension_array_dtype
 from pandas.core.dtypes.missing import isna, notna
-
-from pandas.core.groupby import base
-from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
-                              DataError, SpecificationError)
-from pandas.core.index import Index, MultiIndex
-from pandas.core.generic import NDFrame
 from pandas.core.frame import DataFrame
+from pandas.core.generic import NDFrame
+from pandas.core.groupby import base
+from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
-import pandas.core.common as com
-import pandas.core.algorithms as algorithms
-from pandas.core.config import option_context
+from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._validators import validate_kwargs
 
 _doc_template = """
 
