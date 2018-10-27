@@ -330,6 +330,7 @@ take the plain Python code from above and annotate with the ``@jit`` decorator.
 
     import numba
 
+
     @numba.jit
     def f_plain(x):
         return x * (x - 1)
@@ -377,6 +378,7 @@ Consider the following toy example of doubling each observation:
 .. code-block:: python
 
     import numba
+
 
     def double_every_value_nonumba(x):
         return x * 2

@@ -744,7 +744,7 @@ Transitioning to ``pytest``
 .. code-block:: python
 
     class TestReallyCoolFeature(object):
-        ....
+        ....                                  # noqa: E999
 
 Going forward, we are moving to a more *functional* style using the `pytest <http://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
 framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
@@ -752,7 +752,7 @@ framework that will facilitate testing and developing. Thus, instead of writing 
 .. code-block:: python
 
     def test_really_cool_feature():
-        ....
+        ....                                  # noqa: E999
 
 Using ``pytest``
 ~~~~~~~~~~~~~~~~
@@ -777,24 +777,31 @@ We would name this file ``test_cool_feature.py`` and put in an appropriate place
    import pandas as pd
    from pandas.util import testing as tm
 
+
    @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
    def test_dtypes(dtype):
        assert str(np.dtype(dtype)) == dtype
 
-   @pytest.mark.parametrize('dtype', ['float32',
-       pytest.param('int16', marks=pytest.mark.skip),
-       pytest.param('int32',
-                    marks=pytest.mark.xfail(reason='to show how it works'))])
+
+   @pytest.mark.parametrize('dtype',
+                            ['float32',
+                             pytest.param('int16', marks=pytest.mark.skip),
+                             pytest.param('int32', marks=pytest.mark.xfail(
+                                 reason='example'))
+                             ])
    def test_mark(dtype):
        assert str(np.dtype(dtype)) == 'float32'
+
 
    @pytest.fixture
    def series():
        return pd.Series([1, 2, 3])
 
+
    @pytest.fixture(params=['int8', 'int16', 'int32', 'int64'])
    def dtype(request):
        return request.param
+
 
    def test_series(series, dtype):
        result = series.astype(dtype)
@@ -863,6 +870,7 @@ for details <https://hypothesis.readthedocs.io/en/latest/index.html>`_.
         st.none(), st.booleans(), st.floats(allow_nan=False), st.text(),
         st.lists(any_json_value), st.dictionaries(st.text(), any_json_value)
     ))
+
 
     @given(value=any_json_value)
     def test_json_roundtrip(value):

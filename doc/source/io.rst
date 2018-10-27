@@ -1834,8 +1834,7 @@ For example:
 
 .. code-block:: python
 
-  DataFrame([1.0, 2.0, complex(1.0, 2.0)]).to_json()  # raises
-
+  >>> DataFrame([1.0, 2.0, complex(1.0, 2.0)]).to_json()  # raises
   RuntimeError: Unhandled numpy dtype 15
 
 can be dealt with by specifying a simple ``default_handler``:
@@ -2411,8 +2410,8 @@ columns to strings.
 .. code-block:: python
 
    url_mcc = 'https://en.wikipedia.org/wiki/Mobile_country_code'
-   dfs = pd.read_html(url_mcc, match='Telekom Albania', header=0, converters={'MNC':
-   str})
+   dfs = pd.read_html(url_mcc, match='Telekom Albania', header=0,
+                      converters={'MNC': str})
 
 .. versionadded:: 0.19
 
@@ -2724,7 +2723,8 @@ different parameters:
     data = {}
     # For when Sheet1's format differs from Sheet2
     with pd.ExcelFile('path_to_file.xls') as xls:
-        data['Sheet1'] = pd.read_excel(xls, 'Sheet1', index_col=None, na_values=['NA'])
+        data['Sheet1'] = pd.read_excel(xls, 'Sheet1', index_col=None,
+                                       na_values=['NA'])
         data['Sheet2'] = pd.read_excel(xls, 'Sheet2', index_col=1)
 
 Note that if the same parsing parameters are used for all sheets, a list
@@ -2735,11 +2735,14 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
     # using the ExcelFile class
     data = {}
     with pd.ExcelFile('path_to_file.xls') as xls:
-        data['Sheet1'] = read_excel(xls, 'Sheet1', index_col=None, na_values=['NA'])
-        data['Sheet2'] = read_excel(xls, 'Sheet2', index_col=None, na_values=['NA'])
+        data['Sheet1'] = read_excel(xls, 'Sheet1', index_col=None,
+                                    na_values=['NA'])
+        data['Sheet2'] = read_excel(xls, 'Sheet2', index_col=None,
+                                    na_values=['NA'])
 
     # equivalent using the read_excel function
-    data = read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'], index_col=None, na_values=['NA'])
+    data = read_excel('path_to_file.xls', ['Sheet1', 'Sheet2'],
+                      index_col=None, na_values=['NA'])
 
 .. _io.excel.specifying_sheets:
 
@@ -2899,7 +2902,10 @@ missing data to recover integer dtype:
 
 .. code-block:: python
 
-   cfun = lambda x: int(x) if x else -1
+   def cfun(x):
+       return int(x) if x else -1
+
+
    read_excel('path_to_file.xls', 'Sheet1', converters={'MyInts': cfun})
 
 dtype Specifications
@@ -3040,7 +3046,7 @@ argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
    writer = ExcelWriter('path_to_file.xlsx', engine='xlsxwriter')
 
    # Or via pandas configuration.
-   from pandas import options
+   from pandas import options                                     # noqa: E402
    options.io.excel.xlsx.writer = 'xlsxwriter'
 
    df.to_excel('path_to_file.xlsx', sheet_name='Sheet1')
@@ -3067,7 +3073,7 @@ which takes the contents of the clipboard buffer and passes them to the
 ``read_csv`` method. For instance, you can copy the following text to the
 clipboard (CTRL-C on many operating systems):
 
-.. code-block:: python
+.. code-block:: console
 
      A B C
    x 1 4 p
@@ -3476,9 +3482,9 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
 
    .. code-block:: python
 
-       pd.DataFrame(randn(10, 2)).to_hdf('test_fixed.h5', 'df')
+       >>> pd.DataFrame(randn(10, 2)).to_hdf('test_fixed.h5', 'df')
 
-       pd.read_hdf('test_fixed.h5', 'df', where='index>5')
+       >>> pd.read_hdf('test_fixed.h5', 'df', where='index>5')
        TypeError: cannot pass a where specification when reading a fixed format.
                   this store must be selected in its entirety
 
@@ -3576,12 +3582,11 @@ will yield a tuple for each group key along with the relative keys of its conten
 
     .. code-block:: python
 
-       In [8]: store.foo.bar.bah
+       >>> store.foo.bar.bah
        AttributeError: 'HDFStore' object has no attribute 'foo'
 
        # you can directly access the actual PyTables node but using the root node
-       In [9]: store.root.foo.bar.bah
-       Out[9]:
+       >>> store.root.foo.bar.bah
        /foo/bar/bah (Group) ''
          children := ['block0_items' (Array), 'block0_values' (Array), 'axis0' (Array), 'axis1' (Array)]
 
@@ -3735,7 +3740,7 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
    .. code-block:: python
 
       string = "HolyMoly'"
-      store.select('df',  'index == %s' % string)
+      store.select('df', 'index == %s' % string)
 
    The latter will **not** work and will raise a ``SyntaxError``.Note that
    there's a single quote followed by a double quote in the ``string``
@@ -3941,7 +3946,7 @@ The default is 50,000 rows returned in a chunk.
 
    .. code-block:: python
 
-      for df in pd.read_hdf('store.h5','df', chunksize=3):
+      for df in pd.read_hdf('store.h5', 'df', chunksize=3):
           print(df)
 
 Note, that the chunksize keyword applies to the **source** rows. So if you
@@ -4841,7 +4846,8 @@ to pass to :func:`pandas.to_datetime`:
 .. code-block:: python
 
    pd.read_sql_table('data', engine, parse_dates={'Date': '%Y-%m-%d'})
-   pd.read_sql_table('data', engine, parse_dates={'Date': {'format': '%Y-%m-%d %H:%M:%S'}})
+   pd.read_sql_table('data', engine,
+                     parse_dates={'Date': {'format': '%Y-%m-%d %H:%M:%S'}})
 
 
 You can check if a table exists using :func:`~pandas.io.sql.has_table`
@@ -5349,6 +5355,7 @@ And here's the code:
    sz = 1000000
    df = pd.DataFrame({'A': randn(sz), 'B': [1] * sz})
 
+
    def test_sql_write(df):
        if os.path.exists('test.sql'):
            os.remove('test.sql')
@@ -5356,55 +5363,73 @@ And here's the code:
        df.to_sql(name='test_table', con=sql_db)
        sql_db.close()
 
+
    def test_sql_read():
        sql_db = sqlite3.connect('test.sql')
        pd.read_sql_query("select * from test_table", sql_db)
        sql_db.close()
 
+
    def test_hdf_fixed_write(df):
        df.to_hdf('test_fixed.hdf', 'test', mode='w')
+
 
    def test_hdf_fixed_read():
        pd.read_hdf('test_fixed.hdf', 'test')
 
+
    def test_hdf_fixed_write_compress(df):
        df.to_hdf('test_fixed_compress.hdf', 'test', mode='w', complib='blosc')
+
 
    def test_hdf_fixed_read_compress():
        pd.read_hdf('test_fixed_compress.hdf', 'test')
 
+
    def test_hdf_table_write(df):
        df.to_hdf('test_table.hdf', 'test', mode='w', format='table')
+
 
    def test_hdf_table_read():
        pd.read_hdf('test_table.hdf', 'test')
 
+
    def test_hdf_table_write_compress(df):
-       df.to_hdf('test_table_compress.hdf', 'test', mode='w', complib='blosc', format='table')
+       df.to_hdf('test_table_compress.hdf', 'test', mode='w',
+                 complib='blosc', format='table')
+
 
    def test_hdf_table_read_compress():
        pd.read_hdf('test_table_compress.hdf', 'test')
 
+
    def test_csv_write(df):
        df.to_csv('test.csv', mode='w')
+
 
    def test_csv_read():
        pd.read_csv('test.csv', index_col=0)
 
+
    def test_feather_write(df):
        df.to_feather('test.feather')
+
 
    def test_feather_read():
        pd.read_feather('test.feather')
 
+
    def test_pickle_write(df):
        df.to_pickle('test.pkl')
+
 
    def test_pickle_read():
        pd.read_pickle('test.pkl')
 
+
    def test_pickle_write_compress(df):
        df.to_pickle('test.pkl.compress', compression='xz')
+
 
    def test_pickle_read_compress():
        pd.read_pickle('test.pkl.compress', compression='xz')
