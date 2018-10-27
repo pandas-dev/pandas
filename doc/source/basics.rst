@@ -302,23 +302,17 @@ To evaluate single-element pandas objects in a boolean context, use the method
 
 .. warning::
 
-   You might be tempted to do the following:
+   Using a DataFrame as a condition will raise errors,
+   as you are trying to compare multiple values:
 
    .. code-block:: python
 
        >>> if df:
-            ...
+       ...     do_something()
+       ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
 
-   Or
-
-   .. code-block:: python
-
-       >>> df and df2
-
-   These will both raise errors, as you are trying to compare multiple values.
-
-   .. code-block:: python
-
+       >>> if df and df2:
+       ...     do_something()
        ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
 
 See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
@@ -732,9 +726,8 @@ with the equivalent
 .. code-block:: python
 
    >>> (df.pipe(h)
-          .pipe(g, arg1=1)
-          .pipe(f, arg2=2, arg3=3)
-       )
+   ...    .pipe(g, arg1=1)
+   ...    .pipe(f, arg2=2, arg3=3))
 
 Pandas encourages the second style, which is known as method chaining.
 ``pipe`` makes it easy to use your own or another library's functions

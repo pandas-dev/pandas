@@ -45,7 +45,11 @@ For the curious here is how the above ``DataFrame`` was created:
 
 .. code-block:: python
 
-   import pandas.util.testing as tm; tm.N = 3
+   import pandas.util.testing as tm
+
+   tm.N = 3
+
+
    def unpivot(frame):
        N, K = frame.shape
        data = {'value': frame.values.ravel('F'),

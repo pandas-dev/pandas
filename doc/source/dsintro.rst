@@ -566,13 +566,12 @@ To write code compatible with all versions of Python, split the assignment in tw
    .. code-block:: python
 
       >>> dependent = pd.DataFrame({"A": [1, 1, 1]})
-      >>> dependent.assign(A=lambda x: x["A"] + 1,
-                           B=lambda x: x["A"] + 2)
+      >>> dependent.assign(A=lambda x: x["A"] + 1, B=lambda x: x["A"] + 2)
 
    For Python 3.5 and earlier the expression creating ``B`` refers to the
    "old" value of ``A``, ``[1, 1, 1]``. The output is then
 
-   .. code-block:: python
+   .. code-block:: console
 
          A  B
       0  2  3
@@ -582,7 +581,7 @@ To write code compatible with all versions of Python, split the assignment in tw
    For Python 3.6 and later, the expression creating ``A`` refers to the
    "new" value of ``A``, ``[2, 2, 2]``, which results in
 
-   .. code-block:: python
+   .. code-block:: console
 
          A  B
       0  2  4

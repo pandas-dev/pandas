@@ -318,13 +318,13 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 
    .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....), :]
+      df.loc[(slice('A1', 'A3'), ...), :]             # noqa: E999
 
    You should **not** do this:
  
    .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....)]
+      df.loc[(slice('A1', 'A3'), ...)]                # noqa: E999
 
 .. ipython:: python
 
@@ -740,15 +740,13 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 
    .. code-block:: python
 
-      In [9]: df3 = pd.DataFrame({'A' : np.arange(6),
-                                  'B' : pd.Series(list('aabbca')).astype('category')})
+      >>> df3 = pd.DataFrame({'A': np.arange(6),
+      ...                     'B': pd.Series(list('aabbca')).astype('category')})
+      >>> df3 = df3.set_index('B')
+      >>> df3.index
+      CategoricalIndex([u'a', u'a', u'b', u'b', u'c', u'a'], categories=[u'a', u'b', u'c'], ordered=False, name=u'B', dtype='category')
 
-      In [11]: df3 = df3.set_index('B')
-
-      In [11]: df3.index
-      Out[11]: CategoricalIndex([u'a', u'a', u'b', u'b', u'c', u'a'], categories=[u'a', u'b', u'c'], ordered=False, name=u'B', dtype='category')
-
-      In [12]: pd.concat([df2, df3]
+      >>> pd.concat([df2, df3])
       TypeError: categories must match existing categories when appending
 
 .. _indexing.rangeindex:
@@ -1033,11 +1031,11 @@ On the other hand, if the index is not monotonic, then both slice bounds must be
 .. code-block:: python
 
     # 0 is not in the index
-    In [9]: df.loc[0:4, :]
+    >>> df.loc[0:4, :]
     KeyError: 0
 
     # 3 is not a unique label
-    In [11]: df.loc[2:3, :]
+    >>> df.loc[2:3, :]
     KeyError: 'Cannot get right slice bound for non-unique label: 3'
 
 ``Index.is_monotonic_increasing`` and ``Index.is_monotonic_decreasing`` only check that
