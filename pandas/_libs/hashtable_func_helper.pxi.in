@@ -4,9 +4,9 @@ Template for each `dtype` helper function for hashtable
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # VectorData
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 {{py:
 
@@ -45,11 +45,11 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
         val = values[i]
 
         if not checknull(val) or not dropna:
-            k = kh_get_{{ttype}}(table, <PyObject*> val)
+            k = kh_get_{{ttype}}(table, <PyObject*>val)
             if k != table.n_buckets:
                 table.vals[k] += 1
             else:
-                k = kh_put_{{ttype}}(table, <PyObject*> val, &ret)
+                k = kh_put_{{ttype}}(table, <PyObject*>val, &ret)
                 table.vals[k] = 1
     {{else}}
     with nogil:
@@ -80,7 +80,7 @@ cpdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
 cpdef value_count_{{dtype}}({{scalar}}[:] values, bint dropna):
 {{endif}}
     cdef:
-        Py_ssize_t i=0
+        Py_ssize_t i = 0
         kh_{{ttype}}_t *table
 
         {{if dtype != 'object'}}
@@ -103,7 +103,7 @@ cpdef value_count_{{dtype}}({{scalar}}[:] values, bint dropna):
     {{if dtype == 'object'}}
     for k in range(table.n_buckets):
         if kh_exist_{{ttype}}(table, k):
-            result_keys[i] = <{{dtype}}> table.keys[k]
+            result_keys[i] = <{{dtype}}>table.keys[k]
             result_counts[i] = table.vals[k]
             i += 1
     {{else}}
@@ -141,7 +141,7 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
         {{dtype}}_t value
         {{endif}}
         Py_ssize_t k, i, n = len(values)
-        kh_{{ttype}}_t * table = kh_init_{{ttype}}()
+        kh_{{ttype}}_t *table = kh_init_{{ttype}}()
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
 
     kh_resize_{{ttype}}(table, min(n, _SIZE_HINT_LIMIT))
@@ -152,7 +152,7 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
     if keep == 'last':
         {{if dtype == 'object'}}
         for i from n > i >= 0:
-            kh_put_{{ttype}}(table, <PyObject*> values[i], &ret)
+            kh_put_{{ttype}}(table, <PyObject*>values[i], &ret)
             out[i] = ret == 0
         {{else}}
         with nogil:
@@ -163,7 +163,7 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
     elif keep == 'first':
         {{if dtype == 'object'}}
         for i in range(n):
-            kh_put_{{ttype}}(table, <PyObject*> values[i], &ret)
+            kh_put_{{ttype}}(table, <PyObject*>values[i], &ret)
             out[i] = ret == 0
         {{else}}
         with nogil:
@@ -175,13 +175,13 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
         {{if dtype == 'object'}}
         for i in range(n):
             value = values[i]
-            k = kh_get_{{ttype}}(table, <PyObject*> value)
+            k = kh_get_{{ttype}}(table, <PyObject*>value)
             if k != table.n_buckets:
                 out[table.vals[k]] = 1
                 out[i] = 1
             else:
-                k = kh_put_{{ttype}}(table, <PyObject*> value, &ret)
-                table.keys[k] = <PyObject*> value
+                k = kh_put_{{ttype}}(table, <PyObject*>value, &ret)
+                table.keys[k] = <PyObject*>value
                 table.vals[k] = i
                 out[i] = 0
         {{else}}
@@ -202,9 +202,9 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
     return out
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Membership
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 
 @cython.wraparound(False)
@@ -237,7 +237,7 @@ def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values):
         int ret = 0
         ndarray[uint8_t] result
         {{scalar}} val
-        kh_{{ttype}}_t * table = kh_init_{{ttype}}()
+        kh_{{ttype}}_t *table = kh_init_{{ttype}}()
 
     # construct the table
     n = len(values)
@@ -245,7 +245,7 @@ def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values):
 
     {{if dtype == 'object'}}
     for i in range(n):
-        kh_put_{{ttype}}(table, <PyObject*> values[i], &ret)
+        kh_put_{{ttype}}(table, <PyObject*>values[i], &ret)
     {{else}}
     with nogil:
         for i in range(n):
@@ -259,7 +259,7 @@ def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values):
     {{if dtype == 'object'}}
     for i in range(n):
         val = arr[i]
-        k = kh_get_{{ttype}}(table, <PyObject*> val)
+        k = kh_get_{{ttype}}(table, <PyObject*>val)
         result[i] = (k != table.n_buckets)
     {{else}}
     with nogil:
@@ -305,17 +305,13 @@ def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
 {{endif}}
     cdef:
         int count, max_count = 1
-        int j = -1 # so you can do +=
+        int j = -1  # so you can do +=
         Py_ssize_t k
         kh_{{table_type}}_t *table
-        ndarray[{{ctype}}] modes
+        {{ctype}}[:] modes
 
     table = kh_init_{{table_type}}()
-    {{if dtype == 'object'}}
     build_count_table_{{dtype}}(values, table, dropna)
-    {{else}}
-    build_count_table_{{dtype}}(values, table, dropna)
-    {{endif}}
 
     modes = np.empty(table.n_buckets, dtype=np.{{npy_dtype}})
 
@@ -346,11 +342,13 @@ def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
             else:
                 continue
 
-            modes[j] = <object> table.keys[k]
+            modes[j] = <object>table.keys[k]
     {{endif}}
 
     kh_destroy_{{table_type}}(table)
 
-    return modes[:j + 1]
+    # Note: For reasons unknown, slicing modes.base works but modes[:j+1].base
+    #  returns an object with an incorrect length
+    return modes.base[:j + 1]  # `.base` to access underlying np.ndarray
 
 {{endfor}}

@@ -5,9 +5,9 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # VectorData
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 {{py:
 
@@ -86,12 +86,12 @@ cdef class {{name}}Vector:
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.ao = np.empty(self.data.m, dtype={{idtype}})
-        self.data.data = <{{arg}}*> self.ao.data
+        self.data.data = <{{arg}}*>self.ao.data
 
     cdef resize(self):
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
         self.ao.resize(self.data.m, refcheck=False)
-        self.data.data = <{{arg}}*> self.ao.data
+        self.data.data = <{{arg}}*>self.ao.data
 
     def __dealloc__(self):
         if self.data is not NULL:
@@ -134,14 +134,13 @@ cdef class StringVector:
         bint external_view_exists
 
     def __cinit__(self):
-        self.data = <StringVectorData *>PyMem_Malloc(
-            sizeof(StringVectorData))
+        self.data = <StringVectorData *>PyMem_Malloc(sizeof(StringVectorData))
         if not self.data:
             raise MemoryError()
         self.external_view_exists = False
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
-        self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+        self.data.data = <char **>malloc(self.data.m * sizeof(char *))
         if not self.data.data:
             raise MemoryError()
 
@@ -154,7 +153,7 @@ cdef class StringVector:
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
 
         orig_data = self.data.data
-        self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+        self.data.data = <char **>malloc(self.data.m * sizeof(char *))
         if not self.data.data:
             raise MemoryError()
         for i in range(m):
@@ -184,7 +183,7 @@ cdef class StringVector:
         self.data.m = self.data.n
         return ao
 
-    cdef inline void append(self, char * x):
+    cdef inline void append(self, char *x):
 
         if needs_resize(self.data):
             self.resize()
@@ -209,22 +208,22 @@ cdef class ObjectVector:
         self.n = 0
         self.m = _INIT_VEC_CAP
         self.ao = np.empty(_INIT_VEC_CAP, dtype=object)
-        self.data = <PyObject**> self.ao.data
+        self.data = <PyObject**>self.ao.data
 
     def __len__(self):
         return self.n
 
-    cdef inline append(self, object o):
+    cdef inline append(self, object obj):
         if self.n == self.m:
             if self.external_view_exists:
                 raise ValueError("external reference but "
                                  "Vector.resize() needed")
             self.m = max(self.m * 2, _INIT_VEC_CAP)
             self.ao.resize(self.m, refcheck=False)
-            self.data = <PyObject**> self.ao.data
+            self.data = <PyObject**>self.ao.data
 
-        Py_INCREF(o)
-        self.data[self.n] = <PyObject*> o
+        Py_INCREF(obj)
+        self.data[self.n] = <PyObject*>obj
         self.n += 1
 
     def to_array(self):
@@ -283,9 +282,9 @@ cdef class {{name}}HashTable(HashTable):
 
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
-        return self.table.n_buckets * (sizeof({{dtype}}_t) + # keys
-                                       sizeof(Py_ssize_t) + # vals
-                                       sizeof(uint32_t)) # flags
+        return self.table.n_buckets * (sizeof({{dtype}}_t) +  # keys
+                                       sizeof(Py_ssize_t) +  # vals
+                                       sizeof(uint32_t))  # flags
 
     cpdef get_item(self, {{dtype}}_t val):
         cdef khiter_t k
@@ -319,10 +318,10 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 key = keys[i]
                 k = kh_put_{{dtype}}(self.table, key, &ret)
-                self.table.vals[k] = <Py_ssize_t> values[i]
+                self.table.vals[k] = <Py_ssize_t>values[i]
 
     @cython.boundscheck(False)
-    def map_locations(self, ndarray[{{dtype}}_t, ndim=1] values):
+    def map_locations(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -591,7 +590,7 @@ cdef class StringHashTable(HashTable):
         cdef:
             Py_ssize_t i, n = len(values)
             ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
-            int64_t *resbuf = <int64_t*> labels.data
+            int64_t *resbuf = <int64_t*>labels.data
             khiter_t k
             kh_str_t *table = self.table
             const char *v
@@ -679,7 +678,7 @@ cdef class StringHashTable(HashTable):
         for i in range(n):
             val = values[i]
 
-            if PyUnicode_Check(val) or PyString_Check(val):
+            if isinstance(val, (str, unicode)):
                 v = util.get_c_string(val)
             else:
                 v = util.get_c_string(self.na_string_sentinel)
@@ -712,7 +711,7 @@ cdef class StringHashTable(HashTable):
         for i in range(n):
             val = values[i]
 
-            if PyUnicode_Check(val) or PyString_Check(val):
+            if isinstance(val, (str, unicode)):
                 v = util.get_c_string(val)
             else:
                 v = util.get_c_string(self.na_string_sentinel)
@@ -773,7 +772,7 @@ cdef class StringHashTable(HashTable):
         for i in range(n):
             val = values[i]
 
-            if ((PyUnicode_Check(val) or PyString_Check(val))
+            if (isinstance(val, (str, unicode))
                     and not (use_na_value and val == na_value)):
                 v = util.get_c_string(val)
                 vecs[i] = v

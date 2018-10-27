@@ -77,6 +77,8 @@ class NegInfinity(object):
     __ge__ = lambda self, other: isinstance(other, NegInfinity)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef ndarray[int64_t, ndim=1] unique_deltas(int64_t[:] arr):
     """
     Efficiently find the unique first-differences of the given array.

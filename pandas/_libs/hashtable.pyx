@@ -2,10 +2,8 @@
 
 cimport cython
 
-from cpython cimport (PyObject, Py_INCREF, PyList_Check, PyTuple_Check,
-                      PyMem_Malloc, PyMem_Realloc, PyMem_Free,
-                      PyString_Check, PyBytes_Check,
-                      PyUnicode_Check)
+from cpython cimport (PyObject, Py_INCREF,
+                      PyMem_Malloc, PyMem_Realloc, PyMem_Free)
 
 from libc.stdlib cimport malloc, free
 
@@ -153,7 +151,7 @@ def unique_label_indices(ndarray[int64_t, ndim=1] labels):
     cdef:
         int ret = 0
         Py_ssize_t i, n = len(labels)
-        kh_int64_t * table = kh_init_int64()
+        kh_int64_t *table = kh_init_int64()
         Int64Vector idx = Int64Vector()
         ndarray[int64_t, ndim=1] arr
         Int64VectorData *ud = idx.data

@@ -195,7 +195,7 @@ def fast_unique_multiple(list arrays):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list(list lists, bint sort=True):
+def fast_unique_multiple_list(lists: list, sort: bint = True) -> list:
     cdef:
         list buf
         Py_ssize_t k = len(lists)
@@ -356,6 +356,8 @@ def get_reverse_indexer(int64_t[:] indexer, Py_ssize_t length):
     return rev_indexer
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def has_infs_f4(float32_t[:] arr) -> bint:
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -371,6 +373,8 @@ def has_infs_f4(float32_t[:] arr) -> bint:
     return False
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def has_infs_f8(float64_t[:] arr) -> bint:
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -423,6 +427,8 @@ def maybe_indices_to_slice(ndarray[int64_t] indices, int max_len):
                 return slice(vstart, vlast - 1, k)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def maybe_booleans_to_slice(ndarray[uint8_t] mask):
     cdef:
         Py_ssize_t i, n = len(mask)
@@ -473,6 +479,8 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bint:
     return True
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def astype_intsafe(object[:] arr, new_dtype):
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -494,6 +502,8 @@ def astype_intsafe(object[:] arr, new_dtype):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def astype_unicode(arr: ndarray, skipna: bool=False) -> ndarray[object]:
     """
     Convert all elements in an array to unicode.
@@ -527,7 +537,9 @@ def astype_unicode(arr: ndarray, skipna: bool=False) -> ndarray[object]:
     return result
 
 
-def astype_str(arr: ndarray, skipna: bool=False) -> ndarray[object]:
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def astype_str(arr: ndarray, skipna: bool = False) -> ndarray[object]:
     """
     Convert all elements in an array to string.
 
@@ -560,6 +572,8 @@ def astype_str(arr: ndarray, skipna: bool=False) -> ndarray[object]:
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def clean_index_list(list obj):
     """
     Utility used in pandas.core.index.ensure_index
@@ -1037,7 +1051,7 @@ cdef _try_infer_map(v):
     return None
 
 
-def infer_dtype(object value, bint skipna=False):
+def infer_dtype(value: object, skipna: bint = False) -> bint:
     """
     Efficiently infer the type of a passed val, or list-like
     array of values. Return a string describing the type.
@@ -1617,6 +1631,8 @@ cpdef bint is_datetime64_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def is_datetime_with_singletz_array(values: ndarray) -> bint:
     """
     Check values have the same tzinfo attribute.
@@ -2150,6 +2166,8 @@ def map_infer_mask(ndarray arr, object f, uint8_t[:] mask, bint convert=1):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def map_infer(ndarray arr, object f, bint convert=1):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference
@@ -2280,6 +2298,8 @@ def to_object_array_tuples(list rows):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def fast_multiget(dict mapping, ndarray keys, default=np.nan):
     cdef:
         Py_ssize_t i, n = len(keys)

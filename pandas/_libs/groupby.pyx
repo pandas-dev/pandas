@@ -98,7 +98,7 @@ cdef inline float64_t kth_smallest_c(float64_t* a,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_median_float64(ndarray[float64_t, ndim=2] out,
+def group_median_float64(float64_t[:, :] out,
                          int64_t[:] counts,
                          ndarray[float64_t, ndim=2] values,
                          int64_t[:] labels,
@@ -109,7 +109,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     cdef:
         Py_ssize_t i, j, N, K, ngroups, size
         int64_t[:] _counts
-        ndarray data
+        ndarray[float64_t, ndim=2] data
         float64_t* ptr
 
     assert min_count == -1, "'min_count' only used in add and prod"
@@ -291,7 +291,7 @@ def group_fillna_indexer(int64_t[:] out, ndarray[int64_t] labels,
     """
     cdef:
         Py_ssize_t i, N
-        ndarray[int64_t] sorted_labels
+        int64_t[:] sorted_labels
         int64_t idx, curr_fill_idx=-1, filled_vals=0
 
     N = len(out)
@@ -299,8 +299,8 @@ def group_fillna_indexer(int64_t[:] out, ndarray[int64_t] labels,
     # Make sure all arrays are the same size
     assert N == len(labels) == len(mask)
 
-    sorted_labels = np.argsort(labels, kind='mergesort').astype(
-        np.int64, copy=False)
+    sorted_labels = np.argsort(labels, kind='mergesort').astype(np.int64,
+                                                                copy=False)
     if direction == 'bfill':
         sorted_labels = sorted_labels[::-1]
 
@@ -327,7 +327,7 @@ def group_fillna_indexer(int64_t[:] out, ndarray[int64_t] labels,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_any_all(ndarray[uint8_t] out,
+def group_any_all(uint8_t[:] out,
                   int64_t[:] labels,
                   uint8_t[:] values,
                   uint8_t[:] mask,
@@ -370,7 +370,7 @@ def group_any_all(ndarray[uint8_t] out,
     else:
         raise ValueError("'bool_func' must be either 'any' or 'all'!")
 
-    out.fill(1 - flag_val)
+    out[:] = 1 - flag_val
 
     with nogil:
         for i in range(N):
