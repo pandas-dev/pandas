@@ -668,11 +668,6 @@ def group_max(ndarray[groupby_t, ndim=2] out,
                     out[i, j] = maxx[i, j]
 
 
-group_max_float64 = group_max["float64_t"]
-group_max_float32 = group_max["float32_t"]
-group_max_int64 = group_max["int64_t"]
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_min(ndarray[groupby_t, ndim=2] out,
