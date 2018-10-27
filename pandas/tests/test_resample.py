@@ -1576,6 +1576,7 @@ class TestDatetimeIndex(Base):
                               'Group': ['A', 'A']},
                              index=pd.to_timedelta([0, 10], unit='s'))
         expected = expected.reindex(['Group_obj', 'Group'], axis=1)
+        expected['Group'] = expected['Group_obj'].astype('category')
         tm.assert_frame_equal(result, expected)
 
     def test_resample_daily_anchored(self):
