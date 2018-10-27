@@ -7375,39 +7375,40 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        rule : string
+        rule : str
             The offset string or object representing target conversion.
-        how : string
+        how : str
             Method for down-/re-sampling, default to ‘mean’ for downsampling.
 
             .. deprecated:: 0.18.0
                The new syntax is ``.resample(...).mean()``, or
                ``.resample(...).apply(<func>)``
         axis : int, optional, default 0
-            Which index to use for up- or down-sampling. Must be
+            Which axis to use for up- or down-sampling. For ``Series`` this
+            will default to 0, i.e. `along the rows`. Must be
             ``DatetimeIndex``, ``TimedeltaIndex`` or ``PeriodIndex``.
-        fill_method : string, default None
+        fill_method : str, default None
             Filling method for upsampling.
 
             .. deprecated:: 0.18.0
                The new syntax is ``.resample(...).<func>()``,
                e.g. ``.resample(...).pad()``
-        closed : {'right', 'left'}
+        closed : {'right', 'left'}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
-        label : {'right', 'left'}
+        label : {'right', 'left'}, default None
             Which bin edge label to label bucket with. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
-        convention : {'start', 'end', 's', 'e'}
+        convention : {'start', 'end', 's', 'e'}, default 'start'
             For ``PeriodIndex`` only, controls whether to use the start or
             end of ``rule``.
-        kind : {'timestamp', 'period'} optional
+        kind : {'timestamp', 'period'}, optional, default None
             Pass 'timestamp' to convert the resulting index to a
             ``DateTimeIndex`` or 'period' to convert it to a ``PeriodIndex``.
             By default the input representation is retained.
-        loffset : timedelta
+        loffset : timedelta, default None
             Adjust the resampled time labels.
         limit : int, default None
             Maximum size gap when reindexing with ``fill_method``.
@@ -7417,13 +7418,13 @@ class NDFrame(PandasObject, SelectionMixin):
             For frequencies that evenly subdivide 1 day, the "origin" of the
             aggregated intervals. For example, for '5min' frequency, base could
             range from 0 through 4. Defaults to 0.
-        on : string, optional
+        on : str, optional
             For a DataFrame, column to use instead of index for resampling.
             Column must be datetime-like.
 
             .. versionadded:: 0.19.0
 
-        level : string or int, optional
+        level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. ``level`` must be datetime-like.
 
@@ -7531,7 +7532,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Pass a custom function via ``apply``
 
         >>> def custom_resampler(array_like):
-        ...     return np.sum(array_like)+5
+        ...     return np.sum(array_like) + 5
 
         >>> series.resample('3T').apply(custom_resampler)
         2000-01-01 00:00:00     8
@@ -7542,8 +7543,7 @@ class NDFrame(PandasObject, SelectionMixin):
         For a Series with a PeriodIndex, the keyword `convention` can be
         used to control whether to use the start or end of `rule`.
 
-        >>> s = pd.Series([1, 2], index=pd.period_range(
-        ...                                             '2012-01-01',
+        >>> s = pd.Series([1, 2], index=pd.period_range('2012-01-01',
         ...                                             freq='A',
         ...                                             periods=2))
         >>> s
@@ -7584,7 +7584,8 @@ class NDFrame(PandasObject, SelectionMixin):
         For DataFrame objects, the keyword ``on`` can be used to specify the
         column instead of the index for resampling.
 
-        >>> df = pd.DataFrame(data=9*[range(4)], columns=['a', 'b', 'c', 'd'])
+        >>> df = pd.DataFrame(data=9 * [range(4)],
+        ...                   columns=['a', 'b', 'c', 'd'])
         >>> df['time'] = pd.date_range('1/1/2000', periods=9, freq='T')
         >>> df.resample('3T', on='time').sum()
                              a  b  c  d
@@ -7597,7 +7598,7 @@ class NDFrame(PandasObject, SelectionMixin):
         specify on level the resampling needs to take place.
 
         >>> time = pd.date_range('1/1/2000', periods=5, freq='T')
-        >>> df2 = pd.DataFrame(data=10*[range(4)],
+        >>> df2 = pd.DataFrame(data=10 * [range(4)],
         ...                    columns=['a', 'b', 'c', 'd'],
         ...                    index=pd.MultiIndex.from_product([time, [1, 2]])
         ...                    )
