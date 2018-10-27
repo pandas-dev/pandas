@@ -214,7 +214,7 @@ class Base(object):
 
                 try:
                     xp = self.get_result(obj, method2, k2, a)
-                except:
+                except (ValueError, IndexError):
                     result = 'no comp'
                     _print(result)
                     return
