@@ -454,9 +454,6 @@ class TestSeriesDtypes():
         with pytest.raises(ValueError):
             s.astype(np.float64, errors=False)
 
-        with tm.assert_produces_warning(FutureWarning):
-            s.astype(np.int8, raise_on_error=True)
-
         s.astype(np.int8, errors='raise')
 
     def test_intercept_astype_object(self):

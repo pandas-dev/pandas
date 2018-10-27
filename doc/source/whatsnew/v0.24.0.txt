@@ -948,6 +948,7 @@ Removal of prior version deprecations/changes
 - Removal of the previously deprecated module ``pandas.json`` (:issue:`19944`)
 - :meth:`SparseArray.get_values` and :meth:`SparseArray.to_dense` have dropped the ``fill`` parameter (:issue:`14686`)
 - :meth:`SparseSeries.to_dense` has dropped the ``sparse_only`` parameter (:issue:`14686`)
+- :meth:`DataFrame.astype` and :meth:`Series.astype` have renamed the ``raise_on_error`` argument to ``errors`` (:issue:`14967`)
 
 .. _whatsnew_0240.performance:
 
