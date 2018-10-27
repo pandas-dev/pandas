@@ -1790,7 +1790,7 @@ class _TestMySQLAlchemy(object):
         try:
             r1 = connection.execute(proc)  # noqa
             trans.commit()
-        except:
+        except pymysql.err.DatabaseError:
             trans.rollback()
             raise
 
@@ -2375,7 +2375,7 @@ class TestXMySQL(MySQLMixIn):
             # No real user should allow root access with a blank password.
             pymysql.connect(host='localhost', user='root', passwd='',
                             db='pandas_nosetest')
-        except:
+        except pymysql.err.DatabaseError:
             pass
         else:
             return
@@ -2402,7 +2402,7 @@ class TestXMySQL(MySQLMixIn):
             # No real user should allow root access with a blank password.
             self.conn = pymysql.connect(host='localhost', user='root',
                                         passwd='', db='pandas_nosetest')
-        except:
+        except pymysql.err.DatabaseError:
             pass
         else:
             return

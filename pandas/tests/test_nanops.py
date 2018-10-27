@@ -141,12 +141,12 @@ class TestnanopsDataFrame(object):
             if axis != 0 and hasattr(
                     targ, 'shape') and targ.ndim and targ.shape != res.shape:
                 res = np.split(res, [targ.shape[0]], axis=0)[0]
-        except:
+        except ValueError:
             targ, res = _coerce_tds(targ, res)
 
         try:
             tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
-        except:
+        except AssertionError:
 
             # handle timedelta dtypes
             if hasattr(targ, 'dtype') and targ.dtype == 'm8[ns]':
@@ -167,11 +167,11 @@ class TestnanopsDataFrame(object):
                 else:
                     try:
                         res = res.astype('c16')
-                    except:
+                    except RuntimeError:
                         res = res.astype('f8')
                     try:
                         targ = targ.astype('c16')
-                    except:
+                    except RuntimeError:
                         targ = targ.astype('f8')
             # there should never be a case where numpy returns an object
             # but nanops doesn't, so make that an exception
