@@ -10,6 +10,7 @@ dependencies:
   - feather-format
   - flake8>=3.5
   - flake8-comprehensions
+  - flake8-rst
   - gcsfs
   - geopandas
   - html5lib

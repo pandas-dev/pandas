@@ -206,7 +206,7 @@ the user is interacting with. So the signature must be
 
     def __init__(self, pandas_object):  # noqa: E999
         ...
-        
+
 For consistency with pandas methods, you should raise an ``AttributeError``
 if the data passed to your accessor has an incorrect dtype.
 
