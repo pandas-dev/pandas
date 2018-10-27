@@ -565,6 +565,6 @@ def test_maybe_convert_timedelta():
     assert pi._maybe_convert_timedelta(offset) == 2
     assert pi._maybe_convert_timedelta(2) == 2
 
-    offset = BusinessDay()
+    offset = offsets.BusinessDay()
     with tm.assert_raises_regex(ValueError, 'freq'):
         pi._maybe_convert_timedelta(offset)
