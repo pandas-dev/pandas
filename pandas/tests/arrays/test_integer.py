@@ -651,11 +651,9 @@ def test_preserve_dtypes(op):
 
     # groupby
     result = getattr(df.groupby("A"), op)()
-    expected = pd.DataFrame({
-        "B": np.array([1.0, 3.0]),
-        "C": np.array([1, 3], dtype="int64")
-    }, index=pd.Index(['a', 'b'], name='A'))
-    tm.assert_frame_equal(result, expected)
+
+    assert result.dtypes['B'].name == 'float64'
+    assert result.dtypes['C'].name == 'Int64'
 
 
 @pytest.mark.parametrize('op', ['mean'])
@@ -674,11 +672,23 @@ def test_reduce_to_float(op):
 
     # groupby
     result = getattr(df.groupby("A"), op)()
-    expected = pd.DataFrame({
-        "B": np.array([1.0, 3.0]),
-        "C": np.array([1, 3], dtype="float64")
-    }, index=pd.Index(['a', 'b'], name='A'))
-    tm.assert_frame_equal(result, expected)
+
+    assert result.dtypes['B'].name == 'float64'
+    assert result.dtypes['C'].name == 'Int64'
+
+
+@pytest.mark.parametrize('op', ['sum'])
+def test_groupby_extension_array(op):
+    # GH23227
+    # groupby on an extension array should return the extension array type
+    df = pd.DataFrame({
+        'Int': pd.Series([1, 2, 3], dtype='Int64'),
+        'A': [1, 2, 1]
+    })
+
+    result = getattr(df.groupby('A').Int, op)()
+    assert result is not None
+    assert result.dtype.name == 'Int64'
 
 
 def test_astype_nansafe():

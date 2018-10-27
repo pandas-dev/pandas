@@ -55,5 +55,5 @@ def test_groupby_includes_fill_value(fill_value):
     sdf = df.to_sparse(fill_value=fill_value)
     result = sdf.groupby('a').sum()
     expected = df.groupby('a').sum()
-    tm.assert_frame_equal(result, expected,
+    tm.assert_frame_equal(result, expected.to_sparse(fill_value=fill_value),
                           check_index_type=False)
