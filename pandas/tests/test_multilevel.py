@@ -2596,7 +2596,7 @@ class TestSorted(Base):
         df2_original = df2.copy()
 
         df2.index.set_levels(['b', 'd', 'a'], level='col1', inplace=True)
-        df2.index.set_labels([0, 1, 0, 2], level='col1', inplace=True)
+        df2.index.set_codes([0, 1, 0, 2], level='col1', inplace=True)
         assert not df2.index.is_lexsorted()
         assert not df2.index.is_monotonic
 

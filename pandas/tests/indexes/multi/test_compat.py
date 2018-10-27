@@ -92,7 +92,7 @@ def test_inplace_mutation_resets_values():
 
     # Must be 1d array of tuples
     assert exp_values.shape == (6,)
-    new_values = mi2.set_labels(labels2).values
+    new_values = mi2.set_codes(labels2).values
 
     # Not inplace shouldn't change
     tm.assert_almost_equal(mi2._tuples, vals2)
@@ -101,7 +101,7 @@ def test_inplace_mutation_resets_values():
     tm.assert_almost_equal(exp_values, new_values)
 
     # ...and again setting inplace should kill _tuples, etc
-    mi2.set_labels(labels2, inplace=True)
+    mi2.set_codes(labels2, inplace=True)
     tm.assert_almost_equal(mi2.values, new_values)
 
 

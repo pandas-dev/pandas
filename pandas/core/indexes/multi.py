@@ -42,6 +42,7 @@ from pandas.core.indexes.base import (
     _index_shared_docs)
 from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
 import pandas.core.indexes.base as ibase
+from pandas.util._decorators import deprecate_kwarg
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(klass='MultiIndex',
@@ -263,8 +264,8 @@ class MultiIndex(Index):
         Raises
         ------
         ValueError
-            If length of levels and codes don't match, if any code would
-            exceed level bounds, or there are any duplicate levels.
+            If length of levels and codes don't match, if the codes for any
+            level would exceed level bounds, or there are any duplicate levels.
         """
         # NOTE: Currently does not check, among other things, that cached
         # nlevels matches nor that sortorder matches actually sortorder.
@@ -452,14 +453,23 @@ class MultiIndex(Index):
 
     def set_labels(self, labels, level=None, inplace=False,
                    verify_integrity=True):
+        warnings.warn(("set_labels was deprecated in version 0.24.0."
+                       "Use set_codes instead."),
+                      FutureWarning, stacklevel=2)
+        return self.set_codes(labels, level=level, inplace=inplace,
+                              verify_integrity=verify_integrity)
+
+    @deprecate_kwarg(old_arg_name='labels', new_arg_name='codes')
+    def set_codes(self, codes, level=None, inplace=False,
+                  verify_integrity=True):
         """
-        Set new labels on MultiIndex. Defaults to returning
+        Set new codes on MultiIndex. Defaults to returning
         new index.
 
         Parameters
         ----------
-        labels : sequence or list of sequence
-            new labels to apply
+        codes : sequence or list of sequence
+            new codes to apply
         level : int, level name, or sequence of int/level names (default None)
             level(s) to set (None for all levels)
         inplace : bool
@@ -494,22 +504,22 @@ class MultiIndex(Index):
                    names=[u'foo', u'bar'])
         """
         if level is not None and not is_list_like(level):
-            if not is_list_like(labels):
-                raise TypeError("Labels must be list-like")
-            if is_list_like(labels[0]):
-                raise TypeError("Labels must be list-like")
+            if not is_list_like(codes):
+                raise TypeError("Codes must be list-like")
+            if is_list_like(codes[0]):
+                raise TypeError("Codes must be list-like")
             level = [level]
-            labels = [labels]
+            codes = [codes]
         elif level is None or is_list_like(level):
-            if not is_list_like(labels) or not is_list_like(labels[0]):
-                raise TypeError("Labels must be list of lists-like")
+            if not is_list_like(codes) or not is_list_like(codes[0]):
+                raise TypeError("Codes must be list of lists-like")
 
         if inplace:
             idx = self
         else:
             idx = self._shallow_copy()
         idx._reset_identity()
-        idx._set_codes(labels, level=level, verify_integrity=verify_integrity)
+        idx._set_codes(codes, level=level, verify_integrity=verify_integrity)
         if not inplace:
             return idx
 

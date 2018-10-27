@@ -82,7 +82,7 @@ def test_constructor_mismatched_label_levels(idx):
         idx.copy().set_levels([['a'], ['b']])
 
     with pytest.raises(ValueError, match=label_error):
-        idx.copy().set_labels([[0, 0, 0, 0], [0, 0]])
+        idx.copy().set_codes([[0, 0, 0, 0], [0, 0]])
 
 
 def test_copy_in_constructor():
