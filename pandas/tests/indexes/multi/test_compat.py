@@ -62,10 +62,10 @@ def test_boolean_context_compat2():
 def test_inplace_mutation_resets_values():
     levels = [['a', 'b', 'c'], [4]]
     levels2 = [[1, 2, 3], ['a']]
-    labels = [[0, 1, 0, 2, 2, 0], [0, 0, 0, 0, 0, 0]]
+    codes = [[0, 1, 0, 2, 2, 0], [0, 0, 0, 0, 0, 0]]
 
-    mi1 = MultiIndex(levels=levels, labels=labels)
-    mi2 = MultiIndex(levels=levels2, labels=labels)
+    mi1 = MultiIndex(levels=levels, codes=codes)
+    mi2 = MultiIndex(levels=levels2, codes=codes)
     vals = mi1.values.copy()
     vals2 = mi2.values.copy()
 
@@ -86,13 +86,13 @@ def test_inplace_mutation_resets_values():
     tm.assert_almost_equal(mi1.values, vals2)
 
     # Make sure label setting works too
-    labels2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
+    codes2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
     exp_values = np.empty((6,), dtype=object)
     exp_values[:] = [(long(1), 'a')] * 6
 
     # Must be 1d array of tuples
     assert exp_values.shape == (6,)
-    new_values = mi2.set_codes(labels2).values
+    new_values = mi2.set_codes(codes2).values
 
     # Not inplace shouldn't change
     tm.assert_almost_equal(mi2._tuples, vals2)
@@ -101,7 +101,7 @@ def test_inplace_mutation_resets_values():
     tm.assert_almost_equal(exp_values, new_values)
 
     # ...and again setting inplace should kill _tuples, etc
-    mi2.set_codes(labels2, inplace=True)
+    mi2.set_codes(codes2, inplace=True)
     tm.assert_almost_equal(mi2.values, new_values)
 
 

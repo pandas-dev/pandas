@@ -1839,7 +1839,7 @@ class DataFrame(NDFrame):
             selfsorted = self
 
         major_axis, minor_axis = selfsorted.index.levels
-        major_labels, minor_labels = selfsorted.index.labels
+        major_codes, minor_codes = selfsorted.index.codes
         shape = len(major_axis), len(minor_axis)
 
         # preserve names, if any
@@ -1854,8 +1854,8 @@ class DataFrame(NDFrame):
 
         # create new manager
         new_mgr = selfsorted._data.reshape_nd(axes=new_axes,
-                                              labels=[major_labels,
-                                                      minor_labels],
+                                              labels=[major_codes,
+                                                      minor_codes],
                                               shape=shape,
                                               ref_items=selfsorted.columns)
 
@@ -4226,7 +4226,7 @@ class DataFrame(NDFrame):
             if isinstance(self.index, MultiIndex):
                 names = [n if n is not None else ('level_%d' % i)
                          for (i, n) in enumerate(self.index.names)]
-                to_insert = lzip(self.index.levels, self.index.labels)
+                to_insert = lzip(self.index.levels, self.index.codes)
             else:
                 default = 'index' if 'index' not in self else 'level_0'
                 names = ([default] if self.index.name is None
@@ -7147,8 +7147,9 @@ class DataFrame(NDFrame):
             level = count_axis._get_level_number(level)
 
         level_index = count_axis.levels[level]
-        labels = ensure_int64(count_axis.labels[level])
-        counts = lib.count_level_2d(mask, labels, len(level_index), axis=0)
+        level_codes = ensure_int64(count_axis.codes[level])
+        counts = lib.count_level_2d(mask, level_codes, len(level_index),
+                                    axis=0)
 
         result = DataFrame(counts, index=level_index, columns=agg_axis)
 

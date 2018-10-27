@@ -17,7 +17,7 @@ import pandas.util.testing as tm
 
 def test_constructor_single_level():
     result = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
-                        labels=[[0, 1, 2, 3]], names=['first'])
+                        codes=[[0, 1, 2, 3]], names=['first'])
     assert isinstance(result, MultiIndex)
     expected = Index(['foo', 'bar', 'baz', 'qux'], name='first')
     tm.assert_index_equal(result.levels[0], expected)
@@ -25,29 +25,29 @@ def test_constructor_single_level():
 
 
 def test_constructor_no_levels():
-    msg = "non-zero number of levels/labels"
+    msg = "non-zero number of levels/codes"
     with pytest.raises(ValueError, match=msg):
-        MultiIndex(levels=[], labels=[])
+        MultiIndex(levels=[], codes=[])
 
-    both_re = re.compile('Must pass both levels and labels')
+    both_re = re.compile('Must pass both levels and codes')
     with pytest.raises(TypeError, match=both_re):
         MultiIndex(levels=[])
     with pytest.raises(TypeError, match=both_re):
-        MultiIndex(labels=[])
+        MultiIndex(codes=[])
 
 
 def test_constructor_nonhashable_names():
     # GH 20527
     levels = [[1, 2], [u'one', u'two']]
-    labels = [[0, 0, 1, 1], [0, 1, 0, 1]]
+    codes = [[0, 0, 1, 1], [0, 1, 0, 1]]
     names = (['foo'], ['bar'])
     message = "MultiIndex.name must be a hashable type"
     with pytest.raises(TypeError, match=message):
-        MultiIndex(levels=levels, labels=labels, names=names)
+        MultiIndex(levels=levels, codes=codes, names=names)
 
     # With .rename()
     mi = MultiIndex(levels=[[1, 2], [u'one', u'two']],
-                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
                     names=('foo', 'bar'))
     renamed = [['foor'], ['barr']]
     with pytest.raises(TypeError, match=message):
@@ -58,13 +58,13 @@ def test_constructor_nonhashable_names():
         mi.set_names(names=renamed)
 
 
-def test_constructor_mismatched_label_levels(idx):
-    labels = [np.array([1]), np.array([2]), np.array([3])]
+def test_constructor_mismatched_codes_levels(idx):
+    codes = [np.array([1]), np.array([2]), np.array([3])]
     levels = ["a"]
 
-    msg = "Length of levels and labels must be the same"
+    msg = "Length of levels and codes must be the same"
     with pytest.raises(ValueError, match=msg):
-        MultiIndex(levels=levels, labels=labels)
+        MultiIndex(levels=levels, codes=codes)
 
     length_error = re.compile('>= length of level')
     label_error = re.compile(r'Unequal code lengths: \[4, 2\]')
@@ -72,10 +72,10 @@ def test_constructor_mismatched_label_levels(idx):
     # important to check that it's looking at the right thing.
     with pytest.raises(ValueError, match=length_error):
         MultiIndex(levels=[['a'], ['b']],
-                   labels=[[0, 1, 2, 3], [0, 3, 4, 1]])
+                   codes=[[0, 1, 2, 3], [0, 3, 4, 1]])
 
     with pytest.raises(ValueError, match=label_error):
-        MultiIndex(levels=[['a'], ['b']], labels=[[0, 0, 0, 0], [0, 0]])
+        MultiIndex(levels=[['a'], ['b']], codes=[[0, 0, 0, 0], [0, 0]])
 
     # external API
     with pytest.raises(ValueError, match=length_error):
@@ -87,21 +87,21 @@ def test_constructor_mismatched_label_levels(idx):
 
 def test_copy_in_constructor():
     levels = np.array(["a", "b", "c"])
-    labels = np.array([1, 1, 2, 0, 0, 1, 1])
-    val = labels[0]
-    mi = MultiIndex(levels=[levels, levels], labels=[labels, labels],
+    codes = np.array([1, 1, 2, 0, 0, 1, 1])
+    val = codes[0]
+    mi = MultiIndex(levels=[levels, levels], codes=[codes, codes],
                     copy=True)
-    assert mi.labels[0][0] == val
-    labels[0] = 15
-    assert mi.labels[0][0] == val
+    assert mi.codes[0][0] == val
+    codes[0] = 15
+    assert mi.codes[0][0] == val
     val = levels[0]
     levels[0] = "PANDA"
     assert mi.levels[0][0] == val
 
 
 def test_from_arrays(idx):
-    arrays = [np.asarray(lev).take(lab)
-              for lev, lab in zip(idx.levels, idx.labels)]
+    arrays = [np.asarray(lev).take(level_codes)
+              for lev, level_codes in zip(idx.levels, idx.codes)]
 
     # list of arrays as input
     result = MultiIndex.from_arrays(arrays, names=idx.names)
@@ -116,8 +116,8 @@ def test_from_arrays(idx):
 
 def test_from_arrays_iterator(idx):
     # GH 18434
-    arrays = [np.asarray(lev).take(lab)
-              for lev, lab in zip(idx.levels, idx.labels)]
+    arrays = [np.asarray(lev).take(level_codes)
+              for lev, level_codes in zip(idx.levels, idx.codes)]
 
     # iterator as input
     result = MultiIndex.from_arrays(iter(arrays), names=idx.names)
@@ -220,7 +220,7 @@ def test_from_arrays_index_series_categorical():
 
 def test_from_arrays_empty():
     # 0 levels
-    msg = "Must pass non-zero number of levels/labels"
+    msg = "Must pass non-zero number of levels/codes"
     with pytest.raises(ValueError, match=msg):
         MultiIndex.from_arrays(arrays=[])
 
@@ -235,7 +235,7 @@ def test_from_arrays_empty():
         arrays = [[]] * N
         names = list('ABC')[:N]
         result = MultiIndex.from_arrays(arrays=arrays, names=names)
-        expected = MultiIndex(levels=[[]] * N, labels=[[]] * N,
+        expected = MultiIndex(levels=[[]] * N, codes=[[]] * N,
                               names=names)
         tm.assert_index_equal(result, expected)
 
@@ -275,7 +275,7 @@ def test_from_tuples():
         MultiIndex.from_tuples([])
 
     expected = MultiIndex(levels=[[1, 3], [2, 4]],
-                          labels=[[0, 1], [0, 1]],
+                          codes=[[0, 1], [0, 1]],
                           names=['a', 'b'])
 
     # input tuples
@@ -287,7 +287,7 @@ def test_from_tuples_iterator():
     # GH 18434
     # input iterator for tuples
     expected = MultiIndex(levels=[[1, 3], [2, 4]],
-                          labels=[[0, 1], [0, 1]],
+                          codes=[[0, 1], [0, 1]],
                           names=['a', 'b'])
 
     result = MultiIndex.from_tuples(zip([1, 3], [2, 4]), names=['a', 'b'])
@@ -314,7 +314,7 @@ def test_from_tuples_index_values(idx):
 
 def test_from_product_empty_zero_levels():
     # 0 levels
-    msg = "Must pass non-zero number of levels/labels"
+    msg = "Must pass non-zero number of levels/codes"
     with pytest.raises(ValueError, match=msg):
         MultiIndex.from_product([])
 
@@ -334,7 +334,7 @@ def test_from_product_empty_two_levels(first, second):
     names = ['A', 'B']
     result = MultiIndex.from_product([first, second], names=names)
     expected = MultiIndex(levels=[first, second],
-                          labels=[[], []], names=names)
+                          codes=[[], []], names=names)
     tm.assert_index_equal(result, expected)
 
 
@@ -345,7 +345,7 @@ def test_from_product_empty_three_levels(N):
     lvl2 = lrange(N)
     result = MultiIndex.from_product([[], lvl2, []], names=names)
     expected = MultiIndex(levels=[[], lvl2, []],
-                          labels=[[], [], []], names=names)
+                          codes=[[], [], []], names=names)
     tm.assert_index_equal(result, expected)
 
 
