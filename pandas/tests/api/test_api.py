@@ -135,20 +135,6 @@ class TestTopLevelDeprecations(object):
             pd.TimeGrouper(freq='D')
 
 
-class TestTypes(object):
-
-    def test_deprecation_access_func(self):
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            from pandas.types.concat import union_categoricals
-            c1 = pd.Categorical(list('aabc'))
-            c2 = pd.Categorical(list('abcd'))
-            union_categoricals(
-                [c1, c2],
-                sort_categories=True,
-                ignore_order=True)
-
-
 class TestCDateRange(object):
 
     def test_deprecation_cdaterange(self):
