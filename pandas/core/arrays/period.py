@@ -745,6 +745,15 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         return type(self)(result, freq=self.freq)
 
     def _add_delta_td(self, other):
+        """
+        Parameters
+        ----------
+        other : timedelta, Tick, np.timedelta64
+
+        Returns
+        -------
+        result : ndarray[int64]
+        """
         assert isinstance(self.freq, Tick)  # checked by calling function
         assert isinstance(other, (timedelta, np.timedelta64, Tick))
 
@@ -757,10 +766,19 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         return ordinals
 
     def _add_delta_tdi(self, other):
+        """
+        Parameters
+        ----------
+        other : TimedeltaArray or ndarray[timedelta64]
+
+        Returns
+        -------
+        result : ndarray[int64]
+        """
         assert isinstance(self.freq, Tick)  # checked by calling function
 
         delta = self._check_timedeltalike_freq_compat(other)
-        return self._addsub_int_array(delta, operator.add)
+        return self._addsub_int_array(delta, operator.add).asi8
 
     def _add_delta(self, other):
         """
