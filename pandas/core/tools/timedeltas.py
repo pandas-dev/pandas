@@ -19,22 +19,24 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     Convert argument to timedelta.
 
     Timedeltas are absolute differences in times, expressed in difference
-    units e.g. (days, hours, minutes, seconds). This method converts an argument
-    from a recognized timedelta format / value into a Timedelta type.
+    units (e.g. days, hours, minutes, seconds). This method converts
+    an argument from a recognized timedelta format / value into
+    a Timedelta type.
 
     Parameters
     ----------
-    arg : string, timedelta, list, tuple, 1-d array, or Series
+    arg : str, timedelta, list-like or Series
+          The argument which needs to be converted to timedelta.
     unit : str, default 'ns'
-        Possible values:
-        {'Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
-        'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds', 'sec', 'second',
-        'ms', 'milliseconds', 'millisecond', 'milli', 'millis', 'L',
-        'us', 'microseconds', 'microsecond', 'micro', 'micros', 'U',
-        'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond', 'N'}
-    box : Boolean, default True
+         ('Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr',
+         'h', 'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
+         'sec', 'second', 'ms', 'milliseconds', 'millisecond',
+         'milli', 'millis', 'L', 'us', 'microseconds', 'microsecond',
+         'micro', 'micros', 'U', 'ns', 'nanoseconds', 'nano', 'nanos',
+         'nanosecond', 'N').
+    box : bool, default True
           If True returns a Timedelta/TimedeltaIndex of the results.
-          if False returns a np.timedelta64 or ndarray of values of dtype
+          If False returns a np.timedelta64 or ndarray of values of dtype
           timedelta64[ns].
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
