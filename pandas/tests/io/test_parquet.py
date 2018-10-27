@@ -488,7 +488,6 @@ class TestParquetPyArrow(Base):
                       compression=None)
         import pyarrow.parquet as pq
         dataset = pq.ParquetDataset(path, validate_schema=False)
-        assert len(dataset.pieces) == 2
         assert len(dataset.partitions.partition_names) == 2
         assert dataset.partitions.partition_names == set(partition_cols)
         shutil.rmtree(path)
@@ -497,7 +496,9 @@ class TestParquetPyArrow(Base):
         partition_cols = ['bool', 'int']
         pa = pa_lt_070
         df = df_full
-        check_round_trip(df, pa, write_kwargs={'partition_cols': partition_cols})
+        check_round_trip(df, pa,
+                         write_kwargs={'partition_cols': partition_cols})
+
 
 class TestParquetFastParquet(Base):
 
