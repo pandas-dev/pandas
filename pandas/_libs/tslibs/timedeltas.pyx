@@ -1213,6 +1213,12 @@ class Timedelta(_Timedelta):
                 return other.delta * self
             return NotImplemented
 
+        elif util.is_nan(other):
+            # i.e. np.nan, but also catch np.float64("NaN") which would
+            #  otherwise get caught by the hasattr(other, "dtype") branch
+            #  incorrectly return a np.timedelta64 object.
+            return NaT
+
         elif hasattr(other, 'dtype'):
             # ndarray-like
             return other * self.to_timedelta64()
@@ -1239,6 +1245,12 @@ class Timedelta(_Timedelta):
         elif is_timedelta64_object(other):
             # convert to Timedelta below
             pass
+
+        elif util.is_nan(other):
+            # i.e. np.nan, but also catch np.float64("NaN") which would
+            #  otherwise get caught by the hasattr(other, "dtype") branch
+            #  incorrectly return a np.timedelta64 object.
+            return NaT
 
         elif hasattr(other, 'dtype'):
             return self.to_timedelta64() / other
