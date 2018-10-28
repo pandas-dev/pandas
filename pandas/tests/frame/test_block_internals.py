@@ -54,11 +54,6 @@ class TestDataFrameBlockInternals():
         float_frame._consolidate(inplace=True)
         assert len(float_frame._data.blocks) == 1
 
-    def test_consolidate_deprecation(self, float_frame):
-        float_frame['E'] = 7
-        with tm.assert_produces_warning(FutureWarning):
-            float_frame.consolidate()
-
     def test_consolidate_inplace(self, float_frame):
         frame = float_frame.copy()  # noqa
 

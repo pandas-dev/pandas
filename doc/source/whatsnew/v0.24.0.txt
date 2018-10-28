@@ -948,6 +948,7 @@ Removal of prior version deprecations/changes
 - :meth:`Categorical.searchsorted` and :meth:`Series.searchsorted` have renamed the ``v`` argument to ``value`` (:issue:`14645`)
 - ``pandas.parser``, ``pandas.lib``, and ``pandas.tslib`` have been removed (:issue:`15537`)
 - :meth:`TimedeltaIndex.searchsorted`, :meth:`DatetimeIndex.searchsorted`, and :meth:`PeriodIndex.searchsorted` have renamed the ``key`` argument to ``value`` (:issue:`14645`)
+- :meth:`DataFrame.consolidate` and :meth:`Series.consolidate` have been removed (:issue:`15501`)
 - Removal of the previously deprecated module ``pandas.json`` (:issue:`19944`)
 - :meth:`SparseArray.get_values` and :meth:`SparseArray.to_dense` have dropped the ``fill`` parameter (:issue:`14686`)
 - :meth:`SparseSeries.to_dense` has dropped the ``sparse_only`` parameter (:issue:`14686`)

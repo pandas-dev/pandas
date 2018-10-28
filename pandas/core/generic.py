@@ -117,7 +117,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
     _deprecations = frozenset(['as_blocks', 'blocks',
-                               'consolidate', 'convert_objects', 'is_copy'])
+                               'convert_objects', 'is_copy'])
     _metadata = []
     _is_copy = None
 
@@ -4721,18 +4721,6 @@ class NDFrame(PandasObject, SelectionMixin):
             f = lambda: self._data.consolidate()
             cons_data = self._protect_consolidate(f)
             return self._constructor(cons_data).__finalize__(self)
-
-    def consolidate(self, inplace=False):
-        """Compute NDFrame with "consolidated" internals (data of each dtype
-        grouped together in a single ndarray).
-
-        .. deprecated:: 0.20.0
-            Consolidate will be an internal implementation only.
-        """
-        # 15483
-        warnings.warn("consolidate is deprecated and will be removed in a "
-                      "future release.", FutureWarning, stacklevel=2)
-        return self._consolidate(inplace)
 
     @property
     def _is_mixed_type(self):
