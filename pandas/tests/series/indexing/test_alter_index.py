@@ -1,22 +1,17 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
 from datetime import datetime
 
-import pandas as pd
 import numpy as np
-
+import pytest
 from numpy import nan
 
-from pandas import compat
-
-from pandas import (Series, date_range, isna, Categorical)
-from pandas.compat import lrange, range
-
-from pandas.util.testing import (assert_series_equal)
+import pandas as pd
 import pandas.util.testing as tm
+from pandas import Categorical, Series, compat, date_range, isna
+from pandas.compat import lrange, range
+from pandas.util.testing import assert_series_equal
 
 
 @pytest.mark.parametrize(

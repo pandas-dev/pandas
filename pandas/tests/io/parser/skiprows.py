@@ -10,10 +10,9 @@ from datetime import datetime
 import numpy as np
 
 import pandas.util.testing as tm
-
 from pandas import DataFrame
+from pandas.compat import StringIO, lrange, range
 from pandas.errors import EmptyDataError
-from pandas.compat import StringIO, range, lrange
 
 
 class SkipRowsTests(object):
