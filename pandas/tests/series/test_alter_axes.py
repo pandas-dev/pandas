@@ -24,6 +24,7 @@ class TestSeriesAlterAxes(object):
 
     # MultiIndex constructor does not work directly on Series -> lambda
     @pytest.mark.parametrize('box', [Series, Index, np.array,
+                                     list, tuple, iter,
                                      lambda x: MultiIndex.from_arrays([x])])
     @pytest.mark.parametrize('inplace', [True, False])
     def test_set_index(self, string_series, inplace, box):
@@ -39,7 +40,7 @@ class TestSeriesAlterAxes(object):
 
         tm.assert_index_equal(result.index, expected)
         with tm.assert_raises_regex(ValueError, 'Length mismatch'):
-            string_series.set_index(idx[::2], inplace=inplace)
+            string_series.set_index(string_series.index[::2], inplace=inplace)
 
     def test_set_index_cast(self):
         # issue casting an index then set_index
@@ -48,16 +49,18 @@ class TestSeriesAlterAxes(object):
         tm.assert_series_equal(s, s2)
 
     # MultiIndex constructor does not work directly on Series -> lambda
-    # also test index name if append=True (name is duplicate here for B)
+    # also test index name if append=True (name is duplicate here for 'B')
     @pytest.mark.parametrize('box', [Series, Index, np.array,
+                                     list, tuple, iter,
                                      lambda x: MultiIndex.from_arrays([x])])
     @pytest.mark.parametrize('index_name', [None, 'B', 'test'])
     def test_set_index_append(self, string_series, index_name, box):
         string_series.index.name = index_name
 
         arrays = box(string_series.index[::-1])
-        # np.array and list "forget" the name of series.index
-        names = [index_name, None if box in [np.array, list] else index_name]
+        # np.array/list/tuple/iter "forget" the name of series.index
+        names = [index_name,
+                 None if box in [np.array, list, tuple, iter] else index_name]
 
         idx = MultiIndex.from_arrays([string_series.index,
                                       string_series.index[::-1]],
@@ -81,8 +84,9 @@ class TestSeriesAlterAxes(object):
         tm.assert_series_equal(result, expected)
 
     # MultiIndex constructor does not work directly on Series -> lambda
-    # also test index name if append=True (name is duplicate here for A & B)
-    @pytest.mark.parametrize('box', [Series, Index, np.array, list,
+    # also test index name if append=True (name is duplicate here for 'B')
+    @pytest.mark.parametrize('box', [Series, Index, np.array,
+                                     list, tuple, iter,
                                      lambda x: MultiIndex.from_arrays([x])])
     @pytest.mark.parametrize('append, index_name', [(True, None), (True, 'B'),
                              (True, 'test'), (False, None)])
@@ -96,10 +100,15 @@ class TestSeriesAlterAxes(object):
 
         result = string_series.set_index(arrays, append=append)
 
+        if box == iter:
+            # content was consumed -> re-read
+            arrays[0] = box(idx)
+
         # to test against already-tested behavior, we add sequentially,
-        # hence second append always True
-        expected = string_series.set_index(arrays[0], append=append)
-        expected = expected.set_index(arrays[1], append=True)
+        # hence second append always True; must wrap keys in list, otherwise
+        # box = list would be illegal
+        expected = string_series.set_index([arrays[0]], append=append)
+        expected = expected.set_index([arrays[1]], append=True)
 
         tm.assert_series_equal(result, expected)
 
@@ -121,16 +130,14 @@ class TestSeriesAlterAxes(object):
     def test_set_index_verify_integrity(self, string_series):
         idx = np.zeros(len(string_series))
 
-        with tm.assert_raises_regex(ValueError,
-                                    'Index has duplicate keys'):
+        with tm.assert_raises_regex(ValueError, 'Index has duplicate keys'):
             string_series.set_index(idx, verify_integrity=True)
         # with MultiIndex
-        with tm.assert_raises_regex(ValueError,
-                                    'Index has duplicate keys'):
+        with tm.assert_raises_regex(ValueError, 'Index has duplicate keys'):
             string_series.set_index([idx, idx], verify_integrity=True)
 
     def test_set_index_raise(self, string_series):
-        msg = 'The parameter "arrays" may only contain a combination.*'
+        msg = 'The parameter "arrays" may only contain one-dimensional.*'
         # forbidden type, e.g. set
         with tm.assert_raises_regex(TypeError, msg):
             string_series.set_index(set(string_series.index),

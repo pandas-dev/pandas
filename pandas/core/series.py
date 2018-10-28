@@ -1138,15 +1138,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         c  III    12
         dtype: int64
         """
-        if not isinstance(arrays, list):
-            arrays = [arrays]
-        elif all(is_scalar(x) for x in arrays):
+        if not isinstance(arrays, list) or all(is_scalar(x) for x in arrays):
             arrays = [arrays]
 
         if any(not is_list_like(x, allow_sets=False)
                or getattr(x, 'ndim', 1) > 1 for x in arrays):
-            raise TypeError('The parameter "arrays" may only contain a '
-                            'combination of valid column keys and '
+            raise TypeError('The parameter "arrays" may only contain '
                             'one-dimensional list-likes')
 
         return super(Series, self).set_index(keys=arrays, drop=False,
