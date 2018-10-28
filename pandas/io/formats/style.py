@@ -1224,7 +1224,9 @@ class Styler(object):
 
     def pipe(self, func, *args, **kwargs):
         """
-        Apply func(self, *args, **kwargs)
+        Apply func(self, \*args, \*\*kwargs), and return the result.
+
+        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -1241,13 +1243,52 @@ class Styler(object):
 
         Returns
         -------
-        result : the value returned by ``func``.
+        object : the value returned by ``func``.
 
         See Also
         --------
         Styler.apply
         Styler.applymap
         pandas.DataFrame.pipe
+
+        Notes
+        -----
+        Like :meth:`pandas.DataFrame.pipe`, this method can simplify the
+        application of several user-defined functions to a styler.  Instead
+        of writing:
+
+        >>> f(g(df.style.set_precision(3), arg1=a), arg2=b, arg3=c)
+
+        users can write:
+
+        >>> df.style.set_precision(3)
+        ...     .pipe(g, arg1=a)
+        ...     .pipe(f, arg2=b, arg3=c)
+
+        In particular, this allows users to define functions that take a
+        styler object, along with other parameters, and return the styler after
+        making styling changes (such as calling :meth:`Styler.apply` or
+        :meth:`Styler.set_properties`).  Using ``.pipe``, these user-defined
+        style "transformations" can be interleaved with calls to the built-in
+        Styler interface.
+
+        Examples
+        --------
+        >>> def highlight_with_containing_row(styler, row_label, column):
+        ...     ''' Highlight the indicated element, and its containing row. '''
+        ...     cell, row = pd.IndexSlice[row_label, column], pd.IndexSlice[row_label, :]
+        ...     return (styler.set_properties(cell, **{'background-color': '#ffffcc'})
+        ...                   .set_properties(row, **{'background-color': '#ffccc0'}))
+
+        The user-defined highlight function above can be called within a
+        sequence of other style modifications:
+
+        >>> df = pd.DataFrame({'A': list(range(-1, 4)), 'X': np.arange(0.2, 1.2, 0.2)})
+        >>> (df.style
+        ...    .format({'X': '{:.2%}'})
+        ...    .pipe(highlight_with_containing_row, 0, 'A')
+        ...    .pipe(highlight_with_containing_row, 9, 'X')
+        ...    .set_caption("Results with anomolous observations highlighted.")
         """
         return com._pipe(self, func, *args, **kwargs)
 
