@@ -1425,7 +1425,7 @@ class MultiIndex(Index):
         df : pd.DataFrame
             DataFrame to be converted to MultiIndex.
         squeeze : bool, default True
-            If df is a single column, squeeze multiindex to be a regular index.
+            If df is a single column, squeeze MultiIndex to be a regular Index.
 
         Returns
         -------
@@ -1465,10 +1465,7 @@ class MultiIndex(Index):
             raise TypeError("Input must be a DataFrame")
         columns = list(df)
         mi = cls.from_tuples(list(df.values), names=columns)
-        if squeeze:
-            return mi.squeeze()
-        else:
-            return mi
+        return mi.squeeze() if squeeze else mi
 
     def _sort_levels_monotonic(self):
         """
@@ -1534,7 +1531,7 @@ class MultiIndex(Index):
 
     def squeeze(self):
         """
-        Squeeze a single level MultiIndex to be a regular Index instane.
+        Squeeze a single level MultiIndex to be a regular Index instance.
 
         Returns
         -------
@@ -1545,6 +1542,9 @@ class MultiIndex(Index):
         Examples
         --------
         >>> mi = pd.MultiIndex.from_tuples([('a',), ('b',), ('c',)])
+        >>> mi
+        MultiIndex(levels=[['a', 'b', 'c']],
+                   labels=[[0, 1, 2]])
         >>> mi.squeeze()
         Index(['a', 'b', 'c'], dtype='object')
         """
