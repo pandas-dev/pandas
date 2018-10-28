@@ -7,10 +7,9 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
 import pandas as pd
-
-from pandas import date_range, Timestamp, DatetimeIndex
+import pandas.util.testing as tm
+from pandas import DatetimeIndex, Timestamp, date_range
 from pandas.tseries.frequencies import to_offset
 
 

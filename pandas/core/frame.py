@@ -361,7 +361,7 @@ class DataFrame(NDFrame):
 
     _constructor_sliced = Series
     _deprecations = NDFrame._deprecations | frozenset(
-        ['sortlevel', 'get_value', 'set_value', 'from_csv', 'from_items'])
+        ['get_value', 'set_value', 'from_csv', 'from_items'])
     _accessors = set()
 
     @property
@@ -4645,40 +4645,6 @@ class DataFrame(NDFrame):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    def sortlevel(self, level=0, axis=0, ascending=True, inplace=False,
-                  sort_remaining=True):
-        """Sort multilevel index by chosen axis and primary level. Data will be
-        lexicographically sorted by the chosen level followed by the other
-        levels (in order).
-
-        .. deprecated:: 0.20.0
-            Use :meth:`DataFrame.sort_index`
-
-
-        Parameters
-        ----------
-        level : int
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-        ascending : boolean, default True
-        inplace : boolean, default False
-            Sort the DataFrame without creating a new instance
-        sort_remaining : boolean, default True
-            Sort by the other levels too.
-
-        Returns
-        -------
-        sorted : DataFrame
-
-        See Also
-        --------
-        DataFrame.sort_index(level=...)
-
-        """
-        warnings.warn("sortlevel is deprecated, use sort_index(level= ...)",
-                      FutureWarning, stacklevel=2)
-        return self.sort_index(level=level, axis=axis, ascending=ascending,
-                               inplace=inplace, sort_remaining=sort_remaining)
-
     def nlargest(self, n, columns, keep='first'):
         """
         Return the first `n` rows ordered by `columns` in descending order.
@@ -4971,21 +4937,16 @@ class DataFrame(NDFrame):
                                      index=left.index, columns=self.columns,
                                      copy=False)
 
-    def _combine_match_columns(self, other, func, level=None, try_cast=True):
+    def _combine_match_columns(self, other, func, level=None):
         assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         assert left.columns.equals(right.index)
         return ops.dispatch_to_series(left, right, func, axis="columns")
 
-    def _combine_const(self, other, func, errors='raise', try_cast=True):
-        if lib.is_scalar(other) or np.ndim(other) == 0:
-            return ops.dispatch_to_series(self, other, func)
-
-        new_data = self._data.eval(func=func, other=other,
-                                   errors=errors,
-                                   try_cast=try_cast)
-        return self._constructor(new_data)
+    def _combine_const(self, other, func, errors='raise'):
+        assert lib.is_scalar(other) or np.ndim(other) == 0
+        return ops.dispatch_to_series(self, other, func)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
@@ -5146,22 +5107,14 @@ class DataFrame(NDFrame):
                 if not is_dtype_equal(other_dtype, new_dtype):
                     otherSeries = otherSeries.astype(new_dtype)
 
-            # see if we need to be represented as i8 (datetimelike)
-            # try to keep us at this dtype
-            needs_i8_conversion_i = needs_i8_conversion(new_dtype)
-            if needs_i8_conversion_i:
-                arr = func(series, otherSeries, True)
-            else:
-                arr = func(series, otherSeries)
-
+            arr = func(series, otherSeries)
             arr = maybe_downcast_to_dtype(arr, this_dtype)
 
             result[col] = arr
 
         # convert_objects just in case
         return self._constructor(result, index=new_index,
-                                 columns=new_columns)._convert(datetime=True,
-                                                               copy=False)
+                                 columns=new_columns)
 
     def combine_first(self, other):
         """
@@ -5208,15 +5161,28 @@ class DataFrame(NDFrame):
         """
         import pandas.core.computation.expressions as expressions
 
-        def combiner(x, y, needs_i8_conversion=False):
-            x_values = x.values if hasattr(x, 'values') else x
-            y_values = y.values if hasattr(y, 'values') else y
-            if needs_i8_conversion:
-                mask = isna(x)
-                x_values = x_values.view('i8')
-                y_values = y_values.view('i8')
-            else:
-                mask = isna(x_values)
+        def extract_values(arr):
+            # Does two things:
+            # 1. maybe gets the values from the Series / Index
+            # 2. convert datelike to i8
+            if isinstance(arr, (ABCIndexClass, ABCSeries)):
+                arr = arr._values
+
+            if needs_i8_conversion(arr):
+                # TODO(DatetimelikeArray): just use .asi8
+                if is_extension_array_dtype(arr.dtype):
+                    arr = arr.asi8
+                else:
+                    arr = arr.view('i8')
+            return arr
+
+        def combiner(x, y):
+            mask = isna(x)
+            if isinstance(mask, (ABCIndexClass, ABCSeries)):
+                mask = mask._values
+
+            x_values = extract_values(x)
+            y_values = extract_values(y)
 
             # If the column y in other DataFrame is not in first DataFrame,
             # just return y_values.

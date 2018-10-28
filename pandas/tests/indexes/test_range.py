@@ -1,21 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
+import operator
 from datetime import datetime
 from itertools import combinations
-import operator
-
-from pandas.compat import range, u, PY3
 
 import numpy as np
-
-from pandas import (isna, Series, Index, Float64Index,
-                    Int64Index, RangeIndex)
-
-import pandas.util.testing as tm
+import pytest
 
 import pandas as pd
+import pandas.util.testing as tm
+from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, isna
+from pandas.compat import PY3, range, u
 
 from .test_numeric import Numeric
 
@@ -340,38 +335,38 @@ class TestRangeIndex(Numeric):
         assert self.index.dtype == np.int64
 
     def test_is_monotonic(self):
-        assert self.index.is_monotonic
-        assert self.index.is_monotonic_increasing
-        assert not self.index.is_monotonic_decreasing
-        assert self.index._is_strictly_monotonic_increasing
-        assert not self.index._is_strictly_monotonic_decreasing
+        assert self.index.is_monotonic is True
+        assert self.index.is_monotonic_increasing is True
+        assert self.index.is_monotonic_decreasing is False
+        assert self.index._is_strictly_monotonic_increasing is True
+        assert self.index._is_strictly_monotonic_decreasing is False
 
         index = RangeIndex(4, 0, -1)
-        assert not index.is_monotonic
-        assert not index._is_strictly_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is False
+        assert index._is_strictly_monotonic_increasing is False
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
         index = RangeIndex(1, 2)
-        assert index.is_monotonic
-        assert index.is_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_increasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
         index = RangeIndex(2, 1)
-        assert index.is_monotonic
-        assert index.is_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_increasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
         index = RangeIndex(1, 1)
-        assert index.is_monotonic
-        assert index.is_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_increasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
     def test_equals_range(self):
         equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),

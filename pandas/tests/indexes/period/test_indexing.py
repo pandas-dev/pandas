@@ -1,15 +1,16 @@
 from datetime import datetime, timedelta
 
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas as pd
-from pandas.util import testing as tm
-from pandas.compat import lrange
+from pandas import (
+    DatetimeIndex, Period, PeriodIndex, Series, notna, period_range
+)
 from pandas._libs import tslibs
-from pandas import (PeriodIndex, Series, DatetimeIndex,
-                    period_range, Period, notna)
 from pandas._libs.tslibs import period as libperiod
+from pandas.compat import lrange
+from pandas.util import testing as tm
 
 
 class TestGetItem(object):
@@ -404,11 +405,11 @@ class TestIndexing(object):
         idx_dec1 = pd.PeriodIndex([p2, p1, p1])
         idx = pd.PeriodIndex([p1, p2, p0])
 
-        assert idx_inc0.is_monotonic_increasing
-        assert idx_inc1.is_monotonic_increasing
-        assert not idx_dec0.is_monotonic_increasing
-        assert not idx_dec1.is_monotonic_increasing
-        assert not idx.is_monotonic_increasing
+        assert idx_inc0.is_monotonic_increasing is True
+        assert idx_inc1.is_monotonic_increasing is True
+        assert idx_dec0.is_monotonic_increasing is False
+        assert idx_dec1.is_monotonic_increasing is False
+        assert idx.is_monotonic_increasing is False
 
     def test_is_monotonic_decreasing(self):
         # GH 17717
@@ -422,11 +423,11 @@ class TestIndexing(object):
         idx_dec1 = pd.PeriodIndex([p2, p1, p1])
         idx = pd.PeriodIndex([p1, p2, p0])
 
-        assert not idx_inc0.is_monotonic_decreasing
-        assert not idx_inc1.is_monotonic_decreasing
-        assert idx_dec0.is_monotonic_decreasing
-        assert idx_dec1.is_monotonic_decreasing
-        assert not idx.is_monotonic_decreasing
+        assert idx_inc0.is_monotonic_decreasing is False
+        assert idx_inc1.is_monotonic_decreasing is False
+        assert idx_dec0.is_monotonic_decreasing is True
+        assert idx_dec1.is_monotonic_decreasing is True
+        assert idx.is_monotonic_decreasing is False
 
     def test_is_unique(self):
         # GH 17717
@@ -435,10 +436,10 @@ class TestIndexing(object):
         p2 = pd.Period('2017-09-03')
 
         idx0 = pd.PeriodIndex([p0, p1, p2])
-        assert idx0.is_unique
+        assert idx0.is_unique is True
 
         idx1 = pd.PeriodIndex([p1, p1, p2])
-        assert not idx1.is_unique
+        assert idx1.is_unique is False
 
     def test_contains(self):
         # GH 17717
@@ -564,7 +565,7 @@ class TestIndexing(object):
                                     'unit abbreviation w/o a number'):
             idx.get_loc('2000-01-10', method='nearest', tolerance='foo')
 
-        msg = 'Input has different freq from PeriodIndex\\(freq=D\\)'
+        msg = 'Input has different freq from PeriodArray\\(freq=D\\)'
         with tm.assert_raises_regex(ValueError, msg):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 hour')
         with pytest.raises(KeyError):
@@ -594,7 +595,7 @@ class TestIndexing(object):
                                                     tolerance='1 hour'),
                                     np.array([0, -1, 1], dtype=np.intp))
 
-        msg = 'Input has different freq from PeriodIndex\\(freq=H\\)'
+        msg = 'Input has different freq from PeriodArray\\(freq=H\\)'
         with tm.assert_raises_regex(ValueError, msg):
             idx.get_indexer(target, 'nearest', tolerance='1 minute')
 

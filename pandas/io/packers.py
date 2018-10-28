@@ -53,7 +53,7 @@ from pandas import (  # noqa:F401
 )
 from pandas.compat import u, u_safe
 from pandas.core import internals
-from pandas.core.arrays import IntervalArray
+from pandas.core.arrays import IntervalArray, PeriodArray
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_object_dtype, needs_i8_conversion, pandas_dtype
@@ -599,7 +599,9 @@ def decode(obj):
     elif typ == u'period_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
         d = dict(name=obj[u'name'], freq=obj[u'freq'])
-        return globals()[obj[u'klass']]._from_ordinals(data, **d)
+        freq = d.pop('freq', None)
+        return globals()[obj[u'klass']](PeriodArray(data, freq), **d)
+
     elif typ == u'datetime_index':
         data = unconvert(obj[u'data'], np.int64, obj.get(u'compress'))
         d = dict(name=obj[u'name'], freq=obj[u'freq'], verify_integrity=False)
