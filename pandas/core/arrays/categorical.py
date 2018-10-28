@@ -567,6 +567,8 @@ class Categorical(ExtensionArray, PandasObject):
         """
         return list(self)
 
+    to_list = tolist
+
     @property
     def base(self):
         """
