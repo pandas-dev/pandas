@@ -180,6 +180,26 @@ array, but rather an ``ExtensionArray``:
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
 
+New ``Styler.pipe()`` method
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+A new method :meth:`pandas.formats.style.Styler.pipe()` was added (:issue:`#23229`).
+This provides a convenient way to apply users' predefined styling functions, and can
+help reduce "boilerplate" when using DataFrame styling functionality repeatedly within
+a notebook.
+
+.. code-block:: ipython
+
+    def set_summary_style(styler):
+        return (styler.format({'N': '{:,}', 'X': '{:.1%}'})
+                      .set_properties(**{'text-align': 'right'}))
+
+    (df.style.set_precision(1)
+       .pipe(set_summary_style)
+       .set_caption('Summary of results.'))
+
+Other classes that provide a ``pipe()`` method include DataFrame, Series, Groupby,
+and Resampler.
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
@@ -214,7 +234,6 @@ Other Enhancements
 - Compatibility with Matplotlib 3.0 (:issue:`22790`).
 - Added :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` for determining overlaps between interval-like objects (:issue:`21998`)
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have gained the ``nonexistent`` argument for alternative handling of nonexistent times. See :ref:`timeseries.timezone_nonexsistent` (:issue:`8917`)
-- :meth:`Styler.pipe` method added, to simplify application of user-defined functions that operate on stylers.
 
 .. _whatsnew_0240.api_breaking:
 
