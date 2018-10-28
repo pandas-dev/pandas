@@ -10,6 +10,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import iNaT, index as libindex, lib, tslibs
+import pandas.compat as compat
 from pandas.compat import (
     PY36, OrderedDict, StringIO, get_range_parameters, range, u, zip)
 from pandas.compat.numpy import function as nv
@@ -32,7 +33,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import (
     isna, na_value_for_dtype, notna, remove_na_arraylike)
 
-from pandas import compat
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray, SparseArray, period_array
