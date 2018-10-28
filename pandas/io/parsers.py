@@ -352,10 +352,9 @@ colspecs : list of pairs (int, int) or 'infer', default 'infer'
 widths : list of ints, optional
     A list of field widths which can be used instead of `colspecs` if
     the intervals are contiguous.
-infer_nrows : int, default None
+infer_nrows : int, default 100
     The number of rows to consider when letting the parser determine the
-    ``colspecs``. If not set (or set to `None`), default behavior of 100
-    rows is used.
+    `colspecs`.
 
     .. versionadded:: 0.24.0
 
@@ -535,7 +534,7 @@ _c_parser_defaults = {
 
 _fwf_defaults = {
     'colspecs': 'infer',
-    'infer_nrows': None,
+    'infer_nrows': 100,
     'widths': None,
 }
 
@@ -726,7 +725,7 @@ read_table = Appender(_read_table_doc)(read_table)
 
 @Appender(_read_fwf_doc)
 def read_fwf(filepath_or_buffer, colspecs='infer', widths=None,
-             infer_nrows=None, **kwds):
+             infer_nrows=100, **kwds):
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
@@ -3373,7 +3372,7 @@ class FixedWidthReader(BaseIterator):
     """
 
     def __init__(self, f, colspecs, delimiter, comment, skiprows=None,
-                 infer_nrows=None):
+                 infer_nrows=100):
         self.f = f
         self.buffer = None
         self.delimiter = '\r\n' + delimiter if delimiter else '\n\r\t '
@@ -3433,13 +3432,14 @@ class FixedWidthReader(BaseIterator):
         self.buffer = iter(buffer_rows)
         return detect_rows
 
-    def detect_colspecs(self, n=100, skiprows=None, infer_nrows=None):
+    def detect_colspecs(self, n=None, skiprows=None, infer_nrows=100):
+        # infer_nrows replaces n, see GH15138
         # Regex escape the delimiters
         delimiters = ''.join(r'\%s' % x for x in self.delimiter)
         pattern = re.compile('([^%s]+)' % delimiters)
-        if infer_nrows:
-            n = infer_nrows
-        rows = self.get_rows(n, skiprows)
+        if n:
+            infer_nrows = n
+        rows = self.get_rows(infer_nrows, skiprows)
         if not rows:
             raise EmptyDataError("No rows from which to infer column width")
         max_len = max(map(len, rows))
