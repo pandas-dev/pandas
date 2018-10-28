@@ -1,13 +1,13 @@
-import pytest
 import datetime
 
 import numpy as np
-import pandas as pd
+import pytest
 
-from pandas import DataFrame, Series, Index, MultiIndex
-from pandas.util import hash_array, hash_pandas_object
-from pandas.core.util.hashing import hash_tuples, hash_tuple, _hash_scalar
+import pandas as pd
 import pandas.util.testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series
+from pandas.core.util.hashing import _hash_scalar, hash_tuple, hash_tuples
+from pandas.util import hash_array, hash_pandas_object
 
 
 class TestHashing(object):
