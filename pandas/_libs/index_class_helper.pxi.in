@@ -10,14 +10,22 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 {{py:
 
-# name, dtype, ctype
-dtypes = [('Float64', 'float64', 'float64_t'),
-          ('UInt64', 'uint64', 'uint64_t'),
-          ('Int64', 'int64', 'int64_t'),
-          ('Object', 'object', 'object')]
+# name, dtype, ctype, hashtable_name, hashtable_dtype
+dtypes = [('Float64', 'float64', 'float64_t', 'Float64', 'float64'),
+          ('Float32', 'float32', 'float32_t', 'Float64', 'float64'),
+          ('Int64', 'int64', 'int64_t', 'Int64', 'int64'),
+          ('Int32', 'int32', 'int32_t', 'Int64', 'int64'),
+          ('Int16', 'int16', 'int16_t', 'Int64', 'int64'),
+          ('Int8', 'int8', 'int8_t', 'Int64', 'int64'),
+          ('UInt64', 'uint64', 'uint64_t', 'UInt64', 'uint64'),
+          ('UInt32', 'uint32', 'uint32_t', 'UInt64', 'uint64'),
+          ('UInt16', 'uint16', 'uint16_t', 'UInt64', 'uint64'),
+          ('UInt8', 'uint8', 'uint8_t', 'UInt64', 'uint64'),
+          ('Object', 'object', 'object', 'PyObject', 'object'),
+          ]
 }}
 
-{{for name, dtype, ctype in dtypes}}
+{{for name, dtype, ctype, hashtable_name, hashtable_dtype in dtypes}}
 
 
 cdef class {{name}}Engine(IndexEngine):
@@ -34,13 +42,9 @@ cdef class {{name}}Engine(IndexEngine):
                                    other, limit=limit)
 
     cdef _make_hash_table(self, n):
-        {{if name == 'Object'}}
-        return _hash.PyObjectHashTable(n)
-        {{else}}
-        return _hash.{{name}}HashTable(n)
-        {{endif}}
+        return _hash.{{hashtable_name}}HashTable(n)
 
-    {{if name != 'Float64' and name != 'Object'}}
+    {{if name not in {'Float64', 'Float32', 'Object'} }}
     cdef _check_type(self, object val):
         hash(val)
         if util.is_bool_object(val):
@@ -50,6 +54,11 @@ cdef class {{name}}Engine(IndexEngine):
     {{endif}}
 
     {{if name != 'Object'}}
+    cpdef _call_map_locations(self, values):
+        # self.mapping is of type {{hashtable_name}}HashTable,
+        # so convert dtype of values
+        self.mapping.map_locations(algos.ensure_{{hashtable_dtype}}(values))
+
     cdef _get_index_values(self):
         return algos.ensure_{{dtype}}(self.vgetter())
 
@@ -60,7 +69,7 @@ cdef class {{name}}Engine(IndexEngine):
             ndarray[{{ctype}}] values
             int count = 0
 
-        {{if name != 'Float64'}}
+        {{if name not in {'Float64', 'Float32'} }}
         if not util.is_integer_object(val):
             raise KeyError(val)
         {{endif}}

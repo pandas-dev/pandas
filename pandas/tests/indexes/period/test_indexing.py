@@ -1,15 +1,16 @@
 from datetime import datetime, timedelta
 
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas as pd
-from pandas.util import testing as tm
-from pandas.compat import lrange
+from pandas import (
+    DatetimeIndex, Period, PeriodIndex, Series, notna, period_range
+)
 from pandas._libs import tslibs
-from pandas import (PeriodIndex, Series, DatetimeIndex,
-                    period_range, Period, notna)
 from pandas._libs.tslibs import period as libperiod
+from pandas.compat import lrange
+from pandas.util import testing as tm
 
 
 class TestGetItem(object):
