@@ -951,6 +951,7 @@ Removal of prior version deprecations/changes
 - :meth:`DataFrame.consolidate` and :meth:`Series.consolidate` have been removed (:issue:`15501`)
 - Removal of the previously deprecated module ``pandas.json`` (:issue:`19944`)
 - :meth:`SparseArray.get_values` and :meth:`SparseArray.to_dense` have dropped the ``fill`` parameter (:issue:`14686`)
+- :meth:`DataFrame.sortlevel` and :meth:`Series.sortlevel` have been removed (:issue:`15099`)
 - :meth:`SparseSeries.to_dense` has dropped the ``sparse_only`` parameter (:issue:`14686`)
 
 .. _whatsnew_0240.performance:
