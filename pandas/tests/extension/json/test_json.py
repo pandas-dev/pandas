@@ -1,5 +1,5 @@
-import operator
 import collections
+import operator
 
 import pytest
 

@@ -2,23 +2,24 @@
 """
 Tests for DatetimeIndex timezone-related methods
 """
-from datetime import datetime, timedelta, tzinfo, date, time
+from datetime import date, datetime, time, timedelta, tzinfo
 from distutils.version import LooseVersion
 
+import dateutil
+import numpy as np
 import pytest
 import pytz
-import dateutil
 from dateutil.tz import gettz, tzlocal
-import numpy as np
-
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas._libs.tslibs import timezones, conversion
-from pandas.compat import lrange, zip, PY3
-from pandas import (DatetimeIndex, date_range, bdate_range,
-                    Timestamp, isna, to_datetime, Index)
+import pandas.util._test_decorators as td
+import pandas.util.testing as tm
+from pandas import (
+    DatetimeIndex, Index, Timestamp, bdate_range, date_range, isna,
+    to_datetime
+)
+from pandas._libs.tslibs import conversion, timezones
+from pandas.compat import PY3, lrange, zip
 
 
 class FixedOffset(tzinfo):

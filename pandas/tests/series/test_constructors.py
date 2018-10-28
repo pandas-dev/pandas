@@ -1,30 +1,29 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
-from datetime import datetime, timedelta
 from collections import OrderedDict
+from datetime import datetime, timedelta
 
-from numpy import nan
 import numpy as np
 import numpy.ma as ma
-import pandas as pd
+import pytest
+from numpy import nan
 
-from pandas.api.types import CategoricalDtype
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_datetime64tz_dtype)
-from pandas import (Index, Series, isna, date_range, Timestamp,
-                    NaT, period_range, timedelta_range, MultiIndex,
-                    IntervalIndex, Categorical, DataFrame)
-from pandas.core.arrays import period_array
+import pandas as pd
+import pandas.util.testing as tm
+from pandas import (
+    Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
+    Timestamp, date_range, isna, period_range, timedelta_range
+)
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
-
-from pandas.compat import lrange, range, zip, long, PY36
+from pandas.api.types import CategoricalDtype
+from pandas.compat import PY36, long, lrange, range, zip
+from pandas.core.arrays import period_array
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_datetime64tz_dtype
+)
 from pandas.util.testing import assert_series_equal
-import pandas.util.testing as tm
 
 
 class TestSeriesConstructors():
@@ -1193,32 +1192,26 @@ class TestSeriesConstructors():
         exp = Series(index).astype(object)
         tm.assert_series_equal(s, exp)
 
-    def test_constructor_generic_timestamp_deprecated(self):
-        # see gh-15524
+    @pytest.mark.parametrize("dtype", [
+        np.datetime64,
+        np.timedelta64,
+    ])
+    def test_constructor_generic_timestamp_no_frequency(self, dtype):
+        # see gh-15524, gh-15987
+        msg = "dtype has no frequency. Please pass in"
 
-        with tm.assert_produces_warning(FutureWarning):
-            dtype = np.timedelta64
-            s = Series([], dtype=dtype)
+        with tm.assert_raises_regex(ValueError, msg):
+            Series([], dtype=dtype)
 
-            assert s.empty
-            assert s.dtype == 'm8[ns]'
+    @pytest.mark.parametrize("dtype,msg", [
+        ("m8[ps]", "cannot convert timedeltalike"),
+        ("M8[ps]", "cannot convert datetimelike"),
+    ])
+    def test_constructor_generic_timestamp_bad_frequency(self, dtype, msg):
+        # see gh-15524, gh-15987
 
-        with tm.assert_produces_warning(FutureWarning):
-            dtype = np.datetime64
-            s = Series([], dtype=dtype)
-
-            assert s.empty
-            assert s.dtype == 'M8[ns]'
-
-        # These timestamps have the wrong frequencies,
-        # so an Exception should be raised now.
-        msg = "cannot convert timedeltalike"
         with tm.assert_raises_regex(TypeError, msg):
-            Series([], dtype='m8[ps]')
-
-        msg = "cannot convert datetimelike"
-        with tm.assert_raises_regex(TypeError, msg):
-            Series([], dtype='M8[ps]')
+            Series([], dtype=dtype)
 
     @pytest.mark.parametrize('dtype', [None, 'uint8', 'category'])
     def test_constructor_range_dtype(self, dtype):
