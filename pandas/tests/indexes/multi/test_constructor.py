@@ -492,7 +492,8 @@ def test_from_frame():
     (False, 'multi', pd.MultiIndex.from_tuples([('a', 'a'), ('a', 'b'),
                                                 ('b', 'a'), ('b', 'b')],
                                                names=['L1', 'L2'])),
-    (False, 'single', pd.MultiIndex.from_tuples([('a',), ('a',), ('b',), ('b',)],
+    (False, 'single', pd.MultiIndex.from_tuples([('a',), ('a',),
+                                                 ('b',), ('b',)],
                                                 names=['L1']))
 ])
 def test_from_frame_squeeze(squeeze, input_type, expected):
