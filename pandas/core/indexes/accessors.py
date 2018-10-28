@@ -1,7 +1,6 @@
 """
 datetimelike delegation
 """
-
 import numpy as np
 
 from pandas.core.dtypes.generic import ABCSeries
