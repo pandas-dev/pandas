@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 import pytest
 
-import numpy as np
-
 import pandas.util.testing as tm
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas import Categorical, CategoricalIndex, Index, Series, Timestamp
 from pandas.compat import long
-from pandas import Categorical, Index, CategoricalIndex, Series, Timestamp
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 
 class TestCategoricalDtypes(object):
