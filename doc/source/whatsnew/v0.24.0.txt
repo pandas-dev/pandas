@@ -956,6 +956,7 @@ Removal of prior version deprecations/changes
 - :meth:`DataFrame.sortlevel` and :meth:`Series.sortlevel` have been removed (:issue:`15099`)
 - :meth:`SparseSeries.to_dense` has dropped the ``sparse_only`` parameter (:issue:`14686`)
 - :meth:`DataFrame.astype` and :meth:`Series.astype` have renamed the ``raise_on_error`` argument to ``errors`` (:issue:`14967`)
+- ``is_sequence``, ``is_any_int_dtype``, and ``is_floating_dtype`` have been removed from ``pandas.api.types`` (:issue:`16163`, :issue:`16189`)
 
 .. _whatsnew_0240.performance:
 
