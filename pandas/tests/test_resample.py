@@ -261,22 +261,6 @@ class TestResampleAPI(object):
             result = t.apply(lambda x: x)
             assert_series_equal(result, self.series)
 
-    def test_agg_consistency(self):
-
-        # make sure that we are consistent across
-        # similar aggregations with and w/o selection list
-        df = DataFrame(np.random.randn(1000, 3),
-                       index=pd.date_range('1/1/2012', freq='S', periods=1000),
-                       columns=['A', 'B', 'C'])
-
-        r = df.resample('3T')
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            expected = r[['A', 'B', 'C']].agg({'r1': 'mean', 'r2': 'sum'})
-            result = r.agg({'r1': 'mean', 'r2': 'sum'})
-        assert_frame_equal(result, expected)
-
     # TODO: once GH 14008 is fixed, move these tests into
     # `Base` test class
     def test_agg(self):
@@ -332,27 +316,6 @@ class TestResampleAPI(object):
             result = t['A'].aggregate(['mean', 'sum'])
         assert_frame_equal(result, expected)
 
-        expected = pd.concat([a_mean, a_sum], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
-                                                      ('A', 'sum')])
-        for t in cases:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                result = t.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
-            assert_frame_equal(result, expected, check_like=True)
-
-        expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
-                                                      ('A', 'sum'),
-                                                      ('B', 'mean2'),
-                                                      ('B', 'sum2')])
-        for t in cases:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                result = t.aggregate({'A': {'mean': 'mean', 'sum': 'sum'},
-                                      'B': {'mean2': 'mean', 'sum2': 'sum'}})
-            assert_frame_equal(result, expected, check_like=True)
-
         expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
                                                       ('A', 'std'),
@@ -398,24 +361,6 @@ class TestResampleAPI(object):
             expected = pd.concat([r['A'].sum(), rcustom], axis=1)
             assert_frame_equal(result, expected, check_like=True)
 
-        # agg with renamers
-        expected = pd.concat([t['A'].sum(),
-                              t['B'].sum(),
-                              t['A'].mean(),
-                              t['B'].mean()],
-                             axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('result1', 'A'),
-                                                      ('result1', 'B'),
-                                                      ('result2', 'A'),
-                                                      ('result2', 'B')])
-
-        for t in cases:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                result = t[['A', 'B']].agg(OrderedDict([('result1', np.sum),
-                                                        ('result2', np.mean)]))
-            assert_frame_equal(result, expected, check_like=True)
-
         # agg with different hows
         expected = pd.concat([t['A'].sum(),
                               t['A'].std(),
@@ -435,31 +380,6 @@ class TestResampleAPI(object):
         for t in cases:
             result = t[['A', 'B']].agg({'A': ['sum', 'std'],
                                         'B': ['mean', 'std']})
-            assert_frame_equal(result, expected, check_like=True)
-
-        # series like aggs
-        for t in cases:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                result = t['A'].agg({'A': ['sum', 'std']})
-            expected = pd.concat([t['A'].sum(),
-                                  t['A'].std()],
-                                 axis=1)
-            expected.columns = pd.MultiIndex.from_tuples([('A', 'sum'),
-                                                          ('A', 'std')])
-            assert_frame_equal(result, expected, check_like=True)
-
-            expected = pd.concat([t['A'].agg(['sum', 'std']),
-                                  t['A'].agg(['mean', 'std'])],
-                                 axis=1)
-            expected.columns = pd.MultiIndex.from_tuples([('A', 'sum'),
-                                                          ('A', 'std'),
-                                                          ('B', 'mean'),
-                                                          ('B', 'std')])
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                result = t['A'].agg({'A': ['sum', 'std'],
-                                     'B': ['mean', 'std']})
             assert_frame_equal(result, expected, check_like=True)
 
         # errors
@@ -497,24 +417,6 @@ class TestResampleAPI(object):
                 t.aggregate({'r1': {'A': ['mean', 'sum']},
                              'r2': {'B': ['mean', 'sum']}})
                 pytest.raises(ValueError, f)
-
-        for t in cases:
-            expected = pd.concat([t['A'].mean(), t['A'].std(), t['B'].mean(),
-                                  t['B'].std()], axis=1)
-            expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
-                'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
-
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                result = t[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
-                                            'B': {'rb': ['mean', 'std']}})
-            assert_frame_equal(result, expected, check_like=True)
-
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                result = t.agg({'A': {'ra': ['mean', 'std']},
-                                'B': {'rb': ['mean', 'std']}})
-            assert_frame_equal(result, expected, check_like=True)
 
     def test_try_aggregate_non_existing_column(self):
         # GH 16766

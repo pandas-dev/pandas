@@ -366,14 +366,10 @@ class SelectionMixin(object):
 
             obj = self._selected_obj
 
-            def nested_renaming_depr(level=4):
-                # deprecation of nested renaming
-                # GH 15931
-                warnings.warn(
-                    ("using a dict with renaming "
-                     "is deprecated and will be removed in a future "
-                     "version"),
-                    FutureWarning, stacklevel=level)
+            def raise_on_dict_renaming():
+                # Originally deprecated in gh-15931, now enforcing.
+                rename_msg_err = "Using a dict with renaming is not allowed"
+                raise ValueError(rename_msg_err)
 
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
@@ -403,10 +399,10 @@ class SelectionMixin(object):
                             msg = ('cannot perform renaming for {key} with a '
                                    'nested dictionary').format(key=k)
                             raise SpecificationError(msg)
-                        nested_renaming_depr(4 + (_level or 0))
+                        raise_on_dict_renaming()
 
                     elif isinstance(obj, ABCSeries):
-                        nested_renaming_depr()
+                        raise_on_dict_renaming()
                     elif (isinstance(obj, ABCDataFrame) and
                           k not in obj.columns):
                         raise KeyError(
@@ -420,7 +416,7 @@ class SelectionMixin(object):
                 keys = list(compat.iterkeys(arg))
                 if (isinstance(obj, ABCDataFrame) and
                         len(obj.columns.intersection(keys)) != len(keys)):
-                    nested_renaming_depr()
+                    raise_on_dict_renaming()
 
             from pandas.core.reshape.concat import concat
 

@@ -37,7 +37,7 @@ def int_frame_const_col():
     return df
 
 
-class TestDataFrameApply():
+class TestDataFrameApply(object):
 
     def test_apply(self, float_frame):
         with np.errstate(all='ignore'):
@@ -948,12 +948,11 @@ class TestDataFrameAggregate():
         expected = expected[['D', 'C', 'B', 'A']]
         tm.assert_frame_equal(result, expected)
 
-    def test_agg_dict_nested_renaming_depr(self):
-
+    def test_agg_dict_nested_renaming_fail(self):
         df = pd.DataFrame({'A': range(5), 'B': 5})
+        msg = "Using a dict with renaming is not allowed"
 
-        # nested renaming
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_raises_regex(ValueError, msg):
             df.agg({'A': {'foo': 'min'},
                     'B': {'bar': 'max'}})
 

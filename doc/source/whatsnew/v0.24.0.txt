@@ -941,6 +941,8 @@ Removal of prior version deprecations/changes
 - Several private functions were removed from the (non-public) module ``pandas.core.common`` (:issue:`22001`)
 - Removal of the previously deprecated module ``pandas.core.datetools`` (:issue:`14105`, :issue:`14094`)
 - Strings passed into :meth:`DataFrame.groupby` that refer to both column and index levels will raise a ``ValueError`` (:issue:`14432`)
+- Grouped, rolled, and resampled ``Series`` will now raise a ``ValueError`` when a dictionary is passed in during aggregation (:issue:`15931`)
+- Grouped, rolled, and resampled ``DataFrame`` will now raise a ``ValueError`` when a nested dictionary is passed in during aggregation (:issue:`15931`)
 - :meth:`Index.repeat` and :meth:`MultiIndex.repeat` have renamed the ``n`` argument to ``repeats`` (:issue:`14645`)
 - Removal of the previously deprecated ``as_indexer`` keyword completely from ``str.match()`` (:issue:`22356`, :issue:`6581`)
 - Removed the ``pandas.formats.style`` shim for :class:`pandas.io.formats.style.Styler` (:issue:`16059`)

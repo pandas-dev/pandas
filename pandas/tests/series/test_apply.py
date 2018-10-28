@@ -15,7 +15,7 @@ from pandas.conftest import _get_cython_table_params
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
-class TestSeriesApply():
+class TestSeriesApply(object):
 
     def test_apply(self, datetime_series):
         with np.errstate(all='ignore'):
@@ -153,16 +153,17 @@ class TestSeriesApply():
         exp = pd.Series(['Asia/Tokyo'] * 25, name='XX')
         tm.assert_series_equal(result, exp)
 
-    def test_apply_dict_depr(self):
+    def test_apply_dict_fail(self):
+        ts_df = pd.DataFrame(np.random.randn(10, 3),
+                             columns=["A", "B", "C"],
+                             index=pd.date_range("1/1/2000", periods=10))
+        msg = "Using a dict with renaming is not allowed"
 
-        tsdf = pd.DataFrame(np.random.randn(10, 3),
-                            columns=['A', 'B', 'C'],
-                            index=pd.date_range('1/1/2000', periods=10))
-        with tm.assert_produces_warning(FutureWarning):
-            tsdf.A.agg({'foo': ['sum', 'mean']})
+        with tm.assert_raises_regex(ValueError, msg):
+            ts_df.A.agg({'foo': ['sum', 'mean']})
 
 
-class TestSeriesAggregate():
+class TestSeriesAggregate(object):
 
     def test_transform(self, string_series):
         # transforming functions
@@ -245,29 +246,12 @@ class TestSeriesAggregate():
         expected = Series([0], index=['foo'], name='series')
         tm.assert_series_equal(result, expected)
 
-        # nested renaming
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.agg({'foo': ['min', 'max']})
+    def test_multiple_agg_nested_rename_fail(self):
+        msg = "Using a dict with renaming is not allowed"
+        s = Series(range(6), dtype="int64", name="series")
 
-        expected = DataFrame(
-            {'foo': [0, 5]},
-            index=['min', 'max']).unstack().rename('series')
-        tm.assert_series_equal(result, expected)
-
-    def test_multiple_aggregators_with_dict_api(self):
-
-        s = Series(range(6), dtype='int64', name='series')
-        # nested renaming
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.agg({'foo': ['min', 'max'], 'bar': ['sum', 'mean']})
-
-        expected = DataFrame(
-            {'foo': [5.0, np.nan, 0.0, np.nan],
-             'bar': [np.nan, 2.5, np.nan, 15.0]},
-            columns=['foo', 'bar'],
-            index=['max', 'mean',
-                   'min', 'sum']).unstack().rename('series')
-        tm.assert_series_equal(result.reindex_like(expected), expected)
+        with tm.assert_raises_regex(ValueError, msg):
+            s.agg({"foo": ["min", "max"], "bar": ["sum", "mean"]})
 
     def test_agg_apply_evaluate_lambdas_the_same(self, string_series):
         # test that we are evaluating row-by-row first
@@ -412,7 +396,7 @@ class TestSeriesAggregate():
             series.agg(func)
 
 
-class TestSeriesMap():
+class TestSeriesMap(object):
 
     def test_map(self, datetime_series):
         index, data = tm.getMixedTypeDict()

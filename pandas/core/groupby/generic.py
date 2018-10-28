@@ -8,7 +8,6 @@ which here returns a DataFrameGroupBy object.
 
 import collections
 import copy
-import warnings
 from functools import partial
 from textwrap import dedent
 
@@ -785,15 +784,9 @@ class SeriesGroupBy(GroupBy):
     def _aggregate_multiple_funcs(self, arg, _level):
         if isinstance(arg, dict):
 
-            # show the deprecation, but only if we
-            # have not shown a higher level one
-            # GH 15931
-            if isinstance(self._selected_obj, Series) and _level <= 1:
-                warnings.warn(
-                    ("using a dict on a Series for aggregation\n"
-                     "is deprecated and will be removed in a future "
-                     "version"),
-                    FutureWarning, stacklevel=3)
+            # Deprecated in gh-15931, now enforcing.
+            if isinstance(self._selected_obj, Series):
+                raise ValueError("Using a dict with renaming is not allowed")
 
             columns = list(arg.keys())
             arg = list(arg.items())

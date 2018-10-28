@@ -128,7 +128,6 @@ class TestApi(Base):
         a_sum = r['A'].sum()
         b_mean = r['B'].mean()
         b_std = r['B'].std()
-        b_sum = r['B'].sum()
 
         result = r.aggregate([np.mean, np.std])
         expected = concat([a_mean, a_std, b_mean, b_std], axis=1)
@@ -151,26 +150,6 @@ class TestApi(Base):
         expected = concat([a_mean, a_sum], axis=1)
         expected.columns = ['mean', 'sum']
         tm.assert_frame_equal(result, expected)
-
-        with catch_warnings(record=True):
-            # using a dict with renaming
-            warnings.simplefilter("ignore", FutureWarning)
-            result = r.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
-        expected = concat([a_mean, a_sum], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
-                                                      ('A', 'sum')])
-        tm.assert_frame_equal(result, expected, check_like=True)
-
-        with catch_warnings(record=True):
-            warnings.simplefilter("ignore", FutureWarning)
-            result = r.aggregate({'A': {'mean': 'mean',
-                                        'sum': 'sum'},
-                                  'B': {'mean2': 'mean',
-                                        'sum2': 'sum'}})
-        expected = concat([a_mean, a_sum, b_mean, b_sum], axis=1)
-        exp_cols = [('A', 'mean'), ('A', 'sum'), ('B', 'mean2'), ('B', 'sum2')]
-        expected.columns = pd.MultiIndex.from_tuples(exp_cols)
-        tm.assert_frame_equal(result, expected, check_like=True)
 
         result = r.aggregate({'A': ['mean', 'std'], 'B': ['mean', 'std']})
         expected = concat([a_mean, a_std, b_mean, b_std], axis=1)
@@ -218,26 +197,16 @@ class TestApi(Base):
         def f():
             r.aggregate({'r1': {'A': ['mean', 'sum']},
                          'r2': {'B': ['mean', 'sum']}})
-
         pytest.raises(SpecificationError, f)
 
-        expected = concat([r['A'].mean(), r['A'].std(),
-                           r['B'].mean(), r['B'].std()], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
-            'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
-        with catch_warnings(record=True):
-            warnings.simplefilter("ignore", FutureWarning)
-            result = r[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
-                                        'B': {'rb': ['mean', 'std']}})
-        tm.assert_frame_equal(result, expected, check_like=True)
+        msg = "Using a dict with renaming is not allowed"
+        with tm.assert_raises_regex(ValueError, msg):
+            r[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
+                               'B': {'rb': ['mean', 'std']}})
 
-        with catch_warnings(record=True):
-            warnings.simplefilter("ignore", FutureWarning)
-            result = r.agg({'A': {'ra': ['mean', 'std']},
-                            'B': {'rb': ['mean', 'std']}})
-        expected.columns = pd.MultiIndex.from_tuples([('A', 'ra', 'mean'), (
-            'A', 'ra', 'std'), ('B', 'rb', 'mean'), ('B', 'rb', 'std')])
-        tm.assert_frame_equal(result, expected, check_like=True)
+        with tm.assert_raises_regex(ValueError, msg):
+            r.agg({'A': {'ra': ['mean', 'std']},
+                   'B': {'rb': ['mean', 'std']}})
 
     def test_count_nonnumeric_types(self):
         # GH12541

@@ -61,11 +61,11 @@ def test_basic(dtype):
                         check_index_type=False)
 
     # complex agg
-    agged = grouped.aggregate([np.mean, np.std])
+    grouped.aggregate([np.mean, np.std])
 
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        agged = grouped.aggregate({'one': np.mean, 'two': np.std})
+    msg = "Using a dict with renaming is not allowed"
+    with tm.assert_raises_regex(ValueError, msg):
+        grouped.aggregate({'one': np.mean, 'two': np.std})
 
     group_constants = {0: 10, 1: 20, 2: 30}
     agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
@@ -444,11 +444,6 @@ def test_frame_set_name_single(df):
     result = grouped['C'].agg([np.mean, np.std])
     assert result.index.name == 'A'
 
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        result = grouped['C'].agg({'foo': np.mean, 'bar': np.std})
-    assert result.index.name == 'A'
-
 
 def test_multi_func(df):
     col1 = df['A']
@@ -552,15 +547,6 @@ def test_groupby_as_index_agg(df):
     expected2 = grouped.mean()
     expected2['D'] = grouped.sum()['D']
     assert_frame_equal(result2, expected2)
-
-    grouped = df.groupby('A', as_index=True)
-    expected3 = grouped['C'].sum()
-    expected3 = DataFrame(expected3).rename(columns={'C': 'Q'})
-
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        result3 = grouped['C'].agg({'Q': np.sum})
-    assert_frame_equal(result3, expected3)
 
     # multi-key
 
