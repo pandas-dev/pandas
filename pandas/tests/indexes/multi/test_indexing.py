@@ -8,8 +8,10 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import (Categorical, CategoricalIndex, Index, IntervalIndex,
-                    MultiIndex, date_range)
+from pandas import (
+    Categorical, CategoricalIndex, Index, IntervalIndex, MultiIndex,
+    date_range
+)
 from pandas.compat import lrange
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.util.testing import assert_almost_equal

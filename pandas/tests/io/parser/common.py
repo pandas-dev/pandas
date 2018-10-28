@@ -1,26 +1,23 @@
 # -*- coding: utf-8 -*-
 
+import codecs
 import csv
 import os
 import platform
-import codecs
-
 import re
 import sys
-from datetime import datetime
 from collections import OrderedDict
+from datetime import datetime
 from io import TextIOWrapper
 
-import pytest
 import numpy as np
-from pandas._libs.tslib import Timestamp
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import DataFrame, Series, Index, MultiIndex
-from pandas import compat
-from pandas.compat import (StringIO, BytesIO, PY3,
-                           range, lrange, u)
+from pandas import DataFrame, Index, MultiIndex, Series, compat
+from pandas._libs.tslib import Timestamp
+from pandas.compat import PY3, BytesIO, StringIO, lrange, range, u
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 from pandas.io.common import URLError
 from pandas.io.parsers import TextFileReader, TextParser

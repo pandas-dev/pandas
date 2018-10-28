@@ -20,8 +20,8 @@ import sys
 import numpy as np
 
 from pandas import compat
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.arrays import ExtensionArray
+from pandas.core.dtypes.base import ExtensionDtype
 
 
 class JSONDtype(ExtensionDtype):
