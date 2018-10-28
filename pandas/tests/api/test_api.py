@@ -29,7 +29,7 @@ class TestPDApi(Base):
 
     # top-level sub-packages
     lib = ['api', 'compat', 'core', 'errors', 'pandas',
-           'plotting', 'test', 'testing', 'tools', 'tseries',
+           'plotting', 'test', 'testing', 'tseries',
            'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
@@ -88,7 +88,7 @@ class TestPDApi(Base):
     deprecated_funcs_in_future = []
 
     # these are already deprecated; awaiting removal
-    deprecated_funcs = ['plot_params', 'scatter_matrix']
+    deprecated_funcs = []
 
     def test_api(self):
 
