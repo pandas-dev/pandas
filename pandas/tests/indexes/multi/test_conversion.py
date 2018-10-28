@@ -171,13 +171,15 @@ def test_to_series_with_arguments(idx):
     assert s.name != idx.name
 
 
-def test_squeeze():
+def test_squeeze_single_level():
     mi = pd.MultiIndex.from_tuples([('a',), ('a',), ('b',), ('b',)],
                                    names=['L1'])
     expected = pd.Index(['a', 'a', 'b', 'b'], name='L1')
     result = mi.squeeze()
     tm.assert_index_equal(expected, result)
 
+
+def test_squeeze_multi_level():
     mi = pd.MultiIndex.from_tuples([('a', 'a'), ('a', 'b'), ('b', 'a'),
                                    ('b', 'b')],
                                    names=['L1', 'L2'])
