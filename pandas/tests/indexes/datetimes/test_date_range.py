@@ -2,22 +2,23 @@
 test date_range, bdate_range construction from the convenience range functions
 """
 
-import pytest
+from datetime import datetime, time, timedelta
 
 import numpy as np
+import pytest
 import pytz
 from pytz import timezone
-from datetime import datetime, timedelta, time
 
 import pandas as pd
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
-from pandas import compat
-from pandas import date_range, bdate_range, offsets, DatetimeIndex, Timestamp
-from pandas.tseries.offsets import (generate_range, CDay, BDay, DateOffset,
-                                    MonthEnd, prefix_mapping)
-
+import pandas.util.testing as tm
+from pandas import (
+    DatetimeIndex, Timestamp, bdate_range, compat, date_range, offsets
+)
 from pandas.tests.series.common import TestData
+from pandas.tseries.offsets import (
+    BDay, CDay, DateOffset, MonthEnd, generate_range, prefix_mapping
+)
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 

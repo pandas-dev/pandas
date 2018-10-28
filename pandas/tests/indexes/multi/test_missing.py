@@ -50,7 +50,7 @@ def test_fillna(idx):
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
             tm.assert_numpy_array_equal(idx._isnan, expected)
-            assert idx.hasnans
+            assert idx.hasnans is True
 
 
 def test_dropna():
@@ -92,7 +92,7 @@ def test_hasnans_isnans(idx):
     # cases in indices doesn't include NaN
     expected = np.array([False] * len(index), dtype=bool)
     tm.assert_numpy_array_equal(index._isnan, expected)
-    assert not index.hasnans
+    assert index.hasnans is False
 
     index = idx.copy()
     values = index.values
@@ -103,7 +103,7 @@ def test_hasnans_isnans(idx):
     expected = np.array([False] * len(index), dtype=bool)
     expected[1] = True
     tm.assert_numpy_array_equal(index._isnan, expected)
-    assert index.hasnans
+    assert index.hasnans is True
 
 
 def test_nan_stays_float():

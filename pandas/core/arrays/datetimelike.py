@@ -219,7 +219,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     @property  # NB: override with cache_readonly in immutable subclasses
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
-        return self._isnan.any()
+        return bool(self._isnan.any())
 
     def _maybe_mask_results(self, result, fill_value=None, convert=None):
         """
