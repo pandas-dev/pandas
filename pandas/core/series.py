@@ -24,8 +24,9 @@ from pandas.compat import (
 from pandas.compat.numpy import function as nv
 from pandas.core import base, generic
 from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray, period_array
+from pandas.core.arrays import ExtensionArray, SparseArray, period_array
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
+from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.config import get_option
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar, construct_1d_ndarray_preserving_na,
@@ -142,9 +143,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
-    _accessors = {'dt', 'cat', 'str'}
+    _accessors = {'dt', 'cat', 'str', 'sparse'}
     _deprecations = generic.NDFrame._deprecations | frozenset(
-        ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
+        ['asobject', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
 
     # Override cache_readonly bc Series is mutable
@@ -1366,7 +1367,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # TODO: deprecate
         from pandas.core.sparse.series import SparseSeries
-        from pandas.core.arrays import SparseArray
 
         values = SparseArray(self, kind=kind, fill_value=fill_value)
         return SparseSeries(
@@ -2962,33 +2962,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return algorithms.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
-    def sortlevel(self, level=0, ascending=True, sort_remaining=True):
-        """Sort Series with MultiIndex by chosen level. Data will be
-        lexicographically sorted by the chosen level followed by the other
-        levels (in order),
-
-        .. deprecated:: 0.20.0
-            Use :meth:`Series.sort_index`
-
-        Parameters
-        ----------
-        level : int or level name, default None
-        ascending : bool, default True
-
-        Returns
-        -------
-        sorted : Series
-
-        See Also
-        --------
-        Series.sort_index(level=...)
-
-        """
-        warnings.warn("sortlevel is deprecated, use sort_index(level=...)",
-                      FutureWarning, stacklevel=2)
-        return self.sort_index(level=level, ascending=ascending,
-                               sort_remaining=sort_remaining)
-
     def swaplevel(self, i=-2, j=-1, copy=True):
         """
         Swap levels i and j in a MultiIndex
@@ -4151,6 +4124,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
     cat = CachedAccessor("cat", CategoricalAccessor)
     plot = CachedAccessor("plot", gfx.SeriesPlotMethods)
+    sparse = CachedAccessor("sparse", SparseAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series

@@ -1046,48 +1046,60 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         'dim',
         "The number of days in the month")
     daysinmonth = days_in_month
-    is_month_start = _field_accessor(
-        'is_month_start',
-        'is_month_start',
-        "Logical indicating if first day of month (defined by frequency)")
-    is_month_end = _field_accessor(
-        'is_month_end',
-        'is_month_end',
-        """
-        Indicator for whether the date is the last day of the month.
+    _is_month_doc = """
+        Indicates whether the date is the {first_or_last} day of the month.
 
         Returns
         -------
         Series or array
-            For Series, returns a Series with boolean values. For
-            DatetimeIndex, returns a boolean array.
+            For Series, returns a Series with boolean values.
+            For DatetimeIndex, returns a boolean array.
 
         See Also
         --------
-        is_month_start : Indicator for whether the date is the first day
-            of the month.
+        is_month_start : Return a boolean indicating whether the date
+            is the first day of the month.
+        is_month_end : Return a boolean indicating whether the date
+            is the last day of the month.
 
         Examples
         --------
         This method is available on Series with datetime values under
         the ``.dt`` accessor, and directly on DatetimeIndex.
 
-        >>> dates = pd.Series(pd.date_range("2018-02-27", periods=3))
-        >>> dates
+        >>> s = pd.Series(pd.date_range("2018-02-27", periods=3))
+        >>> s
         0   2018-02-27
         1   2018-02-28
         2   2018-03-01
         dtype: datetime64[ns]
-        >>> dates.dt.is_month_end
+        >>> s.dt.is_month_start
+        0    False
+        1    False
+        2    True
+        dtype: bool
+        >>> s.dt.is_month_end
         0    False
         1    True
         2    False
         dtype: bool
 
         >>> idx = pd.date_range("2018-02-27", periods=3)
+        >>> idx.is_month_start
+        array([False, False, True])
         >>> idx.is_month_end
-        array([False,  True, False], dtype=bool)
-        """)
+        array([False, True, False])
+    """
+    is_month_start = _field_accessor(
+        'is_month_start',
+        'is_month_start',
+        _is_month_doc.format(first_or_last='first'))
+
+    is_month_end = _field_accessor(
+        'is_month_end',
+        'is_month_end',
+        _is_month_doc.format(first_or_last='last'))
+
     is_quarter_start = _field_accessor(
         'is_quarter_start',
         'is_quarter_start',
@@ -1343,11 +1355,11 @@ def _generate_regular_range(cls, start, end, periods, freq):
             tz = start.tz
         elif start is not None:
             b = Timestamp(start).value
-            e = b + np.int64(periods) * stride
+            e = _generate_range_overflow_safe(b, periods, stride, side='start')
             tz = start.tz
         elif end is not None:
             e = Timestamp(end).value + stride
-            b = e - np.int64(periods) * stride
+            b = _generate_range_overflow_safe(e, periods, stride, side='end')
             tz = end.tz
         else:
             raise ValueError("at least 'start' or 'end' should be specified "
@@ -1370,6 +1382,44 @@ def _generate_regular_range(cls, start, end, periods, freq):
         data = cls._simple_new(values, freq=freq, tz=tz)
 
     return data
+
+
+def _generate_range_overflow_safe(endpoint, periods, stride, side='start'):
+    """
+    Calculate the second endpoint for passing to np.arange, checking
+    to avoid an integer overflow.  Catch OverflowError and re-raise
+    as OutOfBoundsDatetime.
+
+    Parameters
+    ----------
+    endpoint : int
+    periods : int
+    stride : int
+    side : {'start', 'end'}
+
+    Returns
+    -------
+    other_end : int
+
+    Raises
+    ------
+    OutOfBoundsDatetime
+    """
+    # GH#14187 raise instead of incorrectly wrapping around
+    assert side in ['start', 'end']
+    if side == 'end':
+        stride *= -1
+
+    try:
+        other_end = checked_add_with_arr(np.int64(endpoint),
+                                         np.int64(periods) * stride)
+    except OverflowError:
+        raise tslib.OutOfBoundsDatetime('Cannot generate range with '
+                                        '{side}={endpoint} and '
+                                        'periods={periods}'
+                                        .format(side=side, endpoint=endpoint,
+                                                periods=periods))
+    return other_end
 
 
 def _infer_tz_from_endpoints(start, end, tz):

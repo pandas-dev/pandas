@@ -53,8 +53,7 @@ from pandas.compat import (map, zip, lzip, lrange, string_types, to_str,
                            isidentifier, set_function_name, cPickle as pkl)
 from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
-from pandas.util._decorators import (Appender, Substitution,
-                                     deprecate_kwarg)
+from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core import config
 
@@ -117,7 +116,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
     _deprecations = frozenset(['as_blocks', 'blocks',
-                               'consolidate', 'convert_objects', 'is_copy'])
+                               'convert_objects', 'is_copy'])
     _metadata = []
     _is_copy = None
 
@@ -4722,18 +4721,6 @@ class NDFrame(PandasObject, SelectionMixin):
             cons_data = self._protect_consolidate(f)
             return self._constructor(cons_data).__finalize__(self)
 
-    def consolidate(self, inplace=False):
-        """Compute NDFrame with "consolidated" internals (data of each dtype
-        grouped together in a single ndarray).
-
-        .. deprecated:: 0.20.0
-            Consolidate will be an internal implementation only.
-        """
-        # 15483
-        warnings.warn("consolidate is deprecated and will be removed in a "
-                      "future release.", FutureWarning, stacklevel=2)
-        return self._consolidate(inplace)
-
     @property
     def _is_mixed_type(self):
         f = lambda: self._data.is_mixed_type
@@ -5148,8 +5135,6 @@ class NDFrame(PandasObject, SelectionMixin):
         return {k: self._constructor(v).__finalize__(self)
                 for k, v, in self._data.to_dict(copy=copy).items()}
 
-    @deprecate_kwarg(old_arg_name='raise_on_error', new_arg_name='errors',
-                     mapping={True: 'raise', False: 'ignore'})
     def astype(self, dtype, copy=True, errors='raise', **kwargs):
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -5173,9 +5158,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.20.0
 
-        raise_on_error : raise on invalid input
-            .. deprecated:: 0.20.0
-               Use ``errors`` instead
         kwargs : keyword arguments to pass on to the constructor
 
         Returns
@@ -10185,6 +10167,40 @@ Series([], dtype: bool)
 _sum_examples = """\
 Examples
 --------
+``MultiIndex`` series example of monthly rainfall
+
+>>> index = pd.MultiIndex.from_product(
+...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
+...     names=['city', 'month'])
+>>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
+>>> s
+city      month
+London    Jun       47
+          Jul       35
+          Aug       54
+New York  Jun      112
+          Jul      117
+          Aug      113
+dtype: int64
+
+>>> s.sum()
+478
+
+Sum using level names, as well as indices
+
+>>> s.sum(level='city')
+city
+London      136
+New York    342
+dtype: int64
+
+>>> s.sum(level=1)
+month
+Jun    159
+Jul    152
+Aug    167
+dtype: int64
+
 By default, the sum of an empty or all-NA Series is ``0``.
 
 >>> pd.Series([]).sum()  # min_count=0 is the default

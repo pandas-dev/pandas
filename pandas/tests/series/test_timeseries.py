@@ -1,28 +1,28 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
+from datetime import datetime, time, timedelta
 
 import numpy as np
-from datetime import datetime, timedelta, time
+import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
+import pandas.util.testing as tm
+from pandas import (
+    DataFrame, Index, NaT, Series, Timestamp, concat, date_range, offsets,
+    timedelta_range, to_datetime
+)
 from pandas._libs.tslib import iNaT
-from pandas.compat import lrange, StringIO, product
-from pandas.errors import NullFrequencyError
-
-from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.compat import StringIO, lrange, product
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.tseries.offsets import BDay, BMonthEnd
-from pandas import (Index, Series, date_range, NaT, concat, DataFrame,
-                    Timestamp, to_datetime, offsets,
-                    timedelta_range)
-from pandas.util.testing import (assert_series_equal, assert_almost_equal,
-                                 assert_frame_equal)
-
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.errors import NullFrequencyError
 from pandas.tests.series.common import TestData
+from pandas.tseries.offsets import BDay, BMonthEnd
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal
+)
 
 
 def _simple_ts(start, end, freq='D'):
