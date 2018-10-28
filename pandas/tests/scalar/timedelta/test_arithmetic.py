@@ -277,6 +277,14 @@ class TestTimedeltaMultiplicationDivision(object):
         with pytest.raises(TypeError):
             op(td, td_nat)
 
+    @pytest.mark.parametrize('nan', [np.nan, np.float64('NaN'), float('nan')])
+    @pytest.mark.parametrize('op', [operator.mul, ops.rmul])
+    def test_td_mul_nan(self, op, nan):
+        # np.float64('NaN') has a 'dtype' attr, avoid treating as array
+        td = Timedelta(10, unit='d')
+        result = op(td, nan)
+        assert result is NaT
+
     @pytest.mark.parametrize('op', [operator.mul, ops.rmul])
     def test_td_mul_scalar(self, op):
         # GH#19738
@@ -327,6 +335,16 @@ class TestTimedeltaMultiplicationDivision(object):
         result = td / 5.0
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=2)
+
+    @pytest.mark.parametrize('nan', [np.nan, np.float64('NaN'), float('nan')])
+    def test_td_div_nan(self, nan):
+        # np.float64('NaN') has a 'dtype' attr, avoid treating as array
+        td = Timedelta(10, unit='d')
+        result = td / nan
+        assert result is NaT
+
+        result = td // nan
+        assert result is NaT
 
     # ---------------------------------------------------------------
     # Timedelta.__rdiv__
