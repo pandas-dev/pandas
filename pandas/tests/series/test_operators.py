@@ -13,11 +13,10 @@ import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 from pandas import (
     Categorical, DataFrame, Index, NaT, Series, bdate_range, compat,
-    date_range, isna, timedelta_range
+    date_range, isna
 )
 from pandas.compat import range
 from pandas.core import ops
-from pandas.core.indexes.datetimes import Timestamp
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal
 )
@@ -589,17 +588,6 @@ class TestSeriesComparisons(object):
         expected = Series([False, False, True])
         assert_series_equal(left <= right, expected)
 
-    def test_comparison_different_length(self):
-        a = Series(['a', 'b', 'c'])
-        b = Series(['b', 'a'])
-        with pytest.raises(ValueError):
-            a < b
-
-        a = Series([1, 2])
-        b = Series([2, 3, 4])
-        with pytest.raises(ValueError):
-            a == b
-
     def test_ne(self):
         ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
         expected = [True, True, False, True, True]
@@ -638,31 +626,6 @@ class TestSeriesComparisons(object):
 
 
 class TestSeriesFlexComparisonOps(object):
-    def test_comparison_flex_basic(self):
-        left = pd.Series(np.random.randn(10))
-        right = pd.Series(np.random.randn(10))
-
-        assert_series_equal(left.eq(right), left == right)
-        assert_series_equal(left.ne(right), left != right)
-        assert_series_equal(left.le(right), left < right)
-        assert_series_equal(left.lt(right), left <= right)
-        assert_series_equal(left.gt(right), left > right)
-        assert_series_equal(left.ge(right), left >= right)
-
-        # axis
-        for axis in [0, None, 'index']:
-            assert_series_equal(left.eq(right, axis=axis), left == right)
-            assert_series_equal(left.ne(right, axis=axis), left != right)
-            assert_series_equal(left.le(right, axis=axis), left < right)
-            assert_series_equal(left.lt(right, axis=axis), left <= right)
-            assert_series_equal(left.gt(right, axis=axis), left > right)
-            assert_series_equal(left.ge(right, axis=axis), left >= right)
-
-        #
-        msg = 'No axis named 1 for object type'
-        for op in ['eq', 'ne', 'le', 'le', 'gt', 'ge']:
-            with tm.assert_raises_regex(ValueError, msg):
-                getattr(left, op)(right, axis=1)
 
     def test_comparison_flex_alignment(self):
         left = Series([1, 3, 2], index=list('abc'))
@@ -709,119 +672,7 @@ class TestSeriesFlexComparisonOps(object):
         assert_series_equal(left.gt(right, fill_value=0), exp)
 
 
-class TestDatetimeSeriesArithmetic(object):
-
-    def test_operators_datetimelike_invalid(self, all_arithmetic_operators):
-        # these are all TypeEror ops
-        op_str = all_arithmetic_operators
-
-        def check(get_ser, test_ser):
-
-            # check that we are getting a TypeError
-            # with 'operate' (from core/ops.py) for the ops that are not
-            # defined
-            op = getattr(get_ser, op_str, None)
-            with tm.assert_raises_regex(TypeError, 'operate|cannot'):
-                op(test_ser)
-
-        # ## timedelta64 ###
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td1.iloc[2] = np.nan
-
-        # ## datetime64 ###
-        dt1 = Series([Timestamp('20111230'), Timestamp('20120101'),
-                      Timestamp('20120103')])
-        dt1.iloc[2] = np.nan
-        dt2 = Series([Timestamp('20111231'), Timestamp('20120102'),
-                      Timestamp('20120104')])
-        if op_str not in ['__sub__', '__rsub__']:
-            check(dt1, dt2)
-
-        # ## datetime64 with timetimedelta ###
-        # TODO(jreback) __rsub__ should raise?
-        if op_str not in ['__add__', '__radd__', '__sub__']:
-            check(dt1, td1)
-
-        # 8260, 10763
-        # datetime64 with tz
-        tz = 'US/Eastern'
-        dt1 = Series(date_range('2000-01-01 09:00:00', periods=5,
-                                tz=tz), name='foo')
-        dt2 = dt1.copy()
-        dt2.iloc[2] = np.nan
-        td1 = Series(timedelta_range('1 days 1 min', periods=5, freq='H'))
-        td2 = td1.copy()
-        td2.iloc[1] = np.nan
-
-        if op_str not in ['__add__', '__radd__', '__sub__', '__rsub__']:
-            check(dt2, td2)
-
-    def test_operators_datetimelike(self):
-
-        # ## timedelta64 ###
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td1.iloc[2] = np.nan
-
-        # ## datetime64 ###
-        dt1 = Series([Timestamp('20111230'), Timestamp('20120101'),
-                      Timestamp('20120103')])
-        dt1.iloc[2] = np.nan
-        dt2 = Series([Timestamp('20111231'), Timestamp('20120102'),
-                      Timestamp('20120104')])
-        dt1 - dt2
-        dt2 - dt1
-
-        # ## datetime64 with timetimedelta ###
-        dt1 + td1
-        td1 + dt1
-        dt1 - td1
-        # TODO: Decide if this ought to work.
-        # td1 - dt1
-
-        # ## timetimedelta with datetime64 ###
-        td1 + dt1
-        dt1 + td1
-
-
 class TestSeriesOperators(TestData):
-    @pytest.mark.parametrize(
-        'ts',
-        [
-            (lambda x: x, lambda x: x * 2, False),
-            (lambda x: x, lambda x: x[::2], False),
-            (lambda x: x, lambda x: 5, True),
-            (lambda x: tm.makeFloatSeries(),
-             lambda x: tm.makeFloatSeries(),
-             True)
-        ])
-    @pytest.mark.parametrize('opname', ['add', 'sub', 'mul', 'floordiv',
-                                        'truediv', 'div', 'pow'])
-    def test_op_method(self, opname, ts):
-        # check that Series.{opname} behaves like Series.__{opname}__,
-        tser = tm.makeTimeSeries().rename('ts')
-
-        series = ts[0](tser)
-        other = ts[1](tser)
-        check_reverse = ts[2]
-
-        if opname == 'div' and compat.PY3:
-            pytest.skip('div test only for Py3')
-
-        op = getattr(Series, opname)
-
-        if op == 'div':
-            alt = operator.truediv
-        else:
-            alt = getattr(operator, opname)
-
-        result = op(series, other)
-        expected = alt(series, other)
-        assert_almost_equal(result, expected)
-        if check_reverse:
-            rop = getattr(Series, "r" + opname)
-            result = rop(series, other)
-            expected = alt(other, series)
-            assert_almost_equal(result, expected)
 
     def test_operators_empty_int_corner(self):
         s1 = Series([], [], dtype=np.int32)
