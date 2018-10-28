@@ -10182,16 +10182,34 @@ True
 Series([], dtype: bool)
 """
 
-_sum_examples = """\
-Examples
---------
-``MultiIndex`` series example of monthly rainfall
+
+def _multi_index_example(stat_func, default_output, named_level_output,
+                         indexed_level_output):
+    """
+    Template for creating a ``MultiIndex`` series example for stat functions.
+
+    Parameters
+    ----------
+    stat_func : str
+        The stat function to have the examples generated for.
+    default_output : int, float or str
+        Formatted output produced by the stat function with no arguments.
+    named_level_output : tuple of (int or float or str,)
+        Formatted outputs of executing the stat method with arg level='city'.
+    indexed_level_output : tuple of (int or float or str,)
+        Formatted outputs of executing the stat method with arg level=1.
+
+    Returns
+    -------
+    str
+        A templated string for the Examples section.
+    """
+    return f"""``MultiIndex`` series example of monthly rainfall
 
 >>> index = pd.MultiIndex.from_product(
 ...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
 ...     names=['city', 'month'])
 >>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
->>> s
 city      month
 London    Jun       47
           Jul       35
@@ -10201,23 +10219,30 @@ New York  Jun      112
           Aug      113
 dtype: int64
 
->>> s.sum()
-478
+>>> s.{stat_func}()
+{default_output}
 
-Sum using level names, as well as indices
+{stat_func.capitalize()} using level names, as well as indices.
 
->>> s.sum(level='city')
+>>> s.{stat_func}(level='city')
 city
-London      136
-New York    342
+London      {named_level_output[0]}
+New York    {named_level_output[1]}
 dtype: int64
 
->>> s.sum(level=1)
+>>> s.{stat_func}(level=1)
 month
-Jun    159
-Jul    152
-Aug    167
+Jun    {indexed_level_output[0]}
+Jul    {indexed_level_output[1]}
+Aug    {indexed_level_output[2]}
 dtype: int64
+"""
+
+
+_sum_examples = f"""\
+Examples
+--------
+{_multi_index_example('sum', 478, (136, 342), (159, 152, 167))}
 
 By default, the sum of an empty or all-NA Series is ``0``.
 
@@ -10263,80 +10288,16 @@ empty series identically.
 nan
 """
 
-_max_examples = """\
+_max_examples = f"""\
 Examples
 --------
-``MultiIndex`` series example of monthly rainfall
-
->>> index = pd.MultiIndex.from_product(
-...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
-...     names=['city', 'month'])
->>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
->>> s
-city      month
-London    Jun       47
-          Jul       35
-          Aug       54
-New York  Jun      112
-          Jul      117
-          Aug      113
-dtype: int64
-
->>> s.max()
-117
-
-Max using level names, as well as indices
-
->>> s.max(level='city')
-city
-London       54
-New York    117
-dtype: int64
-
->>> s.max(level=1)
-month
-Jun    112
-Jul    117
-Aug    113
-dtype: int64
+{_multi_index_example('max', 117, (' 54', 117), (112, 117, 113))}
 """
 
-_min_examples = """\
+_min_examples = f"""\
 Examples
 --------
-``MultiIndex`` series example of monthly rainfall
-
->>> index = pd.MultiIndex.from_product(
-...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
-...     names=['city', 'month'])
->>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
->>> s
-city      month
-London    Jun       47
-          Jul       35
-          Aug       54
-New York  Jun      112
-          Jul      117
-          Aug      113
-dtype: int64
-
->>> s.min()
-35
-
-Min using level names, as well as indices
-
->>> s.min(level='city')
-city
-London       35
-New York    112
-dtype: int64
-
->>> s.min(level=1)
-month
-Jun    47
-Jul    35
-Aug    54
-dtype: int64
+{_multi_index_example('min', 35, (' 35', 112), (47, 35, 54))}
 """
 
 _min_count_stub = """\
