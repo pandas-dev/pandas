@@ -1,6 +1,7 @@
 import pytest
+
 import pandas.util.testing as tm
-from pandas import date_range, NaT, period_range, Period, PeriodIndex
+from pandas import NaT, Period, PeriodIndex, date_range, period_range
 
 
 class TestPeriodRange(object):

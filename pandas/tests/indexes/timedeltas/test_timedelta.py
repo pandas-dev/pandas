@@ -1,15 +1,17 @@
-import pytest
+from datetime import timedelta
 
 import numpy as np
-from datetime import timedelta
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import (timedelta_range, date_range, Series, Timedelta,
-                    TimedeltaIndex, Index, DataFrame,
-                    Int64Index)
-from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_index_equal)
+from pandas import (
+    DataFrame, Index, Int64Index, Series, Timedelta, TimedeltaIndex,
+    date_range, timedelta_range
+)
+from pandas.util.testing import (
+    assert_almost_equal, assert_index_equal, assert_series_equal
+)
 
 from ..datetimelike import DatetimeLike
 

@@ -1,10 +1,10 @@
-import pytest
 import numpy as np
-import pandas as pd
+import pytest
 
+import pandas as pd
 import pandas.util.testing as tm
+from pandas.compat import long, lzip
 from pandas.core.indexes.api import Index, MultiIndex
-from pandas.compat import lzip, long
 
 
 @pytest.fixture(params=[tm.makeUnicodeIndex(100),

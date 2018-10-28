@@ -1,16 +1,14 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
 from datetime import datetime
 
 import numpy as np
+import pytest
 
-from pandas import Series, DataFrame, Index, MultiIndex, RangeIndex
-
-from pandas.compat import lrange, range, zip
 import pandas.util.testing as tm
+from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
+from pandas.compat import lrange, range, zip
 
 
 class TestSeriesAlterAxes(object):

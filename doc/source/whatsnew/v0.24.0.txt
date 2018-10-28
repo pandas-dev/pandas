@@ -910,6 +910,7 @@ Other API Changes
   has an improved ``KeyError`` message, and will not fail on duplicate column names with ``drop=True``. (:issue:`22484`)
 - Slicing a single row of a DataFrame with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - :class:`DateOffset` attribute `_cacheable` and method `_should_cache` have been removed (:issue:`23118`)
+- :meth:`Index.hasnans` and :meth:`Series.hasnans` now always return a python boolean. Previously, a python or a numpy boolean could be returned, depending on circumstances (:issue:`23294`).
 
 .. _whatsnew_0240.deprecations:
 
@@ -941,13 +942,19 @@ Removal of prior version deprecations/changes
 - Removal of the previously deprecated module ``pandas.core.datetools`` (:issue:`14105`, :issue:`14094`)
 - Strings passed into :meth:`DataFrame.groupby` that refer to both column and index levels will raise a ``ValueError`` (:issue:`14432`)
 - :meth:`Index.repeat` and :meth:`MultiIndex.repeat` have renamed the ``n`` argument to ``repeats`` (:issue:`14645`)
+- The ``Series`` constructor and ``.astype`` method will now raise a ``ValueError`` if timestamp dtypes are passed in without a frequency (e.g. ``np.datetime64``) for the ``dtype`` parameter (:issue:`15987`)
 - Removal of the previously deprecated ``as_indexer`` keyword completely from ``str.match()`` (:issue:`22356`, :issue:`6581`)
 - Removed the ``pandas.formats.style`` shim for :class:`pandas.io.formats.style.Styler` (:issue:`16059`)
+- :func:`pandas.pnow`, :func:`pandas.match`, :func:`pandas.groupby`, :func:`pd.get_store`, ``pd.Expr``, and ``pd.Term`` have been removed (:issue:`15538`, :issue:`15940`)
 - :meth:`Categorical.searchsorted` and :meth:`Series.searchsorted` have renamed the ``v`` argument to ``value`` (:issue:`14645`)
+- ``pandas.parser``, ``pandas.lib``, and ``pandas.tslib`` have been removed (:issue:`15537`)
 - :meth:`TimedeltaIndex.searchsorted`, :meth:`DatetimeIndex.searchsorted`, and :meth:`PeriodIndex.searchsorted` have renamed the ``key`` argument to ``value`` (:issue:`14645`)
+- :meth:`DataFrame.consolidate` and :meth:`Series.consolidate` have been removed (:issue:`15501`)
 - Removal of the previously deprecated module ``pandas.json`` (:issue:`19944`)
 - :meth:`SparseArray.get_values` and :meth:`SparseArray.to_dense` have dropped the ``fill`` parameter (:issue:`14686`)
+- :meth:`DataFrame.sortlevel` and :meth:`Series.sortlevel` have been removed (:issue:`15099`)
 - :meth:`SparseSeries.to_dense` has dropped the ``sparse_only`` parameter (:issue:`14686`)
+- :meth:`DataFrame.astype` and :meth:`Series.astype` have renamed the ``raise_on_error`` argument to ``errors`` (:issue:`14967`)
 
 .. _whatsnew_0240.performance:
 
@@ -1021,6 +1028,8 @@ Datetimelike
 - Bug in :class:`PeriodIndex` where adding or subtracting a :class:`timedelta` or :class:`Tick` object produced incorrect results (:issue:`22988`)
 - Bug in :func:`date_range` when decrementing a start date to a past end date by a negative frequency (:issue:`23270`)
 - Bug in :func:`DataFrame.combine` with datetimelike values raising a TypeError (:issue:`23079`)
+- Bug in :func:`date_range` with frequency of ``Day`` or higher where dates sufficiently far in the future could wrap around to the past instead of raising ``OutOfBoundsDatetime`` (:issue:`14187`)
+- Bug in :class:`PeriodIndex` with attribute ``freq.n`` greater than 1 where adding a :class:`DateOffset` object would return incorrect results (:issue:`23215`)
 
 Timedelta
 ^^^^^^^^^
@@ -1032,7 +1041,8 @@ Timedelta
 - Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 - Fixed bug where subtracting :class:`Timedelta` from an object-dtyped array would raise ``TypeError`` (:issue:`21980`)
 - Fixed bug in adding a :class:`DataFrame` with all-`timedelta64[ns]` dtypes to a :class:`DataFrame` with all-integer dtypes returning incorrect results instead of raising ``TypeError`` (:issue:`22696`)
-
+- Bug in :class:`TimedeltaIndex` where adding a timezone-aware datetime scalar incorrectly returned a timezone-naive :class:`DatetimeIndex` (:issue:`23215`)
+- Bug in :class:`TimedeltaIndex` where adding ``np.timedelta64('NaT')`` incorrectly returned an all-`NaT` :class:`DatetimeIndex` instead of an all-`NaT` :class:`TimedeltaIndex` (:issue:`23215`)
 
 Timezones
 ^^^^^^^^^
@@ -1062,7 +1072,7 @@ Offsets
 
 - Bug in :class:`FY5253` where date offsets could incorrectly raise an ``AssertionError`` in arithmetic operatons (:issue:`14774`)
 - Bug in :class:`DateOffset` where keyword arguments ``week`` and ``milliseconds`` were accepted and ignored.  Passing these will now raise ``ValueError`` (:issue:`19398`)
--
+- Bug in adding :class:`DateOffset` with :class:`DataFrame` or :class:`PeriodIndex` incorrectly raising ``TypeError`` (:issue:`23215`)
 
 Numeric
 ^^^^^^^
@@ -1079,6 +1089,7 @@ Numeric
 - Bug in :meth:`DataFrame.astype` to extension dtype may raise ``AttributeError`` (:issue:`22578`)
 - Bug in :class:`DataFrame` with ``timedelta64[ns]`` dtype arithmetic operations with ``ndarray`` with integer dtype incorrectly treating the narray as ``timedelta64[ns]`` dtype (:issue:`23114`)
 - Bug in :meth:`Series.rpow` with object dtype ``NaN`` for ``1 ** NA`` instead of ``1`` (:issue:`22922`).
+- :meth:`Series.agg` can now handle numpy NaN-aware methods like :func:`numpy.nansum` (:issue:`19629`)
 
 Strings
 ^^^^^^^
