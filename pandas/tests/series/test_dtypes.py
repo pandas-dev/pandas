@@ -1,31 +1,26 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
+import string
+import sys
 from datetime import datetime, timedelta
 
-import sys
-import string
-import warnings
-
-from numpy import nan
-import pandas as pd
 import numpy as np
+import pytest
+from numpy import nan
 
+import pandas as pd
+import pandas._libs.tslib as tslib
+import pandas.util.testing as tm
 from pandas import (
-    Series, Timestamp, Timedelta, DataFrame, date_range,
-    Categorical, Index
+    Categorical, DataFrame, Index, Series, Timedelta, Timestamp, compat,
+    date_range
 )
 from pandas.api.types import CategoricalDtype
-import pandas._libs.tslib as tslib
-
 from pandas.compat import lrange, range, u
-from pandas import compat
-import pandas.util.testing as tm
 
 
-class TestSeriesDtypes():
+class TestSeriesDtypes(object):
 
     def test_dt64_series_astype_object(self):
         dt64ser = Series(date_range('20130101', periods=3))
@@ -400,40 +395,30 @@ class TestSeriesDtypes():
         with pytest.raises(TypeError):
             s.astype(type_, categories=['a', 'b'], ordered=False)
 
-    def test_astype_generic_timestamp_deprecated(self):
-        # see gh-15524
+    @pytest.mark.parametrize("dtype", [
+        np.datetime64,
+        np.timedelta64,
+    ])
+    def test_astype_generic_timestamp_no_frequency(self, dtype):
+        # see gh-15524, gh-15987
         data = [1]
+        s = Series(data)
 
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            s = Series(data)
-            dtype = np.datetime64
-            result = s.astype(dtype)
-            expected = Series(data, dtype=dtype)
-            tm.assert_series_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            s = Series(data)
-            dtype = np.timedelta64
-            result = s.astype(dtype)
-            expected = Series(data, dtype=dtype)
-            tm.assert_series_equal(result, expected)
+        msg = "dtype has no frequency. Please pass in"
+        with tm.assert_raises_regex(ValueError, msg):
+            s.astype(dtype)
 
     @pytest.mark.parametrize("dtype", np.typecodes['All'])
     def test_astype_empty_constructor_equality(self, dtype):
         # see gh-15524
 
-        if dtype not in ('S', 'V'):  # poor support (if any) currently
-            with warnings.catch_warnings(record=True):
-                if dtype in ('M', 'm'):
-                    # Generic timestamp dtypes ('M' and 'm') are deprecated,
-                    # but we test that already in series/test_constructors.py
-                    warnings.simplefilter("ignore", FutureWarning)
-
-                init_empty = Series([], dtype=dtype)
-                as_type_empty = Series([]).astype(dtype)
-                tm.assert_series_equal(init_empty, as_type_empty)
+        if dtype not in (
+            "S", "V",  # poor support (if any) currently
+            "M", "m"   # Generic timestamps raise a ValueError. Already tested.
+        ):
+            init_empty = Series([], dtype=dtype)
+            as_type_empty = Series([]).astype(dtype)
+            tm.assert_series_equal(init_empty, as_type_empty)
 
     def test_complex(self):
         # see gh-4819: complex access for ndarray compat
@@ -453,9 +438,6 @@ class TestSeriesDtypes():
 
         with pytest.raises(ValueError):
             s.astype(np.float64, errors=False)
-
-        with tm.assert_produces_warning(FutureWarning):
-            s.astype(np.int8, raise_on_error=True)
 
         s.astype(np.int8, errors='raise')
 

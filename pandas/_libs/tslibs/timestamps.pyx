@@ -970,7 +970,8 @@ class Timestamp(_Timestamp):
     def is_leap_year(self):
         return bool(ccalendar.is_leapyear(self.year))
 
-    def tz_localize(self, tz, ambiguous='raise', errors='raise'):
+    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
+                    errors=None):
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
@@ -987,14 +988,26 @@ class Timestamp(_Timestamp):
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
-        errors : 'raise', 'coerce', default 'raise'
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
+
+        errors : 'raise', 'coerce', default None
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
                valid in the specified timezone (e.g. due to a transition from
-               or to DST time)
+               or to DST time). Use ``nonexistent='raise'`` instead.
             - 'coerce' will return NaT if the timestamp can not be converted
-              into the specified timezone
+              into the specified timezone. Use ``nonexistent='NaT'`` instead.
 
-              .. versionadded:: 0.19.0
+              .. deprecated:: 0.24.0
 
         Returns
         -------
@@ -1008,13 +1021,31 @@ class Timestamp(_Timestamp):
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
 
+        if errors is not None:
+            warnings.warn("The errors argument is deprecated and will be "
+                          "removed in a future release. Use "
+                          "nonexistent='NaT' or nonexistent='raise' "
+                          "instead.", FutureWarning)
+            if errors == 'coerce':
+                nonexistent = 'NaT'
+            elif errors == 'raise':
+                nonexistent = 'raise'
+            else:
+                raise ValueError("The errors argument must be either 'coerce' "
+                                 "or 'raise'.")
+
+        if nonexistent not in ('raise', 'NaT', 'shift'):
+            raise ValueError("The nonexistent argument must be one of 'raise',"
+                             " 'NaT' or 'shift'")
+
         if self.tzinfo is None:
             # tz naive, localize
             tz = maybe_get_tz(tz)
             if not is_string_object(ambiguous):
                 ambiguous = [ambiguous]
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
-                                       ambiguous=ambiguous, errors=errors)[0]
+                                       ambiguous=ambiguous,
+                                       nonexistent=nonexistent)[0]
             return Timestamp(value, tz=tz)
         else:
             if tz is None:

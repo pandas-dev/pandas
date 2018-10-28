@@ -5,7 +5,7 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import NaT, Period, PeriodIndex, Int64Index, Index, period_range
+from pandas import Index, Int64Index, NaT, Period, PeriodIndex, period_range
 
 
 class TestPeriodIndexAsType(object):
@@ -14,7 +14,7 @@ class TestPeriodIndexAsType(object):
     def test_astype_raises(self, dtype):
         # GH#13149, GH#13209
         idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq='D')
-        msg = 'Cannot cast PeriodIndex to dtype'
+        msg = 'Cannot cast PeriodArray to dtype'
         with tm.assert_raises_regex(TypeError, msg):
             idx.astype(dtype)
 
@@ -27,7 +27,7 @@ class TestPeriodIndexAsType(object):
                          [Period(NaT, freq='D')] * 3, dtype='object')
         tm.assert_index_equal(result, expected)
 
-        result = idx.astype(int)
+        result = idx.astype(np.int64)
         expected = Int64Index([16937] + [-9223372036854775808] * 3,
                               dtype=np.int64)
         tm.assert_index_equal(result, expected)

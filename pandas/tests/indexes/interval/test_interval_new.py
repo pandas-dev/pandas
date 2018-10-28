@@ -1,23 +1,15 @@
 from __future__ import division
 
-import pytest
 import numpy as np
+import pytest
 
-from pandas import Interval, IntervalIndex, Int64Index
 import pandas.util.testing as tm
-
+from pandas import Int64Index, Interval, IntervalIndex
 
 pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
 
 
 class TestIntervalIndex(object):
-
-    def _compare_tuple_of_numpy_array(self, result, expected):
-        lidx, ridx = result
-        lidx_expected, ridx_expected = expected
-
-        tm.assert_numpy_array_equal(lidx, lidx_expected)
-        tm.assert_numpy_array_equal(ridx, ridx_expected)
 
     @pytest.mark.parametrize("side", ['right', 'left', 'both', 'neither'])
     def test_get_loc_interval(self, closed, side):
@@ -149,107 +141,94 @@ class TestIntervalIndex(object):
             index.slice_locs(query)
 
     @pytest.mark.parametrize('query, expected', [
-        (Interval(1, 3, closed='right'), 1),
-        (Interval(1, 3, closed='left'), -1),
-        (Interval(1, 3, closed='both'), -1),
-        (Interval(1, 3, closed='neither'), -1),
-        (Interval(1, 4, closed='right'), -1),
-        (Interval(0, 4, closed='right'), -1),
-        (Interval(1, 2, closed='right'), -1)])
-    def test_get_indexer_with_interval_single_queries(self, query, expected):
-
-        index = IntervalIndex.from_tuples(
-            [(0, 2.5), (1, 3), (2, 4)], closed='right')
-
-        result = index.get_indexer([query])
-        expected = np.array([expected], dtype='intp')
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize('query, expected', [
+        ([Interval(1, 3, closed='right')], [1]),
+        ([Interval(1, 3, closed='left')], [-1]),
+        ([Interval(1, 3, closed='both')], [-1]),
+        ([Interval(1, 3, closed='neither')], [-1]),
+        ([Interval(1, 4, closed='right')], [-1]),
+        ([Interval(0, 4, closed='right')], [-1]),
+        ([Interval(1, 2, closed='right')], [-1]),
         ([Interval(2, 4, closed='right'), Interval(1, 3, closed='right')],
          [2, 1]),
         ([Interval(1, 3, closed='right'), Interval(0, 2, closed='right')],
          [1, -1]),
         ([Interval(1, 3, closed='right'), Interval(1, 3, closed='left')],
          [1, -1])])
-    def test_get_indexer_with_interval_multiple_queries(self, query, expected):
+    def test_get_indexer_with_interval(self, query, expected):
 
-        index = IntervalIndex.from_tuples(
-            [(0, 2.5), (1, 3), (2, 4)], closed='right')
+        tuples = [(0, 2.5), (1, 3), (2, 4)]
+        index = IntervalIndex.from_tuples(tuples, closed='right')
 
         result = index.get_indexer(query)
         expected = np.array(expected, dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize('query, expected', [
-        (-0.5, -1), (0, -1), (0.5, 0), (1, 0), (1.5, 1), (2, 1),
-        (2.5, -1), (3, -1), (3.5, 2), (4, 2), (4.5, -1)])
-    def test_get_indexer_with_ints_and_floats_single_queries(
-            self, query, expected):
-
-        index = IntervalIndex.from_tuples(
-            [(0, 1), (1, 2), (3, 4)], closed='right')
-
-        result = index.get_indexer([query])
-        expected = np.array([expected], dtype='intp')
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize('query, expected', [
+        ([-0.5], [-1]),
+        ([0], [-1]),
+        ([0.5], [0]),
+        ([1], [0]),
+        ([1.5], [1]),
+        ([2], [1]),
+        ([2.5], [-1]),
+        ([3], [-1]),
+        ([3.5], [2]),
+        ([4], [2]),
+        ([4.5], [-1]),
         ([1, 2], [0, 1]),
         ([1, 2, 3], [0, 1, -1]),
         ([1, 2, 3, 4], [0, 1, -1, 2]),
         ([1, 2, 3, 4, 2], [0, 1, -1, 2, 1])])
-    def test_get_indexer_with_ints_and_floats_multiple_queries(
-            self, query, expected):
+    def test_get_indexer_with_int_and_float(self, query, expected):
 
-        index = IntervalIndex.from_tuples(
-            [(0, 1), (1, 2), (3, 4)], closed='right')
+        tuples = [(0, 1), (1, 2), (3, 4)]
+        index = IntervalIndex.from_tuples(tuples, closed='right')
 
         result = index.get_indexer(query)
         expected = np.array(expected, dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
-        index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
-        # TODO: @shoyer believes this should raise, master branch doesn't
+    @pytest.mark.parametrize('tuples, closed', [
+        ([(0, 2), (1, 3), (3, 4)], 'neither'),
+        ([(0, 5), (1, 4), (6, 7)], 'left'),
+        ([(0, 1), (0, 1), (1, 2)], 'right'),
+        ([(0, 1), (2, 3), (3, 4)], 'both')])
+    def test_get_indexer_errors(self, tuples, closed):
+        # IntervalIndex needs non-overlapping for uniqueness when querying
+        index = IntervalIndex.from_tuples(tuples, closed=closed)
+
+        msg = ('cannot handle overlapping indices; use '
+               'IntervalIndex.get_indexer_non_unique')
+        with tm.assert_raises_regex(ValueError, msg):
+            index.get_indexer([0, 2])
 
     @pytest.mark.parametrize('query, expected', [
-        (-0.5, (Int64Index([], dtype='int64'), np.array([0]))),
-        (0, (Int64Index([0], dtype='int64'), np.array([]))),
-        (0.5, (Int64Index([0], dtype='int64'), np.array([]))),
-        (1, (Int64Index([0, 1], dtype='int64'), np.array([]))),
-        (1.5, (Int64Index([0, 1], dtype='int64'), np.array([]))),
-        (2, (Int64Index([0, 1, 2], dtype='int64'), np.array([]))),
-        (2.5, (Int64Index([1, 2], dtype='int64'), np.array([]))),
-        (3, (Int64Index([2], dtype='int64'), np.array([]))),
-        (3.5, (Int64Index([2], dtype='int64'), np.array([]))),
-        (4, (Int64Index([], dtype='int64'), np.array([0]))),
-        (4.5, (Int64Index([], dtype='int64'), np.array([0])))])
-    def test_get_indexer_non_unique_with_ints_and_floats_single_queries(
-            self, query, expected):
+        ([-0.5], ([-1], [0])),
+        ([0], ([0], [])),
+        ([0.5], ([0], [])),
+        ([1], ([0, 1], [])),
+        ([1.5], ([0, 1], [])),
+        ([2], ([0, 1, 2], [])),
+        ([2.5], ([1, 2], [])),
+        ([3], ([2], [])),
+        ([3.5], ([2], [])),
+        ([4], ([-1], [0])),
+        ([4.5], ([-1], [0])),
+        ([1, 2], ([0, 1, 0, 1, 2], [])),
+        ([1, 2, 3], ([0, 1, 0, 1, 2, 2], [])),
+        ([1, 2, 3, 4], ([0, 1, 0, 1, 2, 2, -1], [3])),
+        ([1, 2, 3, 4, 2], ([0, 1, 0, 1, 2, 2, -1, 0, 1, 2], [3]))])
+    def test_get_indexer_non_unique_with_int_and_float(self, query, expected):
 
-        index = IntervalIndex.from_tuples(
-            [(0, 2.5), (1, 3), (2, 4)], closed='left')
+        tuples = [(0, 2.5), (1, 3), (2, 4)]
+        index = IntervalIndex.from_tuples(tuples, closed='left')
 
-        result = index.get_indexer_non_unique([query])
-        tm.assert_numpy_array_equal(result, expected)
+        result_indexer, result_missing = index.get_indexer_non_unique(query)
+        expected_indexer = Int64Index(expected[0])
+        expected_missing = np.array(expected[1], dtype='intp')
 
-    @pytest.mark.parametrize('query, expected', [
-        ([1, 2], (Int64Index([0, 1, 0, 1, 2], dtype='int64'), np.array([]))),
-        ([1, 2, 3],
-         (Int64Index([0, 1, 0, 1, 2, 2], dtype='int64'), np.array([]))),
-        ([1, 2, 3, 4],
-         (Int64Index([0, 1, 0, 1, 2, 2, -1], dtype='int64'), np.array([3]))),
-        ([1, 2, 3, 4, 2],
-         (Int64Index([0, 1, 0, 1, 2, 2, -1, 0, 1, 2], dtype='int64'),
-          np.array([3])))])
-    def test_get_indexer_non_unique_with_ints_and_floats_multiple_queries(
-            self, query, expected):
-
-        index = IntervalIndex.from_tuples(
-            [(0, 2.5), (1, 3), (2, 4)], closed='left')
-
-        result = index.get_indexer_non_unique(query)
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_index_equal(result_indexer, expected_indexer)
+        tm.assert_numpy_array_equal(result_missing, expected_missing)
 
         # TODO we may also want to test get_indexer for the case when
         # the intervals are duplicated, decreasing, non-monotonic, etc..

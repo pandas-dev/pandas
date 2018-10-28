@@ -4,16 +4,16 @@ Tests for Series timezone-related methods
 """
 from datetime import datetime
 
+import numpy as np
 import pytest
 import pytz
-import numpy as np
 from dateutil.tz import tzoffset
 
 import pandas.util.testing as tm
-from pandas._libs.tslibs import timezones, conversion
+from pandas import DatetimeIndex, Index, NaT, Series, Timestamp
+from pandas._libs.tslibs import conversion, timezones
 from pandas.compat import lrange
 from pandas.core.indexes.datetimes import date_range
-from pandas import Series, Timestamp, DatetimeIndex, Index
 
 
 class TestSeriesTimezones(object):
@@ -32,6 +32,21 @@ class TestSeriesTimezones(object):
         ts = Series(1, index=rng)
         tm.assert_raises_regex(TypeError, 'Already tz-aware',
                                ts.tz_localize, 'US/Eastern')
+
+    @pytest.mark.filterwarnings('ignore::FutureWarning')
+    def test_tz_localize_errors_deprecation(self):
+        # GH 22644
+        tz = 'Europe/Warsaw'
+        n = 60
+        rng = date_range(start='2015-03-29 02:00:00', periods=n, freq='min')
+        ts = Series(rng)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            with pytest.raises(ValueError):
+                ts.dt.tz_localize(tz, errors='foo')
+            # make sure errors='coerce' gets mapped correctly to nonexistent
+            result = ts.dt.tz_localize(tz, errors='coerce')
+            expected = ts.dt.tz_localize(tz, nonexistent='NaT')
+            tm.assert_series_equal(result, expected)
 
     def test_series_tz_localize_ambiguous_bool(self):
         # make sure that we are correctly accepting bool values as ambiguous
@@ -59,6 +74,29 @@ class TestSeriesTimezones(object):
 
         result = ser.dt.tz_localize('US/Central', ambiguous=[False])
         tm.assert_series_equal(result, expected1)
+
+    @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
+    @pytest.mark.parametrize('method, exp', [
+        ['shift', '2015-03-29 03:00:00'],
+        ['NaT', NaT],
+        ['raise', None],
+        ['foo', 'invalid']
+    ])
+    def test_series_tz_localize_nonexistent(self, tz, method, exp):
+        # GH 8917
+        n = 60
+        dti = date_range(start='2015-03-29 02:00:00', periods=n, freq='min')
+        s = Series(1, dti)
+        if method == 'raise':
+            with pytest.raises(pytz.NonExistentTimeError):
+                s.tz_localize(tz, nonexistent=method)
+        elif exp == 'invalid':
+            with pytest.raises(ValueError):
+                dti.tz_localize(tz, nonexistent=method)
+        else:
+            result = s.tz_localize(tz, nonexistent=method)
+            expected = Series(1, index=DatetimeIndex([exp] * n, tz=tz))
+            tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])
     def test_series_tz_localize_empty(self, tzstr):

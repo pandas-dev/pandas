@@ -548,11 +548,11 @@ class SparseDataFrame(DataFrame):
     # Arithmetic-related methods
 
     def _combine_frame(self, other, func, fill_value=None, level=None):
-        this, other = self.align(other, join='outer', level=level, copy=False)
-        new_index, new_columns = this.index, this.columns
-
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
+
+        this, other = self.align(other, join='outer', level=level, copy=False)
+        new_index, new_columns = this.index, this.columns
 
         if self.empty and other.empty:
             return self._constructor(index=new_index).__finalize__(self)
@@ -573,17 +573,7 @@ class SparseDataFrame(DataFrame):
                 if col in this and col in other:
                     new_data[col] = func(this[col], other[col])
 
-        # if the fill values are the same use them? or use a valid one
-        new_fill_value = None
-        other_fill_value = getattr(other, 'default_fill_value', np.nan)
-        if self.default_fill_value == other_fill_value:
-            new_fill_value = self.default_fill_value
-        elif np.isnan(self.default_fill_value) and not np.isnan(
-                other_fill_value):
-            new_fill_value = other_fill_value
-        elif not np.isnan(self.default_fill_value) and np.isnan(
-                other_fill_value):
-            new_fill_value = self.default_fill_value
+        new_fill_value = self._get_op_result_fill_value(other, func)
 
         return self._constructor(data=new_data, index=new_index,
                                  columns=new_columns,
@@ -596,29 +586,19 @@ class SparseDataFrame(DataFrame):
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
-        new_index = self.index.union(other.index)
-        this = self
-        if self.index is not new_index:
-            this = self.reindex(new_index)
-
-        if other.index is not new_index:
-            other = other.reindex(new_index)
+        this, other = self.align(other, join='outer', axis=0, level=level,
+                                 copy=False)
 
         for col, series in compat.iteritems(this):
             new_data[col] = func(series.values, other.values)
 
-        # fill_value is a function of our operator
-        if isna(other.fill_value) or isna(self.default_fill_value):
-            fill_value = np.nan
-        else:
-            fill_value = func(np.float64(self.default_fill_value),
-                              np.float64(other.fill_value))
+        fill_value = self._get_op_result_fill_value(other, func)
 
         return self._constructor(
-            new_data, index=new_index, columns=self.columns,
+            new_data, index=this.index, columns=self.columns,
             default_fill_value=fill_value).__finalize__(self)
 
-    def _combine_match_columns(self, other, func, level=None, try_cast=True):
+    def _combine_match_columns(self, other, func, level=None):
         # patched version of DataFrame._combine_match_columns to account for
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
         # where 3.0 is numpy.float64 and series is a SparseSeries. Still
@@ -627,23 +607,55 @@ class SparseDataFrame(DataFrame):
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
+        left, right = self.align(other, join='outer', axis=1, level=level,
+                                 copy=False)
+        assert left.columns.equals(right.index)
+
         new_data = {}
 
-        union = intersection = self.columns
-
-        if not union.equals(other.index):
-            union = other.index.union(self.columns)
-            intersection = other.index.intersection(self.columns)
-
-        for col in intersection:
-            new_data[col] = func(self[col], float(other[col]))
+        for col in left.columns:
+            new_data[col] = func(left[col], float(right[col]))
 
         return self._constructor(
-            new_data, index=self.index, columns=union,
+            new_data, index=left.index, columns=left.columns,
             default_fill_value=self.default_fill_value).__finalize__(self)
 
-    def _combine_const(self, other, func, errors='raise', try_cast=True):
+    def _combine_const(self, other, func, errors='raise'):
         return self._apply_columns(lambda x: func(x, other))
+
+    def _get_op_result_fill_value(self, other, func):
+        own_default = self.default_fill_value
+
+        if isinstance(other, DataFrame):
+            # i.e. called from _combine_frame
+
+            other_default = getattr(other, 'default_fill_value', np.nan)
+
+            # if the fill values are the same use them? or use a valid one
+            if own_default == other_default:
+                # TOOD: won't this evaluate as False if both are np.nan?
+                fill_value = own_default
+            elif np.isnan(own_default) and not np.isnan(other_default):
+                fill_value = other_default
+            elif not np.isnan(own_default) and np.isnan(other_default):
+                fill_value = own_default
+            else:
+                fill_value = None
+
+        elif isinstance(other, SparseSeries):
+            # i.e. called from _combine_match_index
+
+            # fill_value is a function of our operator
+            if isna(other.fill_value) or isna(own_default):
+                fill_value = np.nan
+            else:
+                fill_value = func(np.float64(own_default),
+                                  np.float64(other.fill_value))
+
+        else:
+            raise NotImplementedError(type(other))
+
+        return fill_value
 
     def _reindex_index(self, index, method, copy, level, fill_value=np.nan,
                        limit=None, takeable=False):

@@ -2414,7 +2414,7 @@ def generate_range(start=None, end=None, periods=None,
     elif end and not offset.onOffset(end):
         end = offset.rollback(end)
 
-    if periods is None and end < start:
+    if periods is None and end < start and offset.n >= 0:
         end = None
         periods = 0
 

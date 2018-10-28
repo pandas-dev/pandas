@@ -53,8 +53,7 @@ from pandas.compat import (map, zip, lzip, lrange, string_types, to_str,
                            isidentifier, set_function_name, cPickle as pkl)
 from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
-from pandas.util._decorators import (Appender, Substitution,
-                                     deprecate_kwarg)
+from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core import config
 
@@ -117,7 +116,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
     _deprecations = frozenset(['as_blocks', 'blocks',
-                               'consolidate', 'convert_objects', 'is_copy'])
+                               'convert_objects', 'is_copy'])
     _metadata = []
     _is_copy = None
 
@@ -4069,16 +4068,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return self._constructor(new_data).__finalize__(self)
 
-    # TODO: unused; remove?
-    def _reindex_axis(self, new_index, fill_method, axis, copy):
-        new_data = self._data.reindex_axis(new_index, axis=axis,
-                                           method=fill_method, copy=copy)
-
-        if new_data is self._data and not copy:
-            return self
-        else:
-            return self._constructor(new_data).__finalize__(self)
-
     def filter(self, items=None, like=None, regex=None, axis=None):
         """
         Subset rows or columns of dataframe according to labels in
@@ -4732,18 +4721,6 @@ class NDFrame(PandasObject, SelectionMixin):
             cons_data = self._protect_consolidate(f)
             return self._constructor(cons_data).__finalize__(self)
 
-    def consolidate(self, inplace=False):
-        """Compute NDFrame with "consolidated" internals (data of each dtype
-        grouped together in a single ndarray).
-
-        .. deprecated:: 0.20.0
-            Consolidate will be an internal implementation only.
-        """
-        # 15483
-        warnings.warn("consolidate is deprecated and will be removed in a "
-                      "future release.", FutureWarning, stacklevel=2)
-        return self._consolidate(inplace)
-
     @property
     def _is_mixed_type(self):
         f = lambda: self._data.is_mixed_type
@@ -5158,8 +5135,6 @@ class NDFrame(PandasObject, SelectionMixin):
         return {k: self._constructor(v).__finalize__(self)
                 for k, v, in self._data.to_dict(copy=copy).items()}
 
-    @deprecate_kwarg(old_arg_name='raise_on_error', new_arg_name='errors',
-                     mapping={True: 'raise', False: 'ignore'})
     def astype(self, dtype, copy=True, errors='raise', **kwargs):
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -5183,9 +5158,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.20.0
 
-        raise_on_error : raise on invalid input
-            .. deprecated:: 0.20.0
-               Use ``errors`` instead
         kwargs : keyword arguments to pass on to the constructor
 
         Returns
@@ -8637,7 +8609,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return result.__finalize__(self)
 
     def tz_localize(self, tz, axis=0, level=None, copy=True,
-                    ambiguous='raise'):
+                    ambiguous='raise', nonexistent='raise'):
         """
         Localize tz-naive TimeSeries to target time zone.
 
@@ -8659,6 +8631,17 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent times forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -8668,10 +8651,14 @@ class NDFrame(PandasObject, SelectionMixin):
         TypeError
             If the TimeSeries is tz-aware and tz is not None.
         """
+        if nonexistent not in ('raise', 'NaT', 'shift'):
+            raise ValueError("The nonexistent argument must be one of 'raise',"
+                             " 'NaT' or 'shift'")
+
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
 
-        def _tz_localize(ax, tz, ambiguous):
+        def _tz_localize(ax, tz, ambiguous, nonexistent):
             if not hasattr(ax, 'tz_localize'):
                 if len(ax) > 0:
                     ax_name = self._get_axis_name(axis)
@@ -8680,19 +8667,23 @@ class NDFrame(PandasObject, SelectionMixin):
                 else:
                     ax = DatetimeIndex([], tz=tz)
             else:
-                ax = ax.tz_localize(tz, ambiguous=ambiguous)
+                ax = ax.tz_localize(
+                    tz, ambiguous=ambiguous, nonexistent=nonexistent
+                )
             return ax
 
         # if a level is given it must be a MultiIndex level or
         # equivalent to the axis name
         if isinstance(ax, MultiIndex):
             level = ax._get_level_number(level)
-            new_level = _tz_localize(ax.levels[level], tz, ambiguous)
+            new_level = _tz_localize(
+                ax.levels[level], tz, ambiguous, nonexistent
+            )
             ax = ax.set_levels(new_level, level=level)
         else:
             if level not in (None, 0, ax.name):
                 raise ValueError("The level {0} is not valid".format(level))
-            ax = _tz_localize(ax, tz, ambiguous)
+            ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
         result = self._constructor(self._data, copy=copy)
         result.set_axis(ax, axis=axis, inplace=True)
@@ -9372,7 +9363,7 @@ class NDFrame(PandasObject, SelectionMixin):
             """This method returns the maximum of the values in the object.
             If you want the *index* of the maximum, use ``idxmax``. This is
             the equivalent of the ``numpy.ndarray`` method ``argmax``.""",
-            nanops.nanmax)
+            nanops.nanmax, _max_examples)
         cls.min = _make_stat_function(
             cls, 'min', name, name2, axis_descr,
             """This method returns the minimum of the values in the object.
@@ -9518,7 +9509,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None, compression='infer', quoting=None,
-               quotechar='"', line_terminator='\n', chunksize=None,
+               quotechar='"', line_terminator=None, chunksize=None,
                tupleize_cols=None, date_format=None, doublequote=True,
                escapechar=None, decimal='.'):
         r"""
@@ -9583,9 +9574,12 @@ class NDFrame(PandasObject, SelectionMixin):
             will treat them as non-numeric.
         quotechar : str, default '\"'
             String of length 1. Character used to quote fields.
-        line_terminator : string, default ``'\n'``
+        line_terminator : string, optional
             The newline character or character sequence to use in the output
-            file.
+            file. Defaults to `os.linesep`, which depends on the OS in which
+            this method is called ('\n' for linux, '\r\n' for Windows, i.e.).
+
+            .. versionchanged:: 0.24.0
         chunksize : int or None
             Rows to write at a time.
         tupleize_cols : bool, default False
@@ -10173,6 +10167,40 @@ Series([], dtype: bool)
 _sum_examples = """\
 Examples
 --------
+``MultiIndex`` series example of monthly rainfall
+
+>>> index = pd.MultiIndex.from_product(
+...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
+...     names=['city', 'month'])
+>>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
+>>> s
+city      month
+London    Jun       47
+          Jul       35
+          Aug       54
+New York  Jun      112
+          Jul      117
+          Aug      113
+dtype: int64
+
+>>> s.sum()
+478
+
+Sum using level names, as well as indices
+
+>>> s.sum(level='city')
+city
+London      136
+New York    342
+dtype: int64
+
+>>> s.sum(level=1)
+month
+Jun    159
+Jul    152
+Aug    167
+dtype: int64
+
 By default, the sum of an empty or all-NA Series is ``0``.
 
 >>> pd.Series([]).sum()  # min_count=0 is the default
@@ -10217,6 +10245,44 @@ empty series identically.
 nan
 """
 
+_max_examples = """\
+Examples
+--------
+``MultiIndex`` series example of monthly rainfall
+
+>>> index = pd.MultiIndex.from_product(
+...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
+...     names=['city', 'month'])
+>>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
+>>> s
+city      month
+London    Jun       47
+          Jul       35
+          Aug       54
+New York  Jun      112
+          Jul      117
+          Aug      113
+dtype: int64
+
+>>> s.max()
+117
+
+Max using level names, as well as indices
+
+>>> s.max(level='city')
+city
+London       54
+New York    117
+dtype: int64
+
+>>> s.max(level=1)
+month
+Jun    112
+Jul    117
+Aug    113
+dtype: int64
+"""
+
 
 _min_count_stub = """\
 min_count : int, default 0
@@ -10254,9 +10320,10 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
     return set_function_name(stat_func, name, cls)
 
 
-def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
+def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f,
+                        examples=''):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, min_count='', examples='')
+                  axis_descr=axis_descr, min_count='', examples=examples)
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):

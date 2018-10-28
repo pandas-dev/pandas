@@ -6,8 +6,8 @@ import pytz
 
 import pandas as pd
 import pandas.util.testing as tm
+from pandas import DatetimeIndex, Series, date_range
 from pandas.errors import NullFrequencyError
-from pandas import Series, DatetimeIndex, date_range
 
 
 class TestDatetimeIndexArithmetic(object):

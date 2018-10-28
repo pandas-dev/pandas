@@ -3,10 +3,9 @@
 from datetime import datetime, timedelta
 
 import numpy as np
-import warnings
 
 from pandas._libs import tslib, lib, tslibs
-from pandas._libs.tslibs import iNaT, OutOfBoundsDatetime
+from pandas._libs.tslibs import iNaT, OutOfBoundsDatetime, Period
 from pandas.compat import string_types, text_type, PY3
 from .common import (ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
@@ -163,6 +162,12 @@ def maybe_downcast_to_dtype(result, dtype):
                     from pandas import to_datetime
                     result = to_datetime(result).tz_localize('utc')
                     result = result.tz_convert(dtype.tz)
+
+        elif dtype.type == Period:
+            # TODO(DatetimeArray): merge with previous elif
+            from pandas.core.arrays import PeriodArray
+
+            return PeriodArray(result, freq=dtype.freq)
 
     except Exception:
         pass
@@ -658,6 +663,11 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
         e.g. the item sizes don't align.
     skipna: bool, default False
         Whether or not we should skip NaN when casting as a string-type.
+
+    Raises
+    ------
+    ValueError
+        The dtype was a datetime /timedelta dtype, but it had no frequency.
     """
 
     # dispatch on extension dtype if needed
@@ -739,12 +749,9 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
             return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
 
     if dtype.name in ("datetime64", "timedelta64"):
-        msg = ("Passing in '{dtype}' dtype with no frequency is "
-               "deprecated and will raise in a future version. "
+        msg = ("The '{dtype}' dtype has no frequency. "
                "Please pass in '{dtype}[ns]' instead.")
-        warnings.warn(msg.format(dtype=dtype.name),
-                      FutureWarning, stacklevel=5)
-        dtype = np.dtype(dtype.name + "[ns]")
+        raise ValueError(msg.format(dtype=dtype.name))
 
     if copy or is_object_dtype(arr) or is_object_dtype(dtype):
         # Explicit copy, or required since NumPy can't view from / to object.
@@ -1013,16 +1020,14 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
 
         if is_datetime64 or is_datetime64tz or is_timedelta64:
 
-            # force the dtype if needed
-            msg = ("Passing in '{dtype}' dtype with no frequency is "
-                   "deprecated and will raise in a future version. "
+            # Force the dtype if needed.
+            msg = ("The '{dtype}' dtype has no frequency. "
                    "Please pass in '{dtype}[ns]' instead.")
 
             if is_datetime64 and not is_dtype_equal(dtype, _NS_DTYPE):
                 if dtype.name in ('datetime64', 'datetime64[ns]'):
                     if dtype.name == 'datetime64':
-                        warnings.warn(msg.format(dtype=dtype.name),
-                                      FutureWarning, stacklevel=5)
+                        raise ValueError(msg.format(dtype=dtype.name))
                     dtype = _NS_DTYPE
                 else:
                     raise TypeError("cannot convert datetimelike to "
@@ -1038,8 +1043,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
             elif is_timedelta64 and not is_dtype_equal(dtype, _TD_DTYPE):
                 if dtype.name in ('timedelta64', 'timedelta64[ns]'):
                     if dtype.name == 'timedelta64':
-                        warnings.warn(msg.format(dtype=dtype.name),
-                                      FutureWarning, stacklevel=5)
+                        raise ValueError(msg.format(dtype=dtype.name))
                     dtype = _TD_DTYPE
                 else:
                     raise TypeError("cannot convert timedeltalike to "

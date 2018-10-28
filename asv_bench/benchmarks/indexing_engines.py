@@ -1,19 +1,30 @@
 import numpy as np
 
-from pandas._libs.index import (Int64Engine, UInt64Engine, Float64Engine,
-                                ObjectEngine)
+from pandas._libs import index as libindex
+
+
+def _get_numeric_engines():
+    engine_names = [
+        ('Int64Engine', np.int64), ('Int32Engine', np.int32),
+        ('Int16Engine', np.int16), ('Int8Engine', np.int8),
+        ('UInt64Engine', np.uint64), ('UInt32Engine', np.uint32),
+        ('UInt16engine', np.uint16), ('UInt8Engine', np.uint8),
+        ('Float64Engine', np.float64), ('Float32Engine', np.float32),
+    ]
+    return [(getattr(libindex, engine_name), dtype)
+            for engine_name, dtype in engine_names
+            if hasattr(libindex, engine_name)]
 
 
 class NumericEngineIndexing(object):
 
-    goal_time = 0.2
-    params = [[Int64Engine, UInt64Engine, Float64Engine],
-              [np.int64, np.uint64, np.float64],
+    params = [_get_numeric_engines(),
               ['monotonic_incr', 'monotonic_decr', 'non_monotonic'],
               ]
-    param_names = ['engine', 'dtype', 'index_type']
+    param_names = ['engine_and_dtype', 'index_type']
 
-    def setup(self, engine, dtype, index_type):
+    def setup(self, engine_and_dtype, index_type):
+        engine, dtype = engine_and_dtype
         N = 10**5
         values = list([1] * N + [2] * N + [3] * N)
         arr = {
@@ -27,13 +38,12 @@ class NumericEngineIndexing(object):
         # code belows avoids populating the mapping etc. while timing.
         self.data.get_loc(2)
 
-    def time_get_loc(self, engine, dtype, index_type):
+    def time_get_loc(self, engine_and_dtype, index_type):
         self.data.get_loc(2)
 
 
 class ObjectEngineIndexing(object):
 
-    goal_time = 0.2
     params = [('monotonic_incr', 'monotonic_decr', 'non_monotonic')]
     param_names = ['index_type']
 
@@ -46,7 +56,7 @@ class ObjectEngineIndexing(object):
             'non_monotonic': np.array(list('abc') * N, dtype=object),
         }[index_type]
 
-        self.data = ObjectEngine(lambda: arr, len(arr))
+        self.data = libindex.ObjectEngine(lambda: arr, len(arr))
         # code belows avoids populating the mapping etc. while timing.
         self.data.get_loc('b')
 

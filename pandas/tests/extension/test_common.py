@@ -4,8 +4,8 @@ import pytest
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.core.arrays import ExtensionArray
-from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes import dtypes
+from pandas.core.dtypes.common import is_extension_array_dtype
 
 
 class DummyDtype(dtypes.ExtensionDtype):
@@ -78,7 +78,6 @@ def test_astype_no_copy():
 
 @pytest.mark.parametrize('dtype', [
     dtypes.DatetimeTZDtype('ns', 'US/Central'),
-    dtypes.PeriodDtype("D"),
 ])
 def test_is_not_extension_array_dtype(dtype):
     assert not isinstance(dtype, dtypes.ExtensionDtype)

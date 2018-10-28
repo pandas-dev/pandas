@@ -73,6 +73,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
     is_named_tuple)
 from pandas.core.dtypes.concat import _get_sliced_frame_result_type
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCMultiIndex
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms
@@ -360,7 +361,7 @@ class DataFrame(NDFrame):
 
     _constructor_sliced = Series
     _deprecations = NDFrame._deprecations | frozenset(
-        ['sortlevel', 'get_value', 'set_value', 'from_csv', 'from_items'])
+        ['get_value', 'set_value', 'from_csv', 'from_items'])
     _accessors = set()
 
     @property
@@ -3157,6 +3158,14 @@ class DataFrame(NDFrame):
         4   True  1.0
         5  False  2.0
         """
+        def _get_info_slice(obj, indexer):
+            """Slice the info axis of `obj` with `indexer`."""
+            if not hasattr(obj, '_info_axis_number'):
+                msg = 'object of type {typ!r} has no info axis'
+                raise TypeError(msg.format(typ=type(obj).__name__))
+            slices = [slice(None)] * obj.ndim
+            slices[obj._info_axis_number] = indexer
+            return tuple(slices)
 
         if not is_list_like(include):
             include = (include,) if include is not None else ()
@@ -3205,7 +3214,7 @@ class DataFrame(NDFrame):
                 exclude_these.iloc[idx] = not any(map(f, exclude))
 
         dtype_indexer = include_these & exclude_these
-        return self.loc[com.get_info_slice(self, dtype_indexer)]
+        return self.loc[_get_info_slice(self, dtype_indexer)]
 
     def _box_item_values(self, key, values):
         items = self.columns[self.columns.get_loc(key)]
@@ -3980,6 +3989,25 @@ class DataFrame(NDFrame):
         if not isinstance(keys, list):
             keys = [keys]
 
+        missing = []
+        for col in keys:
+            if (is_scalar(col) or isinstance(col, tuple)) and col in self:
+                # tuples can be both column keys or list-likes
+                # if they are valid column keys, everything is fine
+                continue
+            elif is_scalar(col) and col not in self:
+                # tuples that are not column keys are considered list-like,
+                # not considered missing
+                missing.append(col)
+            elif (not is_list_like(col, allow_sets=False)
+                  or getattr(col, 'ndim', 1) > 1):
+                raise TypeError('The parameter "keys" may only contain a '
+                                'combination of valid column keys and '
+                                'one-dimensional list-likes')
+
+        if missing:
+            raise KeyError('{}'.format(missing))
+
         if inplace:
             frame = self
         else:
@@ -3989,7 +4017,7 @@ class DataFrame(NDFrame):
         names = []
         if append:
             names = [x for x in self.index.names]
-            if isinstance(self.index, MultiIndex):
+            if isinstance(self.index, ABCMultiIndex):
                 for i in range(self.index.nlevels):
                     arrays.append(self.index._get_level_values(i))
             else:
@@ -3997,29 +4025,29 @@ class DataFrame(NDFrame):
 
         to_remove = []
         for col in keys:
-            if isinstance(col, MultiIndex):
-                # append all but the last column so we don't have to modify
-                # the end of this loop
-                for n in range(col.nlevels - 1):
+            if isinstance(col, ABCMultiIndex):
+                for n in range(col.nlevels):
                     arrays.append(col._get_level_values(n))
-
-                level = col._get_level_values(col.nlevels - 1)
                 names.extend(col.names)
-            elif isinstance(col, Series):
-                level = col._values
+            elif isinstance(col, (ABCIndexClass, ABCSeries)):
+                # if Index then not MultiIndex (treated above)
+                arrays.append(col)
                 names.append(col.name)
-            elif isinstance(col, Index):
-                level = col
-                names.append(col.name)
-            elif isinstance(col, (list, np.ndarray, Index)):
-                level = col
+            elif isinstance(col, (list, np.ndarray)):
+                arrays.append(col)
                 names.append(None)
+            elif (is_list_like(col)
+                  and not (isinstance(col, tuple) and col in self)):
+                # all other list-likes (but avoid valid column keys)
+                col = list(col)  # ensure iterator do not get read twice etc.
+                arrays.append(col)
+                names.append(None)
+            # from here, col can only be a column label
             else:
-                level = frame[col]._values
+                arrays.append(frame[col]._values)
                 names.append(col)
                 if drop:
                     to_remove.append(col)
-            arrays.append(level)
 
         index = ensure_index_from_sequences(arrays, names)
 
@@ -4028,7 +4056,8 @@ class DataFrame(NDFrame):
             raise ValueError('Index has duplicate keys: {dup}'.format(
                 dup=duplicates))
 
-        for c in to_remove:
+        # use set to handle duplicate column names gracefully in case of drop
+        for c in set(to_remove):
             del frame[c]
 
         # clear up memory usage
@@ -4616,40 +4645,6 @@ class DataFrame(NDFrame):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    def sortlevel(self, level=0, axis=0, ascending=True, inplace=False,
-                  sort_remaining=True):
-        """Sort multilevel index by chosen axis and primary level. Data will be
-        lexicographically sorted by the chosen level followed by the other
-        levels (in order).
-
-        .. deprecated:: 0.20.0
-            Use :meth:`DataFrame.sort_index`
-
-
-        Parameters
-        ----------
-        level : int
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-        ascending : boolean, default True
-        inplace : boolean, default False
-            Sort the DataFrame without creating a new instance
-        sort_remaining : boolean, default True
-            Sort by the other levels too.
-
-        Returns
-        -------
-        sorted : DataFrame
-
-        See Also
-        --------
-        DataFrame.sort_index(level=...)
-
-        """
-        warnings.warn("sortlevel is deprecated, use sort_index(level= ...)",
-                      FutureWarning, stacklevel=2)
-        return self.sort_index(level=level, axis=axis, ascending=ascending,
-                               inplace=inplace, sort_remaining=sort_remaining)
-
     def nlargest(self, n, columns, keep='first'):
         """
         Return the first `n` rows ordered by `columns` in descending order.
@@ -4942,21 +4937,16 @@ class DataFrame(NDFrame):
                                      index=left.index, columns=self.columns,
                                      copy=False)
 
-    def _combine_match_columns(self, other, func, level=None, try_cast=True):
+    def _combine_match_columns(self, other, func, level=None):
         assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         assert left.columns.equals(right.index)
         return ops.dispatch_to_series(left, right, func, axis="columns")
 
-    def _combine_const(self, other, func, errors='raise', try_cast=True):
-        if lib.is_scalar(other) or np.ndim(other) == 0:
-            return ops.dispatch_to_series(self, other, func)
-
-        new_data = self._data.eval(func=func, other=other,
-                                   errors=errors,
-                                   try_cast=try_cast)
-        return self._constructor(new_data)
+    def _combine_const(self, other, func, errors='raise'):
+        assert lib.is_scalar(other) or np.ndim(other) == 0
+        return ops.dispatch_to_series(self, other, func)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
@@ -5117,22 +5107,14 @@ class DataFrame(NDFrame):
                 if not is_dtype_equal(other_dtype, new_dtype):
                     otherSeries = otherSeries.astype(new_dtype)
 
-            # see if we need to be represented as i8 (datetimelike)
-            # try to keep us at this dtype
-            needs_i8_conversion_i = needs_i8_conversion(new_dtype)
-            if needs_i8_conversion_i:
-                arr = func(series, otherSeries, True)
-            else:
-                arr = func(series, otherSeries)
-
+            arr = func(series, otherSeries)
             arr = maybe_downcast_to_dtype(arr, this_dtype)
 
             result[col] = arr
 
         # convert_objects just in case
         return self._constructor(result, index=new_index,
-                                 columns=new_columns)._convert(datetime=True,
-                                                               copy=False)
+                                 columns=new_columns)
 
     def combine_first(self, other):
         """
@@ -5179,15 +5161,28 @@ class DataFrame(NDFrame):
         """
         import pandas.core.computation.expressions as expressions
 
-        def combiner(x, y, needs_i8_conversion=False):
-            x_values = x.values if hasattr(x, 'values') else x
-            y_values = y.values if hasattr(y, 'values') else y
-            if needs_i8_conversion:
-                mask = isna(x)
-                x_values = x_values.view('i8')
-                y_values = y_values.view('i8')
-            else:
-                mask = isna(x_values)
+        def extract_values(arr):
+            # Does two things:
+            # 1. maybe gets the values from the Series / Index
+            # 2. convert datelike to i8
+            if isinstance(arr, (ABCIndexClass, ABCSeries)):
+                arr = arr._values
+
+            if needs_i8_conversion(arr):
+                # TODO(DatetimelikeArray): just use .asi8
+                if is_extension_array_dtype(arr.dtype):
+                    arr = arr.asi8
+                else:
+                    arr = arr.view('i8')
+            return arr
+
+        def combiner(x, y):
+            mask = isna(x)
+            if isinstance(mask, (ABCIndexClass, ABCSeries)):
+                mask = mask._values
+
+            x_values = extract_values(x)
+            y_values = extract_values(y)
 
             # If the column y in other DataFrame is not in first DataFrame,
             # just return y_values.

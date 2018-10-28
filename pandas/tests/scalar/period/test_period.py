@@ -856,13 +856,6 @@ class TestPeriodProperties(object):
         assert Period(freq='Min', year=2012, month=2, day=1, hour=0,
                       minute=0, second=0).days_in_month == 29
 
-    def test_pnow(self):
-
-        # deprecation, xref #13790
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            period.pnow('D')
-
     def test_constructor_corner(self):
         expected = Period('2007-01', freq='2M')
         assert Period(year=2007, month=1, freq='2M') == expected
