@@ -2,8 +2,9 @@
 
 
 import numpy as np
-import pandas.util.testing as tm
 import pytest
+
+import pandas.util.testing as tm
 from pandas import MultiIndex
 from pandas.compat import PY3, long
 

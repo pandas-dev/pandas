@@ -1,7 +1,7 @@
-import pytest
+from datetime import timedelta
 
 import numpy as np
-from datetime import timedelta
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm

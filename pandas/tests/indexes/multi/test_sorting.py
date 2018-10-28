@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
-import pytest
 from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, RangeIndex
 from pandas.compat import lrange
 from pandas.errors import PerformanceWarning, UnsortedIndexError

@@ -1,16 +1,18 @@
-import pytest
+from datetime import timedelta
 
 import numpy as np
-from datetime import timedelta
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import (Series, Timedelta, Timestamp, TimedeltaIndex,
-                    timedelta_range, to_timedelta)
+from pandas import (
+    Series, Timedelta, TimedeltaIndex, Timestamp, timedelta_range,
+    to_timedelta
+)
 from pandas._libs.tslib import iNaT
+from pandas.core.dtypes.generic import ABCDateOffset
 from pandas.tests.test_base import Ops
 from pandas.tseries.offsets import Day, Hour
-from pandas.core.dtypes.generic import ABCDateOffset
 
 
 class TestTimedeltaIndexOps(Ops):

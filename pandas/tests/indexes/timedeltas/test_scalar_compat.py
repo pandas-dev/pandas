@@ -7,7 +7,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import timedelta_range, Timedelta, TimedeltaIndex, Index, Series
+from pandas import Index, Series, Timedelta, TimedeltaIndex, timedelta_range
 
 
 class TestVectorizedTimedelta(object):

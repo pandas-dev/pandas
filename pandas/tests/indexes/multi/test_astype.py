@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import pandas.util.testing as tm
 import pytest
-from pandas.util.testing import assert_copy
+
+import pandas.util.testing as tm
 from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.util.testing import assert_copy
 
 
 def test_astype(idx):
