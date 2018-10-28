@@ -15,6 +15,7 @@ import pandas.util.testing as tm
 from pandas import (
     DatetimeIndex, Timestamp, bdate_range, compat, date_range, offsets
 )
+from pandas.errors import OutOfBoundsDatetime
 from pandas.tests.series.common import TestData
 from pandas.tseries.offsets import (
     BDay, CDay, DateOffset, MonthEnd, generate_range, prefix_mapping
