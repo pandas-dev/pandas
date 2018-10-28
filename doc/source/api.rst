@@ -515,7 +515,6 @@ Reshaping, sorting
    Series.repeat
    Series.squeeze
    Series.view
-   Series.sortlevel
 
 
 Combining / joining / merging
