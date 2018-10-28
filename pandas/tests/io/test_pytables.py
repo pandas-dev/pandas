@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import is_categorical_dtype
 tables = pytest.importorskip('tables')
 from pandas.io import pytables as pytables  # noqa:E402
 from pandas.io.pytables import (TableIterator,  # noqa:E402
-                                HDFStore, get_store, Term, read_hdf,
+                                HDFStore, Term, read_hdf,
                                 PossibleDataLossError, ClosedFileError)
 
 
@@ -145,32 +145,6 @@ class Base(object):
 @pytest.mark.single
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
-
-    def test_factory_fun(self):
-        path = create_tempfile(self.path)
-        try:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                with get_store(path) as tbl:
-                    raise ValueError('blah')
-        except ValueError:
-            pass
-        finally:
-            safe_remove(path)
-
-        try:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                with get_store(path) as tbl:
-                    tbl['a'] = tm.makeDataFrame()
-
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                with get_store(path) as tbl:
-                    assert len(tbl) == 1
-                    assert type(tbl['a']) == DataFrame
-        finally:
-            safe_remove(self.path)
 
     def test_context(self):
         path = create_tempfile(self.path)

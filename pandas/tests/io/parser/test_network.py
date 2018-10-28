@@ -6,14 +6,14 @@ and hence require a network connection to be read.
 """
 import logging
 
-import pytest
 import numpy as np
+import pytest
 
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
+import pandas.util.testing as tm
 from pandas import DataFrame
-from pandas.io.parsers import read_csv
 from pandas.compat import BytesIO, StringIO
+from pandas.io.parsers import read_csv
 
 
 @pytest.mark.network

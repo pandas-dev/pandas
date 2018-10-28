@@ -1,11 +1,10 @@
 from __future__ import division
 
-import pytest
 import numpy as np
+import pytest
 
-from pandas import Interval, IntervalIndex, Int64Index
 import pandas.util.testing as tm
-
+from pandas import Int64Index, Interval, IntervalIndex
 
 pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
 

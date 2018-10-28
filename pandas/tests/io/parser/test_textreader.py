@@ -5,25 +5,20 @@ Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
 """
 
-import pytest
-
-from pandas.compat import StringIO, BytesIO, map
-from pandas import compat
-
 import os
 import sys
 
-from numpy import nan
 import numpy as np
+import pytest
+from numpy import nan
 
-from pandas import DataFrame
-from pandas.io.parsers import (read_csv, TextFileReader)
-from pandas.util.testing import assert_frame_equal
-
-import pandas.util.testing as tm
-
-from pandas._libs.parsers import TextReader
 import pandas._libs.parsers as parser
+import pandas.util.testing as tm
+from pandas import DataFrame, compat
+from pandas._libs.parsers import TextReader
+from pandas.compat import BytesIO, StringIO, map
+from pandas.io.parsers import TextFileReader, read_csv
+from pandas.util.testing import assert_frame_equal
 
 
 class TestTextReader(object):

@@ -943,6 +943,134 @@ def should_series_dispatch(left, right, op):
     return False
 
 
+def dispatch_to_series(left, right, func, str_rep=None, axis=None):
+    """
+    Evaluate the frame operation func(left, right) by evaluating
+    column-by-column, dispatching to the Series implementation.
+
+    Parameters
+    ----------
+    left : DataFrame
+    right : scalar or DataFrame
+    func : arithmetic or comparison operator
+    str_rep : str or None, default None
+    axis : {None, 0, 1, "index", "columns"}
+
+    Returns
+    -------
+    DataFrame
+    """
+    # Note: we use iloc to access columns for compat with cases
+    #       with non-unique columns.
+    import pandas.core.computation.expressions as expressions
+
+    right = lib.item_from_zerodim(right)
+    if lib.is_scalar(right):
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b)
+                    for i in range(len(a.columns))}
+
+    elif isinstance(right, ABCDataFrame):
+        assert right._indexed_same(left)
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b.iloc[:, i])
+                    for i in range(len(a.columns))}
+
+    elif isinstance(right, ABCSeries) and axis == "columns":
+        # We only get here if called via left._combine_match_columns,
+        # in which case we specifically want to operate row-by-row
+        assert right.index.equals(left.columns)
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b.iloc[i])
+                    for i in range(len(a.columns))}
+
+    elif isinstance(right, ABCSeries):
+        assert right.index.equals(left.index)  # Handle other cases later
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b)
+                    for i in range(len(a.columns))}
+
+    else:
+        # Remaining cases have less-obvious dispatch rules
+        raise NotImplementedError(right)
+
+    new_data = expressions.evaluate(column_op, str_rep, left, right)
+
+    result = left._constructor(new_data, index=left.index, copy=False)
+    # Pin columns instead of passing to constructor for compat with
+    # non-unique columns case
+    result.columns = left.columns
+    return result
+
+
+def dispatch_to_index_op(op, left, right, index_class):
+    """
+    Wrap Series left in the given index_class to delegate the operation op
+    to the index implementation.  DatetimeIndex and TimedeltaIndex perform
+    type checking, timezone handling, overflow checks, etc.
+
+    Parameters
+    ----------
+    op : binary operator (operator.add, operator.sub, ...)
+    left : Series
+    right : object
+    index_class : DatetimeIndex or TimedeltaIndex
+
+    Returns
+    -------
+    result : object, usually DatetimeIndex, TimedeltaIndex, or Series
+    """
+    left_idx = index_class(left)
+
+    # avoid accidentally allowing integer add/sub.  For datetime64[tz] dtypes,
+    # left_idx may inherit a freq from a cached DatetimeIndex.
+    # See discussion in GH#19147.
+    if getattr(left_idx, 'freq', None) is not None:
+        left_idx = left_idx._shallow_copy(freq=None)
+    try:
+        result = op(left_idx, right)
+    except NullFrequencyError:
+        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
+        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
+        raise TypeError('incompatible type for a datetime/timedelta '
+                        'operation [{name}]'.format(name=op.__name__))
+    return result
+
+
+def dispatch_to_extension_op(op, left, right):
+    """
+    Assume that left or right is a Series backed by an ExtensionArray,
+    apply the operator defined by op.
+    """
+
+    # The op calls will raise TypeError if the op is not defined
+    # on the ExtensionArray
+
+    # unbox Series and Index to arrays
+    if isinstance(left, (ABCSeries, ABCIndexClass)):
+        new_left = left._values
+    else:
+        new_left = left
+
+    if isinstance(right, (ABCSeries, ABCIndexClass)):
+        new_right = right._values
+    else:
+        new_right = right
+
+    res_values = op(new_left, new_right)
+    res_name = get_op_result_name(left, right)
+
+    if op.__name__ in ['divmod', 'rdivmod']:
+        return _construct_divmod_result(
+            left, res_values, left.index, res_name)
+
+    return _construct_result(left, res_values, left.index, res_name)
+
+
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
 # methods
@@ -1202,36 +1330,6 @@ def _construct_divmod_result(left, result, index, name, dtype=None):
     )
 
 
-def dispatch_to_extension_op(op, left, right):
-    """
-    Assume that left or right is a Series backed by an ExtensionArray,
-    apply the operator defined by op.
-    """
-
-    # The op calls will raise TypeError if the op is not defined
-    # on the ExtensionArray
-
-    # unbox Series and Index to arrays
-    if isinstance(left, (ABCSeries, ABCIndexClass)):
-        new_left = left._values
-    else:
-        new_left = left
-
-    if isinstance(right, (ABCSeries, ABCIndexClass)):
-        new_right = right._values
-    else:
-        new_right = right
-
-    res_values = op(new_left, new_right)
-    res_name = get_op_result_name(left, right)
-
-    if op.__name__ in ['divmod', 'rdivmod']:
-        return _construct_divmod_result(
-            left, res_values, left.index, res_name)
-
-    return _construct_result(left, res_values, left.index, res_name)
-
-
 def _arith_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
@@ -1327,40 +1425,6 @@ def _arith_method_SERIES(cls, op, special):
                                 index=left.index, name=res_name, dtype=None)
 
     return wrapper
-
-
-def dispatch_to_index_op(op, left, right, index_class):
-    """
-    Wrap Series left in the given index_class to delegate the operation op
-    to the index implementation.  DatetimeIndex and TimedeltaIndex perform
-    type checking, timezone handling, overflow checks, etc.
-
-    Parameters
-    ----------
-    op : binary operator (operator.add, operator.sub, ...)
-    left : Series
-    right : object
-    index_class : DatetimeIndex or TimedeltaIndex
-
-    Returns
-    -------
-    result : object, usually DatetimeIndex, TimedeltaIndex, or Series
-    """
-    left_idx = index_class(left)
-
-    # avoid accidentally allowing integer add/sub.  For datetime64[tz] dtypes,
-    # left_idx may inherit a freq from a cached DatetimeIndex.
-    # See discussion in GH#19147.
-    if getattr(left_idx, 'freq', None) is not None:
-        left_idx = left_idx._shallow_copy(freq=None)
-    try:
-        result = op(left_idx, right)
-    except NullFrequencyError:
-        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
-        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
-        raise TypeError('incompatible type for a datetime/timedelta '
-                        'operation [{name}]'.format(name=op.__name__))
-    return result
 
 
 def _comp_method_OBJECT_ARRAY(op, x, y):
@@ -1660,69 +1724,6 @@ def _flex_method_SERIES(cls, op, special):
 
 # -----------------------------------------------------------------------------
 # DataFrame
-
-def dispatch_to_series(left, right, func, str_rep=None, axis=None):
-    """
-    Evaluate the frame operation func(left, right) by evaluating
-    column-by-column, dispatching to the Series implementation.
-
-    Parameters
-    ----------
-    left : DataFrame
-    right : scalar or DataFrame
-    func : arithmetic or comparison operator
-    str_rep : str or None, default None
-    axis : {None, 0, 1, "index", "columns"}
-
-    Returns
-    -------
-    DataFrame
-    """
-    # Note: we use iloc to access columns for compat with cases
-    #       with non-unique columns.
-    import pandas.core.computation.expressions as expressions
-
-    right = lib.item_from_zerodim(right)
-    if lib.is_scalar(right):
-
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b)
-                    for i in range(len(a.columns))}
-
-    elif isinstance(right, ABCDataFrame):
-        assert right._indexed_same(left)
-
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[:, i])
-                    for i in range(len(a.columns))}
-
-    elif isinstance(right, ABCSeries) and axis == "columns":
-        # We only get here if called via left._combine_match_columns,
-        # in which case we specifically want to operate row-by-row
-        assert right.index.equals(left.columns)
-
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[i])
-                    for i in range(len(a.columns))}
-
-    elif isinstance(right, ABCSeries):
-        assert right.index.equals(left.index)  # Handle other cases later
-
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b)
-                    for i in range(len(a.columns))}
-
-    else:
-        # Remaining cases have less-obvious dispatch rules
-        raise NotImplementedError(right)
-
-    new_data = expressions.evaluate(column_op, str_rep, left, right)
-
-    result = left._constructor(new_data, index=left.index, copy=False)
-    # Pin columns instead of passing to constructor for compat with
-    # non-unique columns case
-    result.columns = left.columns
-    return result
 
 
 def _combine_series_frame(self, other, func, fill_value=None, axis=None,

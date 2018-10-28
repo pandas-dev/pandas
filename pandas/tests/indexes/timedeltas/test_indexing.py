@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
 
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import TimedeltaIndex, timedelta_range, compat, Index, Timedelta
+from pandas import Index, Timedelta, TimedeltaIndex, compat, timedelta_range
 
 
 class TestGetItem(object):

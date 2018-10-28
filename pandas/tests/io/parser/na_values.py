@@ -5,13 +5,12 @@ Tests that NA values are properly handled during
 parsing for all of the parsers defined in parsers.py
 """
 
-import pytest
 import numpy as np
+import pytest
 from numpy import nan
 
 import pandas.io.common as com
 import pandas.util.testing as tm
-
 from pandas import DataFrame, Index, MultiIndex
 from pandas.compat import StringIO, range
 
