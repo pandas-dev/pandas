@@ -4,10 +4,11 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import DataFrame, Index, Series
 from pandas.compat import lrange, range
+
+import pandas as pd
+from pandas import DataFrame, Index, Series
+import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 

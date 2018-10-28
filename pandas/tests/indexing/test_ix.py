@@ -5,11 +5,13 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
+from pandas.compat import lrange
+from pandas.errors import PerformanceWarning
+
+from pandas.core.dtypes.common import is_scalar
+
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Series, option_context
-from pandas.compat import lrange
-from pandas.core.dtypes.common import is_scalar
-from pandas.errors import PerformanceWarning
 from pandas.util import testing as tm
 
 

@@ -6,20 +6,20 @@ from datetime import date, datetime, time, timedelta, tzinfo
 from distutils.version import LooseVersion
 
 import dateutil
+from dateutil.tz import gettz, tzlocal
 import numpy as np
 import pytest
 import pytz
-from dateutil.tz import gettz, tzlocal
 
-import pandas as pd
-import pandas.util._test_decorators as td
-import pandas.util.testing as tm
-from pandas import (
-    DatetimeIndex, Index, Timestamp, bdate_range, date_range, isna,
-    to_datetime
-)
 from pandas._libs.tslibs import conversion, timezones
 from pandas.compat import PY3, lrange, zip
+import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import (
+    DatetimeIndex, Index, Timestamp, bdate_range, date_range, isna,
+    to_datetime)
+import pandas.util.testing as tm
 
 
 class FixedOffset(tzinfo):
