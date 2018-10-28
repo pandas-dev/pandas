@@ -24,6 +24,9 @@ import pydoc
 import inspect
 import importlib
 import doctest
+
+from flake8.api import legacy as flake8
+
 try:
     from io import StringIO
 except ImportError:
@@ -39,7 +42,6 @@ from pandas.compat import signature
 sys.path.insert(1, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
 from numpydoc.docscrape import NumpyDocString
 from pandas.io.formats.printing import pprint_thing
-
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
 DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
@@ -332,6 +334,12 @@ class Docstring(object):
         return errs
 
     @property
+    def pep8_violations(self):
+        style_guide = flake8.get_style_guide(doctests=True)
+        report = style_guide.input_file(filename=self.source_file_name)
+        return report.get_statistics('')
+
+    @property
     def correct_parameters(self):
         return not bool(self.parameter_mismatches)
 
@@ -446,7 +454,7 @@ def validate_one(func_name):
         if doc.summary != doc.summary.lstrip():
             errs.append('Summary contains heading whitespaces.')
         elif (doc.is_function_or_method
-                and doc.summary.split(' ')[0][-1] == 's'):
+              and doc.summary.split(' ')[0][-1] == 's'):
             errs.append('Summary must start with infinitive verb, '
                         'not third person (e.g. use "Generate" instead of '
                         '"Generates")')
@@ -489,6 +497,12 @@ def validate_one(func_name):
         errs.append('Errors in parameters section')
         for param_err in param_errs:
             errs.append('\t{}'.format(param_err))
+
+    pep8_errs = doc.pep8_violations
+    if pep8_errs:
+        errs.append('Errors in doctest sections')
+        for pep8_err in pep8_errs:
+            errs.append('\t{}'.format(pep8_err))
 
     if doc.is_function_or_method:
         if not doc.returns and "return" in doc.method_source:
