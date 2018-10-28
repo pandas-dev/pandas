@@ -40,7 +40,6 @@ from pandas.core.dtypes.missing import array_equivalent
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
 
-
 N = 30
 K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
