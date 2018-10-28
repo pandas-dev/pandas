@@ -1030,6 +1030,7 @@ Datetimelike
 - Bug in :func:`to_datetime` with an :class:`Index` argument that would drop the ``name`` from the result (:issue:`21697`)
 - Bug in :class:`PeriodIndex` where adding or subtracting a :class:`timedelta` or :class:`Tick` object produced incorrect results (:issue:`22988`)
 - Bug in :func:`date_range` when decrementing a start date to a past end date by a negative frequency (:issue:`23270`)
+- Bug in :meth:`Series.min` which would return ``NaN`` instead of ``NaT`` when called on a series of ``NaT`` (:issue:`23282`)
 - Bug in :func:`DataFrame.combine` with datetimelike values raising a TypeError (:issue:`23079`)
 - Bug in :func:`date_range` with frequency of ``Day`` or higher where dates sufficiently far in the future could wrap around to the past instead of raising ``OutOfBoundsDatetime`` (:issue:`14187`)
 - Bug in :class:`PeriodIndex` with attribute ``freq.n`` greater than 1 where adding a :class:`DateOffset` object would return incorrect results (:issue:`23215`)
