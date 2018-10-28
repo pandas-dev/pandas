@@ -1,29 +1,31 @@
 """ test to_datetime """
 
-import pytz
-import pytest
-import locale
 import calendar
-import dateutil
-import numpy as np
-from dateutil.parser import parse
-from dateutil.tz.tz import tzoffset
+import locale
 from datetime import datetime, time
 from distutils.version import LooseVersion
 
+import dateutil
+import numpy as np
+import pytest
+import pytz
+from dateutil.parser import parse
+from dateutil.tz.tz import tzoffset
+
 import pandas as pd
+import pandas.util._test_decorators as td
+from pandas import (
+    DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, compat,
+    date_range, isna, to_datetime
+)
 from pandas._libs import tslib
 from pandas._libs.tslibs import parsing
-from pandas.core.tools import datetimes as tools
-
-from pandas.errors import OutOfBoundsDatetime
-from pandas.compat import lmap, PY3
+from pandas.compat import PY3, lmap
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
+from pandas.core.tools import datetimes as tools
+from pandas.errors import OutOfBoundsDatetime
 from pandas.util import testing as tm
-import pandas.util._test_decorators as td
 from pandas.util.testing import assert_series_equal
-from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
-                    Index, DatetimeIndex, NaT, date_range, compat)
 
 
 class TestTimeConversionFormats(object):

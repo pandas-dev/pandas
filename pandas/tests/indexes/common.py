@@ -1,24 +1,21 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
-from pandas import compat
+import pandas as pd
+import pandas.util.testing as tm
+from pandas import (
+    CategoricalIndex, DatetimeIndex, Float64Index, Index, Int64Index,
+    IntervalIndex, MultiIndex, PeriodIndex, RangeIndex, Series, TimedeltaIndex,
+    UInt64Index, compat, isna
+)
+from pandas._libs.tslib import iNaT
 from pandas.compat import PY3
-
-import numpy as np
-
-from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
-                    RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, IntervalIndex, isna)
-from pandas.core.indexes.base import InvalidIndexError
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas._libs.tslib import iNaT
-
-import pandas.util.testing as tm
-
-import pandas as pd
+from pandas.core.indexes.base import InvalidIndexError
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
 class Base(object):

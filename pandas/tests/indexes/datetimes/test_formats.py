@@ -1,13 +1,13 @@
 from datetime import datetime
-from pandas import DatetimeIndex, Series
 
-import numpy as np
 import dateutil.tz
-import pytz
+import numpy as np
 import pytest
+import pytz
 
-import pandas.util.testing as tm
 import pandas as pd
+import pandas.util.testing as tm
+from pandas import DatetimeIndex, Series
 
 
 def test_to_native_types():

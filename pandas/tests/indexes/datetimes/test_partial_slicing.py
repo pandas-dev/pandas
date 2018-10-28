@@ -1,17 +1,17 @@
 """ test partial slicing on Series/Frame """
 
+import operator as op
+from datetime import datetime
+
+import numpy as np
 import pytest
 
-from datetime import datetime
-import numpy as np
 import pandas as pd
-import operator as op
-
-from pandas import (DatetimeIndex, Series, DataFrame,
-                    date_range, Index, Timedelta, Timestamp)
-from pandas.util import testing as tm
-
+from pandas import (
+    DataFrame, DatetimeIndex, Index, Series, Timedelta, Timestamp, date_range
+)
 from pandas.core.indexing import IndexingError
+from pandas.util import testing as tm
 
 
 class TestSlicing(object):

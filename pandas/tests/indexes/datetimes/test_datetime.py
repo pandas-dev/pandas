@@ -1,17 +1,16 @@
 import sys
-
-import pytest
-
-import numpy as np
 from datetime import date
 
 import dateutil
+import numpy as np
+import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
+from pandas import (
+    DataFrame, DatetimeIndex, Index, Timestamp, date_range, offsets
+)
 from pandas.compat import lrange
-from pandas import (DatetimeIndex, Index, date_range, DataFrame,
-                    Timestamp, offsets)
-
 from pandas.util.testing import assert_almost_equal
 
 randn = np.random.randn

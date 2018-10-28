@@ -1,20 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
 from datetime import datetime
-from pandas.compat import range
 
 import numpy as np
-
-from pandas import (Series, Index, Float64Index,
-                    Int64Index, UInt64Index)
-
-import pandas.util.testing as tm
+import pytest
 
 import pandas as pd
+import pandas.util.testing as tm
+from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
 from pandas._libs.tslibs import Timestamp
-
+from pandas.compat import range
 from pandas.tests.indexes.common import Base
 
 

@@ -1,17 +1,19 @@
-import pytest
 import warnings
-import numpy as np
 from datetime import datetime
+
+import numpy as np
+import pytest
 
 import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
-from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp,
-                    date_range, bdate_range, Index)
-from pandas.tseries.offsets import BMonthEnd, CDay, BDay, Day, Hour
-from pandas.tests.test_base import Ops
+from pandas import (
+    DatetimeIndex, Index, PeriodIndex, Series, Timestamp, bdate_range,
+    date_range
+)
 from pandas.core.dtypes.generic import ABCDateOffset
-
+from pandas.tests.test_base import Ops
+from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
