@@ -1,24 +1,20 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
 from datetime import datetime, timedelta
 
 import numpy as np
+import pytest
+
 import pandas as pd
-
-from pandas import (Series, DataFrame,
-                    date_range, Timestamp, DatetimeIndex, NaT)
-
-from pandas.compat import lrange, range
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal, assert_almost_equal)
-
-import pandas.util.testing as tm
-
 import pandas._libs.index as _index
+import pandas.util.testing as tm
+from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
 from pandas._libs import tslib
+from pandas.compat import lrange, range
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal
+)
 
 
 """

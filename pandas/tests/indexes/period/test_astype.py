@@ -5,7 +5,7 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import NaT, Period, PeriodIndex, Int64Index, Index, period_range
+from pandas import Index, Int64Index, NaT, Period, PeriodIndex, period_range
 
 
 class TestPeriodIndexAsType(object):

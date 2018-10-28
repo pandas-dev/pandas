@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import pytest
 
-from pandas.api.types import is_integer, is_float, is_float_dtype, is_scalar
-from pandas.core.dtypes.generic import ABCIndexClass
-
-from pandas.core.arrays import (
-    integer_array, IntegerArray)
+import pandas as pd
+import pandas.util.testing as tm
+from pandas.api.types import is_float, is_float_dtype, is_integer, is_scalar
+from pandas.core.arrays import IntegerArray, integer_array
 from pandas.core.arrays.integer import (
-    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,
-    UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype)
-
+    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype, UInt16Dtype,
+    UInt32Dtype, UInt64Dtype
+)
+from pandas.core.dtypes.generic import ABCIndexClass
 from pandas.tests.extension.base import BaseOpsUtil
 
 
