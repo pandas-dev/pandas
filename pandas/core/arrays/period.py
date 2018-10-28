@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas import compat
 from pandas.compat.numpy import function as nv
-from pandas._libs import lib
 from pandas._libs.tslib import NaT, iNaT
 from pandas._libs.tslibs.period import (
     Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX,
@@ -15,7 +14,7 @@ from pandas._libs.tslibs.period import (
 from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.fields import isleapyear_arr
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly, Appender
 from pandas.util._validators import validate_fillna_kwargs
 import pandas.core.algorithms as algos
 from pandas.core.dtypes.common import (
@@ -23,7 +22,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     is_datetime64_dtype,
     is_categorical_dtype,
-    is_timedelta64_dtype,
     is_list_like,
     is_array_like,
     is_object_dtype,
@@ -33,8 +31,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     _TD_DTYPE,
 )
-
-
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCPeriodIndex
@@ -45,7 +41,7 @@ from pandas.core.missing import pad_1d, backfill_1d
 import pandas.core.common as com
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import Tick, DateOffset
+from pandas.tseries.offsets import Tick
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays import datetimelike as dtl
@@ -497,7 +493,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         freq : pandas.DateOffset, pandas.Timedelta, or string
             Frequency increment to shift by.
         """
-        values = self._data + n * self.freq.n
+        if freq is not None:
+            raise TypeError("`freq` argument is not supported for "
+                            "{cls}._time_shift"
+                            .format(cls=type(self).__name__))
+        values = self.asi8 + n * self.freq.n
         if self.hasnans:
             values[self._isnan] = iNaT
         return type(self)(values, freq=self.freq)
@@ -606,52 +606,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
         return DatetimeArrayMixin(new_data, freq='infer')
 
-    def _maybe_convert_timedelta(self, other):
-        """
-        Convert timedelta-like input to an integer multiple of self.freq
-
-        Parameters
-        ----------
-        other : timedelta, np.timedelta64, DateOffset, int, np.ndarray
-
-        Returns
-        -------
-        converted : int, np.ndarray[int64]
-
-        Raises
-        ------
-        IncompatibleFrequency : if the input cannot be written as a multiple
-            of self.freq.  Note IncompatibleFrequency subclasses ValueError.
-        """
-        if isinstance(
-                other, (timedelta, np.timedelta64, Tick, np.ndarray)):
-            offset = frequencies.to_offset(self.freq.rule_code)
-            if isinstance(offset, Tick):
-                # _check_timedeltalike_freq_compat will raise if incompatible
-                delta = self._check_timedeltalike_freq_compat(other)
-                return delta
-        elif isinstance(other, DateOffset):
-            freqstr = other.rule_code
-            base = frequencies.get_base_alias(freqstr)
-            if base == self.freq.rule_code:
-                return other.n
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
-        elif lib.is_integer(other):
-            # integer is passed to .shift via
-            # _add_datetimelike_methods basically
-            # but ufunc may pass integer to _add_delta
-            return other
-
-        # raise when input doesn't have freq
-        msg = "Input has different freq from {cls}(freq={freqstr})"
-        raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
-                                               freqstr=self.freqstr))
-
     # ------------------------------------------------------------------
     # Formatting
-    def _format_native_types(self, na_rep=u'NaT', date_format=None,
-                             **kwargs):
+    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         """ actually format my specific types """
         # TODO(DatetimeArray): remove
         values = self.astype(object)
@@ -670,58 +627,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         else:
             values = np.array([formatter(dt) for dt in values])
         return values
-
-    def _check_timedeltalike_freq_compat(self, other):
-        """
-        Arithmetic operations with timedelta-like scalars or array `other`
-        are only valid if `other` is an integer multiple of `self.freq`.
-        If the operation is valid, find that integer multiple.  Otherwise,
-        raise because the operation is invalid.
-
-        Parameters
-        ----------
-        other : timedelta, np.timedelta64, Tick,
-                ndarray[timedelta64], TimedeltaArray, TimedeltaIndex
-
-        Returns
-        -------
-        multiple : int or ndarray[int64]
-
-        Raises
-        ------
-        IncompatibleFrequency
-        """
-        assert isinstance(self.freq, Tick)  # checked by calling function
-        own_offset = frequencies.to_offset(self.freq.rule_code)
-        base_nanos = delta_to_nanoseconds(own_offset)
-
-        if isinstance(other, (timedelta, np.timedelta64, Tick)):
-            nanos = delta_to_nanoseconds(other)
-
-        elif isinstance(other, np.ndarray):
-            # numpy timedelta64 array; all entries must be compatible
-            assert other.dtype.kind == 'm'
-            if other.dtype != _TD_DTYPE:
-                # i.e. non-nano unit
-                # TODO: disallow unit-less timedelta64
-                other = other.astype(_TD_DTYPE)
-            nanos = other.view('i8')
-        else:
-            # TimedeltaArray/Index
-            nanos = other.asi8
-
-        if np.all(nanos % base_nanos == 0):
-            # nanos being added is an integer multiple of the
-            #  base-frequency to self.freq
-            delta = nanos // base_nanos
-            # delta is the integer (or integer-array) number of periods
-            # by which will be added to self.
-            return delta
-
-        raise IncompatibleFrequency("Input has different freq from "
-                                    "{cls}(freq={freqstr})"
-                                    .format(cls=type(self).__name__,
-                                            freqstr=self.freqstr))
 
     def repeat(self, repeats, *args, **kwargs):
         """
@@ -810,6 +715,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
         return new_data
 
+    @Appender(dtl.DatetimeLikeArrayMixin._addsub_int_array.__doc__)
     def _addsub_int_array(
             self,
             other,  # type: Union[Index, ExtensionArray, np.ndarray[int]]
@@ -817,7 +723,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     ):
         # type: (...) -> PeriodArray
         assert op in [operator.add, operator.sub]
-        # easy case for PeriodIndex
         if op is operator.sub:
             other = -other
         res_values = algos.checked_add_with_arr(self.asi8, other,
@@ -832,30 +737,53 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         if base != self.freq.rule_code:
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
-        return self._time_shift(other.n)
 
-    def _add_delta_td(self, other):
+        # Note: when calling parent class's _add_timedeltalike_scalar,
+        #  it will call delta_to_nanoseconds(delta).  Because delta here
+        #  is an integer, delta_to_nanoseconds will return it unchanged.
+        result = super(PeriodArray, self)._add_timedeltalike_scalar(other.n)
+        return type(self)(result, freq=self.freq)
+
+    def _add_timedeltalike_scalar(self, other):
+        """
+        Parameters
+        ----------
+        other : timedelta, Tick, np.timedelta64
+
+        Returns
+        -------
+        result : ndarray[int64]
+        """
         assert isinstance(self.freq, Tick)  # checked by calling function
         assert isinstance(other, (timedelta, np.timedelta64, Tick))
 
         delta = self._check_timedeltalike_freq_compat(other)
 
-        # Note: when calling parent class's _add_delta_td, it will call
-        #  delta_to_nanoseconds(delta).  Because delta here is an integer,
-        #  delta_to_nanoseconds will return it unchanged.
-        ordinals = super(PeriodArray, self)._add_delta_td(delta)
-        return type(self)(ordinals, self.freq)
+        # Note: when calling parent class's _add_timedeltalike_scalar,
+        #  it will call delta_to_nanoseconds(delta).  Because delta here
+        #  is an integer, delta_to_nanoseconds will return it unchanged.
+        ordinals = super(PeriodArray, self)._add_timedeltalike_scalar(delta)
+        return ordinals
 
     def _add_delta_tdi(self, other):
+        """
+        Parameters
+        ----------
+        other : TimedeltaArray or ndarray[timedelta64]
+
+        Returns
+        -------
+        result : ndarray[int64]
+        """
         assert isinstance(self.freq, Tick)  # checked by calling function
 
         delta = self._check_timedeltalike_freq_compat(other)
-        return self._addsub_int_array(delta, operator.add)
+        return self._addsub_int_array(delta, operator.add).asi8
 
     def _add_delta(self, other):
         """
         Add a timedelta-like, Tick, or TimedeltaIndex-like object
-        to self.
+        to self, yielding a new PeriodArray
 
         Parameters
         ----------
@@ -864,7 +792,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
         Returns
         -------
-        result : same type as self
+        result : PeriodArray
         """
         if not isinstance(self.freq, Tick):
             # We cannot add timedelta-like to non-tick PeriodArray
@@ -873,15 +801,60 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                                         .format(cls=type(self).__name__,
                                                 freqstr=self.freqstr))
 
-        # TODO: standardize across datetimelike subclasses whether to return
-        #  i8 view or _shallow_copy
-        if isinstance(other, (Tick, timedelta, np.timedelta64)):
-            return self._add_delta_td(other)
-        elif is_timedelta64_dtype(other):
-            # ndarray[timedelta64] or TimedeltaArray/index
-            return self._add_delta_tdi(other)
-        else:  # pragma: no cover
-            raise TypeError(type(other).__name__)
+        new_ordinals = super(PeriodArray, self)._add_delta(other)
+        return type(self)(new_ordinals, freq=self.freq)
+
+    def _check_timedeltalike_freq_compat(self, other):
+        """
+        Arithmetic operations with timedelta-like scalars or array `other`
+        are only valid if `other` is an integer multiple of `self.freq`.
+        If the operation is valid, find that integer multiple.  Otherwise,
+        raise because the operation is invalid.
+
+        Parameters
+        ----------
+        other : timedelta, np.timedelta64, Tick,
+                ndarray[timedelta64], TimedeltaArray, TimedeltaIndex
+
+        Returns
+        -------
+        multiple : int or ndarray[int64]
+
+        Raises
+        ------
+        IncompatibleFrequency
+        """
+        assert isinstance(self.freq, Tick)  # checked by calling function
+        own_offset = frequencies.to_offset(self.freq.rule_code)
+        base_nanos = delta_to_nanoseconds(own_offset)
+
+        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            nanos = delta_to_nanoseconds(other)
+
+        elif isinstance(other, np.ndarray):
+            # numpy timedelta64 array; all entries must be compatible
+            assert other.dtype.kind == 'm'
+            if other.dtype != _TD_DTYPE:
+                # i.e. non-nano unit
+                # TODO: disallow unit-less timedelta64
+                other = other.astype(_TD_DTYPE)
+            nanos = other.view('i8')
+        else:
+            # TimedeltaArray/Index
+            nanos = other.asi8
+
+        if np.all(nanos % base_nanos == 0):
+            # nanos being added is an integer multiple of the
+            #  base-frequency to self.freq
+            delta = nanos // base_nanos
+            # delta is the integer (or integer-array) number of periods
+            # by which will be added to self.
+            return delta
+
+        raise IncompatibleFrequency("Input has different freq from "
+                                    "{cls}(freq={freqstr})"
+                                    .format(cls=type(self).__name__,
+                                            freqstr=self.freqstr))
 
 
 PeriodArray._add_comparison_ops()

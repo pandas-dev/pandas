@@ -178,11 +178,13 @@ class SelectionMixin(object):
     _selection = None
     _internal_names = ['_cache', '__setstate__']
     _internal_names_set = set(_internal_names)
+
     _builtin_table = OrderedDict((
         (builtins.sum, np.sum),
         (builtins.max, np.max),
         (builtins.min, np.min),
     ))
+
     _cython_table = OrderedDict((
         (builtins.sum, 'sum'),
         (builtins.max, 'max'),
@@ -190,15 +192,25 @@ class SelectionMixin(object):
         (np.all, 'all'),
         (np.any, 'any'),
         (np.sum, 'sum'),
+        (np.nansum, 'sum'),
         (np.mean, 'mean'),
+        (np.nanmean, 'mean'),
         (np.prod, 'prod'),
+        (np.nanprod, 'prod'),
         (np.std, 'std'),
+        (np.nanstd, 'std'),
         (np.var, 'var'),
+        (np.nanvar, 'var'),
         (np.median, 'median'),
+        (np.nanmedian, 'median'),
         (np.max, 'max'),
+        (np.nanmax, 'max'),
         (np.min, 'min'),
+        (np.nanmin, 'min'),
         (np.cumprod, 'cumprod'),
+        (np.nancumprod, 'cumprod'),
         (np.cumsum, 'cumsum'),
+        (np.nancumsum, 'cumsum'),
     ))
 
     @property

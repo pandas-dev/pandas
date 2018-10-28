@@ -1,20 +1,17 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import numpy as np
 import pytest
 
 import pandas as pd
-import numpy as np
-
-from pandas import (Series, date_range, isna, Index, Timestamp)
+import pandas.util.testing as tm
+from pandas import Index, Series, Timestamp, date_range, isna
 from pandas.compat import lrange, range
 from pandas.core.dtypes.common import is_integer
-
 from pandas.core.indexing import IndexingError
 from pandas.tseries.offsets import BDay
-
-from pandas.util.testing import (assert_series_equal)
-import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
 
 
 def test_getitem_boolean(test_data):
