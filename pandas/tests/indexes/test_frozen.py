@@ -1,8 +1,9 @@
 import numpy as np
-from pandas.util import testing as tm
-from pandas.tests.test_base import CheckImmutable, CheckStringMixin
-from pandas.core.indexes.frozen import FrozenList, FrozenNDArray
+
 from pandas.compat import u
+from pandas.core.indexes.frozen import FrozenList, FrozenNDArray
+from pandas.tests.test_base import CheckImmutable, CheckStringMixin
+from pandas.util import testing as tm
 
 
 class TestFrozenList(CheckImmutable, CheckStringMixin):

@@ -1,12 +1,13 @@
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas as pd
-import pandas.util.testing as tm
 import pandas.core.indexes.period as period
-from pandas.compat import lrange, PY3, text_type, lmap
-from pandas import (Period, PeriodIndex, period_range, offsets, date_range,
-                    Series, Index)
+import pandas.util.testing as tm
+from pandas import (
+    Index, Period, PeriodIndex, Series, date_range, offsets, period_range
+)
+from pandas.compat import PY3, lmap, lrange, text_type
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 
