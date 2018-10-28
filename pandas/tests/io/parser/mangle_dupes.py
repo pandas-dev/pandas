@@ -6,10 +6,9 @@ CSV engine. In general, the expected result is that they are either thoroughly
 de-duplicated (if mangling requested) or ignored otherwise.
 """
 
-from pandas.compat import StringIO
-from pandas import DataFrame
-
 import pandas.util.testing as tm
+from pandas import DataFrame
+from pandas.compat import StringIO
 
 
 class DupeColumnTests(object):

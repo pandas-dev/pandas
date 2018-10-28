@@ -5,11 +5,10 @@ Tests the usecols functionality during parsing
 for all of the parsers defined in parsers.py
 """
 
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas.util.testing as tm
-
 from pandas import DataFrame, Index
 from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO

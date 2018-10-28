@@ -11,14 +11,14 @@ import os
 import sys
 import tarfile
 
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
+import pandas.util.testing as tm
 from pandas import DataFrame
-from pandas.compat import StringIO, range, lrange
+from pandas.compat import StringIO, lrange, range
 
 
 class CParserTests(object):

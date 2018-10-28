@@ -6,12 +6,13 @@ parsing files for each parser defined in parsers.py
 """
 
 from __future__ import division
+
 from multiprocessing.pool import ThreadPool
 
 import numpy as np
+
 import pandas as pd
 import pandas.util.testing as tm
-
 from pandas import DataFrame
 from pandas.compat import BytesIO, range
 

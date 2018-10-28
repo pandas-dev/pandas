@@ -1,31 +1,32 @@
 # -*- coding: utf-8 -*-
 
 import os
-import pytest
-import pandas.util.testing as tm
 
-from pandas import read_csv, read_table, DataFrame
+import pytest
+
 import pandas.core.common as com
+import pandas.util.testing as tm
+from pandas import DataFrame, read_csv, read_table
 from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO
 
-from .common import ParserTests
-from .header import HeaderTests
-from .comment import CommentTests
-from .dialect import DialectTests
-from .quoting import QuotingTests
-from .usecols import UsecolsTests
-from .skiprows import SkipRowsTests
-from .index_col import IndexColTests
-from .na_values import NAvaluesTests
-from .converters import ConverterTests
 from .c_parser_only import CParserTests
-from .parse_dates import ParseDatesTests
+from .comment import CommentTests
+from .common import ParserTests
 from .compression import CompressionTests
+from .converters import ConverterTests
+from .dialect import DialectTests
+from .dtypes import DtypeTests
+from .header import HeaderTests
+from .index_col import IndexColTests
 from .mangle_dupes import DupeColumnTests
 from .multithread import MultithreadTests
+from .na_values import NAvaluesTests
+from .parse_dates import ParseDatesTests
 from .python_parser_only import PythonParserTests
-from .dtypes import DtypeTests
+from .quoting import QuotingTests
+from .skiprows import SkipRowsTests
+from .usecols import UsecolsTests
 
 
 class BaseParser(CommentTests, CompressionTests,

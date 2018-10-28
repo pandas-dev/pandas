@@ -7,11 +7,10 @@ for all of the parsers defined in parsers.py
 
 import csv
 
+import pandas.util.testing as tm
 from pandas import DataFrame
 from pandas.compat import StringIO
 from pandas.errors import ParserWarning
-
-import pandas.util.testing as tm
 
 
 class DialectTests(object):
