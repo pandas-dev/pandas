@@ -1088,7 +1088,7 @@ unique_funcs = [('_unique_no_inverse', False, False),
             Number of existing entries in uniques
         na_sentinel : Py_ssize_t, default -1
             Sentinel value used for all NA-values in inverse
-        na_value : object
+        na_value : object, default None
             Value to identify as missing. If na_value is None, then None _plus_
             any value "val" satisfying val != val is considered missing.
             If na_value is not None, then _additionally_, any value "val"
