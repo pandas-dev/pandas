@@ -738,13 +738,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
 
-        # Note: when calling parent class's _add_delta_td, it will call
-        #  delta_to_nanoseconds(delta).  Because delta here is an integer,
-        #  delta_to_nanoseconds will return it unchanged.
-        result = super(PeriodArray, self)._add_delta_td(other.n)
+        # Note: when calling parent class's _add_timedeltalike_scalar,
+        #  it will call delta_to_nanoseconds(delta).  Because delta here
+        #  is an integer, delta_to_nanoseconds will return it unchanged.
+        result = super(PeriodArray, self)._add_timedeltalike_scalar(other.n)
         return type(self)(result, freq=self.freq)
 
-    def _add_delta_td(self, other):
+    def _add_timedeltalike_scalar(self, other):
         """
         Parameters
         ----------
@@ -759,10 +759,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
         delta = self._check_timedeltalike_freq_compat(other)
 
-        # Note: when calling parent class's _add_delta_td, it will call
-        #  delta_to_nanoseconds(delta).  Because delta here is an integer,
-        #  delta_to_nanoseconds will return it unchanged.
-        ordinals = super(PeriodArray, self)._add_delta_td(delta)
+        # Note: when calling parent class's _add_timedeltalike_scalar,
+        #  it will call delta_to_nanoseconds(delta).  Because delta here
+        #  is an integer, delta_to_nanoseconds will return it unchanged.
+        ordinals = super(PeriodArray, self)._add_timedeltalike_scalar(delta)
         return ordinals
 
     def _add_delta_tdi(self, other):

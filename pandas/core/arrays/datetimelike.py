@@ -226,6 +226,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         Parameters
         ----------
         result : a ndarray
+        fill_value : object, default iNaT
         convert : string/dtype or None
 
         Returns
@@ -369,14 +370,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         method (__add__ or __sub__), if necessary (i.e. for Indexes).
         """
         if isinstance(other, (Tick, timedelta, np.timedelta64)):
-            new_values = self._add_delta_td(other)
+            new_values = self._add_timedeltalike_scalar(other)
         elif is_timedelta64_dtype(other):
             # ndarray[timedelta64] or TimedeltaArray/index
             new_values = self._add_delta_tdi(other)
 
         return new_values
 
-    def _add_delta_td(self, other):
+    def _add_timedeltalike_scalar(self, other):
         """
         Add a delta of a timedeltalike
         return the i8 result view
