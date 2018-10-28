@@ -1099,9 +1099,10 @@ class TestToIterable(object):
         'method',
         [
             lambda x: x.tolist(),
+            lambda x: x.to_list(),
             lambda x: list(x),
             lambda x: list(x.__iter__()),
-        ], ids=['tolist', 'list', 'iter'])
+        ], ids=['tolist', 'to_list', 'list', 'iter'])
     @pytest.mark.parametrize('typ', [Series, Index])
     def test_iterable(self, typ, method, dtype, rdtype):
         # gh-10904

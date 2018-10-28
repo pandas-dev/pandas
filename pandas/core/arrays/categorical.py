@@ -309,7 +309,7 @@ class Categorical(ExtensionArray, PandasObject):
     # ops, which raise
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
-    _deprecations = frozenset(['labels'])
+    _deprecations = frozenset(['labels', 'tolist'])
     _typ = 'categorical'
 
     def __init__(self, values, categories=None, ordered=None, dtype=None,

@@ -41,6 +41,7 @@ import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name, make_invalid_op
 import pandas.core.sorting as sorting
 from pandas.core.strings import StringMethods
+from pandas.core.accessor import DirNamesMixin
 
 from pandas.io.formats.printing import (
     default_pprint, format_object_attrs, format_object_summary, pprint_thing)
@@ -202,6 +203,8 @@ class Index(IndexOpsMixin, PandasObject):
     >>> pd.Index(list('abc'))
     Index(['a', 'b', 'c'], dtype='object')
     """
+    _deprecations = DirNamesMixin._deprecations | frozenset(['tolist'])
+
     # To hand over control to subclasses
     _join_precedence = 1
 
