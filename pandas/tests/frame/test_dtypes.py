@@ -830,9 +830,6 @@ class TestDataFrameDataTypes(TestData):
         with pytest.raises(ValueError):
             df.astype(np.float64, errors=True)
 
-        with tm.assert_produces_warning(FutureWarning):
-            df.astype(np.int8, raise_on_error=False)
-
         df.astype(np.int8, errors='ignore')
 
     @pytest.mark.parametrize('input_vals', [
