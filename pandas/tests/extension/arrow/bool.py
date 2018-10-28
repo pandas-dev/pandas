@@ -9,9 +9,9 @@ import copy
 import itertools
 
 import numpy as np
+import pyarrow as pa
 
 import pandas as pd
-import pyarrow as pa
 from pandas.api.extensions import (
     ExtensionArray, ExtensionDtype, register_extension_dtype, take
 )
