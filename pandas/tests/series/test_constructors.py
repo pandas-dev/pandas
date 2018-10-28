@@ -1,30 +1,29 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
-from datetime import datetime, timedelta
 from collections import OrderedDict
+from datetime import datetime, timedelta
 
-from numpy import nan
 import numpy as np
 import numpy.ma as ma
-import pandas as pd
+import pytest
+from numpy import nan
 
-from pandas.api.types import CategoricalDtype
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_datetime64tz_dtype)
-from pandas import (Index, Series, isna, date_range, Timestamp,
-                    NaT, period_range, timedelta_range, MultiIndex,
-                    IntervalIndex, Categorical, DataFrame)
-from pandas.core.arrays import period_array
+import pandas as pd
+import pandas.util.testing as tm
+from pandas import (
+    Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
+    Timestamp, date_range, isna, period_range, timedelta_range
+)
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
-
-from pandas.compat import lrange, range, zip, long, PY36
+from pandas.api.types import CategoricalDtype
+from pandas.compat import PY36, long, lrange, range, zip
+from pandas.core.arrays import period_array
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_datetime64tz_dtype
+)
 from pandas.util.testing import assert_series_equal
-import pandas.util.testing as tm
 
 
 class TestSeriesConstructors():

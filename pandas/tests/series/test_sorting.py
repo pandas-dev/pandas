@@ -1,14 +1,13 @@
 # coding=utf-8
 
-import pytest
-
-import numpy as np
 import random
 
-from pandas import DataFrame, Series, MultiIndex, IntervalIndex, Categorical
+import numpy as np
+import pytest
 
-from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
+from pandas import Categorical, DataFrame, IntervalIndex, MultiIndex, Series
+from pandas.util.testing import assert_almost_equal, assert_series_equal
 
 from .common import TestData
 

@@ -4,16 +4,16 @@ Tests for Series timezone-related methods
 """
 from datetime import datetime
 
+import numpy as np
 import pytest
 import pytz
-import numpy as np
 from dateutil.tz import tzoffset
 
 import pandas.util.testing as tm
-from pandas._libs.tslibs import timezones, conversion
+from pandas import DatetimeIndex, Index, NaT, Series, Timestamp
+from pandas._libs.tslibs import conversion, timezones
 from pandas.compat import lrange
 from pandas.core.indexes.datetimes import date_range
-from pandas import Series, Timestamp, DatetimeIndex, Index, NaT
 
 
 class TestSeriesTimezones(object):
