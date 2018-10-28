@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+
 import pandas as pd
 
 from .base import BaseExtensionTests

@@ -1,12 +1,13 @@
 import numpy as np
 import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.tests.extension import base
 
 pytest.importorskip('pyarrow', minversion="0.10.0")
 
-from .bool import ArrowBoolDtype, ArrowBoolArray
+from .bool import ArrowBoolArray, ArrowBoolDtype
 
 
 @pytest.fixture
@@ -17,7 +18,7 @@ def dtype():
 @pytest.fixture
 def data():
     return ArrowBoolArray.from_scalars(np.random.randint(0, 2, size=100,
-                                       dtype=bool))
+                                                         dtype=bool))
 
 
 @pytest.fixture

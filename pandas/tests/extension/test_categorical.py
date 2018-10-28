@@ -15,14 +15,14 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 """
 import string
 
-import pytest
-import pandas as pd
 import numpy as np
+import pytest
 
-from pandas.api.types import CategoricalDtype
-from pandas import Categorical
-from pandas.tests.extension import base
+import pandas as pd
 import pandas.util.testing as tm
+from pandas import Categorical
+from pandas.api.types import CategoricalDtype
+from pandas.tests.extension import base
 
 
 def make_data():
