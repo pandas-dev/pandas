@@ -3,22 +3,20 @@
 
 """ test get/set & misc """
 
-import pytest
-
 from datetime import timedelta
 
 import numpy as np
+import pytest
+
 import pandas as pd
-
-from pandas.core.dtypes.common import is_scalar
-from pandas import (Series, DataFrame, MultiIndex,
-                    Timestamp, Timedelta, Categorical)
-from pandas.tseries.offsets import BDay
-
-from pandas.compat import lrange, range
-
-from pandas.util.testing import (assert_series_equal)
 import pandas.util.testing as tm
+from pandas import (
+    Categorical, DataFrame, MultiIndex, Series, Timedelta, Timestamp
+)
+from pandas.compat import lrange, range
+from pandas.core.dtypes.common import is_scalar
+from pandas.tseries.offsets import BDay
+from pandas.util.testing import assert_series_equal
 
 
 def test_basic_indexing():

@@ -1,23 +1,20 @@
 # -*- coding: utf-8 -*-
-from pandas import compat, Timestamp
-
-import pytest
-
 from distutils.version import LooseVersion
-from numpy import nan
-import numpy as np
-
-from pandas import Series, date_range, NaT
-from pandas.api.types import CategoricalDtype
-
-from pandas.compat import product
-from pandas.util.testing import assert_series_equal
-import pandas.util.testing as tm
-from pandas.tests.series.common import TestData
-from pandas._libs.tslib import iNaT
-from pandas._libs.algos import Infinity, NegInfinity
 from itertools import chain
+
+import numpy as np
+import pytest
+from numpy import nan
+
 import pandas.util._test_decorators as td
+import pandas.util.testing as tm
+from pandas import NaT, Series, Timestamp, compat, date_range
+from pandas._libs.algos import Infinity, NegInfinity
+from pandas._libs.tslib import iNaT
+from pandas.api.types import CategoricalDtype
+from pandas.compat import product
+from pandas.tests.series.common import TestData
+from pandas.util.testing import assert_series_equal
 
 
 class TestSeriesRank(TestData):

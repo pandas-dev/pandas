@@ -1,7 +1,6 @@
 import pytest
 
 import pandas.util.testing as tm
-
 from pandas import Series
 
 

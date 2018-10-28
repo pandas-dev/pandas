@@ -1,15 +1,14 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas as pd
-
-from pandas import Index, Series
-from pandas.core.indexes.datetimes import Timestamp
-from pandas.core.dtypes.common import is_integer
 import pandas.util.testing as tm
+from pandas import Index, Series
+from pandas.core.dtypes.common import is_integer
+from pandas.core.indexes.datetimes import Timestamp
 
 from .common import TestData
 

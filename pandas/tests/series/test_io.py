@@ -1,20 +1,20 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-from datetime import datetime
 import collections
-import pytest
+from datetime import datetime
 
 import numpy as np
+import pytest
+
 import pandas as pd
-
-from pandas import Series, DataFrame
-
+import pandas.util.testing as tm
+from pandas import DataFrame, Series
 from pandas.compat import StringIO, u
 from pandas.io.common import _get_handle
-from pandas.util.testing import (assert_series_equal, assert_almost_equal,
-                                 assert_frame_equal, ensure_clean)
-import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal, ensure_clean
+)
 
 
 class TestSeriesToCSV():
