@@ -45,14 +45,6 @@ from pandas.tseries.api import *
 from pandas.core.computation.api import *
 from pandas.core.reshape.api import *
 
-# deprecate tools.plotting, plot_params and scatter_matrix on the top namespace
-import pandas.tools.plotting
-plot_params = pandas.plotting._style._Options(deprecated=True)
-# do not import deprecate to top namespace
-scatter_matrix = pandas.util._decorators.deprecate(
-    'pandas.scatter_matrix', pandas.plotting.scatter_matrix, '0.20.0',
-    'pandas.plotting.scatter_matrix')
-
 from pandas.util._print_versions import show_versions
 from pandas.io.api import *
 from pandas.util._tester import test
