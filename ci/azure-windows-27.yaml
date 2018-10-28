@@ -13,7 +13,7 @@ dependencies:
   - matplotlib=2.0.1
   - numexpr
   - numpy=1.12*
-  - openpyxl=2.5.5
+  - openpyxl
   - pytables
   - python=2.7.*
   - pytz
