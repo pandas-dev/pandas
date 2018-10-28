@@ -667,7 +667,7 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
     Raises
     ------
     ValueError
-        The dtype was a datetime /timedelta dtype, but it had no frequency.
+        The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
 
     # dispatch on extension dtype if needed
@@ -749,7 +749,7 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
             return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
 
     if dtype.name in ("datetime64", "timedelta64"):
-        msg = ("The '{dtype}' dtype has no frequency. "
+        msg = ("The '{dtype}' dtype has no unit. "
                "Please pass in '{dtype}[ns]' instead.")
         raise ValueError(msg.format(dtype=dtype.name))
 
@@ -1021,7 +1021,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
         if is_datetime64 or is_datetime64tz or is_timedelta64:
 
             # Force the dtype if needed.
-            msg = ("The '{dtype}' dtype has no frequency. "
+            msg = ("The '{dtype}' dtype has no unit. "
                    "Please pass in '{dtype}[ns]' instead.")
 
             if is_datetime64 and not is_dtype_equal(dtype, _NS_DTYPE):

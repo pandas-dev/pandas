@@ -1198,7 +1198,7 @@ class TestSeriesConstructors():
     ])
     def test_constructor_generic_timestamp_no_frequency(self, dtype):
         # see gh-15524, gh-15987
-        msg = "dtype has no frequency. Please pass in"
+        msg = "dtype has no unit. Please pass in"
 
         with tm.assert_raises_regex(ValueError, msg):
             Series([], dtype=dtype)
