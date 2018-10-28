@@ -1177,20 +1177,17 @@ class TestStyler(object):
         def set_caption_from_template(styler, a, b):
             return styler.set_caption(
                 'Dataframe with a = {a} and b = {b}'.format(a=a, b=b))
+
         styler = self.df.style.pipe(set_caption_from_template, 'A', b='B')
         assert 'Dataframe with a = A and b = B' in styler.render()
 
-        def f(s, *args, **kwargs):
-            return s, args, kwargs
+        # Test with an argument that is a (callable, keyword_name) pair.
+        def f(a, b, styler):
+            return (a, b, styler)
 
-        result = self.df.style.pipe(f, 0, a=1)
-        assert result[1] == (0,)
-        assert result[2] == dict(a=1)
-
-        def g(**kwargs):
-            assert 'styler' in kwargs
-            return kwargs['styler'].data
-        assert self.df.style.pipe((g, 'styler')) is self.df
+        styler = self.df.style
+        result = styler.pipe((f, 'styler'), a=1, b=2)
+        assert result == (1, 2, styler)
 
 
 @td.skip_if_no_mpl
