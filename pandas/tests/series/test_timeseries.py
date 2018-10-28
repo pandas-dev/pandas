@@ -456,16 +456,6 @@ class TestTimeSeries(TestData):
         assert ser.index.is_all_dates
         assert isinstance(ser.index, DatetimeIndex)
 
-    def test_empty_series_ops(self):
-        # see issue #13844
-        a = Series(dtype='M8[ns]')
-        b = Series(dtype='m8[ns]')
-        assert_series_equal(a, a + b)
-        assert_series_equal(a, a - b)
-        assert_series_equal(a, b + a)
-        with pytest.raises(TypeError):
-            b - a
-
     def test_contiguous_boolean_preserve_freq(self):
         rng = date_range('1/1/2000', '3/1/2000', freq='B')
 
