@@ -15,7 +15,7 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.compat as compat
+import pandas.compat as compat
 from pandas.compat import iterkeys
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.frame import DataFrame, Series
