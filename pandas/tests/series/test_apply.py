@@ -119,11 +119,11 @@ class TestSeriesApply():
         exp = pd.Series(['Timedelta_1', 'Timedelta_2'])
         tm.assert_series_equal(res, exp)
 
-        # period (object dtype, not boxed)
+        # period
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
         s = pd.Series(vals)
-        assert s.dtype == 'object'
+        assert s.dtype == 'Period[M]'
         res = s.apply(lambda x: '{0}_{1}'.format(x.__class__.__name__,
                                                  x.freqstr))
         exp = pd.Series(['Period_M', 'Period_M'])
@@ -599,11 +599,11 @@ class TestSeriesMap():
         exp = pd.Series(['Timedelta_1', 'Timedelta_2'])
         tm.assert_series_equal(res, exp)
 
-        # period (object dtype, not boxed)
+        # period
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
         s = pd.Series(vals)
-        assert s.dtype == 'object'
+        assert s.dtype == 'Period[M]'
         res = s.map(lambda x: '{0}_{1}'.format(x.__class__.__name__,
                                                x.freqstr))
         exp = pd.Series(['Period_M', 'Period_M'])

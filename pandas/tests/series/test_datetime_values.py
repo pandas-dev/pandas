@@ -18,6 +18,7 @@ from pandas import (Index, Series, DataFrame, bdate_range,
                     PeriodIndex, DatetimeIndex, TimedeltaIndex,
                     compat)
 import pandas.core.common as com
+from pandas.core.arrays import PeriodArray
 from pandas._libs.tslibs.timezones import maybe_get_tz
 
 from pandas.util.testing import assert_series_equal
@@ -31,7 +32,7 @@ class TestSeriesDatetimeValues():
         # GH 7207, 11128
         # test .dt namespace accessor
 
-        ok_for_period = PeriodIndex._datetimelike_ops
+        ok_for_period = PeriodArray._datetimelike_ops
         ok_for_period_methods = ['strftime', 'to_timestamp', 'asfreq']
         ok_for_dt = DatetimeIndex._datetimelike_ops
         ok_for_dt_methods = ['to_period', 'to_pydatetime', 'tz_localize',
