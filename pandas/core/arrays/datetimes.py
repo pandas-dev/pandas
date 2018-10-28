@@ -1332,11 +1332,11 @@ def _generate_regular_range(cls, start, end, periods, freq):
             tz = start.tz
         elif start is not None:
             b = Timestamp(start).value
-            e = b + np.int64(periods) * stride
+            e = _generate_range_overflow_safe(b, periods, stride, side='start')
             tz = start.tz
         elif end is not None:
             e = Timestamp(end).value + stride
-            b = e - np.int64(periods) * stride
+            b = _generate_range_overflow_safe(e, periods, stride, side='end')
             tz = end.tz
         else:
             raise ValueError("at least 'start' or 'end' should be specified "
@@ -1359,6 +1359,44 @@ def _generate_regular_range(cls, start, end, periods, freq):
         data = cls._simple_new(values, freq=freq, tz=tz)
 
     return data
+
+
+def _generate_range_overflow_safe(endpoint, periods, stride, side='start'):
+    """
+    Calculate the second endpoint for passing to np.arange, checking
+    to avoid an integer overflow.  Catch OverflowError and re-raise
+    as OutOfBoundsDatetime.
+
+    Parameters
+    ----------
+    endpoint : int
+    periods : int
+    stride : int
+    side : {'start', 'end'}
+
+    Returns
+    -------
+    other_end : int
+
+    Raises
+    ------
+    OutOfBoundsDatetime
+    """
+    # GH#14187 raise instead of incorrectly wrapping around
+    assert side in ['start', 'end']
+    if side == 'end':
+        stride *= -1
+
+    try:
+        other_end = checked_add_with_arr(np.int64(endpoint),
+                                         np.int64(periods) * stride)
+    except OverflowError:
+        raise tslib.OutOfBoundsDatetime('Cannot generate range with '
+                                        '{side}={endpoint} and '
+                                        'periods={periods}'
+                                        .format(side=side, endpoint=endpoint,
+                                                periods=periods))
+    return other_end
 
 
 def _infer_tz_from_endpoints(start, end, tz):

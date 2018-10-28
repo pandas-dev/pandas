@@ -762,7 +762,7 @@ def ensure_clean(filename=None, return_filelike=False):
         finally:
             try:
                 os.close(fd)
-            except Exception as e:
+            except Exception:
                 print("Couldn't close file descriptor: {fdesc} (file: {fname})"
                       .format(fdesc=fd, fname=filename))
             try:

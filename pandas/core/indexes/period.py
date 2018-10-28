@@ -1023,14 +1023,6 @@ PeriodIndex._add_logical_methods_disabled()
 PeriodIndex._add_datetimelike_methods()
 
 
-def pnow(freq=None):
-    # deprecation, xref #13790
-    warnings.warn("pd.pnow() and pandas.core.indexes.period.pnow() "
-                  "are deprecated. Please use Period.now()",
-                  FutureWarning, stacklevel=2)
-    return Period.now(freq=freq)
-
-
 def period_range(start=None, end=None, periods=None, freq='D', name=None):
     """
     Return a fixed frequency PeriodIndex, with day (calendar) as the default

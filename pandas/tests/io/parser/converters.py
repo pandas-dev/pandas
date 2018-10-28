@@ -7,15 +7,14 @@ for all of the parsers defined in parsers.py
 
 from datetime import datetime
 
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
-
-from pandas._libs.tslib import Timestamp
 from pandas import DataFrame, Index
-from pandas.compat import parse_date, StringIO, lmap
+from pandas._libs.tslib import Timestamp
+from pandas.compat import StringIO, lmap, parse_date
 
 
 class ConverterTests(object):

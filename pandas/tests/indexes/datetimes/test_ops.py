@@ -1,16 +1,18 @@
-import pytest
 import warnings
-import numpy as np
 from datetime import datetime
+
+import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp,
-                    date_range, bdate_range, Index)
-from pandas.tseries.offsets import BMonthEnd, CDay, BDay, Day, Hour
-from pandas.tests.test_base import Ops
+from pandas import (
+    DatetimeIndex, Index, PeriodIndex, Series, Timestamp, bdate_range,
+    date_range
+)
 from pandas.core.dtypes.generic import ABCDateOffset
-
+from pandas.tests.test_base import Ops
+from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -345,7 +347,7 @@ class TestDatetimeIndexOps(Ops):
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
-        assert not idx.hasnans
+        assert idx.hasnans is False
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([], dtype=np.intp))
 
@@ -353,7 +355,7 @@ class TestDatetimeIndexOps(Ops):
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
-        assert idx.hasnans
+        assert idx.hasnans is True
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([1], dtype=np.intp))
 

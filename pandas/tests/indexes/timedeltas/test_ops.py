@@ -1,15 +1,17 @@
-import pytest
+from datetime import timedelta
 
 import numpy as np
-from datetime import timedelta
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import (Series, Timedelta, Timestamp, TimedeltaIndex,
-                    timedelta_range, to_timedelta)
+from pandas import (
+    Series, Timedelta, TimedeltaIndex, Timestamp, timedelta_range,
+    to_timedelta
+)
+from pandas.core.dtypes.generic import ABCDateOffset
 from pandas.tests.test_base import Ops
 from pandas.tseries.offsets import Day, Hour
-from pandas.core.dtypes.generic import ABCDateOffset
 
 
 class TestTimedeltaIndexOps(Ops):
@@ -261,7 +263,7 @@ class TestTimedeltaIndexOps(Ops):
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
-        assert not idx.hasnans
+        assert idx.hasnans is False
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([], dtype=np.intp))
 
@@ -269,7 +271,7 @@ class TestTimedeltaIndexOps(Ops):
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
-        assert idx.hasnans
+        assert idx.hasnans is True
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([1], dtype=np.intp))
 

@@ -3,10 +3,11 @@
 import warnings
 
 import numpy as np
-import pandas as pd
-from pandas.core.api import Series, DataFrame, MultiIndex
-import pandas.util.testing as tm
 import pytest
+
+import pandas as pd
+import pandas.util.testing as tm
+from pandas.core.api import DataFrame, MultiIndex, Series
 
 
 class TestIndexingSlow(object):

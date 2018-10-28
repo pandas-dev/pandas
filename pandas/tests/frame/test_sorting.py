@@ -21,14 +21,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameSorting(TestData):
 
-    def test_sort(self):
-        frame = DataFrame(np.arange(16).reshape(4, 4), index=[1, 2, 3, 4],
-                          columns=['A', 'B', 'C', 'D'])
-
-        # see gh-9816
-        with tm.assert_produces_warning(FutureWarning):
-            frame.sortlevel()
-
     def test_sort_values(self):
         frame = DataFrame([[1, 1, 2], [3, 1, 0], [4, 5, 6]],
                           index=[1, 2, 3], columns=list('ABC'))

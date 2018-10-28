@@ -1416,19 +1416,6 @@ class HDFStore(StringMixin):
         return s.read(**kwargs)
 
 
-def get_store(path, **kwargs):
-    """ Backwards compatible alias for ``HDFStore``
-    """
-    warnings.warn(
-        "get_store is deprecated and be "
-        "removed in a future version\n"
-        "HDFStore(path, **kwargs) is the replacement",
-        FutureWarning,
-        stacklevel=6)
-
-    return HDFStore(path, **kwargs)
-
-
 class TableIterator(object):
 
     """ define the iteration interface on a table

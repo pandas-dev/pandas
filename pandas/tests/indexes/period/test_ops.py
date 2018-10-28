@@ -5,8 +5,7 @@ import pytest
 import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
-from pandas import DatetimeIndex, PeriodIndex, Series, Period, Index
-
+from pandas import DatetimeIndex, Index, Period, PeriodIndex, Series
 from pandas.core.arrays import PeriodArray
 from pandas.tests.test_base import Ops
 
@@ -345,7 +344,7 @@ class TestPeriodIndexOps(Ops):
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
-        assert not idx.hasnans
+        assert idx.hasnans is False
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([], dtype=np.intp))
 
@@ -353,7 +352,7 @@ class TestPeriodIndexOps(Ops):
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
-        assert idx.hasnans
+        assert idx.hasnans is True
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([1], dtype=np.intp))
 
