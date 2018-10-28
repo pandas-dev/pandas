@@ -11,7 +11,7 @@ dependencies:
   - matplotlib
   - numexpr
   - numpy=1.14*
-  - openpyxl=2.5.5
+  - openpyxl
   - parquet-cpp
   - pyarrow
   - pytables
