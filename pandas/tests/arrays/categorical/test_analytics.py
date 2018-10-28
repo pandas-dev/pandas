@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import sys
 
 import numpy as np
+import pytest
 
 import pandas.util.testing as tm
 from pandas import Categorical, Index, Series
-
 from pandas.compat import PYPY
 
 
