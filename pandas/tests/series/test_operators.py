@@ -13,11 +13,10 @@ import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 from pandas import (
     Categorical, DataFrame, Index, NaT, Series, bdate_range, compat,
-    date_range, isna, timedelta_range
+    date_range, isna
 )
 from pandas.compat import range
 from pandas.core import ops
-from pandas.core.indexes.datetimes import Timestamp
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal
 )
