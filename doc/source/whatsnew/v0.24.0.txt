@@ -1028,6 +1028,7 @@ Datetimelike
 - Bug in :func:`date_range` when decrementing a start date to a past end date by a negative frequency (:issue:`23270`)
 - Bug in :func:`DataFrame.combine` with datetimelike values raising a TypeError (:issue:`23079`)
 - Bug in :func:`date_range` with frequency of ``Day`` or higher where dates sufficiently far in the future could wrap around to the past instead of raising ``OutOfBoundsDatetime`` (:issue:`14187`)
+- Bug in :class:`PeriodIndex` with attribute ``freq.n`` greater than 1 where adding a :class:`DateOffset` object would return incorrect results (:issue:`23215`)
 
 Timedelta
 ^^^^^^^^^
@@ -1039,7 +1040,8 @@ Timedelta
 - Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 - Fixed bug where subtracting :class:`Timedelta` from an object-dtyped array would raise ``TypeError`` (:issue:`21980`)
 - Fixed bug in adding a :class:`DataFrame` with all-`timedelta64[ns]` dtypes to a :class:`DataFrame` with all-integer dtypes returning incorrect results instead of raising ``TypeError`` (:issue:`22696`)
-
+- Bug in :class:`TimedeltaIndex` where adding a timezone-aware datetime scalar incorrectly returned a timezone-naive :class:`DatetimeIndex` (:issue:`23215`)
+- Bug in :class:`TimedeltaIndex` where adding ``np.timedelta64('NaT')`` incorrectly returned an all-`NaT` :class:`DatetimeIndex` instead of an all-`NaT` :class:`TimedeltaIndex` (:issue:`23215`)
 
 Timezones
 ^^^^^^^^^
@@ -1069,7 +1071,7 @@ Offsets
 
 - Bug in :class:`FY5253` where date offsets could incorrectly raise an ``AssertionError`` in arithmetic operatons (:issue:`14774`)
 - Bug in :class:`DateOffset` where keyword arguments ``week`` and ``milliseconds`` were accepted and ignored.  Passing these will now raise ``ValueError`` (:issue:`19398`)
--
+- Bug in adding :class:`DateOffset` with :class:`DataFrame` or :class:`PeriodIndex` incorrectly raising ``TypeError`` (:issue:`23215`)
 
 Numeric
 ^^^^^^^

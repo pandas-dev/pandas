@@ -190,17 +190,3 @@ def tet_sub_period():
     other = pd.Period("2000", freq="M")
     with tm.assert_raises_regex(IncompatibleFrequency, "freq"):
         arr - other
-
-
-# ----------------------------------------------------------------------------
-# other
-
-def test_maybe_convert_timedelta():
-    arr = period_array(['2000', '2001'], freq='D')
-    offset = pd.tseries.offsets.Day(2)
-    assert arr._maybe_convert_timedelta(offset) == 2
-    assert arr._maybe_convert_timedelta(2) == 2
-
-    offset = pd.tseries.offsets.BusinessDay()
-    with tm.assert_raises_regex(ValueError, 'freq'):
-        arr._maybe_convert_timedelta(offset)

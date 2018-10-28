@@ -344,8 +344,8 @@ class _BaseOffset(object):
         return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
     def __add__(self, other):
-        if getattr(other, "_typ", None) in ["datetimeindex",
-                                            "series", "period"]:
+        if getattr(other, "_typ", None) in ["datetimeindex", "periodindex",
+                                            "series", "period", "dataframe"]:
             # defer to the other class's implementation
             return other + self
         try:
