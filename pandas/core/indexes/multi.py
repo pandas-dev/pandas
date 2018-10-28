@@ -1294,6 +1294,7 @@ class MultiIndex(Index):
         MultiIndex.from_tuples : Convert list of tuples to MultiIndex
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
+        MultiIndex.from_frame : Make a MultiIndex from a DataFrame.
         """
         if not is_list_like(arrays):
             raise TypeError("Input must be a list / sequence of array-likes.")
@@ -1343,6 +1344,7 @@ class MultiIndex(Index):
         MultiIndex.from_arrays : Convert list of arrays to MultiIndex
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
+        MultiIndex.from_frame : Make a MultiIndex from a DataFrame.
         """
         if not is_list_like(tuples):
             raise TypeError('Input must be a list / sequence of tuple-likes.')
@@ -1399,6 +1401,7 @@ class MultiIndex(Index):
         --------
         MultiIndex.from_arrays : Convert list of arrays to MultiIndex
         MultiIndex.from_tuples : Convert list of tuples to MultiIndex
+        MultiIndex.from_frame : Make a MultiIndex from a DataFrame.
         """
         from pandas.core.arrays.categorical import _factorize_from_iterables
         from pandas.core.reshape.util import cartesian_product
@@ -1415,29 +1418,45 @@ class MultiIndex(Index):
     @classmethod
     def from_frame(cls, df, squeeze=True):
         """
-        Make a MultiIndex from a dataframe
+        Make a MultiIndex from a DataFrame.
 
         Parameters
         ----------
         df : pd.DataFrame
-            DataFrame to be converted to MultiIndex
-        squeeze : bool
+            DataFrame to be converted to MultiIndex.
+        squeeze : bool, default True
             If df is a single column, squeeze multiindex to be a regular index.
 
         Returns
         -------
-        index : MultiIndex
+        MultiIndex or Index
+            The MultiIndex representation of the given DataFrame. Returns an
+            Index if the DataFrame is single column and squeeze is True.
 
         Examples
         --------
-        >>> df = pd.DataFrame([[0, u'green'], [0, u'purple'], [1, u'green'],
-                               [1, u'purple'], [2, u'green'], [2, u'purple']],
-                              columns=[u'number', u'color'])
+        >>> df = pd.DataFrame([[0, 'green'], [0, 'purple'], [1, 'green'],
+        ...                    [1, 'purple'], [2, 'green'], [2, 'purple']],
+        ...                   columns=['number', 'color'])
+        >>> df
+           number   color
+        0       0   green
+        1       0  purple
+        2       1   green
+        3       1  purple
+        4       2   green
+        5       2  purple
         >>> pd.MultiIndex.from_frame(df)
-        MultiIndex(levels=[[0, 1, 2], [u'green', u'purple']],
+        MultiIndex(levels=[[0, 1, 2], ['green', 'purple']],
                    labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
-                   names=[u'number', u'color'])
+                   names=['number', 'color'])
 
+        See Also
+        --------
+        MultiIndex.from_arrays : Convert list of arrays to MultiIndex
+        MultiIndex.from_tuples : Convert list of tuples to MultiIndex
+        MultiIndex.from_product : Make a MultiIndex from cartesian product
+                                  of iterables
         """
         from pandas import DataFrame
         # just let column level names be the tuple of the meta df columns
@@ -1515,20 +1534,19 @@ class MultiIndex(Index):
 
     def squeeze(self):
         """
-        Squeeze a single level multiindex to be a regular Index instane. If
-        the MultiIndex is more than a single level, return a copy of the
-        MultiIndex.
+        Squeeze a single level MultiIndex to be a regular Index instane.
 
         Returns
         -------
-        index : Index | MultiIndex
+        Index or MultiIndex
+            Returns Index equivalent of single level MultiIndex. Returns
+            copy of MultiIndex if multilevel.
 
         Examples
         --------
         >>> mi = pd.MultiIndex.from_tuples([('a',), ('b',), ('c',)])
         >>> mi.squeeze()
         Index(['a', 'b', 'c'], dtype='object')
-
         """
         if len(self.levels) == 1:
             return self.levels[0][self.labels[0]]
