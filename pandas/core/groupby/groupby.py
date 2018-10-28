@@ -1755,7 +1755,7 @@ class GroupBy(_GroupBy):
         if axis != 0:
             return self.apply(lambda x: np.minimum.accumulate(x, axis))
 
-        if kwargs:
+        if kwargs.get('numeric_only') or False:
             numeric_only = kwargs.get('numeric_only')
         else:
             numeric_only = False

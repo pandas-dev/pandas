@@ -688,7 +688,7 @@ class HDFStore(StringMixin):
         return self._read_group(group)
 
     def select(self, key, where=None, start=None, stop=None, columns=None,
-               iterator=False, chunksize=None, auto_close=False):
+               iterator=False, chunksize=None, auto_close=False, **kwargs):
         """
         Retrieve pandas object stored in file, optionally based on where
         criteria
@@ -1404,7 +1404,7 @@ class HDFStore(StringMixin):
             )
 
         # write the object
-        s.write(obj=value, append=append, complib=complib)
+        s.write(obj=value, append=append, complib=complib, **kwargs)
 
         if s.is_table and index:
             s.create_index(columns=index)
@@ -3451,7 +3451,7 @@ class Table(Fixed):
         return [c for c in data_columns if c in axis_labels]
 
     def create_axes(self, axes, obj, validate=True, nan_rep=None,
-                    data_columns=None, min_itemsize=None):
+                    data_columns=None, min_itemsize=None, **kwargs):
         """ create and return the axes
         leagcy tables create an indexable column, indexable index,
         non-indexable fields
@@ -3964,14 +3964,14 @@ class AppendableTable(LegacyTable):
 
     def write(self, obj, axes=None, append=False, complib=None,
               complevel=None, fletcher32=None, min_itemsize=None,
-              chunksize=None, expectedrows=None, dropna=False):
+              chunksize=None, expectedrows=None, dropna=False, **kwargs):
 
         if not append and self.is_exists:
             self._handle.remove_node(self.group, 'table')
 
         # create the axes
         self.create_axes(axes=axes, obj=obj, validate=append,
-                         min_itemsize=min_itemsize)
+                         min_itemsize=min_itemsize, **kwargs)
 
         for a in self.axes:
             a.validate(self, append)
