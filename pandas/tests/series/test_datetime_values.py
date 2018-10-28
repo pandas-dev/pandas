@@ -1,28 +1,26 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import locale
 import calendar
+import locale
 import unicodedata
+from datetime import date, datetime, time
+
+import numpy as np
 import pytest
 import pytz
 
-from datetime import datetime, time, date
-
-import numpy as np
 import pandas as pd
-
-from pandas.core.dtypes.common import is_integer_dtype, is_list_like
-from pandas import (Index, Series, DataFrame, bdate_range,
-                    date_range, period_range, timedelta_range,
-                    PeriodIndex, DatetimeIndex, TimedeltaIndex,
-                    compat)
 import pandas.core.common as com
-from pandas.core.arrays import PeriodArray
-from pandas._libs.tslibs.timezones import maybe_get_tz
-
-from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
+from pandas import (
+    DataFrame, DatetimeIndex, Index, PeriodIndex, Series, TimedeltaIndex,
+    bdate_range, compat, date_range, period_range, timedelta_range
+)
+from pandas._libs.tslibs.timezones import maybe_get_tz
+from pandas.core.arrays import PeriodArray
+from pandas.core.dtypes.common import is_integer_dtype, is_list_like
+from pandas.util.testing import assert_series_equal
 
 
 class TestSeriesDatetimeValues():

@@ -8,13 +8,13 @@ arguments when parsing.
 """
 
 import csv
+
 import pytest
 
 import pandas.util.testing as tm
-from pandas import DataFrame, Index
-from pandas import compat
+from pandas import DataFrame, Index, compat
+from pandas.compat import BytesIO, StringIO, u
 from pandas.errors import ParserError
-from pandas.compat import StringIO, BytesIO, u
 
 
 class PythonParserTests(object):

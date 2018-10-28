@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-import numpy as np
 from datetime import timedelta
 from distutils.version import LooseVersion
 
+import numpy as np
+import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import (DatetimeIndex, TimedeltaIndex, Int64Index,
-                    timedelta_range, date_range,
-                    Series,
-                    Timestamp, Timedelta)
+from pandas import (
+    DatetimeIndex, Int64Index, Series, Timedelta, TimedeltaIndex, Timestamp,
+    date_range, timedelta_range
+)
 from pandas.errors import NullFrequencyError
 
 
