@@ -58,24 +58,6 @@ from pandas.io.api import *
 from pandas.util._tester import test
 import pandas.testing
 
-# extension module deprecations
-from pandas.util._depr_module import _DeprecatedModule
-
-parser = _DeprecatedModule(deprmod='pandas.parser',
-                           removals=['na_values'],
-                           moved={'CParserError': 'pandas.errors.ParserError'})
-lib = _DeprecatedModule(deprmod='pandas.lib', deprmodto=False,
-                        moved={'Timestamp': 'pandas.Timestamp',
-                               'Timedelta': 'pandas.Timedelta',
-                               'NaT': 'pandas.NaT',
-                               'infer_dtype': 'pandas.api.types.infer_dtype'})
-tslib = _DeprecatedModule(deprmod='pandas.tslib',
-                          moved={'Timestamp': 'pandas.Timestamp',
-                                 'Timedelta': 'pandas.Timedelta',
-                                 'NaT': 'pandas.NaT',
-                                 'NaTType': 'type(pandas.NaT)',
-                                 'OutOfBoundsDatetime': 'pandas.errors.OutOfBoundsDatetime'})
-
 # use the closest tagged version if possible
 from ._version import get_versions
 v = get_versions()
