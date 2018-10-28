@@ -942,6 +942,7 @@ Removal of prior version deprecations/changes
 - Removal of the previously deprecated module ``pandas.core.datetools`` (:issue:`14105`, :issue:`14094`)
 - Strings passed into :meth:`DataFrame.groupby` that refer to both column and index levels will raise a ``ValueError`` (:issue:`14432`)
 - :meth:`Index.repeat` and :meth:`MultiIndex.repeat` have renamed the ``n`` argument to ``repeats`` (:issue:`14645`)
+- The ``Series`` constructor and ``.astype`` method will now raise a ``ValueError`` if timestamp dtypes are passed in without a frequency (e.g. ``np.datetime64``) for the ``dtype`` parameter (:issue:`15987`)
 - Removal of the previously deprecated ``as_indexer`` keyword completely from ``str.match()`` (:issue:`22356`, :issue:`6581`)
 - Removed the ``pandas.formats.style`` shim for :class:`pandas.io.formats.style.Styler` (:issue:`16059`)
 - :func:`pandas.pnow`, :func:`pandas.match`, :func:`pandas.groupby`, :func:`pd.get_store`, ``pd.Expr``, and ``pd.Term`` have been removed (:issue:`15538`, :issue:`15940`)
