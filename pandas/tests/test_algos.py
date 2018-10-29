@@ -1361,7 +1361,8 @@ class TestHashTable(object):
         result_unique = htable().unique(s_duplicated.values)
         tm.assert_numpy_array_equal(result_unique, expected_unique)
 
-        # test with inverse
+        # test return_inverse=True
+        # reconstruction can only succeed if the inverse is correct
         result_unique, result_inverse = htable().unique(s_duplicated.values,
                                                         return_inverse=True)
         tm.assert_numpy_array_equal(result_unique, expected_unique)
