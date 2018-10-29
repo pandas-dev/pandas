@@ -38,35 +38,36 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
-import os
-import warnings
 from datetime import date, datetime, timedelta
+import os
 from textwrap import dedent
+import warnings
 
-import numpy as np
 from dateutil.parser import parse
+import numpy as np
+
+import pandas.compat as compat
+from pandas.compat import u, u_safe
+from pandas.errors import PerformanceWarning
+from pandas.util._move import (
+    BadMove as _BadMove, move_into_mutable_buffer as _move_into_mutable_buffer)
+
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_object_dtype, needs_i8_conversion, pandas_dtype)
 
 from pandas import (  # noqa:F401
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
     Index, Int64Index, Interval, IntervalIndex, MultiIndex, NaT, Panel, Period,
-    PeriodIndex, RangeIndex, Series, TimedeltaIndex, Timestamp, compat
-)
-from pandas.compat import u, u_safe
+    PeriodIndex, RangeIndex, Series, TimedeltaIndex, Timestamp)
 from pandas.core import internals
 from pandas.core.arrays import IntervalArray, PeriodArray
 from pandas.core.arrays.sparse import BlockIndex, IntIndex
-from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_object_dtype, needs_i8_conversion, pandas_dtype
-)
 from pandas.core.generic import NDFrame
 from pandas.core.internals import BlockManager, _safe_reshape, make_block
 from pandas.core.sparse.api import SparseDataFrame, SparseSeries
-from pandas.errors import PerformanceWarning
+
 from pandas.io.common import _stringify_path, get_filepath_or_buffer
 from pandas.io.msgpack import ExtType, Packer as _Packer, Unpacker as _Unpacker
-from pandas.util._move import (
-    BadMove as _BadMove, move_into_mutable_buffer as _move_into_mutable_buffer
-)
 
 # check which compression libs we have installed
 try:

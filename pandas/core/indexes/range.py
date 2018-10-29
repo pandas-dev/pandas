@@ -1,27 +1,27 @@
-import operator
-import warnings
 from datetime import timedelta
+import operator
 from sys import getsizeof
+import warnings
 
 import numpy as np
 
-import pandas.core.common as com
-import pandas.core.indexes.base as ibase
-from pandas import compat
 from pandas._libs import index as libindex
+import pandas.compat as compat
 from pandas.compat import get_range_parameters, lrange, range
 from pandas.compat.numpy import function as nv
-from pandas.core import ops
+from pandas.util._decorators import Appender, cache_readonly
+
 from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.common import (
-    is_int64_dtype, is_integer, is_scalar, is_timedelta64_dtype
-)
+    is_int64_dtype, is_integer, is_scalar, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCSeries, ABCTimedeltaIndex
-)
+    ABCDataFrame, ABCSeries, ABCTimedeltaIndex)
+
+from pandas.core import ops
+import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
-from pandas.util._decorators import Appender, cache_readonly
 
 
 class RangeIndex(Int64Index):

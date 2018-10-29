@@ -5,12 +5,13 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import range
+
+import pandas as pd
+from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
 from pandas.tests.indexes.common import Base
+import pandas.util.testing as tm
 
 
 class Numeric(Base):

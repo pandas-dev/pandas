@@ -4,11 +4,12 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Index, Series
 from pandas.core.dtypes.common import is_integer
+
+import pandas as pd
+from pandas import Index, Series
 from pandas.core.indexes.datetimes import Timestamp
+import pandas.util.testing as tm
 
 from .common import TestData
 

@@ -5,46 +5,45 @@ to disk
 """
 
 import copy
+from datetime import date, datetime
+from distutils.version import LooseVersion
 import itertools
 import os
 import re
 import time
 import warnings
-from datetime import date, datetime
-from distutils.version import LooseVersion
 
 import numpy as np
 
-import pandas.core.common as com
-from pandas import (
-    DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, Panel,
-    PeriodIndex, Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat,
-    concat, isna, to_datetime
-)
 from pandas._libs import algos, lib, writers as libwriters
 from pandas._libs.tslibs import timezones
 from pandas.compat import PY3, filter, lrange, range, string_types
-from pandas.core import config
-from pandas.core.algorithms import match, unique
-from pandas.core.arrays.categorical import (
-    Categorical, _factorize_from_iterables
-)
-from pandas.core.arrays.sparse import BlockIndex, IntIndex
-from pandas.core.base import StringMixin
-from pandas.core.computation.pytables import Expr, maybe_expression
-from pandas.core.config import get_option
+from pandas.errors import PerformanceWarning
+
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_object, ensure_platform_int, is_categorical_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype, is_list_like,
-    is_timedelta64_dtype
-)
+    is_timedelta64_dtype)
 from pandas.core.dtypes.missing import array_equivalent
+
+from pandas import (
+    DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, Panel,
+    PeriodIndex, Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat,
+    concat, isna, to_datetime)
+from pandas.core import config
+from pandas.core.algorithms import match, unique
+from pandas.core.arrays.categorical import (
+    Categorical, _factorize_from_iterables)
+from pandas.core.arrays.sparse import BlockIndex, IntIndex
+from pandas.core.base import StringMixin
+import pandas.core.common as com
+from pandas.core.computation.pytables import Expr, maybe_expression
+from pandas.core.config import get_option
 from pandas.core.index import ensure_index
 from pandas.core.internals import (
     BlockManager, _block2d_to_blocknd, _block_shape, _factor_indexer,
-    make_block
-)
-from pandas.errors import PerformanceWarning
+    make_block)
+
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
