@@ -653,6 +653,19 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                              index=[1, 1, 2])
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_int_type(self):
+        df = DataFrame([list('abc')])
+        df.loc[:, 'col'] = int(5)
+        expected = DataFrame([['a', 'b', 'c', 5]], columns=[0, 1, 2, 'col'])
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_int_mutli_rows(self):
+        df = DataFrame([list('abc'), list('edf')])
+        df.loc[:, 'col'] = int(5)
+        expected = DataFrame([['a', 'b', 'c', 5], ['e', 'd', 'f', 5]],
+                             columns=[0, 1, 2, 'col'])
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_non_unique_memory_error(self):
 
         # GH 4280
