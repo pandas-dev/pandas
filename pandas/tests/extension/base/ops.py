@@ -1,9 +1,10 @@
-import pytest
-
 import operator
+
+import pytest
 
 import pandas as pd
 from pandas.core import ops
+
 from .base import BaseExtensionTests
 
 

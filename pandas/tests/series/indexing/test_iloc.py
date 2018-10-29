@@ -3,11 +3,10 @@
 
 import numpy as np
 
-from pandas import Series
-
 from pandas.compat import lrange, range
-from pandas.util.testing import (assert_series_equal,
-                                 assert_almost_equal)
+
+from pandas import Series
+from pandas.util.testing import assert_almost_equal, assert_series_equal
 
 
 def test_iloc():

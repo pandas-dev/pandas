@@ -7,13 +7,13 @@ during parsing for all of the parsers defined in parsers.py
 
 from collections import namedtuple
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas.util.testing as tm
+from pandas.compat import StringIO, lrange, u
 
 from pandas import DataFrame, Index, MultiIndex
-from pandas.compat import StringIO, lrange, u
+import pandas.util.testing as tm
 
 
 class HeaderTests(object):

@@ -1,18 +1,19 @@
 from datetime import timedelta
-from operator import attrgetter
 from functools import partial
+from operator import attrgetter
 
+import numpy as np
 import pytest
 import pytz
-import numpy as np
 
-import pandas as pd
-from pandas import offsets
-import pandas.util.testing as tm
 from pandas._libs.tslib import OutOfBoundsDatetime
 from pandas._libs.tslibs import conversion
-from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
-                    to_datetime)
+
+import pandas as pd
+from pandas import (
+    DatetimeIndex, Index, Timestamp, date_range, datetime, offsets,
+    to_datetime)
+import pandas.util.testing as tm
 
 
 class TestDatetimeIndex(object):

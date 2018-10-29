@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import sys
 
 import numpy as np
-
-import pandas.util.testing as tm
-from pandas import Categorical, Index, Series
+import pytest
 
 from pandas.compat import PYPY
+
+from pandas import Categorical, Index, Series
+import pandas.util.testing as tm
 
 
 class TestCategoricalAnalytics(object):

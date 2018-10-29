@@ -1,13 +1,15 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.core.arrays import PeriodArray, period_array
+
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import PeriodDtype
+
+import pandas as pd
+from pandas.core.arrays import PeriodArray, period_array
+import pandas.util.testing as tm
 
 # ----------------------------------------------------------------------------
 # Constructors
@@ -190,17 +192,3 @@ def tet_sub_period():
     other = pd.Period("2000", freq="M")
     with tm.assert_raises_regex(IncompatibleFrequency, "freq"):
         arr - other
-
-
-# ----------------------------------------------------------------------------
-# other
-
-def test_maybe_convert_timedelta():
-    arr = period_array(['2000', '2001'], freq='D')
-    offset = pd.tseries.offsets.Day(2)
-    assert arr._maybe_convert_timedelta(offset) == 2
-    assert arr._maybe_convert_timedelta(2) == 2
-
-    offset = pd.tseries.offsets.BusinessDay()
-    with tm.assert_raises_regex(ValueError, 'freq'):
-        arr._maybe_convert_timedelta(offset)

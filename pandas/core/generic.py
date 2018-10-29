@@ -54,8 +54,7 @@ from pandas.compat import (map, zip, lzip, lrange, string_types, to_str,
 from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
 from pandas.util._decorators import (Appender, Substitution,
-                                     rewrite_axis_style_signature,
-                                     deprecate_kwarg)
+                                     rewrite_axis_style_signature)
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core import config
 
@@ -118,7 +117,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
     _deprecations = frozenset(['as_blocks', 'blocks',
-                               'consolidate', 'convert_objects', 'is_copy'])
+                               'convert_objects', 'is_copy'])
     _metadata = []
     _is_copy = None
 
@@ -4812,18 +4811,6 @@ class NDFrame(PandasObject, SelectionMixin):
             cons_data = self._protect_consolidate(f)
             return self._constructor(cons_data).__finalize__(self)
 
-    def consolidate(self, inplace=False):
-        """Compute NDFrame with "consolidated" internals (data of each dtype
-        grouped together in a single ndarray).
-
-        .. deprecated:: 0.20.0
-            Consolidate will be an internal implementation only.
-        """
-        # 15483
-        warnings.warn("consolidate is deprecated and will be removed in a "
-                      "future release.", FutureWarning, stacklevel=2)
-        return self._consolidate(inplace)
-
     @property
     def _is_mixed_type(self):
         f = lambda: self._data.is_mixed_type
@@ -5238,8 +5225,6 @@ class NDFrame(PandasObject, SelectionMixin):
         return {k: self._constructor(v).__finalize__(self)
                 for k, v, in self._data.to_dict(copy=copy).items()}
 
-    @deprecate_kwarg(old_arg_name='raise_on_error', new_arg_name='errors',
-                     mapping={True: 'raise', False: 'ignore'})
     def astype(self, dtype, copy=True, errors='raise', **kwargs):
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -5263,9 +5248,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.20.0
 
-        raise_on_error : raise on invalid input
-            .. deprecated:: 0.20.0
-               Use ``errors`` instead
         kwargs : keyword arguments to pass on to the constructor
 
         Returns

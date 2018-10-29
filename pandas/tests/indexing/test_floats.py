@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
+from warnings import catch_warnings
+
+import numpy as np
 import pytest
 
-from warnings import catch_warnings
-import numpy as np
-from pandas import (Series, DataFrame, Index, Float64Index, Int64Index,
-                    RangeIndex)
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+from pandas import (
+    DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series)
 import pandas.util.testing as tm
-
+from pandas.util.testing import assert_almost_equal, assert_series_equal
 
 ignore_ix = pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
 

@@ -2,10 +2,12 @@
 
 
 import numpy as np
-import pandas.util.testing as tm
 import pytest
-from pandas import MultiIndex
+
 from pandas.compat import PY3, long
+
+from pandas import MultiIndex
+import pandas.util.testing as tm
 
 
 def test_numeric_compat(idx):

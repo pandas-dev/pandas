@@ -1,17 +1,20 @@
 from __future__ import division
 
-from itertools import permutations
-import pytest
-import numpy as np
 import re
-from pandas import (
-    Interval, IntervalIndex, Index, isna, notna, interval_range, Timestamp,
-    Timedelta, date_range, timedelta_range)
-from pandas.compat import lzip
-import pandas.core.common as com
-from pandas.tests.indexes.common import Base
-import pandas.util.testing as tm
+from itertools import permutations
+
+import numpy as np
+import pytest
+
 import pandas as pd
+import pandas.core.common as com
+import pandas.util.testing as tm
+from pandas import (
+    Index, Interval, IntervalIndex, Timedelta, Timestamp, date_range,
+    interval_range, isna, notna, timedelta_range
+)
+from pandas.compat import lzip
+from pandas.tests.indexes.common import Base
 
 
 @pytest.fixture(scope='class', params=[None, 'foo'])
@@ -93,7 +96,7 @@ class TestIntervalIndex(Base):
 
     def test_with_nans(self, closed):
         index = self.create_index(closed=closed)
-        assert not index.hasnans
+        assert index.hasnans is False
 
         result = index.isna()
         expected = np.repeat(False, len(index))
@@ -104,7 +107,7 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(result, expected)
 
         index = self.create_index_with_nan(closed=closed)
-        assert index.hasnans
+        assert index.hasnans is True
 
         result = index.isna()
         expected = np.array([False, True] + [False] * (len(index) - 2))
