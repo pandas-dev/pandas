@@ -8,16 +8,18 @@ The file format is defined here:
 https://support.sas.com/techsup/technote/ts140.pdf
 """
 
+from datetime import datetime
 import struct
 import warnings
-from datetime import datetime
 
 import numpy as np
 
+from pandas.util._decorators import Appender
+
 import pandas as pd
 from pandas import compat
+
 from pandas.io.common import BaseIterator, get_filepath_or_buffer
-from pandas.util._decorators import Appender
 
 _correct_line1 = ("HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
                   "000000000000000000000000000000  ")

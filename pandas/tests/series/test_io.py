@@ -7,14 +7,15 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import DataFrame, Series
 from pandas.compat import StringIO, u
-from pandas.io.common import _get_handle
+
+import pandas as pd
+from pandas import DataFrame, Series
+import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, assert_series_equal, ensure_clean
-)
+    assert_almost_equal, assert_frame_equal, assert_series_equal, ensure_clean)
+
+from pandas.io.common import _get_handle
 
 
 class TestSeriesToCSV():
