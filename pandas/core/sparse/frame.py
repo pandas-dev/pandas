@@ -547,6 +547,31 @@ class SparseDataFrame(DataFrame):
     # ----------------------------------------------------------------------
     # Arithmetic-related methods
 
+    def _wrap_dispatched_op(self, result, other, func, axis=None):
+        """
+        Wrap the result of an arithmetic/comparison operation performed
+        via ops.dispatch_to_series in a properly-indexed DataFrame.
+
+        Parameters
+        ----------
+        result : dict[int:Series]
+        other : DataFrame, Series, scalar
+        func : binary function
+        axis : {None, "columns"}
+
+        Returns
+        -------
+        SparseDataFrame
+        """
+
+        fill_value = self._get_op_result_fill_value(other, func, axis)
+
+        res = self._constructor(result, index=self.index,
+                                columns=self.columns,
+                                default_fill_value=fill_value)
+
+        return res.__finalize__(self)
+
     def _combine_frame(self, other, func, fill_value=None, level=None):
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
@@ -573,12 +598,7 @@ class SparseDataFrame(DataFrame):
                 if col in this and col in other:
                     new_data[col] = func(this[col], other[col])
 
-        new_fill_value = self._get_op_result_fill_value(other, func)
-
-        return self._constructor(data=new_data, index=new_index,
-                                 columns=new_columns,
-                                 default_fill_value=new_fill_value
-                                 ).__finalize__(self)
+        return this._wrap_dispatched_op(new_data, other, func)
 
     def _combine_match_index(self, other, func, level=None):
         new_data = {}
@@ -592,11 +612,7 @@ class SparseDataFrame(DataFrame):
         for col, series in compat.iteritems(this):
             new_data[col] = func(series.values, other.values)
 
-        fill_value = self._get_op_result_fill_value(other, func)
-
-        return self._constructor(
-            new_data, index=this.index, columns=self.columns,
-            default_fill_value=fill_value).__finalize__(self)
+        return self._wrap_dispatched_op(new_data, other, func)
 
     def _combine_match_columns(self, other, func, level=None):
         # patched version of DataFrame._combine_match_columns to account for
@@ -616,24 +632,26 @@ class SparseDataFrame(DataFrame):
         for col in left.columns:
             new_data[col] = func(left[col], float(right[col]))
 
-        return self._constructor(
-            new_data, index=left.index, columns=left.columns,
-            default_fill_value=self.default_fill_value).__finalize__(self)
+        return self._wrap_dispatched_op(new_data, other, func, "columns")
 
     def _combine_const(self, other, func, errors='raise'):
         return self._apply_columns(lambda x: func(x, other))
 
-    def _get_op_result_fill_value(self, other, func):
+    def _get_op_result_fill_value(self, other, func, axis=None):
         own_default = self.default_fill_value
 
-        if isinstance(other, DataFrame):
+        if axis == "columns":
+            # i.e. called via _combine_match_columns
+            fill_value = self.default_fill_value
+
+        elif isinstance(other, DataFrame):
             # i.e. called from _combine_frame
 
             other_default = getattr(other, 'default_fill_value', np.nan)
 
             # if the fill values are the same use them? or use a valid one
             if own_default == other_default:
-                # TOOD: won't this evaluate as False if both are np.nan?
+                # TODO: won't this evaluate as False if both are np.nan?
                 fill_value = own_default
             elif np.isnan(own_default) and not np.isnan(other_default):
                 fill_value = other_default
@@ -651,6 +669,10 @@ class SparseDataFrame(DataFrame):
             else:
                 fill_value = func(np.float64(own_default),
                                   np.float64(other.fill_value))
+
+        elif np.ndim(other) == 0:
+            # i.e. called via _combine_const
+            fill_value = self.default_fill_value
 
         else:
             raise NotImplementedError(type(other))

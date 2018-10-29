@@ -4948,8 +4948,7 @@ class DataFrame(NDFrame):
 
         if left._is_mixed_type or right._is_mixed_type:
             # operate column-wise; avoid costly object-casting in `.values`
-            result = ops.dispatch_to_series(left, right, func)
-            return left._wrap_dispatched_op(result)
+            return ops.dispatch_to_series(left, right, func)
         else:
             # fastpath --> operate directly on values
             with np.errstate(all="ignore"):
@@ -4963,13 +4962,11 @@ class DataFrame(NDFrame):
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         assert left.columns.equals(right.index)
-        result = ops.dispatch_to_series(left, right, func, axis="columns")
-        return left._wrap_dispatched_op(result)
+        return ops.dispatch_to_series(left, right, func, axis="columns")
 
     def _combine_const(self, other, func, errors='raise'):
         assert lib.is_scalar(other) or np.ndim(other) == 0
-        result = ops.dispatch_to_series(self, other, func)
-        return self._wrap_dispatched_op(result)
+        return ops.dispatch_to_series(self, other, func)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """

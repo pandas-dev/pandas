@@ -958,7 +958,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
 
     Returns
     -------
-    dict[int:Series]
+    DataFrame
     """
     # Note: we use iloc to access columns for compat with cases
     #       with non-unique columns.
@@ -999,7 +999,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         raise NotImplementedError(right)
 
     new_data = expressions.evaluate(column_op, str_rep, left, right)
-    return new_data
+    return left._wrap_dispatched_op(new_data)
 
 
 def dispatch_to_index_op(op, left, right, index_class):
@@ -1897,8 +1897,7 @@ def _flex_comp_method_FRAME(cls, op, special):
             if not self._indexed_same(other):
                 self, other = self.align(other, 'outer',
                                          level=level, copy=False)
-            result = dispatch_to_series(self, other, na_op, str_rep)
-            return self._wrap_dispatched_op(result)
+            return dispatch_to_series(self, other, na_op, str_rep)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, na_op,
@@ -1927,8 +1926,7 @@ def _comp_method_FRAME(cls, func, special):
             if not self._indexed_same(other):
                 raise ValueError('Can only compare identically-labeled '
                                  'DataFrame objects')
-            result = dispatch_to_series(self, other, func, str_rep)
-            return self._wrap_dispatched_op(result)
+            return dispatch_to_series(self, other, func, str_rep)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, func,
