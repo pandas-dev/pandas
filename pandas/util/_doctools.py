@@ -1,7 +1,8 @@
 import numpy as np
 
-import pandas as pd
 import pandas.compat as compat
+
+import pandas as pd
 
 
 class TablePlotter(object):

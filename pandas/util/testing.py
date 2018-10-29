@@ -1,5 +1,8 @@
 from __future__ import division
 
+from contextlib import contextmanager
+from datetime import datetime
+from functools import wraps
 import locale
 import os
 import re
@@ -9,34 +12,31 @@ import sys
 import tempfile
 import traceback
 import warnings
-from contextlib import contextmanager
-from datetime import datetime
-from functools import wraps
 
 import numpy as np
 from numpy.random import rand, randn
 
-import pandas as pd
-import pandas.compat as compat
-import pandas.core.common as com
-from pandas import (
-    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
-    IntervalIndex, MultiIndex, Panel, PeriodIndex, RangeIndex, Series,
-    TimedeltaIndex, bdate_range
-)
 from pandas._libs import testing as _testing
+import pandas.compat as compat
 from pandas.compat import (
     PY2, PY3, Counter, StringIO, callable, filter, httplib, lmap, lrange, lzip,
-    map, raise_with_traceback, range, string_types, u, unichr, zip
-)
-from pandas.core.algorithms import take_1d
-from pandas.core.arrays import ExtensionArray, IntervalArray, PeriodArray
+    map, raise_with_traceback, range, string_types, u, unichr, zip)
+
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetimelike_v_numeric,
     is_datetimelike_v_object, is_extension_array_dtype, is_interval_dtype,
-    is_list_like, is_number, is_sequence, needs_i8_conversion
-)
+    is_list_like, is_number, is_sequence, needs_i8_conversion)
 from pandas.core.dtypes.missing import array_equivalent
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
+    IntervalIndex, MultiIndex, Panel, PeriodIndex, RangeIndex, Series,
+    TimedeltaIndex, bdate_range)
+from pandas.core.algorithms import take_1d
+from pandas.core.arrays import ExtensionArray, IntervalArray, PeriodArray
+import pandas.core.common as com
+
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
 

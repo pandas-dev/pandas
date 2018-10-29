@@ -1,7 +1,7 @@
-import inspect
-import warnings
 from functools import WRAPPER_ASSIGNMENTS, update_wrapper, wraps
+import inspect
 from textwrap import dedent, wrap
+import warnings
 
 from pandas._libs.properties import cache_readonly  # noqa
 from pandas.compat import PY2, callable, signature
