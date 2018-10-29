@@ -256,7 +256,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 keyidx.append(idx)
         return tuple(keyidx)
 
-    def _convert_range(self, key, is_setter=False):
+    def _convert_range(self, key):
         """ convert a range argument """
         return list(key)
 
@@ -474,6 +474,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             if isinstance(value, ABCSeries):
                 value = self._align_series(indexer, value)
+
+            if is_scalar(value):
+                value = [value]
 
             info_idx = indexer[info_axis]
             if is_integer(info_idx):
