@@ -429,7 +429,7 @@ unique_funcs = [('_unique_no_inverse', False, False),
                       Py_ssize_t na_sentinel=-1, object na_value=None):
         """
         Calculate unique values and labels (no sorting!)
-{{if func_name == '_factorize' or func_name == 'get_labels'}}
+{{if ignore_na}}
 
         Missing values are not included in the "uniques" for this method.
         The labels for any missing values will be set to "na_sentinel"
@@ -799,7 +799,7 @@ unique_funcs = [('_unique_no_inverse', False, False),
                       object na_value=None):
         """
         Calculate unique values and labels (no sorting!)
-{{if func_name == '_factorize' or func_name == 'get_labels'}}
+{{if ignore_na}}
 
         Missing values are not included in the "uniques" for this method.
         The labels for any missing values will be set to "na_sentinel"
@@ -1072,7 +1072,7 @@ unique_funcs = [('_unique_no_inverse', False, False),
                       object na_value=None):
         """
         Calculate unique values and labels (no sorting!)
-{{if func_name == '_factorize' or func_name == 'get_labels'}}
+{{if ignore_na}}
 
         Missing values are not included in the "uniques" for this method.
         The labels for any missing values will be set to "na_sentinel"
