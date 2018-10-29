@@ -113,6 +113,17 @@ class TimelikeOps(object):
             Only relevant for DatetimeIndex
 
             .. versionadded:: 0.24.0
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -182,7 +193,7 @@ class TimelikeOps(object):
         """
     )
 
-    def _round(self, freq, mode, ambiguous):
+    def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times
         values = _ensure_datetimelike_to_i8(self)
         result = round_nsint64(values, mode, freq)
@@ -194,20 +205,22 @@ class TimelikeOps(object):
         if 'tz' in attribs:
             attribs['tz'] = None
         return self._ensure_localized(
-            self._shallow_copy(result, **attribs), ambiguous
+            self._shallow_copy(result, **attribs), ambiguous, nonexistent
         )
 
     @Appender((_round_doc + _round_example).format(op="round"))
-    def round(self, freq, ambiguous='raise'):
-        return self._round(freq, RoundTo.NEAREST_HALF_EVEN, ambiguous)
+    def round(self, freq, ambiguous='raise', nonexistent='raise'):
+        return self._round(
+            freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
+        )
 
     @Appender((_round_doc + _floor_example).format(op="floor"))
-    def floor(self, freq, ambiguous='raise'):
-        return self._round(freq, RoundTo.MINUS_INFTY, ambiguous)
+    def floor(self, freq, ambiguous='raise', nonexistent='raise'):
+        return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
     @Appender((_round_doc + _ceil_example).format(op="ceil"))
-    def ceil(self, freq, ambiguous='raise'):
-        return self._round(freq, RoundTo.PLUS_INFTY, ambiguous)
+    def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
+        return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
 
 class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
@@ -278,7 +291,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         except TypeError:
             return result
 
-    def _ensure_localized(self, arg, ambiguous='raise', from_utc=False):
+    def _ensure_localized(self, arg, ambiguous='raise', nonexistent='raise',
+                          from_utc=False):
         """
         ensure that we are re-localized
 
@@ -289,6 +303,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         ----------
         arg : DatetimeIndex / i8 ndarray
         ambiguous : str, bool, or bool-ndarray, default 'raise'
+        nonexistent : str, default 'raise'
         from_utc : bool, default False
             If True, localize the i8 ndarray to UTC first before converting to
             the appropriate tz. If False, localize directly to the tz.
@@ -305,7 +320,9 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             if from_utc:
                 arg = arg.tz_localize('UTC').tz_convert(self.tz)
             else:
-                arg = arg.tz_localize(self.tz, ambiguous=ambiguous)
+                arg = arg.tz_localize(
+                    self.tz, ambiguous=ambiguous, nonexistent=nonexistent
+                )
         return arg
 
     def _box_values_as_index(self):
