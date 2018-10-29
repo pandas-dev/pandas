@@ -2,10 +2,12 @@
 
 
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Index, MultiIndex, Series
+
 from pandas.compat import lrange, lzip, range
+
+import pandas as pd
+from pandas import Index, MultiIndex, Series
+import pandas.util.testing as tm
 
 
 def test_equals(idx):

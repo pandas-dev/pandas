@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from itertools import product
-import pytest
 
 import numpy as np
+import pytest
 
-from pandas.compat import range, u
-from pandas import MultiIndex, DatetimeIndex
-from pandas._libs import hashtable
 import pandas.util.testing as tm
+from pandas import DatetimeIndex, MultiIndex
+from pandas._libs import hashtable
+from pandas.compat import range, u
 
 
 @pytest.mark.parametrize('names', [None, ['first', 'second']])
