@@ -4,11 +4,12 @@ import os
 
 import pytest
 
-import pandas.core.common as com
-import pandas.util.testing as tm
-from pandas import DataFrame, read_csv, read_table
 from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO
+
+from pandas import DataFrame, read_csv, read_table
+import pandas.core.common as com
+import pandas.util.testing as tm
 
 from .c_parser_only import CParserTests
 from .comment import CommentTests
