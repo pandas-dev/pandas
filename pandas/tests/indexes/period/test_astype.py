@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import Index, Int64Index, NaT, Period, PeriodIndex, period_range
+import pandas.util.testing as tm
 
 
 class TestPeriodIndexAsType(object):

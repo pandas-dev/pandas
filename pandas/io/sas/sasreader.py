@@ -2,6 +2,7 @@
 Read SAS sas7bdat or xport files.
 """
 from pandas import compat
+
 from pandas.io.common import _stringify_path
 
 

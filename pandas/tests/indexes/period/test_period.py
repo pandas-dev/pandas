@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 import pandas.util._test_decorators as td
+
+import pandas as pd
 from pandas import (
     DataFrame, DatetimeIndex, Index, NaT, Period, PeriodIndex, Series,
-    date_range, offsets, period_range
-)
+    date_range, offsets, period_range)
 from pandas.util import testing as tm
 
 from ..datetimelike import DatetimeLike

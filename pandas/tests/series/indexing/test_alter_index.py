@@ -4,13 +4,15 @@
 from datetime import datetime
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
+
+import pandas.compat as compat
+from pandas.compat import lrange, range
 
 import pandas as pd
+from pandas import Categorical, Series, date_range, isna
 import pandas.util.testing as tm
-from pandas import Categorical, Series, compat, date_range, isna
-from pandas.compat import lrange, range
 from pandas.util.testing import assert_series_equal
 
 

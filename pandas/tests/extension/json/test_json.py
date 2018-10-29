@@ -3,10 +3,11 @@ import operator
 
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
 from pandas.compat import PY2, PY36
+
+import pandas as pd
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
 

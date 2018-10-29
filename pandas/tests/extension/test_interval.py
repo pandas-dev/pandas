@@ -16,11 +16,12 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
+from pandas.core.dtypes.dtypes import IntervalDtype
+
 from pandas import Interval
 from pandas.core.arrays import IntervalArray
-from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 
 def make_data():
