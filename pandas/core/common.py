@@ -454,3 +454,21 @@ def _pipe(obj, func, *args, **kwargs):
         return func(*args, **kwargs)
     else:
         return func(obj, *args, **kwargs)
+
+
+def _get_rename_function(mapper):
+    """
+    Returns a function that will map names/labels, dependent if mapper
+    is a dict, Series or just a function.
+    """
+    if isinstance(mapper, (compat.Mapping, ABCSeries)):
+
+        def f(x):
+            if x in mapper:
+                return mapper[x]
+            else:
+                return x
+    else:
+        f = mapper
+
+    return f

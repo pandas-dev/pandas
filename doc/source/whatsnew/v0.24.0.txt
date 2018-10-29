@@ -180,6 +180,29 @@ array, but rather an ``ExtensionArray``:
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
 
+.. _whatsnew_0240.enhancements.rename_axis:
+
+Renaming names in a MultiIndex
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`DataFrame.rename_axis` now supports ``index`` and ``columns`` arguments
+and :func:`Series.rename_axis` supports ``index`` argument (:issue:`19978`)
+
+This change allows a dictionary to be passed so that some of the names 
+of a ``MultiIndex`` can be changed.
+
+Example:
+
+.. ipython:: python
+
+    mi = pd.MultiIndex.from_product([list('AB'), list('CD'), list('EF')],
+                                    names=['AB', 'CD', 'EF'])
+    df = pd.DataFrame([i for i in range(len(mi))], index=mi, columns=['N'])
+    df
+    df.rename_axis(index={'CD': 'New'})
+
+See the :ref:`advanced docs on renaming<advanced.index_names>` for more details.
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements

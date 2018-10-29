@@ -1345,8 +1345,8 @@ class TestHDFStore(Base):
             with catch_warnings(record=True):
                 simplefilter("ignore", FutureWarning)
                 wp = tm.makePanel()
-                wp2 = wp.rename_axis(
-                    {x: "%s_extra" % x for x in wp.minor_axis}, axis=2)
+                wp2 = wp.rename(
+                    minor_axis={x: "%s_extra" % x for x in wp.minor_axis})
 
                 def check_col(key, name, size):
                     assert getattr(store.get_storer(key)

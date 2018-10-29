@@ -2110,16 +2110,16 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
     def test_rename(self):
         mapper = {'ItemA': 'foo', 'ItemB': 'bar', 'ItemC': 'baz'}
 
-        renamed = self.panel.rename_axis(mapper, axis=0)
+        renamed = self.panel.rename(items=mapper)
         exp = Index(['foo', 'bar', 'baz'])
         tm.assert_index_equal(renamed.items, exp)
 
-        renamed = self.panel.rename_axis(str.lower, axis=2)
+        renamed = self.panel.rename(minor_axis=str.lower)
         exp = Index(['a', 'b', 'c', 'd'])
         tm.assert_index_equal(renamed.minor_axis, exp)
 
         # don't copy
-        renamed_nocopy = self.panel.rename_axis(mapper, axis=0, copy=False)
+        renamed_nocopy = self.panel.rename(items=mapper, copy=False)
         renamed_nocopy['foo'] = 3.
         assert (self.panel['ItemA'].values == 3).all()
 
