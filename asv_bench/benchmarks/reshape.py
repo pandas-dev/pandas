@@ -63,6 +63,7 @@ class Unstack(object):
         else:
             indices = np.random.randint(0, 52, size=(m * m, n))
             values = np.take(list(string.ascii_letters), indices)
+            values = [pd.Categorical(v) for v in values.T]
 
         self.df = DataFrame(values, index, columns)
         self.df2 = self.df.iloc[:-1]
