@@ -4968,7 +4968,7 @@ class DataFrame(NDFrame):
 
     def _combine_const(self, other, func, errors='raise'):
         assert lib.is_scalar(other) or np.ndim(other) == 0
-        result = ops.dispatch_to_seris(self, other, func)
+        result = ops.dispatch_to_series(self, other, func)
         return self._wrap_dispatched_op(result)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
