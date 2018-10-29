@@ -1,28 +1,30 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-from itertools import product
 from distutils.version import LooseVersion
+from itertools import product
 import operator
+
+import numpy as np
+from numpy import nan
 import pytest
 
-from numpy import nan
-import numpy as np
-import pandas as pd
+from pandas.compat import PY35, lrange, range
+import pandas.util._test_decorators as td
 
-from pandas import (Series, Categorical, DataFrame, isna, notna,
-                    bdate_range, date_range, CategoricalIndex)
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, Series, bdate_range, compat,
+    date_range, isna, notna)
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
-
-from pandas.compat import lrange, range, PY35
-from pandas import compat
-from pandas.util.testing import (assert_series_equal, assert_almost_equal,
-                                 assert_frame_equal, assert_index_equal)
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_index_equal,
+    assert_series_equal)
+
 from .common import TestData
 
 
@@ -1439,17 +1441,17 @@ class TestSeriesAnalytics(TestData):
         s = Series(np.random.randint(0, 10, size=1000))
         assert not s.is_monotonic
         s = Series(np.arange(1000))
-        assert s.is_monotonic
-        assert s.is_monotonic_increasing
+        assert s.is_monotonic is True
+        assert s.is_monotonic_increasing is True
         s = Series(np.arange(1000, 0, -1))
-        assert s.is_monotonic_decreasing
+        assert s.is_monotonic_decreasing is True
 
         s = Series(pd.date_range('20130101', periods=10))
-        assert s.is_monotonic
-        assert s.is_monotonic_increasing
+        assert s.is_monotonic is True
+        assert s.is_monotonic_increasing is True
         s = Series(list(reversed(s.tolist())))
-        assert not s.is_monotonic
-        assert s.is_monotonic_decreasing
+        assert s.is_monotonic is False
+        assert s.is_monotonic_decreasing is True
 
     def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))

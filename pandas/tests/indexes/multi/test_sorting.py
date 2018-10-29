@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import pytest
-from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, RangeIndex
+
 from pandas.compat import lrange
 from pandas.errors import PerformanceWarning, UnsortedIndexError
+
+import pandas as pd
+from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, RangeIndex
+import pandas.util.testing as tm
 
 
 def test_sortlevel(idx):

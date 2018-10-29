@@ -1,4 +1,5 @@
 import operator
+import warnings
 
 import numpy as np
 from pandas._libs import index as libindex
@@ -83,14 +84,28 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     """
 
     _typ = 'categoricalindex'
-    _engine_type = libindex.Int64Engine
+
+    @property
+    def _engine_type(self):
+        # self.codes can have dtype int8, int16, int32 or int64, so we need
+        # to return the corresponding engine type (libindex.Int8Engine, etc.).
+        return {np.int8: libindex.Int8Engine,
+                np.int16: libindex.Int16Engine,
+                np.int32: libindex.Int32Engine,
+                np.int64: libindex.Int64Engine,
+                }[self.codes.dtype.type]
+
     _attributes = ['name']
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
-                copy=False, name=None, fastpath=False):
+                copy=False, name=None, fastpath=None):
 
-        if fastpath:
-            return cls._simple_new(data, name=name, dtype=dtype)
+        if fastpath is not None:
+            warnings.warn("The 'fastpath' keyword is deprecated, and will be "
+                          "removed in a future version.",
+                          FutureWarning, stacklevel=2)
+            if fastpath:
+                return cls._simple_new(data, name=name, dtype=dtype)
 
         if name is None and hasattr(data, 'name'):
             name = data.name
@@ -377,7 +392,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _engine(self):
 
         # we are going to look things up with the codes themselves
-        return self._engine_type(lambda: self.codes.astype('i8'), len(self))
+        return self._engine_type(lambda: self.codes, len(self))
 
     # introspection
     @cache_readonly
@@ -426,6 +441,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         -------
         loc : int if unique index, slice if monotonic index, else mask
 
+        Raises
+        ------
+        KeyError : if the key is not in the index
+
         Examples
         ---------
         >>> unique_index = pd.CategoricalIndex(list('abc'))
@@ -440,10 +459,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
         """
-        codes = self.categories.get_loc(key)
-        if (codes == -1):
+        code = self.categories.get_loc(key)
+        code = self.codes.dtype.type(code)
+        try:
+            return self._engine.get_loc(code)
+        except KeyError:
             raise KeyError(key)
-        return self._engine.get_loc(codes)
 
     def get_value(self, series, key):
         """

@@ -5,10 +5,10 @@ import sys
 
 import numpy as np
 
-import pandas as pd
-from pandas.core.arrays import (ExtensionArray,
-                                ExtensionScalarOpsMixin)
 from pandas.core.dtypes.base import ExtensionDtype
+
+import pandas as pd
+from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 
 
 class DecimalDtype(ExtensionDtype):
@@ -47,6 +47,7 @@ class DecimalDtype(ExtensionDtype):
 
 
 class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
+    __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False, context=None):
         for val in values:

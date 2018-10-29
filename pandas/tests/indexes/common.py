@@ -1,24 +1,23 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
-from pandas import compat
+from pandas._libs.tslib import iNaT
+import pandas.compat as compat
 from pandas.compat import PY3
 
-import numpy as np
-
-from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
-                    RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, IntervalIndex, isna)
-from pandas.core.indexes.base import InvalidIndexError
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas._libs.tslib import iNaT
-
-import pandas.util.testing as tm
 
 import pandas as pd
+from pandas import (
+    CategoricalIndex, DatetimeIndex, Float64Index, Index, Int64Index,
+    IntervalIndex, MultiIndex, PeriodIndex, RangeIndex, Series, TimedeltaIndex,
+    UInt64Index, isna)
+from pandas.core.indexes.base import InvalidIndexError
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+import pandas.util.testing as tm
 
 
 class Base(object):
@@ -309,7 +308,8 @@ class Base(object):
             index_type = index.__class__
             result = index_type(index.values, copy=True, **init_kwargs)
             tm.assert_index_equal(index, result)
-            tm.assert_numpy_array_equal(index.values, result.values,
+            tm.assert_numpy_array_equal(index._ndarray_values,
+                                        result._ndarray_values,
                                         check_same='copy')
 
             if isinstance(index, PeriodIndex):
@@ -353,8 +353,8 @@ class Base(object):
             pytest.skip('Skip check for empty Index and MultiIndex')
 
         idx = self._holder([indices[0]] * 5)
-        assert not idx.is_unique
-        assert idx.has_duplicates
+        assert idx.is_unique is False
+        assert idx.has_duplicates is True
 
     @pytest.mark.parametrize('keep', ['first', 'last', False])
     def test_duplicated(self, indices, keep):
@@ -414,9 +414,9 @@ class Base(object):
 
         # We test against `idx_unique`, so first we make sure it's unique
         # and doesn't contain nans.
-        assert idx_unique.is_unique
+        assert idx_unique.is_unique is True
         try:
-            assert not idx_unique.hasnans
+            assert idx_unique.hasnans is False
         except NotImplementedError:
             pass
 
@@ -438,7 +438,7 @@ class Base(object):
         vals_unique = vals[:2]
         idx_nan = indices._shallow_copy(vals)
         idx_unique_nan = indices._shallow_copy(vals_unique)
-        assert idx_unique_nan.is_unique
+        assert idx_unique_nan.is_unique is True
 
         assert idx_nan.dtype == indices.dtype
         assert idx_unique_nan.dtype == indices.dtype
@@ -915,7 +915,7 @@ class Base(object):
                 # cases in indices doesn't include NaN
                 expected = np.array([False] * len(idx), dtype=bool)
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                assert not idx.hasnans
+                assert idx.hasnans is False
 
                 idx = index.copy()
                 values = np.asarray(idx.values)
@@ -937,7 +937,7 @@ class Base(object):
                 expected = np.array([False] * len(idx), dtype=bool)
                 expected[1] = True
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                assert idx.hasnans
+                assert idx.hasnans is True
 
     def test_fillna(self):
         # GH 11343
@@ -977,7 +977,7 @@ class Base(object):
                 expected = np.array([False] * len(idx), dtype=bool)
                 expected[1] = True
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                assert idx.hasnans
+                assert idx.hasnans is True
 
     def test_nulls(self):
         # this is really a smoke test for the methods

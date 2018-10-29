@@ -1,12 +1,26 @@
 """ generic datetimelike tests """
-import pytest
 import numpy as np
+import pytest
+
 import pandas as pd
-from .common import Base
 import pandas.util.testing as tm
+
+from .common import Base
 
 
 class DatetimeLike(Base):
+
+    def test_argmax_axis_invalid(self):
+        # GH#23081
+        rng = self.create_index()
+        with pytest.raises(ValueError):
+            rng.argmax(axis=1)
+        with pytest.raises(ValueError):
+            rng.argmin(axis=2)
+        with pytest.raises(ValueError):
+            rng.min(axis=-2)
+        with pytest.raises(ValueError):
+            rng.max(axis=-3)
 
     def test_can_hold_identifiers(self):
         idx = self.create_index()

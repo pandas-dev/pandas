@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import pytest
 
-from pandas.api.types import is_integer, is_float, is_float_dtype, is_scalar
-from pandas.core.dtypes.generic import ABCIndexClass
-
-from pandas.core.arrays import (
-    integer_array, IntegerArray)
+import pandas as pd
+import pandas.util.testing as tm
+from pandas.api.types import is_float, is_float_dtype, is_integer, is_scalar
+from pandas.core.arrays import IntegerArray, integer_array
 from pandas.core.arrays.integer import (
-    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,
-    UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype)
-
+    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype, UInt16Dtype,
+    UInt32Dtype, UInt64Dtype
+)
+from pandas.core.dtypes.generic import ABCIndexClass
 from pandas.tests.extension.base import BaseOpsUtil
 
 
@@ -128,6 +126,13 @@ class TestArithmeticOps(BaseOpsUtil):
             if omask is not None:
                 mask |= omask
 
+        # 1 ** na is na, so need to unmask those
+        if op_name == '__pow__':
+            mask = np.where(s == 1, False, mask)
+
+        elif op_name == '__rpow__':
+            mask = np.where(other == 1, False, mask)
+
         # float result type or float op
         if ((is_float_dtype(other) or is_float(other) or
              op_name in ['__rtruediv__', '__truediv__',
@@ -171,7 +176,6 @@ class TestArithmeticOps(BaseOpsUtil):
             else:
                 expected[(s.values == 0) &
                          ((expected == 0) | expected.isna())] = 0
-
         try:
             expected[(expected == np.inf) | (expected == -np.inf)] = fill_value
             original = expected
@@ -248,12 +252,19 @@ class TestArithmeticOps(BaseOpsUtil):
     @pytest.mark.parametrize("other", [1., 1.0, np.array(1.), np.array([1.])])
     def test_arithmetic_conversion(self, all_arithmetic_operators, other):
         # if we have a float operand we should have a float result
-        # if if that is equal to an integer
+        # if that is equal to an integer
         op = self.get_op_from_name(all_arithmetic_operators)
 
         s = pd.Series([1, 2, 3], dtype='Int64')
         result = op(s, other)
         assert result.dtype is np.dtype('float')
+
+    @pytest.mark.parametrize("other", [0, 0.5])
+    def test_arith_zero_dim_ndarray(self, other):
+        arr = integer_array([1, None, 2])
+        result = arr + np.array(other)
+        expected = arr + other
+        tm.assert_equal(result, expected)
 
     def test_error(self, data, all_arithmetic_operators):
         # invalid ops
@@ -284,6 +295,21 @@ class TestArithmeticOps(BaseOpsUtil):
             opa(pd.DataFrame({'A': s}))
         with pytest.raises(NotImplementedError):
             opa(np.arange(len(s)).reshape(-1, len(s)))
+
+    def test_pow(self):
+        # https://github.com/pandas-dev/pandas/issues/22022
+        a = integer_array([1, np.nan, np.nan, 1])
+        b = integer_array([1, np.nan, 1, np.nan])
+        result = a ** b
+        expected = pd.core.arrays.integer_array([1, np.nan, np.nan, 1])
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_rpow_one_to_na(self):
+        # https://github.com/pandas-dev/pandas/issues/22022
+        arr = integer_array([np.nan, np.nan])
+        result = np.array([1.0, 2.0]) ** arr
+        expected = np.array([1.0, np.nan])
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestComparisonOps(BaseOpsUtil):
@@ -497,6 +523,18 @@ def test_integer_array_constructor():
         IntegerArray(values)
 
 
+@pytest.mark.parametrize('a, b', [
+    ([1, None], [1, np.nan]),
+    ([None], [np.nan]),
+    ([None, np.nan], [np.nan, np.nan]),
+    ([np.nan, np.nan], [np.nan, np.nan]),
+])
+def test_integer_array_constructor_none_is_nan(a, b):
+    result = integer_array(a)
+    expected = integer_array(b)
+    tm.assert_extension_array_equal(result, expected)
+
+
 def test_integer_array_constructor_copy():
     values = np.array([1, 2, 3, 4], dtype='int64')
     mask = np.array([False, False, False, True], dtype='bool')
@@ -519,7 +557,9 @@ def test_integer_array_constructor_copy():
         1,
         1.0,
         pd.date_range('20130101', periods=2),
-        np.array(['foo'])])
+        np.array(['foo']),
+        [[1, 2], [3, 4]],
+        [np.nan, {'a': 1}]])
 def test_to_integer_array_error(values):
     # error in converting existing arrays to IntegerArrays
     with pytest.raises(TypeError):

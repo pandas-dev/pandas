@@ -3,9 +3,10 @@
 import re
 
 import numpy as np
+import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
-import pytest
 from pandas import IntervalIndex, MultiIndex, RangeIndex
 from pandas.compat import lrange, range
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -110,7 +111,7 @@ def test_consistency():
     index = MultiIndex(levels=[major_axis, minor_axis],
                        labels=[major_labels, minor_labels])
 
-    assert not index.is_unique
+    assert index.is_unique is False
 
 
 def test_hash_collisions():

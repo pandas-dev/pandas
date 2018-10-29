@@ -3,53 +3,47 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import division
 
-import warnings
 from textwrap import dedent
+import warnings
 
 import numpy as np
 import numpy.ma as ma
 
-import pandas.core.algorithms as algorithms
-import pandas.core.common as com
-import pandas.core.indexes.base as ibase
-import pandas.core.nanops as nanops
-import pandas.core.ops as ops
-import pandas.io.formats.format as fmt
-import pandas.plotting._core as gfx
-from pandas import compat
 from pandas._libs import iNaT, index as libindex, lib, tslibs
+import pandas.compat as compat
 from pandas.compat import (
-    PY36, OrderedDict, StringIO, get_range_parameters, range, u, zip
-)
+    PY36, OrderedDict, StringIO, get_range_parameters, range, u, zip)
 from pandas.compat.numpy import function as nv
-from pandas.core import base, generic
-from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
-from pandas.core.config import get_option
+from pandas.util._decorators import Appender, Substitution, deprecate
+from pandas.util._validators import validate_bool_kwarg
+
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar, construct_1d_ndarray_preserving_na,
     construct_1d_object_array_from_listlike, infer_dtype_from_scalar,
     maybe_cast_to_datetime, maybe_cast_to_integer_array, maybe_castable,
-    maybe_convert_platform, maybe_upcast
-)
+    maybe_convert_platform, maybe_upcast)
 from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
     is_categorical_dtype, is_datetime64tz_dtype, is_datetimelike, is_dict_like,
     is_extension_array_dtype, is_extension_type, is_float_dtype, is_hashable,
     is_integer, is_integer_dtype, is_iterator, is_list_like, is_object_dtype,
-    is_scalar, is_string_like, is_timedelta64_dtype, pandas_dtype
-)
+    is_scalar, is_string_like, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries
-)
+    ABCDataFrame, ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
 from pandas.core.dtypes.missing import (
-    isna, na_value_for_dtype, notna, remove_na_arraylike
-)
+    isna, na_value_for_dtype, notna, remove_na_arraylike)
+
+from pandas.core import algorithms, base, generic, nanops, ops
+from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray, SparseArray, period_array
+from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
+from pandas.core.arrays.sparse import SparseAccessor
+import pandas.core.common as com
+from pandas.core.config import get_option
 from pandas.core.index import (
-    Float64Index, Index, InvalidIndexError, MultiIndex, ensure_index
-)
+    Float64Index, Index, InvalidIndexError, MultiIndex, ensure_index)
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
+import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -57,9 +51,10 @@ from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core.internals import SingleBlockManager
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
+
+import pandas.io.formats.format as fmt
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.util._decorators import Appender, Substitution, deprecate
-from pandas.util._validators import validate_bool_kwarg
+import pandas.plotting._core as gfx
 
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
@@ -135,15 +130,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         RangeIndex (0, 1, 2, ..., n) if not provided. If both a dict and index
         sequence are used, the index will override the keys found in the
         dict.
-    dtype : numpy.dtype or None
-        If None, dtype will be inferred
+    dtype : str, numpy.dtype, or ExtensionDtype, optional
+        dtype for the output Series. If not specified, this will be
+        inferred from `data`.
     copy : boolean, default False
         Copy input data
     """
     _metadata = ['name']
-    _accessors = {'dt', 'cat', 'str'}
+    _accessors = {'dt', 'cat', 'str', 'sparse'}
     _deprecations = generic.NDFrame._deprecations | frozenset(
-        ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
+        ['asobject', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
 
     # Override cache_readonly bc Series is mutable
@@ -643,7 +639,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # nice error message for non-ufunc types
         if (context is not None and
-                not isinstance(self._values, (np.ndarray, ABCSparseArray))):
+                (not isinstance(self._values, (np.ndarray, ExtensionArray))
+                 or isinstance(self._values, Categorical))):
             obj = context[1][0]
             raise TypeError("{obj} with dtype {dtype} cannot perform "
                             "the numpy op {op}".format(
@@ -1364,7 +1361,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # TODO: deprecate
         from pandas.core.sparse.series import SparseSeries
-        from pandas.core.arrays import SparseArray
 
         values = SparseArray(self, kind=kind, fill_value=fill_value)
         return SparseSeries(
@@ -2960,33 +2956,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return algorithms.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
-    def sortlevel(self, level=0, ascending=True, sort_remaining=True):
-        """Sort Series with MultiIndex by chosen level. Data will be
-        lexicographically sorted by the chosen level followed by the other
-        levels (in order),
-
-        .. deprecated:: 0.20.0
-            Use :meth:`Series.sort_index`
-
-        Parameters
-        ----------
-        level : int or level name, default None
-        ascending : bool, default True
-
-        Returns
-        -------
-        sorted : Series
-
-        See Also
-        --------
-        Series.sort_index(level=...)
-
-        """
-        warnings.warn("sortlevel is deprecated, use sort_index(level=...)",
-                      FutureWarning, stacklevel=2)
-        return self.sort_index(level=level, ascending=ascending,
-                               sort_remaining=sort_remaining)
-
     def swaplevel(self, i=-2, j=-1, copy=True):
         """
         Swap levels i and j in a MultiIndex
@@ -4149,6 +4118,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
     cat = CachedAccessor("cat", CategoricalAccessor)
     plot = CachedAccessor("plot", gfx.SeriesPlotMethods)
+    sparse = CachedAccessor("sparse", SparseAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
@@ -4356,5 +4326,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             if not np.all(isna(data)):
                 data = np.array(data, dtype=dtype, copy=False)
             subarr = np.array(data, dtype=object, copy=copy)
+
+    if is_object_dtype(subarr.dtype) and dtype != 'object':
+        inferred = lib.infer_dtype(subarr)
+        if inferred == 'period':
+            try:
+                subarr = period_array(subarr)
+            except tslibs.period.IncompatibleFrequency:
+                pass
 
     return subarr

@@ -2,13 +2,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import DataFrame, Period, Series, period_range
+from pandas.core.arrays import PeriodArray
 import pandas.util.testing as tm
-import pandas.core.indexes.period as period
-from pandas import Series, period_range, DataFrame, Period
-
-
-def _permute(obj):
-    return obj.take(np.random.permutation(len(obj)))
 
 
 class TestSeriesPeriod(object):
@@ -18,11 +14,11 @@ class TestSeriesPeriod(object):
 
     def test_auto_conversion(self):
         series = Series(list(period_range('2000-01-01', periods=10, freq='D')))
-        assert series.dtype == 'object'
+        assert series.dtype == 'Period[D]'
 
         series = pd.Series([pd.Period('2011-01-01', freq='D'),
                             pd.Period('2011-02-01', freq='D')])
-        assert series.dtype == 'object'
+        assert series.dtype == 'Period[D]'
 
     def test_getitem(self):
         assert self.series[1] == pd.Period('2000-01-02', freq='D')
@@ -30,9 +26,9 @@ class TestSeriesPeriod(object):
         result = self.series[[2, 4]]
         exp = pd.Series([pd.Period('2000-01-03', freq='D'),
                          pd.Period('2000-01-05', freq='D')],
-                        index=[2, 4])
+                        index=[2, 4], dtype='Period[D]')
         tm.assert_series_equal(result, exp)
-        assert result.dtype == 'object'
+        assert result.dtype == 'Period[D]'
 
     def test_isna(self):
         # GH 13737
@@ -50,12 +46,7 @@ class TestSeriesPeriod(object):
         exp = Series([pd.Period('2011-01', freq='M'),
                       pd.Period('2012-01', freq='M')])
         tm.assert_series_equal(res, exp)
-        assert res.dtype == 'object'
-
-        res = s.fillna('XXX')
-        exp = Series([pd.Period('2011-01', freq='M'), 'XXX'])
-        tm.assert_series_equal(res, exp)
-        assert res.dtype == 'object'
+        assert res.dtype == 'Period[M]'
 
     def test_dropna(self):
         # GH 13737
@@ -91,19 +82,20 @@ class TestSeriesPeriod(object):
         expected = Series([pd.NaT])
         tm.assert_series_equal(result, expected)
 
-    def test_set_none_nan(self):
-        # currently Period is stored as object dtype, not as NaT
+    def test_set_none(self):
         self.series[3] = None
-        assert self.series[3] is None
+        assert self.series[3] is pd.NaT
 
         self.series[3:5] = None
-        assert self.series[4] is None
+        assert self.series[4] is pd.NaT
 
+    def test_set_nan(self):
+        # Do we want to allow this?
         self.series[5] = np.nan
-        assert np.isnan(self.series[5])
+        assert self.series[5] is pd.NaT
 
         self.series[5:7] = np.nan
-        assert np.isnan(self.series[6])
+        assert self.series[6] is pd.NaT
 
     def test_intercept_astype_object(self):
         expected = self.series.astype('object')
@@ -118,22 +110,6 @@ class TestSeriesPeriod(object):
 
         result = df.values.squeeze()
         assert (result[:, 0] == expected.values).all()
-
-    def test_add_series(self):
-        rng = period_range('1/1/2000', '1/1/2010', freq='A')
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        result = ts + ts[::2]
-        expected = ts + ts
-        expected[1::2] = np.nan
-        tm.assert_series_equal(result, expected)
-
-        result = ts + _permute(ts[::2])
-        tm.assert_series_equal(result, expected)
-
-        msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
-            ts + ts.asfreq('D', how="end")
 
     def test_align_series(self, join_type):
         rng = period_range('1/1/2000', '1/1/2010', freq='A')
@@ -184,6 +160,7 @@ class TestSeriesPeriod(object):
         # GH 17157
         # Check that the time part of the Period is adjusted by end_time
         # when using the dt accessor on a Series
+        input_vals = PeriodArray._from_sequence(np.asarray(input_vals))
 
         s = Series(input_vals)
         result = s.dt.end_time

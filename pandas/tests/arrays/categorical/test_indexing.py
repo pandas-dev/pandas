@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
-import numpy as np
-
-import pandas.util.testing as tm
-from pandas import Categorical, Index, CategoricalIndex, PeriodIndex, Series
+from pandas import Categorical, CategoricalIndex, Index, PeriodIndex, Series
 import pandas.core.common as com
 from pandas.tests.arrays.categorical.common import TestCategorical
+import pandas.util.testing as tm
 
 
 class TestCategoricalIndexingWithFactor(TestCategorical):

@@ -16,7 +16,7 @@
 
 echo "inside $0"
 [[ $LINT ]] || { echo "NOT Linting. To lint use: LINT=true $0 $1"; exit 0; }
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" ]] || { echo "Unkown command $1. Usage: $0 [lint|patterns|doctests]"; exit 9999; }
+[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" ]] || { echo "Unknown command $1. Usage: $0 [lint|patterns|doctests]"; exit 9999; }
 
 source activate pandas
 RET=0
@@ -122,27 +122,34 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
-    pytest --doctest-modules -v pandas/core/frame.py \
+    pytest -q --doctest-modules pandas/core/frame.py \
         -k"-axes -combine -itertuples -join -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_stata"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
-    pytest --doctest-modules -v pandas/core/series.py \
+    pytest -q --doctest-modules pandas/core/series.py \
         -k"-nonzero -reindex -searchsorted -to_dict"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests generic.py' ; echo $MSG
-    pytest --doctest-modules -v pandas/core/generic.py \
+    pytest -q --doctest-modules pandas/core/generic.py \
         -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -to_json -transpose -values -xs"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests top-level reshaping functions' ; echo $MSG
-    pytest --doctest-modules -v \
+    pytest -q --doctest-modules \
         pandas/core/reshape/concat.py \
         pandas/core/reshape/pivot.py \
         pandas/core/reshape/reshape.py \
         pandas/core/reshape/tile.py \
         -k"-crosstab -pivot_table -cut"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests interval classes' ; echo $MSG
+    pytest --doctest-modules -v \
+        pandas/core/indexes/interval.py \
+        pandas/core/arrays/interval.py \
+        -k"-from_arrays -from_breaks -from_intervals -from_tuples -get_loc -set_closed -to_tuples -interval_range"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

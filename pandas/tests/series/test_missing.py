@@ -1,26 +1,26 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytz
-import pytest
-
-from datetime import timedelta, datetime
-
+from datetime import datetime, timedelta
 from distutils.version import LooseVersion
-from numpy import nan
-import numpy as np
-import pandas as pd
 
-from pandas import (Series, DataFrame, isna, date_range,
-                    MultiIndex, Index, Timestamp, NaT, IntervalIndex,
-                    Categorical)
-from pandas.compat import range
+import numpy as np
+from numpy import nan
+import pytest
+import pytz
+
 from pandas._libs.tslib import iNaT
-from pandas.core.series import remove_na
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
+from pandas.compat import range
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
+    Timestamp, date_range, isna)
+from pandas.core.series import remove_na
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 try:
     import scipy

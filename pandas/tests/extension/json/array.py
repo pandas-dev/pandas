@@ -19,8 +19,9 @@ import sys
 
 import numpy as np
 
-from pandas import compat
 from pandas.core.dtypes.base import ExtensionDtype
+
+from pandas import compat
 from pandas.core.arrays import ExtensionArray
 
 
@@ -55,6 +56,7 @@ class JSONDtype(ExtensionDtype):
 
 class JSONArray(ExtensionArray):
     dtype = JSONDtype()
+    __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False):
         for val in values:
