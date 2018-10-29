@@ -797,10 +797,10 @@ def is_dtype_union_equal(source, target):
 def is_any_int_dtype(arr_or_dtype):
     """Check whether the provided array or dtype is of an integer dtype.
 
-    .. deprecated:: 0.20.0
-
     In this function, timedelta64 instances are also considered "any-integer"
     type objects and will return True.
+
+    This function is internal and should not be exposed in the public API.
 
     Parameters
     ----------
@@ -1560,6 +1560,8 @@ def is_string_like_dtype(arr_or_dtype):
 def is_float_dtype(arr_or_dtype):
     """
     Check whether the provided array or dtype is of a float dtype.
+
+    This function is internal and should not be exposed in the public API.
 
     Parameters
     ----------

@@ -1,15 +1,15 @@
-import operator
 import decimal
+import operator
 
 import numpy as np
-import pandas as pd
-from pandas import compat
-import pandas.util.testing as tm
 import pytest
 
+import pandas as pd
+from pandas import compat
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
-from .array import DecimalDtype, DecimalArray, make_data, to_decimal
+from .array import DecimalArray, DecimalDtype, make_data, to_decimal
 
 
 @pytest.fixture

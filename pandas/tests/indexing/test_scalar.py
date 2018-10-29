@@ -1,13 +1,11 @@
 """ test scalar indexing, including at and iat """
 
+import numpy as np
 import pytest
 
-import numpy as np
-
-from pandas import (Series, DataFrame, Timestamp,
-                    Timedelta, date_range)
-from pandas.util import testing as tm
+from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
 from pandas.tests.indexing.common import Base
+from pandas.util import testing as tm
 
 
 class TestScalar(Base):

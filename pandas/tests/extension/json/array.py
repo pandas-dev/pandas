@@ -19,8 +19,9 @@ import sys
 
 import numpy as np
 
-from pandas import compat
 from pandas.core.dtypes.base import ExtensionDtype
+
+from pandas import compat
 from pandas.core.arrays import ExtensionArray
 
 

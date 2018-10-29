@@ -655,6 +655,11 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
         e.g. the item sizes don't align.
     skipna: bool, default False
         Whether or not we should skip NaN when casting as a string-type.
+
+    Raises
+    ------
+    ValueError
+        The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
 
     # dispatch on extension dtype if needed
@@ -736,12 +741,9 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
             return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
 
     if dtype.name in ("datetime64", "timedelta64"):
-        msg = ("Passing in '{dtype}' dtype with no frequency is "
-               "deprecated and will raise in a future version. "
+        msg = ("The '{dtype}' dtype has no unit. "
                "Please pass in '{dtype}[ns]' instead.")
-        warnings.warn(msg.format(dtype=dtype.name),
-                      FutureWarning, stacklevel=5)
-        dtype = np.dtype(dtype.name + "[ns]")
+        raise ValueError(msg.format(dtype=dtype.name))
 
     if copy or is_object_dtype(arr) or is_object_dtype(dtype):
         # Explicit copy, or required since NumPy can't view from / to object.
@@ -1010,16 +1012,14 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
 
         if is_datetime64 or is_datetime64tz or is_timedelta64:
 
-            # force the dtype if needed
-            msg = ("Passing in '{dtype}' dtype with no frequency is "
-                   "deprecated and will raise in a future version. "
+            # Force the dtype if needed.
+            msg = ("The '{dtype}' dtype has no unit. "
                    "Please pass in '{dtype}[ns]' instead.")
 
             if is_datetime64 and not is_dtype_equal(dtype, _NS_DTYPE):
                 if dtype.name in ('datetime64', 'datetime64[ns]'):
                     if dtype.name == 'datetime64':
-                        warnings.warn(msg.format(dtype=dtype.name),
-                                      FutureWarning, stacklevel=5)
+                        raise ValueError(msg.format(dtype=dtype.name))
                     dtype = _NS_DTYPE
                 else:
                     raise TypeError("cannot convert datetimelike to "
@@ -1035,8 +1035,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
             elif is_timedelta64 and not is_dtype_equal(dtype, _TD_DTYPE):
                 if dtype.name in ('timedelta64', 'timedelta64[ns]'):
                     if dtype.name == 'timedelta64':
-                        warnings.warn(msg.format(dtype=dtype.name),
-                                      FutureWarning, stacklevel=5)
+                        raise ValueError(msg.format(dtype=dtype.name))
                     dtype = _TD_DTYPE
                 else:
                     raise TypeError("cannot convert timedeltalike to "

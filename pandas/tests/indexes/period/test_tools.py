@@ -1,17 +1,17 @@
-import numpy as np
 from datetime import datetime, timedelta
+
+import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import Timedelta
-import pandas.util.testing as tm
-import pandas.core.indexes.period as period
+from pandas._libs.tslibs.ccalendar import MONTHS
 from pandas.compat import lrange
 
-from pandas._libs.tslibs.ccalendar import MONTHS
-
-from pandas import (PeriodIndex, Period, DatetimeIndex, Timestamp, Series,
-                    date_range, to_datetime, period_range)
+import pandas as pd
+from pandas import (
+    DatetimeIndex, Period, PeriodIndex, Series, Timedelta, Timestamp,
+    date_range, period_range, to_datetime)
+import pandas.core.indexes.period as period
+import pandas.util.testing as tm
 
 
 class TestPeriodRepresentation(object):

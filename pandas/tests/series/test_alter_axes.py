@@ -1,15 +1,14 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
 from datetime import datetime
 
 import numpy as np
-
-from pandas import Series, DataFrame, Index, MultiIndex, RangeIndex
+import pytest
 
 from pandas.compat import lrange, range, zip
+
+from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
 import pandas.util.testing as tm
 
 

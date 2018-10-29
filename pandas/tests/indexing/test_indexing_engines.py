@@ -1,8 +1,9 @@
 import numpy as np
 
-import pandas.util.testing as tm
-from pandas import compat
 from pandas._libs import algos as libalgos, index as libindex
+
+from pandas import compat
+import pandas.util.testing as tm
 
 
 class TestNumericEngine(object):

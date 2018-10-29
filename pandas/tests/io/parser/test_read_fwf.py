@@ -8,15 +8,17 @@ engine is set to 'python-fwf' internally.
 
 from datetime import datetime
 
-import pytest
 import numpy as np
+import pytest
+
+import pandas.compat as compat
+from pandas.compat import BytesIO, StringIO
+
 import pandas as pd
+from pandas import DataFrame
 import pandas.util.testing as tm
 
-from pandas import DataFrame
-from pandas import compat
-from pandas.compat import StringIO, BytesIO
-from pandas.io.parsers import read_csv, read_fwf, EmptyDataError
+from pandas.io.parsers import EmptyDataError, read_csv, read_fwf
 
 
 class TestFwfParsing(object):
