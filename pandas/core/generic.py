@@ -8623,6 +8623,13 @@ class NDFrame(PandasObject, SelectionMixin):
         copy : boolean, default True
             Also make a copy of the underlying data
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            When clocks moved backward due to DST, ambiguous times may arise.
+            E.g. in Central European Time (UTC+01), when going from 03:00 DST
+            to 02:00 non-DST, the naive time 02:30:00 occurs both at
+            00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
+            `ambiguous` parameter can be used to correctly localize these
+            times.
+
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False designates
