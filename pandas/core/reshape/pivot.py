@@ -1,6 +1,4 @@
 # pylint: disable=E1103
-
-
 import numpy as np
 
 import pandas.core.common as com
@@ -17,11 +15,9 @@ from pandas.core.reshape.util import cartesian_product
 from pandas.core.series import Series
 from pandas.util._decorators import Appender, Substitution
 
+
 # Note: We need to make sure `frame` is imported before `pivot`, otherwise
 # _shared_docs['pivot_table'] will not yet exist.  TODO: Fix this dependency
-
-
-
 @Substitution('\ndata : DataFrame')
 @Appender(_shared_docs['pivot_table'], indents=1)
 def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
