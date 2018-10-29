@@ -5,22 +5,20 @@ from pandas._libs import algos, lib
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import Period, Timestamp, conversion
 from pandas.compat import PY3, PY36, binary_type, string_types, text_type
+
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype, ExtensionDtype,
     IntervalDtype, PandasExtensionDtype, PeriodDtype, _pandas_registry,
-    registry
-)
+    registry)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCCategoricalIndex, ABCDateOffset, ABCDatetimeIndex,
     ABCIndexClass, ABCPeriodArray, ABCPeriodIndex, ABCSeries, ABCSparseArray,
-    ABCSparseSeries
-)
+    ABCSparseSeries)
 from pandas.core.dtypes.inference import (  # noqa:F401
     is_array_like, is_bool, is_complex, is_decimal, is_dict_like, is_file_like,
     is_float, is_hashable, is_integer, is_interval, is_iterator, is_list_like,
     is_named_tuple, is_nested_list_like, is_number, is_re, is_re_compilable,
-    is_scalar, is_sequence, is_string_like
-)
+    is_scalar, is_sequence, is_string_like)
 
 _POSSIBLY_CAST_DTYPES = {np.dtype(t).name
                          for t in ['O', 'int8', 'uint8', 'int16', 'uint16',

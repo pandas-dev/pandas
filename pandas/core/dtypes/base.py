@@ -1,9 +1,11 @@
 """Extend pandas with custom array types"""
 import numpy as np
 
-from pandas import compat
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.errors import AbstractMethodError
+
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+
+from pandas import compat
 
 
 class _DtypeOpsMixin(object):

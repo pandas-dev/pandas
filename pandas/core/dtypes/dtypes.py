@@ -4,10 +4,12 @@ import re
 
 import numpy as np
 
-from pandas import compat
 from pandas._libs.interval import Interval
 from pandas._libs.tslibs import NaT, Period, Timestamp
+
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
+
+from pandas import compat
 
 from .base import ExtensionDtype, _DtypeOpsMixin
 

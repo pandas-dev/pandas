@@ -1,6 +1,6 @@
 """
-missing types & inference
-"""
+    missing types & inference
+    """
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
@@ -12,11 +12,9 @@ from .common import (
     is_datetimelike_v_numeric, is_dtype_equal, is_extension_array_dtype,
     is_float_dtype, is_integer, is_integer_dtype, is_object_dtype,
     is_period_dtype, is_scalar, is_string_dtype, is_string_like_dtype,
-    is_timedelta64_dtype, needs_i8_conversion, pandas_dtype
-)
+    is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
 from .generic import (
-    ABCExtensionArray, ABCGeneric, ABCIndexClass, ABCMultiIndex, ABCSeries
-)
+    ABCExtensionArray, ABCGeneric, ABCIndexClass, ABCMultiIndex, ABCSeries)
 from .inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
