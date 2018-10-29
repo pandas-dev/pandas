@@ -176,7 +176,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 pass
 
         if isinstance(key, range):
-            return self._convert_range(key, is_setter=True)
+            return self._convert_range(key)
 
         try:
             return self._convert_to_indexer(key, is_setter=True)
