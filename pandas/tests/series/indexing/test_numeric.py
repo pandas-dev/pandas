@@ -1,17 +1,15 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
-
-from pandas import (Index, Series, DataFrame)
-
 from pandas.compat import lrange, range
-from pandas.util.testing import (assert_series_equal)
 
+import pandas as pd
+from pandas import DataFrame, Index, Series
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
 
 
 def test_get():

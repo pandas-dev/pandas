@@ -7,8 +7,8 @@ de-duplicated (if mangling requested) or ignored otherwise.
 """
 
 from pandas.compat import StringIO
-from pandas import DataFrame
 
+from pandas import DataFrame
 import pandas.util.testing as tm
 
 

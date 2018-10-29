@@ -2,7 +2,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import TimedeltaIndex, timedelta_range, Int64Index
+from pandas import Int64Index, TimedeltaIndex, timedelta_range
 
 
 class TestTimedeltaIndex(object):

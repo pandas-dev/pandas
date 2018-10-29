@@ -1,21 +1,20 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
-from collections import Counter, defaultdict, OrderedDict
+from collections import Counter, OrderedDict, defaultdict
 from itertools import chain
 
 import numpy as np
-import pandas as pd
+import pytest
 
-from pandas import (Index, Series, DataFrame, isna)
+import pandas.compat as compat
 from pandas.compat import lrange
-from pandas import compat
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal)
-import pandas.util.testing as tm
+
+import pandas as pd
+from pandas import DataFrame, Index, Series, isna
 from pandas.conftest import _get_cython_table_params
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestSeriesApply():

@@ -3,27 +3,23 @@
 
 """ test fancy indexing & misc """
 
+from datetime import datetime
+from warnings import catch_warnings, simplefilter
+import weakref
+
+import numpy as np
 import pytest
 
-import weakref
-from warnings import catch_warnings, simplefilter
-from datetime import datetime
+from pandas.compat import PY2, StringIO, lrange, lzip, range
 
-from pandas.core.dtypes.common import (
-    is_integer_dtype,
-    is_float_dtype)
-from pandas.compat import range, lrange, lzip, StringIO
-import numpy as np
+from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
-from pandas.core.indexing import (_non_reducing_slice, _maybe_numeric_slice,
-                                  validate_indices)
-from pandas import NaT, DataFrame, Index, Series, MultiIndex
-import pandas.util.testing as tm
-from pandas.compat import PY2
-
+from pandas import DataFrame, Index, MultiIndex, NaT, Series
+from pandas.core.indexing import (
+    _maybe_numeric_slice, _non_reducing_slice, validate_indices)
 from pandas.tests.indexing.common import Base, _mklbl
-
+import pandas.util.testing as tm
 
 # ------------------------------------------------------------------------
 # Indexing test cases
