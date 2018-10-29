@@ -1,29 +1,30 @@
 """ test to_datetime """
 
 import calendar
-import locale
 from datetime import datetime, time
 from distutils.version import LooseVersion
+import locale
 
 import dateutil
+from dateutil.parser import parse
+from dateutil.tz.tz import tzoffset
 import numpy as np
 import pytest
 import pytz
-from dateutil.parser import parse
-from dateutil.tz.tz import tzoffset
 
-import pandas as pd
-import pandas.util._test_decorators as td
-from pandas import (
-    DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, compat,
-    date_range, isna, to_datetime
-)
 from pandas._libs import tslib
 from pandas._libs.tslibs import parsing
 from pandas.compat import PY3, lmap
-from pandas.core.dtypes.common import is_datetime64_ns_dtype
-from pandas.core.tools import datetimes as tools
 from pandas.errors import OutOfBoundsDatetime
+import pandas.util._test_decorators as td
+
+from pandas.core.dtypes.common import is_datetime64_ns_dtype
+
+import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, compat,
+    date_range, isna, to_datetime)
+from pandas.core.tools import datetimes as tools
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal
 

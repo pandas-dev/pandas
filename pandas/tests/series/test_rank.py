@@ -3,17 +3,19 @@ from distutils.version import LooseVersion
 from itertools import chain
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
 
-import pandas.util._test_decorators as td
-import pandas.util.testing as tm
-from pandas import NaT, Series, Timestamp, compat, date_range
 from pandas._libs.algos import Infinity, NegInfinity
 from pandas._libs.tslib import iNaT
-from pandas.api.types import CategoricalDtype
+import pandas.compat as compat
 from pandas.compat import product
+import pandas.util._test_decorators as td
+
+from pandas import NaT, Series, Timestamp, date_range
+from pandas.api.types import CategoricalDtype
 from pandas.tests.series.common import TestData
+import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 

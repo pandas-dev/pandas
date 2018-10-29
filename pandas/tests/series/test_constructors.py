@@ -5,24 +5,24 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 
 import numpy as np
+from numpy import nan
 import numpy.ma as ma
 import pytest
-from numpy import nan
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import (
-    Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
-    Timestamp, date_range, isna, period_range, timedelta_range
-)
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
-from pandas.api.types import CategoricalDtype
 from pandas.compat import PY36, long, lrange, range, zip
-from pandas.core.arrays import period_array
+
 from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_datetime64tz_dtype
-)
+    is_categorical_dtype, is_datetime64tz_dtype)
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
+    Timestamp, date_range, isna, period_range, timedelta_range)
+from pandas.api.types import CategoricalDtype
+from pandas.core.arrays import period_array
+import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 
@@ -1198,7 +1198,7 @@ class TestSeriesConstructors():
     ])
     def test_constructor_generic_timestamp_no_frequency(self, dtype):
         # see gh-15524, gh-15987
-        msg = "dtype has no frequency. Please pass in"
+        msg = "dtype has no unit. Please pass in"
 
         with tm.assert_raises_regex(ValueError, msg):
             Series([], dtype=dtype)

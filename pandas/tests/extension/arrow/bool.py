@@ -13,8 +13,7 @@ import pyarrow as pa
 
 import pandas as pd
 from pandas.api.extensions import (
-    ExtensionArray, ExtensionDtype, register_extension_dtype, take
-)
+    ExtensionArray, ExtensionDtype, register_extension_dtype, take)
 
 
 @register_extension_dtype
