@@ -634,7 +634,7 @@ class SparseDataFrame(DataFrame):
 
         return self._wrap_dispatched_op(new_data, other, func, "columns")
 
-    def _combine_const(self, other, func, errors='raise'):
+    def _combine_const(self, other, func):
         return self._apply_columns(lambda x: func(x, other))
 
     def _get_op_result_fill_value(self, other, func, axis=None):

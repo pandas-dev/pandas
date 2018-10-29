@@ -1935,9 +1935,8 @@ def _comp_method_FRAME(cls, func, special):
         else:
 
             # straight boolean comparisons we want to allow all columns
-            # (regardless of dtype to pass thru) See #4537 for discussion.
-            res = self._combine_const(other, func,
-                                      errors='ignore')
+            # (regardless of dtype to pass thru) See GH#4537 for discussion.
+            res = self._combine_const(other, func)
             return res.fillna(True).astype(bool)
 
     f.__name__ = op_name
