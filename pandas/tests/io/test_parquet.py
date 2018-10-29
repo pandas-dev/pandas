@@ -1,8 +1,7 @@
 """ test parquet compat """
+import os
 
 import pytest
-import tempfile
-import shutil
 import datetime
 from distutils.version import LooseVersion
 from warnings import catch_warnings
@@ -481,18 +480,19 @@ class TestParquetPyArrow(Base):
                          path='s3://pandas-test/pyarrow.parquet')
 
     def test_partition_cols_supported(self, pa_ge_070, df_full):
+        # GH #23283
         partition_cols = ['bool', 'int']
         df = df_full
-        path = tempfile.mkdtemp()
-        df.to_parquet(path, partition_cols=partition_cols,
-                      compression=None)
-        import pyarrow.parquet as pq
-        dataset = pq.ParquetDataset(path, validate_schema=False)
-        assert len(dataset.partitions.partition_names) == 2
-        assert dataset.partitions.partition_names == set(partition_cols)
-        shutil.rmtree(path)
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, partition_cols=partition_cols,
+                          compression=None)
+            import pyarrow.parquet as pq
+            dataset = pq.ParquetDataset(path, validate_schema=False)
+            assert len(dataset.partitions.partition_names) == 2
+            assert dataset.partitions.partition_names == set(partition_cols)
 
     def test_ignore_partition_cols_lt_070(self, pa_lt_070, df_full):
+        # GH #23283
         partition_cols = ['bool', 'int']
         pa = pa_lt_070
         df = df_full
@@ -564,3 +564,15 @@ class TestParquetFastParquet(Base):
         # GH #19134
         check_round_trip(df_compat, fp,
                          path='s3://pandas-test/fastparquet.parquet')
+
+    def test_partition_cols_supported(self, fp, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, partition_cols=partition_cols,
+                          compression=None)
+            assert os.path.exists(path)
+            import fastparquet
+            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
+            assert len(actual_partition_cols) == 2

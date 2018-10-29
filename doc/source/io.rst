@@ -4574,6 +4574,8 @@ Several caveats.
 * Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
+* ``partition_cols`` will be used for partitioning the dataset, where the dataset will be written to multiple
+  files in the path specified. Therefore, the path specified, must be a directory path.
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``,

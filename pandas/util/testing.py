@@ -772,6 +772,23 @@ def ensure_clean(filename=None, return_filelike=False):
                 print("Exception on removing file: {error}".format(error=e))
 
 
+@contextmanager
+def ensure_clean_dir():
+    """
+    Get a temporary directory path and agrees to remove on close.
+
+    Yields
+    ----------
+    Temporary directory path
+    """
+    directory_name = tempfile.mkdtemp(suffix='')
+    try:
+        yield directory_name
+    finally:
+        import shutil
+        shutil.rmtree(directory_name)
+
+
 # -----------------------------------------------------------------------------
 # Comparators
 

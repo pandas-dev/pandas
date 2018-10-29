@@ -875,3 +875,12 @@ def test_datapath_missing(datapath, request):
     )
 
     assert result == expected
+
+
+def test_create_temp_directory():
+    temppath = ''
+    with tm.ensure_clean_dir() as path:
+        assert os.path.exists(path)
+        assert os.path.isdir(path)
+        temppath = path
+    assert not os.path.exists(temppath)
