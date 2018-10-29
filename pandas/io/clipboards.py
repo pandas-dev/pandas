@@ -1,9 +1,12 @@
 """ io on the clipboard """
 import warnings
 
-from pandas import compat, get_option, option_context
+import pandas.compat as compat
 from pandas.compat import PY2, PY3, StringIO
+
 from pandas.core.dtypes.generic import ABCDataFrame
+
+from pandas import get_option, option_context
 
 
 def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover

@@ -6,9 +6,10 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
-from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
 from pandas.compat import lrange, range, zip
+
+from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
+import pandas.util.testing as tm
 
 
 class TestSeriesAlterAxes(object):

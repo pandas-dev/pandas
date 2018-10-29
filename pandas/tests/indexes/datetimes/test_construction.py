@@ -6,14 +6,14 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import (
-    DatetimeIndex, Index, Timestamp, date_range, datetime, offsets,
-    to_datetime
-)
 from pandas._libs.tslib import OutOfBoundsDatetime
 from pandas._libs.tslibs import conversion
+
+import pandas as pd
+from pandas import (
+    DatetimeIndex, Index, Timestamp, date_range, datetime, offsets,
+    to_datetime)
+import pandas.util.testing as tm
 
 
 class TestDatetimeIndex(object):

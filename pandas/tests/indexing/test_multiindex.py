@@ -3,11 +3,11 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning, UnsortedIndexError
+
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, date_range
-)
-from pandas.errors import PerformanceWarning, UnsortedIndexError
+    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, date_range)
 from pandas.tests.indexing.common import _mklbl
 from pandas.util import testing as tm
 
