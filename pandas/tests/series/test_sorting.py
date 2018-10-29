@@ -5,8 +5,8 @@ import random
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
 from pandas import Categorical, DataFrame, IntervalIndex, MultiIndex, Series
+import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal, assert_series_equal
 
 from .common import TestData

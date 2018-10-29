@@ -2,24 +2,25 @@
 # pylint: disable-msg=E1101,W0612
 
 import calendar
+from datetime import date, datetime, time
 import locale
 import unicodedata
-from datetime import date, datetime, time
 
 import numpy as np
 import pytest
 import pytz
 
+from pandas._libs.tslibs.timezones import maybe_get_tz
+
+from pandas.core.dtypes.common import is_integer_dtype, is_list_like
+
 import pandas as pd
-import pandas.core.common as com
-import pandas.util.testing as tm
 from pandas import (
     DataFrame, DatetimeIndex, Index, PeriodIndex, Series, TimedeltaIndex,
-    bdate_range, compat, date_range, period_range, timedelta_range
-)
-from pandas._libs.tslibs.timezones import maybe_get_tz
+    bdate_range, compat, date_range, period_range, timedelta_range)
 from pandas.core.arrays import PeriodArray
-from pandas.core.dtypes.common import is_integer_dtype, is_list_like
+import pandas.core.common as com
+import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 

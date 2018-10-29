@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas.core.api import DataFrame, MultiIndex, Series
+import pandas.util.testing as tm
 
 
 class TestIndexingSlow(object):

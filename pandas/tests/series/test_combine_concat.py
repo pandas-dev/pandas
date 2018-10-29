@@ -4,12 +4,12 @@
 from datetime import datetime
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import DataFrame, DatetimeIndex, Series, compat, date_range
+import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 

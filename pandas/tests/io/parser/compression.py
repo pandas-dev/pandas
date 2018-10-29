@@ -10,9 +10,10 @@ import gzip
 
 import pytest
 
-import pandas as pd
 import pandas.compat as compat
 import pandas.util._test_decorators as td
+
+import pandas as pd
 import pandas.util.testing as tm
 
 try:

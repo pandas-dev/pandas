@@ -1,25 +1,24 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import operator
 from datetime import datetime, timedelta
+import operator
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
+
+import pandas.compat as compat
+from pandas.compat import range
 
 import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, NaT, Series, bdate_range, date_range, isna)
+from pandas.core import ops
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
-from pandas import (
-    Categorical, DataFrame, Index, NaT, Series, bdate_range, compat,
-    date_range, isna
-)
-from pandas.compat import range
-from pandas.core import ops
 from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, assert_series_equal
-)
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 from .common import TestData
 

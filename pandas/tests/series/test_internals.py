@@ -4,14 +4,15 @@
 from datetime import datetime
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
+
+import pandas._libs.lib as lib
 
 import pandas as pd
-import pandas._libs.lib as lib
-import pandas.util.testing as tm
 from pandas import Series
 from pandas.core.indexes.datetimes import Timestamp
+import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 

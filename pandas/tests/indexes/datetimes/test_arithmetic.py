@@ -4,10 +4,11 @@ from datetime import datetime
 import pytest
 import pytz
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import DatetimeIndex, Series, date_range
 from pandas.errors import NullFrequencyError
+
+import pandas as pd
+from pandas import DatetimeIndex, Series, date_range
+import pandas.util.testing as tm
 
 
 class TestDatetimeIndexArithmetic(object):

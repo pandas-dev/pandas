@@ -1,30 +1,29 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import operator
 from distutils.version import LooseVersion
 from itertools import product
+import operator
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
+
+from pandas.compat import PY35, lrange, range
+import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.core.nanops as nanops
-import pandas.util._test_decorators as td
-import pandas.util.testing as tm
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, Series, bdate_range, compat,
-    date_range, isna, notna
-)
-from pandas.compat import PY35, lrange, range
+    date_range, isna, notna)
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
+import pandas.core.nanops as nanops
+import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_index_equal,
-    assert_series_equal
-)
+    assert_series_equal)
 
 from .common import TestData
 

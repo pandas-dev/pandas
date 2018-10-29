@@ -1,6 +1,7 @@
+from pandas.util._decorators import cache_readonly
+
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.util._decorators import cache_readonly
 
 _ts = tm.makeTimeSeries()
 

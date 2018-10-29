@@ -10,11 +10,12 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import DataFrame, Index
 from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO, lmap, parse_date
+
+import pandas as pd
+from pandas import DataFrame, Index
+import pandas.util.testing as tm
 
 
 class ConverterTests(object):

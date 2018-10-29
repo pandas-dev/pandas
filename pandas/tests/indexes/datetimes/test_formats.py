@@ -6,8 +6,8 @@ import pytest
 import pytz
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import DatetimeIndex, Series
+import pandas.util.testing as tm
 
 
 def test_to_native_types():

@@ -8,15 +8,17 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import (
-    Categorical, DataFrame, MultiIndex, Series, Timedelta, Timestamp
-)
 from pandas.compat import lrange, range
+
 from pandas.core.dtypes.common import is_scalar
-from pandas.tseries.offsets import BDay
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, MultiIndex, Series, Timedelta, Timestamp)
+import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
+
+from pandas.tseries.offsets import BDay
 
 
 def test_basic_indexing():

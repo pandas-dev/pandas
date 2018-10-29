@@ -19,10 +19,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import Categorical
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 
 def make_data():

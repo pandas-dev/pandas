@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
-import numpy as np
 from dateutil import tz
+import numpy as np
 
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timestamp, date_range

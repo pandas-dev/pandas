@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import DataFrame, Period, Series, period_range
 from pandas.core.arrays import PeriodArray
+import pandas.util.testing as tm
 
 
 class TestSeriesPeriod(object):

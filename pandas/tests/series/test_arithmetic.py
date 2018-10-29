@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-import operator
 from datetime import timedelta
+import operator
 
 import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import Series, compat
 from pandas.core.indexes.period import IncompatibleFrequency
+import pandas.util.testing as tm
 
 
 def _permute(obj):

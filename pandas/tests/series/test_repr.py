@@ -1,20 +1,21 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import sys
 from datetime import datetime, timedelta
+import sys
 
 import numpy as np
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import (
-    Categorical, DataFrame, Index, Series, compat, date_range, option_context,
-    period_range, timedelta_range
-)
+import pandas.compat as compat
 from pandas.compat import lrange, range, u
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, Series, date_range, option_context,
+    period_range, timedelta_range)
 from pandas.core.base import StringMixin
 from pandas.core.index import MultiIndex
+import pandas.util.testing as tm
 
 from .common import TestData
 

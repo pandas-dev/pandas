@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import operator
 from datetime import datetime
 from itertools import combinations
+import operator
 
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, isna
 from pandas.compat import PY3, range, u
+
+import pandas as pd
+from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, isna
+import pandas.util.testing as tm
 
 from .test_numeric import Numeric
 

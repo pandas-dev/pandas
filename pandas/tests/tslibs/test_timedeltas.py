@@ -2,8 +2,9 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+
+import pandas as pd
 
 
 def test_delta_to_nanoseconds():

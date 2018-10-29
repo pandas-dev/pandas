@@ -1,23 +1,23 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+from datetime import datetime, timedelta
 import string
 import sys
-from datetime import datetime, timedelta
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
+
+import pandas._libs.tslib as tslib
+import pandas.compat as compat
+from pandas.compat import lrange, range, u
 
 import pandas as pd
-import pandas._libs.tslib as tslib
-import pandas.util.testing as tm
 from pandas import (
-    Categorical, DataFrame, Index, Series, Timedelta, Timestamp, compat,
-    date_range
-)
+    Categorical, DataFrame, Index, Series, Timedelta, Timestamp, date_range)
 from pandas.api.types import CategoricalDtype
-from pandas.compat import lrange, range, u
+import pandas.util.testing as tm
 
 
 class TestSeriesDtypes(object):

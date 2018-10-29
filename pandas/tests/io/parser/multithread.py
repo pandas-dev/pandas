@@ -11,10 +11,11 @@ from multiprocessing.pool import ThreadPool
 
 import numpy as np
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import DataFrame
 from pandas.compat import BytesIO, range
+
+import pandas as pd
+from pandas import DataFrame
+import pandas.util.testing as tm
 
 
 def _construct_dataframe(num_rows):

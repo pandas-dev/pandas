@@ -6,13 +6,15 @@ parsing for all of the parsers defined in parsers.py
 """
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
+
+from pandas.compat import StringIO, range
+
+from pandas import DataFrame, Index, MultiIndex
+import pandas.util.testing as tm
 
 import pandas.io.common as com
-import pandas.util.testing as tm
-from pandas import DataFrame, Index, MultiIndex
-from pandas.compat import StringIO, range
 
 
 class NAvaluesTests(object):

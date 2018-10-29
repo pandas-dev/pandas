@@ -5,10 +5,9 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
 from pandas import (
-    DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series
-)
+    DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series)
+import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal, assert_series_equal
 
 ignore_ix = pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")

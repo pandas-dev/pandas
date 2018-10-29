@@ -7,11 +7,13 @@ from itertools import chain
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import DataFrame, Index, Series, compat, isna
+import pandas.compat as compat
 from pandas.compat import lrange
+
+import pandas as pd
+from pandas import DataFrame, Index, Series, isna
 from pandas.conftest import _get_cython_table_params
+import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 

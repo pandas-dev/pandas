@@ -1,8 +1,8 @@
 """Tests for Interval-Interval operations, such as overlaps, contains, etc."""
 import pytest
 
-import pandas.util.testing as tm
 from pandas import Interval, Timedelta, Timestamp
+import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[

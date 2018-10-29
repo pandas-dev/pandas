@@ -4,8 +4,7 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame, MultiIndex, Series, Timestamp, compat, date_range,
-    option_context
-)
+    option_context)
 from pandas.core import common as com
 from pandas.util import testing as tm
 

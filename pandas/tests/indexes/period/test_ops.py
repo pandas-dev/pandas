@@ -2,12 +2,13 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 import pandas._libs.tslib as tslib
-import pandas.util.testing as tm
+
+import pandas as pd
 from pandas import DatetimeIndex, Index, Period, PeriodIndex, Series
 from pandas.core.arrays import PeriodArray
 from pandas.tests.test_base import Ops
+import pandas.util.testing as tm
 
 
 class TestPeriodIndexOps(Ops):

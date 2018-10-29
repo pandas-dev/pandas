@@ -8,10 +8,11 @@ for all of the parsers defined in parsers.py
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
-from pandas import DataFrame, Index
 from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO
+
+from pandas import DataFrame, Index
+import pandas.util.testing as tm
 
 
 class UsecolsTests(object):

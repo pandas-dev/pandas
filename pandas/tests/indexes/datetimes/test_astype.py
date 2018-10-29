@@ -1,17 +1,16 @@
 from datetime import datetime
 
 import dateutil
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 import pytz
-from dateutil.tz import tzlocal
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import (
     DatetimeIndex, Index, Int64Index, NaT, Period, Series, Timestamp,
-    date_range
-)
+    date_range)
+import pandas.util.testing as tm
 
 
 class TestDatetimeIndex(object):

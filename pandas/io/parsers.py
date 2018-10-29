@@ -3,49 +3,48 @@ Module contains tools for processing files into DataFrames or other objects
 """
 from __future__ import print_function
 
+from collections import defaultdict
 import csv
 import datetime
 import re
 import sys
-import warnings
-from collections import defaultdict
 from textwrap import fill
+import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
-import pandas.core.common as com
-from pandas import compat
 from pandas._libs.tslibs import parsing
+import pandas.compat as compat
 from pandas.compat import (
-    PY3, StringIO, lrange, lzip, map, range, string_types, u, zip
-)
-from pandas.core import algorithms
-from pandas.core.arrays import Categorical
+    PY3, StringIO, lrange, lzip, map, range, string_types, u, zip)
+from pandas.errors import EmptyDataError, ParserError, ParserWarning
+from pandas.util._decorators import Appender
+
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_dtype_equal, is_float, is_integer,
     is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
-    is_string_dtype
-)
+    is_string_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
+
+from pandas.core import algorithms
+from pandas.core.arrays import Categorical
+import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.index import (
-    Index, MultiIndex, RangeIndex, ensure_index_from_sequences
-)
+    Index, MultiIndex, RangeIndex, ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
-from pandas.errors import EmptyDataError, ParserError, ParserWarning
+
 from pandas.io.common import (
     _NA_VALUES, BaseIterator, UnicodeReader, UTF8Recoder, _get_handle,
     _infer_compression, _validate_header_arg, get_filepath_or_buffer,
-    is_file_like
-)
+    is_file_like)
 from pandas.io.date_converters import generic_parser
-from pandas.util._decorators import Appender
 
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness

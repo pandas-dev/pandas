@@ -3,10 +3,11 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import MultiIndex
 from pandas.compat import PYPY
+
+import pandas as pd
+from pandas import MultiIndex
+import pandas.util.testing as tm
 
 
 def test_contains_top_level():
