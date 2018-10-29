@@ -496,8 +496,10 @@ class TestParquetPyArrow(Base):
         partition_cols = ['bool', 'int']
         pa = pa_lt_070
         df = df_full
-        check_round_trip(df, pa,
-                         write_kwargs={'partition_cols': partition_cols})
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, partition_cols=partition_cols,
+                          compression=None)
+        pytest.raises(ValueError)
 
 
 class TestParquetFastParquet(Base):
@@ -576,3 +578,11 @@ class TestParquetFastParquet(Base):
             import fastparquet
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
+
+    def test_partition_on_not_supported(self, fp, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with pytest.raises(ValueError):
+            df.to_parquet("", compression=None,
+              partition_on=partition_cols)

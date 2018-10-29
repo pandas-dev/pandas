@@ -113,6 +113,10 @@ class PyArrowImpl(BaseImpl):
             self._validate_write_lt_070(df)
         path, _, _, _ = get_filepath_or_buffer(path, mode='wb')
 
+        if partition_cols is not None and self._pyarrow_lt_070:
+            raise ValueError("Partitioning of parquet files are only "
+                             "supported with pyarrow >= 0.7.0")
+
         if index is None:
             from_pandas_kwargs = {}
         else:
@@ -219,6 +223,9 @@ class FastParquetImpl(BaseImpl):
         # thriftpy/protocol/compact.py:339:
         # DeprecationWarning: tostring() is deprecated.
         # Use tobytes() instead.
+
+        if 'partition_on' in kwargs:
+            raise ValueError("must use 'partition_cols' instead of 'partition_on'")
 
         if partition_cols is not None:
             kwargs['file_scheme'] = 'hive'

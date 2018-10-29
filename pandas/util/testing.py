@@ -778,15 +778,18 @@ def ensure_clean_dir():
     Get a temporary directory path and agrees to remove on close.
 
     Yields
-    ----------
+    ------
     Temporary directory path
     """
     directory_name = tempfile.mkdtemp(suffix='')
     try:
         yield directory_name
     finally:
-        import shutil
-        shutil.rmtree(directory_name)
+        try:
+            import shutil
+            shutil.rmtree(directory_name)
+        except Exception as e:
+            print("Exception on removing folder: {error}".format(error=e))
 
 
 # -----------------------------------------------------------------------------
