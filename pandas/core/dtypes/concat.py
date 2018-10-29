@@ -1,6 +1,6 @@
 """
-    Utility functions related to concat
-    """
+Utility functions related to concat
+"""
 
 import numpy as np
 
