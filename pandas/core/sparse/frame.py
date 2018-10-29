@@ -339,9 +339,10 @@ class SparseDataFrame(DataFrame):
         for col, series in compat.iteritems(self):
             new_data[col] = func(series)
 
-        return self._constructor(
-            data=new_data, index=self.index, columns=self.columns,
-            default_fill_value=self.default_fill_value).__finalize__(self)
+        # pass dummy arguments for func and axis; `other` just needs to be
+        #  a scalar.
+        return self._wrap_dispatched_op(new_data, other=None,
+                                        func=None, axis=None)
 
     def astype(self, dtype):
         return self._apply_columns(lambda x: x.astype(dtype))
@@ -600,8 +601,7 @@ class SparseDataFrame(DataFrame):
 
         return this._wrap_dispatched_op(new_data, other, func)
 
-    def _combine_match_index(self, other, func, level=None):
-        new_data = {}
+    def _combine_match_index(self, other, func, level=None, str_rep=None):
 
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
@@ -609,12 +609,13 @@ class SparseDataFrame(DataFrame):
         this, other = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
 
+        new_data = {}
         for col, series in compat.iteritems(this):
             new_data[col] = func(series.values, other.values)
 
         return self._wrap_dispatched_op(new_data, other, func)
 
-    def _combine_match_columns(self, other, func, level=None):
+    def _combine_match_columns(self, other, func, level=None, str_rep=None):
         # patched version of DataFrame._combine_match_columns to account for
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
         # where 3.0 is numpy.float64 and series is a SparseSeries. Still
@@ -628,14 +629,18 @@ class SparseDataFrame(DataFrame):
         assert left.columns.equals(right.index)
 
         new_data = {}
-
         for col in left.columns:
             new_data[col] = func(left[col], float(right[col]))
 
         return self._wrap_dispatched_op(new_data, other, func, "columns")
 
-    def _combine_const(self, other, func):
-        return self._apply_columns(lambda x: func(x, other))
+    def _combine_const(self, other, func, str_rep=None):
+        new_data = {}
+        for col, series in compat.iteritems(self):
+            new_data[col] = func(series, other)
+
+        return self._wrap_dispatched_op(new_data, other=other,
+                                        func=func, axis=None)
 
     def _get_op_result_fill_value(self, other, func, axis=None):
         own_default = self.default_fill_value

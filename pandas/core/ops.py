@@ -785,7 +785,7 @@ def fill_binop(left, right, fill_value):
     return left, right
 
 
-def mask_cmp_op(x, y, op, allowed_types):
+def mask_cmp_op(x, y, op):
     """
     Apply the function `op` to only non-null points in x and y.
 
@@ -794,16 +794,15 @@ def mask_cmp_op(x, y, op, allowed_types):
     x : array-like
     y : array-like
     op : binary operation
-    allowed_types : class or tuple of classes
 
     Returns
     -------
     result : ndarray[bool]
     """
-    # TODO: Can we make the allowed_types arg unnecessary?
+    # TODO: can we do this without casting to list?
     xrav = x.ravel()
     result = np.empty(x.size, dtype=bool)
-    if isinstance(y, allowed_types):
+    if isinstance(y, (np.ndarray, ABCSeries)):
         yrav = y.ravel()
         mask = notna(xrav) & notna(yrav)
         result[mask] = op(np.array(list(xrav[mask])),
@@ -999,7 +998,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
         raise NotImplementedError(right)
 
     new_data = expressions.evaluate(column_op, str_rep, left, right)
-    return left._wrap_dispatched_op(new_data)
+    return left._wrap_dispatched_op(new_data, right, func, axis=axis)
 
 
 def dispatch_to_index_op(op, left, right, index_class):
@@ -1722,7 +1721,7 @@ def _flex_method_SERIES(cls, op, special):
 
 
 def _combine_series_frame(self, other, func, fill_value=None, axis=None,
-                          level=None):
+                          level=None, str_rep=None):
     """
     Apply binary operator `func` to self, other using alignment and fill
     conventions determined by the fill_value, axis, and level kwargs.
@@ -1735,6 +1734,7 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
     fill_value : object, default None
     axis : {0, 1, 'columns', 'index', None}, default None
     level : int or None, default None
+    str_rep : str
 
     Returns
     -------
@@ -1747,9 +1747,11 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
     if axis is not None:
         axis = self._get_axis_number(axis)
         if axis == 0:
-            return self._combine_match_index(other, func, level=level)
+            return self._combine_match_index(other, func, level=level,
+                                             str_rep=str_rep)
         else:
-            return self._combine_match_columns(other, func, level=level)
+            return self._combine_match_columns(other, func, level=level,
+                                               str_rep=str_rep)
     else:
         if not len(other):
             return self * np.nan
@@ -1760,7 +1762,8 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
                                      columns=self.columns)
 
         # default axis is columns
-        return self._combine_match_columns(other, func, level=level)
+        return self._combine_match_columns(other, func, level=level,
+                                           str_rep=str_rep)
 
 
 def _align_method_FRAME(left, right, axis):
@@ -1860,13 +1863,13 @@ def _arith_method_FRAME(cls, op, special):
             pass_op = op if axis in [0, "columns", None] else na_op
             return _combine_series_frame(self, other, pass_op,
                                          fill_value=fill_value, axis=axis,
-                                         level=level)
+                                         level=level, str_rep=str_rep)
         else:
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
             assert np.ndim(other) == 0
-            return self._combine_const(other, op)
+            return self._combine_const(other, op, str_rep=str_rep)
 
     f.__name__ = op_name
 
@@ -1883,7 +1886,7 @@ def _flex_comp_method_FRAME(cls, op, special):
             with np.errstate(invalid='ignore'):
                 result = op(x, y)
         except TypeError:
-            result = mask_cmp_op(x, y, op, (np.ndarray, ABCSeries))
+            result = mask_cmp_op(x, y, op)
         return result
 
     @Appender('Wrapper for flexible comparison methods {name}'
@@ -1902,10 +1905,10 @@ def _flex_comp_method_FRAME(cls, op, special):
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, na_op,
                                          fill_value=None, axis=axis,
-                                         level=level)
+                                         level=level, str_rep=str_rep)
         else:
             assert np.ndim(other) == 0, other
-            return self._combine_const(other, na_op)
+            return self._combine_const(other, na_op, str_rep=str_rep)
 
     f.__name__ = op_name
 
@@ -1931,12 +1934,12 @@ def _comp_method_FRAME(cls, func, special):
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, func,
                                          fill_value=None, axis=None,
-                                         level=None)
+                                         level=None, str_rep=str_rep)
         else:
 
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See GH#4537 for discussion.
-            res = self._combine_const(other, func)
+            res = self._combine_const(other, func, str_rep=str_rep)
             return res.fillna(True).astype(bool)
 
     f.__name__ = op_name
@@ -1973,7 +1976,7 @@ def _comp_method_PANEL(cls, op, special):
         try:
             result = expressions.evaluate(op, str_rep, x, y)
         except TypeError:
-            result = mask_cmp_op(x, y, op, np.ndarray)
+            result = mask_cmp_op(x, y, op)
         return result
 
     @Appender('Wrapper for comparison method {name}'.format(name=op_name))
