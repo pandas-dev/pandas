@@ -24,6 +24,7 @@ import pydoc
 import inspect
 import importlib
 import doctest
+from contextlib import contextmanager
 
 from flake8.api import legacy as flake8
 
@@ -335,9 +336,40 @@ class Docstring(object):
 
     @property
     def pep8_violations(self):
-        style_guide = flake8.get_style_guide(doctests=True)
-        report = style_guide.input_file(filename=self.source_file_name)
-        return report.get_statistics('')
+        with self._file_representation() as filename:
+            style_guide = flake8.get_style_guide(doctests=True)
+            report = style_guide.input_file(filename=filename)
+            return report.get_statistics('')
+
+    @contextmanager
+    def _file_representation(self):
+        """
+        Creates a tmp file containing the function without the body
+
+        :returns filename of tmp file
+        """
+        create_function = 'def {name}{signature}:  # noqa: E501\n' \
+                          '    """{doc}"""\n' \
+                          '    pass\n'
+
+        tmp_dir = os.path.join(BASE_PATH, 'build', 'validate_docstring')
+        os.makedirs(tmp_dir, exist_ok=True)
+
+        filename = os.path.join(tmp_dir, self.name + '.py')
+        with open(filename, 'w') as f:
+            name = self.name.split('.')[-1]
+            sig = str(inspect.signature(self.obj))
+            lines = self.raw_doc.split("\n")
+            indented_lines = ['    ' + line if line else ''
+                              for line in lines[1:]]
+            doc = '\n'.join([lines[0], *indented_lines])
+
+            f.write(create_function.format(name=name, signature=sig, doc=doc))
+
+        yield filename
+
+        os.remove(filename)
+        os.rmdir(tmp_dir)
 
     @property
     def correct_parameters(self):
