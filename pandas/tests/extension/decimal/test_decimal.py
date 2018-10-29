@@ -5,9 +5,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import compat
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 from .array import DecimalArray, DecimalDtype, make_data, to_decimal
 

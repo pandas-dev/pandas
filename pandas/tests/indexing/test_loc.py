@@ -6,10 +6,11 @@ from warnings import catch_warnings, filterwarnings
 import numpy as np
 import pytest
 
+from pandas.compat import PY2, StringIO, lrange
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
 from pandas.api.types import is_scalar
-from pandas.compat import PY2, StringIO, lrange
 from pandas.tests.indexing.common import Base
 from pandas.util import testing as tm
 

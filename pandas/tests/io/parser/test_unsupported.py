@@ -11,10 +11,12 @@ test suite as new feature support is added to the parsers.
 
 import pytest
 
-import pandas.io.parsers as parsers
-import pandas.util.testing as tm
 from pandas.compat import StringIO
 from pandas.errors import ParserError
+
+import pandas.util.testing as tm
+
+import pandas.io.parsers as parsers
 from pandas.io.parsers import read_csv
 
 

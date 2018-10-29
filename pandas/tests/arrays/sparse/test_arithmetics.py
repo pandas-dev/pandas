@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas.core.sparse.api import SparseDtype
+import pandas.util.testing as tm
 
 
 class TestSparseArrayArithmetics(object):

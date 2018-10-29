@@ -6,23 +6,23 @@ from datetime import datetime, time, timedelta
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util._test_decorators as td
-import pandas.util.testing as tm
-from pandas import (
-    DataFrame, Index, NaT, Series, Timestamp, concat, date_range, offsets,
-    timedelta_range, to_datetime
-)
 from pandas._libs.tslib import iNaT
 from pandas.compat import StringIO, lrange, product
+from pandas.errors import NullFrequencyError
+import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import (
+    DataFrame, Index, NaT, Series, Timestamp, concat, date_range, offsets,
+    timedelta_range, to_datetime)
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.errors import NullFrequencyError
 from pandas.tests.series.common import TestData
-from pandas.tseries.offsets import BDay, BMonthEnd
+import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, assert_series_equal
-)
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
+
+from pandas.tseries.offsets import BDay, BMonthEnd
 
 
 def _simple_ts(start, end, freq='D'):
