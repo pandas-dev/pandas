@@ -4914,7 +4914,7 @@ class DataFrame(NDFrame):
         -------
         DataFrame
         """
-        result = left._constructor(result, index=self.index, copy=False)
+        result = self._constructor(result, index=self.index, copy=False)
         # Pin columns instead of passing to constructor for compat with
         # non-unique columns case
         result.columns = self.columns
