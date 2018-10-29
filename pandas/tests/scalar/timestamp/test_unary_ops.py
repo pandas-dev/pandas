@@ -134,8 +134,8 @@ class TestTimestampUnaryOps(object):
         assert result == expected
 
     @pytest.mark.parametrize('method', ['ceil', 'round', 'floor'])
-    def test_round_dst_border(self, method):
-        # GH 18946 round near DST
+    def test_round_dst_border_ambiguous(self, method):
+        # GH 18946 round near "fall back" DST
         ts = Timestamp('2017-10-29 00:00:00', tz='UTC').tz_convert(
             'Europe/Madrid'
         )
@@ -154,6 +154,23 @@ class TestTimestampUnaryOps(object):
 
         with pytest.raises(pytz.AmbiguousTimeError):
             getattr(ts, method)('H', ambiguous='raise')
+
+    @pytest.mark.parametrize('method, ts_str, freq', [
+        ['ceil', '2018-03-11 01:59:00-0600', '5min'],
+        ['round', '2018-03-11 01:59:00-0600', '5min'],
+        ['floor', '2018-03-11 03:01:00-0500', '2H']])
+    def test_round_dst_border_nonexistent(self, method, ts_str, freq):
+        # GH 23324 round near "spring forward" DST
+        ts = Timestamp(ts_str, tz='America/Chicago')
+        result = getattr(ts, method)(freq, nonexistent='shift')
+        expected = Timestamp('2018-03-11 03:00:00', tz='America/Chicago')
+        assert result == expected
+
+        result = getattr(ts, method)(freq, nonexistent='NaT')
+        assert result is NaT
+
+        with pytest.raises(pytz.NonExistentTimeError):
+            getattr(ts, method)(freq, nonexistent='raise')
 
     @pytest.mark.parametrize('timestamp', [
         '2018-01-01 0:0:0.124999360',
