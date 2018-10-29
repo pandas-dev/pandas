@@ -789,7 +789,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         assert isinstance(self.freq, Tick)  # checked by calling function
 
         delta = self._check_timedeltalike_freq_compat(other)
-        return self._addsub_int_array(delta, operator.add).asi8
+        return self._addsub_int_array(delta, operator.add, suppress=True).asi8
 
     def _add_delta(self, other):
         """
