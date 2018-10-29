@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 import operator
+import warnings
 
 import numpy as np
 
@@ -720,20 +721,17 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             self,
             other,   # type: Union[Index, ExtensionArray, np.ndarray[int]]
             op,      # type: Callable[Any, Any]
-            suppress # type: bool
+            suppress=False  # type: bool
     ):
         # type: (...) -> PeriodArray
 
         if not suppress:
-            # case with freq of None will raise
-            # we need to use a different stacklevel for Index vs Array
-            lvl = 3
             warnings.warn("Addition/subtraction of integer array from {cls} "
                           "is deprecated, will be removed in a future "
                           "version.  Instead of adding `arr`, "
                           "add `arr * self.freq`"
                           .format(cls=type(self).__name__),
-                          FutureWarning, stacklevel=lvl)
+                          FutureWarning, stacklevel=3)
 
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
