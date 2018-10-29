@@ -404,7 +404,7 @@ class TestSeriesDtypes(object):
         data = [1]
         s = Series(data)
 
-        msg = "dtype has no frequency. Please pass in"
+        msg = "dtype has no unit. Please pass in"
         with tm.assert_raises_regex(ValueError, msg):
             s.astype(dtype)
 
