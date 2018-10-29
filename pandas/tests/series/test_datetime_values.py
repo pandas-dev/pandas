@@ -2,24 +2,25 @@
 # pylint: disable-msg=E1101,W0612
 
 import calendar
+from datetime import date, datetime, time
 import locale
 import unicodedata
-from datetime import date, datetime, time
 
 import numpy as np
 import pytest
 import pytz
 
+from pandas._libs.tslibs.timezones import maybe_get_tz
+
+from pandas.core.dtypes.common import is_integer_dtype, is_list_like
+
 import pandas as pd
-import pandas.core.common as com
-import pandas.util.testing as tm
 from pandas import (
     DataFrame, DatetimeIndex, Index, PeriodIndex, Series, TimedeltaIndex,
-    bdate_range, compat, date_range, period_range, timedelta_range
-)
-from pandas._libs.tslibs.timezones import maybe_get_tz
+    bdate_range, compat, date_range, period_range, timedelta_range)
 from pandas.core.arrays import PeriodArray
-from pandas.core.dtypes.common import is_integer_dtype, is_list_like
+import pandas.core.common as com
+import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
 
@@ -508,3 +509,21 @@ class TestSeriesDatetimeValues():
                            time(22, 14, tzinfo=tz)])
         result = s.dt.timetz
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('nat', [
+        pd.Series([pd.NaT, pd.NaT]),
+        pd.Series([pd.NaT, pd.Timedelta('nat')]),
+        pd.Series([pd.Timedelta('nat'), pd.Timedelta('nat')])])
+    def test_minmax_nat_series(self, nat):
+        # GH 23282
+        assert nat.min() is pd.NaT
+        assert nat.max() is pd.NaT
+
+    @pytest.mark.parametrize('nat', [
+        # GH 23282
+        pd.DataFrame([pd.NaT, pd.NaT]),
+        pd.DataFrame([pd.NaT, pd.Timedelta('nat')]),
+        pd.DataFrame([pd.Timedelta('nat'), pd.Timedelta('nat')])])
+    def test_minmax_nat_dataframe(self, nat):
+        assert nat.min()[0] is pd.NaT
+        assert nat.max()[0] is pd.NaT

@@ -6,9 +6,10 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
-from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
 from pandas.compat import lrange, range, zip
+
+from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
+import pandas.util.testing as tm
 
 
 class TestSeriesAlterAxes(object):
@@ -224,6 +225,24 @@ class TestSeriesAlterAxes(object):
                            names=['L1', 'L2', 'L0'])
         expected = Series(np.arange(6), index=e_idx)
         tm.assert_series_equal(result, expected)
+
+    def test_rename_axis_mapper(self):
+        # GH 19978
+        mi = MultiIndex.from_product([['a', 'b', 'c'], [1, 2]],
+                                     names=['ll', 'nn'])
+        s = Series([i for i in range(len(mi))], index=mi)
+
+        result = s.rename_axis(index={'ll': 'foo'})
+        assert result.index.names == ['foo', 'nn']
+
+        result = s.rename_axis(index=str.upper, axis=0)
+        assert result.index.names == ['LL', 'NN']
+
+        result = s.rename_axis(index=['foo', 'goo'])
+        assert result.index.names == ['foo', 'goo']
+
+        with tm.assert_raises_regex(TypeError, 'unexpected'):
+            s.rename_axis(columns='wrong')
 
     def test_rename_axis_inplace(self, datetime_series):
         # GH 15704

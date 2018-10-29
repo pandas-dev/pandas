@@ -180,6 +180,29 @@ array, but rather an ``ExtensionArray``:
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
 
+.. _whatsnew_0240.enhancements.rename_axis:
+
+Renaming names in a MultiIndex
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`DataFrame.rename_axis` now supports ``index`` and ``columns`` arguments
+and :func:`Series.rename_axis` supports ``index`` argument (:issue:`19978`)
+
+This change allows a dictionary to be passed so that some of the names 
+of a ``MultiIndex`` can be changed.
+
+Example:
+
+.. ipython:: python
+
+    mi = pd.MultiIndex.from_product([list('AB'), list('CD'), list('EF')],
+                                    names=['AB', 'CD', 'EF'])
+    df = pd.DataFrame([i for i in range(len(mi))], index=mi, columns=['N'])
+    df
+    df.rename_axis(index={'CD': 'New'})
+
+See the :ref:`advanced docs on renaming<advanced.index_names>` for more details.
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
@@ -942,7 +965,7 @@ Removal of prior version deprecations/changes
 - Removal of the previously deprecated module ``pandas.core.datetools`` (:issue:`14105`, :issue:`14094`)
 - Strings passed into :meth:`DataFrame.groupby` that refer to both column and index levels will raise a ``ValueError`` (:issue:`14432`)
 - :meth:`Index.repeat` and :meth:`MultiIndex.repeat` have renamed the ``n`` argument to ``repeats`` (:issue:`14645`)
-- The ``Series`` constructor and ``.astype`` method will now raise a ``ValueError`` if timestamp dtypes are passed in without a frequency (e.g. ``np.datetime64``) for the ``dtype`` parameter (:issue:`15987`)
+- The ``Series`` constructor and ``.astype`` method will now raise a ``ValueError`` if timestamp dtypes are passed in without a unit (e.g. ``np.datetime64``) for the ``dtype`` parameter (:issue:`15987`)
 - Removal of the previously deprecated ``as_indexer`` keyword completely from ``str.match()`` (:issue:`22356`, :issue:`6581`)
 - The modules ``pandas.types``, ``pandas.computation``, and ``pandas.util.decorators`` have been removed (:issue:`16157`, :issue:`16250`)
 - Removed the ``pandas.formats.style`` shim for :class:`pandas.io.formats.style.Styler` (:issue:`16059`)
@@ -1030,6 +1053,7 @@ Datetimelike
 - Bug in :func:`to_datetime` with an :class:`Index` argument that would drop the ``name`` from the result (:issue:`21697`)
 - Bug in :class:`PeriodIndex` where adding or subtracting a :class:`timedelta` or :class:`Tick` object produced incorrect results (:issue:`22988`)
 - Bug in :func:`date_range` when decrementing a start date to a past end date by a negative frequency (:issue:`23270`)
+- Bug in :meth:`Series.min` which would return ``NaN`` instead of ``NaT`` when called on a series of ``NaT`` (:issue:`23282`)
 - Bug in :func:`DataFrame.combine` with datetimelike values raising a TypeError (:issue:`23079`)
 - Bug in :func:`date_range` with frequency of ``Day`` or higher where dates sufficiently far in the future could wrap around to the past instead of raising ``OutOfBoundsDatetime`` (:issue:`14187`)
 - Bug in :class:`PeriodIndex` with attribute ``freq.n`` greater than 1 where adding a :class:`DateOffset` object would return incorrect results (:issue:`23215`)

@@ -1,13 +1,15 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.core.arrays import PeriodArray, period_array
+
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import PeriodDtype
+
+import pandas as pd
+from pandas.core.arrays import PeriodArray, period_array
+import pandas.util.testing as tm
 
 # ----------------------------------------------------------------------------
 # Constructors
