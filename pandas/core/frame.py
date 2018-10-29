@@ -2004,6 +2004,7 @@ class DataFrame(NDFrame):
             Columns are partitioned in the order they are given
             The behaviour applies only to pyarrow >= 0.7.0 and fastparquet
             For other versions, this argument will be ignored.
+
             .. versionadded:: 0.24.0
 
         **kwargs
