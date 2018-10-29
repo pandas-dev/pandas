@@ -4901,6 +4901,25 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Arithmetic / combination related
 
+    def _wrap_dispatched_op(self, result):
+        """
+        Wrap the result of an arithmetic/comparison operation performed
+        via ops.dispatch_to_series in a properly-indexed DataFrame.
+
+        Parameters
+        ----------
+        result : dict[int:Series]
+
+        Returns
+        -------
+        DataFrame
+        """
+        result = left._constructor(result, index=self.index, copy=False)
+        # Pin columns instead of passing to constructor for compat with
+        # non-unique columns case
+        result.columns = self.columns
+        return result
+
     def _combine_frame(self, other, func, fill_value=None, level=None):
         this, other = self.align(other, join='outer', level=level, copy=False)
         new_index, new_columns = this.index, this.columns
@@ -4914,7 +4933,8 @@ class DataFrame(NDFrame):
 
         if ops.should_series_dispatch(this, other, func):
             # iterate over columns
-            return ops.dispatch_to_series(this, other, _arith_op)
+            result = ops.dispatch_to_series(this, other, _arith_op)
+            return this._wrap_dispatched_op(result)
         else:
             result = _arith_op(this.values, other.values)
             return self._constructor(result,
@@ -4928,7 +4948,8 @@ class DataFrame(NDFrame):
 
         if left._is_mixed_type or right._is_mixed_type:
             # operate column-wise; avoid costly object-casting in `.values`
-            return ops.dispatch_to_series(left, right, func)
+            result = ops.dispatch_to_series(left, right, func)
+            return left._wrap_dispatched_op(result)
         else:
             # fastpath --> operate directly on values
             with np.errstate(all="ignore"):
@@ -4942,11 +4963,13 @@ class DataFrame(NDFrame):
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         assert left.columns.equals(right.index)
-        return ops.dispatch_to_series(left, right, func, axis="columns")
+        result = ops.dispatch_to_series(left, right, func, axis="columns")
+        return left._wrap_dispatched_op(result)
 
     def _combine_const(self, other, func, errors='raise'):
         assert lib.is_scalar(other) or np.ndim(other) == 0
-        return ops.dispatch_to_series(self, other, func)
+        result = ops.dispatch_to_seris(self, other, func)
+        return self._wrap_dispatched_op(result)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
