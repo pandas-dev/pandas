@@ -149,6 +149,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     period_array : Create a new PeriodArray
     pandas.PeriodIndex : Immutable Index for period data
     """
+    __array_priority__ = 1100  # lower than Series/DataFrame, higher than numpy scalars
     _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
 
@@ -757,7 +758,12 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         assert isinstance(self.freq, Tick)  # checked by calling function
         assert isinstance(other, (timedelta, np.timedelta64, Tick))
 
-        delta = self._check_timedeltalike_freq_compat(other)
+        if isna(other):
+            # special handling for np.timedelta64("NaT"), avoid calling
+            #  _check_timedeltalike_freq_compat as that would raise TypeError
+            delta = other
+        else:
+            delta = self._check_timedeltalike_freq_compat(other)
 
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here
