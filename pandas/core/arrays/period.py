@@ -262,7 +262,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         freq = {x.freq for x in to_concat}
         assert len(freq) == 1
         freq = list(freq)[0]
-        values = np.concatenate([x._data for x in to_concat])
+        values = np.concatenate([x.asi8 for x in to_concat])
         return cls(values, freq=freq)
 
     # --------------------------------------------------------------------
@@ -270,7 +270,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     @property
     def nbytes(self):
         # TODO(DatetimeArray): remove
-        return self._data.nbytes
+        return self.asi8.nbytes
 
     @cache_readonly
     def dtype(self):
@@ -279,7 +279,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     @property
     def _ndarray_values(self):
         # Ordinals
-        return self._data
+        return self.asi8
 
     @property
     def asi8(self):
@@ -372,7 +372,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             msg = ("'value' should be a 'Period', 'NaT', or array of those. "
                    "Got '{}' instead.".format(type(value).__name__))
             raise TypeError(msg)
-        self._data[key] = value
+        self.asi8[key] = value
 
     def take(self, indices, allow_fill=False, fill_value=None):
         if allow_fill:
@@ -391,7 +391,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                 msg = "'fill_value' should be a Period. Got '{}'."
                 raise ValueError(msg.format(fill_value))
 
-        new_values = algos.take(self._data,
+        new_values = algos.take(self.asi8,
                                 indices,
                                 allow_fill=allow_fill,
                                 fill_value=fill_value)
@@ -399,7 +399,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         return type(self)(new_values, self.freq)
 
     def isna(self):
-        return self._data == iNaT
+        return self.asi8 == iNaT
 
     def fillna(self, value=None, method=None, limit=None):
         # TODO(#20300)
@@ -425,7 +425,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = pad_1d if method == 'pad' else backfill_1d
-                new_values = func(self._data, limit=limit,
+                new_values = func(self.asi8, limit=limit,
                                   mask=mask)
                 new_values = type(self)(new_values, freq=self.freq)
             else:
@@ -437,15 +437,15 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         return new_values
 
     def copy(self, deep=False):
-        return type(self)(self._data.copy(), freq=self.freq)
+        return type(self)(self.asi8.copy(), freq=self.freq)
 
     def value_counts(self, dropna=False):
         from pandas import Series, PeriodIndex
 
         if dropna:
-            values = self[~self.isna()]._data
+            values = self[~self.isna()].asi8
         else:
-            values = self._data
+            values = self.asi8
 
         cls = type(self)
 
@@ -638,7 +638,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         """
         # TODO(DatetimeArray): remove
         nv.validate_repeat(args, kwargs)
-        values = self._data.repeat(repeats)
+        values = self.asi8.repeat(repeats)
         return type(self)(values, self.freq)
 
     # Delegation...
@@ -660,7 +660,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
             return self._format_native_types()
         elif is_integer_dtype(dtype):
-            values = self._data
+            values = self.asi8
 
             if values.dtype != dtype:
                 # int32 vs. int64
@@ -689,7 +689,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # We need this since reduction.SeriesBinGrouper uses values.flags
         # Ideally, we wouldn't be passing objects down there in the first
         # place.
-        return self._data.flags
+        return self.asi8.flags
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
