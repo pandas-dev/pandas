@@ -1,15 +1,15 @@
-import os
 import importlib
+import os
 
+import hypothesis
+from hypothesis import strategies as st
+import numpy as np
 import pytest
 
-import pandas
-import numpy as np
-import pandas as pd
 from pandas.compat import PY3
 import pandas.util._test_decorators as td
-import hypothesis
 
+import pandas as pd
 
 hypothesis.settings.register_profile(
     "ci",
@@ -285,7 +285,7 @@ def datapath(request):
 @pytest.fixture
 def iris(datapath):
     """The iris dataset as a DataFrame."""
-    return pandas.read_csv(datapath('data', 'iris.csv'))
+    return pd.read_csv(datapath('data', 'iris.csv'))
 
 
 @pytest.fixture(params=['nlargest', 'nsmallest'])
@@ -512,7 +512,6 @@ def mock():
 # ----------------------------------------------------------------
 # Global setup for tests using Hypothesis
 
-from hypothesis import strategies as st
 
 # Registering these strategies makes them globally available via st.from_type,
 # which is use for offsets in tests/tseries/offsets/test_offsets_properties.py
