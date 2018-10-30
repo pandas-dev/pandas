@@ -710,6 +710,7 @@ class Index(IndexOpsMixin, PandasObject):
     @property
     def _values(self):
         # type: () -> Union[ExtensionArray, Index]
+        # TODO: remove in favor of .array
         # TODO(EA): remove index types as they become extension arrays
         """The best array representation.
 
@@ -739,7 +740,7 @@ class Index(IndexOpsMixin, PandasObject):
         values
         _ndarray_values
         """
-        return self.values
+        return self._data
 
     def get_values(self):
         """
