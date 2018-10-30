@@ -11,7 +11,8 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.period import (
     Period, DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
-from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas.errors import (
+    AbstractMethodError, NullFrequencyError, PerformanceWarning)
 from pandas import compat
 
 from pandas.tseries import frequencies
@@ -36,7 +37,7 @@ from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame, ABCIndexClass
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas.core.common as com
-from pandas.core.algorithms import checked_add_with_arr
+from pandas.core.algorithms import checked_add_with_arr, take
 
 from .base import ExtensionOpsMixin
 from pandas.util._decorators import deprecate_kwarg
@@ -207,6 +208,51 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if is_object_dtype(dtype):
             return self._box_values(self.asi8)
         return super(DatetimeLikeArrayMixin, self).astype(dtype, copy)
+
+    # ------------------------------------------------------------------
+    # ExtensionArray Interface
+
+    def _validate_fill_value(self, fill_value):
+        """
+        If a fill_value is passed to `take` convert it to an i8 representation,
+        raising ValueError if this is not possible.
+
+        Parameters
+        ----------
+        fill_value : object
+
+        Returns
+        -------
+        fill_value : np.int64
+
+        Raises
+        ------
+        ValueError
+        """
+        raise AbstractMethodError(self)
+
+    def take(self, indices, allow_fill=False, fill_value=None):
+        if allow_fill:
+            fill_value = self._validate_fill_value(fill_value)
+
+        new_values = take(self._data,
+                          indices,
+                          allow_fill=allow_fill,
+                          fill_value=fill_value)
+
+        # TODO: use "infer"?  Why does not passing freq cause
+        #  failures in py37 but not py27?
+        freq = self.freq if is_period_dtype(self) else None
+        return self._shallow_copy(new_values, freq=freq)
+
+    @classmethod
+    def _concat_same_type(cls, to_concat):
+        # for TimedeltaArray and PeriodArray; DatetimeArray overrides
+        freqs = {x.freq for x in to_concat}
+        assert len(freqs) == 1
+        freq = list(freqs)[0]
+        values = np.concatenate([x._data for x in to_concat])
+        return cls._simple_new(values, freq=freq)
 
     # ------------------------------------------------------------------
     # Null Handling

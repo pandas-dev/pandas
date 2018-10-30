@@ -374,22 +374,24 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             raise TypeError(msg)
         self._data[key] = value
 
+    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
+    def _validate_fill_value(self, fill_value):
+        if isna(fill_value):
+            fill_value = iNaT
+        elif isinstance(fill_value, Period):
+            if fill_value.freq != self.freq:
+                msg = DIFFERENT_FREQ_INDEX.format(self.freq.freqstr,
+                                                  fill_value.freqstr)
+                raise IncompatibleFrequency(msg)
+            fill_value = fill_value.ordinal
+        else:
+            raise ValueError("'fill_value' should be a Period. "
+                             "Got '{got}'.".format(got=fill_value))
+        return fill_value
+
     def take(self, indices, allow_fill=False, fill_value=None):
         if allow_fill:
-            if isna(fill_value):
-                fill_value = iNaT
-            elif isinstance(fill_value, Period):
-                if self.freq != fill_value.freq:
-                    msg = DIFFERENT_FREQ_INDEX.format(
-                        self.freq.freqstr,
-                        fill_value.freqstr
-                    )
-                    raise IncompatibleFrequency(msg)
-
-                fill_value = fill_value.ordinal
-            else:
-                msg = "'fill_value' should be a Period. Got '{}'."
-                raise ValueError(msg.format(fill_value))
+            fill_value = self._validate_fill_value(fill_value)
 
         new_values = algos.take(self._data,
                                 indices,

@@ -56,7 +56,82 @@ def timedelta_index(request):
     return pd.TimedeltaIndex(['1 Day', '3 Hours', 'NaT'])
 
 
+def index_to_array(index):
+    """
+    Helper function to construct a Datetime/Timedelta/Period Array from an
+    instance of the corresponding Index subclass.
+    """
+    if isinstance(index, pd.DatetimeIndex):
+        return DatetimeArrayMixin(index)
+    elif isinstance(index, pd.TimedeltaIndex):
+        return TimedeltaArrayMixin(index)
+    elif isinstance(index, pd.PeriodIndex):
+        return PeriodArray(index)
+    else:
+        raise TypeError(type(index))
+
+
+class SharedTests(object):
+    index_cls = None
+
+    def test_take(self):
+        data = np.arange(100, dtype='i8')
+        np.random.shuffle(data)
+
+        idx = self.index_cls._simple_new(data, freq='D')
+        arr = index_to_array(idx)
+
+        takers = [1, 4, 94]
+        result = arr.take(takers)
+        expected = idx.take(takers)
+
+        tm.assert_index_equal(self.index_cls(result), expected)
+
+        takers = np.array([1, 4, 94])
+        result = arr.take(takers)
+        expected = idx.take(takers)
+
+        tm.assert_index_equal(self.index_cls(result), expected)
+
+    def test_take_fill(self):
+        data = np.arange(10, dtype='i8')
+
+        idx = self.index_cls._simple_new(data, freq='D')
+        arr = index_to_array(idx)
+
+        result = arr.take([-1, 1], allow_fill=True, fill_value=None)
+        assert result[0] is pd.NaT
+
+        result = arr.take([-1, 1], allow_fill=True, fill_value=np.nan)
+        assert result[0] is pd.NaT
+
+        result = arr.take([-1, 1], allow_fill=True, fill_value=pd.NaT)
+        assert result[0] is pd.NaT
+
+        with pytest.raises(ValueError):
+            arr.take([0, 1], allow_fill=True, fill_value=2)
+
+        with pytest.raises(ValueError):
+            arr.take([0, 1], allow_fill=True, fill_value=2.0)
+
+        with pytest.raises(ValueError):
+            arr.take([0, 1], allow_fill=True,
+                     fill_value=pd.Timestamp.now().time)
+
+    def test_concat_same_type(self):
+        data = np.arange(10, dtype='i8')
+
+        idx = self.index_cls._simple_new(data, freq='D').insert(0, pd.NaT)
+        arr = index_to_array(idx)
+
+        result = arr._concat_same_type([arr[:-1], arr[1:], arr])
+        expected = idx._concat_same_dtype([idx[:-1], idx[1:], idx], None)
+
+        tm.assert_index_equal(self.index_cls(result), expected)
+
+
 class TestDatetimeArray(object):
+    index_cls = pd.DatetimeIndex
 
     def test_from_dti(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -127,8 +202,45 @@ class TestDatetimeArray(object):
 
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_take_fill_valid(self, datetime_index, tz_naive_fixture):
+        dti = datetime_index.tz_localize(tz_naive_fixture)
+        arr = index_to_array(dti)
+
+        now = pd.Timestamp.now().tz_localize(dti.tz)
+        result = arr.take([-1, 1], allow_fill=True, fill_value=now)
+        assert result[0] == now
+
+        with pytest.raises(ValueError):
+            # fill_value Timedelta invalid
+            arr.take([-1, 1], allow_fill=True, fill_value=now - now)
+
+        with pytest.raises(ValueError):
+            # fill_value Period invalid
+            arr.take([-1, 1], allow_fill=True, fill_value=pd.Period('2014Q1'))
+
+        tz = None if dti.tz is not None else 'US/Eastern'
+        now = pd.Timestamp.now().tz_localize(tz)
+        with pytest.raises(TypeError):
+            # Timestamp with mismatched tz-awareness
+            arr.take([-1, 1], allow_fill=True, fill_value=now)
+
+    def test_concat_same_type_invalid(self, datetime_index):
+        # different timezones
+        dti = datetime_index
+        arr = DatetimeArrayMixin(dti)
+
+        if arr.tz is None:
+            other = arr.tz_localize('UTC')
+        else:
+            other = arr.tz_localize(None)
+
+        with pytest.raises(AssertionError):
+            arr._concat_same_type([arr, other])
+
 
 class TestTimedeltaArray(object):
+    index_cls = pd.TimedeltaIndex
+
     def test_from_tdi(self):
         tdi = pd.TimedeltaIndex(['1 Day', '3 Hours'])
         arr = TimedeltaArrayMixin(tdi)
@@ -175,8 +287,38 @@ class TestTimedeltaArray(object):
 
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_take_fill_valid(self, timedelta_index):
+        tdi = timedelta_index
+        arr = index_to_array(tdi)
+
+        td1 = pd.Timedelta(days=1)
+        result = arr.take([-1, 1], allow_fill=True, fill_value=td1)
+        assert result[0] == td1
+
+        now = pd.Timestamp.now()
+        with pytest.raises(ValueError):
+            # fill_value Timestamp invalid
+            arr.take([0, 1], allow_fill=True, fill_value=now)
+
+        with pytest.raises(ValueError):
+            # fill_value Period invalid
+            arr.take([0, 1], allow_fill=True, fill_value=now.to_period('D'))
+
+    def test_concat_same_type_invalid(self, timedelta_index):
+        # different freqs
+        tdi = timedelta_index
+        arr = TimedeltaArrayMixin(tdi)
+        other = pd.timedelta_range('1D', periods=5, freq='2D')
+        # FIXME: TimedeltaArray should inherit freq='2D' without specifying it
+        other = TimedeltaArrayMixin(other, freq='2D')
+        assert other.freq != arr.freq
+
+        with pytest.raises(AssertionError):
+            arr._concat_same_type([arr, other])
+
 
 class TestPeriodArray(object):
+    index_cls = pd.PeriodIndex
 
     def test_from_pi(self, period_index):
         pi = period_index
