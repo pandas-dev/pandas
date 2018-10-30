@@ -1721,7 +1721,7 @@ def _flex_method_SERIES(cls, op, special):
 
 
 def _combine_series_frame(self, other, func, fill_value=None, axis=None,
-                          level=None, str_rep=None):
+                          level=None):
     """
     Apply binary operator `func` to self, other using alignment and fill
     conventions determined by the fill_value, axis, and level kwargs.
@@ -1734,7 +1734,6 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
     fill_value : object, default None
     axis : {0, 1, 'columns', 'index', None}, default None
     level : int or None, default None
-    str_rep : str
 
     Returns
     -------
@@ -1747,11 +1746,9 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
     if axis is not None:
         axis = self._get_axis_number(axis)
         if axis == 0:
-            return self._combine_match_index(other, func, level=level,
-                                             str_rep=str_rep)
+            return self._combine_match_index(other, func, level=level)
         else:
-            return self._combine_match_columns(other, func, level=level,
-                                               str_rep=str_rep)
+            return self._combine_match_columns(other, func, level=level)
     else:
         if not len(other):
             return self * np.nan
@@ -1762,8 +1759,7 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
                                      columns=self.columns)
 
         # default axis is columns
-        return self._combine_match_columns(other, func, level=level,
-                                           str_rep=str_rep)
+        return self._combine_match_columns(other, func, level=level)
 
 
 def _align_method_FRAME(left, right, axis):
@@ -1863,13 +1859,13 @@ def _arith_method_FRAME(cls, op, special):
             pass_op = op if axis in [0, "columns", None] else na_op
             return _combine_series_frame(self, other, pass_op,
                                          fill_value=fill_value, axis=axis,
-                                         level=level, str_rep=str_rep)
+                                         level=level)
         else:
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
             assert np.ndim(other) == 0
-            return self._combine_const(other, op, str_rep=str_rep)
+            return self._combine_const(other, op)
 
     f.__name__ = op_name
 
@@ -1905,10 +1901,10 @@ def _flex_comp_method_FRAME(cls, op, special):
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, na_op,
                                          fill_value=None, axis=axis,
-                                         level=level, str_rep=str_rep)
+                                         level=level)
         else:
             assert np.ndim(other) == 0, other
-            return self._combine_const(other, na_op, str_rep=str_rep)
+            return self._combine_const(other, na_op)
 
     f.__name__ = op_name
 
@@ -1934,7 +1930,7 @@ def _comp_method_FRAME(cls, func, special):
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, func,
                                          fill_value=None, axis=None,
-                                         level=None, str_rep=str_rep)
+                                         level=None)
         else:
 
             # straight boolean comparisons we want to allow all columns

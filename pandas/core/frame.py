@@ -4940,14 +4940,14 @@ class DataFrame(NDFrame):
                                      index=new_index, columns=new_columns,
                                      copy=False)
 
-    def _combine_match_index(self, other, func, level=None, str_rep=None):
+    def _combine_match_index(self, other, func, level=None):
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
         assert left.index.equals(right.index)
 
         if left._is_mixed_type or right._is_mixed_type:
             # operate column-wise; avoid costly object-casting in `.values`
-            return ops.dispatch_to_series(left, right, func, str_rep=str_rep)
+            return ops.dispatch_to_series(left, right, func)
         else:
             # fastpath --> operate directly on values
             with np.errstate(all="ignore"):
@@ -4956,17 +4956,16 @@ class DataFrame(NDFrame):
                                      index=left.index, columns=self.columns,
                                      copy=False)
 
-    def _combine_match_columns(self, other, func, level=None, str_rep=None):
+    def _combine_match_columns(self, other, func, level=None):
         assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         assert left.columns.equals(right.index)
-        return ops.dispatch_to_series(left, right, func, axis="columns",
-                                      str_rep=str_rep)
+        return ops.dispatch_to_series(left, right, func, axis="columns")
 
-    def _combine_const(self, other, func, str_rep=None):
+    def _combine_const(self, other, func):
         assert lib.is_scalar(other) or np.ndim(other) == 0
-        return ops.dispatch_to_series(self, other, func, str_rep=str_rep)
+        return ops.dispatch_to_series(self, other, func)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """

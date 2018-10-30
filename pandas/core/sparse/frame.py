@@ -601,7 +601,7 @@ class SparseDataFrame(DataFrame):
 
         return this._wrap_dispatched_op(new_data, other, func)
 
-    def _combine_match_index(self, other, func, level=None, str_rep=None):
+    def _combine_match_index(self, other, func, level=None):
 
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
@@ -615,7 +615,7 @@ class SparseDataFrame(DataFrame):
 
         return self._wrap_dispatched_op(new_data, other, func)
 
-    def _combine_match_columns(self, other, func, level=None, str_rep=None):
+    def _combine_match_columns(self, other, func, level=None):
         # patched version of DataFrame._combine_match_columns to account for
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
         # where 3.0 is numpy.float64 and series is a SparseSeries. Still
@@ -634,7 +634,7 @@ class SparseDataFrame(DataFrame):
 
         return self._wrap_dispatched_op(new_data, other, func, "columns")
 
-    def _combine_const(self, other, func, str_rep=None):
+    def _combine_const(self, other, func):
         new_data = {}
         for col, series in compat.iteritems(self):
             new_data[col] = func(series, other)
