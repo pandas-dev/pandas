@@ -1,6 +1,6 @@
 """
-    missing types & inference
-    """
+missing types & inference
+"""
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
