@@ -182,9 +182,9 @@ This is the same behavior as ``Series.values`` for categorical data. See
 
 New ``Styler.pipe()`` method
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-A new method :meth:`pandas.formats.style.Styler.pipe()` was added (:issue:`#23229`).
-This provides a convenient way to apply users' predefined styling functions, and can
-help reduce "boilerplate" when using DataFrame styling functionality repeatedly within
+The dataframe Styler class has gained a :meth:`~pandas.io.formats.style.Styler.pipe` method
+(:issue:`23229`).  This provides a convenient way to apply users' predefined styling functions,
+and can help reduce "boilerplate" when using DataFrame styling functionality repeatedly within
 a notebook.
 
 .. code-block:: ipython
@@ -197,8 +197,9 @@ a notebook.
        .pipe(set_summary_style)
        .set_caption('Summary of results.'))
 
-Other classes that provide a ``pipe()`` method include DataFrame, Series, Groupby,
-and Resampler.
+Similar methods already exist for other classes in pandas, including :meth:`DataFrame.pipe`,
+:meth:`Groupby.pipe`, and :meth:`Resampler.pipe`.
+
 
 .. _whatsnew_0240.enhancements.other:
 
