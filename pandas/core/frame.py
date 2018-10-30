@@ -4944,7 +4944,7 @@ class DataFrame(NDFrame):
         assert left.columns.equals(right.index)
         return ops.dispatch_to_series(left, right, func, axis="columns")
 
-    def _combine_const(self, other, func, errors='raise'):
+    def _combine_const(self, other, func):
         assert lib.is_scalar(other) or np.ndim(other) == 0
         return ops.dispatch_to_series(self, other, func)
 

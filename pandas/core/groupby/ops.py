@@ -11,18 +11,20 @@ import copy
 
 import numpy as np
 
-import pandas.core.algorithms as algorithms
-import pandas.core.common as com
 from pandas._libs import NaT, groupby as libgroupby, iNaT, lib, reduction
 from pandas.compat import lzip, range, zip
-from pandas.core.base import SelectionMixin
+from pandas.util._decorators import cache_readonly
+
 from pandas.core.dtypes.common import (
     ensure_float64, ensure_int64, ensure_int64_or_float64, ensure_object,
     ensure_platform_int, is_bool_dtype, is_categorical_dtype, is_complex_dtype,
     is_datetime64_any_dtype, is_integer_dtype, is_numeric_dtype,
-    is_timedelta64_dtype, needs_i8_conversion
-)
+    is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import _maybe_fill, isna
+
+import pandas.core.algorithms as algorithms
+from pandas.core.base import SelectionMixin
+import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
@@ -30,9 +32,7 @@ from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index, decons_obs_group_ids, get_flattened_iterator,
-    get_group_index, get_group_index_sorter, get_indexer_dict
-)
-from pandas.util._decorators import cache_readonly
+    get_group_index, get_group_index_sorter, get_indexer_dict)
 
 
 def generate_bins_generic(values, binner, closed):

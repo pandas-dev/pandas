@@ -19,10 +19,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import Categorical
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 
 def make_data():
@@ -190,6 +190,10 @@ class TestMethods(base.BaseMethodsTests):
         result = s1.combine(val, lambda x1, x2: x1 + x2)
         expected = pd.Series([a + val for a in list(orig_data1)])
         self.assert_series_equal(result, expected)
+
+    @pytest.mark.skip(reason="Not Applicable")
+    def test_fillna_length_mismatch(self, data_missing):
+        pass
 
 
 class TestCasting(base.BaseCastingTests):
