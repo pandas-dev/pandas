@@ -835,7 +835,20 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     vals : ndarray[int64_t]
     tz : tzinfo or None
     ambiguous : str, bool, or arraylike
-        If arraylike, must have the same length as vals
+        When clocks moved backward due to DST, ambiguous times may arise.
+        For example in Central European Time (UTC+01), when going from 03:00 DST
+        to 02:00 non-DST, 02:30:00 local time occurs both at 00:30:00 UTC
+        and at 01:30:00 UTC. In such a situation, the `ambiguous` parameter
+        dictates how ambiguous times should be handled.
+
+        - 'infer' will attempt to infer fall dst-transition hours based on
+          order
+        - bool-ndarray where True signifies a DST time, False signifies a
+          non-DST time (note that this flag is only applicable for ambiguous
+          times, but the array must have the same length as vals)
+        - bool if True, treat all vals as DST. If False, treat them as non-DST
+        - 'NaT' will return NaT where there are ambiguous times
+
     nonexistent : str
         If arraylike, must have the same length as vals
 

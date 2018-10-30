@@ -99,6 +99,12 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         the 'left', 'right', or both sides (None)
     tz : pytz.timezone or dateutil.tz.tzfile
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        When clocks moved backward due to DST, ambiguous times may arise.
+        For example in Central European Time (UTC+01), when going from 03:00 DST
+        to 02:00 non-DST, 02:30:00 local time occurs both at 00:30:00 UTC
+        and at 01:30:00 UTC. In such a situation, the `ambiguous` parameter
+        dictates how ambiguous times should be handled.
+
         - 'infer' will attempt to infer fall dst-transition hours based on
           order
         - bool-ndarray where True signifies a DST time, False signifies a
