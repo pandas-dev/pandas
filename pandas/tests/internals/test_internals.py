@@ -1243,7 +1243,6 @@ class TestCanHoldElement(object):
                    (operator.mul, '<M8[ns]'),
                    (operator.add, '<M8[ns]'),
                    (operator.pow, '<m8[ns]'),
-                   (operator.mod, '<m8[ns]'),
                    (operator.mul, '<m8[ns]')}
 
         if (op, dtype) in invalid:
