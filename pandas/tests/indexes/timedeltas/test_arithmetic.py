@@ -130,7 +130,7 @@ class TestTimedeltaIndexArithmetic(object):
     def test_tdi_add_int(self, one):
         # Variants of `one` for #19012
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # GH#22535
             result = rng + one
         expected = timedelta_range('1 days 10:00:00', freq='H', periods=10)
@@ -146,7 +146,7 @@ class TestTimedeltaIndexArithmetic(object):
 
     def test_tdi_sub_int(self, one):
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # GH#22535
             result = rng - one
         expected = timedelta_range('1 days 08:00:00', freq='H', periods=10)
@@ -169,7 +169,7 @@ class TestTimedeltaIndexArithmetic(object):
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=3)
         other = box([4, 3, 2])
         expected = TimedeltaIndex(['1 day 13:00:00'] * 3)
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # GH#22535
             result = rng + other
             tm.assert_index_equal(result, expected)
@@ -185,7 +185,7 @@ class TestTimedeltaIndexArithmetic(object):
         rng = timedelta_range('9H', freq='H', periods=3)
         other = box([4, 3, 2])
         expected = TimedeltaIndex(['5H', '7H', '9H'])
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # GH#22535
             result = rng - other
             tm.assert_index_equal(result, expected)
