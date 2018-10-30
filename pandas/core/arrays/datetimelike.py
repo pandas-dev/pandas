@@ -8,6 +8,7 @@ import numpy as np
 from pandas._libs import lib, iNaT, NaT
 from pandas._libs.tslibs import timezones
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
+from pandas._libs.tslibs.timestamps import int_op_deprecated
 from pandas._libs.tslibs.period import (
     Period, DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
@@ -494,16 +495,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         assert not is_period_dtype(self)
         assert op in [operator.add, operator.sub]
 
-        if self.freq is not None and not suppress:
-            # case with freq of None will raise
-            # we need to use a different stacklevel for Index vs Array
-            lvl = 3 + 1 * isinstance(self, ABCIndexClass)
-            warnings.warn("Addition/subtraction of integer array from {cls} "
-                          "is deprecated, will be removed in a future "
-                          "version.  Instead of adding `arr`, "
-                          "add `arr * self.freq`"
-                          .format(cls=type(self).__name__),
-                          FutureWarning, stacklevel=lvl)
+        if not suppress:
+            int_op_deprecated(self)
 
         if self.freq is None:
             # GH#19123
@@ -647,17 +640,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
-                if self.freq is not None:
-                    # case with freq of None will raise
-                    # we need to use a different stacklevel for Index vs Array
-                    lvl = 2 + 1 * isinstance(self, ABCIndexClass)
-                    warnings.warn("Addition of integers to {cls} is "
-                                  "deprecated, will be removed in a future "
-                                  "version.  Instead of adding `n`, "
-                                  "add `n * self.freq`"
-                                  .format(cls=type(self).__name__),
-                                  FutureWarning, stacklevel=lvl)
-
+                int_op_deprecated(self)
                 result = self._time_shift(other)
 
             # array-like others
@@ -716,17 +699,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
-                if self.freq is not None:
-                    # case with freq of None will raise
-                    # we need to use a different stacklevel for Index vs Array
-                    lvl = 2 + 1 * isinstance(self, ABCIndexClass)
-                    warnings.warn("Subtraction of integers from {cls} is "
-                                  "deprecated, will be removed in a future "
-                                  "version.  Instead of subtracting `n`, "
-                                  "subtract `n * self.freq`"
-                                  .format(cls=type(self).__name__),
-                                  FutureWarning, stacklevel=lvl)
-
+                int_op_deprecated(self)
                 result = self._time_shift(-other)
 
             elif isinstance(other, Period):

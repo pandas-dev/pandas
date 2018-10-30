@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 import operator
-import warnings
 
 import numpy as np
 
@@ -14,6 +13,7 @@ from pandas._libs.tslibs.period import (
 )
 from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
+from pandas._libs.tslibs.timestamps import int_op_deprecated
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas.util._decorators import cache_readonly, Appender
 from pandas.util._validators import validate_fillna_kwargs
@@ -726,12 +726,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # type: (...) -> PeriodArray
 
         if not suppress:
-            warnings.warn("Addition/subtraction of integer array from {cls} "
-                          "is deprecated, will be removed in a future "
-                          "version.  Instead of adding `arr`, "
-                          "add `arr * self.freq`"
-                          .format(cls=type(self).__name__),
-                          FutureWarning, stacklevel=3)
+            int_op_deprecated(self)
 
         assert op in [operator.add, operator.sub]
         if op is operator.sub:

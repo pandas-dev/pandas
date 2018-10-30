@@ -990,17 +990,17 @@ Current Behavior:
 
 .. ipython:: python
 
-    In [3]: per = pd.Period('2016Q1')
-    In [4]: per + 3 * per.freq
+    per = pd.Period('2016Q1')
+    per + 3 * per.freq
 
-    In [5]: ts = pd.Timestamp('1994-05-06 12:15:16', freq=pd.offsets.Hour())
-    In [6]: ts + 2 * ts.freq
+    ts = pd.Timestamp('1994-05-06 12:15:16', freq=pd.offsets.Hour())
+    ts + 2 * ts.freq
 
-    In [7]: tdi = pd.timedelta_range('1D', periods=2)
-    In [8]: tdi - np.array([2 * tdi.freq, 1 * tdi.freq])
+    tdi = pd.timedelta_range('1D', periods=2)
+    tdi - np.array([2 * tdi.freq, 1 * tdi.freq])
 
-    In [9]: dti = pd.date_range('2001-01-01', periods=2, freq='7D')
-    In [10]: dti + pd.Index([1 * dti.freq, 2 * dti.freq])
+    dti = pd.date_range('2001-01-01', periods=2, freq='7D')
+    dti + pd.Index([1 * dti.freq, 2 * dti.freq])
 
 .. _whatsnew_0240.prior_deprecations:
 

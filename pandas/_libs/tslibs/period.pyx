@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, date
-import warnings
 
 from cpython cimport (
     PyUnicode_Check,
@@ -34,7 +33,7 @@ cdef extern from "src/datetime/np_datetime.h":
 cimport util
 from util cimport is_period_object, is_string_object
 
-from timestamps import Timestamp
+from timestamps import Timestamp, int_op_deprecated
 from timezones cimport is_utc, is_tzlocal, get_dst_info
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
@@ -1646,12 +1645,7 @@ cdef class _Period(object):
             elif other is NaT:
                 return NaT
             elif util.is_integer_object(other):
-                warnings.warn("Addition of integers to {cls} is "
-                              "deprecated, will be removed in a future "
-                              "version.  Instead of adding `n`, add "
-                              "`n * self.freq`"
-                              .format(cls=type(self).__name__),
-                              FutureWarning)
+                int_op_deprecated(self)
 
                 ordinal = self.ordinal + other * self.freq.n
                 return Period(ordinal=ordinal, freq=self.freq)
@@ -1679,12 +1673,7 @@ cdef class _Period(object):
                 neg_other = -other
                 return self + neg_other
             elif util.is_integer_object(other):
-                warnings.warn("Subtraction of integers from {cls} is "
-                              "deprecated, will be removed in a future "
-                              "version.  Instead of subtracting `n`, subtract "
-                              "`n * self.freq`"
-                              .format(cls=type(self).__name__),
-                              FutureWarning)
+                int_op_deprecated(self)
 
                 ordinal = self.ordinal - other * self.freq.n
                 return Period(ordinal=ordinal, freq=self.freq)
