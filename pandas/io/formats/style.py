@@ -1224,7 +1224,7 @@ class Styler(object):
 
     def pipe(self, func, *args, **kwargs):
         """
-        Apply ``func(self, \*args, \*\*kwargs)``, and return the result.
+        Apply ``func(self, *args, **kwargs)``, and return the result.
 
         .. versionadded:: 0.24.0
 
@@ -1254,7 +1254,7 @@ class Styler(object):
 
         Notes
         -----
-        Like :meth:`pandas.DataFrame.pipe`, this method can simplify the
+        Like :meth:`DataFrame.pipe`, this method can simplify the
         application of several user-defined functions to a styler.  Instead
         of writing:
 
