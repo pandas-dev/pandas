@@ -953,6 +953,7 @@ Deprecations
 - :func:`DatetimeIndex.shift` and :func:`PeriodIndex.shift` now accept ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`, :issue:`22912`)
 - The ``fastpath`` keyword of the different Index constructors is deprecated (:issue:`23110`).
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have deprecated the ``errors`` argument in favor of the ``nonexistent`` argument (:issue:`8917`)
+- The class ``FrozenNDArray`` has been deprecated. When unpickling, ``FrozenNDArray`` will be unpickled to ``np.ndarray`` once this class is removed (:issue:`9031`)
 
 .. _whatsnew_0240.prior_deprecations:
 

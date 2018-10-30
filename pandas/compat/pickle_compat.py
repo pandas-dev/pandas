@@ -60,6 +60,17 @@ _class_locations_map = {
         ('pandas.core.arrays', 'SparseArray'),
 
     # 15477
+    #
+    # TODO: When FrozenNDArray is removed, add
+    # the following lines for compat:
+    #
+    # ('pandas.core.base', 'FrozenNDArray'):
+    #     ('numpy', 'ndarray'),
+    # ('pandas.core.indexes.frozen', 'FrozenNDArray'):
+    #     ('numpy', 'ndarray'),
+    #
+    # Afterwards, remove the current entry
+    # for `pandas.core.base.FrozenNDArray`.
     ('pandas.core.base', 'FrozenNDArray'):
         ('pandas.core.indexes.frozen', 'FrozenNDArray'),
     ('pandas.core.base', 'FrozenList'):

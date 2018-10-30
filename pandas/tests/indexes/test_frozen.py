@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 
 from pandas.compat import u
@@ -34,12 +35,22 @@ class TestFrozenList(CheckImmutable, CheckStringMixin):
 
 class TestFrozenNDArray(CheckImmutable, CheckStringMixin):
     mutable_methods = ('put', 'itemset', 'fill')
-    unicode_container = FrozenNDArray([u("\u05d0"), u("\u05d1"), "c"])
 
-    def setup_method(self, method):
+    def setup_method(self, _):
         self.lst = [3, 5, 7, -2]
-        self.container = FrozenNDArray(self.lst)
         self.klass = FrozenNDArray
+
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", FutureWarning)
+
+            self.container = FrozenNDArray(self.lst)
+            self.unicode_container = FrozenNDArray(
+                [u("\u05d0"), u("\u05d1"), "c"])
+
+    def test_constructor_warns(self):
+        # see gh-9031
+        with tm.assert_produces_warning(FutureWarning):
+            FrozenNDArray([1, 2, 3])
 
     def test_shallow_copying(self):
         original = self.container.copy()
