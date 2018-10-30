@@ -127,6 +127,7 @@ class GoodDocStrings(object):
 
         Examples
         --------
+        >>> import pandas as pd
         >>> s = pd.Series(['Ant', 'Bear', 'Cow', 'Dog', 'Falcon'])
         >>> s.head()
         0   Ant
@@ -164,6 +165,7 @@ class GoodDocStrings(object):
 
         Examples
         --------
+        >>> import pandas as pd
         >>> s = pd.Series(['Antelope', 'Lion', 'Zebra', np.nan])
         >>> s.str.contains(pat='a')
         0    False
