@@ -8,7 +8,7 @@
 
 <table>
 <tr>
-  <td>Latest Release</td>
+  <th>Latest Release</th>
   <td>
     <a href="https://pypi.org/project/pandas/">
     <img src="https://img.shields.io/pypi/v/pandas.svg" alt="latest release" />
