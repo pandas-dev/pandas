@@ -497,7 +497,7 @@ class TestTypeInference(object):
 
     def test_length_zero(self):
         result = lib.infer_dtype(np.array([], dtype='i4'))
-        assert result == 'empty'
+        assert result == 'integer'
 
         result = lib.infer_dtype([])
         assert result == 'empty'
@@ -593,7 +593,7 @@ class TestTypeInference(object):
 
     @pytest.mark.parametrize('dtype, skipna, expected', [
         (float, False, 'floating'),
-        (float, True, 'empty'),
+        (float, True, 'floating'),
         (object, False, 'floating'),
         (object, True, 'empty')
     ])

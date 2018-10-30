@@ -1175,20 +1175,19 @@ def infer_dtype(object value, bint skipna=False):
     if skipna:
         values = values[~isnaobj(values)]
 
-    # make contiguous
-    values = values.ravel()
-
-    n = len(values)
-    if n == 0:
-        # length check comes before _try_infer_map
-        return 'empty'
-
     val = _try_infer_map(values)
     if val is not None:
         return val
 
     if values.dtype != np.object_:
         values = values.astype('O')
+
+    # make contiguous
+    values = values.ravel()
+
+    n = len(values)
+    if n == 0:
+        return 'empty'
 
     # try to use a valid value
     for i in range(n):
