@@ -4009,10 +4009,9 @@ class DataFrame(NDFrame):
         if missing:
             raise KeyError('{}'.format(missing))
 
-        vi = verify_integrity
-        return super(DataFrame, self).set_index(keys=keys, drop=drop,
-                                                append=append, inplace=inplace,
-                                                verify_integrity=vi)
+        return super(DataFrame, self).set_index(
+            keys=keys, drop=drop, append=append, inplace=inplace,
+            verify_integrity=verify_integrity)
 
     def reset_index(self, level=None, drop=False, inplace=False, col_level=0,
                     col_fill=''):
