@@ -4,37 +4,35 @@ Module parse to/from Excel
 
 # ---------------------------------------------------------------------
 # ExcelFile class
-from datetime import datetime, date, time, MINYEAR, timedelta
-
-import os
 import abc
-import warnings
-from textwrap import fill
-from io import UnsupportedOperation
+from datetime import MINYEAR, date, datetime, time, timedelta
 from distutils.version import LooseVersion
+from io import UnsupportedOperation
+import os
+from textwrap import fill
+import warnings
 
 import numpy as np
 
 import pandas._libs.json as json
-from pandas.util._decorators import Appender, deprecate_kwarg
-from pandas.errors import EmptyDataError
-
 import pandas.compat as compat
-from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
-                           string_types, OrderedDict)
+from pandas.compat import (
+    OrderedDict, add_metaclass, lrange, map, range, reduce, string_types, u,
+    zip)
+from pandas.errors import EmptyDataError
+from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
-    is_integer, is_float,
-    is_bool, is_list_like)
+    is_bool, is_float, is_integer, is_list_like)
 
 from pandas.core import config
 from pandas.core.frame import DataFrame
 
-from pandas.io.parsers import TextParser
-from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
-                              get_filepath_or_buffer, _NA_VALUES,
-                              _stringify_path)
+from pandas.io.common import (
+    _NA_VALUES, _is_url, _stringify_path, _urlopen, _validate_header_arg,
+    get_filepath_or_buffer)
 from pandas.io.formats.printing import pprint_thing
+from pandas.io.parsers import TextParser
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 

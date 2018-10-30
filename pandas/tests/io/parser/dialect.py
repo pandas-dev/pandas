@@ -7,10 +7,10 @@ for all of the parsers defined in parsers.py
 
 import csv
 
-from pandas import DataFrame
 from pandas.compat import StringIO
 from pandas.errors import ParserWarning
 
+from pandas import DataFrame
 import pandas.util.testing as tm
 
 

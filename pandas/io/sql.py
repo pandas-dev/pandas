@@ -4,27 +4,27 @@ Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
 """
 
-from __future__ import print_function, division
-from datetime import datetime, date, time
+from __future__ import division, print_function
 
-import warnings
+from contextlib import contextmanager
+from datetime import date, datetime, time
 import re
+import warnings
+
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.common import (
-    is_list_like, is_dict_like,
-    is_datetime64tz_dtype)
+from pandas.compat import (
+    map, raise_with_traceback, string_types, text_type, zip)
 
-from pandas.compat import (map, zip, raise_with_traceback,
-                           string_types, text_type)
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype, is_dict_like, is_list_like)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.missing import isna
+
 from pandas.core.api import DataFrame, Series
 from pandas.core.base import PandasObject
 from pandas.core.tools.datetimes import to_datetime
-
-from contextlib import contextmanager
 
 
 class SQLAlchemyRequired(ImportError):

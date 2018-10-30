@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
 from datetime import datetime
-from pandas.compat import range
 
 import numpy as np
+import pytest
 
-from pandas import (Series, Index, Float64Index,
-                    Int64Index, UInt64Index)
-
-import pandas.util.testing as tm
+from pandas._libs.tslibs import Timestamp
+from pandas.compat import range
 
 import pandas as pd
-from pandas._libs.tslibs import Timestamp
-
+from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
 from pandas.tests.indexes.common import Base
+import pandas.util.testing as tm
 
 
 class Numeric(Base):

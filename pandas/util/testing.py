@@ -19,7 +19,11 @@ from numpy.random import randn, rand
 import numpy as np
 
 import pandas as pd
-from pandas.core.arrays import ExtensionArray, IntervalArray
+from pandas.core.arrays import (
+    ExtensionArray,
+    IntervalArray,
+    PeriodArray,
+)
 from pandas.core.dtypes.missing import array_equivalent
 from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
@@ -758,7 +762,7 @@ def ensure_clean(filename=None, return_filelike=False):
         finally:
             try:
                 os.close(fd)
-            except Exception as e:
+            except Exception:
                 print("Couldn't close file descriptor: {fdesc} (file: {fname})"
                       .format(fdesc=fd, fname=filename))
             try:
@@ -1048,6 +1052,14 @@ def assert_interval_array_equal(left, right, exact='equiv',
     assert_index_equal(left.right, right.right, exact=exact,
                        obj='{obj}.left'.format(obj=obj))
     assert_attr_equal('closed', left, right, obj=obj)
+
+
+def assert_period_array_equal(left, right, obj='PeriodArray'):
+    _check_isinstance(left, right, PeriodArray)
+
+    assert_numpy_array_equal(left._data, right._data,
+                             obj='{obj}.values'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
 
 
 def raise_assert_detail(obj, message, left, right, diff=None):
@@ -1543,6 +1555,10 @@ def assert_equal(left, right, **kwargs):
         assert_series_equal(left, right, **kwargs)
     elif isinstance(left, pd.DataFrame):
         assert_frame_equal(left, right, **kwargs)
+    elif isinstance(left, IntervalArray):
+        assert_interval_array_equal(left, right, **kwargs)
+    elif isinstance(left, PeriodArray):
+        assert_period_array_equal(left, right, **kwargs)
     elif isinstance(left, ExtensionArray):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):

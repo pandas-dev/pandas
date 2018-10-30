@@ -1,8 +1,11 @@
 """ feather-format compat """
 
 from distutils.version import LooseVersion
-from pandas import DataFrame, RangeIndex, Int64Index
+
 from pandas.compat import range
+
+from pandas import DataFrame, Int64Index, RangeIndex
+
 from pandas.io.common import _stringify_path
 
 

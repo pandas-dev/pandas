@@ -4,30 +4,26 @@ split-apply-combine paradigm.
 """
 
 import warnings
+
 import numpy as np
 
+import pandas.compat as compat
+from pandas.compat import callable, zip
 from pandas.util._decorators import cache_readonly
 
-from pandas import compat
-from pandas.compat import zip, callable
-
-from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.arrays import ExtensionArray, Categorical
-from pandas.core.index import (
-    Index, MultiIndex, CategoricalIndex)
 from pandas.core.dtypes.common import (
-    ensure_categorical,
-    is_hashable,
-    is_list_like,
-    is_timedelta64_dtype,
-    is_datetime64_dtype,
-    is_categorical_dtype,
-    is_scalar)
-from pandas.core.series import Series
-from pandas.core.frame import DataFrame
-import pandas.core.common as com
-from pandas.core.groupby.ops import BaseGrouper
+    ensure_categorical, is_categorical_dtype, is_datetime64_dtype, is_hashable,
+    is_list_like, is_scalar, is_timedelta64_dtype)
+from pandas.core.dtypes.generic import ABCSeries
+
 import pandas.core.algorithms as algorithms
+from pandas.core.arrays import Categorical, ExtensionArray
+import pandas.core.common as com
+from pandas.core.frame import DataFrame
+from pandas.core.groupby.ops import BaseGrouper
+from pandas.core.index import CategoricalIndex, Index, MultiIndex
+from pandas.core.series import Series
+
 from pandas.io.formats.printing import pprint_thing
 
 

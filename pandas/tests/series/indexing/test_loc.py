@@ -1,15 +1,14 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
-
-from pandas import (Series, Timestamp)
-
 from pandas.compat import lrange
-from pandas.util.testing import (assert_series_equal)
+
+import pandas as pd
+from pandas import Series, Timestamp
+from pandas.util.testing import assert_series_equal
 
 
 def test_loc_getitem(test_data):

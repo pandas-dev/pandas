@@ -2,49 +2,49 @@
 Module contains tools for processing files into DataFrames or other objects
 """
 from __future__ import print_function
+
 from collections import defaultdict
-import re
 import csv
-import sys
-import warnings
 import datetime
+import re
+import sys
 from textwrap import fill
+import warnings
 
 import numpy as np
 
-from pandas import compat
-from pandas.compat import (range, lrange, PY3, StringIO, lzip,
-                           zip, string_types, map, u)
-from pandas.core.dtypes.common import (
-    is_integer, ensure_object,
-    is_list_like, is_integer_dtype,
-    is_float, is_dtype_equal,
-    is_object_dtype, is_string_dtype,
-    is_scalar, is_categorical_dtype)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.cast import astype_nansafe
-from pandas.core.index import (Index, MultiIndex, RangeIndex,
-                               ensure_index_from_sequences)
-from pandas.core.series import Series
-from pandas.core.frame import DataFrame
-from pandas.core.arrays import Categorical
-from pandas.core import algorithms
-import pandas.core.common as com
-from pandas.io.date_converters import generic_parser
-from pandas.errors import ParserWarning, ParserError, EmptyDataError
-from pandas.io.common import (get_filepath_or_buffer, is_file_like,
-                              _validate_header_arg, _get_handle,
-                              UnicodeReader, UTF8Recoder, _NA_VALUES,
-                              BaseIterator, _infer_compression)
-from pandas.core.tools import datetimes as tools
-
+import pandas._libs.lib as lib
+import pandas._libs.ops as libops
+import pandas._libs.parsers as parsers
+from pandas._libs.tslibs import parsing
+import pandas.compat as compat
+from pandas.compat import (
+    PY3, StringIO, lrange, lzip, map, range, string_types, u, zip)
+from pandas.errors import EmptyDataError, ParserError, ParserWarning
 from pandas.util._decorators import Appender
 
-import pandas._libs.lib as lib
-import pandas._libs.parsers as parsers
-import pandas._libs.ops as libops
-from pandas._libs.tslibs import parsing
+from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.common import (
+    ensure_object, is_categorical_dtype, is_dtype_equal, is_float, is_integer,
+    is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
+    is_string_dtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.missing import isna
+
+from pandas.core import algorithms
+from pandas.core.arrays import Categorical
+import pandas.core.common as com
+from pandas.core.frame import DataFrame
+from pandas.core.index import (
+    Index, MultiIndex, RangeIndex, ensure_index_from_sequences)
+from pandas.core.series import Series
+from pandas.core.tools import datetimes as tools
+
+from pandas.io.common import (
+    _NA_VALUES, BaseIterator, UnicodeReader, UTF8Recoder, _get_handle,
+    _infer_compression, _validate_header_arg, get_filepath_or_buffer,
+    is_file_like)
+from pandas.io.date_converters import generic_parser
 
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness

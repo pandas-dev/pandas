@@ -2,9 +2,9 @@
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
 from pandas import Index, IntervalIndex, date_range, timedelta_range
 from pandas.core.arrays import IntervalArray
+import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[
