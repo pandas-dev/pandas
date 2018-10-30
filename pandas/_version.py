@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import sys
+
 from pandas.compat import PY3
 
 

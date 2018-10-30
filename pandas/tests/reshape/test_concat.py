@@ -1553,12 +1553,11 @@ class TestConcatenate(ConcatenateBase):
         panel1 = make_panel()
         panel2 = make_panel()
 
-        panel2 = panel2.rename_axis({x: "%s_1" % x
-                                     for x in panel2.major_axis},
-                                    axis=1)
+        panel2 = panel2.rename(major_axis={x: "%s_1" % x
+                                           for x in panel2.major_axis})
 
-        panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)
-        panel3 = panel3.rename_axis(lambda x: '%s_1' % x, axis=2)
+        panel3 = panel2.rename(major_axis=lambda x: '%s_1' % x)
+        panel3 = panel3.rename(minor_axis=lambda x: '%s_1' % x)
 
         # it works!
         concat([panel1, panel3], axis=1, verify_integrity=True, sort=sort)

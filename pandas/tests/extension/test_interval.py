@@ -16,11 +16,12 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
+from pandas.core.dtypes.dtypes import IntervalDtype
+
 from pandas import Interval
 from pandas.core.arrays import IntervalArray
-from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 
 def make_data():
@@ -106,6 +107,10 @@ class TestMethods(BaseInterval, base.BaseMethodsTests):
 
     @pytest.mark.skip(reason='addition is not defined for intervals')
     def test_combine_add(self, data_repeated):
+        pass
+
+    @pytest.mark.skip(reason="Not Applicable")
+    def test_fillna_length_mismatch(self, data_missing):
         pass
 
 

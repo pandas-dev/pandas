@@ -4,14 +4,17 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Index, Series, Timestamp, date_range, isna
 from pandas.compat import lrange, range
+
 from pandas.core.dtypes.common import is_integer
+
+import pandas as pd
+from pandas import Index, Series, Timestamp, date_range, isna
 from pandas.core.indexing import IndexingError
-from pandas.tseries.offsets import BDay
+import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
+
+from pandas.tseries.offsets import BDay
 
 
 def test_getitem_boolean(test_data):
