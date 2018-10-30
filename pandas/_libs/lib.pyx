@@ -59,6 +59,7 @@ from tslibs.timezones cimport get_timezone, tz_compare
 
 from missing cimport (checknull,
                       is_null_datetime64, is_null_timedelta64, is_null_period)
+from missing import isnaobj
 
 
 # constants that will be compared to potentially arbitrarily large
@@ -1171,19 +1172,23 @@ def infer_dtype(object value, bint skipna=False):
         values = construct_1d_object_array_from_listlike(value)
 
     values = getattr(values, 'values', values)
-    val = _try_infer_map(values)
-    if val is not None:
-        return val
-
-    if values.dtype != np.object_:
-        values = values.astype('O')
+    if skipna:
+        values = values[~isnaobj(values)]
 
     # make contiguous
     values = values.ravel()
 
     n = len(values)
     if n == 0:
+        # length check comes before _try_infer_map
         return 'empty'
+
+    val = _try_infer_map(values)
+    if val is not None:
+        return val
+
+    if values.dtype != np.object_:
+        values = values.astype('O')
 
     # try to use a valid value
     for i in range(n):

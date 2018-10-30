@@ -497,7 +497,7 @@ class TestTypeInference(object):
 
     def test_length_zero(self):
         result = lib.infer_dtype(np.array([], dtype='i4'))
-        assert result == 'integer'
+        assert result == 'empty'
 
         result = lib.infer_dtype([])
         assert result == 'empty'
@@ -589,6 +589,19 @@ class TestTypeInference(object):
         arr = [u'a', np.nan, u'c']
         result = lib.infer_dtype(arr, skipna=True)
         expected = 'unicode' if PY2 else 'string'
+        assert result == expected
+
+    @pytest.mark.parametrize('dtype, skipna, expected', [
+        (float, False, 'floating'),
+        (float, True, 'empty'),
+        (object, False, 'floating'),
+        (object, True, 'empty')
+    ])
+    def test_object_empty(self, dtype, skipna, expected):
+        # GH 23421
+        arr = pd.Series([np.nan, np.nan], dtype=dtype)
+
+        result = lib.infer_dtype(arr, skipna=skipna)
         assert result == expected
 
     def test_datetime(self):
