@@ -231,6 +231,30 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         ], fill_value=False))
         self.assert_series_equal(result, expected)
 
+    def test_fillna_copy_frame(self, data_missing):
+        arr = data_missing.take([1, 1])
+        df = pd.DataFrame({"A": arr})
+
+        filled_val = df.iloc[0, 0]
+        result = df.fillna(filled_val)
+
+        assert df.values.base is not result.values.base
+        assert df.A._values.to_dense() is arr.to_dense()
+
+    def test_fillna_copy_series(self, data_missing):
+        arr = data_missing.take([1, 1])
+        ser = pd.Series(arr)
+
+        filled_val = ser[0]
+        result = ser.fillna(filled_val)
+
+        assert ser._values is not result._values
+        assert ser._values.to_dense() is arr.to_dense()
+
+    @pytest.mark.skip(reason="Not Applicable")
+    def test_fillna_length_mismatch(self, data_missing):
+        pass
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     pass

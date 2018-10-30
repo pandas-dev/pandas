@@ -191,6 +191,10 @@ class TestMethods(base.BaseMethodsTests):
         expected = pd.Series([a + val for a in list(orig_data1)])
         self.assert_series_equal(result, expected)
 
+    @pytest.mark.skip(reason="Not Applicable")
+    def test_fillna_length_mismatch(self, data_missing):
+        pass
+
 
 class TestCasting(base.BaseCastingTests):
     pass
