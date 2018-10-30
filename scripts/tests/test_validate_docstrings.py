@@ -166,6 +166,7 @@ class GoodDocStrings(object):
         Examples
         --------
         >>> import pandas as pd
+        >>> import numpy as np
         >>> s = pd.Series(['Antelope', 'Lion', 'Zebra', np.nan])
         >>> s.str.contains(pat='a')
         0    False

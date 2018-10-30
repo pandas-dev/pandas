@@ -344,11 +344,12 @@ class Docstring(object):
     @contextmanager
     def _file_representation(self):
         """
-        Creates a tmp file containing the function without the body
+        Temporarily creates file with current function inside.
+        The signature and body are **not** included.
 
         :returns filename of tmp file
         """
-        create_function = 'def {name}{signature}:  # noqa: E501\n' \
+        create_function = 'def {name}():\n' \
                           '    """{doc}"""\n' \
                           '    pass\n'
 
@@ -358,18 +359,17 @@ class Docstring(object):
         filename = os.path.join(tmp_dir, self.name + '.py')
         with open(filename, 'w') as f:
             name = self.name.split('.')[-1]
-            sig = str(inspect.signature(self.obj))
-            lines = self.raw_doc.split("\n")
-            indented_lines = ['    ' + line if line else ''
+            lines = self.clean_doc.split("\n")
+            indented_lines = [(' ' * 4) + line if line else ''
                               for line in lines[1:]]
             doc = '\n'.join([lines[0], *indented_lines])
 
-            f.write(create_function.format(name=name, signature=sig, doc=doc))
-
-        yield filename
-
-        os.remove(filename)
-        os.rmdir(tmp_dir)
+            f.write(create_function.format(name=name, doc=doc))
+        try:
+            yield filename
+        finally:
+            os.remove(filename)
+            os.rmdir(tmp_dir)
 
     @property
     def correct_parameters(self):
