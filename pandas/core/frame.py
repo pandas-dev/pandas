@@ -4933,8 +4933,7 @@ class DataFrame(NDFrame):
 
         if ops.should_series_dispatch(this, other, func):
             # iterate over columns
-            result = ops.dispatch_to_series(this, other, _arith_op)
-            return this._wrap_dispatched_op(result, other, _arith_op)
+            return ops.dispatch_to_series(this, other, _arith_op)
         else:
             result = _arith_op(this.values, other.values)
             return self._constructor(result,
