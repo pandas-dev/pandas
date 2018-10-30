@@ -149,7 +149,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     period_array : Create a new PeriodArray
     pandas.PeriodIndex : Immutable Index for period data
     """
-    __array_priority__ = 1100  # lower than Series/DataFrame, higher than numpy scalars
+    # array priority higher than numpy scalars
+    __array_priority__ = 1000
     _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
 
