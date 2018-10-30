@@ -1,23 +1,25 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
+from collections import OrderedDict
 import pydoc
 import warnings
-from collections import OrderedDict
 
 import numpy as np
 import pytest
 
+import pandas.compat as compat
+from pandas.compat import isidentifier, lzip, range, string_types
+
 import pandas as pd
-import pandas.io.formats.printing as printing
-import pandas.util.testing as tm
 from pandas import (
     Categorical, DataFrame, DatetimeIndex, Index, Series, TimedeltaIndex,
-    compat, date_range, period_range, timedelta_range
-)
-from pandas.compat import isidentifier, lzip, range, string_types
+    date_range, period_range, timedelta_range)
 from pandas.core.arrays import PeriodArray
 from pandas.core.indexes.datetimes import Timestamp
+import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal, ensure_clean
+
+import pandas.io.formats.printing as printing
 
 from .common import TestData
 

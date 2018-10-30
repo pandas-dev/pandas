@@ -5,9 +5,10 @@ import pytest
 
 import pandas._libs.sparse as splib
 import pandas.util._test_decorators as td
-import pandas.util.testing as tm
+
 from pandas import Series
 from pandas.core.arrays.sparse import BlockIndex, IntIndex, _make_index
+import pandas.util.testing as tm
 
 TEST_LENGTH = 20
 

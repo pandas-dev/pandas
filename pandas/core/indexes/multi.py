@@ -40,8 +40,7 @@ from pandas.core.indexes.base import (
     Index, ensure_index,
     InvalidIndexError,
     _index_shared_docs)
-from pandas.core.indexes.frozen import (
-    FrozenNDArray, FrozenList, _ensure_frozen)
+from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -1655,7 +1654,7 @@ class MultiIndex(Index):
                 for new_label in taken:
                     label_values = new_label.values()
                     label_values[mask] = na_value
-                    masked.append(FrozenNDArray(label_values))
+                    masked.append(np.asarray(label_values))
                 taken = masked
         else:
             taken = [lab.take(indices) for lab in self.labels]
