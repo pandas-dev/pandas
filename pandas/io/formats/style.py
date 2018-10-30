@@ -1224,32 +1224,33 @@ class Styler(object):
 
     def pipe(self, func, *args, **kwargs):
         """
-        Apply func(self, \*args, \*\*kwargs), and return the result.
+        Apply ``func(self, \*args, \*\*kwargs)``, and return the result.
 
         .. versionadded:: 0.24.0
 
         Parameters
         ----------
         func : function
-            function to apply to the Styler.
-            ``args``, and ``kwargs`` are passed into ``func``.
+            Function to apply to the Styler.
+            ``*args``, and ``**kwargs`` are passed into ``func``.
             Alternatively a ``(callable, data_keyword)`` tuple where
             ``data_keyword`` is a string indicating the keyword of
             ``callable`` that expects the Styler.
-        args : iterable, optional
-            positional arguments passed into ``func``.
-        kwargs : mapping, optional
-            a dictionary of keyword arguments passed into ``func``.
+        *args : iterable, optional
+            Positional arguments passed into ``func``.
+        **kwargs : dict, optional
+            Dictionary of keyword arguments passed into ``func``.
 
         Returns
         -------
-        object : the value returned by ``func``.
+        result : object
+            The value returned by ``func``.
 
         See Also
         --------
-        Styler.apply
-        Styler.applymap
-        pandas.DataFrame.pipe
+        DataFrame.pipe : Analogous method for DataFrame.
+        Styler.apply : Apply a function row-wise, column-wise, or table-wise to
+            modify the dataframe's styling.
 
         Notes
         -----
@@ -1261,9 +1262,9 @@ class Styler(object):
 
         users can write:
 
-        >>> df.style.set_precision(3)
-        ...     .pipe(g, arg1=a)
-        ...     .pipe(f, arg2=b, arg3=c)
+        >>> (df.style.set_precision(3)
+        ...    .pipe(g, arg1=a)
+        ...    .pipe(f, arg2=b, arg3=c))
 
         In particular, this allows users to define functions that take a
         styler object, along with other parameters, and return the styler after
@@ -1274,21 +1275,18 @@ class Styler(object):
 
         Examples
         --------
-        >>> def highlight_with_containing_row(styler, row_label, column):
-        ...     ''' Highlight the indicated element, and its containing row. '''
-        ...     cell, row = pd.IndexSlice[row_label, column], pd.IndexSlice[row_label, :]
-        ...     return (styler.set_properties(cell, **{'background-color': '#ffffcc'})
-        ...                   .set_properties(row, **{'background-color': '#ffccc0'}))
+        >>> def set_standard_formatting(styler):
+        ...     return (styler.set_properties(**{'text-align': 'right'})
+        ...                   .format({'X': '{:.1%}'}))
 
         The user-defined highlight function above can be called within a
         sequence of other style modifications:
 
         >>> df = pd.DataFrame({'A': list(range(-1, 4)), 'X': np.arange(0.2, 1.2, 0.2)})
         >>> (df.style
-        ...    .format({'X': '{:.2%}'})
-        ...    .pipe(highlight_with_containing_row, 0, 'A')
-        ...    .pipe(highlight_with_containing_row, 9, 'X')
-        ...    .set_caption("Results with anomolous observations highlighted.")
+        ...    .set_properties(subset=['X'], **{'background-color': 'yellow'})
+        ...    .pipe(set_standard_formatting)
+        ...    .set_caption("Results with column 'X' highlighted."))
         """
         return com._pipe(self, func, *args, **kwargs)
 
