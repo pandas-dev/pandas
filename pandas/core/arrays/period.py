@@ -146,8 +146,38 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     See Also
     --------
-    period_array : Create a new PeriodArray
+    pandas.period_array : Create a new PeriodArray
     pandas.PeriodIndex : Immutable Index for period data
+
+    Attributes
+    ----------
+    day
+    dayofweek
+    dayofyear
+    days_in_month
+    daysinmonth
+    end_time
+    freq
+    freqstr
+    hour
+    is_leap_year
+    minute
+    month
+    quarter
+    qyear
+    second
+    start_time
+    week
+    weekday
+    weekofyear
+    year
+
+    Methods
+    -------
+    asfreq
+    shift
+    strftime
+    to_timestamp
     """
     _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
@@ -583,7 +613,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         -------
         DatetimeArray/Index
         """
-        from pandas.core.arrays import DatetimeArrayMixin
+        from pandas import DatetimeIndex
 
         how = libperiod._validate_end_alias(how)
 
@@ -607,7 +637,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         new_data = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
-        return DatetimeArrayMixin(new_data, freq='infer')
+        return DatetimeIndex(new_data, freq='infer')
 
     # ------------------------------------------------------------------
     # Formatting
@@ -633,7 +663,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     def repeat(self, repeats, *args, **kwargs):
         """
-        Repeat elements of a Categorical.
+        Repeat elements of a PeriodArray.
 
         See also
         --------
@@ -891,7 +921,7 @@ def period_array(data, freq=None, copy=False):
 
     See Also
     --------
-    PeriodArray
+    pandas.api.extensions.PeriodArray
     pandas.PeriodIndex
 
     Examples

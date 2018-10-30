@@ -702,93 +702,6 @@ strings and apply several methods to it. These can be accessed like
        Series.dt
        Index.str
 
-.. _api.categorical:
-
-Categorical
-~~~~~~~~~~~
-
-Pandas defines a custom data type for representing data that can take only a
-limited, fixed set of values. The dtype of a ``Categorical`` can be described by
-a :class:`pandas.api.types.CategoricalDtype`.
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/class_without_autosummary.rst
-
-   api.types.CategoricalDtype
-
-.. autosummary::
-   :toctree: generated/
-
-   api.types.CategoricalDtype.categories
-   api.types.CategoricalDtype.ordered
-
-Categorical data can be stored in a :class:`pandas.Categorical`
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/class_without_autosummary.rst
-
-   Categorical
-
-
-The alternative :meth:`Categorical.from_codes` constructor can be used when you
-have the categories and integer codes already:
-
-.. autosummary::
-   :toctree: generated/
-
-   Categorical.from_codes
-
-The dtype information is available on the ``Categorical``
-
-.. autosummary::
-   :toctree: generated/
-
-   Categorical.dtype
-   Categorical.categories
-   Categorical.ordered
-   Categorical.codes
-
-``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
-the Categorical back to a NumPy array, so categories and order information is not preserved!
-
-.. autosummary::
-   :toctree: generated/
-
-   Categorical.__array__
-
-A ``Categorical`` can be stored in a ``Series`` or ``DataFrame``.
-To create a Series of dtype ``category``, use ``cat = s.astype(dtype)`` or
-``Series(..., dtype=dtype)`` where ``dtype`` is either
-
-* the string ``'category'``
-* an instance of :class:`~pandas.api.types.CategoricalDtype`.
-
-If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
-data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
-following usable methods and properties:
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/accessor_attribute.rst
-
-   Series.cat.categories
-   Series.cat.ordered
-   Series.cat.codes
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/accessor_method.rst
-
-   Series.cat.rename_categories
-   Series.cat.reorder_categories
-   Series.cat.add_categories
-   Series.cat.remove_categories
-   Series.cat.remove_unused_categories
-   Series.cat.set_categories
-   Series.cat.as_ordered
-   Series.cat.as_unordered
 
 Plotting
 ~~~~~~~~
@@ -842,29 +755,6 @@ Serialization / IO / Conversion
    Series.to_clipboard
    Series.to_latex
 
-Sparse
-~~~~~~
-.. autosummary::
-   :toctree: generated/
-
-   SparseSeries.to_coo
-   SparseSeries.from_coo
-
-.. autosummary::
-   :toctree: generated/
-   :template: autosummary/accessor_attribute.rst
-
-   Series.sparse.npoints
-   Series.sparse.density
-   Series.sparse.fill_value
-   Series.sparse.sp_values
-
-
-.. autosummary::
-   :toctree: generated/
-
-   Series.sparse.from_coo
-   Series.sparse.to_coo
 
 .. _api.dataframe:
 
@@ -1675,7 +1565,7 @@ IntervalIndex Components
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
    IntervalIndex.overlaps
-
+   IntervalIndex.to_tuples
 
 .. _api.multiindex:
 
@@ -2567,6 +2457,256 @@ Exceptions and warnings
    errors.UnsortedIndexError
    errors.UnsupportedFunctionCall
 
+.. _api.extension:
+
+Extension Types
+---------------
+
+Pandas implements several :class:`api.extension.ExtensoinArray` types.
+These arrays may be placed in Series or a column of a DataFrame. Some
+may also have a specialized index type.
+
+.. _api.categorical:
+
+Categorical
+~~~~~~~~~~~
+
+Pandas defines a custom data type for representing data that can take only a
+limited, fixed set of values. The dtype of a ``Categorical`` can be described by
+a :class:`pandas.api.types.CategoricalDtype`.
+See :ref:`categorical` for more on working with Categorical data.
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   api.types.CategoricalDtype
+
+.. autosummary::
+   :toctree: generated/
+
+   api.types.CategoricalDtype.categories
+   api.types.CategoricalDtype.ordered
+
+Categorical data can be stored in a :class:`pandas.Categorical`
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   Categorical
+
+
+The alternative :meth:`Categorical.from_codes` constructor can be used when you
+have the categories and integer codes already:
+
+.. autosummary::
+   :toctree: generated/
+
+   Categorical.from_codes
+
+The dtype of a ``Categorical`` is a :class:`CategoricalDtype`. The dtype
+stores the actual categories, and whether the categories are ordered.
+
+.. autosummary:
+   :toctree: generated/
+
+   CategoricalDtype
+
+The dtype information is also available directly on the ``Categorical``.
+
+.. autosummary::
+   :toctree: generated/
+
+   Categorical.dtype
+   Categorical.categories
+   Categorical.ordered
+   Categorical.codes
+
+``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
+the Categorical back to a NumPy array, so categories and order information is not preserved!
+
+.. autosummary::
+   :toctree: generated/
+
+   Categorical.__array__
+
+A ``Categorical`` can be stored in a ``Series`` or ``DataFrame``.
+To create a Series of dtype ``category``, use ``cat = s.astype(dtype)`` or
+``Series(..., dtype=dtype)`` where ``dtype`` is either
+
+* the string ``'category'``
+* an instance of :class:`~pandas.api.types.CategoricalDtype`.
+
+If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
+data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the
+following usable methods and properties:
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.cat.categories
+   Series.cat.ordered
+   Series.cat.codes
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_method.rst
+
+   Series.cat.rename_categories
+   Series.cat.reorder_categories
+   Series.cat.add_categories
+   Series.cat.remove_categories
+   Series.cat.remove_unused_categories
+   Series.cat.set_categories
+   Series.cat.as_ordered
+   Series.cat.as_unordered
+
+.. _api.integer:
+
+Integer-NA
+~~~~~~~~~~
+
+:class:`api.extensions.IntegerArray` can be used to store integer-value data
+that may contain missing values. This works around the consequence of using
+:attr:`numpy.nan`, a floating point value, as a missing value sentinel.
+See :ref:`integer_na` for more.
+
+.. autosummary::
+   :toctree: generated/
+
+   integer_array
+
+.. autosummary::
+   :toctree: generated/
+
+   api.extensions.IntegerArray
+
+.. _api.period:
+
+Period
+~~~~~~
+
+:class:`api.extensions.PeriodArray` is an array for data representing a time span.
+The scalar type is a :class:`Period`. These may be stored in a :class:`Series`
+or as a :class:`PeriodIndex`. :func:`period_array` should be used to create a
+new :class:`api.extensions.PeriodArray`.
+
+.. autosummary::
+   :toctree: generated/
+
+   period_array
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   api.extensions.PeriodArray
+
+.. autosummary::
+   :toctree: generated/
+
+   api.extensions.PeriodArray.day
+   api.extensions.PeriodArray.dayofweek
+   api.extensions.PeriodArray.dayofyear
+   api.extensions.PeriodArray.days_in_month
+   api.extensions.PeriodArray.daysinmonth
+   api.extensions.PeriodArray.end_time
+   api.extensions.PeriodArray.freq
+   api.extensions.PeriodArray.freqstr
+   api.extensions.PeriodArray.hour
+   api.extensions.PeriodArray.is_leap_year
+   api.extensions.PeriodArray.minute
+   api.extensions.PeriodArray.month
+   api.extensions.PeriodArray.quarter
+   api.extensions.PeriodArray.qyear
+   api.extensions.PeriodArray.second
+   api.extensions.PeriodArray.start_time
+   api.extensions.PeriodArray.week
+   api.extensions.PeriodArray.weekday
+   api.extensions.PeriodArray.weekofyear
+   api.extensions.PeriodArray.year
+   api.extensions.PeriodArray.asfreq
+   api.extensions.PeriodArray.shift
+   api.extensions.PeriodArray.strftime
+   api.extensions.PeriodArray.to_timestamp
+
+.. _api.interval:
+
+Interval
+~~~~~~~~
+
+:class:`IntervalArray` is an array for storing data representing intervals.
+The scalar type is a :class:`Interval`. These may be stored in a :class:`Series`
+or as a :class:`IntervalIndex`. The :class:`IntervalArray` can be closed on the
+left or right sides, or both or neither sides.
+
+.. currentmodule:: pandas
+
+.. autosummary::
+
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   IntervalArray
+
+.. autosummary::
+   :toctree: generated/
+
+   IntervalArray.from_arrays
+   IntervalArray.from_tuples
+   IntervalArray.from_breaks
+   IntervalArray.contains
+   IntervalArray.left
+   IntervalArray.right
+   IntervalArray.mid
+   IntervalArray.closed
+   IntervalArray.length
+   IntervalArray.values
+   IntervalArray.is_non_overlapping_monotonic
+   IntervalArray.set_closed
+   IntervalArray.overlaps
+   IntervalArray.to_tuples
+
+
+.. _api.sparse:
+
+Sparse
+~~~~~~
+
+:class:`SparseArray` is an array for efficiently storing data with a commonly
+repeated ``fill_value``. See :ref:`sparse` for more.
+
+.. autosummary::
+   :toctree: generated/
+
+   SparseArray
+
+
+A ``.sparse`` accessor is available on Series with Sparse data.
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.sparse.npoints
+   Series.sparse.density
+   Series.sparse.fill_value
+   Series.sparse.sp_values
+
+.. autosummary::
+   :toctree: generated/
+
+   Series.sparse.from_coo
+   Series.sparse.to_coo
+
+.. autosummary::
+   :toctree: generated/
+
+   SparseSeries.to_coo
+   SparseSeries.from_coo
+
 
 Data types related functionality
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2684,6 +2824,29 @@ objects.
    generated/pandas.Series.ix
    generated/pandas.Series.imag
    generated/pandas.Series.real
+   generated/pandas.IntervalArray.argsort
+   generated/pandas.IntervalArray.astype
+   generated/pandas.IntervalArray.can_hold_na
+   generated/pandas.IntervalArray.closed_left
+   generated/pandas.IntervalArray.closed_right
+   generated/pandas.IntervalArray.copy
+   generated/pandas.IntervalArray.dropna
+   generated/pandas.IntervalArray.dtype
+   generated/pandas.IntervalArray.factorize
+   generated/pandas.IntervalArray.fillna
+   generated/pandas.IntervalArray.isna
+   generated/pandas.IntervalArray.nbytes
+   generated/pandas.IntervalArray.ndim
+   generated/pandas.IntervalArray.open_left
+   generated/pandas.IntervalArray.open_right
+   generated/pandas.IntervalArray.repeat
+   generated/pandas.IntervalArray.shape
+   generated/pandas.IntervalArray.shift
+   generated/pandas.IntervalArray.size
+   generated/pandas.IntervalArray.take
+   generated/pandas.IntervalArray.unique
+   generated/pandas.IntervalArray.value_counts
+   generated/pandas.SparseArray.nonzero
 
 
 .. Can't convince sphinx to generate toctree for this class attribute.

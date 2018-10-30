@@ -1047,3 +1047,31 @@ Alternatively, one can convert to an xarray ``DataArray``.
    p.to_xarray()
 
 You can see the full-documentation for the `xarray package <https://xarray.pydata.org/en/stable/>`__.
+
+.. _dsintro.data_type:
+
+Data Types
+----------
+
+Every :class:`Index`, :class:`Series`, and column of a :class:`DataFrame` has a data type.
+The data type or types are available with :meth:`Index.dtype`, :meth:`Series.dtype` and
+:meth:`DataFrame.dtypes` (one dtype per column).
+
+For the most part, pandas uses NumPy arrays and dtypes. Pandas has made a few extensions
+to NumPy for types that are especially important for tabular data analysis.
+
+===================================== ==============================
+Array Type                            Documentation
+===================================== ==============================
+:class:`Categorical`                  :ref:`categorical`
+:class:`DatetimeArray`                TODO
+:class:`api.extensions.IntegerArray`  :ref:`integer_na`
+:class:`IntervalArray`                :ref:`indexing.intervallindex`
+:class:`api.extensions.PeriodArray`   :ref:`timeseries.periods`
+:class:`SparseArray`                  :ref:`sparse`
+===================================== ==============================
+
+If you need to convert one of these arrays to a NumPy array, use :meth:`numpy.asarray`.
+This will necessarily lose the dtype information (since NumPy can't represent these
+types) but will preserve equality (values that were equal in pandas extension
+array will still be equal in the NumPy array).

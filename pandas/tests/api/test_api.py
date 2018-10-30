@@ -45,7 +45,8 @@ class TestPDApi(Base):
                'Period', 'PeriodIndex', 'RangeIndex', 'UInt64Index',
                'Series', 'SparseArray', 'SparseDataFrame', 'SparseDtype',
                'SparseSeries', 'Timedelta',
-               'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
+               'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex',
+               'IntervalArray', 'CategoricalDtype']
 
     # these are already deprecated; awaiting removal
     deprecated_classes = ['TimeGrouper']
@@ -58,12 +59,12 @@ class TestPDApi(Base):
 
     # top-level functions
     funcs = ['bdate_range', 'concat', 'crosstab', 'cut',
-             'date_range', 'interval_range', 'eval',
+             'date_range', 'integer_array', 'interval_range', 'eval',
              'factorize', 'get_dummies',
              'infer_freq', 'isna', 'isnull', 'lreshape',
              'melt', 'notna', 'notnull', 'offsets',
              'merge', 'merge_ordered', 'merge_asof',
-             'period_range',
+             'period_array', 'period_range',
              'pivot', 'pivot_table', 'qcut',
              'show_versions', 'timedelta_range', 'unique',
              'value_counts', 'wide_to_long']

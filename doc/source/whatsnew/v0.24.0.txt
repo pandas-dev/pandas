@@ -22,6 +22,30 @@ dataframe's indexes from the resulting Parquet file. (:issue:`20768`)
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now accept a callable for generic calculation methods of correlation, e.g. histogram intersection (:issue:`22684`)
 
 
+.. _whatsnew_0240.enhancements.extension_api:
+
+Pandas Extension Types
+^^^^^^^^^^^^^^^^^^^^^^
+
+All of pandas internal extension types (datetime with timezone, categorical, period, interval, sparse)
+now follow the public Extension Array API. The following methods and classes have been added to the public
+API for working with these types.
+
+**dtypes**
+
+- :class:`CategoricalDtype`
+
+**Array constructors**
+
+- :class:`period_array`
+- :class:`integer_array`
+
+**Array Classes**
+
+- :class:`IntervalArray`
+- :class:`api.extensions.PeriodArray`
+- :class:`api.extensions.IntegerArray`
+
 .. _whatsnew_0240.enhancements.extension_array_operators:
 
 ``ExtensionArray`` operator support
@@ -99,7 +123,9 @@ Reduction and groupby operations such as 'sum' work.
 
 .. warning::
 
-   The Integer NA support currently uses the captilized dtype version, e.g. ``Int8`` as compared to the traditional ``int8``. This may be changed at a future date.
+   The Integer NA support currently uses the capitalized dtype version, e.g. ``Int8`` as compared to the traditional ``int8``. This may be changed at a future date.
+
+See :ref:`integer_na` for more.
 
 .. _whatsnew_0240.enhancements.read_html:
 
