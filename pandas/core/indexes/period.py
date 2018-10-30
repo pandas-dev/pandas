@@ -48,17 +48,6 @@ _index_doc_kwargs.update(
     dict(target_klass='PeriodIndex or list of Periods'))
 
 
-def _wrap_field_accessor(name):
-    fget = getattr(PeriodArray, name).fget
-
-    def f(self):
-        result = fget(self)
-        return Index(result, name=self.name)
-
-    f.__name__ = name
-    f.__doc__ = fget.__doc__
-    return property(f)
-
 # --- Period index sketch
 
 
