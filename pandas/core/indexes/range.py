@@ -14,7 +14,8 @@ from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.common import (
     is_int64_dtype, is_integer, is_scalar, is_timedelta64_dtype)
-from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCSeries, ABCTimedeltaIndex)
 
 from pandas.core import ops
 import pandas.core.common as com
@@ -558,6 +559,9 @@ class RangeIndex(Int64Index):
         return super_getitem(key)
 
     def __floordiv__(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
+            return NotImplemented
+
         if is_integer(other) and other != 0:
             if (len(self) == 0 or
                     self._start % other == 0 and
@@ -589,7 +593,7 @@ class RangeIndex(Int64Index):
             """
 
             def _evaluate_numeric_binop(self, other):
-                if isinstance(other, ABCSeries):
+                if isinstance(other, (ABCSeries, ABCDataFrame)):
                     return NotImplemented
                 elif isinstance(other, ABCTimedeltaIndex):
                     # Defer to TimedeltaIndex implementation

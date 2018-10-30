@@ -180,6 +180,29 @@ array, but rather an ``ExtensionArray``:
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
 
+.. _whatsnew_0240.enhancements.rename_axis:
+
+Renaming names in a MultiIndex
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`DataFrame.rename_axis` now supports ``index`` and ``columns`` arguments
+and :func:`Series.rename_axis` supports ``index`` argument (:issue:`19978`)
+
+This change allows a dictionary to be passed so that some of the names 
+of a ``MultiIndex`` can be changed.
+
+Example:
+
+.. ipython:: python
+
+    mi = pd.MultiIndex.from_product([list('AB'), list('CD'), list('EF')],
+                                    names=['AB', 'CD', 'EF'])
+    df = pd.DataFrame([i for i in range(len(mi))], index=mi, columns=['N'])
+    df
+    df.rename_axis(index={'CD': 'New'})
+
+See the :ref:`advanced docs on renaming<advanced.index_names>` for more details.
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
@@ -930,6 +953,7 @@ Deprecations
 - :func:`DatetimeIndex.shift` and :func:`PeriodIndex.shift` now accept ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`, :issue:`22912`)
 - The ``fastpath`` keyword of the different Index constructors is deprecated (:issue:`23110`).
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have deprecated the ``errors`` argument in favor of the ``nonexistent`` argument (:issue:`8917`)
+- The class ``FrozenNDArray`` has been deprecated. When unpickling, ``FrozenNDArray`` will be unpickled to ``np.ndarray`` once this class is removed (:issue:`9031`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
@@ -1156,6 +1180,7 @@ Interval
 - Bug in the ``IntervalIndex`` repr where a trailing comma was missing after the list of intervals (:issue:`20611`)
 - Bug in :class:`Interval` where scalar arithmetic operations did not retain the ``closed`` value (:issue:`22313`)
 - Bug in :class:`IntervalIndex` where indexing with datetime-like values raised a ``KeyError`` (:issue:`20636`)
+- Bug in ``IntervalTree`` where data containing ``NaN`` triggered a warning and resulted in incorrect indexing queries with :class:`IntervalIndex` (:issue:`23352`)
 
 Indexing
 ^^^^^^^^
