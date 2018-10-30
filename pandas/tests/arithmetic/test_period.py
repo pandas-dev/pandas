@@ -803,6 +803,7 @@ class TestPeriodIndexArithmetic(object):
         with pytest.raises(TypeError):
             other - obj
 
+
 class TestPeriodSeriesArithmetic(object):
     def test_ops_series_timedelta(self):
         # GH 13043
