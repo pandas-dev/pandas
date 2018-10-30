@@ -8656,6 +8656,50 @@ class NDFrame(PandasObject, SelectionMixin):
         ------
         TypeError
             If the TimeSeries is tz-aware and tz is not None.
+
+        Examples
+        --------
+
+        Localize local times:
+
+        >>> s = pd.to_datetime(pd.Series(['2018-09-15 01:30:00']))
+        >>> s.dt.tz_localize('CET')
+        0   2018-09-15 01:30:00+02:00
+        dtype: datetime64[ns, CET]
+
+        Be careful with DST changes. When there is sequential data, pandas can infer the DST time:
+
+        >>> s = pd.to_datetime(pd.Series([
+        ... '2018-10-28 01:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 03:00:00',
+        ... '2018-10-28 03:30:00']))
+        >>> s.dt.tz_localize('CET', ambiguous='infer')
+        1   2018-10-28 01:30:00+02:00
+        2   2018-10-28 02:00:00+02:00
+        3   2018-10-28 02:30:00+02:00
+        4   2018-10-28 02:00:00+01:00
+        5   2018-10-28 02:30:00+01:00
+        6   2018-10-28 03:00:00+01:00
+        7   2018-10-28 03:30:00+01:00
+        dtype: datetime64[ns, CET]
+
+        In some cases, inferring the DST is impossible. In such cases, you can
+        pass an ndarray to the ambiguous parameter to set the DST explicitly
+
+        >>> s = pd.to_datetime(pd.Series([
+        ... '2018-10-28 01:20:00',
+        ... '2018-10-28 02:36:00',
+        ... '2018-10-28 03:46:00']))
+        >>> s.dt.tz_localize('CET', ambiguous=np.array([True, True, False]))
+        0   2018-10-28 01:20:00+02:00
+        1   2018-10-28 02:36:00+02:00
+        2   2018-10-28 03:46:00+01:00
+        dtype: datetime64[ns, CET]
+
         """
         if nonexistent not in ('raise', 'NaT', 'shift'):
             raise ValueError("The nonexistent argument must be one of 'raise',"

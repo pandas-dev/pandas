@@ -179,6 +179,45 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     TimedeltaIndex : Index of timedelta64 data
     PeriodIndex : Index of Period data
     pandas.to_datetime : Convert argument to datetime
+
+    Examples
+    --------
+
+        Localize local times:
+
+        >>> s = pd.to_datetime(pd.Series(['2018-09-15 01:30:00']))
+        >>> pd.DatetimeIndex(s, tz='CET')
+        DatetimeIndex(['2018-09-15 01:30:00+02:00'], dtype='datetime64[ns, CET]', freq=None)
+
+        Be careful with DST changes. When there is sequential data, pandas can infer the DST time:
+
+        >>> s = pd.to_datetime(pd.Series([
+        ... '2018-10-28 01:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 03:00:00',
+        ... '2018-10-28 03:30:00']))
+        >>> pd.DatetimeIndex(s, tz='CET', ambiguous='infer')
+        DatetimeIndex(['2018-10-28 01:30:00+02:00', '2018-10-28 02:00:00+02:00',
+                       '2018-10-28 02:30:00+02:00', '2018-10-28 02:00:00+01:00',
+                       '2018-10-28 02:30:00+01:00', '2018-10-28 03:00:00+01:00',
+                       '2018-10-28 03:30:00+01:00'],
+                      dtype='datetime64[ns, CET]', freq=None)
+
+        In some cases, inferring the DST is impossible. In such cases, you can
+        pass an ndarray to the ambiguous parameter to set the DST explicitly
+
+        >>> s = pd.to_datetime(pd.Series([
+        ... '2018-10-28 01:20:00',
+        ... '2018-10-28 02:36:00',
+        ... '2018-10-28 03:46:00']))
+        >>> pd.DatetimeIndex(s, tz='CET', ambiguous=np.array([True, True, False]))
+        DatetimeIndex(['2018-10-28 01:20:00+02:00', '2018-10-28 02:36:00+02:00',
+                       '2018-10-28 03:46:00+01:00'],
+                      dtype='datetime64[ns, CET]', freq=None)
+
     """
     _resolution = cache_readonly(DatetimeArrayMixin._resolution.fget)
 
