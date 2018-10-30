@@ -30,6 +30,7 @@ from pandas._libs.tslibs import resolution
 
 from pandas.core.algorithms import unique1d
 from pandas.core.dtypes.dtypes import PeriodDtype
+import pandas.core.arrays.datetimelike as dtl
 from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
@@ -200,27 +201,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
         if data is None and ordinal is None:
             # range-based.
-            if periods is not None:
-                if is_float(periods):
-                    periods = int(periods)
-
-                elif not is_integer(periods):
-                    msg = 'periods must be a number, got {periods}'
-                    raise TypeError(msg.format(periods=periods))
-
             data, freq = PeriodArray._generate_range(start, end, periods,
                                                      freq, fields)
             data = PeriodArray(data, freq=freq)
         else:
-            if freq is None and dtype is not None:
-                freq = PeriodDtype(dtype).freq
-            elif freq and dtype:
-                freq = PeriodDtype(freq).freq
-                dtype = PeriodDtype(dtype).freq
-
-                if freq != dtype:
-                    msg = "specified freq and dtype are different"
-                    raise IncompatibleFrequency(msg)
+            freq = dtl.validate_dtype_freq(dtype, freq)
 
             # PeriodIndex allow PeriodIndex(period_index, freq=different)
             # Let's not encourage that kind of behavior in PeriodArray.
