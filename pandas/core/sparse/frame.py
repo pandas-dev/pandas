@@ -641,6 +641,8 @@ class SparseDataFrame(DataFrame):
     def _get_op_result_fill_value(self, other, func, axis=None):
         own_default = self.default_fill_value
 
+        axis = self._get_axis_name(axis) if axis is not None else None
+
         if axis == "columns":
             # i.e. called via _combine_match_columns
             fill_value = self.default_fill_value

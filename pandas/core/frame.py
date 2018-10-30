@@ -4909,10 +4909,18 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         result : dict[int:Series]
+        other : DataFrame, Series, or scalar
+        func : binary operator
+        axis : {0, 1, "index", "columns"}
 
         Returns
         -------
         DataFrame
+
+        Notes
+        -----
+        The `other`, `func`, and `axis` arguments are not used here but are
+        included to keep the signature consistent with that in SparseDataFrame.
         """
         result = self._constructor(result, index=self.index, copy=False)
         # Pin columns instead of passing to constructor for compat with
