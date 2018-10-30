@@ -583,23 +583,20 @@ class SparseDataFrame(DataFrame):
         if self.empty and other.empty:
             return self._constructor(index=new_index).__finalize__(self)
 
+        def _arith_op(left, right):
+            # analogous to _arith_op defined in DataFrame._combine_frame
+            dleft = left.to_dense()
+            dright = right.to_dense()
+            result = dleft._binop(dright, func, fill_value=fill_value)
+            result = result.to_sparse(fill_value=left.fill_value)
+            return result
+
         new_data = {}
-        if fill_value is not None:
-            # TODO: be a bit more intelligent here
-            for col in new_columns:
-                if col in this and col in other:
-                    dleft = this[col].to_dense()
-                    dright = other[col].to_dense()
-                    result = dleft._binop(dright, func, fill_value=fill_value)
-                    result = result.to_sparse(fill_value=this[col].fill_value)
-                    new_data[col] = result
-        else:
+        for col in new_columns:
+            assert col in this and col in other
+            new_data[col] = _arith_op(this[col], other[col])
 
-            for col in new_columns:
-                if col in this and col in other:
-                    new_data[col] = func(this[col], other[col])
-
-        return this._wrap_dispatched_op(new_data, other, func)
+        return this._wrap_dispatched_op(new_data, other, func, axis=None)
 
     def _combine_match_index(self, other, func, level=None):
 
@@ -613,7 +610,7 @@ class SparseDataFrame(DataFrame):
         for col, series in compat.iteritems(this):
             new_data[col] = func(series.values, other.values)
 
-        return self._wrap_dispatched_op(new_data, other, func)
+        return self._wrap_dispatched_op(new_data, other, func, axis=None)
 
     def _combine_match_columns(self, other, func, level=None):
         # patched version of DataFrame._combine_match_columns to account for
@@ -639,8 +636,7 @@ class SparseDataFrame(DataFrame):
         for col, series in compat.iteritems(self):
             new_data[col] = func(series, other)
 
-        return self._wrap_dispatched_op(new_data, other=other,
-                                        func=func, axis=None)
+        return self._wrap_dispatched_op(new_data, other, func, axis=None)
 
     def _get_op_result_fill_value(self, other, func, axis=None):
         own_default = self.default_fill_value
