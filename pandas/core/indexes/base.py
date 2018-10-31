@@ -203,6 +203,7 @@ class Index(IndexOpsMixin, PandasObject):
     >>> pd.Index(list('abc'))
     Index(['a', 'b', 'c'], dtype='object')
     """
+    # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = DirNamesMixin._deprecations | frozenset(['tolist'])
 
     # To hand over control to subclasses

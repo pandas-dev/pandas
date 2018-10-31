@@ -309,6 +309,7 @@ class Categorical(ExtensionArray, PandasObject):
     # ops, which raise
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
+    # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = frozenset(['labels', 'tolist'])
     _typ = 'categorical'
 
