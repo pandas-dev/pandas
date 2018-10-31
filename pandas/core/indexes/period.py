@@ -29,7 +29,6 @@ from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
 from pandas._libs.tslibs import resolution
 
 from pandas.core.algorithms import unique1d
-from pandas.core.dtypes.dtypes import PeriodDtype
 import pandas.core.arrays.datetimelike as dtl
 from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.base import _shared_docs
