@@ -560,8 +560,8 @@ class NaTType(_NaT):
 
         ambiguous : bool, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
-            For example in Central European Time (UTC+01), when going from 03:00 DST
-            to 02:00 non-DST, 02:30:00 local time occurs both at 00:30:00 UTC
+            For example in Central European Time (UTC+01), when going from 03:00
+            DST to 02:00 non-DST, 02:30:00 local time occurs both at 00:30:00 UTC
             and at 01:30:00 UTC. In such a situation, the `ambiguous` parameter
             dictates how ambiguous times should be handled.
 

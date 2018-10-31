@@ -607,10 +607,11 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             remove the time zone information preserving local time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
-            For example in Central European Time (UTC+01), when going from 03:00 DST
-            to 02:00 non-DST, 02:30:00 local time occurs both at 00:30:00 UTC
-            and at 01:30:00 UTC. In such a situation, the `ambiguous` parameter
-            dictates how ambiguous times should be handled.
+            For example in Central European Time (UTC+01), when going from
+            03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
+            00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
+            `ambiguous` parameter dictates how ambiguous times should be
+            handled.
 
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
@@ -683,7 +684,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                        '2018-03-03 09:00:00'],
                       dtype='datetime64[ns]', freq='D')
 
-        Be careful with DST changes. When there is sequential data, pandas can infer the DST time:
+        Be careful with DST changes. When there is sequential data, pandas can
+        infer the DST time:
         >>> s = pd.to_datetime(pd.Series([
         ... '2018-10-28 01:30:00',
         ... '2018-10-28 02:00:00',
