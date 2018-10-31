@@ -1,12 +1,15 @@
 """ basic inference routines """
 
-import re
-import numpy as np
 from numbers import Number
-from pandas import compat
-from pandas.compat import (PY2, string_types, text_type,
-                           string_and_binary_types, re_type, Set)
+import re
+
+import numpy as np
+
 from pandas._libs import lib
+from pandas.compat import (
+    PY2, Set, re_type, string_and_binary_types, string_types, text_type)
+
+from pandas import compat
 
 is_bool = lib.is_bool
 
