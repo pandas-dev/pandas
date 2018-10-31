@@ -81,10 +81,10 @@ object (more on what the GroupBy object is later), you may do the following:
 
 .. code-block:: python
 
-    # default is axis=0
-    >>> grouped = obj.groupby(key)
-    >>> grouped = obj.groupby(key, axis=1)
-    >>> grouped = obj.groupby([key1, key2])
+   # default is axis=0
+   >>> grouped = obj.groupby(key)
+   >>> grouped = obj.groupby(key, axis=1)
+   >>> grouped = obj.groupby([key1, key2])
 
 The mapping can be specified many different ways:
 

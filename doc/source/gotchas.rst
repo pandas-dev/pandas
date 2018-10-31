@@ -96,32 +96,40 @@ something to a ``bool``. This happens in an ``if``-statement or when using the
 boolean operations: ``and``, ``or``, and ``not``. It is not clear what the result
 of the following code should be:
 
->>> if pd.Series([False, True, False]):
-...     print("I was true")
+.. code-block:: python
+
+    >>> if pd.Series([False, True, False]):     # noqa: E999
+         ...
 
 Should it be ``True`` because it's not zero-length, or ``False`` because there 
 are ``False`` values? It is unclear, so instead, pandas raises a ``ValueError``:
 
->>> if pd.Series([False, True, False]):
-...     print("I was true")
-Traceback
-    ...
-ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
+.. code-block:: python
+
+    >>> if pd.Series([False, True, False]):
+    ...     print("I was true")
+    Traceback
+        ...
+    ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
 
 You need to explicitly choose what you want to do with the ``DataFrame``, e.g.
 use :meth:`~DataFrame.any`, :meth:`~DataFrame.all` or :meth:`~DataFrame.empty`.
 Alternatively, you might want to compare if the pandas object is ``None``:
 
->>> if pd.Series([False, True, False]) is not None:
-...    print("I was not None")
-I was not None
+.. code-block:: python
+
+    >>> if pd.Series([False, True, False]) is not None:
+    ...     print("I was not None")
+    I was not None
 
 
 Below is how to check if any of the values are ``True``:
 
->>> if pd.Series([False, True, False]).any():
-...     print("I am any")
-I am any
+.. code-block:: python
+
+    >>> if pd.Series([False, True, False]).any():
+    ...     print("I am any")
+    I am any
 
 To evaluate single-element pandas objects in a boolean context, use the method 
 :meth:`~DataFrame.bool`:

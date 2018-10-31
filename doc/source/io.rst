@@ -3483,7 +3483,6 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
    .. code-block:: python
 
        >>> pd.DataFrame(randn(10, 2)).to_hdf('test_fixed.h5', 'df')
-
        >>> pd.read_hdf('test_fixed.h5', 'df', where='index>5')
        TypeError: cannot pass a where specification when reading a fixed format.
                   this store must be selected in its entirety
@@ -3580,13 +3579,14 @@ will yield a tuple for each group key along with the relative keys of its conten
 
     Hierarchical keys cannot be retrieved as dotted (attribute) access as described above for items stored under the root node.
 
-    .. code-block:: python
+    .. code-block:: ipython
 
-       >>> store.foo.bar.bah
+       In [8]: store.foo.bar.bah
        AttributeError: 'HDFStore' object has no attribute 'foo'
 
        # you can directly access the actual PyTables node but using the root node
-       >>> store.root.foo.bar.bah
+       In [9]: store.root.foo.bar.bah
+       Out[9]:
        /foo/bar/bah (Group) ''
          children := ['block0_items' (Array), 'block0_values' (Array), 'axis0' (Array), 'axis1' (Array)]
 
@@ -3737,7 +3737,7 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
 
    instead of this
 
-   .. code-block:: python
+   .. code-block:: ipython
 
       string = "HolyMoly'"
       store.select('df', 'index == %s' % string)

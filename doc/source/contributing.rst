@@ -783,12 +783,10 @@ We would name this file ``test_cool_feature.py`` and put in an appropriate place
        assert str(np.dtype(dtype)) == dtype
 
 
-   @pytest.mark.parametrize('dtype',
-                            ['float32',
-                             pytest.param('int16', marks=pytest.mark.skip),
-                             pytest.param('int32', marks=pytest.mark.xfail(
-                                 reason='example'))
-                             ])
+   @pytest.mark.parametrize(
+       'dtype', ['float32', pytest.param('int16', marks=pytest.mark.skip),
+                 pytest.param('int32', marks=pytest.mark.xfail(
+                     reason='to show how it works'))])
    def test_mark(dtype):
        assert str(np.dtype(dtype)) == 'float32'
 

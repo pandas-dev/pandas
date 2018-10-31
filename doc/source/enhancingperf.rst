@@ -388,18 +388,19 @@ Consider the following toy example of doubling each observation:
     def double_every_value_withnumba(x):
         return x * 2
 
+.. code-block:: ipython
 
->>> # Custom function without numba
->>> %timeit df['col1_doubled'] = df.a.apply(double_every_value_nonumba)
-1000 loops, best of 3: 797 us per loop
+    # Custom function without numba
+    In [5]: %timeit df['col1_doubled'] = df.a.apply(double_every_value_nonumba)
+    1000 loops, best of 3: 797 us per loop
 
->>> # Standard implementation (faster than a custom function)
->>> %timeit df['col1_doubled'] = df.a*2
-1000 loops, best of 3: 233 us per loop
+    # Standard implementation (faster than a custom function)
+    In [6]: %timeit df['col1_doubled'] = df.a*2
+    1000 loops, best of 3: 233 us per loop
 
->>> # Custom function with numba
->>> %timeit df['col1_doubled'] = double_every_value_withnumba(df.a.values)
-1000 loops, best of 3: 145 us per loop
+    # Custom function with numba
+    In [7]: %timeit df['col1_doubled'] = double_every_value_withnumba(df.a.values)
+    1000 loops, best of 3: 145 us per loop
 
 Caveats
 ~~~~~~~
