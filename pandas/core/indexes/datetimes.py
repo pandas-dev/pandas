@@ -1136,6 +1136,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     is_year_end = wrap_field_accessor(DatetimeArrayMixin.is_year_end)
     is_leap_year = wrap_field_accessor(DatetimeArrayMixin.is_leap_year)
 
+    tz_localize = wrap_array_method(DatetimeArrayMixin.tz_localize, True)
+    tz_convert = wrap_array_method(DatetimeArrayMixin.tz_convert, True)
     to_perioddelta = wrap_array_method(DatetimeArrayMixin.to_perioddelta,
                                        False)
     to_period = wrap_array_method(DatetimeArrayMixin.to_period, True)
