@@ -2830,7 +2830,13 @@ class NDFrame(PandasObject, SelectionMixin):
         value : same type as items contained in object
         """
         try:
-            return self[key]
+            value = self[key]
+            if (isinstance(value, pd.Series)):
+                try:
+                    value[isna(value)] = default
+                except ValueError:
+                    pass
+            return value
         except (KeyError, ValueError, IndexError):
             return default
 

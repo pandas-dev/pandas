@@ -105,6 +105,8 @@ class JSONArray(ExtensionArray):
                 # masking
                 for i, (k, v) in enumerate(zip(key, value)):
                     if k:
+                        if v is None:
+                            v = {}
                         assert isinstance(v, self.dtype.type)
                         self.data[i] = v
             else:

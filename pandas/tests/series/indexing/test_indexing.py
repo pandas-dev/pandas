@@ -132,6 +132,16 @@ def test_getitem_generator(test_data):
     assert_series_equal(result2, expected)
 
 
+def test_series_get_with_default():
+    # GH 23428
+    s = pd.Series({'a': 1})
+
+    result = s.get(['a', 'b'], default=-1).astype('int64')
+    expected = pd.Series({'a': 1, 'b': -1})
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_type_promotion():
     # GH12599
     s = pd.Series()
