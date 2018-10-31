@@ -148,15 +148,11 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
         tm.assert_equal(commute, expected)
 
     def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box):
-        index = numeric_idx[1:3]
 
-        broken = (isinstance(three_days, np.timedelta64) and
-                  three_days.dtype != 'm8[ns]')
-        broken = broken or isinstance(three_days, pd.offsets.Tick)
-        if box is not pd.Index and broken:
-            # np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
-            raise pytest.xfail("timedelta64 not converted to nanos; "
-                               "Tick division not implemented")
+        if box is not pd.Index and isinstance(three_days, pd.offsets.Tick):
+            raise pytest.xfail("Tick division not implemented")
+
+        index = numeric_idx[1:3]
 
         expected = TimedeltaIndex(['3 Days', '36 Hours'])
 
@@ -168,6 +164,26 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
 
         with pytest.raises(TypeError):
             index / three_days
+
+    @pytest.mark.parametrize('other', [
+        pd.Timedelta(hours=31),
+        pd.Timedelta(hours=31).to_pytimedelta(),
+        pd.Timedelta(hours=31).to_timedelta64(),
+        pd.Timedelta(hours=31).to_timedelta64().astype('m8[h]'),
+        np.timedelta64('NaT'),
+        np.timedelta64('NaT', 'D'),
+        pd.offsets.Minute(3),
+        pd.offsets.Second(0)])
+    def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box):
+        left = tm.box_expected(numeric_idx, box)
+        with pytest.raises(TypeError):
+            left + other
+        with pytest.raises(TypeError):
+            other + left
+        with pytest.raises(TypeError):
+            left - other
+        with pytest.raises(TypeError):
+            other - left
 
 
 # ------------------------------------------------------------------
