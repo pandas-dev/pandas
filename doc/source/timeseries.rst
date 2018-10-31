@@ -116,6 +116,7 @@ data however will be stored as ``object`` data.
 
 .. ipython:: python
 
+   pd.Series(pd.period_range('1/1/2011', freq='M', periods=3))
    pd.Series([pd.DateOffset(1), pd.DateOffset(2)])
    pd.Series(pd.date_range('1/1/2011', freq='M', periods=3))
 
@@ -834,14 +835,9 @@ These frequency strings map to a :class:`DateOffset` object and its subclasses. 
 is similar to a :class:`Timedelta` that represents a duration of time but follows specific calendar duration rules.
 For example, a :class:`Timedelta` day will always increment ``datetimes`` by 24 hours, while a :class:`DateOffset` day
 will increment ``datetimes`` to the same time the next day whether a day represents 23, 24 or 25 hours due to daylight
-savings time. However, the following date offsets behave like :class:`Timedelta` and respect absolute time:
-
-* ``Hour``
-* ``Minute``
-* ``Second``
-* ``Milli``
-* ``Micro``
-* ``Nano``
+savings time. However, all :class:`DateOffset` subclasses that are an hour or smaller
+(``Hour``, ``Minute``, ``Second``, ``Milli``, ``Micro``, ``Nano``) behave like
+:class:`Timedelta` and respect absolute time.
 
 The basic :class:`DateOffset` acts similar to ``dateutil.relativedelta`` (`relativedelta documentation`_)
 that shifts a date time by the corresponding calendar duration specified.
