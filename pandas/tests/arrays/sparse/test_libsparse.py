@@ -1,13 +1,14 @@
-from pandas import Series
-
-import pytest
-import numpy as np
 import operator
-import pandas.util.testing as tm
+
+import numpy as np
+import pytest
+
+import pandas._libs.sparse as splib
 import pandas.util._test_decorators as td
 
-from pandas.core.arrays.sparse import IntIndex, BlockIndex, _make_index
-import pandas._libs.sparse as splib
+from pandas import Series
+from pandas.core.arrays.sparse import BlockIndex, IntIndex, _make_index
+import pandas.util.testing as tm
 
 TEST_LENGTH = 20
 

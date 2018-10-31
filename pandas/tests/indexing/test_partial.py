@@ -4,13 +4,13 @@ test setting *parts* of objects both positionally and label based
 TOD: these should be split among the indexer tests
 """
 
+from warnings import catch_warnings
+
+import numpy as np
 import pytest
 
-from warnings import catch_warnings
-import numpy as np
-
 import pandas as pd
-from pandas import Series, DataFrame, Panel, Index, date_range
+from pandas import DataFrame, Index, Panel, Series, date_range
 from pandas.util import testing as tm
 
 

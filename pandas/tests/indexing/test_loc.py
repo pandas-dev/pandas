@@ -1,18 +1,18 @@
 """ test label based indexing with loc """
 
 import itertools
+from warnings import catch_warnings, filterwarnings
+
+import numpy as np
 import pytest
 
-from warnings import catch_warnings, filterwarnings
-import numpy as np
+from pandas.compat import PY2, StringIO, lrange
 
 import pandas as pd
-from pandas.compat import lrange, StringIO
-from pandas import Series, DataFrame, Timestamp, date_range, MultiIndex, Index
-from pandas.util import testing as tm
-from pandas.tests.indexing.common import Base
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
 from pandas.api.types import is_scalar
-from pandas.compat import PY2
+from pandas.tests.indexing.common import Base
+from pandas.util import testing as tm
 
 
 class TestLoc(Base):

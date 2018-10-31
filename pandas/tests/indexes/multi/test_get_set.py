@@ -2,11 +2,13 @@
 
 
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import pytest
-from pandas import CategoricalIndex, Index, MultiIndex
+
 from pandas.compat import range
+
+import pandas as pd
+from pandas import CategoricalIndex, Index, MultiIndex
+import pandas.util.testing as tm
 
 
 def assert_matching(actual, expected, check_dtype=False):

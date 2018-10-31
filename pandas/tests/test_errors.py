@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-from warnings import catch_warnings, simplefilter
 import pandas  # noqa
 import pandas as pd
 from pandas.errors import AbstractMethodError
@@ -46,13 +45,6 @@ def test_error_rename():
         raise ParserError()
     except CParserError:
         pass
-
-    with catch_warnings(record=True):
-        simplefilter("ignore")
-        try:
-            raise ParserError()
-        except pd.parser.CParserError:
-            pass
 
 
 class Foo(object):

@@ -12,7 +12,7 @@ dependencies:
   - nomkl
   - numexpr
   - numpy=1.12.0
-  - openpyxl=2.5.5
+  - openpyxl
   - pytables
   - python=3.5*
   - pytz
