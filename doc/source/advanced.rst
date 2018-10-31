@@ -503,6 +503,47 @@ method, allowing you to permute the hierarchical index levels in one step:
 
    df[:5].reorder_levels([1,0], axis=0)
 
+.. _advanced.index_names:
+
+Renaming names of an ``Index`` or ``MultiIndex``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :meth:`~DataFrame.rename` method is used to rename the labels of a
+``MultiIndex``, and is typically used to rename the columns of a ``DataFrame``.
+The ``columns`` argument of ``rename`` allows a dictionary to be specified
+that includes only the columns you wish to rename.
+
+.. ipython:: python
+
+   df.rename(columns={0: "col0", 1: "col1"})
+
+This method can also be used to rename specific labels of the main index
+of the ``DataFrame``.
+
+.. ipython:: python
+
+   df.rename(index={"one" : "two", "y" : "z"})
+
+The :meth:`~DataFrame.rename_axis` method is used to rename the name of a
+``Index`` or ``MultiIndex``. In particular, the names of the levels of a
+``MultiIndex`` can be specified, which is useful if ``reset_index()`` is later
+used to move the values from the ``MultiIndex`` to a column.
+
+.. ipython:: python
+
+   df.rename_axis(index=['abc', 'def'])
+   
+Note that the columns of a ``DataFrame`` are an index, so that using
+``rename_axis`` with the ``columns`` argument will change the name of that
+index.
+
+.. ipython:: python
+
+   df.rename_axis(columns="Cols").columns
+
+Both ``rename`` and ``rename_axis`` support specifying a dictionary,
+``Series`` or a mapping function to map labels/names to new values.
+
 Sorting a ``MultiIndex``
 ------------------------
 

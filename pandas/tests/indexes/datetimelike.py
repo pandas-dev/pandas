@@ -1,9 +1,11 @@
 """ generic datetimelike tests """
-import pytest
 import numpy as np
+import pytest
+
 import pandas as pd
-from .common import Base
 import pandas.util.testing as tm
+
+from .common import Base
 
 
 class DatetimeLike(Base):

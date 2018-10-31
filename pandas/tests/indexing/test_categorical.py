@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
-import pandas as pd
 import pandas.compat as compat
-import numpy as np
-from pandas import (Series, DataFrame, Timestamp, Categorical,
-                    CategoricalIndex, Interval, Index)
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-from pandas.util import testing as tm
+
 from pandas.core.dtypes.common import is_categorical_dtype
-from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.dtypes.dtypes import CategoricalDtype
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, Index, Interval, Series,
+    Timestamp)
+from pandas.api.types import CategoricalDtype as CDT
+from pandas.util import testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestCategoricalIndex(object):

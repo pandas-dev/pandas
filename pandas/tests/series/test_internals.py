@@ -1,20 +1,19 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
 from datetime import datetime
 
-from numpy import nan
 import numpy as np
+from numpy import nan
+import pytest
 
+import pandas._libs.lib as lib
+
+import pandas as pd
 from pandas import Series
 from pandas.core.indexes.datetimes import Timestamp
-import pandas._libs.lib as lib
-import pandas as pd
-
-from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
 
 
 class TestSeriesInternals(object):

@@ -677,6 +677,51 @@ class TestTimestampSeriesArithmetic(object):
     # TODO: This next block of tests came from tests.series.test_operators,
     # needs to be de-duplicated and parametrized over `box` classes
 
+    def test_operators_datetimelike_invalid(self, all_arithmetic_operators):
+        # these are all TypeEror ops
+        op_str = all_arithmetic_operators
+
+        def check(get_ser, test_ser):
+
+            # check that we are getting a TypeError
+            # with 'operate' (from core/ops.py) for the ops that are not
+            # defined
+            op = getattr(get_ser, op_str, None)
+            with tm.assert_raises_regex(TypeError, 'operate|cannot'):
+                op(test_ser)
+
+        # ## timedelta64 ###
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+
+        # ## datetime64 ###
+        dt1 = Series([Timestamp('20111230'), Timestamp('20120101'),
+                      Timestamp('20120103')])
+        dt1.iloc[2] = np.nan
+        dt2 = Series([Timestamp('20111231'), Timestamp('20120102'),
+                      Timestamp('20120104')])
+        if op_str not in ['__sub__', '__rsub__']:
+            check(dt1, dt2)
+
+        # ## datetime64 with timetimedelta ###
+        # TODO(jreback) __rsub__ should raise?
+        if op_str not in ['__add__', '__radd__', '__sub__']:
+            check(dt1, td1)
+
+        # 8260, 10763
+        # datetime64 with tz
+        tz = 'US/Eastern'
+        dt1 = Series(date_range('2000-01-01 09:00:00', periods=5,
+                                tz=tz), name='foo')
+        dt2 = dt1.copy()
+        dt2.iloc[2] = np.nan
+        td1 = Series(pd.timedelta_range('1 days 1 min', periods=5, freq='H'))
+        td2 = td1.copy()
+        td2.iloc[1] = np.nan
+
+        if op_str not in ['__add__', '__radd__', '__sub__', '__rsub__']:
+            check(dt2, td2)
+
     @pytest.mark.parametrize('klass', [Series, pd.Index])
     def test_sub_datetime64_not_ns(self, klass):
         # GH#7996
