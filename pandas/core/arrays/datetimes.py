@@ -257,28 +257,22 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         if tz is not None:
             # Localize the start and end arguments
-            start = _maybe_localize_point(
-                start, getattr(start, 'tz', None), start, freq, tz
-            )
-            end = _maybe_localize_point(
-                end, getattr(end, 'tz', None), end, freq, tz
-            )
+            start = _maybe_localize_point(start, getattr(start, 'tz', None),
+                                          start, freq, tz)
+            end = _maybe_localize_point(end, getattr(end, 'tz', None),
+                                        end, freq, tz)
         if start and end:
             # Make sure start and end have the same tz
-            start = _maybe_localize_point(
-                start, start.tz, end.tz, freq, tz
-            )
-            end = _maybe_localize_point(
-                end, end.tz, start.tz, freq, tz
-            )
+            start = _maybe_localize_point(start, start.tz, end.tz, freq, tz)
+            end = _maybe_localize_point(end, end.tz, start.tz, freq, tz)
+
         if freq is not None:
             # TODO: consider re-implementing _cached_range; GH#17914
             index = _generate_regular_range(cls, start, end, periods, freq)
 
             if tz is not None and getattr(index, 'tz', None) is None:
-                arr = conversion.tz_localize_to_utc(
-                    ensure_int64(index.values),
-                    tz, ambiguous=ambiguous)
+                arr = conversion.tz_localize_to_utc(ensure_int64(index.values),
+                                                    tz, ambiguous=ambiguous)
 
                 index = cls(arr)
 
@@ -291,9 +285,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         else:
             # Create a linearly spaced date_range in local time
             arr = np.linspace(start.value, end.value, periods)
-            index = cls._simple_new(
-                arr.astype('M8[ns]', copy=False), freq=None, tz=tz
-            )
+            arr = arr.astype('M8[ns]', copy=False)
+            index = cls._simple_new(arr, freq=None, tz=tz)
 
         if not left_closed and len(index) and index[0] == start:
             index = index[1:]

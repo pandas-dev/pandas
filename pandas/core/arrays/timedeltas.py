@@ -166,15 +166,13 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         else:
             index = np.linspace(start.value, end.value, periods).astype('i8')
 
-        index = index.view('m8[ns]')
-        index = cls._simple_new(index, freq=freq)
-
         if not left_closed:
             index = index[1:]
         if not right_closed:
             index = index[:-1]
 
-        return index
+        index = index.view('m8[ns]')
+        return cls._simple_new(index, freq=freq)
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
