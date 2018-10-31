@@ -37,7 +37,7 @@ jobs:
       displayName: 'Build'
     - script: |
         call activate %CONDA_ENV%
-        pytest --junitxml=test-data.xml --skip-slow --skip-network pandas -n 2 -r sxX --strict %*
+        pytest --junitxml=test-data.xml --skip-slow --skip-network pandas -n 2 -r sxX --strict --durations=10 %*
       displayName: 'Test'
     - task: PublishTestResults@2
       inputs:
