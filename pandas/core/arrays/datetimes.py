@@ -1360,7 +1360,7 @@ def _generate_regular_range(cls, start, end, periods, freq):
         xdr = generate_range(start=start, end=end,
                              periods=periods, offset=freq)
 
-        values = np.array([x.value for x in xdr])
+        values = np.array([x.value for x in xdr], dtype=np.int64)
         data = cls._simple_new(values, freq=freq, tz=tz)
 
     return data
