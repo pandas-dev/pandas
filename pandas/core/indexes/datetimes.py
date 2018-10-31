@@ -299,7 +299,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             subarr = data.view(_NS_DTYPE)
 
         assert isinstance(subarr, np.ndarray), type(subarr)
-        assert subarr.dtype == 'M8[ns]', dubarr.dtype
+        assert subarr.dtype == 'M8[ns]', subarr.dtype
         subarr = cls._simple_new(subarr, name=name, freq=freq, tz=tz)
         if dtype is not None:
             if not is_dtype_equal(subarr.dtype, dtype):

@@ -11,7 +11,7 @@ from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas import compat
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, ensure_int64, is_timedelta64_dtype, is_list_like)
+    _TD_DTYPE, is_list_like)
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
