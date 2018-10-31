@@ -42,8 +42,10 @@ class TestTimedeltaArithmetic(object):
             with pytest.raises(TypeError):
                 left + right
 
-            with pytest.raises(TypeError):
-                left > right
+            # GH 20829: python 2 comparison naturally does not raise TypeError
+            if compat.PY3:
+                with pytest.raises(TypeError):
+                    left > right
 
             assert not left == right
             assert left != right
@@ -102,6 +104,55 @@ class TestTimedeltaComparison(object):
         result = arr[0] > arr
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_compare_custom_object(self):
+        """Make sure non supported operations on Timedelta returns NonImplemented
+        and yields to other operand (GH20829)."""
+        class CustomClass(object):
+
+            def __init__(self, cmp_result=None):
+                self.cmp_result = cmp_result
+
+            def generic_result(self):
+                if self.cmp_result is None:
+                    return NotImplemented
+                else:
+                    return self.cmp_result
+
+            def __eq__(self, other):
+                return self.generic_result()
+
+            def __gt__(self, other):
+                return self.generic_result()
+
+        t = Timedelta('1s')
+
+        assert not (t == "string")
+        assert not (t == 1)
+        assert not (t == CustomClass())
+        assert not (t == CustomClass(cmp_result=False))
+
+        assert t < CustomClass(cmp_result=True)
+        assert not (t < CustomClass(cmp_result=False))
+
+        assert t == CustomClass(cmp_result=True)
+
+    @pytest.mark.skipif(compat.PY2,
+                        reason="python 2 does not raise TypeError for \
+                               comparisons of different types")
+    @pytest.mark.parametrize("val", [
+        "string", 1])
+    def test_compare_unknown_type(self, val):
+        # GH20829
+        t = Timedelta('1s')
+        with pytest.raises(TypeError):
+            t >= val
+        with pytest.raises(TypeError):
+            t > val
+        with pytest.raises(TypeError):
+            t <= val
+        with pytest.raises(TypeError):
+            t < val
 
 
 class TestTimedeltas(object):

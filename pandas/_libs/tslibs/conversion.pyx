@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import cython
 from cython import Py_ssize_t
 
@@ -44,6 +43,7 @@ from nattype cimport NPY_NAT, checknull_with_nat
 # Constants
 
 cdef int64_t DAY_NS = 86400000000000LL
+cdef int64_t HOURS_NS = 3600000000000
 NS_DTYPE = np.dtype('M8[ns]')
 TD_DTYPE = np.dtype('m8[ns]')
 
@@ -458,8 +458,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                 if tz is not None:
                     # shift for localize_tso
                     ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
-                                            ambiguous='raise',
-                                            errors='raise')[0]
+                                            ambiguous='raise')[0]
 
         except OutOfBoundsDatetime:
             # GH#19382 for just-barely-OutOfBounds falling back to dateutil
@@ -826,7 +825,7 @@ def tz_convert(int64_t[:] vals, object tz1, object tz2):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
-                       object errors='raise'):
+                       object nonexistent=None):
     """
     Localize tzinfo-naive i8 to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
@@ -837,7 +836,10 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     tz : tzinfo or None
     ambiguous : str, bool, or arraylike
         If arraylike, must have the same length as vals
-    errors : {"raise", "coerce"}, default "raise"
+    nonexistent : str
+        If arraylike, must have the same length as vals
+
+        .. versionadded:: 0.24.0
 
     Returns
     -------
@@ -849,16 +851,13 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         ndarray ambiguous_array
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
         int64_t *tdata
-        int64_t v, left, right
+        int64_t v, left, right, val, v_left, v_right
         ndarray[int64_t] result, result_a, result_b, dst_hours
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
-        bint is_coerce = errors == 'coerce', is_raise = errors == 'raise'
+        bint shift = False, fill_nonexist = False
 
     # Vectorized version of DstTzInfo.localize
-
-    assert is_coerce or is_raise
-
     if tz == UTC or tz is None:
         return vals
 
@@ -888,39 +887,45 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                              "the same size as vals")
         ambiguous_array = np.asarray(ambiguous)
 
+    if nonexistent == 'NaT':
+        fill_nonexist = True
+    elif nonexistent == 'shift':
+        shift = True
+    else:
+        assert nonexistent in ('raise', None), ("nonexistent must be one of"
+                                                " {'NaT', 'raise', 'shift'}")
+
     trans, deltas, typ = get_dst_info(tz)
 
     tdata = <int64_t*> cnp.PyArray_DATA(trans)
     ntrans = len(trans)
 
+    # Determine whether each date lies left of the DST transition (store in
+    # result_a) or right of the DST transition (store in result_b)
     result_a = np.empty(n, dtype=np.int64)
     result_b = np.empty(n, dtype=np.int64)
     result_a.fill(NPY_NAT)
     result_b.fill(NPY_NAT)
 
-    # left side
-    idx_shifted = (np.maximum(0, trans.searchsorted(
+    idx_shifted_left = (np.maximum(0, trans.searchsorted(
         vals - DAY_NS, side='right') - 1)).astype(np.int64)
 
-    for i in range(n):
-        v = vals[i] - deltas[idx_shifted[i]]
-        pos = bisect_right_i8(tdata, v, ntrans) - 1
-
-        # timestamp falls to the left side of the DST transition
-        if v + deltas[pos] == vals[i]:
-            result_a[i] = v
-
-    # right side
-    idx_shifted = (np.maximum(0, trans.searchsorted(
+    idx_shifted_right = (np.maximum(0, trans.searchsorted(
         vals + DAY_NS, side='right') - 1)).astype(np.int64)
 
     for i in range(n):
-        v = vals[i] - deltas[idx_shifted[i]]
-        pos = bisect_right_i8(tdata, v, ntrans) - 1
+        val = vals[i]
+        v_left = val - deltas[idx_shifted_left[i]]
+        pos_left = bisect_right_i8(tdata, v_left, ntrans) - 1
+        # timestamp falls to the left side of the DST transition
+        if v_left + deltas[pos_left] == val:
+            result_a[i] = v_left
 
+        v_right = val - deltas[idx_shifted_right[i]]
+        pos_right = bisect_right_i8(tdata, v_right, ntrans) - 1
         # timestamp falls to the right side of the DST transition
-        if v + deltas[pos] == vals[i]:
-            result_b[i] = v
+        if v_right + deltas[pos_right] == val:
+            result_b[i] = v_right
 
     if infer_dst:
         dst_hours = np.empty(n, dtype=np.int64)
@@ -935,7 +940,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
             stamp = _render_tstamp(vals[trans_idx])
             raise pytz.AmbiguousTimeError(
                 "Cannot infer dst time from %s as there "
-                "are no repeated times" % stamp)
+                "are no repeated times".format(stamp))
         # Split the array into contiguous chunks (where the difference between
         # indices is 1).  These are effectively dst transitions in different
         # years which is useful for checking that there is not an ambiguous
@@ -960,7 +965,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 if switch_idx.size > 1:
                     raise pytz.AmbiguousTimeError(
                         "There are %i dst switches when "
-                        "there should only be 1." % switch_idx.size)
+                        "there should only be 1.".format(switch_idx.size))
                 switch_idx = switch_idx[0] + 1
                 # Pull the only index and adjust
                 a_idx = grp[:switch_idx]
@@ -968,10 +973,11 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 dst_hours[grp] = np.hstack((result_a[a_idx], result_b[b_idx]))
 
     for i in range(n):
+        val = vals[i]
         left = result_a[i]
         right = result_b[i]
-        if vals[i] == NPY_NAT:
-            result[i] = vals[i]
+        if val == NPY_NAT:
+            result[i] = val
         elif left != NPY_NAT and right != NPY_NAT:
             if left == right:
                 result[i] = left
@@ -986,19 +992,27 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 elif fill:
                     result[i] = NPY_NAT
                 else:
-                    stamp = _render_tstamp(vals[i])
+                    stamp = _render_tstamp(val)
                     raise pytz.AmbiguousTimeError(
                         "Cannot infer dst time from %r, try using the "
-                        "'ambiguous' argument" % stamp)
+                        "'ambiguous' argument".format(stamp))
         elif left != NPY_NAT:
             result[i] = left
         elif right != NPY_NAT:
             result[i] = right
         else:
-            if is_coerce:
+            # Handle nonexistent times
+            if shift:
+                # Shift the nonexistent time forward to the closest existing
+                # time
+                remaining_minutes = val % HOURS_NS
+                new_local = val + (HOURS_NS - remaining_minutes)
+                delta_idx = trans.searchsorted(new_local, side='right') - 1
+                result[i] = new_local - deltas[delta_idx]
+            elif fill_nonexist:
                 result[i] = NPY_NAT
             else:
-                stamp = _render_tstamp(vals[i])
+                stamp = _render_tstamp(val)
                 raise pytz.NonExistentTimeError(stamp)
 
     return result

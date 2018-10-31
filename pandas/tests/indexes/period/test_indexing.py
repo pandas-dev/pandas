@@ -1,15 +1,16 @@
 from datetime import datetime, timedelta
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
-from pandas.util import testing as tm
-from pandas.compat import lrange
 from pandas._libs import tslibs
-from pandas import (PeriodIndex, Series, DatetimeIndex,
-                    period_range, Period, notna)
 from pandas._libs.tslibs import period as libperiod
+from pandas.compat import lrange
+
+import pandas as pd
+from pandas import (
+    DatetimeIndex, Period, PeriodIndex, Series, notna, period_range)
+from pandas.util import testing as tm
 
 
 class TestGetItem(object):
@@ -564,7 +565,7 @@ class TestIndexing(object):
                                     'unit abbreviation w/o a number'):
             idx.get_loc('2000-01-10', method='nearest', tolerance='foo')
 
-        msg = 'Input has different freq from PeriodIndex\\(freq=D\\)'
+        msg = 'Input has different freq from PeriodArray\\(freq=D\\)'
         with tm.assert_raises_regex(ValueError, msg):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 hour')
         with pytest.raises(KeyError):
@@ -594,7 +595,7 @@ class TestIndexing(object):
                                                     tolerance='1 hour'),
                                     np.array([0, -1, 1], dtype=np.intp))
 
-        msg = 'Input has different freq from PeriodIndex\\(freq=H\\)'
+        msg = 'Input has different freq from PeriodArray\\(freq=H\\)'
         with tm.assert_raises_regex(ValueError, msg):
             idx.get_indexer(target, 'nearest', tolerance='1 minute')
 

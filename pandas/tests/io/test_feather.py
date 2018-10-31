@@ -100,7 +100,8 @@ class TestFeather(object):
 
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
-        self.check_error_on_write(df, ValueError)
+        # Some versions raise ValueError, others raise ArrowInvalid.
+        self.check_error_on_write(df, Exception)
 
     @pytest.mark.skipif(fv < LooseVersion('0.4.0'), reason='new in 0.4.0')
     def test_rw_nthreads(self):

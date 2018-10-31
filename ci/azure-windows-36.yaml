@@ -11,12 +11,12 @@ dependencies:
   - matplotlib
   - numexpr
   - numpy=1.14*
-  - openpyxl=2.5.5
+  - openpyxl
   - parquet-cpp
   - pyarrow
   - pytables
   - python-dateutil
-  - python=3.6.*
+  - python=3.6.6
   - pytz
   - scipy
   - thrift=0.10*

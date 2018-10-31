@@ -12,7 +12,7 @@ lxml
 matplotlib>=2.0.0
 nbsphinx
 numexpr>=2.6.1
-openpyxl=2.5.5
+openpyxl
 pyarrow
 pymysql
 pytables>=3.4.2

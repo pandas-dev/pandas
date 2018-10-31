@@ -1,11 +1,15 @@
 """ define extension dtypes """
 
 import re
+
 import numpy as np
-from pandas import compat
-from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
-from pandas._libs.tslibs import Period, NaT, Timestamp
+
 from pandas._libs.interval import Interval
+from pandas._libs.tslibs import NaT, Period, Timestamp
+
+from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
+
+from pandas import compat
 
 from .base import ExtensionDtype, _DtypeOpsMixin
 
@@ -588,7 +592,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 str(self.tz) == str(other.tz))
 
 
-class PeriodDtype(PandasExtensionDtype):
+class PeriodDtype(ExtensionDtype, PandasExtensionDtype):
     """
     A Period duck-typed class, suitable for holding a period with freq dtype.
 
@@ -705,6 +709,12 @@ class PeriodDtype(PandasExtensionDtype):
             else:
                 return False
         return super(PeriodDtype, cls).is_dtype(dtype)
+
+    @classmethod
+    def construct_array_type(cls):
+        from pandas.core.arrays import PeriodArray
+
+        return PeriodArray
 
 
 @register_extension_dtype

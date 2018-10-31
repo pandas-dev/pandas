@@ -317,6 +317,11 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return result
 
+        elif is_period_dtype(data) and not is_object_dtype(dtype):
+            from pandas import PeriodIndex
+            result = PeriodIndex(data, copy=copy, name=name, **kwargs)
+            return result
+
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
             data = np.asarray(data)
@@ -389,8 +394,7 @@ class Index(IndexOpsMixin, PandasObject):
             # maybe coerce to a sub-class
             from pandas.core.indexes.period import (
                 PeriodIndex, IncompatibleFrequency)
-            if isinstance(data, PeriodIndex):
-                return PeriodIndex(data, copy=copy, name=name, **kwargs)
+
             if is_signed_integer_dtype(data.dtype):
                 from .numeric import Int64Index
                 return Int64Index(data, copy=copy, dtype=dtype, name=name)
@@ -2217,7 +2221,7 @@ class Index(IndexOpsMixin, PandasObject):
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
         if self._can_hold_na:
-            return self._isnan.any()
+            return bool(self._isnan.any())
         else:
             return False
 
@@ -4698,6 +4702,13 @@ class Index(IndexOpsMixin, PandasObject):
     def _evaluate_with_timedelta_like(self, other, op):
         # Timedelta knows how to operate with np.array, so dispatch to that
         # operation and then wrap the results
+        if self._is_numeric_dtype and op.__name__ in ['add', 'sub',
+                                                      'radd', 'rsub']:
+            raise TypeError("Operation {opname} between {cls} and {other} "
+                            "is invalid".format(opname=op.__name__,
+                                                cls=type(self).__name__,
+                                                other=type(other).__name__))
+
         other = Timedelta(other)
         values = self.values
 

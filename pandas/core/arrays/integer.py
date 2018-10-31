@@ -173,7 +173,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     values = np.array(values, copy=copy)
     if is_object_dtype(values):
         inferred_type = lib.infer_dtype(values)
-        if inferred_type is 'mixed' and isna(values).any():
+        if inferred_type is 'mixed' and isna(values).all():
             values = np.empty(len(values))
             values.fill(np.nan)
         elif inferred_type not in ['floating', 'integer',
