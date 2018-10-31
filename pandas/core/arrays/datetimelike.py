@@ -145,6 +145,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # Array-like Methods
 
     @property
+    def nbytes(self):
+        return self.asi8.nbytes
+
+    @property
     def shape(self):
         return (len(self),)
 
@@ -211,6 +215,31 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface
+    # isna
+    # __getitem__
+    # __len__
+    # nbytes
+    # take
+    # _concat_same_type
+    # copy
+    # _from_factorized
+    # factorize / _values_for_factorize
+    # _from_sequence
+    # unique
+    #
+    # dtype
+    #
+    # dropna
+    #
+    #* _formatting_values
+    #* fillna
+    #* argsort / _values_for_argsort
+    #* _reduce
+
+    def unique(self):
+        from pandas.core.algorithms import unique1d
+        result = unique1d(self.asi8)
+        return self._shallow_copy(result)
 
     def _validate_fill_value(self, fill_value):
         """
@@ -254,8 +283,35 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         values = np.concatenate([x._data for x in to_concat])
         return cls._simple_new(values, freq=freq)
 
+    def copy(self, deep=False):
+        # TODO: should `deep` determine whether we copy self.asi8?
+        if is_datetime64tz_dtype(self):
+            return type(self)(self.asi8.copy(), tz=self.tz, freq=self.freq)
+        return type(self)(self.asi8.copy(), freq=self.freq)
+
+    def _values_for_factorize(self):
+        return self.asi8, iNaT
+
+    @classmethod
+    def _from_factorized(cls, values, original):
+        if is_datetime64tz_dtype(original):
+            return cls(values, tz=original.tz, freq=original.freq)
+        return cls(values, freq=original.freq)
+
+    @classmethod
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        arr = np.asarray(scalars, dtype=object)
+        if copy:
+            arr = arr.copy()
+
+        # If necessary this will infer tz from dtype
+        return cls(arr, dtype=dtype)
+
     # ------------------------------------------------------------------
     # Null Handling
+
+    def isna(self):
+        return self._isnan
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _isnan(self):

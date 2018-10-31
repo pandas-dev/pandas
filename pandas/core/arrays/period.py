@@ -211,14 +211,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         ordinals = libperiod.extract_ordinals(periods, freq)
         return cls(ordinals, freq=freq)
 
-    def _values_for_factorize(self):
-        return self.asi8, iNaT
-
-    @classmethod
-    def _from_factorized(cls, values, original):
-        # type: (Sequence[Optional[Period]], PeriodArray) -> PeriodArray
-        return cls(values, freq=original.freq)
-
     @classmethod
     def _from_datetime64(cls, data, freq, tz=None):
         """Construct a PeriodArray from a datetime64 array
@@ -256,14 +248,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                              'Period range')
 
         return subarr, freq
-
-    @classmethod
-    def _concat_same_type(cls, to_concat):
-        freq = {x.freq for x in to_concat}
-        assert len(freq) == 1
-        freq = list(freq)[0]
-        values = np.concatenate([x._data for x in to_concat])
-        return cls(values, freq=freq)
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -400,9 +384,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
         return type(self)(new_values, self.freq)
 
-    def isna(self):
-        return self._data == iNaT
-
     def fillna(self, value=None, method=None, limit=None):
         # TODO(#20300)
         # To avoid converting to object, we re-implement here with the changes
@@ -437,9 +418,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         else:
             new_values = self.copy()
         return new_values
-
-    def copy(self, deep=False):
-        return type(self)(self._data.copy(), freq=self.freq)
 
     def value_counts(self, dropna=False):
         from pandas import Series, PeriodIndex
