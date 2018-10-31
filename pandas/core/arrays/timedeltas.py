@@ -225,15 +225,15 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         """Add DatetimeArray/Index or ndarray[datetime64] to TimedeltaArray"""
         if isinstance(other, np.ndarray):
             # At this point we have already checked that dtype is datetime64
-            from pandas.core.arrays import DatetimeArrayMixin
-            other = DatetimeArrayMixin(other)
+            from pandas.core.arrays import DatetimeArray
+            other = DatetimeArray(other)
 
         # defer to implementation in DatetimeArray
         return other + self
 
     def _add_datetimelike_scalar(self, other):
         # adding a timedeltaindex to a datetimelike
-        from pandas.core.arrays import DatetimeArrayMixin
+        from pandas.core.arrays import DatetimeArray
 
         assert other is not NaT
         other = Timestamp(other)
@@ -241,13 +241,13 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             # In this case we specifically interpret NaT as a datetime, not
             # the timedelta interpretation we would get by returning self + NaT
             result = self.asi8.view('m8[ms]') + NaT.to_datetime64()
-            return DatetimeArrayMixin(result)
+            return DatetimeArray(result)
 
         i8 = self.asi8
         result = checked_add_with_arr(i8, other.value,
                                       arr_mask=self._isnan)
         result = self._maybe_mask_results(result)
-        return DatetimeArrayMixin(result, tz=other.tz)
+        return DatetimeArray(result, tz=other.tz)
 
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects

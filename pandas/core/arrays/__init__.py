@@ -2,7 +2,7 @@ from .base import (ExtensionArray,    # noqa
                    ExtensionOpsMixin,
                    ExtensionScalarOpsMixin)
 from .categorical import Categorical  # noqa
-from .datetimes import DatetimeArrayMixin  # noqa
+from .datetimes import DatetimeArray  # noqa
 from .interval import IntervalArray  # noqa
 from .period import PeriodArray, period_array  # noqa
 from .timedeltas import TimedeltaArrayMixin  # noqa

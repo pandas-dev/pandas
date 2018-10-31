@@ -923,7 +923,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         add in the datetimelike methods (as we may have to override the
         superclass)
         """
-        # TODO(DatetimeArray): move this up to DatetimeArrayMixin
+        # TODO(DatetimeArray): move this up to DatetimeArray
 
         def __add__(self, other):
             # dispatch to ExtensionArray implementation

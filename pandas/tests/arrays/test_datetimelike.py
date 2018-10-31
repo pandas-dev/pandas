@@ -5,7 +5,7 @@ import pytest
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.core.arrays import (
-    DatetimeArrayMixin, PeriodArray, TimedeltaArrayMixin
+    DatetimeArray, PeriodArray, TimedeltaArrayMixin
 )
 
 
@@ -62,7 +62,7 @@ def index_to_array(index):
     instance of the corresponding Index subclass.
     """
     if isinstance(index, pd.DatetimeIndex):
-        return DatetimeArrayMixin(index)
+        return DatetimeArray(index)
     elif isinstance(index, pd.TimedeltaIndex):
         return TimedeltaArrayMixin(index)
     elif isinstance(index, pd.PeriodIndex):
@@ -136,7 +136,7 @@ class TestDatetimeArray(object):
     def test_from_dti(self, tz_naive_fixture):
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
-        arr = DatetimeArrayMixin(dti)
+        arr = DatetimeArray(dti)
         assert list(dti) == list(arr)
 
         # Check that Index.__new__ knows what to do with DatetimeArray
@@ -147,7 +147,7 @@ class TestDatetimeArray(object):
     def test_astype_object(self, tz_naive_fixture):
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
-        arr = DatetimeArrayMixin(dti)
+        arr = DatetimeArray(dti)
         asobj = arr.astype('O')
         assert isinstance(asobj, np.ndarray)
         assert asobj.dtype == 'O'
@@ -157,7 +157,7 @@ class TestDatetimeArray(object):
     def test_to_perioddelta(self, datetime_index, freqstr):
         # GH#23113
         dti = datetime_index
-        arr = DatetimeArrayMixin(dti)
+        arr = DatetimeArray(dti)
 
         expected = dti.to_perioddelta(freq=freqstr)
         result = arr.to_perioddelta(freq=freqstr)
@@ -170,7 +170,7 @@ class TestDatetimeArray(object):
     @pytest.mark.parametrize('freqstr', ['D', 'B', 'W', 'M', 'Q', 'Y'])
     def test_to_period(self, datetime_index, freqstr):
         dti = datetime_index
-        arr = DatetimeArrayMixin(dti)
+        arr = DatetimeArray(dti)
 
         expected = dti.to_period(freq=freqstr)
         result = arr.to_period(freq=freqstr)
@@ -184,7 +184,7 @@ class TestDatetimeArray(object):
     def test_bool_properties(self, datetime_index, propname):
         # in this case _bool_ops is just `is_leap_year`
         dti = datetime_index
-        arr = DatetimeArrayMixin(dti)
+        arr = DatetimeArray(dti)
         assert dti.freq == arr.freq
 
         result = getattr(arr, propname)
@@ -195,7 +195,7 @@ class TestDatetimeArray(object):
     @pytest.mark.parametrize('propname', pd.DatetimeIndex._field_ops)
     def test_int_properties(self, datetime_index, propname):
         dti = datetime_index
-        arr = DatetimeArrayMixin(dti)
+        arr = DatetimeArray(dti)
 
         result = getattr(arr, propname)
         expected = np.array(getattr(dti, propname), dtype=result.dtype)
@@ -227,7 +227,7 @@ class TestDatetimeArray(object):
     def test_concat_same_type_invalid(self, datetime_index):
         # different timezones
         dti = datetime_index
-        arr = DatetimeArrayMixin(dti)
+        arr = DatetimeArray(dti)
 
         if arr.tz is None:
             other = arr.tz_localize('UTC')
@@ -343,9 +343,9 @@ class TestPeriodArray(object):
         pi = period_index
         arr = PeriodArray(pi)
 
-        expected = DatetimeArrayMixin(pi.to_timestamp(how=how))
+        expected = DatetimeArray(pi.to_timestamp(how=how))
         result = arr.to_timestamp(how=how)
-        assert isinstance(result, DatetimeArrayMixin)
+        assert isinstance(result, DatetimeArray)
 
         # placeholder until these become actual EA subclasses and we can use
         #  an EA-specific tm.assert_ function

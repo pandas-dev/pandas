@@ -150,7 +150,7 @@ def _dt_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
+class DatetimeArray(dtl.DatetimeLikeArrayMixin):
     """
     Assumes that subclass __new__/__init__ defines:
         tz
@@ -1343,8 +1343,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                  ) / 24.0)
 
 
-DatetimeArrayMixin._add_comparison_ops()
-DatetimeArrayMixin._add_datetimelike_methods()
+DatetimeArray._add_comparison_ops()
+DatetimeArray._add_datetimelike_methods()
 
 
 def _generate_regular_range(cls, start, end, periods, freq):
