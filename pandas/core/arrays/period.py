@@ -13,7 +13,6 @@ from pandas._libs.tslibs.period import (
 )
 from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
-from pandas._libs.tslibs.timestamps import int_op_deprecated
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas.util._decorators import cache_readonly, Appender
 from pandas.util._validators import validate_fillna_kwargs

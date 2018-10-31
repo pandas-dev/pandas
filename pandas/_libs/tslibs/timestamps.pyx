@@ -43,7 +43,7 @@ _no_input = object()
 
 # ----------------------------------------------------------------------
 
-def int_op_deprecated(obj):
+def maybe_integer_op_deprecated(obj):
     # GH#22535 add/sub of integers and int-arrays is deprecated
     if obj.freq is not None:
         warnings.warn("Addition/subtraction of integers and integer-arrays "
@@ -335,7 +335,7 @@ cdef class _Timestamp(datetime):
                              tz=self.tzinfo, freq=self.freq)
 
         elif is_integer_object(other):
-            int_op_deprecated(self)
+            maybe_integer_op_deprecated(self)
 
             if self is NaT:
                 # to be compat with Period
