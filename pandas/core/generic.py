@@ -8677,7 +8677,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ... '2018-10-28 02:30:00',
         ... '2018-10-28 03:00:00',
         ... '2018-10-28 03:30:00']))
-        >>> s.dt.tz_localize('CET', ambiguous='infer')
+        >>> s.tz_localize('CET', ambiguous='infer')
         2018-10-28 01:30:00+02:00    0
         2018-10-28 02:00:00+02:00    1
         2018-10-28 02:30:00+02:00    2
