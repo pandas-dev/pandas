@@ -8662,14 +8662,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Localize local times:
 
-        >>> s = pd.to_datetime(pd.Series(['2018-09-15 01:30:00']))
-        >>> s.dt.tz_localize('CET')
-        0   2018-09-15 01:30:00+02:00
-        dtype: datetime64[ns, CET]
+        >>> s = pd.Series([1], index=pd.DatetimeIndex(['2018-09-15 01:30:00']))
+        >>> s.tz_localize('CET')
+        2018-09-15 01:30:00+02:00    1
+        dtype: int64
 
         Be careful with DST changes. When there is sequential data, pandas can infer the DST time:
 
-        >>> s = pd.to_datetime(pd.Series([
+        >>> s = pd.Series(range(7), index=pd.DatetimeIndex([
         ... '2018-10-28 01:30:00',
         ... '2018-10-28 02:00:00',
         ... '2018-10-28 02:30:00',
@@ -8678,27 +8678,27 @@ class NDFrame(PandasObject, SelectionMixin):
         ... '2018-10-28 03:00:00',
         ... '2018-10-28 03:30:00']))
         >>> s.dt.tz_localize('CET', ambiguous='infer')
-        1   2018-10-28 01:30:00+02:00
-        2   2018-10-28 02:00:00+02:00
-        3   2018-10-28 02:30:00+02:00
-        4   2018-10-28 02:00:00+01:00
-        5   2018-10-28 02:30:00+01:00
-        6   2018-10-28 03:00:00+01:00
-        7   2018-10-28 03:30:00+01:00
-        dtype: datetime64[ns, CET]
+        2018-10-28 01:30:00+02:00    0
+        2018-10-28 02:00:00+02:00    1
+        2018-10-28 02:30:00+02:00    2
+        2018-10-28 02:00:00+01:00    3
+        2018-10-28 02:30:00+01:00    4
+        2018-10-28 03:00:00+01:00    5
+        2018-10-28 03:30:00+01:00    6
+        dtype: int64
 
         In some cases, inferring the DST is impossible. In such cases, you can
         pass an ndarray to the ambiguous parameter to set the DST explicitly
 
-        >>> s = pd.to_datetime(pd.Series([
+        >>> s = pd.Series(range(3), index=pd.DatetimeIndex([
         ... '2018-10-28 01:20:00',
         ... '2018-10-28 02:36:00',
         ... '2018-10-28 03:46:00']))
-        >>> s.dt.tz_localize('CET', ambiguous=np.array([True, True, False]))
-        0   2018-10-28 01:20:00+02:00
-        1   2018-10-28 02:36:00+02:00
-        2   2018-10-28 03:46:00+01:00
-        dtype: datetime64[ns, CET]
+        >>> s.tz_localize('CET', ambiguous=np.array([True, True, False]))
+        2018-10-28 01:20:00+02:00    0
+        2018-10-28 02:36:00+02:00    1
+        2018-10-28 03:46:00+01:00    2
+        dtype: int64
 
         """
         if nonexistent not in ('raise', 'NaT', 'shift'):
