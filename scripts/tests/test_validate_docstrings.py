@@ -545,6 +545,30 @@ class BadReturns(object):
         """
         return "Hello world!"
 
+    def named_single_return(self):
+        """
+        Provides name but returns only one value.
+
+        Returns
+        -------
+        s : str
+           A nice greeting.
+        """
+        return "Hello world!"
+
+    def no_capitalization(self):
+        """
+        Forgets capitalization in return values descriptions.
+
+        Returns
+        -------
+        foo : str
+           the first returned string.
+        bar : str
+           the second returned string.
+        """
+        return "Hello", "World!"
+
 
 class BadSeeAlso(object):
 
@@ -696,10 +720,18 @@ class TestValidator(object):
         ('BadReturns', 'yield_not_documented', ('No Yields section found',)),
         pytest.param('BadReturns', 'no_type', ('foo',),
                      marks=pytest.mark.xfail),
-        pytest.param('BadReturns', 'no_description', ('foo',),
-                     marks=pytest.mark.xfail),
-        pytest.param('BadReturns', 'no_punctuation', ('foo',),
-                     marks=pytest.mark.xfail),
+        ('BadReturns', 'no_description',
+         ('Return value has no description',)),
+        ('BadReturns', 'no_punctuation',
+         ('Return value description should finish with "."',)),
+        ('BadReturns', 'named_single_return',
+         ('No name is to be provided when returning a single value',)),
+        ('BadReturns', 'no_capitalization',
+         ('Return value "foo" description should start with a capital '
+          'letter',)),
+        ('BadReturns', 'no_capitalization',
+         ('Return value "bar" description should start with a capital '
+          'letter',)),
         # See Also tests
         ('BadSeeAlso', 'prefix_pandas',
          ('pandas.Series.rename in `See Also` section '

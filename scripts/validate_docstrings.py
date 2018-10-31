@@ -491,8 +491,34 @@ def validate_one(func_name):
             errs.append('\t{}'.format(param_err))
 
     if doc.is_function_or_method:
-        if not doc.returns and "return" in doc.method_source:
-            errs.append('No Returns section found')
+        if not doc.returns:
+            if "return" in doc.method_source:
+                errs.append('No Returns section found')
+        else:
+            returns_errs = []
+            if len(doc.returns) == 1 and doc.returns[0][1]:
+                returns_errs.append('No name is to be provided when '
+                                    'returning a single value.')
+            for name, type_, desc in doc.returns:
+                desc = ''.join(desc)
+                name = '"' + name + '" ' if type_ else ''
+                if not desc:
+                    returns_errs.append('Return value {}has no '
+                                        'description'.format(name))
+                else:
+                    if not desc[0].isupper():
+                        returns_errs.append('Return value {}description '
+                                            'should start with a capital '
+                                            'letter'.format(name))
+                    if desc[-1] != '.':
+                        returns_errs.append('Return value {}description '
+                                            'should finish with '
+                                            '"."'.format(name))
+            if returns_errs:
+                errs.append('Errors in returns section')
+                for returns_err in returns_errs:
+                    errs.append('\t{}'.format(returns_err))
+
         if not doc.yields and "yield" in doc.method_source:
             errs.append('No Yields section found')
 
