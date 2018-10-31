@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import re
-from textwrap import dedent
 from datetime import datetime
 from distutils.version import LooseVersion
+import re
+from textwrap import dedent
 
-import pytest
 import numpy as np
+import pytest
+
+from pandas.compat import StringIO, lrange, u
+
 import pandas as pd
-from pandas import compat, DataFrame, MultiIndex, option_context, Index
-from pandas.compat import u, lrange, StringIO
+from pandas import DataFrame, Index, MultiIndex, compat, option_context
 from pandas.util import testing as tm
+
 import pandas.io.formats.format as fmt
 
 div_style = ''
