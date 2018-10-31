@@ -989,6 +989,9 @@ Previous Behavior:
 Current Behavior:
 
 .. ipython:: python
+    :okwarning:
+    per = pd.Period('2016Q1')
+    per + 3
 
     per = pd.Period('2016Q1')
     per + 3 * per.freq
