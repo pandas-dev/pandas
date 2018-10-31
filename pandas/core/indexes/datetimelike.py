@@ -189,13 +189,12 @@ class TimelikeOps(object):
         result = self._maybe_mask_results(result, fill_value=NaT)
 
         attribs = self._get_attributes_dict()
-        if 'freq' in attribs:
-            attribs['freq'] = None
+        attribs['freq'] = None
         if 'tz' in attribs:
             attribs['tz'] = None
-        return self._ensure_localized(
-            self._shallow_copy(result, **attribs), ambiguous
-        )
+
+        result = self._shallow_copy(result, **attribs)
+        return self._ensure_localized(result, ambiguous)
 
     @Appender((_round_doc + _round_example).format(op="round"))
     def round(self, freq, ambiguous='raise'):
@@ -221,6 +220,18 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     hasnans = cache_readonly(DatetimeLikeArrayMixin.hasnans.fget)
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
+
+    def _shallow_copy(self, values=None, **kwargs):
+        if isinstance(values, list):
+            # reached via Index.insert
+            assert len(values) == 0
+            values = np.array([], dtype='i8')
+
+        # unwrap for case where e.g. _get_unique_index passes an instance
+        #  of own class instead of ndarray
+        values = getattr(values, '_data', values)
+
+        return DatetimeLikeArrayMixin._shallow_copy(self, values, **kwargs)
 
     def equals(self, other):
         """
@@ -640,8 +651,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         result = np.where(cond, values, other).astype('i8')
 
         result = self._ensure_localized(result, from_utc=True)
-        return self._shallow_copy(result,
-                                  **self._get_attributes_dict())
+        return self._shallow_copy(result)
 
     def _summary(self, name=None):
         """

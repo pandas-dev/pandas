@@ -111,16 +111,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     _attributes = ["freq"]
 
     @classmethod
-    def _simple_new(cls, values, freq=None, **kwargs):
-        values = np.array(values, copy=False)
-        if values.dtype == np.object_:
-            values = array_to_timedelta64(values)
-        if values.dtype != _TD_DTYPE:
-            if is_timedelta64_dtype(values):
-                # non-nano unit
-                values = values.astype(_TD_DTYPE)
-            else:
-                values = ensure_int64(values).view(_TD_DTYPE)
+    def _simple_new(cls, values, freq=None):
+        assert isinstance(values, np.ndarray), type(values)
+        assert values.dtype == 'm8[ns]', values.dtype
 
         result = object.__new__(cls)
         result._data = values
@@ -130,6 +123,10 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     def __new__(cls, values, freq=None):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
+
+        values = np.array(values, copy=False)
+        if values.dtype == np.object_:
+            values = array_to_timedelta64(values)
 
         result = cls._simple_new(values, freq=freq)
         if freq_infer:
@@ -166,10 +163,11 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         if freq is not None:
             index = _generate_regular_range(start, end, periods, freq)
-            index = cls._simple_new(index, freq=freq)
         else:
             index = np.linspace(start.value, end.value, periods).astype('i8')
-            index = cls._simple_new(index, freq=freq)
+
+        index = index.view('m8[ns]')
+        index = cls._simple_new(index, freq=freq)
 
         if not left_closed:
             index = index[1:]

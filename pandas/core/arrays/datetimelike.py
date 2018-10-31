@@ -422,7 +422,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         # and datetime dtypes
         result = np.zeros(len(self), dtype=np.int64)
         result.fill(iNaT)
-        return self._shallow_copy(result, freq=None)
+        if is_timedelta64_dtype(self):
+            return type(self)(result, freq=None)
+        return type(self)(result, tz=self.tz, freq=None)
 
     def _sub_nat(self):
         """Subtract pd.NaT from self"""

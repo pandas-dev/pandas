@@ -35,6 +35,7 @@ from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT)
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
 
 class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
@@ -166,6 +167,19 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         elif copy:
             data = np.array(data, copy=True)
 
+        data = np.array(data, copy=False)
+        if data.dtype == np.object_:
+            data = array_to_timedelta64(data)
+
+        if data.dtype != _TD_DTYPE:
+            if is_timedelta64_dtype(data):
+                # non-nano unit
+                # TODO: watch out for overflows
+                data = data.astype(_TD_DTYPE)
+            else:
+                data = ensure_int64(data).view(_TD_DTYPE)
+
+        assert data.dtype == 'm8[ns]', data.dtype
         subarr = cls._simple_new(data, name=name, freq=freq)
         # check that we are matching freqs
         if verify_integrity and len(subarr) > 0:
@@ -180,8 +194,18 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         return subarr
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, **kwargs):
-        result = super(TimedeltaIndex, cls)._simple_new(values, freq, **kwargs)
+    def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
+
+        # `dtype` is not always passed, but if it is, it should always
+        #  be m8[ns]
+        assert dtype == _TD_DTYPE
+
+        assert isinstance(values, np.ndarray), type(values)
+        if values.dtype == 'i8':
+            values = values.view('m8[ns]')
+        assert values.dtype == 'm8[ns]', values.dtype
+
+        result = super(TimedeltaIndex, cls)._simple_new(values, freq)
         result.name = name
         result._reset_identity()
         return result

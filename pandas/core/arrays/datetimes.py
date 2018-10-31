@@ -177,16 +177,11 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
+        assert isinstance(values, np.ndarray), type(values)
+        if values.dtype == 'i8':
+            values = values.view('M8[ns]')
 
-        if getattr(values, 'dtype', None) is None:
-            # empty, but with dtype compat
-            if values is None:
-                values = np.empty(0, dtype=_NS_DTYPE)
-                return cls(values, freq=freq, tz=tz, **kwargs)
-            values = np.array(values, copy=False)
-
-        if not is_datetime64_dtype(values):
-            values = ensure_int64(values).view(_NS_DTYPE)
+        assert values.dtype == 'M8[ns]', values.dtype
 
         result = object.__new__(cls)
         result._data = values
@@ -208,6 +203,15 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
+
+        if isinstance(values, cls):
+            values = values.asi8
+        if values.dtype == 'i8':
+            values = values.view('M8[ns]')
+
+        assert isinstance(values, np.ndarray), type(values)
+        assert is_datetime64_dtype(values)
+        values = conversion.ensure_datetime64ns(values, copy=False)
 
         result = cls._simple_new(values, freq=freq, tz=tz)
         if freq_infer:
@@ -843,7 +847,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # TODO: consider privatizing (discussion in GH#23113)
         from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
         i8delta = self.asi8 - self.to_period(freq).to_timestamp().asi8
-        return TimedeltaArrayMixin(i8delta)
+        m8delta = i8delta.view('m8[ns]')
+        return TimedeltaArrayMixin(m8delta)
 
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods
