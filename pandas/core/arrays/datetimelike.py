@@ -89,18 +89,6 @@ class AttributesMixin(object):
         """return an attributes dict for my class"""
         return {k: getattr(self, k, None) for k in self._attributes}
 
-    def _shallow_copy(self, values=None, **kwargs):
-        if values is None:
-            # Note: slightly different from Index implementation which defaults
-            # to self.values
-            values = self._ndarray_values
-
-        attributes = self._get_attributes_dict()
-        attributes.update(kwargs)
-        if not len(values) and 'dtype' not in kwargs:
-            attributes['dtype'] = self.dtype
-        return self._simple_new(values, **attributes)
-
 
 class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     """
