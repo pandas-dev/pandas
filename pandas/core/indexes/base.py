@@ -2221,7 +2221,7 @@ class Index(IndexOpsMixin, PandasObject):
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
         if self._can_hold_na:
-            return self._isnan.any()
+            return bool(self._isnan.any())
         else:
             return False
 
@@ -4702,6 +4702,13 @@ class Index(IndexOpsMixin, PandasObject):
     def _evaluate_with_timedelta_like(self, other, op):
         # Timedelta knows how to operate with np.array, so dispatch to that
         # operation and then wrap the results
+        if self._is_numeric_dtype and op.__name__ in ['add', 'sub',
+                                                      'radd', 'rsub']:
+            raise TypeError("Operation {opname} between {cls} and {other} "
+                            "is invalid".format(opname=op.__name__,
+                                                cls=type(self).__name__,
+                                                other=type(other).__name__))
+
         other = Timedelta(other)
         values = self.values
 

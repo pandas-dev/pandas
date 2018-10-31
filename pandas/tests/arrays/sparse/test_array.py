@@ -1,19 +1,19 @@
-from pandas.compat import range
-
-import re
 import operator
-import pytest
+import re
 import warnings
 
-from numpy import nan
 import numpy as np
-import pandas as pd
+from numpy import nan
+import pytest
 
-from pandas.core.sparse.api import SparseArray, SparseSeries, SparseDtype
 from pandas._libs.sparse import IntIndex
-from pandas.util.testing import assert_almost_equal
-import pandas.util.testing as tm
+from pandas.compat import range
 import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas.core.sparse.api import SparseArray, SparseDtype, SparseSeries
+import pandas.util.testing as tm
+from pandas.util.testing import assert_almost_equal
 
 
 @pytest.fixture(params=["integer", "block"])

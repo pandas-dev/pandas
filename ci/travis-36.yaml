@@ -21,7 +21,7 @@ dependencies:
   - nomkl
   - numexpr
   - numpy
-  - openpyxl=2.5.5
+  - openpyxl
   - psycopg2
   - pyarrow
   - pymysql
