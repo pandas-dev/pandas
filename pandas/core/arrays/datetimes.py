@@ -204,7 +204,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
 
-        if isinstance(values, cls):
+        if isinstance(values, DatetimeArrayMixin):
             values = values.asi8
         if values.dtype == 'i8':
             values = values.view('M8[ns]')
@@ -270,7 +270,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             # TODO: consider re-implementing _cached_range; GH#17914
             index = _generate_regular_range(cls, start, end, periods, freq)
 
-            if tz is not None and getattr(index, 'tz', None) is None:
+            if tz is not None and index.tz is None:
                 arr = conversion.tz_localize_to_utc(ensure_int64(index.values),
                                                     tz, ambiguous=ambiguous)
 
@@ -1318,6 +1318,20 @@ DatetimeArrayMixin._add_datetimelike_methods()
 
 
 def _generate_regular_range(cls, start, end, periods, freq):
+    """
+
+    Parameters
+    ----------
+    cls : class
+    start : Timestamp or None
+    end : Timestamp or None
+    periods : int
+    freq : DateOffset
+
+    Returns
+    -------
+    ndarray[np.int64] representing nanosecond unix timestamps
+    """
     if isinstance(freq, Tick):
         stride = freq.nanos
         if periods is None:
@@ -1341,21 +1355,20 @@ def _generate_regular_range(cls, start, end, periods, freq):
                              "if a 'period' is given.")
 
         data = np.arange(b, e, stride, dtype=np.int64)
-        data = cls._simple_new(data.view(_NS_DTYPE), None, tz=tz)
     else:
         tz = None
         # start and end should have the same timezone by this point
-        if isinstance(start, Timestamp):
+        if start is not None:
             tz = start.tz
-        elif isinstance(end, Timestamp):
+        elif end is not None:
             tz = end.tz
 
         xdr = generate_range(start=start, end=end,
                              periods=periods, offset=freq)
 
-        values = np.array([x.value for x in xdr], dtype=np.int64)
-        data = cls._simple_new(values, freq=freq, tz=tz)
+        data = np.array([x.value for x in xdr], dtype=np.int64)
 
+    data = cls._simple_new(data.view(_NS_DTYPE), freq=freq, tz=tz)
     return data
 
 
