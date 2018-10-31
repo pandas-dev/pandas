@@ -849,10 +849,10 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         int64_t[:] deltas, idx_shifted
         ndarray ambiguous_array
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
+        Py_ssize_t delta_idx_offset, delta_idx
         int64_t *tdata
         int64_t v, left, right, val, v_left, v_right
         int64_t remaining_minutes, new_local
-        int delta_idx_offset, delta_idx
         ndarray[int64_t] result, result_a, result_b, dst_hours
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
