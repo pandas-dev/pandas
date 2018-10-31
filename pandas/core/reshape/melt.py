@@ -4,15 +4,17 @@ import re
 
 import numpy as np
 
-from pandas import compat
-from pandas.core.arrays import Categorical
+from pandas.util._decorators import Appender
+
 from pandas.core.dtypes.common import is_extension_type, is_list_like
 from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import notna
+
+from pandas import compat
+from pandas.core.arrays import Categorical
 from pandas.core.frame import _shared_docs
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
-from pandas.util._decorators import Appender
 
 
 @Appender(_shared_docs['melt'] %

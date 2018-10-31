@@ -5,17 +5,16 @@ concat routines
 import numpy as np
 
 import pandas.core.dtypes.concat as _concat
-import pandas.core.indexes.base as ibase
+
 from pandas import DataFrame, Index, MultiIndex, Series, compat
 from pandas.core import common as com
 from pandas.core.arrays.categorical import (
-    _factorize_from_iterable, _factorize_from_iterables
-)
+    _factorize_from_iterable, _factorize_from_iterables)
 from pandas.core.generic import NDFrame
 from pandas.core.index import (
     _all_indexes_same, _get_consensus_names, _get_objs_combined_axis,
-    ensure_index
-)
+    ensure_index)
+import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
 
 # ---------------------------------------------------------------------

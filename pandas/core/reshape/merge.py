@@ -8,29 +8,29 @@ import warnings
 
 import numpy as np
 
-import pandas.compat as compat
-import pandas.core.algorithms as algos
-import pandas.core.common as com
-import pandas.core.sorting as sorting
-from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timedelta
 from pandas._libs import hashtable as libhashtable, join as libjoin, lib
+import pandas.compat as compat
 from pandas.compat import filter, lzip, map, range, zip
-from pandas.core.arrays.categorical import _recode_for_categories
+from pandas.errors import MergeError
+from pandas.util._decorators import Appender, Substitution
+
 from pandas.core.dtypes.common import (
     ensure_float64, ensure_int64, ensure_object, is_array_like, is_bool,
     is_bool_dtype, is_categorical_dtype, is_datetime64_dtype,
     is_datetime64tz_dtype, is_datetimelike, is_dtype_equal, is_float_dtype,
     is_int64_dtype, is_int_or_datetime_dtype, is_integer, is_integer_dtype,
-    is_list_like, is_number, is_numeric_dtype, needs_i8_conversion
-)
+    is_list_like, is_number, is_numeric_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import isnull, na_value_for_dtype
+
+from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timedelta
+import pandas.core.algorithms as algos
+from pandas.core.arrays.categorical import _recode_for_categories
+import pandas.core.common as com
 from pandas.core.frame import _merge_doc
 from pandas.core.internals import (
-    concatenate_block_managers, items_overlap_with_suffix
-)
+    concatenate_block_managers, items_overlap_with_suffix)
+import pandas.core.sorting as sorting
 from pandas.core.sorting import is_int64_overflow_possible
-from pandas.errors import MergeError
-from pandas.util._decorators import Appender, Substitution
 
 
 @Substitution('\nleft : DataFrame')
