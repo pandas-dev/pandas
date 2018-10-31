@@ -1441,6 +1441,15 @@ class TestHDFStore(Base):
                 result = store.select('df')
                 tm.assert_frame_equal(result, df)
 
+                # with all empty strings (GH 12242)
+                _maybe_remove(store, 'df')
+                df1 = DataFrame({'x': list('abcdef')})
+                df2 = DataFrame({'x': ['']})
+                store.append('df', df1, min_itemsize={'x': 1})
+                store.append('df', df2, min_itemsize={'x': 1})
+                tm.assert_frame_equal(store.select('df'),
+                                      pd.concat([df1, df2]))
+
         with ensure_clean_store(self.path) as store:
 
             def check_col(key, name, size):
