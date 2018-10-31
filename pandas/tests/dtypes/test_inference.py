@@ -591,15 +591,18 @@ class TestTypeInference(object):
         expected = 'unicode' if PY2 else 'string'
         assert result == expected
 
-    @pytest.mark.parametrize('dtype, skipna, expected', [
-        (float, False, 'floating'),
-        (float, True, 'floating'),
-        (object, False, 'floating'),
-        (object, True, 'empty')
+    @pytest.mark.parametrize('dtype, missing, skipna, expected', [
+        (float, np.nan, False, 'floating'),
+        (float, np.nan, True, 'floating'),
+        (object, np.nan, False, 'floating'),
+        (object, np.nan, True, 'empty'),
+        (object, None, False, 'mixed'),
+        (object, None, True, 'empty')
     ])
-    def test_object_empty(self, dtype, skipna, expected):
+    @pytest.mark.parametrize('box', [pd.Series, np.array])
+    def test_object_empty(self, box, missing, dtype, skipna, expected):
         # GH 23421
-        arr = pd.Series([np.nan, np.nan], dtype=dtype)
+        arr = box([missing, missing], dtype=dtype)
 
         result = lib.infer_dtype(arr, skipna=skipna)
         assert result == expected
