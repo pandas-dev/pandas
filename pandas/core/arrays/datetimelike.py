@@ -474,7 +474,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             new_values[mask] = NaT
         return new_values
 
-    def _addsub_int_array(self, other, op, suppress=False):
+    def _addsub_int_array(self, other, op):
         """
         Add or subtract array-like of integers equivalent to applying
         `_time_shift` pointwise.
@@ -484,8 +484,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         other : Index, ExtensionArray, np.ndarray
             integer-dtype
         op : {operator.add, operator.sub}
-        suppress : bool, default False
-            Whether to suppress a deprecation warning
 
         Returns
         -------
@@ -494,9 +492,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         # _addsub_int_array is overriden by PeriodArray
         assert not is_period_dtype(self)
         assert op in [operator.add, operator.sub]
-
-        if not suppress:
-            int_op_deprecated(self)
 
         if self.freq is None:
             # GH#19123
@@ -654,6 +649,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 # DatetimeIndex, ndarray[datetime64]
                 return self._add_datetime_arraylike(other)
             elif is_integer_dtype(other):
+                int_op_deprecated(self)
                 result = self._addsub_int_array(other, operator.add)
             elif is_float_dtype(other):
                 # Explicitly catch invalid dtypes
@@ -719,6 +715,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 # PeriodIndex
                 result = self._sub_period_array(other)
             elif is_integer_dtype(other):
+                int_op_deprecated(self)
                 result = self._addsub_int_array(other, operator.sub)
             elif isinstance(other, ABCIndexClass):
                 raise TypeError("cannot subtract {cls} and {typ}"

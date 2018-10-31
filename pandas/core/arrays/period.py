@@ -720,13 +720,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def _addsub_int_array(
             self,
             other,   # type: Union[Index, ExtensionArray, np.ndarray[int]]
-            op,      # type: Callable[Any, Any]
-            suppress=False  # type: bool
+            op      # type: Callable[Any, Any]
     ):
         # type: (...) -> PeriodArray
-
-        if not suppress:
-            int_op_deprecated(self)
 
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
@@ -784,7 +780,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         assert isinstance(self.freq, Tick)  # checked by calling function
 
         delta = self._check_timedeltalike_freq_compat(other)
-        return self._addsub_int_array(delta, operator.add, suppress=True).asi8
+        return self._addsub_int_array(delta, operator.add).asi8
 
     def _add_delta(self, other):
         """

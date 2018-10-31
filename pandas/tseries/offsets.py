@@ -546,8 +546,7 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
             # Integer-array addition is deprecated, so we use
             # _time_shift directly
             roll = np.where(shifted, self.n - 1, self.n)
-            shifted = asper._data._addsub_int_array(roll, operator.add,
-                                                    suppress=True)
+            shifted = asper._data._addsub_int_array(roll, operator.add)
         else:
             # Integer addition is deprecated, so we use _time_shift directly
             roll = self.n
@@ -1124,8 +1123,7 @@ class SemiMonthOffset(DateOffset):
         # integer-array addition on PeriodIndex is deprecated,
         #  so we use _addsub_int_array directly
         asper = i.to_period('M')
-        shifted = asper._data._addsub_int_array(roll // 2, operator.add,
-                                                suppress=True)
+        shifted = asper._data._addsub_int_array(roll // 2, operator.add)
         i = type(dti)(shifted.to_timestamp())
 
         # apply the correct day
@@ -1337,8 +1335,7 @@ class Week(DateOffset):
                             self.n, self.n - 1)
             # integer-array addition on PeriodIndex is deprecated,
             #  so we use _addsub_int_array directly
-            shifted = base_period._data._addsub_int_array(roll, operator.add,
-                                                          suppress=True)
+            shifted = base_period._data._addsub_int_array(roll, operator.add)
             base = shifted.to_timestamp(how='end')
         else:
             # integer addition on PeriodIndex is deprecated,
