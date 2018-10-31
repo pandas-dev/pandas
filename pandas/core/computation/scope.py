@@ -11,10 +11,11 @@ import sys
 
 import numpy as np
 
-import pandas as pd  # noqa
-import pandas.core.computation as compu
 from pandas.compat import DeepChainMap, StringIO, map
+
+import pandas as pd  # noqa
 from pandas.core.base import StringMixin
+import pandas.core.computation as compu
 
 
 def _ensure_scope(level, global_dict=None, local_dict=None, resolvers=(),
@@ -47,7 +48,7 @@ def _raw_hex_id(obj):
 
 
 _DEFAULT_GLOBALS = {
-    'Timestamp': pandas._libs.tslib.Timestamp,
+    'Timestamp': pd._libs.tslib.Timestamp,
     'datetime': datetime.datetime,
     'True': True,
     'False': False,

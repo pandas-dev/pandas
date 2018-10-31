@@ -2,24 +2,25 @@
 """
 
 import ast
-import tokenize
 from functools import partial
+import tokenize
 
 import numpy as np
 
-import pandas as pd
-import pandas.io.formats.printing as printing
-from pandas import compat
 from pandas.compat import StringIO, lmap, reduce, string_types, zip
+
+import pandas as pd
+from pandas import compat
 from pandas.core import common as com
 from pandas.core.base import StringMixin
 from pandas.core.computation.ops import (
     _LOCAL_TAG, BinOp, Constant, Div, FuncNode, Op, Term, UnaryOp,
     UndefinedVariableError, _arith_ops_syms, _bool_ops_syms, _cmp_ops_syms,
-    _mathops, _reductions, _unary_ops_syms, is_term
-)
+    _mathops, _reductions, _unary_ops_syms, is_term)
 from pandas.core.computation.scope import Scope
 from pandas.core.reshape.util import compose
+
+import pandas.io.formats.printing as printing
 
 
 def tokenize_string(source):

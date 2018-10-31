@@ -1,17 +1,18 @@
 """Core eval alignment algorithms
 """
 
-import warnings
 from functools import partial, wraps
+import warnings
 
 import numpy as np
 
-import pandas as pd
-import pandas.core.common as com
-from pandas import compat
 from pandas.compat import range, zip
-from pandas.core.computation.common import _result_type_many
 from pandas.errors import PerformanceWarning
+
+import pandas as pd
+from pandas import compat
+import pandas.core.common as com
+from pandas.core.computation.common import _result_type_many
 
 
 def _align_core_single_unary_op(term):
