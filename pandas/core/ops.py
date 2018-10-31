@@ -130,6 +130,13 @@ def maybe_upcast_for_op(obj):
         # implementation; otherwise operation against numeric-dtype
         # raises TypeError
         return pd.Timedelta(obj)
+    elif isinstance(obj, np.timedelta64) and not isna(obj):
+        # In particular non-nanosecond timedelta64 needs to be cast to
+        #  nanoseconds, or else we get undesired behavior like
+        #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
+        # The isna check is to avoid casting timedelta64("NaT"), which would
+        #  return NaT and incorrectly be treated as a datetime-NaT.
+        return pd.Timedelta(obj)
     elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
         # GH#22390 Unfortunately we need to special-case right-hand
         # timedelta64 dtypes because numpy casts integer dtypes to
@@ -1405,11 +1412,12 @@ def _arith_method_SERIES(cls, op, special):
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
 
-        elif is_timedelta64_dtype(right) and not is_scalar(right):
-            # i.e. exclude np.timedelta64 object
+        elif is_timedelta64_dtype(right):
+            # We should only get here with non-scalar or timedelta64('NaT')
+            #  values for right
             # Note: we cannot use dispatch_to_index_op because
-            # that may incorrectly raise TypeError when we
-            # should get NullFrequencyError
+            #  that may incorrectly raise TypeError when we
+            #  should get NullFrequencyError
             result = op(pd.Index(left), right)
             return construct_result(left, result,
                                     index=left.index, name=res_name,
@@ -1941,8 +1949,7 @@ def _comp_method_FRAME(cls, func, special):
 
             # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
-            res = self._combine_const(other, func,
-                                      errors='ignore')
+            res = self._combine_const(other, func)
             return res.fillna(True).astype(bool)
 
     f.__name__ = op_name

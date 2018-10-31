@@ -14,10 +14,22 @@ def dtype(request):
     return request.param
 
 
-@pytest.fixture(scope='class')
-def tree(dtype):
-    left = np.arange(5, dtype=dtype)
-    return IntervalTree(left, left + 2)
+@pytest.fixture(params=[1, 2, 10])
+def leaf_size(request):
+    return request.param
+
+
+@pytest.fixture(params=[
+    np.arange(5, dtype='int64'),
+    np.arange(5, dtype='int32'),
+    np.arange(5, dtype='uint64'),
+    np.arange(5, dtype='float64'),
+    np.arange(5, dtype='float32'),
+    np.array([0, 1, 2, 3, 4, np.nan], dtype='float64'),
+    np.array([0, 1, 2, 3, 4, np.nan], dtype='float32')])
+def tree(request, leaf_size):
+    left = request.param
+    return IntervalTree(left, left + 2, leaf_size=leaf_size)
 
 
 class TestIntervalTree(object):
