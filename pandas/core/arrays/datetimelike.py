@@ -944,6 +944,9 @@ def validate_dtype_freq(dtype, freq):
     ValueError : non-period dtype
     IncompatibleFrequency : mismatch between dtype and freq
     """
+    if freq is not None:
+        freq = frequencies.to_offset(freq)
+
     if dtype is not None:
         dtype = pandas_dtype(dtype)
         if not is_period_dtype(dtype):
