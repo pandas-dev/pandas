@@ -8663,12 +8663,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Localize local times:
 
-        >>> s = pd.Series([1], index=pd.DatetimeIndex(['2018-09-15 01:30:00']))
+        >>> s = pd.Series([1],
+        ... index=pd.DatetimeIndex(['2018-09-15 01:30:00']))
         >>> s.tz_localize('CET')
         2018-09-15 01:30:00+02:00    1
         dtype: int64
 
-        Be careful with DST changes. When there is sequential data, pandas can infer the DST time:
+        Be careful with DST changes. When there is sequential data, pandas
+        can infer the DST time:
 
         >>> s = pd.Series(range(7), index=pd.DatetimeIndex([
         ... '2018-10-28 01:30:00',
