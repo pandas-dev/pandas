@@ -594,7 +594,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                 return self.to_timestamp(how='start') + adjust
             else:
                 adjust = Timedelta(1, 'ns')
-                return (self + 1).to_timestamp(how='start') - adjust
+                return (self + self.freq).to_timestamp(how='start') - adjust
 
         if freq is None:
             base, mult = frequencies.get_freq_code(self.freq)
@@ -720,10 +720,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     @Appender(dtl.DatetimeLikeArrayMixin._addsub_int_array.__doc__)
     def _addsub_int_array(
             self,
-            other,  # type: Union[Index, ExtensionArray, np.ndarray[int]]
-            op,     # type: Callable[Any, Any]
+            other,   # type: Union[Index, ExtensionArray, np.ndarray[int]]
+            op      # type: Callable[Any, Any]
     ):
         # type: (...) -> PeriodArray
+
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
