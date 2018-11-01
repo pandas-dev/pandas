@@ -33,7 +33,7 @@ cdef extern from "src/datetime/np_datetime.h":
 cimport util
 from util cimport is_period_object, is_string_object
 
-from timestamps import Timestamp
+from timestamps import Timestamp, maybe_integer_op_deprecated
 from timezones cimport is_utc, is_tzlocal, get_dst_info
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
@@ -1645,6 +1645,8 @@ cdef class _Period(object):
             elif other is NaT:
                 return NaT
             elif util.is_integer_object(other):
+                maybe_integer_op_deprecated(self)
+
                 ordinal = self.ordinal + other * self.freq.n
                 return Period(ordinal=ordinal, freq=self.freq)
             elif (PyDateTime_Check(other) or
@@ -1671,6 +1673,8 @@ cdef class _Period(object):
                 neg_other = -other
                 return self + neg_other
             elif util.is_integer_object(other):
+                maybe_integer_op_deprecated(self)
+
                 ordinal = self.ordinal - other * self.freq.n
                 return Period(ordinal=ordinal, freq=self.freq)
             elif is_period_object(other):
@@ -1756,7 +1760,7 @@ cdef class _Period(object):
     def end_time(self):
         # freq.n can't be negative or 0
         # ordinal = (self + self.freq.n).start_time.value - 1
-        ordinal = (self + 1).start_time.value - 1
+        ordinal = (self + self.freq).start_time.value - 1
         return Timestamp(ordinal)
 
     def to_timestamp(self, freq=None, how='start', tz=None):
@@ -1783,7 +1787,8 @@ cdef class _Period(object):
 
         end = how == 'E'
         if end:
-            return (self + 1).to_timestamp(how='start') - Timedelta(1, 'ns')
+            endpoint = (self + self.freq).to_timestamp(how='start')
+            return endpoint - Timedelta(1, 'ns')
 
         if freq is None:
             base, mult = get_freq_code(self.freq)

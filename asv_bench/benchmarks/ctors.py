@@ -5,8 +5,6 @@ from pandas import Series, Index, DatetimeIndex, Timestamp, MultiIndex
 
 class SeriesConstructors(object):
 
-    goal_time = 0.2
-
     param_names = ["data_fmt", "with_index"]
     params = [[lambda x: x,
                list,
@@ -30,8 +28,6 @@ class SeriesConstructors(object):
 
 class SeriesDtypesConstructors(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 10**4
         self.arr = np.random.randn(N, N)
@@ -53,8 +49,6 @@ class SeriesDtypesConstructors(object):
 
 
 class MultiIndexConstructor(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**4

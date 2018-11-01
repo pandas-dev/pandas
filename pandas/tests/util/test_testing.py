@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
-import textwrap
 import os
-import pandas as pd
-import pytest
-import numpy as np
 import sys
-from pandas import Series, DataFrame
-import pandas.util.testing as tm
+import textwrap
+
+import numpy as np
+import pytest
+
+import pandas as pd
 import pandas.util._test_decorators as td
-from pandas.util.testing import (assert_almost_equal, raise_with_traceback,
-                                 assert_index_equal, assert_series_equal,
-                                 assert_frame_equal, assert_numpy_array_equal,
-                                 RNGContext)
+import pandas.util.testing as tm
+from pandas import DataFrame, Series, compat
+from pandas.util.testing import (
+    RNGContext, assert_almost_equal, assert_frame_equal, assert_index_equal,
+    assert_numpy_array_equal, assert_series_equal, raise_with_traceback
+)
 
 
 class TestAssertAlmostEqual(object):
@@ -163,6 +165,17 @@ class TestUtilTesting(object):
                 e = LookupError("error_text")
                 _, _, traceback = sys.exc_info()
                 raise_with_traceback(e, traceback)
+
+    def test_convert_rows_list_to_csv_str(self):
+        rows_list = ["aaa", "bbb", "ccc"]
+        ret = tm.convert_rows_list_to_csv_str(rows_list)
+
+        if compat.is_platform_windows():
+            expected = "aaa\r\nbbb\r\nccc\r\n"
+        else:
+            expected = "aaa\nbbb\nccc\n"
+
+        assert ret == expected
 
 
 class TestAssertNumpyArrayEqual(object):

@@ -3,12 +3,9 @@ import warnings
 import numpy as np
 from pandas import Panel
 
-from .pandas_vb_common import Panel
-
 
 class PanelMethods(object):
 
-    goal_time = 0.2
     params = ['items', 'major', 'minor']
     param_names = ['axis']
 

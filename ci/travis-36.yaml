@@ -14,13 +14,14 @@ dependencies:
   - geopandas
   - html5lib
   - ipython
+  - isort
   - jinja2
   - lxml
   - matplotlib
   - nomkl
   - numexpr
   - numpy
-  - openpyxl=2.5.5
+  - openpyxl
   - psycopg2
   - pyarrow
   - pymysql

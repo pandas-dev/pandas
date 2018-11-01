@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas.core.internals import ExtensionBlock
@@ -46,8 +46,7 @@ class BaseReshapingTests(BaseExtensionTests):
         df1 = pd.DataFrame({'A': data[:3]})
         df2 = pd.DataFrame({"A": [1, 2, 3]})
         df3 = pd.DataFrame({"A": ['a', 'b', 'c']}).astype('category')
-        df4 = pd.DataFrame({"A": pd.SparseArray([1, 2, 3])})
-        dfs = [df1, df2, df3, df4]
+        dfs = [df1, df2, df3]
 
         # dataframes
         result = pd.concat(dfs)

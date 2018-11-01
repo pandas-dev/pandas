@@ -1,25 +1,26 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytz
-import pytest
-
-from datetime import timedelta, datetime
-
+from datetime import datetime, timedelta
 from distutils.version import LooseVersion
-from numpy import nan
-import numpy as np
-import pandas as pd
 
-from pandas import (Series, DataFrame, isna, date_range,
-                    MultiIndex, Index, Timestamp, NaT, IntervalIndex,
-                    Categorical)
-from pandas.compat import range
+import numpy as np
+from numpy import nan
+import pytest
+import pytz
+
 from pandas._libs.tslib import iNaT
-from pandas.core.series import remove_na
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-import pandas.util.testing as tm
+from pandas.compat import range
+from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
+    Timestamp, date_range, isna)
+from pandas.core.series import remove_na
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 try:
     import scipy
@@ -773,16 +774,21 @@ class TestSeriesMissingData():
         s = Series(np.random.randn(10), index=index)
 
         ss = s[:2].reindex(index).to_sparse()
-        result = ss.fillna(method='pad', limit=5)
-        expected = ss.fillna(method='pad', limit=5)
+        # TODO: what is this test doing? why are result an expected
+        # the same call to fillna?
+        with tm.assert_produces_warning(PerformanceWarning):
+            # TODO: release-note fillna performance warning
+            result = ss.fillna(method='pad', limit=5)
+            expected = ss.fillna(method='pad', limit=5)
         expected = expected.to_dense()
         expected[-3:] = np.nan
         expected = expected.to_sparse()
         assert_series_equal(result, expected)
 
         ss = s[-2:].reindex(index).to_sparse()
-        result = ss.fillna(method='backfill', limit=5)
-        expected = ss.fillna(method='backfill')
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = ss.fillna(method='backfill', limit=5)
+            expected = ss.fillna(method='backfill')
         expected = expected.to_dense()
         expected[:3] = np.nan
         expected = expected.to_sparse()
@@ -794,14 +800,16 @@ class TestSeriesMissingData():
         s = s.to_sparse()
 
         result = s[:2].reindex(index, method='pad', limit=5)
-        expected = s[:2].reindex(index).fillna(method='pad')
+        with tm.assert_produces_warning(PerformanceWarning):
+            expected = s[:2].reindex(index).fillna(method='pad')
         expected = expected.to_dense()
         expected[-3:] = np.nan
         expected = expected.to_sparse()
         assert_series_equal(result, expected)
 
         result = s[-2:].reindex(index, method='backfill', limit=5)
-        expected = s[-2:].reindex(index).fillna(method='backfill')
+        with tm.assert_produces_warning(PerformanceWarning):
+            expected = s[-2:].reindex(index).fillna(method='backfill')
         expected = expected.to_dense()
         expected[:3] = np.nan
         expected = expected.to_sparse()

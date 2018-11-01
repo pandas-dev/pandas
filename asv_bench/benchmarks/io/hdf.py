@@ -9,8 +9,6 @@ from ..pandas_vb_common import BaseIO
 
 class HDFStoreDataFrame(BaseIO):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 25000
         index = tm.makeStringIndex(N)
@@ -103,8 +101,6 @@ class HDFStoreDataFrame(BaseIO):
 
 class HDFStorePanel(BaseIO):
 
-    goal_time = 0.2
-
     def setup(self):
         self.fname = '__test__.h5'
         with warnings.catch_warnings(record=True):
@@ -130,7 +126,6 @@ class HDFStorePanel(BaseIO):
 
 class HDF(BaseIO):
 
-    goal_time = 0.2
     params = ['table', 'fixed']
     param_names = ['format']
 

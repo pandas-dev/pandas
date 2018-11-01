@@ -402,7 +402,10 @@ class SharedWithSparse(object):
         t = df.T
 
         result = t.get_dtype_counts()
-        expected = Series({'object': 10})
+        if self.klass is DataFrame:
+            expected = Series({'object': 10})
+        else:
+            expected = Series({'Sparse[object, nan]': 10})
         tm.assert_series_equal(result, expected)
 
 

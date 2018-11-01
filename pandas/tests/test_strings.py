@@ -97,53 +97,6 @@ class TestStringMethods(object):
         assert i == 100
         assert s == 'h'
 
-    def test_cat(self):
-        one = np.array(['a', 'a', 'b', 'b', 'c', NA], dtype=np.object_)
-        two = np.array(['a', NA, 'b', 'd', 'foo', NA], dtype=np.object_)
-
-        # single array
-        result = strings.str_cat(one)
-        exp = 'aabbc'
-        assert result == exp
-
-        result = strings.str_cat(one, na_rep='NA')
-        exp = 'aabbcNA'
-        assert result == exp
-
-        result = strings.str_cat(one, na_rep='-')
-        exp = 'aabbc-'
-        assert result == exp
-
-        result = strings.str_cat(one, sep='_', na_rep='NA')
-        exp = 'a_a_b_b_c_NA'
-        assert result == exp
-
-        result = strings.str_cat(two, sep='-')
-        exp = 'a-b-d-foo'
-        assert result == exp
-
-        # Multiple arrays
-        result = strings.str_cat(one, [two], na_rep='NA')
-        exp = np.array(['aa', 'aNA', 'bb', 'bd', 'cfoo', 'NANA'],
-                       dtype=np.object_)
-        tm.assert_numpy_array_equal(result, exp)
-
-        result = strings.str_cat(one, two)
-        exp = np.array(['aa', NA, 'bb', 'bd', 'cfoo', NA], dtype=np.object_)
-        tm.assert_almost_equal(result, exp)
-
-        # error for incorrect lengths
-        rgx = 'All arrays must be same length'
-        three = Series(['1', '2', '3'])
-
-        with tm.assert_raises_regex(ValueError, rgx):
-            strings.str_cat(one, three)
-
-        # error for incorrect type
-        rgx = "Must pass arrays containing strings to str_cat"
-        with tm.assert_raises_regex(ValueError, rgx):
-            strings.str_cat(one, 'three')
-
     @pytest.mark.parametrize('box', [Series, Index])
     @pytest.mark.parametrize('other', [None, Series, Index])
     def test_str_cat_name(self, box, other):
@@ -348,7 +301,17 @@ class TestStringMethods(object):
         with tm.assert_raises_regex(TypeError, rgx):
             s.str.cat([u, [u, d]])
 
-        # forbidden input type, e.g. int
+        # forbidden input type: set
+        # GH 23009
+        with tm.assert_raises_regex(TypeError, rgx):
+            s.str.cat(set(u))
+
+        # forbidden input type: set in list
+        # GH 23009
+        with tm.assert_raises_regex(TypeError, rgx):
+            s.str.cat([u, set(u)])
+
+        # other forbidden input type, e.g. int
         with tm.assert_raises_regex(TypeError, rgx):
             s.str.cat(1)
 
@@ -413,6 +376,12 @@ class TestStringMethods(object):
         # unindexed object of wrong length in list
         with tm.assert_raises_regex(ValueError, rgx):
             s.str.cat([t, z], join=join)
+
+    def test_str_cat_raises(self):
+        # non-strings hiding behind object dtype
+        s = Series([1, 2, 3, 4], dtype='object')
+        with tm.assert_raises_regex(TypeError, "unsupported operand type.*"):
+            s.str.cat(s)
 
     def test_str_cat_special_cases(self):
         s = Series(['a', 'b', 'c', 'd'])

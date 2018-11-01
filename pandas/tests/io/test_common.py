@@ -135,7 +135,9 @@ bar2,12,13,14,15
         (pd.read_csv, 'os', FileNotFoundError, 'csv'),
         (pd.read_fwf, 'os', FileNotFoundError, 'txt'),
         (pd.read_excel, 'xlrd', FileNotFoundError, 'xlsx'),
-        (pd.read_feather, 'feather', Exception, 'feather'),
+        pytest.param(
+            pd.read_feather, 'feather', Exception, 'feather',
+            marks=pytest.mark.xfail(reason="failing for pyarrow < 0.11.0")),
         (pd.read_hdf, 'tables', FileNotFoundError, 'h5'),
         (pd.read_stata, 'os', FileNotFoundError, 'dta'),
         (pd.read_sas, 'os', FileNotFoundError, 'sas7bdat'),
@@ -160,7 +162,10 @@ bar2,12,13,14,15
         (pd.read_csv, 'os', ('io', 'data', 'iris.csv')),
         (pd.read_fwf, 'os', ('io', 'data', 'fixed_width_format.txt')),
         (pd.read_excel, 'xlrd', ('io', 'data', 'test1.xlsx')),
-        (pd.read_feather, 'feather', ('io', 'data', 'feather-0_3_1.feather')),
+        pytest.param(
+            pd.read_feather, 'feather',
+            ('io', 'data', 'feather-0_3_1.feather'),
+            marks=pytest.mark.xfail(reason="failing for pyarrow < 0.11.0")),
         (pd.read_hdf, 'tables', ('io', 'data', 'legacy_hdf',
                                  'datetimetz_object.h5')),
         (pd.read_stata, 'os', ('io', 'data', 'stata10_115.dta')),
