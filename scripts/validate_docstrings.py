@@ -24,9 +24,10 @@ import pydoc
 import inspect
 import importlib
 import doctest
+import tempfile
 from contextlib import contextmanager
 
-from flake8.api import legacy as flake8
+from flake8.main.application import Application as Flake8
 
 try:
     from io import StringIO
@@ -43,6 +44,7 @@ from pandas.compat import signature
 sys.path.insert(1, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
 from numpydoc.docscrape import NumpyDocString
 from pandas.io.formats.printing import pprint_thing
+
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
 DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
@@ -336,10 +338,16 @@ class Docstring(object):
 
     @property
     def pep8_violations(self):
-        with self._file_representation() as filename:
-            style_guide = flake8.get_style_guide(doctests=True)
-            report = style_guide.input_file(filename=filename)
-            return report.get_statistics('')
+        with self._file_representation() as file:
+            application = Flake8()
+            application.initialize(["--doctests", "--quiet"])
+            application.run_checks([file.name])
+            application.report()
+            stats = application.guide.stats
+            return [
+                "{} {} {}".format(s.count, s.error_code, s.message)
+                for s in stats.statistics_for('')
+            ]
 
     @contextmanager
     def _file_representation(self):
@@ -347,29 +355,21 @@ class Docstring(object):
         Temporarily creates file with current function inside.
         The signature and body are **not** included.
 
-        :returns filename of tmp file
+        :returns file
         """
         create_function = 'def {name}():\n' \
                           '    """{doc}"""\n' \
                           '    pass\n'
 
-        tmp_dir = os.path.join(BASE_PATH, 'build', 'validate_docstring')
-        os.makedirs(tmp_dir, exist_ok=True)
-
-        filename = os.path.join(tmp_dir, self.name + '.py')
-        with open(filename, 'w') as f:
-            name = self.name.split('.')[-1]
-            lines = self.clean_doc.split("\n")
-            indented_lines = [(' ' * 4) + line if line else ''
-                              for line in lines[1:]]
-            doc = '\n'.join([lines[0], *indented_lines])
-
-            f.write(create_function.format(name=name, doc=doc))
-        try:
-            yield filename
-        finally:
-            os.remove(filename)
-            os.rmdir(tmp_dir)
+        name = self.name.split('.')[-1]
+        lines = self.clean_doc.split("\n")
+        indented_lines = [(' ' * 4) + line if line else ''
+                          for line in lines[1:]]
+        doc = '\n'.join([lines[0], *indented_lines])
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py') as file:
+            file.write(create_function.format(name=name, doc=doc))
+            file.flush()
+            yield file
 
     @property
     def correct_parameters(self):
@@ -532,7 +532,7 @@ def validate_one(func_name):
 
     pep8_errs = doc.pep8_violations
     if pep8_errs:
-        errs.append('Errors in doctest sections')
+        errs.append('Errors in doctests')
         for pep8_err in pep8_errs:
             errs.append('\t{}'.format(pep8_err))
 

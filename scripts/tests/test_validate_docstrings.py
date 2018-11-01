@@ -587,6 +587,29 @@ class BadSeeAlso(object):
         pass
 
 
+class BadExamples(object):
+
+    def doctest(self):
+        """
+        Return whether each value contains `pat`.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> df = pd.DataFrame(np.ones((3, 3)),
+        ...                   columns=('a', 'b', 'c'))
+        >>> df.all(1)
+        0    True
+        1    True
+        2    True
+        dtype: bool
+
+        >>> df.all(bool_only=True)
+        Series([], dtype: bool)
+        """
+        pass
+
+
 class TestValidator(object):
 
     def _import_path(self, klass=None, func=None):
@@ -706,10 +729,13 @@ class TestValidator(object):
         # See Also tests
         ('BadSeeAlso', 'prefix_pandas',
          ('pandas.Series.rename in `See Also` section '
-          'does not need `pandas` prefix',))
+          'does not need `pandas` prefix',)),
+        # Examples tests
+        ('BadExamples', 'doctest',
+         ('1 F821 undefined name \'np\'',))
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
-        result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
+        result = validate_one(self._import_path(klass=klass, func=func))
         for msg in msgs:
             assert msg in ' '.join(result['errors'])
 
