@@ -2246,7 +2246,7 @@ class TestPeriodIndex(Base):
             expected = obj.to_timestamp().resample(freq).asfreq()
         else:
             start = obj.index[0].to_timestamp(how='start')
-            end = (obj.index[-1] + 1).to_timestamp(how='start')
+            end = (obj.index[-1] + obj.index.freq).to_timestamp(how='start')
             new_index = date_range(start=start, end=end, freq=freq,
                                    closed='left')
             expected = obj.to_timestamp().reindex(new_index).to_period(freq)
@@ -2468,7 +2468,8 @@ class TestPeriodIndex(Base):
         # Create the expected series
         # Index is moved back a day with the timezone conversion from UTC to
         # Pacific
-        expected_index = (pd.period_range(start=start, end=end, freq='D') - 1)
+        expected_index = (pd.period_range(start=start, end=end, freq='D') -
+                          offsets.Day())
         expected = Series(1, index=expected_index)
         assert_series_equal(result, expected)
 
@@ -2504,7 +2505,7 @@ class TestPeriodIndex(Base):
         # Index is moved back a day with the timezone conversion from UTC to
         # Pacific
         expected_index = (pd.period_range(start=start, end=end, freq='D',
-                                          name='idx') - 1)
+                                          name='idx') - offsets.Day())
         expected = Series(1, index=expected_index)
         assert_series_equal(result, expected)
 

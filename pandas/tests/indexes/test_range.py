@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
 from datetime import datetime
 from itertools import combinations
 import operator
 
-from pandas.compat import range, u, PY3
-
 import numpy as np
+import pytest
 
-from pandas import (isna, Series, Index, Float64Index,
-                    Int64Index, RangeIndex)
-
-import pandas.util.testing as tm
+from pandas.compat import PY3, range, u
 
 import pandas as pd
+from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, isna
+import pandas.util.testing as tm
 
 from .test_numeric import Numeric
 
@@ -188,6 +184,25 @@ class TestRangeIndex(Numeric):
         assert orig.name == 'original'
         assert copy.name == 'copy'
         assert new.name == 'new'
+
+    # TODO: mod, divmod?
+    @pytest.mark.parametrize('op', [operator.add, operator.sub,
+                                    operator.mul, operator.floordiv,
+                                    operator.truediv, operator.pow])
+    def test_arithmetic_with_frame_or_series(self, op):
+        # check that we return NotImplemented when operating with Series
+        # or DataFrame
+        index = pd.RangeIndex(5)
+        other = pd.Series(np.random.randn(5))
+
+        expected = op(pd.Series(index), other)
+        result = op(index, other)
+        tm.assert_series_equal(result, expected)
+
+        other = pd.DataFrame(np.random.randn(2, 5))
+        expected = op(pd.DataFrame([index, index]), other)
+        result = op(index, other)
+        tm.assert_frame_equal(result, expected)
 
     def test_numeric_compat2(self):
         # validate that we are handling the RangeIndex overrides to numeric ops

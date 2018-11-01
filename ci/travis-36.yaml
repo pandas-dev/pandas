@@ -7,7 +7,6 @@ dependencies:
   - cython>=0.28.2
   - dask
   - fastparquet
-  - feather-format
   - flake8>=3.5
   - flake8-comprehensions
   - gcsfs
@@ -21,9 +20,9 @@ dependencies:
   - nomkl
   - numexpr
   - numpy
-  - openpyxl=2.5.5
+  - openpyxl
   - psycopg2
-  - pyarrow
+  - pyarrow=0.9.0
   - pymysql
   - pytables
   - python-snappy
