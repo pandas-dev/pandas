@@ -42,6 +42,8 @@ def group_add_{{name}}(ndarray[{{c_type}}, ndim=2] out,
         {{c_type}} val, count
         {{c_type}}[:, :] sumx, nobs
 
+    require_not_none(counts)
+
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
@@ -89,6 +91,8 @@ def group_prod_{{name}}(ndarray[{{c_type}}, ndim=2] out,
         {{c_type}} val, count
         {{c_type}}[:, :] prodx, nobs
 
+    require_not_none(counts)
+
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
@@ -133,6 +137,7 @@ def group_var_{{name}}(ndarray[{{c_type}}, ndim=2] out,
         {{c_type}} val, ct, oldmean
         {{c_type}}[:, :] nobs, mean
 
+    require_not_none(counts)
     assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
@@ -185,6 +190,7 @@ def group_mean_{{name}}(ndarray[{{c_type}}, ndim=2] out,
         {{c_type}} val, count
         {{c_type}}[:, :] sumx, nobs
 
+    require_not_none(counts)
     assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
@@ -233,6 +239,7 @@ def group_ohlc_{{name}}({{c_type}}[:, :] out,
         {{c_type}} val, count
         Py_ssize_t ngroups = len(counts)
 
+    require_not_none(counts)
     assert min_count == -1, "'min_count' only used in add and prod"
 
     if len(labels) == 0:

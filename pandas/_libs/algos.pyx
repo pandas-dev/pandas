@@ -100,6 +100,8 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(int64_t[:] arr):
         int ret = 0
         list uniques = []
 
+    util.require_not_none(arr)
+
     table = kh_init_int64()
     kh_resize_int64(table, 10)
     for i in range(n - 1):
@@ -172,6 +174,8 @@ def groupsort_indexer(int64_t[:] index, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, loc, label, n
         ndarray[int64_t] counts, where, result
+
+    util.require_not_none(index)
 
     counts = np.zeros(ngroups + 1, dtype=np.int64)
     n = len(index)
@@ -389,6 +393,8 @@ cpdef map_indices(algos_t[:] index):
         Py_ssize_t i, length
         dict result = {}
 
+    util.require_not_none(index)
+
     length = len(index)
 
     for i in range(length):
@@ -405,6 +411,9 @@ def pad(algos_t[:] old, algos_t[:] new, limit=None):
         ndarray[int64_t, ndim=1] indexer
         algos_t cur, next
         int lim, fill_count = 0
+
+    util.require_not_none(old)
+    util.require_not_none(new)
 
     nleft = len(old)
     nright = len(new)
@@ -483,6 +492,9 @@ def pad_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
         algos_t val
         int lim, fill_count = 0
 
+    util.require_not_none(values)
+    util.require_not_none(mask)
+
     N = len(values)
 
     # GH#2778
@@ -526,6 +538,9 @@ def pad_2d_inplace(algos_t[:, :] values, uint8_t[:, :] mask, limit=None):
         Py_ssize_t i, j, N, K
         algos_t val
         int lim, fill_count = 0
+
+    util.require_not_none(values)
+    util.require_not_none(mask)
 
     K, N = (<object> values).shape
 
@@ -599,6 +614,9 @@ def backfill(algos_t[:] old, algos_t[:] new, limit=None):
         ndarray[int64_t, ndim=1] indexer
         algos_t cur, prev
         int lim, fill_count = 0
+
+    util.require_not_none(old)
+    util.require_not_none(new)
 
     nleft = len(old)
     nright = len(new)
@@ -678,6 +696,9 @@ def backfill_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
         algos_t val
         int lim, fill_count = 0
 
+    util.require_not_none(values)
+    util.require_not_none(mask)
+
     N = len(values)
 
     # GH#2778
@@ -721,6 +742,9 @@ def backfill_2d_inplace(algos_t[:, :] values, uint8_t[:, :] mask, limit=None):
         Py_ssize_t i, j, N, K
         algos_t val
         int lim, fill_count = 0
+
+    util.require_not_none(values)
+    util.require_not_none(mask)
 
     K, N = (<object> values).shape
 
@@ -769,6 +793,8 @@ def arrmap(algos_t[:] index, object func):
         object[:] result = np.empty(length, dtype=np.object_)
 
     from pandas._libs.lib import maybe_convert_objects
+
+    util.require_not_none(index)
 
     for i in range(length):
         result[i] = func(index[i])

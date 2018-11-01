@@ -328,6 +328,8 @@ cdef class {{name}}HashTable(HashTable):
             {{dtype}}_t val
             khiter_t k
 
+        util.require_not_none(values)
+
         with nogil:
             for i in range(n):
                 val = values[i]

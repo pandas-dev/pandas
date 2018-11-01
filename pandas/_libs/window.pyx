@@ -249,6 +249,8 @@ cdef class VariableWindowIndexer(WindowIndexer):
             int64_t start_bound, end_bound, N
             Py_ssize_t i, j
 
+        util.require_not_none(index)
+
         start = self.start
         end = self.end
         N = self.N

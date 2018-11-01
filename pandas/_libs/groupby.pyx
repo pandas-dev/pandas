@@ -14,7 +14,7 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 
-from util cimport numeric, get_nat
+from util cimport numeric, get_nat, require_not_none
 
 from algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE, TIEBREAK_MIN,
                     TIEBREAK_MAX, TIEBREAK_FIRST, TIEBREAK_DENSE)
@@ -113,6 +113,9 @@ def group_median_float64(float64_t[:, :] out,
         float64_t* ptr
 
     assert min_count == -1, "'min_count' only used in add and prod"
+    require_not_none(counts)
+    require_not_none(out)
+    require_not_none(labels)
 
     ngroups = len(counts)
     N, K = (<object> values).shape
@@ -299,8 +302,9 @@ def group_fillna_indexer(int64_t[:] out, ndarray[int64_t] labels,
     # Make sure all arrays are the same size
     assert N == len(labels) == len(mask)
 
-    sorted_labels = np.argsort(labels, kind='mergesort').astype(np.int64,
-                                                                copy=False)
+    sorted_labels = np.argsort(labels, kind='mergesort').astype(
+        np.int64, copy=False)
+
     if direction == 'bfill':
         sorted_labels = sorted_labels[::-1]
 
@@ -356,6 +360,11 @@ def group_any_all(uint8_t[:] out,
         Py_ssize_t i, N = len(labels)
         int64_t lab
         uint8_t flag_val
+
+    require_not_none(out)
+    require_not_none(labels)
+    require_not_none(values)
+    require_not_none(mask)
 
     if val_test == 'all':
         # Because the 'all' value of an empty iterable in Python is True we can

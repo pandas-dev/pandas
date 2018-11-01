@@ -284,7 +284,7 @@ def dicts_to_array(dicts: list, columns: list):
             else:
                 result[i, j] = onan
 
-    return result.base  # `.base` to access underlying np.ndarray
+    return np.asarray(result)
 
 
 def fast_zip(list ndarrays):
@@ -346,6 +346,8 @@ def get_reverse_indexer(int64_t[:] indexer, Py_ssize_t length):
         int64_t[:] rev_indexer
         int64_t idx
 
+    util.require_not_none(indexer)
+
     rev_indexer = np.empty(length, dtype=np.int64)
     rev_indexer[:] = -1
     for i in range(n):
@@ -353,7 +355,7 @@ def get_reverse_indexer(int64_t[:] indexer, Py_ssize_t length):
         if idx != -1:
             rev_indexer[idx] = i
 
-    return rev_indexer.base  # `.base` to access underlying np.ndarray
+    return np.asarray(rev_indexer)
 
 
 @cython.wraparound(False)
@@ -534,7 +536,7 @@ def astype_unicode(arr: ndarray, skipna: bool=False) -> ndarray[object]:
 
         result[i] = arr_i
 
-    return result.base  # `.base` to access underlying np.ndarray
+    return np.asarray(result)
 
 
 @cython.wraparound(False)
@@ -569,7 +571,7 @@ def astype_str(arr: ndarray, skipna: bool = False) -> ndarray[object]:
 
         result[i] = arr_i
 
-    return result.base  # `.base` to access underlying np.ndarray
+    return np.asarray(result)
 
 
 @cython.wraparound(False)
@@ -695,7 +697,7 @@ def row_bool_subset(float64_t[:, :] values,
                 out[pos, j] = values[i, j]
             pos += 1
 
-    return out.base  # `.base` to access underlying np.ndarray
+    return np.asarray(out)
 
 
 @cython.boundscheck(False)
@@ -717,7 +719,7 @@ def row_bool_subset_object(object[:, :] values,
                 out[pos, j] = values[i, j]
             pos += 1
 
-    return out.base  # `.base` to access underlying np.ndarray
+    return np.asarray(out)
 
 
 @cython.boundscheck(False)
@@ -1939,11 +1941,7 @@ def maybe_convert_objects(object[:] objects, bint try_float=0,
         object val
         float64_t fval, fnan
 
-    if objects is None:
-        # Without explicitly raising, groupby.ops _aggregate_series_pure_python
-        #  can pass None and incorrectly raise an AttributeError when trying
-        #  to access `objects.base` below.
-        raise TypeError
+    util.require_not_none(objects)
 
     n = len(objects)
 
@@ -2053,7 +2051,7 @@ def maybe_convert_objects(object[:] objects, bint try_float=0,
     if seen.datetimetz_:
         if len({getattr(val, 'tzinfo', None) for val in objects}) == 1:
             from pandas import DatetimeIndex
-            return DatetimeIndex(objects.base)
+            return DatetimeIndex(np.asarray(objects))
         seen.object_ = 1
 
     if not seen.object_:
@@ -2118,7 +2116,7 @@ def maybe_convert_objects(object[:] objects, bint try_float=0,
                 elif seen.is_bool:
                     return bools.view(np.bool_)
 
-    return objects.base  # `.base` to access underlying np.ndarray
+    return np.asarray(objects)
 
 
 def map_infer_mask(ndarray arr, object f, uint8_t[:] mask, bint convert=1):
@@ -2161,7 +2159,7 @@ def map_infer_mask(ndarray arr, object f, uint8_t[:] mask, bint convert=1):
                                      convert_datetime=0,
                                      convert_timedelta=0)
 
-    return result.base  # `.base` to access underlying np.ndarray
+    return np.asarray(result)
 
 
 @cython.wraparound(False)
@@ -2203,7 +2201,7 @@ def map_infer(ndarray arr, object f, bint convert=1):
                                      convert_datetime=0,
                                      convert_timedelta=0)
 
-    return result.base  # `.base` to access underlying np.ndarray
+    return np.asarray(result)
 
 
 def to_object_array(rows: list, min_width: int = 0):
@@ -2245,7 +2243,7 @@ def to_object_array(rows: list, min_width: int = 0):
         for j in range(len(row)):
             result[i, j] = row[j]
 
-    return result.base  # `.base` to access underlying np.ndarray
+    return np.asarray(result)
 
 
 def tuples_to_object_array(ndarray[object] tuples):
@@ -2262,7 +2260,7 @@ def tuples_to_object_array(ndarray[object] tuples):
         for j in range(k):
             result[i, j] = tup[j]
 
-    return result.base  # `.base` to access underlying np.ndarray
+    return np.asarray(result)
 
 
 def to_object_array_tuples(rows: list):
@@ -2293,7 +2291,7 @@ def to_object_array_tuples(rows: list):
             for j in range(len(row)):
                 result[i, j] = row[j]
 
-    return result.base  # `.base` to access underlying np.ndarray
+    return np.asarray(result)
 
 
 @cython.wraparound(False)

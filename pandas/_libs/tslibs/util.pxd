@@ -51,6 +51,15 @@ cdef inline int import_array() except -1:
     _import_array()
 
 
+cdef inline require_not_none(obj):
+    """
+    Functions accepting cython memoryviews will also accept None.  In order to
+    avoid silently returning incorrect answers, we explicitly check for None.
+    """
+    if obj is None:
+        raise ValueError("An array or memoryview is required, not None.")
+
+
 # --------------------------------------------------------------------
 # Type Checking
 
