@@ -191,6 +191,16 @@ class TestRank(TestData):
         tm.assert_numpy_array_equal(ranks0.values, exp0)
         tm.assert_numpy_array_equal(ranks1.values, exp1)
 
+        # bad values throw error
+        msg = "na_option must be one of 'keep', 'top', or 'bottom'"
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.rank(na_option='bad', ascending=False)
+
+        # invalid type
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.rank(na_option=True, ascending=False)
+
     def test_rank_axis(self):
         # check if using axes' names gives the same result
         df = DataFrame([[2, 1], [4, 3]])
@@ -264,7 +274,7 @@ class TestRank(TestData):
             result = df.rank(method=method, axis=axis)
             assert_frame_equal(result, exp_df)
 
-        disabled = set([(object, 'first')])
+        disabled = {(object, 'first')}
         if (dtype, method) in disabled:
             return
         frame = df if dtype is None else df.astype(dtype)

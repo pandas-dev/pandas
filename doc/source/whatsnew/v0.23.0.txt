@@ -1245,7 +1245,6 @@ Offsets
 - Bug in :class:`FY5253` where ``datetime`` addition and subtraction incremented incorrectly for dates on the year-end but not normalized to midnight (:issue:`18854`)
 - Bug in :class:`FY5253` where date offsets could incorrectly raise an ``AssertionError`` in arithmetic operations (:issue:`14774`)
 
-
 Numeric
 ^^^^^^^
 - Bug in :class:`Series` constructor with an int or float list where specifying ``dtype=str``, ``dtype='str'`` or ``dtype='U'`` failed to convert the data elements to strings (:issue:`16605`)

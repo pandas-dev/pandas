@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 import re
-
-cimport cython
 
 cimport numpy as cnp
 cnp.import_array()
@@ -126,7 +123,7 @@ _lite_rule_alias = {
     'us': 'U',
     'ns': 'N'}
 
-_dont_uppercase = set(('MS', 'ms'))
+_dont_uppercase = {'MS', 'ms'}
 
 # ----------------------------------------------------------------------
 
@@ -324,7 +321,7 @@ cpdef object get_freq(object freq):
 # ----------------------------------------------------------------------
 # Frequency comparison
 
-cpdef bint is_subperiod(source, target):
+def is_subperiod(source, target) -> bint:
     """
     Returns True if downsampling is possible between source and target
     frequencies
@@ -377,7 +374,7 @@ cpdef bint is_subperiod(source, target):
         return source in {'N'}
 
 
-cpdef bint is_superperiod(source, target):
+def is_superperiod(source, target) -> bint:
     """
     Returns True if upsampling is possible between source and target
     frequencies

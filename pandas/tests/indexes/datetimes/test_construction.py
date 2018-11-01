@@ -1,18 +1,19 @@
 from datetime import timedelta
-from operator import attrgetter
 from functools import partial
+from operator import attrgetter
 
+import numpy as np
 import pytest
 import pytz
-import numpy as np
 
-import pandas as pd
-from pandas import offsets
-import pandas.util.testing as tm
 from pandas._libs.tslib import OutOfBoundsDatetime
 from pandas._libs.tslibs import conversion
-from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
-                    to_datetime)
+
+import pandas as pd
+from pandas import (
+    DatetimeIndex, Index, Timestamp, date_range, datetime, offsets,
+    to_datetime)
+import pandas.util.testing as tm
 
 
 class TestDatetimeIndex(object):
@@ -502,6 +503,24 @@ class TestDatetimeIndex(object):
         result = 1293858000000000000
         expected = DatetimeIndex([1293858000000000000], tz=tz).asi8[0]
         assert result == expected
+
+    def test_construction_from_replaced_timestamps_with_dst(self):
+        # GH 18785
+        index = pd.date_range(pd.Timestamp(2000, 1, 1),
+                              pd.Timestamp(2005, 1, 1),
+                              freq='MS', tz='Australia/Melbourne')
+        test = pd.DataFrame({'data': range(len(index))}, index=index)
+        test = test.resample('Y').mean()
+        result = pd.DatetimeIndex([x.replace(month=6, day=1)
+                                   for x in test.index])
+        expected = pd.DatetimeIndex(['2000-06-01 00:00:00',
+                                     '2001-06-01 00:00:00',
+                                     '2002-06-01 00:00:00',
+                                     '2003-06-01 00:00:00',
+                                     '2004-06-01 00:00:00',
+                                     '2005-06-01 00:00:00'],
+                                    tz='Australia/Melbourne')
+        tm.assert_index_equal(result, expected)
 
 
 class TestTimeSeries(object):

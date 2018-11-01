@@ -41,7 +41,7 @@ __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'LastWeekOfMonth', 'FY5253Quarter', 'FY5253',
            'Week', 'WeekOfMonth', 'Easter',
            'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano',
-           'DateOffset']
+           'DateOffset', 'CalendarDay']
 
 # convert to/from datetime/timestamp to allow invalid Timestamp ranges to
 # pass thru
@@ -158,6 +158,54 @@ class DateOffset(BaseOffset):
     date + BDay(0) == BDay.rollforward(date)
 
     Since 0 is a bit weird, we suggest avoiding its use.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of time periods the offset represents.
+    normalize : bool, default False
+        Whether to round the result of a DateOffset addition down to the
+        previous midnight.
+    **kwds
+        Temporal parameter that add to or replace the offset value.
+
+        Parameters that **add** to the offset (like Timedelta):
+
+        - years
+        - months
+        - weeks
+        - days
+        - hours
+        - minutes
+        - seconds
+        - microseconds
+        - nanoseconds
+
+        Parameters that **replace** the offset value:
+
+        - year
+        - month
+        - day
+        - weekday
+        - hour
+        - minute
+        - second
+        - microsecond
+        - nanosecond
+
+    See Also
+    --------
+    dateutil.relativedelta.relativedelta
+
+    Examples
+    --------
+    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
+    >>> ts + DateOffset(months=3)
+    Timestamp('2017-04-01 09:10:11')
+
+    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
+    >>> ts + DateOffset(month=3)
+    Timestamp('2017-03-01 09:10:11')
     """
     _params = cache_readonly(BaseOffset._params.fget)
     _use_relativedelta = False
@@ -226,9 +274,8 @@ class DateOffset(BaseOffset):
                                       "implementation".format(
                                           name=self.__class__.__name__))
         kwds = self.kwds
-        relativedelta_fast = set(['years', 'months', 'weeks',
-                                  'days', 'hours', 'minutes',
-                                  'seconds', 'microseconds'])
+        relativedelta_fast = {'years', 'months', 'weeks', 'days', 'hours',
+                              'minutes', 'seconds', 'microseconds'}
         # relativedelta/_offset path only valid for base DateOffset
         if (self._use_relativedelta and
                 set(kwds).issubset(relativedelta_fast)):
@@ -241,8 +288,11 @@ class DateOffset(BaseOffset):
 
             weeks = (kwds.get('weeks', 0)) * self.n
             if weeks:
-                i = (i.to_period('W') + weeks).to_timestamp() + \
-                    i.to_perioddelta('W')
+                # integer addition on PeriodIndex is deprecated,
+                #   so we directly use _time_shift instead
+                asper = i.to_period('W')
+                shifted = asper._data._time_shift(weeks)
+                i = shifted.to_timestamp() + i.to_perioddelta('W')
 
             timedelta_kwds = {k: v for k, v in kwds.items()
                               if k in ['days', 'hours', 'minutes',
@@ -270,7 +320,7 @@ class DateOffset(BaseOffset):
     # set of attributes on each object rather than the existing behavior of
     # iterating over internal ``__dict__``
     def _repr_attrs(self):
-        exclude = set(['n', 'inc', 'normalize'])
+        exclude = {'n', 'inc', 'normalize'}
         attrs = []
         for attr in sorted(self.__dict__):
             if attr.startswith('_') or attr == 'kwds':
@@ -489,13 +539,21 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         time = i.to_perioddelta('D')
         # to_period rolls forward to next BDay; track and
         # reduce n where it does when rolling forward
-        shifted = (i.to_perioddelta('B') - time).asi8 != 0
+        asper = i.to_period('B')
         if self.n > 0:
-            roll = np.where(shifted, self.n - 1, self.n)
-        else:
-            roll = self.n
+            shifted = (i.to_perioddelta('B') - time).asi8 != 0
 
-        return (i.to_period('B') + roll).to_timestamp() + time
+            # Integer-array addition is deprecated, so we use
+            # _time_shift directly
+            roll = np.where(shifted, self.n - 1, self.n)
+            shifted = asper._data._addsub_int_array(roll, operator.add)
+        else:
+            # Integer addition is deprecated, so we use _time_shift directly
+            roll = self.n
+            shifted = asper._data._time_shift(roll)
+
+        result = shifted.to_timestamp() + time
+        return result
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -759,7 +817,6 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
     """
-    _cacheable = False
     _prefix = 'C'
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])
@@ -911,7 +968,6 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
     """
-    _cacheable = False
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])
 
@@ -1046,6 +1102,7 @@ class SemiMonthOffset(DateOffset):
     @apply_index_wraps
     def apply_index(self, i):
         # determine how many days away from the 1st of the month we are
+        dti = i
         days_from_start = i.to_perioddelta('M').asi8
         delta = Timedelta(days=self.day_of_month - 1).value
 
@@ -1062,7 +1119,12 @@ class SemiMonthOffset(DateOffset):
         time = i.to_perioddelta('D')
 
         # apply the correct number of months
-        i = (i.to_period('M') + (roll // 2)).to_timestamp()
+
+        # integer-array addition on PeriodIndex is deprecated,
+        #  so we use _addsub_int_array directly
+        asper = i.to_period('M')
+        shifted = asper._data._addsub_int_array(roll // 2, operator.add)
+        i = type(dti)(shifted.to_timestamp())
 
         # apply the correct day
         i = self._apply_index_days(i, roll)
@@ -1243,8 +1305,10 @@ class Week(DateOffset):
     @apply_index_wraps
     def apply_index(self, i):
         if self.weekday is None:
-            return ((i.to_period('W') + self.n).to_timestamp() +
-                    i.to_perioddelta('W'))
+            # integer addition on PeriodIndex is deprecated,
+            #  so we use _time_shift directly
+            shifted = i.to_period('W')._data._time_shift(self.n)
+            return shifted.to_timestamp() + i.to_perioddelta('W')
         else:
             return self._end_apply_index(i)
 
@@ -1266,14 +1330,20 @@ class Week(DateOffset):
         base_period = dtindex.to_period(base)
         if self.n > 0:
             # when adding, dates on end roll to next
-            normed = dtindex - off
+            normed = dtindex - off + Timedelta(1, 'D') - Timedelta(1, 'ns')
             roll = np.where(base_period.to_timestamp(how='end') == normed,
                             self.n, self.n - 1)
+            # integer-array addition on PeriodIndex is deprecated,
+            #  so we use _addsub_int_array directly
+            shifted = base_period._data._addsub_int_array(roll, operator.add)
+            base = shifted.to_timestamp(how='end')
         else:
+            # integer addition on PeriodIndex is deprecated,
+            #  so we use _time_shift directly
             roll = self.n
+            base = base_period._data._time_shift(roll).to_timestamp(how='end')
 
-        base = (base_period + roll).to_timestamp(how='end')
-        return base + off
+        return base + off + Timedelta(1, 'ns') - Timedelta(1, 'D')
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -2076,6 +2146,54 @@ class Easter(DateOffset):
             return False
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
+
+class CalendarDay(SingleConstructorOffset):
+    """
+    Calendar day offset. Respects calendar arithmetic as opposed to Day which
+    respects absolute time.
+    """
+    _adjust_dst = True
+    _inc = Timedelta(days=1)
+    _prefix = 'CD'
+    _attributes = frozenset(['n', 'normalize'])
+
+    def __init__(self, n=1, normalize=False):
+        BaseOffset.__init__(self, n, normalize)
+
+    @apply_wraps
+    def apply(self, other):
+        """
+        Apply scalar arithmetic with CalendarDay offset. Incoming datetime
+        objects can be tz-aware or naive.
+        """
+        if type(other) == type(self):
+            # Add other CalendarDays
+            return type(self)(self.n + other.n, normalize=self.normalize)
+        tzinfo = getattr(other, 'tzinfo', None)
+        if tzinfo is not None:
+            other = other.replace(tzinfo=None)
+
+        other = other + self.n * self._inc
+
+        if tzinfo is not None:
+            # This can raise a AmbiguousTimeError or NonExistentTimeError
+            other = conversion.localize_pydatetime(other, tzinfo)
+
+        try:
+            return as_timestamp(other)
+        except TypeError:
+            raise TypeError("Cannot perform arithmetic between {other} and "
+                            "CalendarDay".format(other=type(other)))
+
+    @apply_index_wraps
+    def apply_index(self, i):
+        """
+        Apply the CalendarDay offset to a DatetimeIndex. Incoming DatetimeIndex
+        objects are assumed to be tz_naive
+        """
+        return i + self.n * self._inc
+
+
 # ---------------------------------------------------------------------
 # Ticks
 
@@ -2263,7 +2381,8 @@ def generate_range(start=None, end=None, periods=None,
     ----------
     start : datetime (default None)
     end : datetime (default None)
-    periods : int, optional
+    periods : int, (default None)
+    offset : DateOffset, (default BDay())
     time_rule : (legacy) name of DateOffset object to be used, optional
         Corresponds with names expected by tseries.frequencies.get_offset
 
@@ -2294,7 +2413,7 @@ def generate_range(start=None, end=None, periods=None,
     elif end and not offset.onOffset(end):
         end = offset.rollback(end)
 
-    if periods is None and end < start:
+    if periods is None and end < start and offset.n >= 0:
         end = None
         periods = 0
 
@@ -2327,7 +2446,7 @@ def generate_range(start=None, end=None, periods=None,
             cur = next_date
 
 
-prefix_mapping = dict((offset._prefix, offset) for offset in [
+prefix_mapping = {offset._prefix: offset for offset in [
     YearBegin,                 # 'AS'
     YearEnd,                   # 'A'
     BYearBegin,                # 'BAS'
@@ -2359,4 +2478,5 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     WeekOfMonth,               # 'WOM'
     FY5253,
     FY5253Quarter,
-])
+    CalendarDay                # 'CD'
+]}

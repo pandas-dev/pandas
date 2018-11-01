@@ -35,8 +35,6 @@ import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
 from pandas.core.indexes.period import Period, PeriodIndex
 
-from pandas.plotting._compat import _mpl_le_2_0_0
-
 # constants
 HOURS_PER_DAY = 24.
 MIN_PER_HOUR = 60.
@@ -320,11 +318,15 @@ class DatetimeConverter(dates.DateConverter):
             return values
         elif isinstance(values, compat.string_types):
             return try_parse(values)
-        elif isinstance(values, (list, tuple, np.ndarray, Index)):
+        elif isinstance(values, (list, tuple, np.ndarray, Index, ABCSeries)):
+            if isinstance(values, ABCSeries):
+                # https://github.com/matplotlib/matplotlib/issues/11391
+                # Series was skipped. Convert to DatetimeIndex to get asi8
+                values = Index(values)
             if isinstance(values, Index):
                 values = values.values
             if not isinstance(values, np.ndarray):
-                values = com._asarray_tuplesafe(values)
+                values = com.asarray_tuplesafe(values)
 
             if is_integer_dtype(values) or is_float_dtype(values):
                 return values
@@ -366,13 +368,6 @@ class PandasAutoDateFormatter(dates.AutoDateFormatter):
         # matplotlib.dates._UTC has no _utcoffset called by pandas
         if self._tz is dates.UTC:
             self._tz._utcoffset = self._tz.utcoffset(None)
-
-        # For mpl > 2.0 the format strings are controlled via rcparams
-        # so do not mess with them.  For mpl < 2.0 change the second
-        # break point and add a musec break point
-        if _mpl_le_2_0_0():
-            self.scaled[1. / SEC_PER_DAY] = '%H:%M:%S'
-            self.scaled[1. / MUSEC_PER_DAY] = '%H:%M:%S.%f'
 
 
 class PandasAutoDateLocator(dates.AutoDateLocator):
@@ -579,7 +574,7 @@ def period_break(dates, period):
         Name of the period to monitor.
     """
     current = getattr(dates, period)
-    previous = getattr(dates - 1, period)
+    previous = getattr(dates - 1 * dates.freq, period)
     return np.nonzero(current - previous)[0]
 
 
@@ -665,7 +660,7 @@ def _daily_finder(vmin, vmax, freq):
 
         def _hour_finder(label_interval, force_year_start):
             _hour = dates_.hour
-            _prev_hour = (dates_ - 1).hour
+            _prev_hour = (dates_ - 1 * dates_.freq).hour
             hour_start = (_hour - _prev_hour) != 0
             info_maj[day_start] = True
             info_min[hour_start & (_hour % label_interval == 0)] = True
@@ -679,7 +674,7 @@ def _daily_finder(vmin, vmax, freq):
         def _minute_finder(label_interval):
             hour_start = period_break(dates_, 'hour')
             _minute = dates_.minute
-            _prev_minute = (dates_ - 1).minute
+            _prev_minute = (dates_ - 1 * dates_.freq).minute
             minute_start = (_minute - _prev_minute) != 0
             info_maj[hour_start] = True
             info_min[minute_start & (_minute % label_interval == 0)] = True
@@ -692,7 +687,7 @@ def _daily_finder(vmin, vmax, freq):
         def _second_finder(label_interval):
             minute_start = period_break(dates_, 'minute')
             _second = dates_.second
-            _prev_second = (dates_ - 1).second
+            _prev_second = (dates_ - 1 * dates_.freq).second
             second_start = (_second - _prev_second) != 0
             info['maj'][minute_start] = True
             info['min'][second_start & (_second % label_interval == 0)] = True

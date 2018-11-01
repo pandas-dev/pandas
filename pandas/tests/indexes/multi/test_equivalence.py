@@ -2,31 +2,29 @@
 
 
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import Index, MultiIndex, RangeIndex, Series, compat
+
 from pandas.compat import lrange, lzip, range
+
+import pandas as pd
+from pandas import Index, MultiIndex, Series
+import pandas.util.testing as tm
 
 
 def test_equals(idx):
-    # TODO: Remove or Refactor. MultiIndex not tested.
-    for name, idx in compat.iteritems({'idx': idx}):
-        assert idx.equals(idx)
-        assert idx.equals(idx.copy())
-        assert idx.equals(idx.astype(object))
+    assert idx.equals(idx)
+    assert idx.equals(idx.copy())
+    assert idx.equals(idx.astype(object))
 
-        assert not idx.equals(list(idx))
-        assert not idx.equals(np.array(idx))
+    assert not idx.equals(list(idx))
+    assert not idx.equals(np.array(idx))
 
-        # Cannot pass in non-int64 dtype to RangeIndex
-        if not isinstance(idx, RangeIndex):
-            same_values = Index(idx, dtype=object)
-            assert idx.equals(same_values)
-            assert same_values.equals(idx)
+    same_values = Index(idx, dtype=object)
+    assert idx.equals(same_values)
+    assert same_values.equals(idx)
 
-        if idx.nlevels == 1:
-            # do not test MultiIndex
-            assert not idx.equals(pd.Series(idx))
+    if idx.nlevels == 1:
+        # do not test MultiIndex
+        assert not idx.equals(pd.Series(idx))
 
 
 def test_equals_op(idx):

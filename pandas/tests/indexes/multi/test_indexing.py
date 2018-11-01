@@ -6,12 +6,14 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import (Categorical, CategoricalIndex, Index, IntervalIndex,
-                    MultiIndex, date_range)
 from pandas.compat import lrange
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, Index, IntervalIndex, MultiIndex,
+    date_range)
 from pandas.core.indexes.base import InvalidIndexError
+import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 
@@ -107,31 +109,6 @@ def test_slice_locs_not_contained():
 
     result = index.slice_locs(-1, 10)
     assert result == (0, len(index))
-
-
-def test_insert_base(idx):
-
-    result = idx[1:4]
-
-    # test 0th element
-    assert idx[0:4].equals(result.insert(0, idx[0]))
-
-
-def test_delete_base(idx):
-
-    expected = idx[1:]
-    result = idx.delete(0)
-    assert result.equals(expected)
-    assert result.name == expected.name
-
-    expected = idx[:-1]
-    result = idx.delete(-1)
-    assert result.equals(expected)
-    assert result.name == expected.name
-
-    with pytest.raises((IndexError, ValueError)):
-        # either depending on numpy version
-        result = idx.delete(len(idx))
 
 
 def test_putmask_with_wrong_mask(idx):
@@ -296,6 +273,10 @@ def test_get_loc_level():
     assert new_index is None
 
     pytest.raises(KeyError, index.get_loc_level, (2, 2))
+    # GH 22221: unused label
+    pytest.raises(KeyError, index.drop(2).get_loc_level, 2)
+    # Unused label on unsorted level:
+    pytest.raises(KeyError, index.drop(1, level=2).get_loc_level, 2, 2)
 
     index = MultiIndex(levels=[[2000], lrange(4)], labels=[np.array(
         [0, 0, 0, 0]), np.array([0, 1, 2, 3])])

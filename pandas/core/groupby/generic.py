@@ -7,44 +7,39 @@ which here returns a DataFrameGroupBy object.
 """
 
 import collections
-import warnings
 import copy
-from textwrap import dedent
 from functools import partial
+from textwrap import dedent
+import warnings
 
 import numpy as np
 
-from pandas._libs import lib, Timestamp
-from pandas.util._decorators import Substitution, Appender
-from pandas import compat
-
-import pandas.core.common as com
-from pandas.core.panel import Panel
+from pandas._libs import Timestamp, lib
+import pandas.compat as compat
 from pandas.compat import lzip, map
+from pandas.compat.numpy import _np_version_under1p13
+from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.series import Series
-from pandas.core.generic import _shared_docs
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.common import (
+    ensure_int64, ensure_platform_int, is_bool, is_datetimelike,
+    is_integer_dtype, is_interval_dtype, is_numeric_dtype, is_scalar)
+from pandas.core.dtypes.missing import isna, notna
+
+import pandas.core.algorithms as algorithms
+from pandas.core.arrays import Categorical
+from pandas.core.base import DataError, SpecificationError
+import pandas.core.common as com
+from pandas.core.frame import DataFrame
+from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy, _apply_docs, _transform_template)
-from pandas.core.generic import NDFrame
-from pandas.core.groupby import base
-from pandas.core.dtypes.common import (
-    is_scalar,
-    is_bool,
-    is_datetimelike,
-    is_numeric_dtype,
-    is_integer_dtype,
-    is_interval_dtype,
-    _ensure_platform_int,
-    _ensure_int64)
-from pandas.core.dtypes.missing import isna, notna
-import pandas.core.algorithms as algorithms
-from pandas.core.frame import DataFrame
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
-from pandas.core.base import SpecificationError, DataError
-from pandas.core.index import Index, MultiIndex, CategoricalIndex
-from pandas.core.arrays.categorical import Categorical
+from pandas.core.index import CategoricalIndex, Index, MultiIndex
+import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
+from pandas.core.panel import Panel
+from pandas.core.series import Series
 
 from pandas.plotting._core import boxplot_frame_groupby
 
@@ -133,7 +128,6 @@ class NDFrameGroupBy(GroupBy):
                 obj = self.obj[data.items[locs]]
                 s = groupby(obj, self.grouper)
                 result = s.aggregate(lambda x: alt(x, axis=self.axis))
-                newb = result._data.blocks[0]
 
             finally:
 
@@ -757,7 +751,7 @@ class SeriesGroupBy(GroupBy):
         if isinstance(func_or_funcs, compat.string_types):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
-        if isinstance(func_or_funcs, collections.Iterable):
+        if isinstance(func_or_funcs, compat.Iterable):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             ret = self._aggregate_multiple_funcs(func_or_funcs,
@@ -818,7 +812,7 @@ class SeriesGroupBy(GroupBy):
                     columns.append(f)
                 else:
                     # protect against callables without names
-                    columns.append(com._get_callable_name(f))
+                    columns.append(com.get_callable_name(f))
             arg = lzip(columns, arg)
 
         results = {}
@@ -1026,8 +1020,9 @@ class SeriesGroupBy(GroupBy):
         try:
             sorter = np.lexsort((val, ids))
         except TypeError:  # catches object dtypes
-            assert val.dtype == object, \
-                'val.dtype must be object, got %s' % val.dtype
+            msg = ('val.dtype must be object, got {dtype}'
+                   .format(dtype=val.dtype))
+            assert val.dtype == object, msg
             val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
             _isna = lambda a: a == -1
@@ -1165,7 +1160,7 @@ class SeriesGroupBy(GroupBy):
                             verify_integrity=False)
 
             if is_integer_dtype(out):
-                out = _ensure_int64(out)
+                out = ensure_int64(out)
             return Series(out, index=mi, name=self._selection_name)
 
         # for compat. with libgroupby.value_counts need to ensure every
@@ -1196,7 +1191,7 @@ class SeriesGroupBy(GroupBy):
                         verify_integrity=False)
 
         if is_integer_dtype(out):
-            out = _ensure_int64(out)
+            out = ensure_int64(out)
         return Series(out, index=mi, name=self._selection_name)
 
     def count(self):
@@ -1205,8 +1200,9 @@ class SeriesGroupBy(GroupBy):
         val = self.obj.get_values()
 
         mask = (ids != -1) & ~isna(val)
-        ids = _ensure_platform_int(ids)
-        out = np.bincount(ids[mask], minlength=ngroups or 0)
+        ids = ensure_platform_int(ids)
+        minlength = ngroups or (None if _np_version_under1p13 else 0)
+        out = np.bincount(ids[mask], minlength=minlength)
 
         return Series(out,
                       index=self.grouper.result_index,
@@ -1567,7 +1563,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             results = concat(results, axis=1)
 
         if not self.as_index:
-            results.index = com._default_index(len(results))
+            results.index = ibase.default_index(len(results))
         return results
 
     boxplot = boxplot_frame_groupby

@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     is_timedelta64_dtype,
     is_list_like,
-    _ensure_float64,
+    ensure_float64,
     is_scalar)
 
 from pandas.core.base import PandasObject, SelectionMixin
@@ -98,11 +98,11 @@ class _Window(PandasObject, SelectionMixin):
     def validate(self):
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
-        if self.min_periods is not None and not \
-           is_integer(self.min_periods):
+        if (self.min_periods is not None and
+                not is_integer(self.min_periods)):
             raise ValueError("min_periods must be an integer")
-        if self.closed is not None and self.closed not in \
-           ['right', 'both', 'left', 'neither']:
+        if (self.closed is not None and
+                self.closed not in ['right', 'both', 'left', 'neither']):
             raise ValueError("closed must be 'right', 'left', 'both' or "
                              "'neither'")
 
@@ -208,9 +208,9 @@ class _Window(PandasObject, SelectionMixin):
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
         if is_float_dtype(values.dtype):
-            values = _ensure_float64(values)
+            values = ensure_float64(values)
         elif is_integer_dtype(values.dtype):
-            values = _ensure_float64(values)
+            values = ensure_float64(values)
         elif needs_i8_conversion(values.dtype):
             raise NotImplementedError("ops for {action} for this "
                                       "dtype {dtype} are not "
@@ -219,7 +219,7 @@ class _Window(PandasObject, SelectionMixin):
                                           dtype=values.dtype))
         else:
             try:
-                values = _ensure_float64(values)
+                values = ensure_float64(values)
             except (ValueError, TypeError):
                 raise TypeError("cannot handle this type -> {0}"
                                 "".format(values.dtype))
@@ -265,7 +265,7 @@ class _Window(PandasObject, SelectionMixin):
         """
 
         from pandas import Series, concat
-        from pandas.core.index import _ensure_index
+        from pandas.core.index import ensure_index
 
         final = []
         for result, block in zip(results, blocks):
@@ -286,7 +286,7 @@ class _Window(PandasObject, SelectionMixin):
 
             if self._selection is not None:
 
-                selection = _ensure_index(self._selection)
+                selection = ensure_index(self._selection)
 
                 # need to reorder to include original location of
                 # the on column (if its not already there)
@@ -462,7 +462,8 @@ class Window(_Window):
     min_periods : int, default None
         Minimum number of observations in window required to have a value
         (otherwise result is NA). For a window that is specified by an offset,
-        this will default to 1.
+        `min_periods` will default to 1. Otherwise, `min_periods` will default
+        to the size of the window.
     center : boolean, default False
         Set the labels at the center of the window.
     win_type : string, default None
@@ -625,7 +626,7 @@ class Window(_Window):
 
         window = self._get_window()
         if isinstance(window, (list, tuple, np.ndarray)):
-            return com._asarray_tuplesafe(window).astype(float)
+            return com.asarray_tuplesafe(window).astype(float)
         elif is_integer(window):
             import scipy.signal as sig
 
@@ -857,7 +858,7 @@ class _Rolling(_Window):
                 def func(arg, window, min_periods=None, closed=None):
                     minp = check_minp(min_periods, window)
                     # ensure we are only rolling on floats
-                    arg = _ensure_float64(arg)
+                    arg = ensure_float64(arg)
                     return cfunc(arg,
                                  window, minp, indexi, closed, **kwargs)
 
@@ -933,7 +934,8 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj, index = self._create_blocks()
-        index, indexi = self._get_index(index=index)
+        # Validate the index
+        self._get_index(index=index)
 
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
@@ -1403,7 +1405,7 @@ class _Rolling_and_Expanding(_Rolling):
         otherwise defaults to `False`.
         Not relevant for :class:`~pandas.Series`.
     **kwargs
-        Under Review.
+        Unused.
 
     Returns
     -------
@@ -1429,7 +1431,7 @@ class _Rolling_and_Expanding(_Rolling):
     all 1's), except for :class:`~pandas.DataFrame` inputs with `pairwise`
     set to `True`.
 
-    Function will return `NaN`s for correlations of equal valued sequences;
+    Function will return ``NaN`` for correlations of equal valued sequences;
     this is the result of a 0/0 division error.
 
     When `pairwise` is set to `False`, only matching columns between `self` and
@@ -1445,7 +1447,7 @@ class _Rolling_and_Expanding(_Rolling):
     Examples
     --------
     The below example shows a rolling calculation with a window size of
-    four matching the equivalent function call using `numpy.corrcoef`.
+    four matching the equivalent function call using :meth:`numpy.corrcoef`.
 
     >>> v1 = [3, 3, 3, 5, 8]
     >>> v2 = [3, 4, 4, 4, 8]
@@ -1864,12 +1866,25 @@ class Expanding(_Rolling_and_Expanding):
         return Expanding
 
     def _get_window(self, other=None):
-        obj = self._selected_obj
-        if other is None:
-            return (max(len(obj), self.min_periods) if self.min_periods
-                    else len(obj))
-        return (max((len(obj) + len(obj)), self.min_periods)
-                if self.min_periods else (len(obj) + len(obj)))
+        """
+        Get the window length over which to perform some operation.
+
+        Parameters
+        ----------
+        other : object, default None
+            The other object that is involved in the operation.
+            Such an object is involved for operations like covariance.
+
+        Returns
+        -------
+        window : int
+            The window length.
+        """
+        axis = self.obj._get_axis(self.axis)
+        length = len(axis) + (other is not None) * len(axis)
+
+        other = self.min_periods or -1
+        return max(length, other)
 
     _agg_doc = dedent("""
     Examples
@@ -2386,11 +2401,13 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                     if not arg2.columns.is_unique:
                         raise ValueError("'arg2' columns are not unique")
                     with warnings.catch_warnings(record=True):
+                        warnings.simplefilter("ignore", RuntimeWarning)
                         X, Y = arg1.align(arg2, join='outer')
                     X = X + 0 * Y
                     Y = Y + 0 * X
 
                     with warnings.catch_warnings(record=True):
+                        warnings.simplefilter("ignore", RuntimeWarning)
                         res_columns = arg1.columns.union(arg2.columns)
                     for col in res_columns:
                         if col in X and col in Y:
@@ -2467,7 +2484,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
 
 def _get_center_of_mass(comass, span, halflife, alpha):
-    valid_count = com._count_not_none(comass, span, halflife, alpha)
+    valid_count = com.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
         raise ValueError("comass, span, halflife, and alpha "
                          "are mutually exclusive")
@@ -2501,7 +2518,7 @@ def _offset(window, center):
     offset = (window - 1) / 2. if center else 0
     try:
         return int(offset)
-    except:
+    except TypeError:
         return offset.astype(int)
 
 

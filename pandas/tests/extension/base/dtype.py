@@ -1,5 +1,7 @@
-import pytest
+import warnings
+
 import numpy as np
+
 import pandas as pd
 
 from .base import BaseExtensionTests
@@ -48,9 +50,42 @@ class BaseDtypeTests(BaseExtensionTests):
     def test_eq_with_numpy_object(self, dtype):
         assert dtype != np.dtype('object')
 
+    def test_eq_with_self(self, dtype):
+        assert dtype == dtype
+        assert dtype != object()
+
     def test_array_type(self, data, dtype):
         assert dtype.construct_array_type() is type(data)
 
-    def test_array_type_with_arg(self, data, dtype):
-        with pytest.raises(NotImplementedError):
-            dtype.construct_array_type('foo')
+    def test_check_dtype(self, data):
+        dtype = data.dtype
+
+        # check equivalency for using .dtypes
+        df = pd.DataFrame({'A': pd.Series(data, dtype=dtype),
+                           'B': data,
+                           'C': 'foo', 'D': 1})
+
+        # np.dtype('int64') == 'Int64' == 'int64'
+        # so can't distinguish
+        if dtype.name == 'Int64':
+            expected = pd.Series([True, True, False, True],
+                                 index=list('ABCD'))
+        else:
+            expected = pd.Series([True, True, False, False],
+                                 index=list('ABCD'))
+
+        # XXX: This should probably be *fixed* not ignored.
+        # See libops.scalar_compare
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            result = df.dtypes == str(dtype)
+
+        self.assert_series_equal(result, expected)
+
+        expected = pd.Series([True, True, False, False],
+                             index=list('ABCD'))
+        result = df.dtypes.apply(str) == str(dtype)
+        self.assert_series_equal(result, expected)
+
+    def test_hashable(self, dtype):
+        hash(dtype)  # no error

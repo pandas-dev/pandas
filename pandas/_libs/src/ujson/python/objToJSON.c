@@ -47,8 +47,8 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <numpy/npy_math.h>       // NOLINT(build/include_order)
 #include <stdio.h>                // NOLINT(build/include_order)
 #include <ultrajson.h>            // NOLINT(build/include_order)
-#include <np_datetime.h>          // NOLINT(build/include_order)
-#include <np_datetime_strings.h>  // NOLINT(build/include_order)
+#include <../../../tslibs/src/datetime/np_datetime.h>          // NOLINT(build/include_order)
+#include <../../../tslibs/src/datetime/np_datetime_strings.h>  // NOLINT(build/include_order)
 #include "datetime.h"
 
 static PyObject *type_decimal;
@@ -427,7 +427,7 @@ static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 #if (PY_VERSION_HEX >= 0x03030000)
     if (PyUnicode_IS_COMPACT_ASCII(obj)) {
         Py_ssize_t len;
-        char *data = PyUnicode_AsUTF8AndSize(obj, &len);
+        char *data = (char*)PyUnicode_AsUTF8AndSize(obj, &len);
         *_outLen = len;
         return data;
     }
@@ -442,7 +442,7 @@ static void *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
     return PyString_AS_STRING(newObj);
 }
 
-static void *PandasDateTimeStructToJSON(pandas_datetimestruct *dts,
+static void *PandasDateTimeStructToJSON(npy_datetimestruct *dts,
                                         JSONTypeContext *tc, void *outValue,
                                         size_t *_outLen) {
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
@@ -471,26 +471,27 @@ static void *PandasDateTimeStructToJSON(pandas_datetimestruct *dts,
         }
     } else {
         PRINTMARK();
-        *((JSINT64 *)outValue) = pandas_datetimestruct_to_datetime(base, dts);
+        *((JSINT64 *)outValue) = npy_datetimestruct_to_datetime(base, dts);
         return NULL;
     }
 }
 
 static void *NpyDateTimeScalarToJSON(JSOBJ _obj, JSONTypeContext *tc,
                                      void *outValue, size_t *_outLen) {
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
     PyDatetimeScalarObject *obj = (PyDatetimeScalarObject *)_obj;
     PRINTMARK();
+    // TODO(anyone): Does not appear to be reached in tests.
 
-    pandas_datetime_to_datetimestruct(
-        obj->obval, (NPY_DATETIMEUNIT)obj->obmeta.base, &dts);
+    pandas_datetime_to_datetimestruct(obj->obval,
+                                     (NPY_DATETIMEUNIT)obj->obmeta.base, &dts);
     return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
 }
 
 static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                               size_t *_outLen) {
-    pandas_datetimestruct dts;
-    PyObject *obj = (PyObject *)_obj;
+    npy_datetimestruct dts;
+    PyDateTime_Date *obj = (PyDateTime_Date *)_obj;
 
     PRINTMARK();
 
@@ -509,7 +510,7 @@ static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 
 static void *NpyDatetime64ToJSON(JSOBJ _obj, JSONTypeContext *tc,
                                  void *outValue, size_t *_outLen) {
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
     PRINTMARK();
 
     pandas_datetime_to_datetimestruct((npy_datetime)GET_TC(tc)->longValue,

@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import pytest
-from pandas import MultiIndex
+
 from pandas.compat import PYPY
+
+import pandas as pd
+from pandas import MultiIndex
+import pandas.util.testing as tm
 
 
 def test_contains_top_level():
@@ -43,8 +45,10 @@ def test_isin_nan_pypy():
 def test_isin():
     values = [('foo', 2), ('bar', 3), ('quux', 4)]
 
-    idx = MultiIndex.from_arrays([['qux', 'baz', 'foo', 'bar'], np.arange(
-        4)])
+    idx = MultiIndex.from_arrays([
+        ['qux', 'baz', 'foo', 'bar'],
+        np.arange(4)
+    ])
     result = idx.isin(values)
     expected = np.array([False, False, True, True])
     tm.assert_numpy_array_equal(result, expected)

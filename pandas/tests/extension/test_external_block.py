@@ -2,12 +2,11 @@
 # pylint: disable=W0102
 
 import numpy as np
+import pytest
 
 import pandas as pd
-from pandas.core.internals import (
-    BlockManager, SingleBlockManager, NonConsolidatableMixIn, Block)
-
-import pytest
+from pandas.core.internals import BlockManager, SingleBlockManager
+from pandas.core.internals.blocks import Block, NonConsolidatableMixIn
 
 
 class CustomBlock(NonConsolidatableMixIn, Block):

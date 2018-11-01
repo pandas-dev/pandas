@@ -1,4 +1,5 @@
 import operator
+import warnings
 
 import numpy as np
 from pandas._libs import index as libindex
@@ -9,7 +10,7 @@ from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    _ensure_platform_int,
+    ensure_platform_int,
     is_list_like,
     is_interval_dtype,
     is_scalar)
@@ -31,6 +32,17 @@ _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
 
 
+@accessor.delegate_names(
+    delegate=Categorical,
+    accessors=["rename_categories",
+               "reorder_categories",
+               "add_categories",
+               "remove_categories",
+               "remove_unused_categories",
+               "set_categories",
+               "as_ordered", "as_unordered",
+               "min", "max"],
+    typ='method', overwrite=True)
 class CategoricalIndex(Index, accessor.PandasDelegate):
     """
 
@@ -73,14 +85,28 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     """
 
     _typ = 'categoricalindex'
-    _engine_type = libindex.Int64Engine
+
+    @property
+    def _engine_type(self):
+        # self.codes can have dtype int8, int16, int32 or int64, so we need
+        # to return the corresponding engine type (libindex.Int8Engine, etc.).
+        return {np.int8: libindex.Int8Engine,
+                np.int16: libindex.Int16Engine,
+                np.int32: libindex.Int32Engine,
+                np.int64: libindex.Int64Engine,
+                }[self.codes.dtype.type]
+
     _attributes = ['name']
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
-                copy=False, name=None, fastpath=False):
+                copy=False, name=None, fastpath=None):
 
-        if fastpath:
-            return cls._simple_new(data, name=name, dtype=dtype)
+        if fastpath is not None:
+            warnings.warn("The 'fastpath' keyword is deprecated, and will be "
+                          "removed in a future version.",
+                          FutureWarning, stacklevel=2)
+            if fastpath:
+                return cls._simple_new(data, name=name, dtype=dtype)
 
         if name is None and hasattr(data, 'name'):
             name = data.name
@@ -134,7 +160,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if name is None:
             name = self.name
         cat = Categorical.from_codes(codes, categories=categories,
-                                     ordered=self.ordered)
+                                     ordered=ordered)
         return CategoricalIndex(cat, name=name)
 
     @classmethod
@@ -371,7 +397,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _engine(self):
 
         # we are going to look things up with the codes themselves
-        return self._engine_type(lambda: self.codes.astype('i8'), len(self))
+        return self._engine_type(lambda: self.codes, len(self))
 
     # introspection
     @cache_readonly
@@ -420,6 +446,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         -------
         loc : int if unique index, slice if monotonic index, else mask
 
+        Raises
+        ------
+        KeyError : if the key is not in the index
+
         Examples
         ---------
         >>> unique_index = pd.CategoricalIndex(list('abc'))
@@ -434,10 +464,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
         """
-        codes = self.categories.get_loc(key)
-        if (codes == -1):
+        code = self.categories.get_loc(key)
+        code = self.codes.dtype.type(code)
+        try:
+            return self._engine.get_loc(code)
+        except KeyError:
             raise KeyError(key)
-        return self._engine.get_loc(codes)
 
     def get_value(self, series, key):
         """
@@ -445,7 +477,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         know what you're doing
         """
         try:
-            k = com._values_from_object(key)
+            k = com.values_from_object(key)
             k = self._convert_scalar_indexer(k, kind='getitem')
             indexer = self.get_loc(k)
             return series.iloc[indexer]
@@ -465,9 +497,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             other = self._na_value
         values = np.where(cond, self.values, other)
 
-        cat = Categorical(values,
-                          categories=self.categories,
-                          ordered=self.ordered)
+        cat = Categorical(values, dtype=self.dtype)
         return self._shallow_copy(cat, **self._get_attributes_dict())
 
     def reindex(self, target, method=None, level=None, limit=None,
@@ -494,7 +524,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             raise NotImplementedError("argument limit is not implemented for "
                                       "CategoricalIndex.reindex")
 
-        target = ibase._ensure_index(target)
+        target = ibase.ensure_index(target)
 
         if not is_categorical_dtype(target) and not target.is_unique:
             raise ValueError("cannot reindex with a non-unique indexer")
@@ -559,7 +589,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         from pandas.core.arrays.categorical import _recode_for_categories
 
         method = missing.clean_reindex_fill_method(method)
-        target = ibase._ensure_index(target)
+        target = ibase.ensure_index(target)
 
         if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype='intp')
@@ -588,23 +618,23 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 codes = self.categories.get_indexer(target)
 
         indexer, _ = self._engine.get_indexer_non_unique(codes)
-        return _ensure_platform_int(indexer)
+        return ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
-        target = ibase._ensure_index(target)
+        target = ibase.ensure_index(target)
 
         if isinstance(target, CategoricalIndex):
             # Indexing on codes is more efficient if categories are the same:
             if target.categories is self.categories:
                 target = target.codes
                 indexer, missing = self._engine.get_indexer_non_unique(target)
-                return _ensure_platform_int(indexer), missing
+                return ensure_platform_int(indexer), missing
             target = target.values
 
         codes = self.categories.get_indexer(target)
         indexer, missing = self._engine.get_indexer_non_unique(codes)
-        return _ensure_platform_int(indexer), missing
+        return ensure_platform_int(indexer), missing
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
@@ -634,7 +664,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['_convert_arr_indexer'])
     def _convert_arr_indexer(self, keyarr):
-        keyarr = com._asarray_tuplesafe(keyarr)
+        keyarr = com.asarray_tuplesafe(keyarr)
 
         if self.categories._defer_to_indexing:
             return keyarr
@@ -649,7 +679,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.codes, indices,
                                            allow_fill=allow_fill,
                                            fill_value=fill_value,
@@ -842,24 +872,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             return res
         return CategoricalIndex(res, name=self.name)
 
-    @classmethod
-    def _add_accessors(cls):
-        """ add in Categorical accessor methods """
-
-        CategoricalIndex._add_delegate_accessors(
-            delegate=Categorical, accessors=["rename_categories",
-                                             "reorder_categories",
-                                             "add_categories",
-                                             "remove_categories",
-                                             "remove_unused_categories",
-                                             "set_categories",
-                                             "as_ordered", "as_unordered",
-                                             "min", "max"],
-            typ='method', overwrite=True)
-
 
 CategoricalIndex._add_numeric_methods_add_sub_disabled()
 CategoricalIndex._add_numeric_methods_disabled()
 CategoricalIndex._add_logical_methods_disabled()
 CategoricalIndex._add_comparison_methods()
-CategoricalIndex._add_accessors()

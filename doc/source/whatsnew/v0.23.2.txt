@@ -11,6 +11,10 @@ and bug fixes. We recommend that all users upgrade to this version.
    Pandas 0.23.2 is first pandas release that's compatible with
    Python 3.7 (:issue:`20552`)
 
+.. warning::
+
+   Starting January 1, 2019, pandas feature releases will support Python 3 only.
+   See :ref:`install.dropping-27` for more.
 
 .. contents:: What's new in v0.23.2
     :local:

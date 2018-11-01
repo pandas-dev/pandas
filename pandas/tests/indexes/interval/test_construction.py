@@ -1,17 +1,20 @@
 from __future__ import division
 
-import pytest
-import numpy as np
 from functools import partial
 
-from pandas import (
-    Interval, IntervalIndex, Index, Int64Index, Float64Index, Categorical,
-    CategoricalIndex, date_range, timedelta_range, period_range, notna)
-from pandas.compat import lzip
-from pandas.core.dtypes.common import is_categorical_dtype
-from pandas.core.dtypes.dtypes import IntervalDtype
+import numpy as np
+import pytest
+
 import pandas.core.common as com
 import pandas.util.testing as tm
+from pandas import (
+    Categorical, CategoricalIndex, Float64Index, Index, Int64Index, Interval,
+    IntervalIndex, date_range, notna, period_range, timedelta_range
+)
+from pandas.compat import lzip
+from pandas.core.arrays import IntervalArray
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.core.dtypes.dtypes import IntervalDtype
 
 
 @pytest.fixture(params=[None, 'foo'])
@@ -74,7 +77,7 @@ class Base(object):
 
         assert result.closed == closed
         assert result.dtype.subtype == expected_subtype
-        tm.assert_numpy_array_equal(result.values, expected_values)
+        tm.assert_numpy_array_equal(result._ndarray_values, expected_values)
 
     @pytest.mark.parametrize('breaks', [
         [],
@@ -93,7 +96,7 @@ class Base(object):
         assert result.empty
         assert result.closed == closed
         assert result.dtype.subtype == expected_subtype
-        tm.assert_numpy_array_equal(result.values, expected_values)
+        tm.assert_numpy_array_equal(result._ndarray_values, expected_values)
 
     @pytest.mark.parametrize('breaks', [
         tuple('0123456789'),
@@ -138,7 +141,7 @@ class Base(object):
             constructor(dtype='int64', **filler)
 
         # invalid dtype
-        msg = 'data type "invalid" not understood'
+        msg = "data type 'invalid' not understood"
         with tm.assert_raises_regex(TypeError, msg):
             constructor(dtype='invalid', **filler)
 
@@ -252,7 +255,7 @@ class TestFromTuples(Base):
             return {'data': tuples}
         elif is_categorical_dtype(breaks):
             return {'data': breaks._constructor(tuples)}
-        return {'data': com._asarray_tuplesafe(tuples)}
+        return {'data': com.asarray_tuplesafe(tuples)}
 
     def test_constructor_errors(self):
         # non-tuple
@@ -348,6 +351,17 @@ class TestClassConstructors(Base):
         result = constructor(data, closed=closed)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize('values_constructor', [
+        list, np.array, IntervalIndex, IntervalArray])
+    def test_index_object_dtype(self, values_constructor):
+        # Index(intervals, dtype=object) is an Index (not an IntervalIndex)
+        intervals = [Interval(0, 1), Interval(1, 2), Interval(2, 3)]
+        values = values_constructor(intervals)
+        result = Index(values, dtype=object)
+
+        assert type(result) is Index
+        tm.assert_numpy_array_equal(result.values, np.array(values))
+
 
 class TestFromIntervals(TestClassConstructors):
     """
@@ -368,3 +382,7 @@ class TestFromIntervals(TestClassConstructors):
         ivs = [Interval(0, 1), Interval(1, 2)]
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             IntervalIndex.from_intervals(ivs)
+
+    @pytest.mark.skip(reason='parent class test that is not applicable')
+    def test_index_object_dtype(self):
+        pass

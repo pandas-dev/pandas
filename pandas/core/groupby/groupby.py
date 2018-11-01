@@ -7,42 +7,37 @@ The SeriesGroupBy and DataFrameGroupBy sub-class
 expose these user-facing objects to provide specific functionailty.
 """
 
-import types
-from functools import wraps, partial
-import datetime
 import collections
-import warnings
 from contextlib import contextmanager
+import datetime
+from functools import partial, wraps
+import types
+import warnings
 
 import numpy as np
 
-from pandas._libs import groupby as libgroupby, Timestamp
-from pandas.util._validators import validate_kwargs
-from pandas.util._decorators import (
-    cache_readonly, Substitution, Appender)
-
-from pandas import compat
-from pandas.compat import zip, range, callable, set_function_name
+from pandas._libs import Timestamp, groupby as libgroupby
+import pandas.compat as compat
+from pandas.compat import callable, range, set_function_name, zip
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._validators import validate_kwargs
 
-from pandas.core.dtypes.common import (
-    is_numeric_dtype,
-    is_scalar,
-    _ensure_float)
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.common import ensure_float, is_numeric_dtype, is_scalar
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core.groupby import base
-from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
-                              DataError, SpecificationError)
-from pandas.core.index import Index, MultiIndex
-from pandas.core.generic import NDFrame
+import pandas.core.algorithms as algorithms
+from pandas.core.base import (
+    DataError, GroupByError, PandasObject, SelectionMixin, SpecificationError)
+import pandas.core.common as com
+from pandas.core.config import option_context
 from pandas.core.frame import DataFrame
+from pandas.core.generic import NDFrame
+from pandas.core.groupby import base
+from pandas.core.index import Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
-import pandas.core.common as com
-import pandas.core.algorithms as algorithms
-from pandas.core.config import option_context
 
 _doc_template = """
 
@@ -55,28 +50,28 @@ _doc_template = """
 
 _apply_docs = dict(
     template="""
-    Apply function ``func``  group-wise and combine the results together.
+    Apply function `func`  group-wise and combine the results together.
 
-    The function passed to ``apply`` must take a {input} as its first
-    argument and return a dataframe, a series or a scalar. ``apply`` will
+    The function passed to `apply` must take a {input} as its first
+    argument and return a DataFrame, Series or scalar. `apply` will
     then take care of combining the results back together into a single
-    dataframe or series. ``apply`` is therefore a highly flexible
+    dataframe or series. `apply` is therefore a highly flexible
     grouping method.
 
-    While ``apply`` is a very flexible method, its downside is that
-    using it can be quite a bit slower than using more specific methods.
-    Pandas offers a wide range of method that will be much faster
-    than using ``apply`` for their specific purposes, so try to use them
-    before reaching for ``apply``.
+    While `apply` is a very flexible method, its downside is that
+    using it can be quite a bit slower than using more specific methods
+    like `agg` or `transform`. Pandas offers a wide range of method that will
+    be much faster than using `apply` for their specific purposes, so try to
+    use them before reaching for `apply`.
 
     Parameters
     ----------
-    func : function
+    func : callable
         A callable that takes a {input} as its first argument, and
         returns a dataframe, a series or a scalar. In addition the
-        callable may take positional and keyword arguments
+        callable may take positional and keyword arguments.
     args, kwargs : tuple and dict
-        Optional positional and keyword arguments to pass to ``func``
+        Optional positional and keyword arguments to pass to `func`.
 
     Returns
     -------
@@ -84,9 +79,9 @@ _apply_docs = dict(
 
     Notes
     -----
-    In the current implementation ``apply`` calls func twice on the
+    In the current implementation `apply` calls `func` twice on the
     first group to decide whether it can take a fast or slow code
-    path. This can lead to unexpected behavior if func has
+    path. This can lead to unexpected behavior if `func` has
     side-effects, as they will take effect twice for the first
     group.
 
@@ -98,38 +93,43 @@ _apply_docs = dict(
     --------
     pipe : Apply function to the full GroupBy object instead of to each
         group.
-    aggregate, transform
+    aggregate : Apply aggregate function to the GroupBy object.
+    transform : Apply function column-by-column to the GroupBy object.
+    Series.apply : Apply a function to a Series.
+    DataFrame.apply : Apply a function to each row or column of a DataFrame.
     """,
     dataframe_examples="""
-    >>> df = pd.DataFrame({'A': 'a a b'.split(), 'B': [1,2,3], 'C': [4,6, 5]})
+    >>> df = pd.DataFrame({'A': 'a a b'.split(),
+                           'B': [1,2,3],
+                           'C': [4,6, 5]})
     >>> g = df.groupby('A')
 
-    From ``df`` above we can see that ``g`` has two groups, ``a``, ``b``.
-    Calling ``apply`` in various ways, we can get different grouping results:
+    Notice that ``g`` has two groups, ``a`` and ``b``.
+    Calling `apply` in various ways, we can get different grouping results:
 
-    Example 1: below the function passed to ``apply`` takes a dataframe as
-    its argument and returns a dataframe. ``apply`` combines the result for
-    each group together into a new dataframe:
+    Example 1: below the function passed to `apply` takes a DataFrame as
+    its argument and returns a DataFrame. `apply` combines the result for
+    each group together into a new DataFrame:
 
-    >>> g.apply(lambda x: x / x.sum())
+    >>> g[['B', 'C']].apply(lambda x: x / x.sum())
               B    C
     0  0.333333  0.4
     1  0.666667  0.6
     2  1.000000  1.0
 
-    Example 2: The function passed to ``apply`` takes a dataframe as
-    its argument and returns a series.  ``apply`` combines the result for
-    each group together into a new dataframe:
+    Example 2: The function passed to `apply` takes a DataFrame as
+    its argument and returns a Series.  `apply` combines the result for
+    each group together into a new DataFrame:
 
-    >>> g.apply(lambda x: x.max() - x.min())
+    >>> g[['B', 'C']].apply(lambda x: x.max() - x.min())
        B  C
     A
     a  1  2
     b  0  0
 
-    Example 3: The function passed to ``apply`` takes a dataframe as
-    its argument and returns a scalar. ``apply`` combines the result for
-    each group together into a series, including setting the index as
+    Example 3: The function passed to `apply` takes a DataFrame as
+    its argument and returns a scalar. `apply` combines the result for
+    each group together into a Series, including setting the index as
     appropriate:
 
     >>> g.apply(lambda x: x.C.max() - x.B.min())
@@ -139,15 +139,15 @@ _apply_docs = dict(
     dtype: int64
     """,
     series_examples="""
-    >>> ser = pd.Series([0, 1, 2], index='a a b'.split())
-    >>> g = ser.groupby(ser.index)
+    >>> s = pd.Series([0, 1, 2], index='a a b'.split())
+    >>> g = s.groupby(s.index)
 
-    From ``ser`` above we can see that ``g`` has two groups, ``a``, ``b``.
-    Calling ``apply`` in various ways, we can get different grouping results:
+    From ``s`` above we can see that ``g`` has two groups, ``a`` and ``b``.
+    Calling `apply` in various ways, we can get different grouping results:
 
-    Example 1: The function passed to ``apply`` takes a series as
-    its argument and returns a series.  ``apply`` combines the result for
-    each group together into a new series:
+    Example 1: The function passed to `apply` takes a Series as
+    its argument and returns a Series.  `apply` combines the result for
+    each group together into a new Series:
 
     >>> g.apply(lambda x:  x*2 if x.name == 'b' else x/2)
     0    0.0
@@ -155,9 +155,9 @@ _apply_docs = dict(
     2    4.0
     dtype: float64
 
-    Example 2: The function passed to ``apply`` takes a series as
-    its argument and returns a scalar. ``apply`` combines the result for
-    each group together into a series, including setting the index as
+    Example 2: The function passed to `apply` takes a Series as
+    its argument and returns a scalar. `apply` combines the result for
+    each group together into a Series, including setting the index as
     appropriate:
 
     >>> g.apply(lambda x: x.max() - x.min())
@@ -167,12 +167,12 @@ _apply_docs = dict(
     """)
 
 _pipe_template = """\
-Apply a function ``func`` with arguments to this %(klass)s object and return
+Apply a function `func` with arguments to this %(klass)s object and return
 the function's result.
 
 %(versionadded)s
 
-Use ``.pipe`` when you want to improve readability by chaining together
+Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
 Instead of writing
 
@@ -191,17 +191,17 @@ Parameters
 ----------
 func : callable or tuple of (callable, string)
     Function to apply to this %(klass)s object or, alternatively,
-    a ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
-    string indicating the keyword of ``callable`` that expects the
+    a `(callable, data_keyword)` tuple where `data_keyword` is a
+    string indicating the keyword of `callable` that expects the
     %(klass)s object.
 args : iterable, optional
-       positional arguments passed into ``func``.
+       positional arguments passed into `func`.
 kwargs : dict, optional
-         a dictionary of keyword arguments passed into ``func``.
+         a dictionary of keyword arguments passed into `func`.
 
 Returns
 -------
-object : the return type of ``func``.
+object : the return type of `func`.
 
 Notes
 -----
@@ -573,8 +573,8 @@ b  2""")
             # a little trickery for aggregation functions that need an axis
             # argument
             kwargs_with_axis = kwargs.copy()
-            if 'axis' not in kwargs_with_axis or \
-               kwargs_with_axis['axis'] is None:
+            if ('axis' not in kwargs_with_axis or
+                    kwargs_with_axis['axis'] is None):
                 kwargs_with_axis['axis'] = self.axis
 
             def curried_with_axis(x):
@@ -842,7 +842,7 @@ b  2""")
                 # since we are masking, make sure that we have a float object
                 values = result
                 if is_numeric_dtype(values.dtype):
-                    values = _ensure_float(values)
+                    values = ensure_float(values)
 
                 output[name] = self._try_cast(values[mask], result)
 
@@ -1163,7 +1163,12 @@ class GroupBy(_GroupBy):
         """
         nv.validate_groupby_func('var', args, kwargs)
         if ddof == 1:
-            return self._cython_agg_general('var', **kwargs)
+            try:
+                return self._cython_agg_general('var', **kwargs)
+            except Exception:
+                f = lambda x: x.var(ddof=ddof, **kwargs)
+                with _group_selection_context(self):
+                    return self._python_agg_general(f)
         else:
             f = lambda x: x.var(ddof=ddof, **kwargs)
             with _group_selection_context(self):
@@ -1442,7 +1447,7 @@ class GroupBy(_GroupBy):
         2  3.0
         2  5.0
 
-        Specifying ``dropna`` allows count ignoring NaN
+        Specifying `dropna` allows count ignoring ``NaN``
 
         >>> g.nth(0, dropna='any')
              B
@@ -1458,7 +1463,7 @@ class GroupBy(_GroupBy):
         1 NaN
         2 NaN
 
-        Specifying ``as_index=False`` in ``groupby`` keeps the original index.
+        Specifying `as_index=False` in `groupby` keeps the original index.
 
         >>> df.groupby('A', as_index=False).nth(1)
            A    B
@@ -1480,8 +1485,10 @@ class GroupBy(_GroupBy):
         self._set_group_selection()
 
         if not dropna:
-            mask = np.in1d(self._cumcount_array(), nth_values) | \
-                np.in1d(self._cumcount_array(ascending=False) + 1, -nth_values)
+            mask_left = np.in1d(self._cumcount_array(), nth_values)
+            mask_right = np.in1d(self._cumcount_array(ascending=False) + 1,
+                                 -nth_values)
+            mask = mask_left | mask_right
 
             out = self._selected_obj[mask]
             if not self.as_index:
@@ -1542,8 +1549,8 @@ class GroupBy(_GroupBy):
             result.loc[mask] = np.nan
 
         # reset/reindex to the original groups
-        if len(self.obj) == len(dropped) or \
-           len(result) == len(self.grouper.result_index):
+        if (len(self.obj) == len(dropped) or
+                len(result) == len(self.grouper.result_index)):
             result.index = self.grouper.result_index
         else:
             result = result.reindex(self.grouper.result_index)
@@ -1700,6 +1707,9 @@ class GroupBy(_GroupBy):
         -----
         DataFrame with ranking of values within each group
         """
+        if na_option not in {'keep', 'top', 'bottom'}:
+            msg = "na_option must be one of 'keep', 'top', or 'bottom'"
+            raise ValueError(msg)
         return self._cython_transform('rank', numeric_only=False,
                                       ties_method=method, ascending=ascending,
                                       na_option=na_option, pct=pct, axis=axis)

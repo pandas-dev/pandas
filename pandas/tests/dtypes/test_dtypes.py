@@ -9,7 +9,7 @@ from pandas import (
 
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype, PeriodDtype,
-    IntervalDtype, CategoricalDtype, registry)
+    IntervalDtype, CategoricalDtype, registry, _pandas_registry)
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_categorical,
     is_datetime64tz_dtype, is_datetimetz,
@@ -17,7 +17,10 @@ from pandas.core.dtypes.common import (
     is_dtype_equal, is_datetime64_ns_dtype,
     is_datetime64_dtype, is_interval_dtype,
     is_datetime64_any_dtype, is_string_dtype,
-    _coerce_to_dtype)
+    _coerce_to_dtype,
+    is_bool_dtype,
+)
+from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
@@ -125,6 +128,18 @@ class TestCategoricalDtype(Base):
         categories = [(1, 'a'), (2, 'b'), (3, 'c')]
         result = CategoricalDtype(categories)
         assert all(result.categories == categories)
+
+    @pytest.mark.parametrize("categories, expected", [
+        ([True, False], True),
+        ([True, False, None], True),
+        ([True, False, "a", "b'"], False),
+        ([0, 1], False),
+    ])
+    def test_is_boolean(self, categories, expected):
+        cat = Categorical(categories)
+        assert cat.dtype._is_boolean is expected
+        assert is_bool_dtype(cat) is expected
+        assert is_bool_dtype(cat.dtype) is expected
 
 
 class TestDatetimeTZDtype(Base):
@@ -366,11 +381,9 @@ class TestPeriodDtype(Base):
         assert is_period(pidx)
 
         s = Series(pidx, name='A')
-        # dtypes
-        # series results in object dtype currently,
-        # is_period checks period_arraylike
-        assert not is_period_dtype(s.dtype)
-        assert not is_period_dtype(s)
+
+        assert is_period_dtype(s.dtype)
+        assert is_period_dtype(s)
         assert is_period(s)
 
         assert not is_period_dtype(np.dtype('float64'))
@@ -552,10 +565,8 @@ class TestIntervalDtype(Base):
 
         s = Series(ii, name='A')
 
-        # dtypes
-        # series results in object dtype currently,
-        assert not is_interval_dtype(s.dtype)
-        assert not is_interval_dtype(s)
+        assert is_interval_dtype(s.dtype)
+        assert is_interval_dtype(s)
 
     def test_basic_dtype(self):
         assert is_interval_dtype('interval[int64]')
@@ -777,10 +788,15 @@ class TestCategoricalDtypeParametrized(object):
 
 @pytest.mark.parametrize(
     'dtype',
-    [DatetimeTZDtype, CategoricalDtype,
-     PeriodDtype, IntervalDtype])
+    [CategoricalDtype, IntervalDtype])
 def test_registry(dtype):
     assert dtype in registry.dtypes
+
+
+@pytest.mark.parametrize('dtype', [DatetimeTZDtype, PeriodDtype])
+def test_pandas_registry(dtype):
+    assert dtype not in registry.dtypes
+    assert dtype in _pandas_registry.dtypes
 
 
 @pytest.mark.parametrize(
@@ -789,9 +805,52 @@ def test_registry(dtype):
      ('interval', IntervalDtype()),
      ('interval[int64]', IntervalDtype()),
      ('interval[datetime64[ns]]', IntervalDtype('datetime64[ns]')),
-     ('category', CategoricalDtype()),
-     ('period[D]', PeriodDtype('D')),
-     ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern'))])
+     ('category', CategoricalDtype())])
 def test_registry_find(dtype, expected):
-
     assert registry.find(dtype) == expected
+
+
+@pytest.mark.parametrize(
+    'dtype, expected',
+    [('period[D]', PeriodDtype('D')),
+     ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern'))])
+def test_pandas_registry_find(dtype, expected):
+    assert _pandas_registry.find(dtype) == expected
+
+
+@pytest.mark.parametrize('dtype, expected', [
+    (str, False),
+    (int, False),
+    (bool, True),
+    (np.bool, True),
+    (np.array(['a', 'b']), False),
+    (pd.Series([1, 2]), False),
+    (np.array([True, False]), True),
+    (pd.Series([True, False]), True),
+    (pd.SparseSeries([True, False]), True),
+    (pd.SparseArray([True, False]), True),
+    (SparseDtype(bool), True)
+])
+def test_is_bool_dtype(dtype, expected):
+    result = is_bool_dtype(dtype)
+    assert result is expected
+
+
+@pytest.mark.parametrize("check", [
+    is_categorical_dtype,
+    is_datetime64tz_dtype,
+    is_period_dtype,
+    is_datetime64_ns_dtype,
+    is_datetime64_dtype,
+    is_interval_dtype,
+    is_datetime64_any_dtype,
+    is_string_dtype,
+    is_bool_dtype,
+])
+def test_is_dtype_no_warning(check):
+    data = pd.DataFrame({"A": [1, 2]})
+    with tm.assert_produces_warning(None):
+        check(data)
+
+    with tm.assert_produces_warning(None):
+        check(data["A"])

@@ -161,19 +161,15 @@ class TestToNumeric(object):
         expected = pd.Series([np.nan, np.nan, np.nan])
         tm.assert_series_equal(res, expected)
 
-    def test_type_check(self):
+    @pytest.mark.parametrize("errors", [None, "ignore", "raise", "coerce"])
+    def test_type_check(self, errors):
         # see gh-11776
         df = pd.DataFrame({"a": [1, -3.14, 7], "b": ["4", "5", "6"]})
+        kwargs = dict(errors=errors) if errors is not None else dict()
         error_ctx = tm.assert_raises_regex(TypeError, "1-d array")
 
-        # Check default parameters.
         with error_ctx:
-            to_numeric(df)
-
-        # Check each parameter value for `errors`.
-        for errors in ["ignore", "raise", "coerce"]:
-            with error_ctx:
-                to_numeric(df, errors=errors)
+            to_numeric(df, **kwargs)
 
     def test_scalar(self):
         assert pd.to_numeric(1) == 1

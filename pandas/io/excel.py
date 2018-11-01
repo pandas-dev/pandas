@@ -4,37 +4,35 @@ Module parse to/from Excel
 
 # ---------------------------------------------------------------------
 # ExcelFile class
-from datetime import datetime, date, time, MINYEAR, timedelta
-
-import os
 import abc
-import warnings
-from textwrap import fill
-from io import UnsupportedOperation
+from datetime import MINYEAR, date, datetime, time, timedelta
 from distutils.version import LooseVersion
+from io import UnsupportedOperation
+import os
+from textwrap import fill
+import warnings
 
 import numpy as np
 
 import pandas._libs.json as json
-from pandas.util._decorators import Appender, deprecate_kwarg
-from pandas.errors import EmptyDataError
-
 import pandas.compat as compat
-from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
-                           string_types, OrderedDict)
+from pandas.compat import (
+    OrderedDict, add_metaclass, lrange, map, range, reduce, string_types, u,
+    zip)
+from pandas.errors import EmptyDataError
+from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
-    is_integer, is_float,
-    is_bool, is_list_like)
+    is_bool, is_float, is_integer, is_list_like)
 
 from pandas.core import config
 from pandas.core.frame import DataFrame
 
-from pandas.io.parsers import TextParser
-from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
-                              get_filepath_or_buffer, _NA_VALUES,
-                              _stringify_path)
+from pandas.io.common import (
+    _NA_VALUES, _is_url, _stringify_path, _urlopen, _validate_header_arg,
+    get_filepath_or_buffer)
 from pandas.io.formats.printing import pprint_thing
+from pandas.io.parsers import TextParser
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 
@@ -647,7 +645,7 @@ class ExcelFile(object):
             if header is not None:
                 if is_list_like(header):
                     header_names = []
-                    control_row = [True for x in data[0]]
+                    control_row = [True] * len(data[0])
                     for row in header:
                         if is_integer(skiprows):
                             row += skiprows
@@ -824,8 +822,43 @@ class ExcelWriter(object):
 
     Notes
     -----
+    None of the methods and properties are considered public.
+
     For compatibility with CSV writers, ExcelWriter serializes lists
     and dicts to strings before writing.
+
+    Examples
+    --------
+    Default usage:
+
+    >>> with ExcelWriter('path_to_file.xlsx') as writer:
+    ...     df.to_excel(writer)
+
+    To write to separate sheets in a single file:
+
+    >>> with ExcelWriter('path_to_file.xlsx') as writer:
+    ...     df1.to_excel(writer, sheet_name='Sheet1')
+    ...     df2.to_excel(writer, sheet_name='Sheet2')
+
+    You can set the date format or datetime format:
+
+    >>> with ExcelWriter('path_to_file.xlsx',
+                          date_format='YYYY-MM-DD',
+                          datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
+    ...     df.to_excel(writer)
+
+    You can also append to an existing Excel file:
+
+    >>> with ExcelWriter('path_to_file.xlsx', mode='a') as writer:
+    ...     df.to_excel(writer, sheet_name='Sheet3')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     # Defining an ExcelWriter implementation (see abstract methods for more...)
 
@@ -1720,14 +1753,14 @@ class _XlsxStyler(object):
                     props[k] = ['none', 'thin', 'medium', 'dashed', 'dotted',
                                 'thick', 'double', 'hair', 'mediumDashed',
                                 'dashDot', 'mediumDashDot', 'dashDotDot',
-                                'mediumDashDotDot', 'slantDashDot'].\
-                        index(props[k])
+                                'mediumDashDotDot',
+                                'slantDashDot'].index(props[k])
                 except ValueError:
                     props[k] = 2
 
         if isinstance(props.get('font_script'), string_types):
-            props['font_script'] = ['baseline', 'superscript', 'subscript'].\
-                index(props['font_script'])
+            props['font_script'] = ['baseline', 'superscript',
+                                    'subscript'].index(props['font_script'])
 
         if isinstance(props.get('underline'), string_types):
             props['underline'] = {'none': 0, 'single': 1, 'double': 2,

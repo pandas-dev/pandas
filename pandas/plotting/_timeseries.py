@@ -86,7 +86,6 @@ def _maybe_resample(series, ax, kwargs):
             freq = ax_freq
         elif frequencies.is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
-            ax_freq = freq
         else:  # pragma: no cover
             raise ValueError('Incompatible frequency conversion')
     return freq, series

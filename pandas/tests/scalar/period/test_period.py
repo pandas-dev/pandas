@@ -5,6 +5,7 @@ import numpy as np
 from datetime import datetime, date, timedelta
 
 import pandas as pd
+from pandas import Timedelta
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
 from pandas.compat import text_type, iteritems
@@ -73,7 +74,9 @@ class TestPeriodProperties(object):
         exp = Period('1989', freq=freq)
         stamp = exp.to_timestamp('D', how='end') + timedelta(days=30)
         p = Period(stamp, freq=freq)
-        assert p == exp + 1
+
+        with tm.assert_produces_warning(FutureWarning):
+            assert p == exp + 1
         assert isinstance(p, Period)
 
     @pytest.mark.parametrize('day', DAYS)
@@ -126,13 +129,16 @@ class TestPeriodProperties(object):
         assert p2.freq == offsets.MonthEnd()
         assert p2.freqstr == 'M'
 
-        result = p1 + 1
-        assert result.ordinal == (p2 + 3).ordinal
+        with tm.assert_produces_warning(FutureWarning):
+            result = p1 + 1
+            assert result.ordinal == (p2 + 3).ordinal
+
         assert result.freq == p1.freq
         assert result.freqstr == '3M'
 
-        result = p1 - 1
-        assert result.ordinal == (p2 - 3).ordinal
+        with tm.assert_produces_warning(FutureWarning):
+            result = p1 - 1
+            assert result.ordinal == (p2 - 3).ordinal
         assert result.freq == p1.freq
         assert result.freqstr == '3M'
 
@@ -166,23 +172,27 @@ class TestPeriodProperties(object):
             assert p3.freq == offsets.Hour()
             assert p3.freqstr == 'H'
 
-            result = p1 + 1
-            assert result.ordinal == (p3 + 25).ordinal
+            with tm.assert_produces_warning(FutureWarning):
+                result = p1 + 1
+                assert result.ordinal == (p3 + 25).ordinal
             assert result.freq == p1.freq
             assert result.freqstr == '25H'
 
-            result = p2 + 1
-            assert result.ordinal == (p3 + 25).ordinal
+            with tm.assert_produces_warning(FutureWarning):
+                result = p2 + 1
+                assert result.ordinal == (p3 + 25).ordinal
             assert result.freq == p2.freq
             assert result.freqstr == '25H'
 
-            result = p1 - 1
-            assert result.ordinal == (p3 - 25).ordinal
+            with tm.assert_produces_warning(FutureWarning):
+                result = p1 - 1
+                assert result.ordinal == (p3 - 25).ordinal
             assert result.freq == p1.freq
             assert result.freqstr == '25H'
 
-            result = p2 - 1
-            assert result.ordinal == (p3 - 25).ordinal
+            with tm.assert_produces_warning(FutureWarning):
+                result = p2 - 1
+                assert result.ordinal == (p3 - 25).ordinal
             assert result.freq == p2.freq
             assert result.freqstr == '25H'
 
@@ -274,12 +284,14 @@ class TestPeriodProperties(object):
 
     def test_timestamp_mult(self):
         p = pd.Period('2011-01', freq='M')
-        assert p.to_timestamp(how='S') == pd.Timestamp('2011-01-01')
-        assert p.to_timestamp(how='E') == pd.Timestamp('2011-01-31')
+        assert p.to_timestamp(how='S') == Timestamp('2011-01-01')
+        expected = Timestamp('2011-02-01') - Timedelta(1, 'ns')
+        assert p.to_timestamp(how='E') == expected
 
         p = pd.Period('2011-01', freq='3M')
-        assert p.to_timestamp(how='S') == pd.Timestamp('2011-01-01')
-        assert p.to_timestamp(how='E') == pd.Timestamp('2011-03-31')
+        assert p.to_timestamp(how='S') == Timestamp('2011-01-01')
+        expected = Timestamp('2011-04-01') - Timedelta(1, 'ns')
+        assert p.to_timestamp(how='E') == expected
 
     def test_construction(self):
         i1 = Period('1/1/2005', freq='M')
@@ -595,7 +607,7 @@ class TestPeriodProperties(object):
         from_lst = ['A', 'Q', 'M', 'W', 'B', 'D', 'H', 'Min', 'S']
 
         def _ex(p):
-            return Timestamp((p + 1).start_time.value - 1)
+            return Timestamp((p + p.freq).start_time.value - 1)
 
         for i, fcode in enumerate(from_lst):
             p = Period('1982', freq=fcode)
@@ -611,19 +623,19 @@ class TestPeriodProperties(object):
         p = Period('1985', freq='A')
 
         result = p.to_timestamp('H', how='end')
-        expected = datetime(1985, 12, 31, 23)
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, 'ns')
         assert result == expected
         result = p.to_timestamp('3H', how='end')
         assert result == expected
 
         result = p.to_timestamp('T', how='end')
-        expected = datetime(1985, 12, 31, 23, 59)
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, 'ns')
         assert result == expected
         result = p.to_timestamp('2T', how='end')
         assert result == expected
 
         result = p.to_timestamp(how='end')
-        expected = datetime(1985, 12, 31)
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, 'ns')
         assert result == expected
 
         expected = datetime(1985, 1, 1)
@@ -714,14 +726,16 @@ class TestPeriodProperties(object):
         #
         for x in range(3):
             for qd in (qedec_date, qejan_date, qejun_date):
-                assert (qd + x).qyear == 2007
-                assert (qd + x).quarter == x + 1
+                with tm.assert_produces_warning(FutureWarning):
+                    assert (qd + x).qyear == 2007
+                    assert (qd + x).quarter == x + 1
 
     def test_properties_monthly(self):
         # Test properties on Periods with daily frequency.
         m_date = Period(freq='M', year=2007, month=1)
         for x in range(11):
-            m_ival_x = m_date + x
+            with tm.assert_produces_warning(FutureWarning):
+                m_ival_x = m_date + x
             assert m_ival_x.year == 2007
             if 1 <= x + 1 <= 3:
                 assert m_ival_x.quarter == 1
@@ -741,7 +755,8 @@ class TestPeriodProperties(object):
         assert w_date.quarter == 1
         assert w_date.month == 1
         assert w_date.week == 1
-        assert (w_date - 1).week == 52
+        with tm.assert_produces_warning(FutureWarning):
+            assert (w_date - 1).week == 52
         assert w_date.days_in_month == 31
         assert Period(freq='W', year=2012,
                       month=2, day=1).days_in_month == 29
@@ -753,7 +768,8 @@ class TestPeriodProperties(object):
         assert w_date.quarter == 1
         assert w_date.month == 1
         assert w_date.week == 1
-        assert (w_date - 1).week == 52
+        with tm.assert_produces_warning(FutureWarning):
+            assert (w_date - 1).week == 52
         assert w_date.days_in_month == 31
 
         exp = Period(freq='W', year=2012, month=2, day=1)
@@ -840,13 +856,6 @@ class TestPeriodProperties(object):
         assert Period(freq='Min', year=2012, month=2, day=1, hour=0,
                       minute=0, second=0).days_in_month == 29
 
-    def test_pnow(self):
-
-        # deprecation, xref #13790
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            period.pnow('D')
-
     def test_constructor_corner(self):
         expected = Period('2007-01', freq='2M')
         assert Period(year=2007, month=1, freq='2M') == expected
@@ -901,10 +910,11 @@ class TestPeriodProperties(object):
         assert result1.freq == offsets.YearEnd(2)
         assert result2.freq == offsets.YearEnd()
 
-        assert (result1 + 1).ordinal == result1.ordinal + 2
-        assert (1 + result1).ordinal == result1.ordinal + 2
-        assert (result1 - 1).ordinal == result2.ordinal - 2
-        assert (-1 + result1).ordinal == result2.ordinal - 2
+        with tm.assert_produces_warning(FutureWarning):
+            assert (result1 + 1).ordinal == result1.ordinal + 2
+            assert (1 + result1).ordinal == result1.ordinal + 2
+            assert (result1 - 1).ordinal == result2.ordinal - 2
+            assert (-1 + result1).ordinal == result2.ordinal - 2
 
     def test_round_trip(self):
 
@@ -1010,8 +1020,9 @@ class TestMethods(object):
     def test_add(self):
         dt1 = Period(freq='D', year=2008, month=1, day=1)
         dt2 = Period(freq='D', year=2008, month=1, day=2)
-        assert dt1 + 1 == dt2
-        assert 1 + dt1 == dt2
+        with tm.assert_produces_warning(FutureWarning):
+            assert dt1 + 1 == dt2
+            assert 1 + dt1 == dt2
 
     def test_add_pdnat(self):
         p = pd.Period('2011-01', freq='M')
@@ -1038,9 +1049,10 @@ class TestMethods(object):
             dt1 + dt2
 
     boxes = [lambda x: x, lambda x: pd.Series([x]), lambda x: pd.Index([x])]
+    ids = ['identity', 'Series', 'Index']
 
-    @pytest.mark.parametrize('lbox', boxes)
-    @pytest.mark.parametrize('rbox', boxes)
+    @pytest.mark.parametrize('lbox', boxes, ids=ids)
+    @pytest.mark.parametrize('rbox', boxes, ids=ids)
     def test_add_timestamp_raises(self, rbox, lbox):
         # GH # 17983
         ts = pd.Timestamp('2017')
@@ -1443,7 +1455,8 @@ def test_period_immutable():
         per.freq = 2 * freq
 
 
-@pytest.mark.xfail(reason='GH#19834 Period parsing error')
+# TODO: This doesn't fail on all systems; track down which
+@pytest.mark.xfail(reason="Parses as Jan 1, 0007 on some systems")
 def test_small_year_parsing():
     per1 = Period('0001-01-07', 'D')
     assert per1.year == 1

@@ -170,8 +170,8 @@ class TestReadHtml(object):
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_set(self):
-        df1 = self.read_html(self.spam_data, '.*Water.*', skiprows=set([1, 2]))
-        df2 = self.read_html(self.spam_data, 'Unit', skiprows=set([2, 1]))
+        df1 = self.read_html(self.spam_data, '.*Water.*', skiprows={1, 2})
+        df2 = self.read_html(self.spam_data, 'Unit', skiprows={2, 1})
 
         assert_framelist_equal(df1, df2)
 
@@ -270,7 +270,7 @@ class TestReadHtml(object):
                 self.read_html('http://www.a23950sdfa908sd.com',
                                match='.*Water.*')
         except ValueError as e:
-            assert str(e) == 'No tables found'
+            assert 'No tables found' in str(e)
 
     @pytest.mark.slow
     def test_file_url(self):

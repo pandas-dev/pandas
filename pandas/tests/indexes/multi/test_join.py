@@ -2,16 +2,18 @@
 
 
 import numpy as np
+import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
-import pytest
 from pandas import Index, MultiIndex
 
 
-@pytest.mark.parametrize('other',
-                         [Index(['three', 'one', 'two']),
-                             Index(['one']),
-                             Index(['one', 'three'])])
+@pytest.mark.parametrize('other', [
+    Index(['three', 'one', 'two']),
+    Index(['one']),
+    Index(['one', 'three']),
+])
 def test_join_level(idx, other, join_type):
     join_index, lidx, ridx = other.join(idx, how=join_type,
                                         level='second',

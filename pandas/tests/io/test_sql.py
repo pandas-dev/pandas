@@ -18,7 +18,6 @@ The SQL tests are broken down in different classes:
 """
 
 from __future__ import print_function
-from warnings import catch_warnings
 import pytest
 import sqlite3
 import csv
@@ -36,7 +35,6 @@ from pandas import DataFrame, Series, Index, MultiIndex, isna, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
 from pandas.compat import range, lrange, string_types, PY36
-from pandas.core.tools.datetimes import format as date_format
 
 import pandas.io.sql as sql
 from pandas.io.sql import read_sql_table, read_sql_query
@@ -254,9 +252,13 @@ class PandasSQLTest(object):
         else:
             return self.conn.cursor()
 
-    def _load_iris_data(self, datapath):
+    @pytest.fixture(params=[('io', 'data', 'iris.csv')])
+    def load_iris_data(self, datapath, request):
         import io
-        iris_csv_file = datapath('io', 'data', 'iris.csv')
+        iris_csv_file = datapath(*request.param)
+
+        if not hasattr(self, 'conn'):
+            self.setup_connect()
 
         self.drop_table('iris')
         self._get_exec().execute(SQL_STRINGS['create_iris'][self.flavor])
@@ -468,7 +470,7 @@ class PandasSQLTest(object):
             with self.pandasSQL.run_transaction() as trans:
                 trans.execute(ins_sql)
                 raise Exception('error')
-        except:
+        except Exception:
             # ignore raised exception
             pass
         res = self.pandasSQL.read_query('SELECT * FROM test_trans')
@@ -504,10 +506,14 @@ class _TestSQLApi(PandasSQLTest):
     flavor = 'sqlite'
     mode = None
 
-    @pytest.fixture(autouse=True)
-    def setup_method(self, datapath):
+    def setup_connect(self):
         self.conn = self.connect()
-        self._load_iris_data(datapath)
+
+    @pytest.fixture(autouse=True)
+    def setup_method(self, load_iris_data):
+        self.load_test_data_and_sql()
+
+    def load_test_data_and_sql(self):
         self._load_iris_view()
         self._load_test1_data()
         self._load_test2_data()
@@ -575,11 +581,11 @@ class _TestSQLApi(PandasSQLTest):
         s2 = sql.read_sql_query("SELECT * FROM test_series", self.conn)
         tm.assert_frame_equal(s.to_frame(), s2)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_to_sql_panel(self):
-        with catch_warnings(record=True):
-            panel = tm.makePanel()
-            pytest.raises(NotImplementedError, sql.to_sql, panel,
-                          'test_panel', self.conn)
+        panel = tm.makePanel()
+        pytest.raises(NotImplementedError, sql.to_sql, panel,
+                      'test_panel', self.conn)
 
     def test_roundtrip(self):
         sql.to_sql(self.test_frame1, 'test_frame_roundtrip',
@@ -1008,7 +1014,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         iris_df = sql.read_sql(name_text, self.conn, params={
                                'name': 'Iris-versicolor'})
         all_names = set(iris_df['Name'])
-        assert all_names == set(['Iris-versicolor'])
+        assert all_names == {'Iris-versicolor'}
 
     def test_query_by_select_obj(self):
         # WIP : GH10846
@@ -1019,7 +1025,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         iris_df = sql.read_sql(name_select, self.conn,
                                params={'name': 'Iris-setosa'})
         all_names = set(iris_df['Name'])
-        assert all_names == set(['Iris-setosa'])
+        assert all_names == {'Iris-setosa'}
 
 
 class _EngineToConnMixin(object):
@@ -1028,8 +1034,8 @@ class _EngineToConnMixin(object):
     """
 
     @pytest.fixture(autouse=True)
-    def setup_method(self, datapath):
-        super(_EngineToConnMixin, self).setup_method(datapath)
+    def setup_method(self, load_iris_data):
+        super(_EngineToConnMixin, self).load_test_data_and_sql()
         engine = self.conn
         conn = engine.connect()
         self.__tx = conn.begin()
@@ -1154,13 +1160,13 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             msg = "{0} - can't connect to {1} server".format(cls, cls.flavor)
             pytest.skip(msg)
 
-    @pytest.fixture(autouse=True)
-    def setup_method(self, datapath):
-        self.setup_connect()
-
-        self._load_iris_data(datapath)
+    def load_test_data_and_sql(self):
         self._load_raw_sql()
         self._load_test1_data()
+
+    @pytest.fixture(autouse=True)
+    def setup_method(self, load_iris_data):
+        self.load_test_data_and_sql()
 
     @classmethod
     def setup_import(cls):
@@ -1926,14 +1932,16 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     def connect(cls):
         return sqlite3.connect(':memory:')
 
-    @pytest.fixture(autouse=True)
-    def setup_method(self, datapath):
+    def setup_connect(self):
         self.conn = self.connect()
+
+    def load_test_data_and_sql(self):
         self.pandasSQL = sql.SQLiteDatabase(self.conn)
-
-        self._load_iris_data(datapath)
-
         self._load_test1_data()
+
+    @pytest.fixture(autouse=True)
+    def setup_method(self, load_iris_data):
+        self.load_test_data_and_sql()
 
     def test_read_sql(self):
         self._read_sql_iris()
@@ -2094,6 +2102,11 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
 # -- Old tests from 0.13.1 (before refactor using sqlalchemy)
 
 
+def date_format(dt):
+    """Returns date in YYYYMMDD format."""
+    return dt.strftime('%Y%m%d')
+
+
 _formatters = {
     datetime: lambda dt: "'%s'" % date_format(dt),
     str: lambda x: "'%s'" % x,
@@ -2144,6 +2157,12 @@ class TestXSQLite(SQLiteMixIn):
 
     @pytest.fixture(autouse=True)
     def setup_method(self, request, datapath):
+        self.method = request.function
+        self.conn = sqlite3.connect(':memory:')
+
+        # In some test cases we may close db connection
+        # Re-open conn here so we can perform cleanup in teardown
+        yield
         self.method = request.function
         self.conn = sqlite3.connect(':memory:')
 
@@ -2223,7 +2242,7 @@ class TestXSQLite(SQLiteMixIn):
         with pytest.raises(Exception):
             sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
-    def test_execute_closed_connection(self, request, datapath):
+    def test_execute_closed_connection(self):
         create_sql = """
         CREATE TABLE test
         (
@@ -2241,9 +2260,6 @@ class TestXSQLite(SQLiteMixIn):
 
         with pytest.raises(Exception):
             tquery("select * from test", con=self.conn)
-
-        # Initialize connection again (needed for tearDown)
-        self.setup_method(request, datapath)
 
     def test_na_roundtrip(self):
         pass

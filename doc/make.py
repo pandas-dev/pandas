@@ -233,10 +233,10 @@ class DocBuilder:
                      '-b{}'.format(kind),
                      '-{}'.format(
                          'v' * self.verbosity) if self.verbosity else '',
-                     '-d{}'.format(os.path.join(BUILD_PATH, 'doctrees')),
+                     '-d"{}"'.format(os.path.join(BUILD_PATH, 'doctrees')),
                      '-Dexclude_patterns={}'.format(self.exclude_patterns),
-                     SOURCE_PATH,
-                     os.path.join(BUILD_PATH, kind))
+                     '"{}"'.format(SOURCE_PATH),
+                     '"{}"'.format(os.path.join(BUILD_PATH, kind)))
 
     def _open_browser(self):
         base_url = os.path.join('file://', DOC_PATH, 'build', 'html')
@@ -362,6 +362,10 @@ def main():
     os.environ['PYTHONPATH'] = args.python_path
     sys.path.append(args.python_path)
     globals()['pandas'] = importlib.import_module('pandas')
+
+    # Set the matplotlib backend to the non-interactive Agg backend for all
+    # child processes.
+    os.environ['MPLBACKEND'] = 'module://matplotlib.backends.backend_agg'
 
     builder = DocBuilder(args.num_jobs, not args.no_api, args.single,
                          args.verbosity)
