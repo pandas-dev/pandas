@@ -718,28 +718,6 @@ class TestIndex(Base):
         with pytest.raises(IndexError):
             indices[itm]
 
-    @pytest.mark.parametrize('ind1', [[True] * 5, pd.Index([True] * 5)])
-    @pytest.mark.parametrize('ind2', [[True, False, True, False, False],
-                                      pd.Index([True, False, True, False,
-                                                False])])
-    def test_getitem_bool_index_all(self, ind1, ind2):
-        # GH#22533
-        idx = pd.Index(['a', 'b', 'c', 'd', 'e'], name='idx')
-        tm.assert_index_equal(idx[ind1], idx)
-
-        expected = pd.Index(['a', 'c'], name='idx')
-        tm.assert_index_equal(idx[ind2], expected)
-
-    @pytest.mark.parametrize('ind1', [[True], pd.Index([True])])
-    @pytest.mark.parametrize('ind2', [[False], pd.Index([False])])
-    def test_getitem_bool_index_single(self, ind1, ind2):
-        # GH#22533
-        idx = pd.Index(['a'], name='idx')
-        tm.assert_index_equal(idx[ind1], idx)
-
-        expected = pd.Index([], name='idx')
-        tm.assert_index_equal(idx[ind2], expected)
-
     def test_intersection(self):
         first = self.strIndex[:20]
         second = self.strIndex[:10]
