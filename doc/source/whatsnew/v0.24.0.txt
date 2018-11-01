@@ -269,6 +269,9 @@ If installed, we now require:
 | scipy           | 0.18.1          |          |
 +-----------------+-----------------+----------+
 
+Additionally we no longer depend on `feather-format` for feather based storage
+and replaced it with references to `pyarrow` (:issue:`21639` and :issue:`23053`).
+
 .. _whatsnew_0240.api_breaking.csv_line_terminator:
 
 `os.linesep` is used for ``line_terminator`` of ``DataFrame.to_csv``
@@ -954,6 +957,8 @@ Deprecations
 - The ``fastpath`` keyword of the different Index constructors is deprecated (:issue:`23110`).
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have deprecated the ``errors`` argument in favor of the ``nonexistent`` argument (:issue:`8917`)
 - The class ``FrozenNDArray`` has been deprecated. When unpickling, ``FrozenNDArray`` will be unpickled to ``np.ndarray`` once this class is removed (:issue:`9031`)
+- Deprecated the `nthreads` keyword of :func:`pandas.read_feather` in favor of
+  `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
