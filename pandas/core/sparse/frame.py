@@ -591,10 +591,10 @@ class SparseDataFrame(DataFrame):
             result = result.to_sparse(fill_value=left.fill_value)
             return result
 
-        new_data = {}
-        for col in new_columns:
-            assert col in this and col in other
-            new_data[col] = _arith_op(this[col], other[col])
+        assert all(col in this and col in other for col in new_columns)
+
+        new_data = {col: _arith_op(this[col], other[col])
+                    for col in new_columns}
 
         return this._wrap_dispatched_op(new_data, other, func, axis=None)
 
@@ -625,16 +625,13 @@ class SparseDataFrame(DataFrame):
                                  copy=False)
         assert left.columns.equals(right.index)
 
-        new_data = {}
-        for col in left.columns:
-            new_data[col] = func(left[col], float(right[col]))
+        new_data = {col: func(left[col], float(right[col]))
+                    for col in left.columns}
 
         return self._wrap_dispatched_op(new_data, other, func, "columns")
 
     def _combine_const(self, other, func):
-        new_data = {}
-        for col, series in compat.iteritems(self):
-            new_data[col] = func(series, other)
+        new_data = {col: func(self[col], other) for col in self.columns}
 
         return self._wrap_dispatched_op(new_data, other, func, axis=None)
 
