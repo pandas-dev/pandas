@@ -2,19 +2,23 @@
 
 import ast
 from functools import partial
+
 import numpy as np
-import pandas as pd
+
+from pandas.compat import DeepChainMap, string_types, u
 
 from pandas.core.dtypes.common import is_list_like
-import pandas.core.common as com
-from pandas.compat import u, string_types, DeepChainMap
+
+import pandas as pd
 from pandas.core.base import StringMixin
-from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
+import pandas.core.common as com
 from pandas.core.computation import expr, ops
-from pandas.core.computation.ops import is_term, UndefinedVariableError
-from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.common import _ensure_decoded
+from pandas.core.computation.expr import BaseExprVisitor
+from pandas.core.computation.ops import UndefinedVariableError, is_term
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
+
+from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
 
 class Scope(expr.Scope):

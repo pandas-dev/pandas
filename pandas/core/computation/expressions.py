@@ -7,6 +7,7 @@ Offer fast expression evaluation through numexpr
 """
 
 import warnings
+
 import numpy as np
 
 import pandas.core.common as com

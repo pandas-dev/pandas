@@ -1,15 +1,16 @@
 """Core eval alignment algorithms
 """
 
-import warnings
 from functools import partial, wraps
-from pandas.compat import zip, range
+import warnings
 
 import numpy as np
 
+from pandas.compat import range, zip
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import compat
-from pandas.errors import PerformanceWarning
 import pandas.core.common as com
 from pandas.core.computation.common import _result_type_many
 

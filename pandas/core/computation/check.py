@@ -1,5 +1,5 @@
-import warnings
 from distutils.version import LooseVersion
+import warnings
 
 _NUMEXPR_INSTALLED = False
 _MIN_NUMEXPR_VERSION = "2.6.1"
