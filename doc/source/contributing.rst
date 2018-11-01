@@ -615,7 +615,25 @@ commands above.
 Import Formatting
 ~~~~~~~~~~~~~~~~~
 *pandas* uses `isort <https://pypi.org/project/isort/>`__ to standardise import
-formatting across the codebase. As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
+formatting across the codebase.
+
+A guide to import layout as per pep8 can be found `here <https://www.python.org/dev/peps/pep-0008/#imports/>`__.
+
+A summary of our current import sections ( in order ):
+
+* Future
+* Python Standard Library
+* Third Party
+* ``pandas._libs``, ``pandas.compat``, ``pandas.util._*``, ``pandas.errors`` (largely not dependent on ``pandas.core``)
+* ``pandas.core.dtypes`` (largely not dependent on the rest of ``pandas.core``)
+* Rest of ``pandas.core.*``
+* Non-core ``pandas.io``, ``pandas.plotting``, ``pandas.tseries``
+* Local application/library specific imports
+
+Imports are alphabetically sorted within these sections.
+
+
+As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
 
     isort --recursive --check-only pandas
 
@@ -634,7 +652,11 @@ You should run::
 
     isort pandas/io/pytables.py
 
-to automatically format imports correctly. (Note pass the `--recursive` flag to sort all files in a directory)
+to automatically format imports correctly. This will modify your local copy of the files.
+
+The `--recursive` flag can be passed to sort all files in a directory.
+
+You can then verify the changes look ok then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1102,6 +1124,8 @@ or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v
 Contributing your changes to *pandas*
 =====================================
 
+.. _contributing.commit-code:
+
 Committing your code
 --------------------
 
@@ -1145,6 +1169,8 @@ is fine, but the former is generally preferred:
 Now you can commit your changes in your local repository::
 
     git commit -m
+
+.. _contributing.push-code:
 
 Pushing your changes
 --------------------
