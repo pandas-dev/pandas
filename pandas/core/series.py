@@ -1071,52 +1071,52 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @Substitution(
         klass='Series', other_klass='DataFrame',
-        params="""
-arrays : array or list of arrays
-    Either a Series, Index, MultiIndex, list, np.ndarray or a list
-    containing only Series, Index, MultiIndex, list, np.ndarray.
-""".strip(),  # remove linebreaks at beginning/end
-        examples="""
->>> s = pd.Series(range(10, 13))
->>> s
-0    10
-1    11
-2    12
-dtype: int64
+        params=dedent("""\
+        arrays : array or list of arrays
+            Either a Series, Index, MultiIndex, list, np.ndarray or a list
+            containing only Series, Index, MultiIndex, list, np.ndarray.\
+        """),
+        examples=dedent("""\
+        >>> s = pd.Series(range(10, 13))
+        >>> s
+        0    10
+        1    11
+        2    12
+        dtype: int64
 
-Set the index to become `['a', 'b', 'c']`:
+        Set the index to become `['a', 'b', 'c']`:
 
->>> s.set_index(['a', 'b', 'c'])
-a    10
-b    11
-c    12
-dtype: int64
+        >>> s.set_index(['a', 'b', 'c'])
+        a    10
+        b    11
+        c    12
+        dtype: int64
 
-Create a MultiIndex by appending to the existing index:
+        Create a MultiIndex by appending to the existing index:
 
->>> s.set_index(['a', 'b', 'c'], append=True)
-0  a    10
-1  b    11
-2  c    12
-dtype: int64
+        >>> s.set_index(['a', 'b', 'c'], append=True)
+        0  a    10
+        1  b    11
+        2  c    12
+        dtype: int64
 
-Create a MultiIndex by passing a list of arrays:
+        Create a MultiIndex by passing a list of arrays:
 
->>> t = (s ** 2).set_index([['a', 'b', 'c'], ['I', 'II', 'III']])
->>> t
-a  I      100
-b  II     121
-c  III    144
-dtype: int64
+        >>> t = (s ** 2).set_index([['a', 'b', 'c'], ['I', 'II', 'III']])
+        >>> t
+        a  I      100
+        b  II     121
+        c  III    144
+        dtype: int64
 
-Apply index from another object (of the same length!):
+        Apply index from another object (of the same length!):
 
->>> s.set_index(t.index)
-a  I      10
-b  II     11
-c  III    12
-dtype: int64
-""".strip()  # remove linebreaks at beginning/end
+        >>> s.set_index(t.index)
+        a  I      10
+        b  II     11
+        c  III    12
+        dtype: int64
+        """)
     )
     @Appender(generic.NDFrame.set_index.__doc__)
     def set_index(self, arrays, append=False, inplace=False,
