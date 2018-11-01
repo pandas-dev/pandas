@@ -8,6 +8,7 @@ import numpy as np
 from pandas._libs import lib, iNaT, NaT
 from pandas._libs.tslibs import timezones
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
+from pandas._libs.tslibs.timestamps import maybe_integer_op_deprecated
 from pandas._libs.tslibs.period import (
     Period, DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
@@ -634,6 +635,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
+                maybe_integer_op_deprecated(self)
                 result = self._time_shift(other)
 
             # array-like others
@@ -647,6 +649,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 # DatetimeIndex, ndarray[datetime64]
                 return self._add_datetime_arraylike(other)
             elif is_integer_dtype(other):
+                maybe_integer_op_deprecated(self)
                 result = self._addsub_int_array(other, operator.add)
             elif is_float_dtype(other):
                 # Explicitly catch invalid dtypes
@@ -692,7 +695,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
+                maybe_integer_op_deprecated(self)
                 result = self._time_shift(-other)
+
             elif isinstance(other, Period):
                 result = self._sub_period(other)
 
@@ -710,6 +715,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 # PeriodIndex
                 result = self._sub_period_array(other)
             elif is_integer_dtype(other):
+                maybe_integer_op_deprecated(self)
                 result = self._addsub_int_array(other, operator.sub)
             elif isinstance(other, ABCIndexClass):
                 raise TypeError("cannot subtract {cls} and {typ}"
