@@ -197,8 +197,9 @@ infinitive verb.
         """
         pass
 
+.. code-block:: python
 
-    def astype(dtype):    # noqa: F811
+    def astype(dtype):
         """
         Method to cast Series type.
 
@@ -206,8 +207,9 @@ infinitive verb.
         """
         pass
 
+.. code-block:: python
 
-    def astype(dtype):    # noqa: F811
+    def astype(dtype):
         """
         Cast Series type
 
@@ -215,8 +217,9 @@ infinitive verb.
         """
         pass
 
+.. code-block:: python
 
-    def astype(dtype):    # noqa: F811
+    def astype(dtype):
         """
         Cast Series type from its current type to the new type defined in
         the parameter dtype.

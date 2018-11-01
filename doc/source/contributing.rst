@@ -744,7 +744,7 @@ Transitioning to ``pytest``
 .. code-block:: python
 
     class TestReallyCoolFeature(object):
-        ....                                  # noqa: E999
+        pass
 
 Going forward, we are moving to a more *functional* style using the `pytest <http://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
 framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
@@ -752,7 +752,7 @@ framework that will facilitate testing and developing. Thus, instead of writing 
 .. code-block:: python
 
     def test_really_cool_feature():
-        ....                                  # noqa: E999
+        pass
 
 Using ``pytest``
 ~~~~~~~~~~~~~~~~
