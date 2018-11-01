@@ -2051,7 +2051,7 @@ class StringMethods(NoNewAttributesMixin):
                 return ([Series(others, index=idx)], False)
         raise TypeError(err_msg)
 
-    def cat(self, others=None, sep=None, na_rep=None, join=None):
+    def cat(self, others=None, sep='', na_rep=None, join=None):
         """
         Concatenate strings in the Series/Index with given separator.
 
@@ -2074,8 +2074,9 @@ class StringMethods(NoNewAttributesMixin):
 
             If others is None, the method returns the concatenation of all
             strings in the calling Series/Index.
-        sep : string or None, default None
-            If None, concatenates without any separator.
+        sep : string, default ''
+            The separator between the different elements/columns. By default
+            the empty string `''` is used.
         na_rep : string or None, default None
             Representation that is inserted for all missing values:
 
@@ -2196,8 +2197,6 @@ class StringMethods(NoNewAttributesMixin):
 
         if isinstance(others, compat.string_types):
             raise ValueError("Did you mean to supply a `sep` keyword?")
-        if sep is None:
-            sep = ''
 
         if isinstance(self._orig, Index):
             data = Series(self._orig, index=self._orig)
