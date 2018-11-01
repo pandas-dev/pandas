@@ -606,9 +606,8 @@ class SparseDataFrame(DataFrame):
         this, other = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
 
-        new_data = {}
-        for col, series in compat.iteritems(this):
-            new_data[col] = func(series.values, other.values)
+        new_data = {col: func(this[col].values, other.values)
+                    for col in this.columns}
 
         return self._wrap_dispatched_op(new_data, other, func, axis=None)
 
