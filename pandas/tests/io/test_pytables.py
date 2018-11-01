@@ -1482,6 +1482,16 @@ class TestHDFStore(Base):
             pytest.raises(ValueError, store.append, 'df',
                           df, min_itemsize={'foo': 20, 'foobar': 20})
 
+    def test_append_with_empty_string(self):
+
+        with ensure_clean_store(self.path) as store:
+
+            # with all empty strings (GH 12242)
+            df = DataFrame({'x': ['a', 'b', 'c', 'd', 'e', 'f', '']})
+            store.append('df', df[:-1], min_itemsize={'x': 1})
+            store.append('df', df[-1:], min_itemsize={'x': 1})
+            tm.assert_frame_equal(store.select('df'), df)
+
     def test_to_hdf_with_min_itemsize(self):
 
         with ensure_clean_path(self.path) as path:
