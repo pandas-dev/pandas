@@ -155,7 +155,7 @@ class TestMergeMulti(object):
             columns=['cola', 'colb', 'colc', 'tag'],
             index=[3, 2, 0, 1, 7, 6, 4, 5, 9, 8])
 
-        right = (DataFrame([
+        right = DataFrame([
             ['W', 'R', 'C', 0],
             ['W', 'Q', 'B', 3],
             ['W', 'Q', 'B', 8],
@@ -171,8 +171,8 @@ class TestMergeMulti(object):
             ['V', 'R', 'D', -1],
             ['V', 'Q', 'A', -3]],
             columns=['col1', 'col2', 'col3', 'val'])
-            .set_index(['col1', 'col2', 'col3']))
 
+        right.set_index(['col1', 'col2', 'col3'], inplace=True)
         result = left.join(right, on=['cola', 'colb', 'colc'], how='left')
 
         expected = DataFrame([
@@ -198,9 +198,15 @@ class TestMergeMulti(object):
         result = left.join(right, on=['cola', 'colb', 'colc'],
                            how='left', sort=True)
 
-        expected = expected.sort_values(['cola', 'colb', 'colc'],
-                                        kind='mergesort')
+        tm.assert_frame_equal(
+            result,
+            expected.sort_values(['cola', 'colb', 'colc'], kind='mergesort'))
 
+        # GH7331 - maintain left frame order in left merge
+        right.reset_index(inplace=True)
+        right.columns = left.columns[:3].tolist() + right.columns[-1:].tolist()
+        result = merge(left, right, how='left', on=left.columns[:-1].tolist())
+        expected.index = np.arange(len(expected))
         tm.assert_frame_equal(result, expected)
 
     def test_join_nonunique_rindex(self):
@@ -243,11 +249,6 @@ class TestMergeMulti(object):
         result = left.join(right, on='tag', how='left', sort=True)
         expected = expected.sort_values('tag', kind='mergesort')
 
-        tm.assert_frame_equal(result, expected)
-
-        # GH7331 - maintain left frame order in left merge
-        result = merge(left, right.reset_index(), how='left', on='tag')
-        expected.index = np.arange(len(expected))
         tm.assert_frame_equal(result, expected)
 
     def test_left_merge_na_buglet(self):
