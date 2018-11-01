@@ -57,9 +57,8 @@ from tslibs.conversion cimport convert_to_tsobject
 from tslibs.timedeltas cimport convert_to_timedelta64
 from tslibs.timezones cimport get_timezone, tz_compare
 
-from missing cimport (checknull,
+from missing cimport (checknull, isnaobj,
                       is_null_datetime64, is_null_timedelta64, is_null_period)
-from missing import isnaobj
 
 
 # constants that will be compared to potentially arbitrarily large
