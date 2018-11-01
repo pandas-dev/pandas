@@ -1,13 +1,15 @@
 """ basic inference routines """
 
-import collections
-import re
-import numpy as np
-from collections import Iterable
 from numbers import Number
-from pandas.compat import (PY2, string_types, text_type,
-                           string_and_binary_types)
+import re
+
+import numpy as np
+
 from pandas._libs import lib
+from pandas.compat import (
+    PY2, Set, re_type, string_and_binary_types, string_types, text_type)
+
+from pandas import compat
 
 is_bool = lib.is_bool
 
@@ -112,7 +114,7 @@ def _iterable_not_string(obj):
     False
     """
 
-    return (isinstance(obj, collections.Iterable) and
+    return (isinstance(obj, compat.Iterable) and
             not isinstance(obj, string_types))
 
 
@@ -216,7 +218,7 @@ def is_re(obj):
     False
     """
 
-    return isinstance(obj, re._pattern_type)
+    return isinstance(obj, re_type)
 
 
 def is_re_compilable(obj):
@@ -248,7 +250,7 @@ def is_re_compilable(obj):
         return True
 
 
-def is_list_like(obj):
+def is_list_like(obj, allow_sets=True):
     """
     Check if the object is list-like.
 
@@ -260,6 +262,10 @@ def is_list_like(obj):
     Parameters
     ----------
     obj : The object to check.
+    allow_sets : boolean, default True
+        If this parameter is False, sets will not be considered list-like
+
+        .. versionadded:: 0.24.0
 
     Returns
     -------
@@ -278,10 +284,21 @@ def is_list_like(obj):
     False
     >>> is_list_like(1)
     False
+    >>> is_list_like(np.array([2]))
+    True
+    >>> is_list_like(np.array(2)))
+    False
     """
 
-    return (isinstance(obj, Iterable) and
-            not isinstance(obj, string_and_binary_types))
+    return (isinstance(obj, compat.Iterable)
+            # we do not count strings/unicode/bytes as list-like
+            and not isinstance(obj, string_and_binary_types)
+
+            # exclude zero-dimensional numpy arrays, effectively scalars
+            and not (isinstance(obj, np.ndarray) and obj.ndim == 0)
+
+            # exclude sets if allow_sets is False
+            and not (allow_sets is False and isinstance(obj, Set)))
 
 
 def is_array_like(obj):

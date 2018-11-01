@@ -102,49 +102,49 @@ encoding_names = {29: "latin1", 20: "utf-8", 33: "cyrillic", 60: "wlatin2",
                   61: "wcyrillic", 62: "wlatin1", 90: "ebcdic870"}
 
 
-class index:
-    rowSizeIndex = 0
-    columnSizeIndex = 1
-    subheaderCountsIndex = 2
-    columnTextIndex = 3
-    columnNameIndex = 4
-    columnAttributesIndex = 5
-    formatAndLabelIndex = 6
-    columnListIndex = 7
-    dataSubheaderIndex = 8
+class SASIndex(object):
+    row_size_index = 0
+    column_size_index = 1
+    subheader_counts_index = 2
+    column_text_index = 3
+    column_name_index = 4
+    column_attributes_index = 5
+    format_and_label_index = 6
+    column_list_index = 7
+    data_subheader_index = 8
 
 
 subheader_signature_to_index = {
-    b"\xF7\xF7\xF7\xF7": index.rowSizeIndex,
-    b"\x00\x00\x00\x00\xF7\xF7\xF7\xF7": index.rowSizeIndex,
-    b"\xF7\xF7\xF7\xF7\x00\x00\x00\x00": index.rowSizeIndex,
-    b"\xF7\xF7\xF7\xF7\xFF\xFF\xFB\xFE": index.rowSizeIndex,
-    b"\xF6\xF6\xF6\xF6": index.columnSizeIndex,
-    b"\x00\x00\x00\x00\xF6\xF6\xF6\xF6": index.columnSizeIndex,
-    b"\xF6\xF6\xF6\xF6\x00\x00\x00\x00": index.columnSizeIndex,
-    b"\xF6\xF6\xF6\xF6\xFF\xFF\xFB\xFE": index.columnSizeIndex,
-    b"\x00\xFC\xFF\xFF": index.subheaderCountsIndex,
-    b"\xFF\xFF\xFC\x00": index.subheaderCountsIndex,
-    b"\x00\xFC\xFF\xFF\xFF\xFF\xFF\xFF": index.subheaderCountsIndex,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFC\x00": index.subheaderCountsIndex,
-    b"\xFD\xFF\xFF\xFF": index.columnTextIndex,
-    b"\xFF\xFF\xFF\xFD": index.columnTextIndex,
-    b"\xFD\xFF\xFF\xFF\xFF\xFF\xFF\xFF": index.columnTextIndex,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFD": index.columnTextIndex,
-    b"\xFF\xFF\xFF\xFF": index.columnNameIndex,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF": index.columnNameIndex,
-    b"\xFC\xFF\xFF\xFF": index.columnAttributesIndex,
-    b"\xFF\xFF\xFF\xFC": index.columnAttributesIndex,
-    b"\xFC\xFF\xFF\xFF\xFF\xFF\xFF\xFF": index.columnAttributesIndex,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFC": index.columnAttributesIndex,
-    b"\xFE\xFB\xFF\xFF": index.formatAndLabelIndex,
-    b"\xFF\xFF\xFB\xFE": index.formatAndLabelIndex,
-    b"\xFE\xFB\xFF\xFF\xFF\xFF\xFF\xFF": index.formatAndLabelIndex,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFB\xFE": index.formatAndLabelIndex,
-    b"\xFE\xFF\xFF\xFF": index.columnListIndex,
-    b"\xFF\xFF\xFF\xFE": index.columnListIndex,
-    b"\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF": index.columnListIndex,
-    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFE": index.columnListIndex}
+    b"\xF7\xF7\xF7\xF7": SASIndex.row_size_index,
+    b"\x00\x00\x00\x00\xF7\xF7\xF7\xF7": SASIndex.row_size_index,
+    b"\xF7\xF7\xF7\xF7\x00\x00\x00\x00": SASIndex.row_size_index,
+    b"\xF7\xF7\xF7\xF7\xFF\xFF\xFB\xFE": SASIndex.row_size_index,
+    b"\xF6\xF6\xF6\xF6": SASIndex.column_size_index,
+    b"\x00\x00\x00\x00\xF6\xF6\xF6\xF6": SASIndex.column_size_index,
+    b"\xF6\xF6\xF6\xF6\x00\x00\x00\x00": SASIndex.column_size_index,
+    b"\xF6\xF6\xF6\xF6\xFF\xFF\xFB\xFE": SASIndex.column_size_index,
+    b"\x00\xFC\xFF\xFF": SASIndex.subheader_counts_index,
+    b"\xFF\xFF\xFC\x00": SASIndex.subheader_counts_index,
+    b"\x00\xFC\xFF\xFF\xFF\xFF\xFF\xFF": SASIndex.subheader_counts_index,
+    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFC\x00": SASIndex.subheader_counts_index,
+    b"\xFD\xFF\xFF\xFF": SASIndex.column_text_index,
+    b"\xFF\xFF\xFF\xFD": SASIndex.column_text_index,
+    b"\xFD\xFF\xFF\xFF\xFF\xFF\xFF\xFF": SASIndex.column_text_index,
+    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFD": SASIndex.column_text_index,
+    b"\xFF\xFF\xFF\xFF": SASIndex.column_name_index,
+    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF": SASIndex.column_name_index,
+    b"\xFC\xFF\xFF\xFF": SASIndex.column_attributes_index,
+    b"\xFF\xFF\xFF\xFC": SASIndex.column_attributes_index,
+    b"\xFC\xFF\xFF\xFF\xFF\xFF\xFF\xFF": SASIndex.column_attributes_index,
+    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFC": SASIndex.column_attributes_index,
+    b"\xFE\xFB\xFF\xFF": SASIndex.format_and_label_index,
+    b"\xFF\xFF\xFB\xFE": SASIndex.format_and_label_index,
+    b"\xFE\xFB\xFF\xFF\xFF\xFF\xFF\xFF": SASIndex.format_and_label_index,
+    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFB\xFE": SASIndex.format_and_label_index,
+    b"\xFE\xFF\xFF\xFF": SASIndex.column_list_index,
+    b"\xFF\xFF\xFF\xFE": SASIndex.column_list_index,
+    b"\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF": SASIndex.column_list_index,
+    b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFE": SASIndex.column_list_index}
 
 
 # List of frequently used SAS date and datetime formats

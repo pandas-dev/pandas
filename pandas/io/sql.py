@@ -4,27 +4,27 @@ Collection of query wrappers / abstractions to both facilitate data
 retrieval and to reduce dependency on DB-specific API.
 """
 
-from __future__ import print_function, division
-from datetime import datetime, date, time
+from __future__ import division, print_function
 
-import warnings
+from contextlib import contextmanager
+from datetime import date, datetime, time
 import re
+import warnings
+
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.common import (
-    is_list_like, is_dict_like,
-    is_datetime64tz_dtype)
+from pandas.compat import (
+    map, raise_with_traceback, string_types, text_type, zip)
 
-from pandas.compat import (map, zip, raise_with_traceback,
-                           string_types, text_type)
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype, is_dict_like, is_list_like)
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.missing import isna
+
 from pandas.core.api import DataFrame, Series
 from pandas.core.base import PandasObject
 from pandas.core.tools.datetimes import to_datetime
-
-from contextlib import contextmanager
 
 
 class SQLAlchemyRequired(ImportError):
@@ -382,7 +382,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
 
     try:
         _is_table_name = pandas_sql.has_table(sql)
-    except:
+    except (ImportError, AttributeError):
         _is_table_name = False
 
     if _is_table_name:
@@ -572,29 +572,8 @@ class SQLTable(PandasObject):
         else:
             self._execute_create()
 
-    def insert_statement(self, data, conn):
-        """
-        Generate tuple of SQLAlchemy insert statement and any arguments
-        to be executed by connection (via `_execute_insert`).
-
-        Parameters
-        ----------
-        conn : SQLAlchemy connectable(engine/connection)
-            Connection to recieve the data
-        data : list of dict
-            The data to be inserted
-
-        Returns
-        -------
-        SQLAlchemy statement
-            insert statement
-        *, optional
-            Additional parameters to be passed when executing insert statement
-        """
-        dialect = getattr(conn, 'dialect', None)
-        if dialect and getattr(dialect, 'supports_multivalues_insert', False):
-            return self.table.insert(data),
-        return self.table.insert(), data
+    def insert_statement(self):
+        return self.table.insert()
 
     def insert_data(self):
         if self.index is not None:
@@ -633,9 +612,8 @@ class SQLTable(PandasObject):
         return column_names, data_list
 
     def _execute_insert(self, conn, keys, data_iter):
-        """Insert data into this table with database connection"""
         data = [{k: v for k, v in zip(keys, row)} for row in data_iter]
-        conn.execute(*self.insert_statement(data, conn))
+        conn.execute(self.insert_statement(), data)
 
     def insert(self, chunksize=None):
         keys, data_list = self.insert_data()
@@ -869,7 +847,7 @@ class SQLTable(PandasObject):
             try:
                 tz = col.tzinfo  # noqa
                 return DateTime(timezone=True)
-            except:
+            except AttributeError:
                 return DateTime
         if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "
@@ -1382,7 +1360,7 @@ class SQLiteDatabase(PandasSQL):
         try:
             yield cur
             self.con.commit()
-        except:
+        except Exception:
             self.con.rollback()
             raise
         finally:

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from cython cimport Py_ssize_t
+from cython import Py_ssize_t
 
 from cpython cimport (
     PyDict_Contains, PyDict_GetItem, PyDict_SetItem)

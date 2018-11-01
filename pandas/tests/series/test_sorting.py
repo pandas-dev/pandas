@@ -1,26 +1,18 @@
 # coding=utf-8
 
-import pytest
-
-import numpy as np
 import random
 
-from pandas import DataFrame, Series, MultiIndex, IntervalIndex, Categorical
+import numpy as np
+import pytest
 
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+from pandas import Categorical, DataFrame, IntervalIndex, MultiIndex, Series
 import pandas.util.testing as tm
+from pandas.util.testing import assert_almost_equal, assert_series_equal
 
 from .common import TestData
 
 
 class TestSeriesSorting(TestData):
-
-    def test_sortlevel_deprecated(self):
-        ts = self.ts.copy()
-
-        # see gh-9816
-        with tm.assert_produces_warning(FutureWarning):
-            ts.sortlevel()
 
     def test_sort_values(self):
 
@@ -141,19 +133,20 @@ class TestSeriesSorting(TestData):
         assert result is None
         tm.assert_series_equal(random_order, self.ts)
 
-    def test_sort_index_multiindex(self):
+    @pytest.mark.parametrize("level", ['A', 0])  # GH 21052
+    def test_sort_index_multiindex(self, level):
 
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         s = Series([1, 2], mi)
         backwards = s.iloc[[1, 0]]
 
         # implicit sort_remaining=True
-        res = s.sort_index(level='A')
+        res = s.sort_index(level=level)
         assert_series_equal(backwards, res)
 
         # GH13496
-        # rows share same level='A': sort has no effect without remaining lvls
-        res = s.sort_index(level='A', sort_remaining=False)
+        # sort has no effect without remaining lvls
+        res = s.sort_index(level=level, sort_remaining=False)
         assert_series_equal(s, res)
 
     def test_sort_index_kind(self):

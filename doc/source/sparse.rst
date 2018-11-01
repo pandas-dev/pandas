@@ -62,6 +62,26 @@ Any sparse object can be converted back to the standard dense form by calling
 
    sts.to_dense()
 
+.. _sparse.accessor:
+
+Sparse Accessor
+---------------
+
+.. versionadded:: 0.24.0
+
+Pandas provides a ``.sparse`` accessor, similar to ``.str`` for string data, ``.cat``
+for categorical data, and ``.dt`` for datetime-like data. This namespace provides
+attributes and methods that are specific to sparse data.
+
+.. ipython:: python
+
+   s = pd.Series([0, 0, 1, 2], dtype="Sparse[int]")
+   s.sparse.density
+   s.sparse.fill_value
+
+This accessor is available only on data with ``SparseDtype``, and on the :class:`Series`
+class itself for creating a Series with sparse data from a scipy COO matrix with.
+
 .. _sparse.array:
 
 SparseArray
@@ -104,9 +124,9 @@ Sparse data should have the same dtype as its dense representation. Currently,
 ``float64``, ``int64`` and ``bool`` dtypes are supported. Depending on the original
 dtype, ``fill_value`` default changes:
 
-- ``float64``: ``np.nan``
-- ``int64``: ``0``
-- ``bool``: ``False``
+* ``float64``: ``np.nan``
+* ``int64``: ``0``
+* ``bool``: ``False``
 
 .. ipython:: python
 

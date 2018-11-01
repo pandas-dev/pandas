@@ -14,10 +14,11 @@ on linux, os x, windows and cygwin (windows).
 from __future__ import print_function
 
 import os
-import sys
 import shutil
+from pandas.compat import PY3
 
-__all__ = ['get_terminal_size']
+
+__all__ = ['get_terminal_size', 'is_terminal']
 
 
 def get_terminal_size():
@@ -29,7 +30,7 @@ def get_terminal_size():
     """
     import platform
 
-    if sys.version_info[0] >= 3:
+    if PY3:
         return shutil.get_terminal_size()
 
     current_os = platform.system()
@@ -39,17 +40,33 @@ def get_terminal_size():
         if tuple_xy is None:
             tuple_xy = _get_terminal_size_tput()
             # needed for window's python in cygwin's xterm!
-    if current_os == 'Linux' or \
-        current_os == 'Darwin' or \
-            current_os.startswith('CYGWIN'):
+    if (current_os == 'Linux' or current_os == 'Darwin' or
+            current_os.startswith('CYGWIN')):
         tuple_xy = _get_terminal_size_linux()
     if tuple_xy is None:
         tuple_xy = (80, 25)      # default value
     return tuple_xy
 
 
+def is_terminal():
+    """
+    Detect if Python is running in a terminal.
+
+    Returns True if Python is running in a terminal or False if not.
+    """
+    try:
+        ip = get_ipython()
+    except NameError:  # assume standard Python interpreter in a terminal
+        return True
+    else:
+        if hasattr(ip, 'kernel'):  # IPython as a Jupyter kernel
+            return False
+        else:  # IPython in a terminal
+            return True
+
+
 def _get_terminal_size_windows():
-    res = None
+
     try:
         from ctypes import windll, create_string_buffer
 
@@ -60,7 +77,7 @@ def _get_terminal_size_windows():
         h = windll.kernel32.GetStdHandle(-12)
         csbi = create_string_buffer(22)
         res = windll.kernel32.GetConsoleScreenBufferInfo(h, csbi)
-    except:
+    except (AttributeError, ValueError):
         return None
     if res:
         import struct
@@ -90,7 +107,7 @@ def _get_terminal_size_tput():
         output = proc.communicate(input=None)
         rows = int(output[0])
         return (cols, rows)
-    except:
+    except OSError:
         return None
 
 
@@ -102,7 +119,7 @@ def _get_terminal_size_linux():
             import struct
             cr = struct.unpack(
                 'hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
-        except:
+        except (struct.error, IOError):
             return None
         return cr
     cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
@@ -111,13 +128,13 @@ def _get_terminal_size_linux():
             fd = os.open(os.ctermid(), os.O_RDONLY)
             cr = ioctl_GWINSZ(fd)
             os.close(fd)
-        except:
+        except OSError:
             pass
     if not cr or cr == (0, 0):
         try:
             from os import environ as env
             cr = (env['LINES'], env['COLUMNS'])
-        except:
+        except (ValueError, KeyError):
             return None
     return int(cr[1]), int(cr[0])
 

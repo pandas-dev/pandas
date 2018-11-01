@@ -3,13 +3,16 @@
 """Top level ``eval`` module.
 """
 
-import warnings
 import tokenize
-from pandas.io.formats.printing import pprint_thing
-from pandas.core.computation.scope import _ensure_scope
+import warnings
+
 from pandas.compat import string_types
-from pandas.core.computation.engines import _engines
 from pandas.util._validators import validate_bool_kwarg
+
+from pandas.core.computation.engines import _engines
+from pandas.core.computation.scope import _ensure_scope
+
+from pandas.io.formats.printing import pprint_thing
 
 
 def _check_engine(engine):
@@ -323,6 +326,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
             # to use a non-numeric indexer
             try:
                 with warnings.catch_warnings(record=True):
+                    # TODO: Filter the warnings we actually care about here.
                     target[assigner] = ret
             except (TypeError, IndexError):
                 raise ValueError("Cannot assign expression output to target")

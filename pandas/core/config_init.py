@@ -13,6 +13,7 @@ import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
                                 is_one_of_factory, is_callable)
 from pandas.io.formats.console import detect_console_encoding
+from pandas.io.formats.terminal import is_terminal
 
 # compute
 
@@ -314,7 +315,11 @@ with cf.config_prefix('display'):
     cf.register_option('max_categories', 8, pc_max_categories_doc,
                        validator=is_int)
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
-    cf.register_option('max_columns', 20, pc_max_cols_doc,
+    if is_terminal():
+        max_cols = 0  # automatically determine optimal number of columns
+    else:
+        max_cols = 20  # cannot determine optimal number of columns
+    cf.register_option('max_columns', max_cols, pc_max_cols_doc,
                        validator=is_instance_factory([type(None), int]))
     cf.register_option('large_repr', 'truncate', pc_large_repr_doc,
                        validator=is_one_of_factory(['truncate', 'info']))

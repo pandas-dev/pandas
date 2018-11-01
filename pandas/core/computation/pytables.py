@@ -2,19 +2,23 @@
 
 import ast
 from functools import partial
+
 import numpy as np
-import pandas as pd
+
+from pandas.compat import DeepChainMap, string_types, u
 
 from pandas.core.dtypes.common import is_list_like
-import pandas.core.common as com
-from pandas.compat import u, string_types, DeepChainMap
+
+import pandas as pd
 from pandas.core.base import StringMixin
-from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
+import pandas.core.common as com
 from pandas.core.computation import expr, ops
-from pandas.core.computation.ops import is_term, UndefinedVariableError
-from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.common import _ensure_decoded
+from pandas.core.computation.expr import BaseExprVisitor
+from pandas.core.computation.ops import UndefinedVariableError, is_term
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
+
+from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
 
 
 class Scope(expr.Scope):
@@ -190,7 +194,7 @@ class BinOp(ops.BinOp):
             v = _coerce_scalar_to_timedelta_type(v, unit='s').value
             return TermValue(int(v), v, kind)
         elif meta == u('category'):
-            metadata = com._values_from_object(self.metadata)
+            metadata = com.values_from_object(self.metadata)
             result = metadata.searchsorted(v, side='left')
 
             # result returns 0 if v is first element or if v is not in metadata
@@ -411,7 +415,7 @@ class ExprVisitor(BaseExprVisitor):
         slobj = self.visit(node.slice)
         try:
             value = value.value
-        except:
+        except AttributeError:
             pass
 
         try:

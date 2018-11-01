@@ -43,7 +43,7 @@ Bug Fixes
 - Bug in localizing an ambiguous timezone when a boolean is passed (:issue:`14402`)
 - Bug in ``TimedeltaIndex`` addition with a Datetime-like object where addition overflow in the negative direction was not being caught (:issue:`14068`, :issue:`14453`)
 - Bug in string indexing against data with ``object`` ``Index`` may raise ``AttributeError`` (:issue:`14424`)
-- Corrrecly raise ``ValueError`` on empty input to ``pd.eval()`` and ``df.query()`` (:issue:`13139`)
+- Correctly raise ``ValueError`` on empty input to ``pd.eval()`` and ``df.query()`` (:issue:`13139`)
 - Bug in ``RangeIndex.intersection`` when result is a empty set (:issue:`14364`).
 - Bug in groupby-transform broadcasting that could cause incorrect dtype coercion (:issue:`14457`)
 - Bug in ``Series.__setitem__`` which allowed mutating read-only arrays (:issue:`14359`).
@@ -55,7 +55,7 @@ Bug Fixes
 - Bug in ``pd.concat`` with dataframes heterogeneous in length and tuple ``keys`` (:issue:`14438`)
 - Bug in ``MultiIndex.set_levels`` where illegal level values were still set after raising an error (:issue:`13754`)
 - Bug in ``DataFrame.to_json`` where ``lines=True`` and a value contained a ``}`` character (:issue:`14391`)
-- Bug in ``df.groupby`` causing an ``AttributeError`` when grouping a single index frame by a column and the index level (:issue`14327`)
+- Bug in ``df.groupby`` causing an ``AttributeError`` when grouping a single index frame by a column and the index level (:issue:`14327`)
 - Bug in ``df.groupby`` where ``TypeError`` raised when ``pd.Grouper(key=...)`` is passed in a list (:issue:`14334`)
 - Bug in ``pd.pivot_table`` may raise ``TypeError`` or ``ValueError`` when ``index`` or ``columns``
   is not scalar and ``values`` is not specified (:issue:`14380`)
