@@ -189,7 +189,7 @@ infinitive verb.
 
 .. code-block:: python
 
-    def astype(dtype):    # noqa: F811
+    def astype(dtype):
         """
         Casts Series type.
 

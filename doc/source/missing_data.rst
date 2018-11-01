@@ -727,7 +727,7 @@ rules introduced in the table below.
     :header: "data type", "Cast to"
     :widths: 40, 40
 
-	integer, float
+    integer, float
     boolean, object
     float, no cast
     object, no cast

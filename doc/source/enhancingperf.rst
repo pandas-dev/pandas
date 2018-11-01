@@ -363,8 +363,10 @@ take the plain Python code from above and annotate with the ``@jit`` decorator.
 Note that we directly pass NumPy arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a
 nicer interface by passing/returning pandas objects.
 
->>> %timeit compute_numba(df)
-1000 loops, best of 3: 798 us per loop
+.. code-block:: ipython
+
+    In [4]: %timeit compute_numba(df)
+    1000 loops, best of 3: 798 us per loop
 
 In this example, using Numba was faster than Cython.
 

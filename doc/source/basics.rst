@@ -313,11 +313,11 @@ To evaluate single-element pandas objects in a boolean context, use the method
 
    .. code-block:: python
 
-       >>> df and df2                     # noqa: E999
+       >>> df and df2
 
    These will both raise errors, as you are trying to compare multiple values.
 
-   .. code-block:: console
+   .. code-block:: python-traceback
 
        ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
 
