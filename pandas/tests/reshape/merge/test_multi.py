@@ -140,7 +140,7 @@ class TestMergeMulti(object):
 
         tm.assert_frame_equal(result, expected)
 
-    def test_left_join_index_multi_match_multiindex(self):
+    def test_join_nonunique_multi_rindex(self):
         left = DataFrame([
             ['X', 'Y', 'C', 'a'],
             ['W', 'Y', 'C', 'e'],
@@ -155,7 +155,7 @@ class TestMergeMulti(object):
             columns=['cola', 'colb', 'colc', 'tag'],
             index=[3, 2, 0, 1, 7, 6, 4, 5, 9, 8])
 
-        right = DataFrame([
+        right = (DataFrame([
             ['W', 'R', 'C', 0],
             ['W', 'Q', 'B', 3],
             ['W', 'Q', 'B', 8],
@@ -171,7 +171,7 @@ class TestMergeMulti(object):
             ['V', 'R', 'D', -1],
             ['V', 'Q', 'A', -3]],
             columns=['col1', 'col2', 'col3', 'val'])
-        right.set_index(['col1', 'col2', 'col3'], inplace=True)
+            .set_index(['col1', 'col2', 'col3']))
 
         result = left.join(right, on=['cola', 'colb', 'colc'], how='left')
 
@@ -203,7 +203,7 @@ class TestMergeMulti(object):
 
         tm.assert_frame_equal(result, expected)
 
-    def test_left_join_index_multi_match(self):
+    def test_join_nonunique_rindex(self):
         left = DataFrame([
             ['c', 0],
             ['b', 1],
@@ -212,7 +212,7 @@ class TestMergeMulti(object):
             columns=['tag', 'val'],
             index=[2, 0, 1, 3])
 
-        right = DataFrame([
+        right = (DataFrame([
             ['a', 'v'],
             ['c', 'w'],
             ['c', 'x'],
@@ -222,8 +222,8 @@ class TestMergeMulti(object):
             ['e', 'q'],
             ['c', 's']],
             columns=['tag', 'char'])
+            .set_index('tag'))
 
-        right.set_index('tag', inplace=True)
         result = left.join(right, on='tag', how='left')
 
         expected = DataFrame([
@@ -241,8 +241,9 @@ class TestMergeMulti(object):
         tm.assert_frame_equal(result, expected)
 
         result = left.join(right, on='tag', how='left', sort=True)
-        tm.assert_frame_equal(
-            result, expected.sort_values('tag', kind='mergesort'))
+        expected = expected.sort_values('tag', kind='mergesort')
+
+        tm.assert_frame_equal(result, expected)
 
         # GH7331 - maintain left frame order in left merge
         result = merge(left, right.reset_index(), how='left', on='tag')
