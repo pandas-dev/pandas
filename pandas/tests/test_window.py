@@ -627,6 +627,25 @@ class TestRolling(Base):
         with pytest.raises(NotImplementedError):
             iter(obj.rolling(2))
 
+    def test_rolling_axis(self, axis_frame):
+        # see gh-23372.
+        df = DataFrame(np.ones((10, 20)))
+        axis = df._get_axis_number(axis_frame)
+
+        if axis == 0:
+            expected = DataFrame({
+                i: [np.nan] * 2 + [3.0] * 8
+                for i in range(20)
+            })
+        else:
+            # axis == 1
+            expected = DataFrame([
+                [np.nan] * 2 + [3.0] * 18
+            ] * 10)
+
+        result = df.rolling(3, axis=axis_frame).sum()
+        tm.assert_frame_equal(result, expected)
+
 
 class TestExpanding(Base):
 
@@ -713,6 +732,25 @@ class TestExpanding(Base):
         obj = klass([1, 2, 3, 4])
         with pytest.raises(NotImplementedError):
             iter(obj.expanding(2))
+
+    def test_expanding_axis(self, axis_frame):
+        # see gh-23372.
+        df = DataFrame(np.ones((10, 20)))
+        axis = df._get_axis_number(axis_frame)
+
+        if axis == 0:
+            expected = DataFrame({
+                i: [np.nan] * 2 + [float(j) for j in range(3, 11)]
+                for i in range(20)
+            })
+        else:
+            # axis == 1
+            expected = DataFrame([
+                [np.nan] * 2 + [float(i) for i in range(3, 21)]
+            ] * 10)
+
+        result = df.expanding(3, axis=axis_frame).sum()
+        tm.assert_frame_equal(result, expected)
 
 
 class TestEWM(Base):

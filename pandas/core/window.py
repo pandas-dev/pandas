@@ -1866,12 +1866,25 @@ class Expanding(_Rolling_and_Expanding):
         return Expanding
 
     def _get_window(self, other=None):
-        obj = self._selected_obj
-        if other is None:
-            return (max(len(obj), self.min_periods) if self.min_periods
-                    else len(obj))
-        return (max((len(obj) + len(obj)), self.min_periods)
-                if self.min_periods else (len(obj) + len(obj)))
+        """
+        Get the window length over which to perform some operation.
+
+        Parameters
+        ----------
+        other : object, default None
+            The other object that is involved in the operation.
+            Such an object is involved for operations like covariance.
+
+        Returns
+        -------
+        window : int
+            The window length.
+        """
+        axis = self.obj._get_axis(self.axis)
+        length = len(axis) + (other is not None) * len(axis)
+
+        other = self.min_periods or -1
+        return max(length, other)
 
     _agg_doc = dedent("""
     Examples
