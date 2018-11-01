@@ -35,7 +35,7 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCPeriodIndex
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.missing import pad_1d, backfill_1d
 
 import pandas.core.common as com
@@ -760,17 +760,15 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         assert isinstance(self.freq, Tick)  # checked by calling function
         assert isinstance(other, (timedelta, np.timedelta64, Tick))
 
-        if isna(other):
+        if notna(other):
             # special handling for np.timedelta64("NaT"), avoid calling
             #  _check_timedeltalike_freq_compat as that would raise TypeError
-            delta = other
-        else:
-            delta = self._check_timedeltalike_freq_compat(other)
+            other = self._check_timedeltalike_freq_compat(other)
 
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here
         #  is an integer, delta_to_nanoseconds will return it unchanged.
-        ordinals = super(PeriodArray, self)._add_timedeltalike_scalar(delta)
+        ordinals = super(PeriodArray, self)._add_timedeltalike_scalar(other)
         return ordinals
 
     def _add_delta_tdi(self, other):
