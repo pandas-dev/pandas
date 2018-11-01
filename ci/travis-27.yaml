@@ -7,7 +7,6 @@ dependencies:
   - bottleneck
   - cython=0.28.2
   - fastparquet
-  - feather-format
   - gcsfs
   - html5lib
   - ipython

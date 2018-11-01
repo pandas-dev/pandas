@@ -4,7 +4,6 @@ beautifulsoup4>=4.2.1
 blosc
 bottleneck>=1.2.0
 fastparquet
-feather-format
 gcsfs
 html5lib
 ipython>=5.6.0
@@ -15,7 +14,7 @@ matplotlib>=2.0.0
 nbsphinx
 numexpr>=2.6.1
 openpyxl
-pyarrow
+pyarrow>=0.4.1
 pymysql
 tables
 pytest-cov

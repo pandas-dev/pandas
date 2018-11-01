@@ -7,7 +7,6 @@ dependencies:
   - bottleneck
   - boost-cpp<1.67
   - fastparquet
-  - feather-format
   - matplotlib
   - numexpr
   - numpy=1.14*
