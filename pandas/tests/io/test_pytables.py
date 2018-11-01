@@ -1441,15 +1441,6 @@ class TestHDFStore(Base):
                 result = store.select('df')
                 tm.assert_frame_equal(result, df)
 
-                # with all empty strings (GH 12242)
-                _maybe_remove(store, 'df')
-                df1 = DataFrame({'x': list('abcdef')})
-                df2 = DataFrame({'x': ['']})
-                store.append('df', df1, min_itemsize={'x': 1})
-                store.append('df', df2, min_itemsize={'x': 1})
-                tm.assert_frame_equal(store.select('df'),
-                                      pd.concat([df1, df2]))
-
         with ensure_clean_store(self.path) as store:
 
             def check_col(key, name, size):
@@ -1490,6 +1481,16 @@ class TestHDFStore(Base):
             _maybe_remove(store, 'df')
             pytest.raises(ValueError, store.append, 'df',
                           df, min_itemsize={'foo': 20, 'foobar': 20})
+
+    def test_append_with_empty_string(self):
+
+        with ensure_clean_store(self.path) as store:
+
+            # with all empty strings (GH 12242)
+            df = DataFrame({'x': ['a', 'b', 'c', 'd', 'e', 'f', '']})
+            store.append('df', df[:-1], min_itemsize={'x': 1})
+            store.append('df', df[-1:], min_itemsize={'x': 1})
+            tm.assert_frame_equal(store.select('df'), df)
 
     def test_to_hdf_with_min_itemsize(self):
 
