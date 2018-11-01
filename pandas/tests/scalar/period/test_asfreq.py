@@ -16,15 +16,17 @@ class TestFreqConversion(object):
         per = Period('0001-01-01', freq=freq)
         tup1 = (per.year, per.hour, per.day)
 
-        prev = per - 1
-        assert (per - 1).ordinal == per.ordinal - 1
+        with tm.assert_produces_warning(FutureWarning):
+            prev = per - 1
+        assert prev.ordinal == per.ordinal - 1
         tup2 = (prev.year, prev.month, prev.day)
         assert tup2 < tup1
 
     def test_asfreq_near_zero_weekly(self):
         # GH#19834
-        per1 = Period('0001-01-01', 'D') + 6
-        per2 = Period('0001-01-01', 'D') - 6
+        with tm.assert_produces_warning(FutureWarning):
+            per1 = Period('0001-01-01', 'D') + 6
+            per2 = Period('0001-01-01', 'D') - 6
         week1 = per1.asfreq('W')
         week2 = per2.asfreq('W')
         assert week1 != week2

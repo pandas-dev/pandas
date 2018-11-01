@@ -40,7 +40,18 @@ from timezones cimport (
 _zero_time = datetime_time(0, 0)
 _no_input = object()
 
+
 # ----------------------------------------------------------------------
+
+def maybe_integer_op_deprecated(obj):
+    # GH#22535 add/sub of integers and int-arrays is deprecated
+    if obj.freq is not None:
+        warnings.warn("Addition/subtraction of integers and integer-arrays "
+                      "to {cls} is deprecated, will be removed in a future "
+                      "version.  Instead of adding/subtracting `n`, use "
+                      "`n * self.freq`"
+                      .format(cls=type(obj).__name__),
+                      FutureWarning)
 
 
 cdef inline object create_timestamp_from_ts(int64_t value,
@@ -315,7 +326,8 @@ cdef class _Timestamp(datetime):
         return np.datetime64(self.value, 'ns')
 
     def __add__(self, other):
-        cdef int64_t other_int, nanos
+        cdef:
+            int64_t other_int, nanos
 
         if is_timedelta64_object(other):
             other_int = other.astype('timedelta64[ns]').view('i8')
@@ -323,6 +335,8 @@ cdef class _Timestamp(datetime):
                              tz=self.tzinfo, freq=self.freq)
 
         elif is_integer_object(other):
+            maybe_integer_op_deprecated(self)
+
             if self is NaT:
                 # to be compat with Period
                 return NaT
