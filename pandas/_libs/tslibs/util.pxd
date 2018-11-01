@@ -57,7 +57,7 @@ cdef inline require_not_none(obj):
     avoid silently returning incorrect answers, we explicitly check for None.
     """
     if obj is None:
-        raise ValueError("An array or memoryview is required, not None.")
+        raise TypeError("An array or memoryview is required, not None.")
 
 
 # --------------------------------------------------------------------
