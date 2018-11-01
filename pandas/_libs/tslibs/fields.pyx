@@ -132,7 +132,7 @@ def get_date_name_field(int64_t[:] dtindex, object field, object locale=None):
     else:
         raise ValueError("Field {field} not supported".format(field=field))
 
-    return out.base  # `.base` to access underlying np.array
+    return np.asarray(out)
 
 
 @cython.wraparound(False)
@@ -376,7 +376,7 @@ def get_start_end_field(int64_t[:] dtindex, object field,
     else:
         raise ValueError("Field {field} not supported".format(field=field))
 
-    return out.base.view(bool)  # `.base` to access underlying np.array
+    return np.asarray(out).view(bool)
 
 
 @cython.wraparound(False)
@@ -531,7 +531,7 @@ def get_date_field(int64_t[:] dtindex, object field):
     else:
         raise ValueError("Field %s not supported" % field)
 
-    return out.base  # `.base` to access underlying np.array
+    return np.asarray(out)
 
 
 @cython.wraparound(False)
@@ -642,7 +642,7 @@ def get_timedelta_field(int64_t[:] tdindex, object field):
     else:
         raise ValueError("Field {field} not supported".format(field=field))
 
-    return out.base  # `.base` to access underlying np.array
+    return np.asarray(out)
 
 
 cpdef isleapyear_arr(ndarray years):

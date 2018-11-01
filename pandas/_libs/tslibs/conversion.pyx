@@ -76,7 +76,7 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def ensure_datetime64ns(arr: ndarray, copy: bint = True):
+def ensure_datetime64ns(arr: ndarray, copy: bint=True):
     """
     Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
 
@@ -123,7 +123,7 @@ def ensure_datetime64ns(arr: ndarray, copy: bint = True):
     return result
 
 
-def ensure_timedelta64ns(arr: ndarray, copy: bint = True):
+def ensure_timedelta64ns(arr: ndarray, copy: bint=True):
     """
     Ensure a np.timedelta64 array has dtype specifically 'timedelta64[ns]'
 
@@ -855,14 +855,13 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     localized : ndarray[int64_t]
     """
     cdef:
-        ndarray[int64_t] trans
+        ndarray[int64_t] trans, result_a, result_b
         int64_t[:] deltas, idx_shifted
+        int64_t[:] result, dst_hours, idx_shifted_left, idx_shifted_right
         ndarray ambiguous_array
         Py_ssize_t i, idx, pos, pos_left, pos_right, ntrans, n = len(vals)
         int64_t *tdata
         int64_t v, left, right, val, v_left, v_right, delta_idx
-        int64_t[:] result, dst_hours, idx_shifted_left, idx_shifted_right
-        ndarray[int64_t] result_a, result_b
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
         bint shift = False, fill_nonexist = False
@@ -877,7 +876,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         for i in range(n):
             v = vals[i]
             result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=True)
-        return result.base  # `.base` to access underlying np.array
+        return np.asarray(result)
 
     if is_string_object(ambiguous):
         if ambiguous == 'infer':
@@ -1031,7 +1030,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 stamp = _render_tstamp(val)
                 raise pytz.NonExistentTimeError(stamp)
 
-    return result.base  # `.base` to access underlying np.array
+    return np.asarray(result)
 
 
 cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
@@ -1133,7 +1132,7 @@ def normalize_i8_timestamps(int64_t[:] stamps, object tz=None):
                 dt64_to_dtstruct(stamps[i], &dts)
                 result[i] = _normalized_stamp(&dts)
 
-    return result.base  # .base to access underlying np.ndarray
+    return np.asarray(result)
 
 
 @cython.wraparound(False)

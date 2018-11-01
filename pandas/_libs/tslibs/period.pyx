@@ -977,6 +977,8 @@ cdef inline int month_to_quarter(int month):
 # ----------------------------------------------------------------------
 # Period logic
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def dt64arr_to_periodarr(int64_t[:] dtarr, int freq, tz=None):
     """
     Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
@@ -1001,9 +1003,11 @@ def dt64arr_to_periodarr(int64_t[:] dtarr, int freq, tz=None):
                 out[i] = get_period_ordinal(&dts, freq)
     else:
         out = localize_dt64arr_to_period(dtarr, freq, tz)
-    return out.base  # .base to access underlying np.ndarray
+    return np.asarray(out)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def periodarr_to_dt64arr(int64_t[:] periodarr, int freq):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
@@ -1024,7 +1028,7 @@ def periodarr_to_dt64arr(int64_t[:] periodarr, int freq):
                 continue
             out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
-    return out.base  # .base to access underlying np.ndarray
+    return np.asarray(out)
 
 
 cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
@@ -1102,6 +1106,8 @@ cdef inline int calc_week_end(int freq, int group) nogil:
     return freq - group
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def period_asfreq_arr(int64_t[:] arr, int freq1, int freq2, bint end):
     """
     Convert int64-array of period ordinals from one frequency to another, and
@@ -1128,7 +1134,7 @@ def period_asfreq_arr(int64_t[:] arr, int freq1, int freq2, bint end):
                 raise ValueError("Unable to convert to desired frequency.")
         result[i] = val
 
-    return result.base  # .base to access underlying np.ndarray
+    return np.asarray(result)
 
 
 cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
@@ -1389,7 +1395,7 @@ def get_period_field_arr(int code, int64_t[:] arr, int freq):
             continue
         out[i] = func(arr[i], freq)
 
-    return out.base  # .base to access underlying np.ndarray
+    return np.asarray(out)
 
 
 cdef accessor _get_accessor_func(int code):
@@ -1420,6 +1426,8 @@ cdef accessor _get_accessor_func(int code):
     return NULL
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def extract_ordinals(object[:] values, freq):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -1449,7 +1457,7 @@ def extract_ordinals(object[:] values, freq):
                 else:
                     ordinals[i] = p.ordinal
 
-    return ordinals.base  # .base to access underlying np.ndarray
+    return np.asarray(ordinals)
 
 
 def extract_freq(object[:] values):
@@ -1473,6 +1481,8 @@ def extract_freq(object[:] values):
 # -----------------------------------------------------------------------
 # period helpers
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef int64_t[:] localize_dt64arr_to_period(int64_t[:] stamps,
                                            int freq, object tz):
     cdef:
