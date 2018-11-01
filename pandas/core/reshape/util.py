@@ -1,8 +1,9 @@
 import numpy as np
 
+from pandas.compat import reduce
+
 from pandas.core.dtypes.common import is_list_like
 
-from pandas.compat import reduce
 from pandas.core import common as com
 
 
