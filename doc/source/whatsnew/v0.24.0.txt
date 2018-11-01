@@ -825,6 +825,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - :func:`ExtensionArray.isna` is allowed to return an ``ExtensionArray`` (:issue:`22325`).
 - Support for reduction operations such as ``sum``, ``mean`` via opt-in base class method override (:issue:`22762`)
 - :meth:`Series.unstack` no longer converts extension arrays to object-dtype ndarrays. The output ``DataFrame`` will now have the same dtype as the input. This changes behavior for Categorical and Sparse data (:issue:`23077`).
+- Bug when grouping :meth:`Dataframe.groupby()` on ``ExtensionArray`` not returning the actual ``ExtensionArray`` dtype (:issue:`23227`:).
 
 .. _whatsnew_0240.api.incompatibilities:
 
