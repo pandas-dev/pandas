@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import pytest
 
 import numpy as np
-import pandas.util.testing as tm
-from pandas import Timestamp, DataFrame, Series
+import pytest
+
 import pandas as pd
+from pandas import DataFrame, Series, Timestamp
+import pandas.util.testing as tm
 
 
 def test_filter_series():

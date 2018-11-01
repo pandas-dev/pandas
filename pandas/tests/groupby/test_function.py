@@ -1,14 +1,16 @@
-import pytest
+from string import ascii_lowercase
 
 import numpy as np
-import pandas as pd
-from pandas import (DataFrame, Index, compat, isna,
-                    Series, MultiIndex, Timestamp, date_range)
-from pandas.errors import UnsupportedFunctionCall
-from pandas.util import testing as tm
-import pandas.core.nanops as nanops
-from string import ascii_lowercase
+import pytest
+
 from pandas.compat import product as cart_product
+from pandas.errors import UnsupportedFunctionCall
+
+import pandas as pd
+from pandas import (
+    DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range, isna)
+import pandas.core.nanops as nanops
+from pandas.util import testing as tm
 
 
 @pytest.mark.parametrize("agg_func", ['any', 'all'])

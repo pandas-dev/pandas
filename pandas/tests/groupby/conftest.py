@@ -1,6 +1,7 @@
-import pytest
 import numpy as np
-from pandas import MultiIndex, DataFrame
+import pytest
+
+from pandas import DataFrame, MultiIndex
 from pandas.util import testing as tm
 
 

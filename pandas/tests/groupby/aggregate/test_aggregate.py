@@ -4,15 +4,15 @@
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
-
-from pandas import concat, DataFrame, Index, MultiIndex, Series
-from pandas.core.groupby.grouper import Grouping
-from pandas.core.base import SpecificationError
 from pandas.compat import OrderedDict
+
+import pandas as pd
+from pandas import DataFrame, Index, MultiIndex, Series, concat
+from pandas.core.base import SpecificationError
+from pandas.core.groupby.grouper import Grouping
 import pandas.util.testing as tm
 
 
