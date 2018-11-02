@@ -313,7 +313,7 @@ def group_last_{{name}}(ndarray[{{c_type}}, ndim=2] out,
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object> out).shape, dtype=np.int64)
-    {{if name=='object'}}
+    {{if name == 'object'}}
     resx = np.empty((<object> out).shape, dtype=object)
     {{else}}
     resx = np.empty_like(out)

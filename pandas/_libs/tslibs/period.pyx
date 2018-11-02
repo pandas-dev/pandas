@@ -1376,6 +1376,8 @@ cdef int pdays_in_month(int64_t ordinal, int freq):
     return ccalendar.get_days_in_month(dts.year, dts.month)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def get_period_field_arr(int code, int64_t[:] arr, int freq):
     cdef:
         Py_ssize_t i, sz

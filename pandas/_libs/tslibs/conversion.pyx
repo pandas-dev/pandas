@@ -27,11 +27,10 @@ from np_datetime import OutOfBoundsDatetime
 
 from util cimport (is_string_object,
                    is_datetime64_object,
-                   is_integer_object, is_float_object, is_array)
+                   is_integer_object, is_float_object)
 
 from timedeltas cimport cast_from_unit
 from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
-                        treat_tz_as_dateutil, treat_tz_as_pytz,
                         get_utcoffset, get_dst_info,
                         get_timezone, maybe_get_tz, tz_compare)
 from parsing import parse_datetime_string
@@ -76,7 +75,7 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def ensure_datetime64ns(arr: ndarray, copy: bint=True):
+def ensure_datetime64ns(arr: ndarray, copy: bool=True):
     """
     Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
 
@@ -858,10 +857,11 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         ndarray[int64_t] trans, result_a, result_b
         int64_t[:] deltas, idx_shifted
         int64_t[:] result, dst_hours, idx_shifted_left, idx_shifted_right
-        ndarray ambiguous_array
+        int64_t v, left, right, val, v_left, v_right, new_local, remaining_mins
         Py_ssize_t i, idx, pos, pos_left, pos_right, ntrans, n = len(vals)
+        Py_ssize_t delta_idx, delta_idx_offset
         int64_t *tdata
-        int64_t v, left, right, val, v_left, v_right, delta_idx
+        ndarray ambiguous_array
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
         bint shift = False, fill_nonexist = False
@@ -1020,9 +1020,13 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
             if shift:
                 # Shift the nonexistent time forward to the closest existing
                 # time
-                remaining_minutes = val % HOURS_NS
-                new_local = val + (HOURS_NS - remaining_minutes)
-                delta_idx = trans.searchsorted(new_local, side='right') - 1
+                remaining_mins = val % HOURS_NS
+                new_local = val + (HOURS_NS - remaining_mins)
+                delta_idx = trans.searchsorted(new_local, side='right')
+                # Need to subtract 1 from the delta_idx if the UTC offset of
+                # the target tz is greater than 0
+                delta_idx_offset = int(deltas[0] > 0)
+                delta_idx = delta_idx - delta_idx_offset
                 result[i] = new_local - deltas[delta_idx]
             elif fill_nonexist:
                 result[i] = NPY_NAT
@@ -1222,8 +1226,8 @@ cdef inline int64_t _normalized_stamp(npy_datetimestruct *dts) nogil:
     return dtstruct_to_dt64(dts)
 
 
-@cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def is_date_array_normalized(int64_t[:] stamps, object tz=None):
     """
     Check if all of the given (nanosecond) timestamps are normalized to
