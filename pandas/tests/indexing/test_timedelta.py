@@ -80,3 +80,16 @@ class TestTimedeltaIndexing(object):
         result = s.loc[slice(start, stop)]
         expected = s.iloc[expected_slice]
         tm.assert_series_equal(result, expected)
+
+    def test_set_dataframe_column_by_index(self):
+
+        dt1 = pd.Timedelta(0)
+        dt2 = pd.Timedelta(28767471428571405)
+
+        df = pd.DataFrame({'dt': pd.Series([dt1, dt2])})
+        s = pd.Series([dt1])
+        value_before = df['dt'].iloc[1].value
+        df.loc[[True, False]] = s
+        value_after = df['dt'].iloc[1].value
+
+        assert value_before == value_after
