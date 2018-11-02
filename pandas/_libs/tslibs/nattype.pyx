@@ -97,7 +97,8 @@ cdef class _NaT(datetime):
         return hash(self.value)
 
     def __richcmp__(_NaT self, object other, int op):
-        cdef int ndim = getattr(other, 'ndim', -1)
+        cdef:
+            int ndim = getattr(other, 'ndim', -1)
 
         if ndim == -1:
             return _nat_scalar_rules[op]
@@ -181,7 +182,7 @@ cdef class _NaT(datetime):
 
     def to_datetime64(self):
         """ Returns a numpy.datetime64 object with 'ns' precision """
-        return np.datetime64('NaT')
+        return np.datetime64('NaT', 'ns')
 
 
 class NaTType(_NaT):
