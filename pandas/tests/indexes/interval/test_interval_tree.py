@@ -103,8 +103,8 @@ class TestIntervalTree(object):
         skipif_32bit(1), skipif_32bit(10), skipif_32bit(100), 10000])
     def test_get_indexer_closed(self, closed, leaf_size):
         x = np.arange(1000, dtype='float64')
-        found = x.astype('intp')
-        not_found = (-1 * np.ones(1000)).astype('intp')
+        found = x.astype('int64')
+        not_found = (-1 * np.ones(1000)).astype('int64')
 
         tree = IntervalTree(x, x + 0.5, closed=closed, leaf_size=leaf_size)
         tm.assert_numpy_array_equal(found, tree.get_indexer(x + 0.25))
