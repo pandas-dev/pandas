@@ -594,7 +594,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                             'tz_localize to localize')
 
         # No conversion since timestamps are all UTC to begin with
-        return self._shallow_copy(tz=tz)
+        return self._simple_new(self.asi8, tz=tz, freq=self.freq)
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
                     errors=None):
@@ -716,7 +716,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                 self.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent,
             )
         new_dates = new_dates.view(_NS_DTYPE)
-        return self._shallow_copy(new_dates, tz=tz)
+        return self._simple_new(new_dates, tz=tz, freq=self.freq)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
