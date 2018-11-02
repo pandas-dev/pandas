@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_period_dtype,
     is_categorical_dtype,
+    is_timedelta64_dtype,
     is_datetime_or_timedelta_dtype,
     is_float_dtype,
     is_integer_dtype,
@@ -757,7 +758,7 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
         try:
             return np.array(other, copy=False).view('i8')
         except TypeError:
-            # period array cannot be coerces to int
+            # period array cannot be coerced to int
             other = Index(other)
     return other.asi8
 
@@ -792,7 +793,10 @@ def wrap_array_method(method, pin_name=False):
     method
     """
     def index_method(self, *args, **kwargs):
-        result = method(self, *args, **kwargs)
+        if is_timedelta64_dtype(self):
+            result = method(self, *args, **kwargs)
+        else:
+            result = method(self._data, *args, **kwargs)
 
         # Index.__new__ will choose the appropriate subclass to return
         result = Index(result)
@@ -821,7 +825,11 @@ def wrap_field_accessor(prop):
     fget = prop.fget
 
     def f(self):
-        result = fget(self)
+        if is_timedelta64_dtype(self):
+            result = fget(self)
+        else:
+            result = fget(self._data)
+
         if is_bool_dtype(result):
             # return numpy array b/c there is no BoolIndex
             return result

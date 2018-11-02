@@ -4204,6 +4204,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                                            not (is_iterator(subarr) or
                                            isinstance(subarr, np.ndarray))):
                 subarr = construct_1d_object_array_from_listlike(subarr)
+            elif type(subarr).__name__ == "DatetimeArray":
+                # kludge
+                pass
             elif not is_extension_type(subarr):
                 subarr = construct_1d_ndarray_preserving_na(subarr, dtype,
                                                             copy=copy)

@@ -34,6 +34,7 @@ from pandas.tseries.frequencies import to_offset, get_period_alias
 from pandas.tseries.offsets import Tick, generate_range
 
 from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays.base import ExtensionArray
 
 
 _midnight = time(0, 0)
@@ -119,7 +120,7 @@ def _dt_array_cmp(cls, op):
             if isinstance(other, list):
                 # FIXME: This can break for object-dtype with mixed types
                 other = type(self)(other)
-            elif not isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
+            elif not isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries, DatetimeArray)):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
                 return ops.invalid_comparison(self, other, op)
@@ -132,7 +133,7 @@ def _dt_array_cmp(cls, op):
                 return ops.invalid_comparison(self, other, op)
             else:
                 self._assert_tzawareness_compat(other)
-                result = meth(self, np.asarray(other))
+                result = meth(self, type(self)(other))#np.asarray(other))
 
             result = com.values_from_object(result)
 
@@ -150,7 +151,7 @@ def _dt_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class DatetimeArray(dtl.DatetimeLikeArrayMixin):
+class DatetimeArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     """
     Assumes that subclass __new__/__init__ defines:
         tz
@@ -273,7 +274,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin):
 
             if tz is not None and getattr(index, 'tz', None) is None:
                 arr = conversion.tz_localize_to_utc(
-                    ensure_int64(index.values),
+                    ensure_int64(index.asi8),
                     tz, ambiguous=ambiguous)
 
                 index = cls(arr)
@@ -296,7 +297,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin):
         if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
 
-        return cls._simple_new(index.values, freq=freq, tz=tz)
+        return cls._simple_new(index.asi8, freq=freq, tz=tz)
 
     # -----------------------------------------------------------------
     # Descriptive Properties
@@ -392,6 +393,10 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin):
     # ----------------------------------------------------------------
     # ExtensionArray Interface
 
+    @property
+    def _ndarray_values(self):
+        return self._data
+
     @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
     def _validate_fill_value(self, fill_value):
         if isna(fill_value):
@@ -414,7 +419,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin):
         assert len(tzs) == 1
         tz = list(tzs)[0]
 
-        values = np.concatenate([x._data for x in to_concat])
+        values = np.concatenate([x.asi8 for x in to_concat])
         return cls._simple_new(values, freq=freq, tz=tz)
 
     # -----------------------------------------------------------------
@@ -852,7 +857,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin):
 
             freq = get_period_alias(freq)
 
-        return PeriodArray._from_datetime64(self.values, freq, tz=self.tz)
+        return PeriodArray._from_datetime64(self.asi8, freq, tz=self.tz)
 
     def to_perioddelta(self, freq):
         """

@@ -134,12 +134,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     @property
     def values(self):
         """ return the underlying data as an ndarray """
-        return self._data.view(np.ndarray)
+        if is_timedelta64_dtype(self):
+            return self._data.view(np.ndarray)
+        return self._data
 
     @property
     def asi8(self):
         # do not cache or you'll create a memory leak
-        return self.values.view('i8')
+        return self._data.view('i8')
 
     # ------------------------------------------------------------------
     # Array-like Methods
@@ -264,7 +266,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if allow_fill:
             fill_value = self._validate_fill_value(fill_value)
 
-        new_values = take(self._data,
+        new_values = take(self.asi8,
                           indices,
                           allow_fill=allow_fill,
                           fill_value=fill_value)
@@ -280,7 +282,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         freqs = {x.freq for x in to_concat}
         assert len(freqs) == 1
         freq = list(freqs)[0]
-        values = np.concatenate([x._data for x in to_concat])
+        values = np.concatenate([x.asi8 for x in to_concat])
         return cls._simple_new(values, freq=freq)
 
     def copy(self, deep=False):
@@ -288,6 +290,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if is_datetime64tz_dtype(self):
             return type(self)(self.asi8.copy(), tz=self.tz, freq=self.freq)
         return type(self)(self.asi8.copy(), freq=self.freq)
+
+    # Following how PeriodArray does this
+    # TODO: ignoring `type`?
+    def view(self, dtype=None, type=None):
+        if dtype is None or dtype is __builtins__['type'](self):
+            return self
+        return self._ndarray_values.view(dtype=dtype)
 
     def _values_for_factorize(self):
         return self.asi8, iNaT

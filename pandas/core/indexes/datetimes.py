@@ -265,7 +265,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             data = tools.to_datetime(data, dayfirst=dayfirst,
                                      yearfirst=yearfirst)
 
-        if isinstance(data, DatetimeArray):
+        if isinstance(data, (DatetimeArray, DatetimeIndex)):
             if tz is None:
                 tz = data.tz
             elif data.tz is None:
@@ -277,7 +277,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                            'set specified tz: {1}')
                     raise TypeError(msg.format(data.tz, tz))
 
-            subarr = data.values
+            subarr = data.asi8
 
             if freq is None:
                 freq = data.freq
@@ -329,6 +329,13 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
+        if isinstance(values, (DatetimeArray, DatetimeIndex)):
+            # TODO: should we just pin this and skip the rigmarole?
+            assert tz == values.tz, (tz, values.tz)
+            assert freq == values.freq, (freq, values.freq)
+            values = values.asi8
+
+        assert not isinstance(values, (DatetimeArray, DatetimeIndex))
 
         if getattr(values, 'dtype', None) is None:
             # empty, but with dtype compat
@@ -346,20 +353,28 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         assert isinstance(values, np.ndarray), "values is not an np.ndarray"
         assert is_datetime64_dtype(values)
 
-        result = super(DatetimeIndex, cls)._simple_new(values, freq, tz,
-                                                       **kwargs)
+        arr = DatetimeArray(values, freq=freq, tz=tz)
+        result = object.__new__(cls)
+        result._data = arr
         result.name = name
         result._reset_identity()
         return result
 
     @property
+    def _tz(self):
+        return self._data._tz
+
+    @property
+    def _freq(self):
+        return self._data._freq
+
+    @property
     def _values(self):
-        # tz-naive -> ndarray
-        # tz-aware -> DatetimeIndex
-        if self.tz is not None:
-            return self
-        else:
-            return self.values
+        return self._data
+
+    @property
+    def _ndarray_values(self):
+        return self._data._data  # M8[ns]
 
     @property
     def tz(self):
@@ -373,25 +388,35 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                              "or tz_convert() as appropriate")
 
     @property
+    def asi8(self):
+        return self._data.asi8
+
+    def __getitem__(self, key):
+        result = self._data[key]
+        if is_scalar(result):
+            return result
+        return type(self)(result)
+
+    @property
     def size(self):
         # TODO: Remove this when we have a DatetimeTZArray
         # Necessary to avoid recursion error since DTI._values is a DTI
         # for TZ-aware
-        return self._ndarray_values.size
+        return self._data.size
 
     @property
     def shape(self):
         # TODO: Remove this when we have a DatetimeTZArray
         # Necessary to avoid recursion error since DTI._values is a DTI
         # for TZ-aware
-        return self._ndarray_values.shape
+        return self._data.shape
 
     @property
     def nbytes(self):
         # TODO: Remove this when we have a DatetimeTZArray
         # Necessary to avoid recursion error since DTI._values is a DTI
         # for TZ-aware
-        return self._ndarray_values.nbytes
+        return self._data.nbytes
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
@@ -561,19 +586,11 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         # TODO: what about self.name?  if so, use shallow_copy?
 
     def unique(self, level=None):
-        # Override here since IndexOpsMixin.unique uses self._values.unique
-        # For DatetimeIndex with TZ, that's a DatetimeIndex -> recursion error
-        # So we extract the tz-naive DatetimeIndex, unique that, and wrap the
-        # result with out TZ.
-        if self.tz is not None:
-            naive = type(self)(self._ndarray_values, copy=False)
-        else:
-            naive = self
-
         if level is not None:
             self._validate_index_level(level)
-        result = DatetimeArray.unique(self)
-        return self._shallow_copy(result.values)
+
+        result = self._data.unique()
+        return self._shallow_copy(result)
 
     def union(self, other):
         """
@@ -1137,6 +1154,8 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     is_year_end = wrap_field_accessor(DatetimeArray.is_year_end)
     is_leap_year = wrap_field_accessor(DatetimeArray.is_leap_year)
 
+    tz_localize = wrap_array_method(DatetimeArray.tz_localize, True)
+    tz_convert = wrap_array_method(DatetimeArray.tz_convert, True)
     to_perioddelta = wrap_array_method(DatetimeArray.to_perioddelta,
                                        False)
     to_period = wrap_array_method(DatetimeArray.to_period, True)
