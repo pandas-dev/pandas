@@ -189,8 +189,7 @@ class TimelikeOps(object):
         result = self._maybe_mask_results(result, fill_value=NaT)
 
         attribs = self._get_attributes_dict()
-        if 'freq' in attribs:
-            attribs['freq'] = None
+        attribs['freq'] = None
         if 'tz' in attribs:
             attribs['tz'] = None
         return self._ensure_localized(
@@ -640,8 +639,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         result = np.where(cond, values, other).astype('i8')
 
         result = self._ensure_localized(result, from_utc=True)
-        return self._shallow_copy(result,
-                                  **self._get_attributes_dict())
+        return self._shallow_copy(result)
 
     def _summary(self, name=None):
         """
