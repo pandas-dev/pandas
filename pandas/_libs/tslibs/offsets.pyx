@@ -5,6 +5,7 @@ from cython import Py_ssize_t
 
 import time
 from cpython.datetime cimport (PyDateTime_IMPORT,
+                               PyDateTime_Check,
                                datetime, timedelta,
                                time as dt_time)
 PyDateTime_IMPORT
@@ -354,7 +355,7 @@ class _BaseOffset(object):
             return NotImplemented
 
     def __sub__(self, other):
-        if isinstance(other, datetime):
+        if PyDateTime_Check(other):
             raise TypeError('Cannot subtract datetime from offset.')
         elif type(other) == type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
@@ -496,7 +497,7 @@ class _Tick(object):
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
-cpdef datetime shift_day(datetime other, int days):
+def shift_day(other: datetime, days: int) -> datetime:
     """
     Increment the datetime `other` by the given number of days, retaining
     the time-portion of the datetime.  For tz-naive datetimes this is
@@ -988,8 +989,7 @@ cpdef int roll_qtrday(datetime other, int n, int month, object day_opt,
     return n
 
 
-cpdef int roll_yearday(datetime other, int n, int month,
-                       object day_opt) except? -1:
+def roll_yearday(other: datetime, n: int, month: int, day_opt: object) -> int:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.

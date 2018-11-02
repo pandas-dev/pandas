@@ -2,7 +2,6 @@
 from datetime import datetime, date
 
 from cpython cimport (
-    PyUnicode_Check,
     PyObject_RichCompareBool,
     Py_EQ, Py_NE)
 
@@ -14,9 +13,9 @@ from libc.stdlib cimport free, malloc
 from libc.time cimport strftime, tm
 from libc.string cimport strlen, memset
 
-cimport cython
+import cython
 
-from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check,
+from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check, PyDate_Check,
                                PyDateTime_IMPORT)
 # import datetime C API
 PyDateTime_IMPORT
@@ -47,7 +46,7 @@ from frequencies cimport (get_freq_code, get_base_alias,
                           get_rule_month)
 from parsing import parse_time_string
 from resolution import Resolution
-from nattype import nat_strings, NaT, iNaT
+from nattype import nat_strings, NaT
 from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
 from offsets cimport to_offset
 from offsets import _Tick
@@ -307,6 +306,7 @@ cdef inline int64_t transform_via_day(int64_t ordinal,
     result = second_func(result, af_info)
     return result
 
+
 # --------------------------------------------------------------------
 # Conversion _to_ Daily Freq
 
@@ -551,7 +551,7 @@ cdef int64_t asfreq_AtoA(int64_t ordinal, asfreq_info *af_info):
 cdef int64_t asfreq_AtoQ(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_AtoDT,
-                             <freq_conv_func>asfreq_DTtoQ);
+                             <freq_conv_func>asfreq_DTtoQ)
 
 
 cdef int64_t asfreq_AtoM(int64_t ordinal, asfreq_info *af_info):
@@ -976,7 +976,6 @@ cdef inline int month_to_quarter(int month):
 # ----------------------------------------------------------------------
 # Period logic
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def dt64arr_to_periodarr(int64_t[:] dtarr, int freq, tz=None):
@@ -1041,8 +1040,8 @@ cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
         freq_conv_func func
         asfreq_info af_info
 
-    if ordinal == iNaT:
-        return iNaT
+    if ordinal == NPY_NAT:
+        return NPY_NAT
 
     func = get_asfreq_func(freq1, freq2)
     get_asfreq_info(freq1, freq2, end, &af_info)
@@ -1106,6 +1105,8 @@ cdef inline int calc_week_end(int freq, int group) nogil:
     return freq - group
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     """
     Convert int64-array of period ordinals from one frequency to another, and
@@ -1124,11 +1125,11 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     func = get_asfreq_func(freq1, freq2)
     get_asfreq_info(freq1, freq2, end, &af_info)
 
-    mask = arr == iNaT
+    mask = arr == NPY_NAT
     if mask.any():      # NaT process
         for i in range(n):
             val = arr[i]
-            if val != iNaT:
+            if val != NPY_NAT:
                 val = func(val, &af_info)
                 if val == INT32_MIN:
                     raise ValueError("Unable to convert to desired frequency.")
@@ -1192,7 +1193,7 @@ def period_format(int64_t value, int freq, object fmt=None):
     cdef:
         int freq_group
 
-    if value == iNaT:
+    if value == NPY_NAT:
         return repr(NaT)
 
     if fmt is None:
@@ -1248,7 +1249,7 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
         list found_pat = [False] * len(extra_fmts)
         int year, quarter
 
-    if PyUnicode_Check(fmt):
+    if isinstance(fmt, unicode):
         fmt = fmt.encode('utf-8')
 
     get_date_info(value, freq, &dts)
@@ -1381,6 +1382,8 @@ cdef int pdays_in_month(int64_t ordinal, int freq):
     return ccalendar.get_days_in_month(dts.year, dts.month)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def get_period_field_arr(int code, int64_t[:] arr, int freq):
     cdef:
         Py_ssize_t i, sz
@@ -1395,7 +1398,7 @@ def get_period_field_arr(int code, int64_t[:] arr, int freq):
     out = np.empty(sz, dtype=np.int64)
 
     for i in range(sz):
-        if arr[i] == iNaT:
+        if arr[i] == NPY_NAT:
             out[i] = -1
             continue
         out[i] = func(arr[i], freq)
@@ -1431,6 +1434,8 @@ cdef accessor _get_accessor_func(int code):
     return NULL
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def extract_ordinals(object[:] values, freq):
     cdef:
         Py_ssize_t i, n = len(values)
@@ -1443,7 +1448,7 @@ def extract_ordinals(object[:] values, freq):
         p = values[i]
 
         if is_null_datetimelike(p):
-            ordinals[i] = iNaT
+            ordinals[i] = NPY_NAT
         else:
             try:
                 ordinals[i] = p.ordinal
@@ -1456,7 +1461,7 @@ def extract_ordinals(object[:] values, freq):
                 p = Period(p, freq=freq)
                 if p is NaT:
                     # input may contain NaT-like string
-                    ordinals[i] = iNaT
+                    ordinals[i] = NPY_NAT
                 else:
                     ordinals[i] = p.ordinal
 
@@ -1581,7 +1586,7 @@ cdef class _Period(object):
         """
         Fast creation from an ordinal and freq that are already validated!
         """
-        if ordinal == iNaT:
+        if ordinal == NPY_NAT:
             return NaT
         else:
             freq = cls._maybe_convert_freq(freq)
@@ -2420,7 +2425,7 @@ class Period(_Period):
             if (year is None and month is None and
                     quarter is None and day is None and
                     hour is None and minute is None and second is None):
-                ordinal = iNaT
+                ordinal = NPY_NAT
             else:
                 if freq is None:
                     raise ValueError("If value is None, freq cannot be None")
@@ -2446,7 +2451,7 @@ class Period(_Period):
                 ordinal = converted.ordinal
 
         elif is_null_datetimelike(value) or value in nat_strings:
-            ordinal = iNaT
+            ordinal = NPY_NAT
 
         elif is_string_object(value) or util.is_integer_object(value):
             if util.is_integer_object(value):
@@ -2454,7 +2459,7 @@ class Period(_Period):
             value = value.upper()
             dt, _, reso = parse_time_string(value, freq)
             if dt is NaT:
-                ordinal = iNaT
+                ordinal = NPY_NAT
 
             if freq is None:
                 try:
@@ -2464,7 +2469,7 @@ class Period(_Period):
                         "Invalid frequency or could not infer: {reso}"
                         .format(reso=reso))
 
-        elif isinstance(value, datetime):
+        elif PyDateTime_Check(value):
             dt = value
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
@@ -2472,7 +2477,7 @@ class Period(_Period):
             dt = Timestamp(value)
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')
-        elif isinstance(value, date):
+        elif PyDate_Check(value):
             dt = datetime(year=value.year, month=value.month, day=value.day)
             if freq is None:
                 raise ValueError('Must supply freq for datetime value')

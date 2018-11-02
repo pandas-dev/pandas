@@ -361,7 +361,7 @@ cdef dateutil_parse(object timestr, object default, ignoretz=False,
     return ret, reso
 
 
-cpdef object _get_rule_month(object source, object default='DEC'):
+cdef object _get_rule_month(object source, object default='DEC'):
     """
     Return starting month of given freq, default is December.
 

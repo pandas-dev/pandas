@@ -40,6 +40,8 @@ def get_time_micros(ndarray[int64_t] dtindex):
     return micros
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def build_field_sarray(int64_t[:] dtindex):
     """
     Datetime as int64 representation to a structured array of fields

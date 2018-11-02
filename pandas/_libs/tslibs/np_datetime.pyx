@@ -136,6 +136,7 @@ cdef inline void dt64_to_dtstruct(int64_t dt64,
     pandas_datetime_to_datetimestruct(dt64, NPY_FR_ns, out)
     return
 
+
 cdef inline void td64_to_tdstruct(int64_t td64,
                                   pandas_timedeltastruct* out) nogil:
     """Convenience function to call pandas_timedelta_to_timedeltastruct
