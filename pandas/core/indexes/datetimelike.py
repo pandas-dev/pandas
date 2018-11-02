@@ -212,6 +212,7 @@ class TimelikeOps(object):
 
 class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     """ common ops mixin to support a unified interface datetimelike Index """
+    copy = Index.copy
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index

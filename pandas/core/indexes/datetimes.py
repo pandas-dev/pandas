@@ -569,7 +569,10 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             naive = type(self)(self._ndarray_values, copy=False)
         else:
             naive = self
-        result = super(DatetimeIndex, naive).unique(level=level)
+
+        if level is not None:
+            self._validate_index_level(level)
+        result = DatetimeArray.unique(self)
         return self._shallow_copy(result.values)
 
     def union(self, other):

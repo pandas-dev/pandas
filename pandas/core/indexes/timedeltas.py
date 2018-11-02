@@ -614,6 +614,12 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
 
         return TimedeltaIndex(new_tds, name=self.name, freq=freq)
 
+    def unique(self, level=None):
+        if level is not None:
+            self._validate_index_level(level)
+        result = TimedeltaArrayMixin.unique(self)
+        return self._shallow_copy(result.values)
+
 
 TimedeltaIndex._add_comparison_ops()
 TimedeltaIndex._add_numeric_methods()
