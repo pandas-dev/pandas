@@ -18,7 +18,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,
-    ABCPeriodIndex, ABCTimedeltaIndex,
+    ABCPeriodIndex, ABCTimedeltaIndex, ABCDatetimeIndex,
     ABCDateOffset)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
@@ -545,6 +545,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         # _simple_new expects an ndarray
         values = getattr(values, 'values', values)
+        if isinstance(values, ABCDatetimeIndex):
+            # `self.values` returns `self` for tz-aware, so we need to unwrap
+            #  more specifically
+            values = values.asi8
 
         return self._simple_new(values, **attributes)
 
@@ -3716,7 +3720,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(target, Index) and len(target) == 0:
             attrs = self._get_attributes_dict()
             attrs.pop('freq', None)  # don't preserve freq
-            values = self._data[:0]  # empty array with appropriate dtype
+            values = self._data[:0]  # appropriately-dtyped empty array
             target = self._simple_new(values, dtype=self.dtype, **attrs)
         else:
             target = ensure_index(target)
