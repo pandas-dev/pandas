@@ -278,7 +278,8 @@ cdef class _Timestamp(datetime):
 
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
-        cdef datetime dtval = self.to_pydatetime()
+        cdef:
+            datetime dtval = self.to_pydatetime()
 
         self._assert_tzawareness_compat(other)
 
@@ -298,8 +299,7 @@ cdef class _Timestamp(datetime):
             elif op == Py_GE:
                 return dtval >= other
 
-    cdef int _assert_tzawareness_compat(_Timestamp self,
-                                        object other) except -1:
+    cdef _assert_tzawareness_compat(_Timestamp self, datetime other):
         if self.tzinfo is None:
             if other.tzinfo is not None:
                 raise TypeError('Cannot compare tz-naive and tz-aware '
@@ -307,7 +307,7 @@ cdef class _Timestamp(datetime):
         elif other.tzinfo is None:
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 
-    cpdef datetime to_pydatetime(_Timestamp self, warn=True):
+    cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):
         """
         Convert a Timestamp object to a native Python datetime object.
 
