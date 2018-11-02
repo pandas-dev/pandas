@@ -151,12 +151,12 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
 
     if keep == 'last':
         {{if dtype == 'object'}}
-        for i in range(n):
+        for i from n > i >= 0:
             kh_put_{{ttype}}(table, <PyObject*>values[i], &ret)
             out[i] = ret == 0
         {{else}}
         with nogil:
-            for i in range(n):
+            for i from n > i >= 0:
                 kh_put_{{ttype}}(table, values[i], &ret)
                 out[i] = ret == 0
         {{endif}}
