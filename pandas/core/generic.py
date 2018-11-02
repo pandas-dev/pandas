@@ -358,41 +358,44 @@ class NDFrame(PandasObject, SelectionMixin):
             d.update(kwargs)
             return cls(data, **d)
 
-    def _get_axis_number(self, axis):
-        axis = self._AXIS_ALIASES.get(axis, axis)
+    @classmethod
+    def _get_axis_number(cls, axis):
+        axis = cls._AXIS_ALIASES.get(axis, axis)
         if is_integer(axis):
-            if axis in self._AXIS_NAMES:
+            if axis in cls._AXIS_NAMES:
                 return axis
         else:
             try:
-                return self._AXIS_NUMBERS[axis]
+                return cls._AXIS_NUMBERS[axis]
             except KeyError:
                 pass
         raise ValueError('No axis named {0} for object type {1}'
-                         .format(axis, type(self)))
+                         .format(axis, type(cls)))
 
-    def _get_axis_name(self, axis):
-        axis = self._AXIS_ALIASES.get(axis, axis)
+    @classmethod
+    def _get_axis_name(cls, axis):
+        axis = cls._AXIS_ALIASES.get(axis, axis)
         if isinstance(axis, string_types):
-            if axis in self._AXIS_NUMBERS:
+            if axis in cls._AXIS_NUMBERS:
                 return axis
         else:
             try:
-                return self._AXIS_NAMES[axis]
+                return cls._AXIS_NAMES[axis]
             except KeyError:
                 pass
         raise ValueError('No axis named {0} for object type {1}'
-                         .format(axis, type(self)))
+                         .format(axis, type(cls)))
 
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
         return getattr(self, name)
 
-    def _get_block_manager_axis(self, axis):
+    @classmethod
+    def _get_block_manager_axis(cls, axis):
         """Map the axis to the block_manager axis."""
-        axis = self._get_axis_number(axis)
-        if self._AXIS_REVERSED:
-            m = self._AXIS_LEN - 1
+        axis = cls._get_axis_number(axis)
+        if cls._AXIS_REVERSED:
+            m = cls._AXIS_LEN - 1
             return m - axis
         return axis
 

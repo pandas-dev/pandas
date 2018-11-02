@@ -227,6 +227,7 @@ Other Enhancements
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
 - :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support an ``ambiguous`` argument for handling datetimes that are rounded to ambiguous times (:issue:`18946`)
+- :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support a ``nonexistent`` argument for handling datetimes that are rounded to nonexistent times. See :ref:`timeseries.timezone_nonexsistent` (:issue:`22647`)
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
 - :meth:`pandas.core.dtypes.is_list_like` has gained a keyword ``allow_sets`` which is ``True`` by default; if ``False``,
@@ -268,6 +269,9 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | scipy           | 0.18.1          |          |
 +-----------------+-----------------+----------+
+
+Additionally we no longer depend on `feather-format` for feather based storage
+and replaced it with references to `pyarrow` (:issue:`21639` and :issue:`23053`).
 
 .. _whatsnew_0240.api_breaking.csv_line_terminator:
 
@@ -954,6 +958,8 @@ Deprecations
 - The ``fastpath`` keyword of the different Index constructors is deprecated (:issue:`23110`).
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have deprecated the ``errors`` argument in favor of the ``nonexistent`` argument (:issue:`8917`)
 - The class ``FrozenNDArray`` has been deprecated. When unpickling, ``FrozenNDArray`` will be unpickled to ``np.ndarray`` once this class is removed (:issue:`9031`)
+- Deprecated the `nthreads` keyword of :func:`pandas.read_feather` in favor of
+  `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
@@ -1055,6 +1061,7 @@ Performance Improvements
 - Improved the performance of :func:`pandas.get_dummies` with ``sparse=True`` (:issue:`21997`)
 - Improved performance of :func:`IndexEngine.get_indexer_non_unique` for sorted, non-unique indexes (:issue:`9466`)
 - Improved performance of :func:`PeriodIndex.unique` (:issue:`23083`)
+- Improved performance of :func:`pd.concat` for `Series` objects (:issue:`23404`)
 
 
 .. _whatsnew_0240.docs:
@@ -1267,6 +1274,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :meth:`detect_client_encoding` where potential ``IOError`` goes unhandled when importing in a mod_wsgi process due to restricted access to stdout. (:issue:`21552`)
 - Bug in :func:`to_string()` that broke column alignment when ``index=False`` and width of first column's values is greater than the width of first column's header (:issue:`16839`, :issue:`13032`)
 - Bug in :func:`DataFrame.to_csv` where a single level MultiIndex incorrectly wrote a tuple. Now just the value of the index is written (:issue:`19589`).
+- Bug in :meth:`HDFStore.append` when appending a :class:`DataFrame` with an empty string column and ``min_itemsize`` < 8 (:issue:`12242`)
 
 Plotting
 ^^^^^^^^
