@@ -2074,10 +2074,10 @@ class StringMethods(NoNewAttributesMixin):
 
             If others is None, the method returns the concatenation of all
             strings in the calling Series/Index.
-        sep : string, default ''
+        sep : str, default ''
             The separator between the different elements/columns. By default
             the empty string `''` is used.
-        na_rep : string or None, default None
+        na_rep : str or None, default None
             Representation that is inserted for all missing values:
 
             - If `na_rep` is None, and `others` is None, missing values in the
@@ -2197,6 +2197,12 @@ class StringMethods(NoNewAttributesMixin):
 
         if isinstance(others, compat.string_types):
             raise ValueError("Did you mean to supply a `sep` keyword?")
+        if sep is None:
+            warnings.warn('Passing `sep=None` to .str.cat is deprecated and '
+                          'will be removed in a future version. Please use '
+                          '`sep=''` to pass the default explicitly',
+                          FutureWarning, stacklevel=2)
+            sep = ''
 
         if isinstance(self._orig, Index):
             data = Series(self._orig, index=self._orig)

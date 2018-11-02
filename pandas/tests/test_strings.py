@@ -162,6 +162,11 @@ class TestStringMethods(object):
         with tm.assert_raises_regex(ValueError, message):
             s.str.cat('    ')
 
+        # GH 23443
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            # FutureWarning to switch to default sep='' (instead of None)
+            s.str.cat(sep=None)
+
     @pytest.mark.parametrize('dtype_target', ['object', 'category'])
     @pytest.mark.parametrize('dtype_caller', ['object', 'category'])
     @pytest.mark.parametrize('box', [Series, Index])
