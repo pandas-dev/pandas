@@ -275,6 +275,7 @@ cdef class IntIndex(SparseIndex):
                ndarray[int32_t, ndim=1] indices):
         pass
 
+
 cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     cdef:
         Py_ssize_t init_len, i, npoints, result_indexer = 0
@@ -671,11 +672,13 @@ cdef class BlockMerge(object):
             self.xi = yi
             self.yi = xi
 
+
 cdef class BlockIntersection(BlockMerge):
     """
     not done yet
     """
     pass
+
 
 cdef class BlockUnion(BlockMerge):
     """

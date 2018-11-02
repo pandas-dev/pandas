@@ -483,7 +483,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_intsafe(object[:] arr, new_dtype):
+def astype_intsafe(ndarray[object] arr, new_dtype):
     cdef:
         Py_ssize_t i, n = len(arr)
         object val
@@ -541,7 +541,7 @@ def astype_unicode(arr: ndarray, skipna: bool=False) -> ndarray[object]:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_str(arr: ndarray, skipna: bool = False) -> ndarray[object]:
+def astype_str(arr: ndarray, skipna: bool=False) -> ndarray[object]:
     """
     Convert all elements in an array to string.
 

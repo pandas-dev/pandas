@@ -1272,14 +1272,12 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
 
             # Discard previous entries if we find new min or max
             if is_max:
-                while not Q.empty() and (
-                        (ai >= values[Q.back()]) or
-                        (values[Q.back()] != values[Q.back()])):
+                while not Q.empty() and ((ai >= values[Q.back()]) or
+                                         values[Q.back()] != values[Q.back()]):
                     Q.pop_back()
             else:
-                while not Q.empty() and (
-                        (ai <= values[Q.back()]) or
-                        (values[Q.back()] != values[Q.back()])):
+                while not Q.empty() and ((ai <= values[Q.back()]) or
+                                         values[Q.back()] != values[Q.back()]):
                     Q.pop_back()
             Q.push_back(i)
             W.push_back(i)
@@ -1298,14 +1296,12 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
 
             # Discard previous entries if we find new min or max
             if is_max:
-                while not Q.empty() and (
-                        (ai >= values[Q.back()]) or
-                        (values[Q.back()] != values[Q.back()])):
+                while not Q.empty() and ((ai >= values[Q.back()]) or
+                                         values[Q.back()] != values[Q.back()]):
                     Q.pop_back()
             else:
-                while not Q.empty() and (
-                        (ai <= values[Q.back()]) or
-                        (values[Q.back()] != values[Q.back()])):
+                while not Q.empty() and ((ai <= values[Q.back()]) or
+                                         values[Q.back()] != values[Q.back()]):
                     Q.pop_back()
 
             # Maintain window/nobs retention
