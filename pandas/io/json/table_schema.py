@@ -219,7 +219,7 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     -----
     See `_as_json_table_type` for conversion types.
     Timedeltas as converted to ISO8601 duration format with
-    9 decimal places after the secnods field for nanosecond precision.
+    9 decimal places after the seconds field for nanosecond precision.
 
     Categoricals are converted to the `any` dtype, and use the `enum` field
     constraint to list the allowed values. The `ordered` attribute is included
@@ -296,7 +296,7 @@ def parse_table_schema(json, precise_float):
     """
     table = loads(json, precise_float=precise_float)
     col_order = [field['name'] for field in table['schema']['fields']]
-    df = DataFrame(table['data'])[col_order]
+    df = DataFrame(table['data'], columns=col_order)[col_order]
 
     dtypes = {field['name']: convert_json_field_to_pandas_type(field)
               for field in table['schema']['fields']}

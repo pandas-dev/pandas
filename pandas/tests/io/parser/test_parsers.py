@@ -1,30 +1,33 @@
 # -*- coding: utf-8 -*-
 
 import os
-import pandas.util.testing as tm
 
-from pandas import read_csv, read_table, DataFrame
-import pandas.core.common as com
+import pytest
+
 from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO
 
-from .common import ParserTests
-from .header import HeaderTests
-from .comment import CommentTests
-from .dialect import DialectTests
-from .quoting import QuotingTests
-from .usecols import UsecolsTests
-from .skiprows import SkipRowsTests
-from .index_col import IndexColTests
-from .na_values import NAvaluesTests
-from .converters import ConverterTests
+from pandas import DataFrame, read_csv, read_table
+import pandas.core.common as com
+import pandas.util.testing as tm
+
 from .c_parser_only import CParserTests
-from .parse_dates import ParseDatesTests
+from .comment import CommentTests
+from .common import ParserTests
 from .compression import CompressionTests
+from .converters import ConverterTests
+from .dialect import DialectTests
+from .dtypes import DtypeTests
+from .header import HeaderTests
+from .index_col import IndexColTests
 from .mangle_dupes import DupeColumnTests
 from .multithread import MultithreadTests
+from .na_values import NAvaluesTests
+from .parse_dates import ParseDatesTests
 from .python_parser_only import PythonParserTests
-from .dtypes import DtypeTests
+from .quoting import QuotingTests
+from .skiprows import SkipRowsTests
+from .usecols import UsecolsTests
 
 
 class BaseParser(CommentTests, CompressionTests,
@@ -45,8 +48,9 @@ class BaseParser(CommentTests, CompressionTests,
     def float_precision_choices(self):
         raise com.AbstractMethodError(self)
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
+        self.dirpath = datapath('io', 'parser', 'data')
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
@@ -68,7 +72,9 @@ class TestCParserHighMemory(BaseParser, CParserTests):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
         kwds['low_memory'] = self.low_memory
-        return read_table(*args, **kwds)
+        with tm.assert_produces_warning(FutureWarning):
+            df = read_table(*args, **kwds)
+        return df
 
 
 class TestCParserLowMemory(BaseParser, CParserTests):
@@ -86,7 +92,9 @@ class TestCParserLowMemory(BaseParser, CParserTests):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
         kwds['low_memory'] = True
-        return read_table(*args, **kwds)
+        with tm.assert_produces_warning(FutureWarning):
+            df = read_table(*args, **kwds)
+        return df
 
 
 class TestPythonParser(BaseParser, PythonParserTests):
@@ -101,7 +109,9 @@ class TestPythonParser(BaseParser, PythonParserTests):
     def read_table(self, *args, **kwds):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
-        return read_table(*args, **kwds)
+        with tm.assert_produces_warning(FutureWarning):
+            df = read_table(*args, **kwds)
+        return df
 
 
 class TestUnsortedUsecols(object):

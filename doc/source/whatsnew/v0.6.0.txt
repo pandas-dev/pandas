@@ -43,7 +43,7 @@ New Features
 
 Performance Enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- VBENCH Cythonized ``cache_readonly``, resulting in substantial micro-performance enhancements throughout the codebase (:issue:`361`)
+- VBENCH Cythonized ``cache_readonly``, resulting in substantial micro-performance enhancements throughout the code base (:issue:`361`)
 - VBENCH Special Cython matrix iterator for applying arbitrary reduction operations with 3-5x better performance than `np.apply_along_axis` (:issue:`309`)
 - VBENCH Improved performance of ``MultiIndex.from_tuples``
 - VBENCH Special Cython matrix iterator for applying arbitrary reduction operations

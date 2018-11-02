@@ -24,7 +24,7 @@ Highlights include:
 
 .. warning::
 
-  Pandas has changed the internal structure and layout of the codebase.
+  Pandas has changed the internal structure and layout of the code base.
   This can affect imports that are not from the top-level ``pandas.*`` namespace, please see the changes :ref:`here <whatsnew_0200.privacy>`.
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
@@ -186,7 +186,7 @@ Previously, only ``gzip`` compression was supported. By default, compression of
 URLs and paths are now inferred using their file extensions. Additionally,
 support for bz2 compression in the python 2 C-engine improved (:issue:`14874`).
 
-.. ipython:: python
+.. code-block:: python
 
    url = 'https://github.com/{repo}/raw/{branch}/{path}'.format(
        repo = 'pandas-dev/pandas',
@@ -324,7 +324,7 @@ this JSON Table schema representation of the Series or DataFrame if you are
 using IPython (or another frontend like `nteract`_ using the Jupyter messaging
 protocol).
 This gives frontends like the Jupyter notebook and `nteract`_
-more flexiblity in how they display pandas objects, since they have
+more flexibility in how they display pandas objects, since they have
 more information about the data.
 You must enable this by setting the ``display.html.table_schema`` option to ``True``.
 
@@ -1389,7 +1389,7 @@ list, and a dict of column names to scalars or lists. This provides a useful syn
 (potentially different) aggregations.
 
 However, ``.agg(..)`` can *also* accept a dict that allows 'renaming' of the result columns. This is a complicated and confusing syntax, as well as not consistent
-between ``Series`` and ``DataFrame``. We are deprecating this 'renaming' functionaility.
+between ``Series`` and ``DataFrame``. We are deprecating this 'renaming' functionality.
 
 - We are deprecating passing a dict to a grouped/rolled/resampled ``Series``. This allowed
   one to ``rename`` the resulting aggregation, but this had a completely different
@@ -1528,7 +1528,7 @@ Removal of prior version deprecations/changes
 - The ``pandas.io.ga`` module with a ``google-analytics`` interface is removed (:issue:`11308`).
   Similar functionality can be found in the `Google2Pandas <https://github.com/panalysis/Google2Pandas>`__ package.
 - ``pd.to_datetime`` and ``pd.to_timedelta`` have dropped the ``coerce`` parameter in favor of ``errors`` (:issue:`13602`)
-- ``pandas.stats.fama_macbeth``, ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var``, as well as the top-level ``pandas.fama_macbeth`` and ``pandas.ols`` routines are removed. Similar functionaility can be found in the `statsmodels <shttp://www.statsmodels.org/dev/>`__ package. (:issue:`11898`)
+- ``pandas.stats.fama_macbeth``, ``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var``, as well as the top-level ``pandas.fama_macbeth`` and ``pandas.ols`` routines are removed. Similar functionality can be found in the `statsmodels <https://www.statsmodels.org/dev/>`__ package. (:issue:`11898`)
 - The ``TimeSeries`` and ``SparseTimeSeries`` classes, aliases of ``Series``
   and ``SparseSeries``, are removed (:issue:`10890`, :issue:`15098`).
 - ``Series.is_time_series`` is dropped in favor of ``Series.index.is_all_dates`` (:issue:`15098`)
@@ -1640,7 +1640,7 @@ I/O
 - Bug in ``pd.read_csv()`` in which missing data was being improperly handled with ``usecols`` (:issue:`6710`)
 - Bug in ``pd.read_csv()`` in which a file containing a row with many columns followed by rows with fewer columns would cause a crash (:issue:`14125`)
 - Bug in ``pd.read_csv()`` for the C engine where ``usecols`` were being indexed incorrectly with ``parse_dates`` (:issue:`14792`)
-- Bug in ``pd.read_csv()`` with ``parse_dates`` when multiline headers are specified (:issue:`15376`)
+- Bug in ``pd.read_csv()`` with ``parse_dates`` when multi-line headers are specified (:issue:`15376`)
 - Bug in ``pd.read_csv()`` with ``float_precision='round_trip'`` which caused a segfault when a text entry is parsed (:issue:`15140`)
 - Bug in ``pd.read_csv()`` when an index was specified and no values were specified as null values (:issue:`15835`)
 - Bug in ``pd.read_csv()`` in which certain invalid file objects caused the Python interpreter to crash (:issue:`15337`)
@@ -1711,7 +1711,7 @@ Reshaping
 - Bug in ``pd.concat()`` in which concatenating with an empty dataframe with ``join='inner'`` was being improperly handled (:issue:`15328`)
 - Bug with ``sort=True`` in ``DataFrame.join`` and ``pd.merge`` when joining on indexes (:issue:`15582`)
 - Bug in ``DataFrame.nsmallest`` and ``DataFrame.nlargest`` where identical values resulted in duplicated rows (:issue:`15297`)
-- Bug in :func:`pandas.pivot_table` incorrectly raising ``UnicodeError`` when passing unicode input for ```margins`` keyword (:issue:`13292`)
+- Bug in :func:`pandas.pivot_table` incorrectly raising ``UnicodeError`` when passing unicode input for ``margins`` keyword (:issue:`13292`)
 
 Numeric
 ^^^^^^^
@@ -1722,7 +1722,7 @@ Numeric
 - Bug in ``pd.cut()`` with a single bin on an all 0s array (:issue:`15428`)
 - Bug in ``pd.qcut()`` with a single quantile and an array with identical values (:issue:`15431`)
 - Bug in ``pandas.tools.utils.cartesian_product()`` with large input can cause overflow on windows (:issue:`15265`)
-- Bug in ``.eval()`` which caused multiline evals to fail with local variables not on the first line (:issue:`15342`)
+- Bug in ``.eval()`` which caused multi-line evals to fail with local variables not on the first line (:issue:`15342`)
 
 Other
 ^^^^^

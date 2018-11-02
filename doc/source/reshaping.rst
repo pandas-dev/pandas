@@ -106,12 +106,12 @@ Closely related to the :meth:`~DataFrame.pivot` method are the related
 ``MultiIndex`` objects (see the section on :ref:`hierarchical indexing
 <advanced.hierarchical>`). Here are essentially what these methods do:
 
-  - ``stack``: "pivot" a level of the (possibly hierarchical) column labels,
-    returning a ``DataFrame`` with an index with a new inner-most level of row
-    labels.
-  - ``unstack``: (inverse operation of ``stack``) "pivot" a level of the
-    (possibly hierarchical) row index to the column axis, producing a reshaped
-    ``DataFrame`` with a new inner-most level of column labels.
+* ``stack``: "pivot" a level of the (possibly hierarchical) column labels,
+  returning a ``DataFrame`` with an index with a new inner-most level of row
+  labels.
+* ``unstack``: (inverse operation of ``stack``) "pivot" a level of the
+  (possibly hierarchical) row index to the column axis, producing a reshaped
+  ``DataFrame`` with a new inner-most level of column labels.
 
 .. image:: _static/reshaping_unstack.png
 
@@ -132,8 +132,8 @@ from the hierarchical indexing section:
 The ``stack`` function "compresses" a level in the ``DataFrame``'s columns to
 produce either:
 
-  - A ``Series``, in the case of a simple column Index.
-  - A ``DataFrame``, in the case of a ``MultiIndex`` in the columns.
+* A ``Series``, in the case of a simple column Index.
+* A ``DataFrame``, in the case of a ``MultiIndex`` in the columns.
 
 If the columns have a ``MultiIndex``, you can choose which level to stack. The
 stacked level becomes the new lowest level in a ``MultiIndex`` on the columns:
@@ -351,13 +351,13 @@ strategies.
 
 It takes a number of arguments:
 
-- ``data``: a DataFrame object.
-- ``values``: a column or a list of columns to aggregate.
-- ``index``: a column, Grouper, array which has the same length as data, or list of them.
+* ``data``: a DataFrame object.
+* ``values``: a column or a list of columns to aggregate.
+* ``index``: a column, Grouper, array which has the same length as data, or list of them.
   Keys to group by on the pivot table index. If an array is passed, it is being used as the same manner as column values.
-- ``columns``: a column, Grouper, array which has the same length as data, or list of them.
+* ``columns``: a column, Grouper, array which has the same length as data, or list of them.
   Keys to group by on the pivot table column. If an array is passed, it is being used as the same manner as column values.
-- ``aggfunc``: function to use for aggregation, defaulting to ``numpy.mean``.
+* ``aggfunc``: function to use for aggregation, defaulting to ``numpy.mean``.
 
 Consider a data set like this:
 
@@ -431,17 +431,17 @@ unless an array of values and an aggregation function are passed.
 
 It takes a number of arguments
 
-- ``index``: array-like, values to group by in the rows.
-- ``columns``: array-like, values to group by in the columns.
-- ``values``: array-like, optional, array of values to aggregate according to
+* ``index``: array-like, values to group by in the rows.
+* ``columns``: array-like, values to group by in the columns.
+* ``values``: array-like, optional, array of values to aggregate according to
   the factors.
-- ``aggfunc``: function, optional, If no values array is passed, computes a
+* ``aggfunc``: function, optional, If no values array is passed, computes a
   frequency table.
-- ``rownames``: sequence, default ``None``, must match number of row arrays passed.
-- ``colnames``: sequence, default ``None``, if passed, must match number of column
+* ``rownames``: sequence, default ``None``, must match number of row arrays passed.
+* ``colnames``: sequence, default ``None``, if passed, must match number of column
   arrays passed.
-- ``margins``: boolean, default ``False``, Add row/column margins (subtotals)
-- ``normalize``: boolean, {'all', 'index', 'columns'}, or {0,1}, default ``False``.
+* ``margins``: boolean, default ``False``, Add row/column margins (subtotals)
+* ``normalize``: boolean, {'all', 'index', 'columns'}, or {0,1}, default ``False``.
   Normalize by dividing all values by the sum of values.
 
 
@@ -615,10 +615,10 @@ As with the ``Series`` version, you can pass values for the ``prefix`` and
 ``prefix_sep``. By default the column name is used as the prefix, and '_' as
 the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:
 
-- string: Use the same value for ``prefix`` or ``prefix_sep`` for each column
+* string: Use the same value for ``prefix`` or ``prefix_sep`` for each column
   to be encoded.
-- list: Must be the same length as the number of columns being encoded.
-- dict: Mapping column name to prefix.
+* list: Must be the same length as the number of columns being encoded.
+* dict: Mapping column name to prefix.
 
 .. ipython:: python
 
@@ -654,7 +654,7 @@ When a column contains only one level, it will be omitted in the result.
     pd.get_dummies(df, drop_first=True)
 
 By default new columns will have ``np.uint8`` dtype.
-To choose another dtype, use the``dtype`` argument:
+To choose another dtype, use the ``dtype`` argument:
 
 .. ipython:: python
 

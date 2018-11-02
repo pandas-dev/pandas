@@ -49,7 +49,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
     Examples
     --------
-    >>> df = DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
+    >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
     >>> scatter_matrix(df, alpha=0.2)
     """
 
@@ -338,7 +338,7 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     classes = frame[class_column].drop_duplicates()
     df = frame.drop(class_column, axis=1)
     t = np.linspace(-pi, pi, samples)
-    used_legends = set([])
+    used_legends = set()
 
     color_values = _get_standard_colors(num_colors=len(classes),
                                         colormap=colormap, color_type='random',
@@ -406,7 +406,6 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     .. plot::
             :context: close-figs
 
-            >>> import numpy as np
             >>> s = pd.Series(np.random.uniform(size=100))
             >>> fig = pd.plotting.bootstrap_plot(s)
     """
@@ -498,13 +497,12 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 
     Examples
     --------
-    >>> from pandas import read_csv
-    >>> from pandas.tools.plotting import parallel_coordinates
     >>> from matplotlib import pyplot as plt
-    >>> df = read_csv('https://raw.github.com/pandas-dev/pandas/master'
-                      '/pandas/tests/data/iris.csv')
-    >>> parallel_coordinates(df, 'Name', color=('#556270',
-                             '#4ECDC4', '#C7F464'))
+    >>> df = pd.read_csv('https://raw.github.com/pandas-dev/pandas/master'
+                        '/pandas/tests/data/iris.csv')
+    >>> pd.plotting.parallel_coordinates(
+            df, 'Name',
+            color=('#556270', '#4ECDC4', '#C7F464'))
     >>> plt.show()
     """
     if axvlines_kwds is None:
@@ -520,7 +518,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     else:
         df = frame[cols]
 
-    used_legends = set([])
+    used_legends = set()
 
     ncols = len(df.columns)
 

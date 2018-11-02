@@ -31,10 +31,10 @@ You can get/set options directly as attributes of the top-level ``options`` attr
 The API is composed of 5 relevant functions, available directly from the ``pandas``
 namespace:
 
-- :func:`~pandas.get_option` / :func:`~pandas.set_option` - get/set the value of a single option.
-- :func:`~pandas.reset_option` - reset one or more options to their default value.
-- :func:`~pandas.describe_option` - print the descriptions of one or more options.
-- :func:`~pandas.option_context` - execute a codeblock with a set of options
+* :func:`~pandas.get_option` / :func:`~pandas.set_option` - get/set the value of a single option.
+* :func:`~pandas.reset_option` - reset one or more options to their default value.
+* :func:`~pandas.describe_option` - print the descriptions of one or more options.
+* :func:`~pandas.option_context` - execute a codeblock with a set of options
   that revert to prior settings after execution.
 
 **Note:** Developers can check out `pandas/core/config.py <https://github.com/pandas-dev/pandas/blob/master/pandas/core/config.py>`_ for more information.
@@ -149,7 +149,7 @@ More information can be found in the `ipython documentation
 
 Frequently Used Options
 -----------------------
-The following is a walkthrough of the more frequently used display options.
+The following is a walk-through of the more frequently used display options.
 
 ``display.max_rows`` and ``display.max_columns`` sets the maximum number
 of rows and columns displayed when a frame is pretty-printed.  Truncated

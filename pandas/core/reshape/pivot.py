@@ -1,26 +1,25 @@
 # pylint: disable=E1103
-
-
-from pandas.core.dtypes.common import is_list_like, is_scalar
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-
-from pandas.core.reshape.concat import concat
-from pandas.core.series import Series
-from pandas.core.groupby.groupby import Grouper
-from pandas.core.reshape.util import cartesian_product
-from pandas.core.index import Index, _get_objs_combined_axis
-from pandas.compat import range, lrange, zip
-from pandas import compat
-import pandas.core.common as com
-from pandas.util._decorators import Appender, Substitution
-
-from pandas.core.frame import _shared_docs
-# Note: We need to make sure `frame` is imported before `pivot`, otherwise
-# _shared_docs['pivot_table'] will not yet exist.  TODO: Fix this dependency
-
 import numpy as np
 
+from pandas.compat import lrange, range, zip
+from pandas.util._decorators import Appender, Substitution
 
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+
+from pandas import compat
+import pandas.core.common as com
+from pandas.core.frame import _shared_docs
+from pandas.core.groupby import Grouper
+from pandas.core.index import Index, MultiIndex, _get_objs_combined_axis
+from pandas.core.reshape.concat import concat
+from pandas.core.reshape.util import cartesian_product
+from pandas.core.series import Series
+
+
+# Note: We need to make sure `frame` is imported before `pivot`, otherwise
+# _shared_docs['pivot_table'] will not yet exist.  TODO: Fix this dependency
 @Substitution('\ndata : DataFrame')
 @Appender(_shared_docs['pivot_table'], indents=1)
 def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
@@ -79,8 +78,22 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 pass
         values = list(values)
 
-    grouped = data.groupby(keys, observed=dropna)
+    # group by the cartesian product of the grouper
+    # if we have a categorical
+    grouped = data.groupby(keys, observed=False)
     agged = grouped.agg(aggfunc)
+    if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
+        agged = agged.dropna(how='all')
+
+        # gh-21133
+        # we want to down cast if
+        # the original values are ints
+        # as we grouped with a NaN value
+        # and then dropped, coercing to floats
+        for v in [v for v in values if v in data and v in agged]:
+            if (is_integer_dtype(data[v]) and
+                    not is_integer_dtype(agged[v])):
+                agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
     table = agged
     if table.index.nlevels > 1:
@@ -124,8 +137,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                              margins_name=margins_name, fill_value=fill_value)
 
     # discard the top level
-    if values_passed and not values_multi and not table.empty and \
-       (table.columns.nlevels > 1):
+    if (values_passed and not values_multi and not table.empty and
+            (table.columns.nlevels > 1)):
         table = table[values[0]]
 
     if len(index) == 0 and len(columns) > 0:
@@ -353,6 +366,30 @@ def _convert_by(by):
     return by
 
 
+@Substitution('\ndata : DataFrame')
+@Appender(_shared_docs['pivot'], indents=1)
+def pivot(data, index=None, columns=None, values=None):
+    if values is None:
+        cols = [columns] if index is None else [index, columns]
+        append = index is None
+        indexed = data.set_index(cols, append=append)
+    else:
+        if index is None:
+            index = data.index
+        else:
+            index = data[index]
+        index = MultiIndex.from_arrays([index, data[columns]])
+
+        if is_list_like(values) and not isinstance(values, tuple):
+            # Exclude tuple because it is seen as a single column name
+            indexed = data._constructor(data[values].values, index=index,
+                                        columns=values)
+        else:
+            indexed = data._constructor_sliced(data[values].values,
+                                               index=index)
+    return indexed.unstack(columns)
+
+
 def crosstab(index, columns, values=None, rownames=None, colnames=None,
              aggfunc=None, margins=False, margins_name='All', dropna=True,
              normalize=False):
@@ -430,7 +467,18 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
     >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
     >>> crosstab(foo, bar)  # 'c' and 'f' are not represented in the data,
-    ...                     # but they still will be counted in the output
+                            # and will not be shown in the output because
+                            # dropna is True by default. Set 'dropna=False'
+                            # to preserve categories with no data
+    ... # doctest: +SKIP
+    col_0  d  e
+    row_0
+    a      1  0
+    b      0  1
+
+    >>> crosstab(foo, bar, dropna=False)  # 'c' and 'f' are not represented
+                            # in the data, but they still will be counted
+                            # and shown in the output
     ... # doctest: +SKIP
     col_0  d  e  f
     row_0
@@ -443,8 +491,8 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     crosstab : DataFrame
     """
 
-    index = com._maybe_make_list(index)
-    columns = com._maybe_make_list(columns)
+    index = com.maybe_make_list(index)
+    columns = com.maybe_make_list(columns)
 
     rownames = _get_names(index, rownames, prefix='row')
     colnames = _get_names(columns, colnames, prefix='col')
