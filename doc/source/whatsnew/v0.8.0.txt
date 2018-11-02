@@ -33,7 +33,7 @@ clear of NumPy 1.6's datetime64 API functions (though limited as they are) and
 only interact with this data using the interface that pandas provides.
 
 See the end of the 0.8.0 section for a "porting" guide listing potential issues
-for users migrating legacy codebases from pandas 0.7 or earlier to 0.8.0.
+for users migrating legacy code bases from pandas 0.7 or earlier to 0.8.0.
 
 Bug fixes to the 0.7.x series for legacy NumPy < 1.6 users will be provided as
 they arise. There will be no more further development in 0.7.x beyond bug
@@ -68,7 +68,7 @@ Time series changes and improvements
   :ref:`time spans <timeseries.periods>` and performing **calendar logic**,
   including the `12 fiscal quarterly frequencies <timeseries.quarterly>`.
   This is a partial port of, and a substantial enhancement to,
-  elements of the scikits.timeseries codebase. Support for conversion between
+  elements of the scikits.timeseries code base. Support for conversion between
   PeriodIndex and DatetimeIndex
 - New Timestamp data type subclasses `datetime.datetime`, providing the same
   interface while enabling working with nanosecond-resolution data. Also
@@ -76,7 +76,7 @@ Time series changes and improvements
 - Enhanced support for :ref:`time zones <timeseries.timezone>`. Add
   `tz_convert` and ``tz_lcoalize`` methods to TimeSeries and DataFrame. All
   timestamps are stored as UTC; Timestamps from DatetimeIndex objects with time
-  zone set will be localized to localtime. Time zone conversions are therefore
+  zone set will be localized to local time. Time zone conversions are therefore
   essentially free. User needs to know very little about pytz library now; only
   time zone names as as strings are required. Time zone-aware timestamps are
   equal if and only if their UTC timestamps match. Operations between time
@@ -178,7 +178,7 @@ types. For example, ``'kde'`` is a new option:
    s = Series(np.concatenate((np.random.randn(1000),
                               np.random.randn(1000) * 0.5 + 3)))
    plt.figure()
-   s.hist(normed=True, alpha=0.2)
+   s.hist(density=True, alpha=0.2)
    s.plot(kind='kde')
 
 See :ref:`the plotting page <visualization.other>` for much more.

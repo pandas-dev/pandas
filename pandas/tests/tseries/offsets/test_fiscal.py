@@ -11,12 +11,11 @@ import pandas.util.testing as tm
 
 from pandas import Timestamp
 from pandas.tseries.frequencies import get_offset
-from pandas._libs.tslibs.frequencies import _INVALID_FREQ_ERROR
+from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 from pandas.tseries.offsets import FY5253Quarter, FY5253
-from pandas._libs.tslibs.offsets import WeekDay
 
 from .common import assert_offset_equal, assert_onOffset
-from .test_offsets import Base
+from .test_offsets import Base, WeekDay
 
 
 def makeFY5253LastOfMonthQuarter(*args, **kwds):
@@ -45,9 +44,9 @@ def test_get_offset_name():
 
 
 def test_get_offset():
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
+    with tm.assert_raises_regex(ValueError, INVALID_FREQ_ERR_MSG):
         get_offset('gibberish')
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
+    with tm.assert_raises_regex(ValueError, INVALID_FREQ_ERR_MSG):
         get_offset('QS-JAN-B')
 
     pairs = [

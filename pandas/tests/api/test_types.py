@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-
 import pytest
 
-from warnings import catch_warnings
-
-import pandas
 from pandas.api import types
 from pandas.util import testing as tm
 
@@ -31,7 +27,7 @@ class TestTypes(Base):
                'is_list_like', 'is_hashable', 'is_array_like',
                'is_named_tuple',
                'pandas_dtype', 'union_categoricals', 'infer_dtype']
-    deprecated = ['is_any_int_dtype', 'is_floating_dtype', 'is_sequence']
+    deprecated = []
     dtypes = ['CategoricalDtype', 'DatetimeTZDtype',
               'PeriodDtype', 'IntervalDtype']
 
@@ -56,10 +52,3 @@ class TestTypes(Base):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 getattr(types, t)(1)
-
-
-def test_moved_infer_dtype():
-
-    with catch_warnings(record=True):
-        e = pandas.lib.infer_dtype('foo')
-        assert e is not None

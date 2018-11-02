@@ -202,7 +202,7 @@ for storing ip addresses.
       ...:
 
 ``IPArray`` isn't a normal 1-D NumPy array, but because it's a pandas
-:class:`~pandas.api.extension.ExtensionArray`, it can be stored properly inside pandas' containers.
+:class:`~pandas.api.extensions.ExtensionArray`, it can be stored properly inside pandas' containers.
 
 .. code-block:: ipython
 
@@ -243,7 +243,7 @@ Grouping by a categorical includes the unobserved categories in the output.
 When grouping by multiple categorical columns, this means you get the cartesian product of all the
 categories, including combinations where there are no observations, which can result in a large
 number of groups. We have added a keyword ``observed`` to control this behavior, it defaults to
-``observed=False`` for backward-compatiblity. (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`, :issue:`20902`)
+``observed=False`` for backward-compatibility. (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`, :issue:`20902`)
 
 .. ipython:: python
 
@@ -535,8 +535,8 @@ Other Enhancements
 - :func:`DataFrame.replace` now supports the ``method`` parameter, which can be used to specify the replacement method when ``to_replace`` is a scalar, list or tuple and ``value`` is ``None`` (:issue:`19632`)
 - :meth:`Timestamp.month_name`, :meth:`DatetimeIndex.month_name`, and :meth:`Series.dt.month_name` are now available (:issue:`12805`)
 - :meth:`Timestamp.day_name` and :meth:`DatetimeIndex.day_name` are now available to return day names with a specified locale (:issue:`12806`)
-- :meth:`DataFrame.to_sql` now performs a multivalue insert if the underlying connection supports itk rather than inserting row by row.
-  ``SQLAlchemy`` dialects supporting multivalue inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
+- :meth:`DataFrame.to_sql` now performs a multi-value insert if the underlying connection supports itk rather than inserting row by row.
+  ``SQLAlchemy`` dialects supporting multi-value inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
 - :func:`read_html` now accepts a ``displayed_only`` keyword argument to controls whether or not hidden elements are parsed (``True`` by default) (:issue:`20027`)
 - :func:`read_html` now reads all ``<tbody>`` elements in a ``<table>``, not just the first. (:issue:`20690`)
 - :meth:`~pandas.core.window.Rolling.quantile` and :meth:`~pandas.core.window.Expanding.quantile` now accept the ``interpolation`` keyword, ``linear`` by default (:issue:`20497`)
@@ -836,7 +836,7 @@ Extraction of matching patterns from strings
 By default, extracting matching patterns from strings with :func:`str.extract` used to return a
 ``Series`` if a single group was being extracted (a ``DataFrame`` if more than one group was
 extracted). As of Pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
-``expand`` is set to ``False``. Finallay, ``None`` was an accepted value for
+``expand`` is set to ``False``. Finally, ``None`` was an accepted value for
 the ``expand`` parameter (which was equivalent to ``False``), but now raises a ``ValueError``. (:issue:`11386`)
 
 Previous Behavior:
@@ -896,7 +896,7 @@ New Behavior:
 
 Notice in the example above that the converted ``Categorical`` has retained ``ordered=True``.  Had the default value for ``ordered`` remained as ``False``, the converted ``Categorical`` would have become unordered, despite ``ordered=False`` never being explicitly specified.  To change the value of ``ordered``, explicitly pass it to the new dtype, e.g. ``CategoricalDtype(categories=list('cbad'), ordered=False)``.
 
-Note that the unintenional conversion of ``ordered`` discussed above did not arise in previous versions due to separate bugs that prevented ``astype`` from doing any type of category to category conversion (:issue:`10696`, :issue:`18593`).  These bugs have been fixed in this release, and motivated changing the default value of ``ordered``.
+Note that the unintentional conversion of ``ordered`` discussed above did not arise in previous versions due to separate bugs that prevented ``astype`` from doing any type of category to category conversion (:issue:`10696`, :issue:`18593`).  These bugs have been fixed in this release, and motivated changing the default value of ``ordered``.
 
 .. _whatsnew_0230.api_breaking.pretty_printing:
 
@@ -1107,7 +1107,7 @@ Performance Improvements
 - Improved performance of :func:`pandas.core.groupby.GroupBy.any` and :func:`pandas.core.groupby.GroupBy.all` (:issue:`15435`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.pct_change` (:issue:`19165`)
 - Improved performance of :func:`Series.isin` in the case of categorical dtypes (:issue:`20003`)
-- Improved performance of ``getattr(Series, attr)`` when the Series has certain index types. This manifiested in slow printing of large Series with a ``DatetimeIndex`` (:issue:`19764`)
+- Improved performance of ``getattr(Series, attr)`` when the Series has certain index types. This manifested in slow printing of large Series with a ``DatetimeIndex`` (:issue:`19764`)
 - Fixed a performance regression for :func:`GroupBy.nth` and :func:`GroupBy.last` with some object columns (:issue:`19283`)
 - Improved performance of :func:`pandas.core.arrays.Categorical.from_codes` (:issue:`18501`)
 
@@ -1243,8 +1243,7 @@ Offsets
 - Bug in :class:`WeekOfMonth` and :class:`LastWeekOfMonth` where default keyword arguments for constructor raised ``ValueError`` (:issue:`19142`)
 - Bug in :class:`FY5253Quarter`, :class:`LastWeekOfMonth` where rollback and rollforward behavior was inconsistent with addition and subtraction behavior (:issue:`18854`)
 - Bug in :class:`FY5253` where ``datetime`` addition and subtraction incremented incorrectly for dates on the year-end but not normalized to midnight (:issue:`18854`)
-- Bug in :class:`FY5253` where date offsets could incorrectly raise an ``AssertionError`` in arithmetic operatons (:issue:`14774`)
-
+- Bug in :class:`FY5253` where date offsets could incorrectly raise an ``AssertionError`` in arithmetic operations (:issue:`14774`)
 
 Numeric
 ^^^^^^^
@@ -1329,9 +1328,9 @@ I/O
 - :class:`Timedelta` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`, :issue:`9155`, :issue:`19900`)
 - Bug in :meth:`pandas.io.stata.StataReader.value_labels` raising an ``AttributeError`` when called on very old files. Now returns an empty dict (:issue:`19417`)
 - Bug in :func:`read_pickle` when unpickling objects with :class:`TimedeltaIndex` or :class:`Float64Index` created with pandas prior to version 0.20 (:issue:`19939`)
-- Bug in :meth:`pandas.io.json.json_normalize` where subrecords are not properly normalized if any subrecords values are NoneType (:issue:`20030`)
+- Bug in :meth:`pandas.io.json.json_normalize` where sub-records are not properly normalized if any sub-records values are NoneType (:issue:`20030`)
 - Bug in ``usecols`` parameter in :func:`read_csv` where error is not raised correctly when passing a string. (:issue:`20529`)
-- Bug in :func:`HDFStore.keys` when reading a file with a softlink causes exception (:issue:`20523`)
+- Bug in :func:`HDFStore.keys` when reading a file with a soft link causes exception (:issue:`20523`)
 - Bug in :func:`HDFStore.select_column` where a key which is not a valid store raised an ``AttributeError`` instead of a ``KeyError`` (:issue:`17912`)
 
 Plotting
@@ -1390,7 +1389,7 @@ Reshaping
 - Bug in :func:`DataFrame.merge` in which merging using ``Index`` objects as vectors raised an Exception (:issue:`19038`)
 - Bug in :func:`DataFrame.stack`, :func:`DataFrame.unstack`, :func:`Series.unstack` which were not returning subclasses (:issue:`15563`)
 - Bug in timezone comparisons, manifesting as a conversion of the index to UTC in ``.concat()`` (:issue:`18523`)
-- Bug in :func:`concat` when concatting sparse and dense series it returns only a ``SparseDataFrame``. Should be a ``DataFrame``. (:issue:`18914`, :issue:`18686`, and :issue:`16874`)
+- Bug in :func:`concat` when concatenating sparse and dense series it returns only a ``SparseDataFrame``. Should be a ``DataFrame``. (:issue:`18914`, :issue:`18686`, and :issue:`16874`)
 - Improved error message for :func:`DataFrame.merge` when there is no common merge key (:issue:`19427`)
 - Bug in :func:`DataFrame.join` which does an ``outer`` instead of a ``left`` join when being called with multiple DataFrames and some have non-unique indices (:issue:`19624`)
 - :func:`Series.rename` now accepts ``axis`` as a kwarg (:issue:`18589`)
@@ -1411,5 +1410,5 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
-- Bug in accessing a :func:`pandas.get_option`, which raised ``KeyError`` rather than ``OptionError`` when looking up a non-existant option key in some cases (:issue:`19789`)
+- Bug in accessing a :func:`pandas.get_option`, which raised ``KeyError`` rather than ``OptionError`` when looking up a non-existent option key in some cases (:issue:`19789`)
 - Bug in :func:`testing.assert_series_equal` and :func:`testing.assert_frame_equal` for Series or DataFrames with differing unicode data (:issue:`20503`)

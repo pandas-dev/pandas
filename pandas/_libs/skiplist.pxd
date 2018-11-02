@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from cython cimport Py_ssize_t
-
-from numpy cimport double_t
 
 
 cdef extern from "src/skiplist.h":
@@ -33,7 +30,7 @@ cdef extern from "src/skiplist.h":
 # Node itself not intended to be exposed.
 cdef class Node:
     cdef public:
-        double_t value
+        double value
         list next
         list width
 

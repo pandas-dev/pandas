@@ -133,7 +133,7 @@ from a ``scipy.sparse.coo_matrix``:
 String Methods Enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Following new methods are accesible via ``.str`` accessor to apply the function to each values. This is intended to make it more consistent with standard methods on strings. (:issue:`9282`, :issue:`9352`, :issue:`9386`, :issue:`9387`, :issue:`9439`)
+- Following new methods are accessible via ``.str`` accessor to apply the function to each values. This is intended to make it more consistent with standard methods on strings. (:issue:`9282`, :issue:`9352`, :issue:`9386`, :issue:`9387`, :issue:`9439`)
 
   =============  =============  =============  ===============    ===============
   ..             ..             Methods        ..                 ..
@@ -530,7 +530,7 @@ Deprecations
   We refer users to the external package `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_. (:issue:`9615`)
 
 - The ``pandas.rpy`` interface is deprecated and will be removed in a future version.
-  Similar functionaility can be accessed thru the `rpy2 <http://rpy2.bitbucket.org/>`_ project (:issue:`9602`)
+  Similar functionality can be accessed through the `rpy2 <http://rpy2.bitbucket.org/>`_ project (:issue:`9602`)
 
 - Adding ``DatetimeIndex/PeriodIndex`` to another ``DatetimeIndex/PeriodIndex`` is being deprecated as a set-operation. This will be changed to a ``TypeError`` in a future version. ``.union()`` should be used for the union set operation. (:issue:`9094`)
 - Subtracting ``DatetimeIndex/PeriodIndex`` from another ``DatetimeIndex/PeriodIndex`` is being deprecated as a set-operation. This will be changed to an actual numeric subtraction yielding a ``TimeDeltaIndex`` in a future version. ``.difference()`` should be used for the differencing set operation. (:issue:`9094`)
@@ -589,7 +589,7 @@ Bug Fixes
 - Fixed bug on big endian platforms which produced incorrect results in ``StataReader`` (:issue:`8688`).
 - Bug in ``MultiIndex.has_duplicates`` when having many levels causes an indexer overflow (:issue:`9075`, :issue:`5873`)
 - Bug in ``pivot`` and ``unstack`` where ``nan`` values would break index alignment (:issue:`4862`, :issue:`7401`, :issue:`7403`, :issue:`7405`, :issue:`7466`, :issue:`9497`)
-- Bug in left ``join`` on multi-index with ``sort=True`` or null values (:issue:`9210`).
+- Bug in left ``join`` on MultiIndex with ``sort=True`` or null values (:issue:`9210`).
 - Bug in ``MultiIndex`` where inserting new keys would fail (:issue:`9250`).
 - Bug in ``groupby`` when key space exceeds ``int64`` bounds (:issue:`9096`).
 - Bug in ``unstack`` with ``TimedeltaIndex`` or ``DatetimeIndex`` and nulls (:issue:`9491`).
@@ -601,7 +601,7 @@ Bug Fixes
 - Bug in binary operator method (eg ``.mul()``) alignment with integer levels (:issue:`9463`).
 - Bug in boxplot, scatter and hexbin plot may show an unnecessary warning (:issue:`8877`)
 - Bug in subplot with ``layout`` kw may show unnecessary warning (:issue:`9464`)
-- Bug in using grouper functions that need passed thru arguments (e.g. axis), when using wrapped function (e.g. ``fillna``), (:issue:`9221`)
+- Bug in using grouper functions that need passed through arguments (e.g. axis), when using wrapped function (e.g. ``fillna``), (:issue:`9221`)
 - ``DataFrame`` now properly supports simultaneous ``copy`` and ``dtype`` arguments in constructor (:issue:`9099`)
 - Bug in ``read_csv`` when using skiprows on a file with CR line endings with the c engine. (:issue:`9079`)
 - ``isnull`` now detects ``NaT`` in ``PeriodIndex`` (:issue:`9129`)
@@ -613,7 +613,7 @@ Bug Fixes
 - Fixed division by zero error for ``Series.kurt()`` when all values are equal (:issue:`9197`)
 - Fixed issue in the ``xlsxwriter`` engine where it added a default 'General' format to cells if no other format was applied. This prevented other row or column formatting being applied. (:issue:`9167`)
 - Fixes issue with ``index_col=False`` when ``usecols`` is also specified in ``read_csv``. (:issue:`9082`)
-- Bug where ``wide_to_long`` would modify the input stubnames list (:issue:`9204`)
+- Bug where ``wide_to_long`` would modify the input stub names list (:issue:`9204`)
 - Bug in ``to_sql`` not storing float64 values using double precision. (:issue:`9009`)
 - ``SparseSeries`` and ``SparsePanel`` now accept zero argument constructors (same as their non-sparse counterparts) (:issue:`9272`).
 - Regression in merging ``Categorical`` and ``object`` dtypes (:issue:`9426`)
@@ -624,7 +624,7 @@ Bug Fixes
 - Fixed bug with reading CSV files from Amazon S3 on python 3 raising a TypeError (:issue:`9452`)
 - Bug in the Google BigQuery reader where the 'jobComplete' key may be present but False in the query results (:issue:`8728`)
 - Bug in ``Series.values_counts`` with excluding ``NaN`` for categorical type ``Series`` with ``dropna=True`` (:issue:`9443`)
-- Fixed mising numeric_only option for ``DataFrame.std/var/sem`` (:issue:`9201`)
+- Fixed missing numeric_only option for ``DataFrame.std/var/sem`` (:issue:`9201`)
 - Support constructing ``Panel`` or ``Panel4D`` with scalar data (:issue:`8285`)
 - ``Series`` text representation disconnected from `max_rows`/`max_columns` (:issue:`7508`).
 

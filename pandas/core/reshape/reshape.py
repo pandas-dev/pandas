@@ -1,35 +1,31 @@
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
-from pandas.compat import range, text_type, zip
-from pandas import compat
 from functools import partial
 import itertools
 
 import numpy as np
 
-from pandas.core.dtypes.common import (
-    _ensure_platform_int,
-    is_list_like, is_bool_dtype,
-    needs_i8_conversion, is_sparse, is_object_dtype)
+from pandas._libs import algos as _algos, reshape as _reshape
+from pandas._libs.sparse import IntIndex
+from pandas.compat import PY2, range, text_type, u, zip
+
 from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.common import (
+    ensure_platform_int, is_bool_dtype, is_extension_array_dtype, is_list_like,
+    is_object_dtype, is_sparse, needs_i8_conversion)
 from pandas.core.dtypes.missing import notna
 
-from pandas.core.series import Series
-from pandas.core.frame import DataFrame
-
-from pandas.core.sparse.api import SparseDataFrame, SparseSeries
-from pandas.core.sparse.array import SparseArray
-from pandas._libs.sparse import IntIndex
-
-from pandas.core.arrays import Categorical
-from pandas.core.arrays.categorical import _factorize_from_iterable
-from pandas.core.sorting import (get_group_index, get_compressed_ids,
-                                 compress_group_index, decons_obs_group_ids)
-
+from pandas import compat
 import pandas.core.algorithms as algos
-from pandas._libs import algos as _algos, reshape as _reshape
-
+from pandas.core.arrays import Categorical, SparseArray
+from pandas.core.arrays.categorical import _factorize_from_iterable
+from pandas.core.frame import DataFrame
 from pandas.core.index import Index, MultiIndex
+from pandas.core.series import Series
+from pandas.core.sorting import (
+    compress_group_index, decons_obs_group_ids, get_compressed_ids,
+    get_group_index)
+from pandas.core.sparse.api import SparseDataFrame, SparseSeries
 
 
 class _Unstacker(object):
@@ -58,7 +54,6 @@ class _Unstacker(object):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
     ...                                    ('two', 'a'), ('two', 'b')])
     >>> s = pd.Series(np.arange(1, 5, dtype=np.int64), index=index)
@@ -142,7 +137,7 @@ class _Unstacker(object):
         ngroups = len(obs_ids)
 
         indexer = _algos.groupsort_indexer(comp_index, ngroups)[0]
-        indexer = _ensure_platform_int(indexer)
+        indexer = ensure_platform_int(indexer)
 
         self.sorted_values = algos.take_nd(self.values, indexer, axis=0)
         self.sorted_labels = [l.take(indexer) for l in to_sort]
@@ -157,7 +152,7 @@ class _Unstacker(object):
         comp_index, obs_ids = get_compressed_ids(remaining_labels, level_sizes)
         ngroups = len(obs_ids)
 
-        comp_index = _ensure_platform_int(comp_index)
+        comp_index = ensure_platform_int(comp_index)
         stride = self.index.levshape[self.level] + self.lift
         self.full_shape = ngroups, stride
 
@@ -384,97 +379,6 @@ def _unstack_multiple(data, clocs, fill_value=None):
     return unstacked
 
 
-def pivot(self, index=None, columns=None, values=None):
-    """
-    See DataFrame.pivot
-    """
-    if values is None:
-        cols = [columns] if index is None else [index, columns]
-        append = index is None
-        indexed = self.set_index(cols, append=append)
-    else:
-        if index is None:
-            index = self.index
-        else:
-            index = self[index]
-        index = MultiIndex.from_arrays([index, self[columns]])
-
-        if is_list_like(values) and not isinstance(values, tuple):
-            # Exclude tuple because it is seen as a single column name
-            indexed = self._constructor(self[values].values, index=index,
-                                        columns=values)
-        else:
-            indexed = self._constructor_sliced(self[values].values,
-                                               index=index)
-    return indexed.unstack(columns)
-
-
-def pivot_simple(index, columns, values):
-    """
-    Produce 'pivot' table based on 3 columns of this DataFrame.
-    Uses unique values from index / columns and fills with values.
-
-    Parameters
-    ----------
-    index : ndarray
-        Labels to use to make new frame's index
-    columns : ndarray
-        Labels to use to make new frame's columns
-    values : ndarray
-        Values to use for populating new frame's values
-
-    Notes
-    -----
-    Obviously, all 3 of the input arguments must have the same length
-
-    Returns
-    -------
-    DataFrame
-
-    See also
-    --------
-    DataFrame.pivot_table : generalization of pivot that can handle
-        duplicate values for one index/column pair
-    """
-    if (len(index) != len(columns)) or (len(columns) != len(values)):
-        raise AssertionError('Length of index, columns, and values must be the'
-                             ' same')
-
-    if len(index) == 0:
-        return DataFrame(index=[])
-
-    hindex = MultiIndex.from_arrays([index, columns])
-    series = Series(values.ravel(), index=hindex)
-    series = series.sort_index(level=0)
-    return series.unstack()
-
-
-def _slow_pivot(index, columns, values):
-    """
-    Produce 'pivot' table based on 3 columns of this DataFrame.
-    Uses unique values from index / columns and fills with values.
-
-    Parameters
-    ----------
-    index : string or object
-        Column name to use to make new frame's index
-    columns : string or object
-        Column name to use to make new frame's columns
-    values : string or object
-        Column name to use for populating new frame's values
-
-    Could benefit from some Cython here.
-    """
-    tree = {}
-    for i, (idx, col) in enumerate(zip(index, columns)):
-        if col not in tree:
-            tree[col] = {}
-        branch = tree[col]
-        branch[idx] = values[i]
-
-    return DataFrame(tree)
-
-
 def unstack(obj, level, fill_value=None):
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
@@ -519,7 +423,6 @@ def stack(frame, level=-1, dropna=True):
     -------
     stacked : Series
     """
-
     def factorize(index):
         if index.is_unique:
             return index, np.arange(len(index))
@@ -553,7 +456,25 @@ def stack(frame, level=-1, dropna=True):
                                names=[frame.index.name, frame.columns.name],
                                verify_integrity=False)
 
-    new_values = frame.values.ravel()
+    if frame._is_homogeneous_type:
+        # For homogeneous EAs, frame.values will coerce to object. So
+        # we concatenate instead.
+        dtypes = list(frame.dtypes.values)
+        dtype = dtypes[0]
+
+        if is_extension_array_dtype(dtype):
+            arr = dtype.construct_array_type()
+            new_values = arr._concat_same_type([
+                col for _, col in frame.iteritems()
+            ])
+        else:
+            # homogeneous, non-EA
+            new_values = frame.values.ravel()
+
+    else:
+        # non-homogeneous
+        new_values = frame.values.ravel()
+
     if dropna:
         mask = notna(new_values)
         new_values = new_values[mask]
@@ -725,7 +646,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     ----------
     data : array-like, Series, or DataFrame
     prefix : string, list of strings, or dict of strings, default None
-        String to append DataFrame column names
+        String to append DataFrame column names.
         Pass a list with length equal to the number of columns
         when calling get_dummies on a DataFrame. Alternatively, `prefix`
         can be a dictionary mapping column names to prefixes.
@@ -759,7 +680,6 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
     Examples
     --------
-    >>> import pandas as pd
     >>> s = pd.Series(list('abca'))
 
     >>> pd.get_dummies(s)
@@ -838,9 +758,8 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
             if is_list_like(item):
                 if not len(item) == data_to_encode.shape[1]:
-                    len_msg = \
-                        len_msg.format(name=name, len_item=len(item),
-                                       len_enc=data_to_encode.shape[1])
+                    len_msg = len_msg.format(name=name, len_item=len(item),
+                                             len_enc=data_to_encode.shape[1])
                     raise ValueError(len_msg)
 
         check_len(prefix, 'prefix')
@@ -925,13 +844,23 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
 
     number_of_cols = len(levels)
 
-    if prefix is not None:
-        dummy_strs = [u'{prefix}{sep}{level}' if isinstance(v, text_type)
-                      else '{prefix}{sep}{level}' for v in levels]
-        dummy_cols = [dummy_str.format(prefix=prefix, sep=prefix_sep, level=v)
-                      for dummy_str, v in zip(dummy_strs, levels)]
-    else:
+    if prefix is None:
         dummy_cols = levels
+    else:
+
+        # PY2 embedded unicode, gh-22084
+        def _make_col_name(prefix, prefix_sep, level):
+            fstr = '{prefix}{prefix_sep}{level}'
+            if PY2 and (isinstance(prefix, text_type) or
+                        isinstance(prefix_sep, text_type) or
+                        isinstance(level, text_type)):
+                fstr = u(fstr)
+            return fstr.format(prefix=prefix,
+                               prefix_sep=prefix_sep,
+                               level=level)
+
+        dummy_cols = [_make_col_name(prefix, prefix_sep, level)
+                      for level in levels]
 
     if isinstance(data, Series):
         index = data.index
@@ -942,10 +871,11 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         sparse_series = {}
         N = len(data)
         sp_indices = [[] for _ in range(len(dummy_cols))]
-        for ndx, code in enumerate(codes):
-            if code == -1:
-                # Blank entries if not dummy_na and code == -1, #GH4446
-                continue
+        mask = codes != -1
+        codes = codes[mask]
+        n_idx = np.arange(N)[mask]
+
+        for ndx, code in zip(n_idx, codes):
             sp_indices[code].append(ndx)
 
         if drop_first:
