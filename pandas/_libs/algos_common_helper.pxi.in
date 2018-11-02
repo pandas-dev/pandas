@@ -1,16 +1,6 @@
 """
 Template for each `dtype` helper function using 1-d template
 
-# 1-d template
-- pad
-- pad_1d
-- pad_2d
-- backfill
-- backfill_1d
-- backfill_2d
-- is_monotonic
-- arrmap
-
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
