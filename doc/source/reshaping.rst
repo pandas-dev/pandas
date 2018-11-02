@@ -713,7 +713,7 @@ handling of NaN:
 Examples
 --------
 
-In this section, we will review frequently asked questions and examples. The 
+In this section, we will review frequently asked questions and examples. The
 column names and relevant column values are named to correspond with how this
 DataFrame will be pivoted in the answers below.
 
@@ -721,7 +721,7 @@ DataFrame will be pivoted in the answers below.
 
    np.random.seed([3,1415])
    n = 20
-   
+
    cols = np.array(['key', 'row', 'item', 'col'])
    df = cols + pd.DataFrame((np.random.randint(5, size=(n, 4)) // [2, 1, 2, 1]).astype(str))
    df.columns = cols
@@ -737,9 +737,9 @@ Suppose we wanted to pivot ``df`` such that the ``col`` values are columns,
 particular, the resulting DataFrame should look like:
 
 .. code-block:: ipython
-   
+
    col   col0   col1   col2   col3  col4
-   row                                  
+   row
    row0  0.77  0.605    NaN  0.860  0.65
    row2  0.13    NaN  0.395  0.500  0.25
    row3   NaN  0.310    NaN  0.545   NaN
