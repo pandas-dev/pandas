@@ -65,3 +65,4 @@ jobs:
           # note that this will produce $LASTEXITCODE=1
           Write-Error "$($matches[1]) tests failed"
         }
+      displayName: Check for test failures
