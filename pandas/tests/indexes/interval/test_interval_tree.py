@@ -8,14 +8,28 @@ from pandas import compat
 from pandas._libs.interval import IntervalTree
 
 
+def skipif_32bit(param):
+    """
+    Skip parameters in a parametrize on 32bit systems. Specifically used
+    here to skip leaf_size parameters related to GH 23440.
+    """
+    marks = pytest.mark.skipif(compat.is_platform_32bit(),
+                               reason='GH 23440: int type mismatch on 32bit')
+    return pytest.param(param, marks=marks)
+
+
 @pytest.fixture(
     scope='class', params=['int32', 'int64', 'float32', 'float64', 'uint64'])
 def dtype(request):
     return request.param
 
 
-@pytest.fixture(params=[1, 2, 10])
+@pytest.fixture(params=[skipif_32bit(1), skipif_32bit(2), 10])
 def leaf_size(request):
+    """
+    Fixture to specify IntervalTree leaf_size parameter; to be used with the
+    tree fixture.
+    """
     return request.param
 
 
@@ -85,9 +99,8 @@ class TestIntervalTree(object):
                 tm.assert_numpy_array_equal(tree.get_loc(p),
                                             np.array([0], dtype='int64'))
 
-    @pytest.mark.skipif(compat.is_platform_32bit(),
-                        reason="int type mismatch on 32bit")
-    @pytest.mark.parametrize('leaf_size', [1, 10, 100, 10000])
+    @pytest.mark.parametrize('leaf_size', [
+        skipif_32bit(1), skipif_32bit(10), skipif_32bit(100), 10000])
     def test_get_indexer_closed(self, closed, leaf_size):
         x = np.arange(1000, dtype='float64')
         found = x.astype('intp')
