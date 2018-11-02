@@ -6522,13 +6522,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        `where` is scalar
+        scalar, Series, or DataFrame
 
-            - value or `NaN` if input is Series
-            - Series if input is DataFrame
-
-        `where` is :class:`pandas.Index`:
-            - same shape object as input
+        * scalar : when `self` is a Series and `where` is a scalar
+        * Series: when `self` is a Series and `where` is an array-like,
+          or when `self` is a DataFrame and `where` is a scalar
+        * DataFrame : when `self` is a DataFrame and `where` is an array-like
 
         See Also
         --------
@@ -6536,6 +6535,35 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
+
+        A Series and a scalar `where`.
+
+        >>> s = pd.Series([1, 2, np.nan, 4], index=[10, 20, 30, 40])
+        >>> s
+        10    1.0
+        20    2.0
+        30    NaN
+        40    4.0
+        dtype: float64
+
+        >>> s.asof(20)
+        2.0
+
+        For a sequence `where`, a Series is returned. The first value is
+        ``NaN``, because the first element of `where` is before the first
+        index value.
+
+        >>> s.asof([5, 20])
+        5     NaN
+        20    2.0
+        dtype: float64
+
+        Missing values are not considered. The following is ``2.0``, not
+        ``NaN``, even though ``NaN`` is at the index location for ``30``.
+
+        >>> s.asof(30)
+        2.0
+
         Take all columns into consideration
 
         >>> df = pd.DataFrame({'a': [10, 20, 30, 40, 50],
@@ -6553,11 +6581,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Take a single column into consideration
 
-        >>> df['a'].asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
-        ...                                '2018-02-27 09:04:30']))
-        2018-02-27 09:03:30   30.0
-        2018-02-27 09:04:30   40.0
-        Name: a, dtype: float64
+        >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
+        ...                          '2018-02-27 09:04:30']),
+        ...         subset=['a'])
+                                 a   b
+        2018-02-27 09:03:30   30.0 NaN
+        2018-02-27 09:04:30   40.0 NaN
         """
         if isinstance(where, compat.string_types):
             from pandas import to_datetime
