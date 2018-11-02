@@ -165,8 +165,8 @@ class GoodDocStrings(object):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> import numpy as np
+        >>> import pandas as pd
         >>> s = pd.Series(['Antelope', 'Lion', 'Zebra', np.nan])
         >>> s.str.contains(pat='a')
         0    False
@@ -589,7 +589,7 @@ class BadSeeAlso(object):
 
 class BadExamples(object):
 
-    def doctest(self):
+    def missing_numpy_import(self):
         """
         Return whether each value contains `pat`.
 
@@ -731,7 +731,7 @@ class TestValidator(object):
          ('pandas.Series.rename in `See Also` section '
           'does not need `pandas` prefix',)),
         # Examples tests
-        ('BadExamples', 'doctest',
+        ('BadExamples', 'missing_numpy_import',
          ('1 F821 undefined name \'np\'',))
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):

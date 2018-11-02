@@ -25,9 +25,8 @@ import inspect
 import importlib
 import doctest
 import tempfile
-from contextlib import contextmanager
 
-from flake8.main.application import Application as Flake8
+from flake8.main import application as flake8
 
 try:
     from io import StringIO
@@ -336,40 +335,25 @@ class Docstring(object):
 
         return errs
 
-    @property
-    def pep8_violations(self):
-        with self._file_representation() as file:
-            application = Flake8()
-            application.initialize(["--doctests", "--quiet"])
-            application.run_checks([file.name])
-            application.report()
-            stats = application.guide.stats
-            return [
-                "{} {} {}".format(s.count, s.error_code, s.message)
-                for s in stats.statistics_for('')
-            ]
-
-    @contextmanager
-    def _file_representation(self):
-        """
-        Temporarily creates file with current function inside.
-        The signature and body are **not** included.
-
-        :returns file
-        """
+    def validate_pep8(self):
         create_function = 'def {name}():\n' \
-                          '    """{doc}"""\n' \
+                          '    """\n{examples}\n    """\n' \
                           '    pass\n'
 
         name = self.name.split('.')[-1]
-        lines = self.clean_doc.split("\n")
-        indented_lines = [(' ' * 4) + line if line else ''
-                          for line in lines[1:]]
-        doc = '\n'.join([lines[0], *indented_lines])
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py') as file:
-            file.write(create_function.format(name=name, doc=doc))
+        lines = (' ' * 4 + line if line else '' for line in self.examples)
+        examples = '\n'.join(lines)
+        with tempfile.NamedTemporaryFile(mode='w') as file:
+            func = create_function.format(name=name, examples=examples)
+            file.write(func)
             file.flush()
-            yield file
+
+            application = flake8.Application()
+            application.initialize(["--doctests", "--quiet"])
+            application.run_checks([file.name])
+            application.report()
+
+            yield from application.guide.stats.statistics_for('')
 
     @property
     def correct_parameters(self):
@@ -486,7 +470,7 @@ def validate_one(func_name):
         if doc.summary != doc.summary.lstrip():
             errs.append('Summary contains heading whitespaces.')
         elif (doc.is_function_or_method
-              and doc.summary.split(' ')[0][-1] == 's'):
+                and doc.summary.split(' ')[0][-1] == 's'):
             errs.append('Summary must start with infinitive verb, '
                         'not third person (e.g. use "Generate" instead of '
                         '"Generates")')
@@ -530,11 +514,12 @@ def validate_one(func_name):
         for param_err in param_errs:
             errs.append('\t{}'.format(param_err))
 
-    pep8_errs = doc.pep8_violations
+    pep8_errs = [error for error in doc.validate_pep8()]
     if pep8_errs:
         errs.append('Errors in doctests')
-        for pep8_err in pep8_errs:
-            errs.append('\t{}'.format(pep8_err))
+        for err in pep8_errs:
+            errs.append('\t{} {} {}'.format(err.count, err.error_code,
+                                            err.message))
 
     if doc.is_function_or_method:
         if not doc.returns and "return" in doc.method_source:
