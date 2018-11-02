@@ -29,7 +29,7 @@ from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
 from pandas._libs.tslibs import resolution
 
 from pandas.core.algorithms import unique1d
-from pandas.core.dtypes.dtypes import PeriodDtype
+import pandas.core.arrays.datetimelike as dtl
 from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
@@ -47,17 +47,6 @@ _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(target_klass='PeriodIndex or list of Periods'))
 
-
-def _wrap_field_accessor(name):
-    fget = getattr(PeriodArray, name).fget
-
-    def f(self):
-        result = fget(self)
-        return Index(result, name=self.name)
-
-    f.__name__ = name
-    f.__doc__ = fget.__doc__
-    return property(f)
 
 # --- Period index sketch
 
@@ -211,27 +200,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
         if data is None and ordinal is None:
             # range-based.
-            if periods is not None:
-                if is_float(periods):
-                    periods = int(periods)
-
-                elif not is_integer(periods):
-                    msg = 'periods must be a number, got {periods}'
-                    raise TypeError(msg.format(periods=periods))
-
             data, freq = PeriodArray._generate_range(start, end, periods,
                                                      freq, fields)
             data = PeriodArray(data, freq=freq)
         else:
-            if freq is None and dtype is not None:
-                freq = PeriodDtype(dtype).freq
-            elif freq and dtype:
-                freq = PeriodDtype(freq).freq
-                dtype = PeriodDtype(dtype).freq
-
-                if freq != dtype:
-                    msg = "specified freq and dtype are different"
-                    raise IncompatibleFrequency(msg)
+            freq = dtl.validate_dtype_freq(dtype, freq)
 
             # PeriodIndex allow PeriodIndex(period_index, freq=different)
             # Let's not encourage that kind of behavior in PeriodArray.
@@ -398,7 +371,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     def to_timestamp(self, freq=None, how='start'):
         from pandas import DatetimeIndex
         result = self._data.to_timestamp(freq=freq, how=how)
-        return DatetimeIndex._simple_new(result,
+        return DatetimeIndex._simple_new(result.asi8,
                                          name=self.name,
                                          freq=result.freq)
 
