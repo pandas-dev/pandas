@@ -465,7 +465,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         array([False,  True, False,  True], dtype=bool)
         """
         code = self.categories.get_loc(key)
-        code = self.codes.dtype.type(code)
+        code = self.values._ensure_codes_dtype(code)
         try:
             return self._engine.get_loc(code)
         except KeyError:

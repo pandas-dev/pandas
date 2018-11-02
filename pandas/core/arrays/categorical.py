@@ -1335,6 +1335,16 @@ class Categorical(ExtensionArray, PandasObject):
         return self._codes.nbytes + self.dtype.categories.memory_usage(
             deep=deep)
 
+    def _ensure_codes_dtype(self, code):
+        """
+        Ensure ``code`` has the same dtype as self.codes.
+        """
+        dtype = self.codes.dtype
+        if is_scalar(code):
+            return dtype.type(code)
+        else:
+            return np.array(code, dtype=dtype)
+
     @Substitution(klass='Categorical')
     @Appender(_shared_docs['searchsorted'])
     def searchsorted(self, value, side='left', sorter=None):
@@ -1343,16 +1353,13 @@ class Categorical(ExtensionArray, PandasObject):
                              ".as_ordered() to change the Categorical to an "
                              "ordered one")
 
-        from pandas.core.series import Series
+        if is_scalar(value):
+            codes = self.categories.get_loc(value)
+        else:
+            codes = [self.categories.get_loc(val) for val in value]
+        codes = self._ensure_codes_dtype(codes)
 
-        values_as_codes = _get_codes_for_values(Series(value).values,
-                                                self.categories)
-
-        if -1 in values_as_codes:
-            raise ValueError("Value(s) to be inserted must be in categories.")
-
-        return self.codes.searchsorted(values_as_codes, side=side,
-                                       sorter=sorter)
+        return self.codes.searchsorted(codes, side=side, sorter=sorter)
 
     def isna(self):
         """
