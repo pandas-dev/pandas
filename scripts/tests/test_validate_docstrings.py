@@ -218,7 +218,7 @@ class GoodDocStrings(object):
         """
         pass
 
-    def good_import(self):
+    def good_imports(self):
         """
         Ensure import other than numpy and pandas are fine.
 
@@ -714,9 +714,9 @@ class TestValidator(object):
                      marks=pytest.mark.xfail),
         # Examples tests
         ('BadGenericDocStrings', 'method',
-         ('Examples should not have `import numpy` ',)),
+         ('Numpy does not need to be imported in the examples,')),
         ('BadGenericDocStrings', 'method',
-         ('Examples should not have `import pandas` ',)),
+         ('Pandas does not need to be imported in the examples,')),
         # See Also tests
         ('BadSeeAlso', 'prefix_pandas',
          ('pandas.Series.rename in `See Also` section '
