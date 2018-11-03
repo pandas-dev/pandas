@@ -418,8 +418,7 @@ one pass, you can do
 
     def nearest(self, limit=None):
         """
-        Fill the new missing values with their nearest neighbor value, based
-        on index.
+        Resample by using the nearest value.
 
         When resampling data, missing values may appear (e.g., when the
         resampling frequency is higher than the original frequency).
@@ -432,16 +431,16 @@ one pass, you can do
 
         Parameters
         ----------
-        limit : integer, optional
+        limit : int, optional
             Limit of how many values to fill.
 
             .. versionadded:: 0.21.0
 
         Returns
         -------
-        Series, DataFrame
+        Series or DataFrame
             An upsampled Series or DataFrame with ``NaN`` values filled with
-            their closest neighbor value.
+            their nearest value.
 
         See Also
         --------
@@ -456,11 +455,9 @@ one pass, you can do
 
         Examples
         --------
-
-        Resampling a Series:
-
         >>> s = pd.Series([1, 2, 3],
-        ...               index=pd.date_range('20180101', periods=3,
+        ...               index=pd.date_range('20180101',
+        ...                                   periods=3,
         ...                                   freq='1h'))
         >>> s
         2018-01-01 00:00:00    1
@@ -478,17 +475,7 @@ one pass, you can do
         2018-01-01 02:00:00    3
         Freq: 20T, dtype: int64
 
-        Resample in the middle:
-
-        >>> s.resample('30min').nearest()
-        2018-01-01 00:00:00    1
-        2018-01-01 00:30:00    2
-        2018-01-01 01:00:00    2
-        2018-01-01 01:30:00    3
-        2018-01-01 02:00:00    3
-        Freq: 30T, dtype: int64
-
-        Limited fill:
+        Limit the number of upsampled values imputed by the nearest:
 
         >>> s.resample('10min').nearest(limit=1)
         2018-01-01 00:00:00    1.0
@@ -505,55 +492,6 @@ one pass, you can do
         2018-01-01 01:50:00    3.0
         2018-01-01 02:00:00    3.0
         Freq: 10T, dtype: float64
-
-        Resampling a DataFrame that has missing values:
-
-        >>> df = pd.DataFrame({'a': [2, np.nan, 6], 'b': [1, 3, 5]},
-        ...                   index=pd.date_range('20180101', periods=3,
-        ...                                       freq='h'))
-        >>> df
-                               a  b
-        2018-01-01 00:00:00  2.0  1
-        2018-01-01 01:00:00  NaN  3
-        2018-01-01 02:00:00  6.0  5
-
-        >>> df.resample('20min').nearest()
-                               a  b
-        2018-01-01 00:00:00  2.0  1
-        2018-01-01 00:20:00  2.0  1
-        2018-01-01 00:40:00  NaN  3
-        2018-01-01 01:00:00  NaN  3
-        2018-01-01 01:20:00  NaN  3
-        2018-01-01 01:40:00  6.0  5
-        2018-01-01 02:00:00  6.0  5
-
-        Resampling a DataFrame with shuffled indexes:
-
-        >>> df = pd.DataFrame({'a': [2, 6, 4]},
-        ...                   index=pd.date_range('20180101', periods=3,
-        ...                                       freq='h'))
-        >>> df
-                             a
-        2018-01-01 00:00:00  2
-        2018-01-01 01:00:00  6
-        2018-01-01 02:00:00  4
-
-        >>> sorted_df = df.sort_values(by=['a'])
-        >>> sorted_df
-                             a
-        2018-01-01 00:00:00  2
-        2018-01-01 02:00:00  4
-        2018-01-01 01:00:00  6
-
-        >>> sorted_df.resample('20min').nearest()
-                             a
-        2018-01-01 00:00:00  2
-        2018-01-01 00:20:00  2
-        2018-01-01 00:40:00  6
-        2018-01-01 01:00:00  6
-        2018-01-01 01:20:00  6
-        2018-01-01 01:40:00  4
-        2018-01-01 02:00:00  4
         """
         return self._upsample('nearest', limit=limit)
 
