@@ -612,6 +612,8 @@ Alternatively, you can install the ``grep`` and ``xargs`` commands via the
 `MinGW <http://www.mingw.org/>`__ toolchain, and it will allow you to run the
 commands above.
 
+.. _contributing.import-formatting:
+
 Import Formatting
 ~~~~~~~~~~~~~~~~~
 *pandas* uses `isort <https://pypi.org/project/isort/>`__ to standardise import
