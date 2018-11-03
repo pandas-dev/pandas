@@ -175,6 +175,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     pandas.to_datetime : Convert argument to datetime
     """
     _resolution = cache_readonly(DatetimeArrayMixin._resolution.fget)
+    _shallow_copy = Index._shallow_copy
 
     _typ = 'datetimeindex'
     _join_precedence = 10
@@ -298,6 +299,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 data = data.astype(np.int64, copy=False)
             subarr = data.view(_NS_DTYPE)
 
+        assert isinstance(subarr, np.ndarray), type(subarr)
+        assert subarr.dtype == 'M8[ns]', subarr.dtype
+
         subarr = cls._simple_new(subarr, name=name, freq=freq, tz=tz)
         if dtype is not None:
             if not is_dtype_equal(subarr.dtype, dtype):
@@ -329,22 +333,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
-
-        if getattr(values, 'dtype', None) is None:
-            # empty, but with dtype compat
-            if values is None:
-                values = np.empty(0, dtype=_NS_DTYPE)
-                return cls(values, name=name, freq=freq, tz=tz,
-                           dtype=dtype, **kwargs)
-            values = np.array(values, copy=False)
-
-        if not is_datetime64_dtype(values):
-            values = ensure_int64(values).view(_NS_DTYPE)
-
-        values = getattr(values, 'values', values)
-
-        assert isinstance(values, np.ndarray), "values is not an np.ndarray"
-        assert is_datetime64_dtype(values)
+        # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
+        assert isinstance(values, np.ndarray), type(values)
 
         result = super(DatetimeIndex, cls)._simple_new(values, freq, tz,
                                                        **kwargs)
@@ -1134,6 +1124,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     is_year_end = wrap_field_accessor(DatetimeArrayMixin.is_year_end)
     is_leap_year = wrap_field_accessor(DatetimeArrayMixin.is_leap_year)
 
+    tz_localize = wrap_array_method(DatetimeArrayMixin.tz_localize, True)
+    tz_convert = wrap_array_method(DatetimeArrayMixin.tz_convert, True)
     to_perioddelta = wrap_array_method(DatetimeArrayMixin.to_perioddelta,
                                        False)
     to_period = wrap_array_method(DatetimeArrayMixin.to_period, True)

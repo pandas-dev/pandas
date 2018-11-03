@@ -118,6 +118,7 @@ cdef inline _npdivmod(x1, x2):
 try:
     from numpy import divmod as npdivmod
 except ImportError:
+    # numpy < 1.13
     npdivmod = _npdivmod
 
 
@@ -278,7 +279,8 @@ cdef class _Timestamp(datetime):
 
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
-        cdef datetime dtval = self.to_pydatetime()
+        cdef:
+            datetime dtval = self.to_pydatetime()
 
         self._assert_tzawareness_compat(other)
 
@@ -298,8 +300,7 @@ cdef class _Timestamp(datetime):
             elif op == Py_GE:
                 return dtval >= other
 
-    cdef int _assert_tzawareness_compat(_Timestamp self,
-                                        object other) except -1:
+    cdef _assert_tzawareness_compat(_Timestamp self, datetime other):
         if self.tzinfo is None:
             if other.tzinfo is not None:
                 raise TypeError('Cannot compare tz-naive and tz-aware '
@@ -307,7 +308,7 @@ cdef class _Timestamp(datetime):
         elif other.tzinfo is None:
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 
-    cpdef datetime to_pydatetime(_Timestamp self, warn=True):
+    cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):
         """
         Convert a Timestamp object to a native Python datetime object.
 
@@ -735,7 +736,7 @@ class Timestamp(_Timestamp):
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
 
-    def _round(self, freq, mode, ambiguous='raise'):
+    def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         if self.tz is not None:
             value = self.tz_localize(None).value
         else:
@@ -747,10 +748,12 @@ class Timestamp(_Timestamp):
         r = round_nsint64(value, mode, freq)[0]
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
-            result = result.tz_localize(self.tz, ambiguous=ambiguous)
+            result = result.tz_localize(
+                self.tz, ambiguous=ambiguous, nonexistent=nonexistent
+            )
         return result
 
-    def round(self, freq, ambiguous='raise'):
+    def round(self, freq, ambiguous='raise', nonexistent='raise'):
         """
         Round the Timestamp to the specified resolution
 
@@ -768,14 +771,27 @@ class Timestamp(_Timestamp):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
 
         Raises
         ------
         ValueError if the freq cannot be converted
         """
-        return self._round(freq, RoundTo.NEAREST_HALF_EVEN, ambiguous)
+        return self._round(
+            freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
+        )
 
-    def floor(self, freq, ambiguous='raise'):
+    def floor(self, freq, ambiguous='raise', nonexistent='raise'):
         """
         return a new Timestamp floored to this resolution
 
@@ -789,14 +805,25 @@ class Timestamp(_Timestamp):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
 
         Raises
         ------
         ValueError if the freq cannot be converted
         """
-        return self._round(freq, RoundTo.MINUS_INFTY, ambiguous)
+        return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
-    def ceil(self, freq, ambiguous='raise'):
+    def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
         """
         return a new Timestamp ceiled to this resolution
 
@@ -810,12 +837,23 @@ class Timestamp(_Timestamp):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
 
         Raises
         ------
         ValueError if the freq cannot be converted
         """
-        return self._round(freq, RoundTo.PLUS_INFTY, ambiguous)
+        return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
     @property
     def tz(self):

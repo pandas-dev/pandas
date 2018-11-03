@@ -438,6 +438,7 @@ cdef inline _extract_result(object res):
                 res = res[0]
     return res
 
+
 cdef class Slider:
     """
     Only handles contiguous data for now
