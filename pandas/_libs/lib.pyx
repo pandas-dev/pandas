@@ -347,7 +347,7 @@ def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
         int64_t idx
 
     rev_indexer = np.empty(length, dtype=np.int64)
-    rev_indexer.fill(-1)
+    rev_indexer[:] = -1
     for i in range(n):
         idx = indexer[i]
         if idx != -1:

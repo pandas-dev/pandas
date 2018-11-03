@@ -914,8 +914,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     # result_a) or right of the DST transition (store in result_b)
     result_a = np.empty(n, dtype=np.int64)
     result_b = np.empty(n, dtype=np.int64)
-    result_a.fill(NPY_NAT)
-    result_b.fill(NPY_NAT)
+    result_a[:] = NPY_NAT
+    result_b[:] = NPY_NAT
 
     idx_shifted_left = (np.maximum(0, trans.searchsorted(
         vals - DAY_NS, side='right') - 1)).astype(np.int64)
