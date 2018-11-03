@@ -1,4 +1,4 @@
-#!/usr/env/bin python
+#!/usr/bin/env python
 
 """
 self-contained to write legacy storage (pickle/msgpack) files
@@ -35,7 +35,7 @@ run under the older AND the newer version.
 """
 
 from __future__ import print_function
-from warnings import catch_warnings
+from warnings import catch_warnings, filterwarnings
 from distutils.version import LooseVersion
 from pandas import (Series, DataFrame, Panel,
                     SparseSeries, SparseDataFrame,
@@ -187,6 +187,7 @@ def create_data():
                  )
 
     with catch_warnings(record=True):
+        filterwarnings("ignore", "\\nPanel", FutureWarning)
         mixed_dup_panel = Panel({u'ItemA': frame[u'float'],
                                  u'ItemB': frame[u'int']})
         mixed_dup_panel.items = [u'ItemA', u'ItemA']
@@ -303,7 +304,7 @@ def write_legacy_pickles(output_dir):
     # make sure we are < 0.13 compat (in py3)
     try:
         from pandas.compat import zip, cPickle as pickle  # noqa
-    except:
+    except ImportError:
         import pickle
 
     version = pandas.__version__

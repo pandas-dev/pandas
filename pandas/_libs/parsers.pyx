@@ -10,12 +10,12 @@ from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
 from libc.stdlib cimport free
 from libc.string cimport strncpy, strlen, strcasecmp
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 from cpython cimport (PyObject, PyBytes_FromString,
-                      PyBytes_AsString, PyBytes_Check,
-                      PyUnicode_Check, PyUnicode_AsUTF8String,
+                      PyBytes_AsString,
+                      PyUnicode_AsUTF8String,
                       PyErr_Occurred, PyErr_Fetch)
 from cpython.ref cimport Py_XDECREF
 
@@ -29,7 +29,7 @@ cdef extern from "Python.h":
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, uint8_t, uint64_t, int64_t
+from numpy cimport ndarray, uint8_t, uint64_t, int64_t, float64_t
 cnp.import_array()
 
 from util cimport UINT64_MAX, INT64_MAX, INT64_MIN
@@ -53,7 +53,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype)
 from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
-import pandas.io.common as com
+import pandas.io.common as icom
 
 from pandas.errors import (ParserError, DtypeWarning,
                            EmptyDataError, ParserWarning)
@@ -665,7 +665,8 @@ cdef class TextReader:
             if b'utf-16' in (self.encoding or b''):
                 # we need to read utf-16 through UTF8Recoder.
                 # if source is utf-16, convert source to utf-8 by UTF8Recoder.
-                source = com.UTF8Recoder(source, self.encoding.decode('utf-8'))
+                source = icom.UTF8Recoder(source,
+                                          self.encoding.decode('utf-8'))
                 self.encoding = b'utf-8'
                 self.c_encoding = <char*> self.encoding
 
@@ -693,7 +694,7 @@ cdef class TextReader:
             if ptr == NULL:
                 if not os.path.exists(source):
                     raise compat.FileNotFoundError(
-                        'File %s does not exist' % source)
+                        'File {source} does not exist'.format(source=source))
                 raise IOError('Initializing from file failed')
 
             self.parser.source = ptr
@@ -771,9 +772,10 @@ cdef class TextReader:
 
                     if name == '':
                         if self.has_mi_columns:
-                            name = 'Unnamed: %d_level_%d' % (i, level)
+                            name = ('Unnamed: {i}_level_{lvl}'
+                                    .format(i=i, lvl=level))
                         else:
-                            name = 'Unnamed: %d' % i
+                            name = 'Unnamed: {i}'.format(i=i)
                         unnamed_count += 1
 
                     count = counts.get(name, 0)
@@ -848,8 +850,8 @@ cdef class TextReader:
             #                        'data has %d fields'
             #                        % (passed_count, field_count))
 
-            if self.has_usecols and self.allow_leading_cols and \
-                    not callable(self.usecols):
+            if (self.has_usecols and self.allow_leading_cols and
+                    not callable(self.usecols)):
                 nuse = len(self.usecols)
                 if nuse == passed_count:
                     self.leading_cols = 0
@@ -1026,8 +1028,10 @@ cdef class TextReader:
 
         if self.table_width - self.leading_cols > num_cols:
             raise ParserError(
-                "Too many columns specified: expected %s and found %s" %
-                (self.table_width - self.leading_cols, num_cols))
+                "Too many columns specified: expected {expected} and "
+                "found {found}"
+                .format(expected=self.table_width - self.leading_cols,
+                        found=num_cols))
 
         results = {}
         nused = 0
@@ -1035,8 +1039,8 @@ cdef class TextReader:
             if i < self.leading_cols:
                 # Pass through leading columns always
                 name = i
-            elif self.usecols and not callable(self.usecols) and \
-                    nused == len(self.usecols):
+            elif (self.usecols and not callable(self.usecols) and
+                    nused == len(self.usecols)):
                 # Once we've gathered all requested columns, stop. GH5766
                 break
             else:
@@ -1102,7 +1106,7 @@ cdef class TextReader:
                 col_res = _maybe_upcast(col_res)
 
             if col_res is None:
-                raise ParserError('Unable to parse column %d' % i)
+                raise ParserError('Unable to parse column {i}'.format(i=i))
 
             results[i] = col_res
 
@@ -1221,8 +1225,8 @@ cdef class TextReader:
         elif dtype.kind == 'U':
             width = dtype.itemsize
             if width > 0:
-                raise TypeError("the dtype %s is not "
-                                "supported for parsing" % dtype)
+                raise TypeError("the dtype {dtype} is not "
+                                "supported for parsing".format(dtype=dtype))
 
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
@@ -1240,12 +1244,12 @@ cdef class TextReader:
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
         elif is_datetime64_dtype(dtype):
-            raise TypeError("the dtype %s is not supported "
+            raise TypeError("the dtype {dtype} is not supported "
                             "for parsing, pass this column "
-                            "using parse_dates instead" % dtype)
+                            "using parse_dates instead".format(dtype=dtype))
         else:
-            raise TypeError("the dtype %s is not "
-                            "supported for parsing" % dtype)
+            raise TypeError("the dtype {dtype} is not "
+                            "supported for parsing".format(dtype=dtype))
 
     cdef _string_convert(self, Py_ssize_t i, int64_t start, int64_t end,
                          bint na_filter, kh_str_t *na_hashset):
@@ -1337,9 +1341,9 @@ cdef object _false_values = [b'False', b'FALSE', b'false']
 def _ensure_encoded(list lst):
     cdef list result = []
     for x in lst:
-        if PyUnicode_Check(x):
+        if isinstance(x, unicode):
             x = PyUnicode_AsUTF8String(x)
-        elif not PyBytes_Check(x):
+        elif not isinstance(x, bytes):
             x = asbytes(x)
 
         result.append(x)
@@ -1356,7 +1360,7 @@ cdef asbytes(object o):
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = _ensure_encoded(list(com._NA_VALUES))
+_NA_VALUES = _ensure_encoded(list(icom._NA_VALUES))
 
 
 def _maybe_upcast(arr):
@@ -2042,7 +2046,7 @@ cdef kh_str_t* kset_from_list(list values) except NULL:
         val = values[i]
 
         # None creeps in sometimes, which isn't possible here
-        if not PyBytes_Check(val):
+        if not isinstance(val, bytes):
             raise ValueError('Must be all encoded bytes')
 
         k = kh_put_str(table, PyBytes_AsString(val), &ret)
@@ -2057,7 +2061,7 @@ cdef kh_float64_t* kset_float64_from_list(values) except NULL:
         khiter_t k
         kh_float64_t *table
         int ret = 0
-        cnp.float64_t val
+        float64_t val
         object value
 
     table = kh_init_float64()
@@ -2100,7 +2104,7 @@ cdef raise_parser_error(object base, parser_t *parser):
                 Py_XDECREF(type)
                 raise old_exc
 
-    message = '%s. C error: ' % base
+    message = '{base}. C error: '.format(base=base)
     if parser.error_msg != NULL:
         if PY3:
             message += parser.error_msg.decode('utf-8')
@@ -2247,7 +2251,7 @@ def sanitize_objects(ndarray[object] values, set na_values,
     n = len(values)
     onan = np.nan
 
-    for i from 0 <= i < n:
+    for i in range(n):
         val = values[i]
         if (convert_empty and val == '') or (val in na_values):
             values[i] = onan

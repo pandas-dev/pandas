@@ -2,27 +2,19 @@
 missing types & inference
 """
 import numpy as np
+
 from pandas._libs import lib, missing as libmissing
-from pandas._libs.tslib import NaT, iNaT
-from .generic import (ABCMultiIndex, ABCSeries,
-                      ABCIndexClass, ABCGeneric,
-                      ABCExtensionArray)
-from .common import (is_string_dtype, is_datetimelike,
-                     is_datetimelike_v_numeric, is_float_dtype,
-                     is_datetime64_dtype, is_datetime64tz_dtype,
-                     is_timedelta64_dtype, is_interval_dtype,
-                     is_period_dtype,
-                     is_complex_dtype,
-                     is_string_like_dtype, is_bool_dtype,
-                     is_integer_dtype, is_dtype_equal,
-                     is_extension_array_dtype,
-                     needs_i8_conversion, _ensure_object,
-                     pandas_dtype,
-                     is_scalar,
-                     is_object_dtype,
-                     is_integer,
-                     _TD_DTYPE,
-                     _NS_DTYPE)
+from pandas._libs.tslibs import NaT, iNaT
+
+from .common import (
+    _NS_DTYPE, _TD_DTYPE, ensure_object, is_bool_dtype, is_complex_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_datetimelike,
+    is_datetimelike_v_numeric, is_dtype_equal, is_extension_array_dtype,
+    is_float_dtype, is_integer, is_integer_dtype, is_object_dtype,
+    is_period_dtype, is_scalar, is_string_dtype, is_string_like_dtype,
+    is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
+from .generic import (
+    ABCExtensionArray, ABCGeneric, ABCIndexClass, ABCMultiIndex, ABCSeries)
 from .inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
@@ -33,7 +25,7 @@ def isna(obj):
     """
     Detect missing values for an array-like object.
 
-    This function takes a scalar or array-like object and indictates
+    This function takes a scalar or array-like object and indicates
     whether values are missing (``NaN`` in numeric arrays, ``None`` or ``NaN``
     in object arrays, ``NaT`` in datetimelike).
 
@@ -52,7 +44,7 @@ def isna(obj):
     See Also
     --------
     notna : boolean inverse of pandas.isna.
-    Series.isna : Detetct missing values in a Series.
+    Series.isna : Detect missing values in a Series.
     DataFrame.isna : Detect missing values in a DataFrame.
     Index.isna : Detect missing values in an Index.
 
@@ -120,7 +112,9 @@ def _isna_new(obj):
         return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=isna))
-    elif isinstance(obj, list) or hasattr(obj, '__array__'):
+    elif isinstance(obj, list):
+        return _isna_ndarraylike(np.asarray(obj, dtype=object))
+    elif hasattr(obj, '__array__'):
         return _isna_ndarraylike(np.asarray(obj))
     else:
         return obj is None
@@ -146,7 +140,9 @@ def _isna_old(obj):
         return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=_isna_old))
-    elif isinstance(obj, list) or hasattr(obj, '__array__'):
+    elif isinstance(obj, list):
+        return _isna_ndarraylike_old(np.asarray(obj, dtype=object))
+    elif hasattr(obj, '__array__'):
         return _isna_ndarraylike_old(np.asarray(obj))
     else:
         return obj is None
@@ -183,19 +179,23 @@ def _use_inf_as_na(key):
 
 
 def _isna_ndarraylike(obj):
-    values = getattr(obj, 'values', obj)
+    is_extension = is_extension_array_dtype(obj)
+
+    if not is_extension:
+        # Avoid accessing `.values` on things like
+        # PeriodIndex, which may be expensive.
+        values = getattr(obj, 'values', obj)
+    else:
+        values = obj
+
     dtype = values.dtype
 
-    if is_extension_array_dtype(obj):
+    if is_extension:
         if isinstance(obj, (ABCIndexClass, ABCSeries)):
             values = obj._values
         else:
             values = obj
         result = values.isna()
-    elif is_interval_dtype(values):
-        # TODO(IntervalArray): remove this if block
-        from pandas import IntervalIndex
-        result = IntervalIndex(obj).isna()
     elif is_string_dtype(dtype):
         # Working around NumPy ticket 1542
         shape = values.shape
@@ -256,7 +256,7 @@ def notna(obj):
     """
     Detect non-missing values for an array-like object.
 
-    This function takes a scalar or array-like object and indictates
+    This function takes a scalar or array-like object and indicates
     whether values are valid (not missing, which is ``NaN`` in numeric
     arrays, ``None`` or ``NaN`` in object arrays, ``NaT`` in datetimelike).
 
@@ -275,7 +275,7 @@ def notna(obj):
     See Also
     --------
     isna : boolean inverse of pandas.notna.
-    Series.notna : Detetct valid values in a Series.
+    Series.notna : Detect valid values in a Series.
     DataFrame.notna : Detect valid values in a DataFrame.
     Index.notna : Detect valid values in an Index.
 
@@ -413,7 +413,7 @@ def array_equivalent(left, right, strict_nan=False):
         if not strict_nan:
             # isna considers NaN and None to be equivalent.
             return lib.array_equivalent_object(
-                _ensure_object(left.ravel()), _ensure_object(right.ravel()))
+                ensure_object(left.ravel()), ensure_object(right.ravel()))
 
         for left_value, right_value in zip(left, right):
             if left_value is NaT and right_value is not NaT:
@@ -470,7 +470,7 @@ def _infer_fill_value(val):
     if is_datetimelike(val):
         return np.array('NaT', dtype=val.dtype)
     elif is_object_dtype(val.dtype):
-        dtype = lib.infer_dtype(_ensure_object(val))
+        dtype = lib.infer_dtype(ensure_object(val))
         if dtype in ['datetime', 'datetime64']:
             return np.array('NaT', dtype=_NS_DTYPE)
         elif dtype in ['timedelta', 'timedelta64']:
@@ -499,9 +499,24 @@ def na_value_for_dtype(dtype, compat=True):
     Returns
     -------
     np.dtype or a pandas dtype
+
+    Examples
+    --------
+    >>> na_value_for_dtype(np.dtype('int64'))
+    0
+    >>> na_value_for_dtype(np.dtype('int64'), compat=False)
+    nan
+    >>> na_value_for_dtype(np.dtype('float64'))
+    nan
+    >>> na_value_for_dtype(np.dtype('bool'))
+    False
+    >>> na_value_for_dtype(np.dtype('datetime64[ns]'))
+    NaT
     """
     dtype = pandas_dtype(dtype)
 
+    if is_extension_array_dtype(dtype):
+        return dtype.na_value
     if (is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype) or
             is_timedelta64_dtype(dtype) or is_period_dtype(dtype)):
         return NaT

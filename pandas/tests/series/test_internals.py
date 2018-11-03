@@ -1,19 +1,19 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
 from datetime import datetime
 
-from numpy import nan
 import numpy as np
+from numpy import nan
+import pytest
 
-from pandas import Series
-from pandas.core.indexes.datetimes import Timestamp
 import pandas._libs.lib as lib
 
-from pandas.util.testing import assert_series_equal
+import pandas as pd
+from pandas import Series
+from pandas.core.indexes.datetimes import Timestamp
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
 
 
 class TestSeriesInternals(object):
@@ -309,3 +309,16 @@ class TestSeriesInternals(object):
         r = s._convert(datetime=True, numeric=True)
         e = Series([False, True, False, False], dtype=bool)
         tm.assert_series_equal(r, e)
+
+
+def test_hasnans_unchached_for_series():
+    # GH#19700
+    idx = pd.Index([0, 1])
+    assert idx.hasnans is False
+    assert 'hasnans' in idx._cache
+    ser = idx.to_series()
+    assert ser.hasnans is False
+    assert not hasattr(ser, '_cache')
+    ser.iloc[-1] = np.nan
+    assert ser.hasnans is True
+    assert pd.Series.hasnans.__doc__ == pd.Index.hasnans.__doc__

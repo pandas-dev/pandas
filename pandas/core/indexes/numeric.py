@@ -1,14 +1,17 @@
+import warnings
+
 import numpy as np
-from pandas._libs import (index as libindex,
-                          join as libjoin)
+from pandas._libs import index as libindex
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     pandas_dtype,
     needs_i8_conversion,
     is_integer_dtype,
+    is_float,
     is_bool,
     is_bool_dtype,
     is_scalar)
+from pandas.core.dtypes.missing import isna
 
 from pandas import compat
 from pandas.core import algorithms
@@ -33,10 +36,14 @@ class NumericIndex(Index):
     _is_numeric_dtype = True
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
-                fastpath=False):
+                fastpath=None):
 
-        if fastpath:
-            return cls._simple_new(data, name=name)
+        if fastpath is not None:
+            warnings.warn("The 'fastpath' keyword is deprecated, and will be "
+                          "removed in a future version.",
+                          FutureWarning, stacklevel=2)
+            if fastpath:
+                return cls._simple_new(data, name=name)
 
         # is_scalar, generators handled in coerce_to_ndarray
         data = cls._coerce_to_ndarray(data)
@@ -114,6 +121,13 @@ class NumericIndex(Index):
         """
         return False
 
+    @Appender(Index.insert.__doc__)
+    def insert(self, loc, item):
+        # treat NA values as nans:
+        if is_scalar(item) and isna(item):
+            item = self._na_value
+        return super(NumericIndex, self).insert(loc, item)
+
 
 _num_index_shared_docs['class_descr'] = """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
@@ -154,14 +168,28 @@ _int64_descr_args = dict(
 )
 
 
-class Int64Index(NumericIndex):
+class IntegerIndex(NumericIndex):
+    """
+    This is an abstract class for Int64Index, UInt64Index.
+    """
+
+    def __contains__(self, key):
+        """
+        Check if key is a float and has a decimal. If it has, return False.
+        """
+        hash(key)
+        try:
+            if is_float(key) and int(key) != key:
+                return False
+            return key in self._engine
+        except (OverflowError, TypeError, ValueError):
+            return False
+
+
+class Int64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _int64_descr_args
 
     _typ = 'int64index'
-    _left_indexer_unique = libjoin.left_join_indexer_unique_int64
-    _left_indexer = libjoin.left_join_indexer_int64
-    _inner_indexer = libjoin.inner_join_indexer_int64
-    _outer_indexer = libjoin.outer_join_indexer_int64
     _can_hold_na = False
     _engine_type = libindex.Int64Engine
     _default_dtype = np.int64
@@ -212,14 +240,10 @@ _uint64_descr_args = dict(
 )
 
 
-class UInt64Index(NumericIndex):
+class UInt64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _uint64_descr_args
 
     _typ = 'uint64index'
-    _left_indexer_unique = libjoin.left_join_indexer_unique_uint64
-    _left_indexer = libjoin.left_join_indexer_uint64
-    _inner_indexer = libjoin.inner_join_indexer_uint64
-    _outer_indexer = libjoin.outer_join_indexer_uint64
     _can_hold_na = False
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.uint64
@@ -249,9 +273,9 @@ class UInt64Index(NumericIndex):
         # Cast the indexer to uint64 if possible so
         # that the values returned from indexing are
         # also uint64.
-        keyarr = com._asarray_tuplesafe(keyarr)
+        keyarr = com.asarray_tuplesafe(keyarr)
         if is_integer_dtype(keyarr):
-            return com._asarray_tuplesafe(keyarr, dtype=np.uint64)
+            return com.asarray_tuplesafe(keyarr, dtype=np.uint64)
         return keyarr
 
     @Appender(_index_shared_docs['_convert_index_indexer'])
@@ -294,11 +318,6 @@ class Float64Index(NumericIndex):
 
     _typ = 'float64index'
     _engine_type = libindex.Float64Engine
-    _left_indexer_unique = libjoin.left_join_indexer_unique_float64
-    _left_indexer = libjoin.left_join_indexer_float64
-    _inner_indexer = libjoin.inner_join_indexer_float64
-    _outer_indexer = libjoin.outer_join_indexer_float64
-
     _default_dtype = np.float64
 
     @property
@@ -354,9 +373,9 @@ class Float64Index(NumericIndex):
         if not is_scalar(key):
             raise InvalidIndexError
 
-        k = com._values_from_object(key)
+        k = com.values_from_object(key)
         loc = self.get_loc(k)
-        new_values = com._values_from_object(series)[loc]
+        new_values = com.values_from_object(series)[loc]
 
         return new_values
 
@@ -403,7 +422,7 @@ class Float64Index(NumericIndex):
     @Appender(_index_shared_docs['get_loc'])
     def get_loc(self, key, method=None, tolerance=None):
         try:
-            if np.all(np.isnan(key)):
+            if np.all(np.isnan(key)) or is_bool(key):
                 nan_idxs = self._nan_idxs
                 try:
                     return nan_idxs.item()

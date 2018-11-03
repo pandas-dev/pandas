@@ -5,54 +5,47 @@ Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
 """
 
-import pytest
-
-from pandas.compat import StringIO, BytesIO, map
-from pandas import compat
-
 import os
 import sys
 
-from numpy import nan
 import numpy as np
+from numpy import nan
+import pytest
+
+import pandas._libs.parsers as parser
+from pandas._libs.parsers import TextReader
+import pandas.compat as compat
+from pandas.compat import BytesIO, StringIO, map
 
 from pandas import DataFrame
-from pandas.io.parsers import (read_csv, TextFileReader)
+import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
 
-import pandas.util.testing as tm
-
-from pandas._libs.parsers import TextReader
-import pandas._libs.parsers as parser
+from pandas.io.parsers import TextFileReader, read_csv
 
 
 class TestTextReader(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
+        self.dirpath = datapath('io', 'parser', 'data')
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
 
     def test_file_handle(self):
-        try:
-            f = open(self.csv1, 'rb')
+        with open(self.csv1, 'rb') as f:
             reader = TextReader(f)
-            result = reader.read()  # noqa
-        finally:
-            f.close()
+            reader.read()
 
     def test_string_filename(self):
         reader = TextReader(self.csv1, header=None)
         reader.read()
 
     def test_file_handle_mmap(self):
-        try:
-            f = open(self.csv1, 'rb')
+        with open(self.csv1, 'rb') as f:
             reader = TextReader(f, memory_map=True, header=None)
             reader.read()
-        finally:
-            f.close()
 
     def test_StringIO(self):
         with open(self.csv1, 'rb') as f:

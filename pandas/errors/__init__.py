@@ -4,7 +4,7 @@
 Expose public exceptions & warnings
 """
 
-from pandas._libs.tslib import OutOfBoundsDatetime
+from pandas._libs.tslibs import OutOfBoundsDatetime
 
 
 class PerformanceWarning(Warning):

@@ -17,6 +17,7 @@ def ensure_removed(obj, attr):
             delattr(obj, attr)
         except AttributeError:
             pass
+        obj._accessors.discard(attr)
 
 
 class MyAccessor(object):
@@ -38,13 +39,14 @@ class MyAccessor(object):
     (pd.DataFrame, pd.api.extensions.register_dataframe_accessor),
     (pd.Index, pd.api.extensions.register_index_accessor)
 ])
-def test_series_register(obj, registrar):
+def test_register(obj, registrar):
     with ensure_removed(obj, 'mine'):
         before = set(dir(obj))
         registrar('mine')(MyAccessor)
         assert obj([]).mine.prop == 'item'
         after = set(dir(obj))
         assert (before ^ after) == {'mine'}
+        assert 'mine' in obj._accessors
 
 
 def test_accessor_works():

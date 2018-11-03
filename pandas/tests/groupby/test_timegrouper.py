@@ -10,6 +10,7 @@ from numpy import nan
 import pandas as pd
 from pandas import (DataFrame, date_range, Index,
                     Series, MultiIndex, Timestamp, DatetimeIndex)
+from pandas.core.groupby.ops import BinGrouper
 from pandas.compat import StringIO
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -83,8 +84,7 @@ class TestGroupBy(object):
         g = df.groupby(pd.Grouper(freq='6M'))
         assert g.group_keys
 
-        import pandas.core.groupby.groupby
-        assert isinstance(g.grouper, pandas.core.groupby.groupby.BinGrouper)
+        assert isinstance(g.grouper, BinGrouper)
         groups = g.groups
         assert isinstance(groups, dict)
         assert len(groups) == 3

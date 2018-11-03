@@ -23,15 +23,17 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
+from distutils.version import LooseVersion
+import locale
 
 import pytest
-import locale
-from distutils.version import LooseVersion
 
-from pandas.compat import (is_platform_windows, is_platform_32bit, PY3,
-                           import_lzma)
-from pandas.core.computation.expressions import (_USE_NUMEXPR,
-                                                 _NUMEXPR_INSTALLED)
+from pandas.compat import (
+    PY3, import_lzma, is_platform_32bit, is_platform_windows)
+from pandas.compat.numpy import _np_version_under1p15
+
+from pandas.core.computation.expressions import (
+    _NUMEXPR_INSTALLED, _USE_NUMEXPR)
 
 
 def safe_import(mod_name, min_version=None):
@@ -76,17 +78,6 @@ def _skip_if_no_mpl():
         mod.use("Agg", warn=False)
     else:
         return True
-
-
-def _skip_if_mpl_1_5():
-    mod = safe_import("matplotlib")
-
-    if mod:
-        v = mod.__version__
-        if LooseVersion(v) > LooseVersion('1.4.3') or str(v)[0] == '0':
-            return True
-        else:
-            mod.use("Agg", warn=False)
 
 
 def _skip_if_mpl_2_2():
@@ -160,8 +151,10 @@ def skip_if_no(package, min_version=None):
 
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
-skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
-                                     reason="matplotlib 1.5")
+skip_if_np_lt_115 = pytest.mark.skipif(_np_version_under1p15,
+                                       reason="NumPy 1.15 or greater required")
+skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(),
+                                 reason="matplotlib is present")
 xfail_if_mpl_2_2 = pytest.mark.xfail(_skip_if_mpl_2_2(),
                                      reason="matplotlib 2.2")
 skip_if_32bit = pytest.mark.skipif(is_platform_32bit(),
@@ -187,3 +180,28 @@ skip_if_no_ne = pytest.mark.skipif(not _USE_NUMEXPR,
                                    "installed->{installed}".format(
                                        enabled=_USE_NUMEXPR,
                                        installed=_NUMEXPR_INSTALLED))
+
+
+def parametrize_fixture_doc(*args):
+    """
+    Intended for use as a decorator for parametrized fixture,
+    this function will wrap the decorated function with a pytest
+    ``parametrize_fixture_doc`` mark. That mark will format
+    initial fixture docstring by replacing placeholders {0}, {1} etc
+    with parameters passed as arguments.
+
+    Parameters:
+    ----------
+        args: iterable
+            Positional arguments for docstring.
+
+    Returns:
+    -------
+    documented_fixture: function
+        The decorated function wrapped within a pytest
+        ``parametrize_fixture_doc`` mark
+    """
+    def documented_fixture(fixture):
+        fixture.__doc__ = fixture.__doc__.format(*args)
+        return fixture
+    return documented_fixture
