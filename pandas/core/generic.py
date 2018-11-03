@@ -6517,17 +6517,17 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Notes
         -----
-        Dates are assumed to be sorted
-        Raises if this is not the case
+        Dates are assumed to be sorted. Raises if this is not the case.
 
         Returns
         -------
         scalar, Series, or DataFrame
 
-        * scalar : when `self` is a Series and `where` is a scalar
-        * Series: when `self` is a Series and `where` is an array-like,
-          or when `self` is a DataFrame and `where` is a scalar
-        * DataFrame : when `self` is a DataFrame and `where` is an array-like
+           * scalar : when `self` is a Series and `where` is a scalar
+           * Series: when `self` is a Series and `where` is an array-like,
+             or when `self` is a DataFrame and `where` is a scalar
+           * DataFrame : when `self` is a DataFrame and `where` is an
+             array-like
 
         See Also
         --------
@@ -6535,7 +6535,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-
         A Series and a scalar `where`.
 
         >>> s = pd.Series([1, 2, np.nan, 4], index=[10, 20, 30, 40])
@@ -6582,7 +6581,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Take a single column into consideration
 
         >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
-        ...                          '2018-02-27 09:04:30']),
+        ...                           '2018-02-27 09:04:30']),
         ...         subset=['a'])
                                  a   b
         2018-02-27 09:03:30   30.0 NaN
