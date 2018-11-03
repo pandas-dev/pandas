@@ -1442,7 +1442,7 @@ def extract_ordinals(object[:] values, freq):
         int64_t[:] ordinals = np.empty(n, dtype=np.int64)
         object p
 
-    freqstr = Period._maybe_convert_freq(freq).freqstr
+    freq = Period._maybe_convert_freq(freq)
 
     for i in range(n):
         p = values[i]
@@ -1453,8 +1453,8 @@ def extract_ordinals(object[:] values, freq):
             try:
                 ordinals[i] = p.ordinal
 
-                if p.freqstr != freqstr:
-                    msg = DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
+                if p.freqstr != freq.freqstr:
+                    msg = DIFFERENT_FREQ_INDEX.format(freq.freqstr, p.freqstr)
                     raise IncompatibleFrequency(msg)
 
             except AttributeError:
