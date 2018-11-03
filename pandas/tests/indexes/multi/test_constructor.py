@@ -521,7 +521,7 @@ def test_from_frame_dtype_fidelity():
     })
     original_dtypes = df.dtypes.to_dict()
 
-    expected_mi= pd.MultiIndex.from_arrays([
+    expected_mi = pd.MultiIndex.from_arrays([
         pd.date_range('19910905', periods=6, tz='US/Eastern'),
         [1, 1, 1, 2, 2, 2],
         pd.Categorical(['a', 'a', 'b', 'b', 'c', 'c'], ordered=True),
@@ -529,7 +529,7 @@ def test_from_frame_dtype_fidelity():
     ], names=['dates', 'a', 'b', 'c'])
     mi = pd.MultiIndex.from_frame(df)
     mi_dtypes = {name: mi.levels[i].dtype for i, name in enumerate(mi.names)}
-    
+
     tm.assert_index_equal(expected_mi, mi)
     assert original_dtypes == mi_dtypes
 
@@ -542,7 +542,7 @@ def test_from_frame_dtype_fidelity():
 ])
 def test_from_frame_names(names_in, names_out):
     df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
-                      columns=pd.MultiIndex.from_tuples([('L1', 'x'), 
+                      columns=pd.MultiIndex.from_tuples([('L1', 'x'),
                                                          ('L2', 'y')]))
     if names_out is None:
         with tm.assert_raises_regex(TypeError, "'names' must be a list / "
@@ -552,4 +552,3 @@ def test_from_frame_names(names_in, names_out):
     else:
         mi = pd.MultiIndex.from_frame(df, names=names_in)
         assert mi.names == names_out
-
