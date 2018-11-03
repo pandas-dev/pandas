@@ -2198,10 +2198,6 @@ class StringMethods(NoNewAttributesMixin):
         if isinstance(others, compat.string_types):
             raise ValueError("Did you mean to supply a `sep` keyword?")
         if sep is None:
-            warnings.warn('Passing `sep=None` to .str.cat is deprecated and '
-                          'will be removed in a future version. Please use '
-                          '`sep=''` to pass the default explicitly',
-                          FutureWarning, stacklevel=2)
             sep = ''
 
         if isinstance(self._orig, Index):
