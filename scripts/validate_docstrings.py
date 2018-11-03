@@ -13,6 +13,7 @@ Usage::
     $ ./validate_docstrings.py
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
+import contextlib
 import os
 import sys
 import json
@@ -26,7 +27,7 @@ import importlib
 import doctest
 import tempfile
 
-from flake8.main import application as flake8
+import flake8.main.application
 
 try:
     from io import StringIO
@@ -335,25 +336,32 @@ class Docstring(object):
 
         return errs
 
-    def validate_pep8(self):
-        create_function = 'def {name}():\n' \
-                          '    """\n{examples}\n    """\n' \
-                          '    pass\n'
-
-        name = self.name.split('.')[-1]
-        lines = (' ' * 4 + line if line else '' for line in self.examples)
-        examples = '\n'.join(lines)
+    @contextlib.contextmanager
+    def _write_examples_code_to_temp_file(self):
+        """
+        Generate file with source code from examples section.
+        """
+        content = ''.join(('import numpy as np; '
+                           'import pandas as pd  # noqa: F401,E702\n',
+                           *self.examples_source_code))
         with tempfile.NamedTemporaryFile(mode='w') as file:
-            func = create_function.format(name=name, examples=examples)
-            file.write(func)
+            file.write(content)
             file.flush()
+            yield file
 
-            application = flake8.Application()
-            application.initialize(["--doctests", "--quiet"])
-            application.run_checks([file.name])
-            application.report()
+    def validate_pep8(self):
+        if self.examples:
+            with self._write_examples_code_to_temp_file() as file:
+                application = flake8.main.application.Application()
+                application.initialize(["--quiet"])
+                application.run_checks([file.name])
+                application.report()
 
-            yield from application.guide.stats.statistics_for('')
+            for statistic in application.guide.stats.statistics_for(''):
+                if statistic.message.endswith('from line 1'):
+                    statistic.message = "It's assumed that pandas and numpy" \
+                                        " are imported as pd or np"
+                yield statistic
 
     @property
     def correct_parameters(self):
@@ -514,7 +522,7 @@ def validate_one(func_name):
         for param_err in param_errs:
             errs.append('\t{}'.format(param_err))
 
-    pep8_errs = [error for error in doc.validate_pep8()]
+    pep8_errs = list(doc.validate_pep8())
     if pep8_errs:
         errs.append('Linting issues in doctests:')
         for err in pep8_errs:

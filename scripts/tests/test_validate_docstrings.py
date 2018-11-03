@@ -127,7 +127,6 @@ class GoodDocStrings(object):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> s = pd.Series(['Ant', 'Bear', 'Cow', 'Dog', 'Falcon'])
         >>> s.head()
         0   Ant
@@ -165,8 +164,6 @@ class GoodDocStrings(object):
 
         Examples
         --------
-        >>> import numpy as np
-        >>> import pandas as pd
         >>> s = pd.Series(['Antelope', 'Lion', 'Zebra', np.nan])
         >>> s.str.contains(pat='a')
         0    False
@@ -322,8 +319,6 @@ class BadGenericDocStrings(object):
 
         Examples
         --------
-        >>> import numpy as np
-        >>> import pandas as pd
         >>> df = pd.DataFrame(np.ones((3, 3)),
         ...                   columns=('a', 'b', 'c'))
         >>> df.all(1)
@@ -589,23 +584,47 @@ class BadSeeAlso(object):
 
 class BadExamples(object):
 
-    def missing_numpy_import(self):
+    def numpy_imported(self):
         """
-        Return whether each value contains `pat`.
+        Examples
+        --------
+        >>> import numpy as np
+        >>> df = pd.DataFrame(np.ones((3, 3)), columns=('a', 'b', 'c'))
+        """
+        pass
 
+    def pandas_imported(self):
+        """
         Examples
         --------
         >>> import pandas as pd
-        >>> df = pd.DataFrame(np.ones((3, 3)),
-        ...                   columns=('a', 'b', 'c'))
-        >>> df.all(1)
-        0    True
-        1    True
-        2    True
-        dtype: bool
+        >>> s = pd.Series(['Antelope', 'Lion', 'Zebra', np.nan])
+        """
+        pass
 
-        >>> df.all(bool_only=True)
-        Series([], dtype: bool)
+    def missing_whitespace_around_arithmetic_operator(self):
+        """
+        Examples
+        --------
+        >>> 2+5
+        7
+        """
+        pass
+
+    def indentation_is_not_a_multiple_of_four(self):
+        """
+        Examples
+        --------
+        >>> if 2 + 5:
+        ...   pass
+        """
+        pass
+
+    def missing_whitespace_after_comma(self):
+        """
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.ones((3,3)),columns=('a','b', 'c'))
         """
         pass
 
@@ -731,8 +750,18 @@ class TestValidator(object):
          ('pandas.Series.rename in `See Also` section '
           'does not need `pandas` prefix',)),
         # Examples tests
-        ('BadExamples', 'missing_numpy_import',
-         ('1 F821 undefined name \'np\'',))
+        ('BadExamples', 'numpy_imported',
+         ('F811 It\'s assumed that pandas and numpy'
+          ' are imported as pd or np',)),
+        ('BadExamples', 'pandas_imported',
+         ('F811 It\'s assumed that pandas and numpy'
+          ' are imported as pd or np',)),
+        ('BadExamples', 'indentation_is_not_a_multiple_of_four',
+         ('E111 indentation is not a multiple of four',)),
+        ('BadExamples', 'missing_whitespace_around_arithmetic_operator',
+         ('E226 missing whitespace around arithmetic operator',)),
+        ('BadExamples', 'missing_whitespace_after_comma',
+         ('3 E231 missing whitespace after \',\'',)),
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))
