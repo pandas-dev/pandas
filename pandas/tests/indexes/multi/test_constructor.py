@@ -510,3 +510,39 @@ def test_from_frame_squeeze(squeeze, input_type, expected):
 def test_from_frame_non_frame():
     with tm.assert_raises_regex(TypeError, 'Input must be a DataFrame'):
         pd.MultiIndex.from_frame([1, 2, 3, 4])
+
+
+def test_from_frame_dtype_fidelity():
+    df = pd.DataFrame({
+        'dates': pd.date_range('19910905', periods=6),
+        'a': [1,1,1,2,2,2],
+        'b': pd.Categorical(['a', 'a', 'b', 'b', 'c', 'c'], ordered=True),
+        'c': ['x', 'x', 'y', 'z', 'x', 'y']
+    })
+    original_dtypes = df.dtypes.to_dict()
+    mi = pd.MultiIndex.from_frame(df)
+    mi_dtypes = {name: mi.levels[i].dtype for i, name in enumerate(mi.names)}
+    assert original_dtypes == mi_dtypes
+
+
+def test_from_frame_names_as_list():
+    df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
+                      columns=['L1', 'L2'])
+    mi = pd.MultiIndex.from_frame(df, names=['a', 'b'])
+    assert mi.names == ['a', 'b']
+
+
+def test_from_frame_names_as_callable():
+    df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
+                      columns=pd.MultiIndex.from_tuples([('L1', 'x'),
+                                                         ('L2', 'y')]))
+    mi = pd.MultiIndex.from_frame(df, names=lambda x: '_'.join(x))
+    assert mi.names == ['L1_x', 'L2_y']
+
+
+def test_from_frame_names_bad_input():
+    df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
+                      columns=['L1', 'L2'])
+    with tm.assert_raises_regex(TypeError, "names' must be a list / sequence "
+                                           "of column names, or a callable."):
+        pd.MultiIndex.from_frame(df, names='bad')
