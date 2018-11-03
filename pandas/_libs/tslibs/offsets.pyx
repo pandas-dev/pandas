@@ -532,7 +532,8 @@ cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
     New month number after shifting npy_datetimestruct
     number of months.
     """
-    cdef int new_month = (dts.month + months) % 12
+    cdef:
+        int new_month = (dts.month + months) % 12
     return 12 if new_month == 0 else new_month
 
 
