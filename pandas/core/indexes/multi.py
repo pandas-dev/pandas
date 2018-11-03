@@ -1421,7 +1421,7 @@ class MultiIndex(Index):
         return MultiIndex(levels, labels, sortorder=sortorder, names=names)
 
     @classmethod
-    def from_frame(cls, df, squeeze=True, names=None):
+    def from_frame(cls, df, names=None, squeeze=True):
         """
         Make a MultiIndex from a DataFrame.
 
@@ -1429,13 +1429,13 @@ class MultiIndex(Index):
         ----------
         df : pd.DataFrame
             DataFrame to be converted to MultiIndex.
-        squeeze : bool, default True
-            If df is a single column, squeeze MultiIndex to be a regular Index.
-        names : list / sequence / callable, optonal
+        names : list-like / callable, optonal
             If no names provided, use column names, or tuple of column names if
             the columns is a MultiIndex. If sequence, overwrite names with the
             given sequence. If callable, pass each column name or tuples of
             names to the callable.
+        squeeze : bool, default True
+            If df is a single column, squeeze MultiIndex to be a regular Index.
 
         Returns
         -------
@@ -1460,6 +1460,30 @@ class MultiIndex(Index):
         MultiIndex(levels=[[0, 1, 2], ['happy', 'jolly', 'joy']],
                    labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 2, 2]],
                    names=['number', 'mood'])
+        >>> df = pd.DataFrame([[0], [1]], columns=['number'])
+        >>> df
+           number
+        0       0
+        1       1
+        >>> pd.MultiIndex.from_frame(df)
+        Int64Index([0, 1], dtype='int64', name='number')
+        >>> pd.MultiIndex.from_frame(df, squeeze=False)
+        MultiIndex(levels=[[0, 1]],
+                   labels=[[0, 1]],
+                   names=['number'])
+        >>> df = pd.DataFrame([['a', 'b'], ['c', 'd'], ['e', 'f']],
+        ...                   columns=pd.MultiIndex.from_tuples([('L1', 'x'), 
+        ...                                                      ('L2', 'y')]))
+        >>> df
+          L1 L2
+           x  y
+        0  a  b
+        1  c  d
+        2  e  f
+        >>> pd.MultiIndex.from_frame(df, names=lambda x: '_'.join(x))
+        MultiIndex(levels=[['a', 'c', 'e'], ['b', 'd', 'f']],
+                   labels=[[0, 1, 2], [0, 1, 2]],
+                   names=['L1_x', 'L2_y'])
 
         See Also
         --------
