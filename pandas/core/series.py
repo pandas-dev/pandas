@@ -2311,7 +2311,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.combine_first : Combine Series values, choosing the calling
-                                Series' values first
+                               Series' values first
 
         Examples
         --------
@@ -2329,16 +2329,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    4
         dtype: int64
 
-        When fill_value is given:-
+        `fill_value` is the _default comparison value_ 
+        in the function if a value is missing in the series.
         >>> s1.combine(s2, lambda x1, x2: x1 if x1 > x2 else x2,
-        ...            fill_value = 787)
+        ...            fill_value=787)
         0      1
         1      3
         2    787
         dtype: int64
 
-        If `func` doesn't get a value from either of the two Series,
-        fill_value` is used.
         """
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
