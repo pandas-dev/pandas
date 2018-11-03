@@ -313,7 +313,7 @@ def group_last_{{name}}(ndarray[{{c_type}}, ndim=2] out,
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object> out).shape, dtype=np.int64)
-    {{if name=='object'}}
+    {{if name == 'object'}}
     resx = np.empty((<object> out).shape, dtype=object)
     {{else}}
     resx = np.empty_like(out)
@@ -667,11 +667,6 @@ def group_max(ndarray[groupby_t, ndim=2] out,
                     out[i, j] = maxx[i, j]
 
 
-group_max_float64 = group_max["float64_t"]
-group_max_float32 = group_max["float32_t"]
-group_max_int64 = group_max["int64_t"]
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_min(ndarray[groupby_t, ndim=2] out,
@@ -734,11 +729,6 @@ def group_min(ndarray[groupby_t, ndim=2] out,
                     out[i, j] = minx[i, j]
 
 
-group_min_float64 = group_min["float64_t"]
-group_min_float32 = group_min["float32_t"]
-group_min_int64 = group_min["int64_t"]
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cummin(ndarray[groupby_t, ndim=2] out,
@@ -787,11 +777,6 @@ def group_cummin(ndarray[groupby_t, ndim=2] out,
                         out[i, j] = mval
 
 
-group_cummin_float64 = group_cummin["float64_t"]
-group_cummin_float32 = group_cummin["float32_t"]
-group_cummin_int64 = group_cummin["int64_t"]
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cummax(ndarray[groupby_t, ndim=2] out,
@@ -837,8 +822,3 @@ def group_cummax(ndarray[groupby_t, ndim=2] out,
                         if val > mval:
                             accum[lab, j] = mval = val
                         out[i, j] = mval
-
-
-group_cummax_float64 = group_cummax["float64_t"]
-group_cummax_float32 = group_cummax["float32_t"]
-group_cummax_int64 = group_cummax["int64_t"]

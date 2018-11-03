@@ -3,19 +3,22 @@ HTML IO.
 
 """
 
+from distutils.version import LooseVersion
 import numbers
 import os
 import re
-from distutils.version import LooseVersion
 
-import pandas.core.common as com
-from pandas import Series, compat
+import pandas.compat as compat
 from pandas.compat import (
     binary_type, iteritems, lmap, lrange, raise_with_traceback, string_types,
-    u
-)
-from pandas.core.dtypes.common import is_list_like
+    u)
 from pandas.errors import EmptyDataError
+
+from pandas.core.dtypes.common import is_list_like
+
+from pandas import Series
+import pandas.core.common as com
+
 from pandas.io.common import _is_url, _validate_header_arg, urlopen
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser

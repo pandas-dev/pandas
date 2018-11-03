@@ -2,13 +2,13 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 import pandas._libs.tslib as tslib
-import pandas.util.testing as tm
-from pandas import DatetimeIndex, PeriodIndex, Series, Period, Index
 
+import pandas as pd
+from pandas import DatetimeIndex, Index, Period, PeriodIndex, Series
 from pandas.core.arrays import PeriodArray
 from pandas.tests.test_base import Ops
+import pandas.util.testing as tm
 
 
 class TestPeriodIndexOps(Ops):
@@ -312,17 +312,6 @@ class TestPeriodIndexOps(Ops):
             exp = np.array([2, 1, 3, 4, 0])
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq == 'D'
-
-    def test_nat_new(self):
-
-        idx = pd.period_range('2011-01', freq='M', periods=5, name='x')
-        result = idx._nat_new()
-        exp = pd.PeriodIndex([pd.NaT] * 5, freq='M', name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx._nat_new(box=False)
-        exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
-        tm.assert_numpy_array_equal(result, exp)
 
     def test_shift(self):
         # This is tested in test_arithmetic
