@@ -473,6 +473,8 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bint:
     return True
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def astype_intsafe(ndarray[object] arr, new_dtype):
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -494,28 +496,80 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
     return result
 
 
-def astype_unicode(arr: ndarray) -> ndarray[object]:
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def astype_unicode(arr: ndarray,
+                   skipna: bool=False) -> ndarray[object]:
+    """
+    Convert all elements in an array to unicode.
+
+    Parameters
+    ----------
+    arr : ndarray
+        The array whose elements we are casting.
+    skipna : bool, default False
+        Whether or not to coerce nulls to their stringified form
+        (e.g. NaN becomes 'nan').
+
+    Returns
+    -------
+    casted_arr : ndarray
+        A new array with the input array's elements casted.
+    """
     cdef:
+        object arr_i
         Py_ssize_t i, n = arr.size
         ndarray[object] result = np.empty(n, dtype=object)
 
     for i in range(n):
-        result[i] = unicode(arr[i])
+        arr_i = arr[i]
+
+        if not (skipna and checknull(arr_i)):
+            arr_i = unicode(arr_i)
+
+        result[i] = arr_i
 
     return result
 
 
-def astype_str(arr: ndarray) -> ndarray[object]:
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def astype_str(arr: ndarray,
+               skipna: bool=False) -> ndarray[object]:
+    """
+    Convert all elements in an array to string.
+
+    Parameters
+    ----------
+    arr : ndarray
+        The array whose elements we are casting.
+    skipna : bool, default False
+        Whether or not to coerce nulls to their stringified form
+        (e.g. NaN becomes 'nan').
+
+    Returns
+    -------
+    casted_arr : ndarray
+        A new array with the input array's elements casted.
+    """
     cdef:
+        object arr_i
         Py_ssize_t i, n = arr.size
         ndarray[object] result = np.empty(n, dtype=object)
 
     for i in range(n):
-        result[i] = str(arr[i])
+        arr_i = arr[i]
+
+        if not (skipna and checknull(arr_i)):
+            arr_i = str(arr_i)
+
+        result[i] = arr_i
 
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def clean_index_list(list obj):
     """
     Utility used in pandas.core.index.ensure_index
@@ -537,11 +591,9 @@ def clean_index_list(list obj):
 
     # don't force numpy coerce with nan's
     inferred = infer_dtype(obj)
-    if inferred in ['string', 'bytes', 'unicode',
-                    'mixed', 'mixed-integer']:
+    if inferred in ['string', 'bytes', 'unicode', 'mixed', 'mixed-integer']:
         return np.asarray(obj, dtype=object), 0
     elif inferred in ['integer']:
-
         # TODO: we infer an integer but it *could* be a unint64
         try:
             return np.asarray(obj, dtype='int64'), 0

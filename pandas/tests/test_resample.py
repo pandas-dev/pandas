@@ -2114,6 +2114,28 @@ class TestDatetimeIndex(Base):
                                            freq='H'))
         tm.assert_series_equal(result, expected)
 
+    def test_downsample_across_dst_weekly(self):
+        # GH 9119, GH 21459
+        df = DataFrame(index=DatetimeIndex([
+            '2017-03-25', '2017-03-26', '2017-03-27',
+            '2017-03-28', '2017-03-29'
+        ], tz='Europe/Amsterdam'),
+            data=[11, 12, 13, 14, 15])
+        result = df.resample('1W').sum()
+        expected = DataFrame([23, 42], index=pd.DatetimeIndex([
+            '2017-03-26', '2017-04-02'
+        ], tz='Europe/Amsterdam'))
+        tm.assert_frame_equal(result, expected)
+
+        idx = pd.date_range("2013-04-01", "2013-05-01", tz='Europe/London',
+                            freq='H')
+        s = Series(index=idx)
+        result = s.resample('W').mean()
+        expected = Series(index=pd.date_range(
+            '2013-04-07', freq='W', periods=5, tz='Europe/London'
+        ))
+        tm.assert_series_equal(result, expected)
+
     def test_resample_with_nat(self):
         # GH 13020
         index = DatetimeIndex([pd.NaT,
@@ -2223,7 +2245,7 @@ class TestPeriodIndex(Base):
             expected = obj.to_timestamp().resample(freq).asfreq()
         else:
             start = obj.index[0].to_timestamp(how='start')
-            end = (obj.index[-1] + 1).to_timestamp(how='start')
+            end = (obj.index[-1] + obj.index.freq).to_timestamp(how='start')
             new_index = date_range(start=start, end=end, freq=freq,
                                    closed='left')
             expected = obj.to_timestamp().reindex(new_index).to_period(freq)
@@ -2445,7 +2467,8 @@ class TestPeriodIndex(Base):
         # Create the expected series
         # Index is moved back a day with the timezone conversion from UTC to
         # Pacific
-        expected_index = (pd.period_range(start=start, end=end, freq='D') - 1)
+        expected_index = (pd.period_range(start=start, end=end, freq='D') -
+                          offsets.Day())
         expected = Series(1, index=expected_index)
         assert_series_equal(result, expected)
 
@@ -2481,7 +2504,7 @@ class TestPeriodIndex(Base):
         # Index is moved back a day with the timezone conversion from UTC to
         # Pacific
         expected_index = (pd.period_range(start=start, end=end, freq='D',
-                                          name='idx') - 1)
+                                          name='idx') - offsets.Day())
         expected = Series(1, index=expected_index)
         assert_series_equal(result, expected)
 

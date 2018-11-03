@@ -1,10 +1,16 @@
 # pylint: disable=W0223
 import textwrap
 import warnings
+
 import numpy as np
-from pandas.compat import range, zip
+from pandas._libs.indexing import _NDFrameIndexerBase
+from pandas.util._decorators import Appender
+
+from pandas.errors import AbstractMethodError
+
 import pandas.compat as compat
-from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
+from pandas.compat import range, zip
+
 from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_integer, is_float,
@@ -14,14 +20,11 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_sparse,
     ensure_platform_int)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.missing import isna, _infer_fill_value
-from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender
-
-from pandas.core.index import Index, MultiIndex
 
 import pandas.core.common as com
-from pandas._libs.indexing import _NDFrameIndexerBase
+from pandas.core.index import Index, MultiIndex
 
 
 # the supported indexers
@@ -304,8 +307,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         self._has_valid_setitem_indexer(indexer)
 
         # also has the side effect of consolidating in-place
-        # TODO: Panel, DataFrame are not imported, remove?
-        from pandas import Panel, DataFrame, Series  # noqa
+        from pandas import Series
         info_axis = self.obj._info_axis_number
 
         # maybe partial set
@@ -553,14 +555,14 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                         is_scalar(plane_indexer[0])):
                     return False
 
-                l = len(value)
                 item = labels[0]
                 index = self.obj[item].index
 
+                values_len = len(value)
                 # equal len list/ndarray
-                if len(index) == l:
+                if len(index) == values_len:
                     return True
-                elif lplane_indexer == l:
+                elif lplane_indexer == values_len:
                     return True
 
                 return False
@@ -717,8 +719,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
                 # single indexer
                 if len(indexer) > 1 and not multiindex_indexer:
-                    l = len(indexer[1])
-                    ser = np.tile(ser, l).reshape(l, -1).T
+                    len_indexer = len(indexer[1])
+                    ser = np.tile(ser, len_indexer).reshape(len_indexer, -1).T
 
                 return ser
 
@@ -1834,8 +1836,8 @@ class _LocIndexer(_LocationIndexer):
         """Translate any partial string timestamp matches in key, returning the
         new key (GH 10331)"""
         if isinstance(labels, MultiIndex):
-            if isinstance(key, compat.string_types) and \
-                    labels.levels[0].is_all_dates:
+            if (isinstance(key, compat.string_types) and
+                    labels.levels[0].is_all_dates):
                 # Convert key '2016-01-01' to
                 # ('2016-01-01'[, slice(None, None, None)]+)
                 key = tuple([key] + [slice(None)] * (len(labels.levels) - 1))
@@ -1845,8 +1847,8 @@ class _LocIndexer(_LocationIndexer):
                 # (..., slice('2016-01-01', '2016-01-01', None), ...)
                 new_key = []
                 for i, component in enumerate(key):
-                    if isinstance(component, compat.string_types) and \
-                            labels.levels[i].is_all_dates:
+                    if (isinstance(component, compat.string_types) and
+                            labels.levels[i].is_all_dates):
                         new_key.append(slice(component, component, None))
                     else:
                         new_key.append(component)
@@ -2077,9 +2079,9 @@ class _iLocIndexer(_LocationIndexer):
         elif is_list_like_indexer(key):
             # check that the key does not exceed the maximum size of the index
             arr = np.array(key)
-            l = len(self.obj._get_axis(axis))
+            len_axis = len(self.obj._get_axis(axis))
 
-            if len(arr) and (arr.max() >= l or arr.min() < -l):
+            if len(arr) and (arr.max() >= len_axis or arr.min() < -len_axis):
                 raise IndexError("positional indexers are out-of-bounds")
         else:
             raise ValueError("Can only index by location with "
@@ -2136,9 +2138,8 @@ class _iLocIndexer(_LocationIndexer):
             If 'key' is not a valid position in axis 'axis'
         """
 
-        ax = self.obj._get_axis(axis)
-        l = len(ax)
-        if key >= l or key < -l:
+        len_axis = len(self.obj._get_axis(axis))
+        if key >= len_axis or key < -len_axis:
             raise IndexError("single positional indexer is out-of-bounds")
 
     def _getitem_tuple(self, tup):
@@ -2146,7 +2147,7 @@ class _iLocIndexer(_LocationIndexer):
         self._has_valid_tuple(tup)
         try:
             return self._getitem_lowerdim(tup)
-        except:
+        except IndexingError:
             pass
 
         retval = self.obj
@@ -2425,18 +2426,18 @@ def length_of_indexer(indexer, target=None):
     """return the length of a single non-tuple indexer which could be a slice
     """
     if target is not None and isinstance(indexer, slice):
-        l = len(target)
+        target_len = len(target)
         start = indexer.start
         stop = indexer.stop
         step = indexer.step
         if start is None:
             start = 0
         elif start < 0:
-            start += l
-        if stop is None or stop > l:
-            stop = l
+            start += target_len
+        if stop is None or stop > target_len:
+            stop = target_len
         elif stop < 0:
-            stop += l
+            stop += target_len
         if step is None:
             step = 1
         elif step < 0:
@@ -2705,13 +2706,13 @@ def maybe_droplevels(index, key):
         for _ in key:
             try:
                 index = index.droplevel(0)
-            except:
+            except ValueError:
                 # we have dropped too much, so back out
                 return original_index
     else:
         try:
             index = index.droplevel(0)
-        except:
+        except ValueError:
             pass
 
     return index

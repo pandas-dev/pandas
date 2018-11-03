@@ -1,12 +1,13 @@
 import numpy as np
 import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.tests.extension import base
 
 pytest.importorskip('pyarrow', minversion="0.10.0")
 
-from .bool import ArrowBoolDtype, ArrowBoolArray
+from .bool import ArrowBoolArray, ArrowBoolDtype
 
 
 @pytest.fixture
@@ -17,7 +18,12 @@ def dtype():
 @pytest.fixture
 def data():
     return ArrowBoolArray.from_scalars(np.random.randint(0, 2, size=100,
-                                       dtype=bool))
+                                                         dtype=bool))
+
+
+@pytest.fixture
+def data_missing():
+    return ArrowBoolArray.from_scalars([None, True])
 
 
 class BaseArrowTests(object):
@@ -37,6 +43,15 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
 class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     def test_from_dtype(self, data):
         pytest.skip("GH-22666")
+
+
+class TestReduce(base.BaseNoReduceTests):
+    def test_reduce_series_boolean(self):
+        pass
+
+
+class TestReduceBoolean(base.BaseBooleanReduceTests):
+    pass
 
 
 def test_is_bool_dtype(data):

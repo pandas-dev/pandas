@@ -15,10 +15,11 @@ import warnings
 import numpy as np
 
 from pandas.util._decorators import Appender
+
+import pandas as pd
 from pandas import compat
 
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
-import pandas as pd
+from pandas.io.common import BaseIterator, get_filepath_or_buffer
 
 _correct_line1 = ("HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
                   "000000000000000000000000000000  ")
@@ -246,7 +247,7 @@ class XportReader(BaseIterator):
             contents = filepath_or_buffer.read()
             try:
                 contents = contents.encode(self._encoding)
-            except:
+            except UnicodeEncodeError:
                 pass
             self.filepath_or_buffer = compat.BytesIO(contents)
 

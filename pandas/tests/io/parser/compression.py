@@ -5,15 +5,17 @@ Tests compressed data parsing functionality for all
 of the parsers defined in parsers.py
 """
 
+import bz2
+import gzip
+
 import pytest
 
-import pandas as pd
 import pandas.compat as compat
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
-import gzip
-import bz2
+import pandas as pd
+import pandas.util.testing as tm
+
 try:
     lzma = compat.import_lzma()
 except ImportError:

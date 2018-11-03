@@ -323,32 +323,35 @@ class TestDatetimeIndexComparisons(object):
         with pytest.raises(TypeError):
             dti >= other
 
-    def test_dti_cmp_nat(self):
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_dti_cmp_nat(self, dtype):
         left = pd.DatetimeIndex([pd.Timestamp('2011-01-01'), pd.NaT,
                                  pd.Timestamp('2011-01-03')])
         right = pd.DatetimeIndex([pd.NaT, pd.NaT, pd.Timestamp('2011-01-03')])
 
-        for lhs, rhs in [(left, right),
-                         (left.astype(object), right.astype(object))]:
-            result = rhs == lhs
-            expected = np.array([False, False, True])
-            tm.assert_numpy_array_equal(result, expected)
+        lhs, rhs = left, right
+        if dtype is object:
+            lhs, rhs = left.astype(object), right.astype(object)
 
-            result = lhs != rhs
-            expected = np.array([True, True, False])
-            tm.assert_numpy_array_equal(result, expected)
+        result = rhs == lhs
+        expected = np.array([False, False, True])
+        tm.assert_numpy_array_equal(result, expected)
 
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
+        result = lhs != rhs
+        expected = np.array([True, True, False])
+        tm.assert_numpy_array_equal(result, expected)
 
-            expected = np.array([True, True, True])
-            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
+        expected = np.array([False, False, False])
+        tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
+        tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
 
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
+        expected = np.array([True, True, True])
+        tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
+        tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
+
+        expected = np.array([False, False, False])
+        tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
+        tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
 
     def test_dti_cmp_nat_behaves_like_float_cmp_nan(self):
         fidx1 = pd.Index([1.0, np.nan, 3.0, np.nan, 5.0, 7.0])
@@ -674,6 +677,51 @@ class TestTimestampSeriesArithmetic(object):
     # TODO: This next block of tests came from tests.series.test_operators,
     # needs to be de-duplicated and parametrized over `box` classes
 
+    def test_operators_datetimelike_invalid(self, all_arithmetic_operators):
+        # these are all TypeEror ops
+        op_str = all_arithmetic_operators
+
+        def check(get_ser, test_ser):
+
+            # check that we are getting a TypeError
+            # with 'operate' (from core/ops.py) for the ops that are not
+            # defined
+            op = getattr(get_ser, op_str, None)
+            with tm.assert_raises_regex(TypeError, 'operate|cannot'):
+                op(test_ser)
+
+        # ## timedelta64 ###
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+
+        # ## datetime64 ###
+        dt1 = Series([Timestamp('20111230'), Timestamp('20120101'),
+                      Timestamp('20120103')])
+        dt1.iloc[2] = np.nan
+        dt2 = Series([Timestamp('20111231'), Timestamp('20120102'),
+                      Timestamp('20120104')])
+        if op_str not in ['__sub__', '__rsub__']:
+            check(dt1, dt2)
+
+        # ## datetime64 with timetimedelta ###
+        # TODO(jreback) __rsub__ should raise?
+        if op_str not in ['__add__', '__radd__', '__sub__']:
+            check(dt1, td1)
+
+        # 8260, 10763
+        # datetime64 with tz
+        tz = 'US/Eastern'
+        dt1 = Series(date_range('2000-01-01 09:00:00', periods=5,
+                                tz=tz), name='foo')
+        dt2 = dt1.copy()
+        dt2.iloc[2] = np.nan
+        td1 = Series(pd.timedelta_range('1 days 1 min', periods=5, freq='H'))
+        td2 = td1.copy()
+        td2.iloc[1] = np.nan
+
+        if op_str not in ['__add__', '__radd__', '__sub__', '__rsub__']:
+            check(dt2, td2)
+
     @pytest.mark.parametrize('klass', [Series, pd.Index])
     def test_sub_datetime64_not_ns(self, klass):
         # GH#7996
@@ -901,13 +949,15 @@ class TestTimestampSeriesArithmetic(object):
 
         other = Series([20, 30, 40], dtype='uint8')
 
-        pytest.raises(TypeError, getattr(ser, op), 1)
-
-        pytest.raises(TypeError, getattr(ser, op), other)
-
-        pytest.raises(TypeError, getattr(ser, op), other.values)
-
-        pytest.raises(TypeError, getattr(ser, op), pd.Index(other))
+        method = getattr(ser, op)
+        with pytest.raises(TypeError):
+            method(1)
+        with pytest.raises(TypeError):
+            method(other)
+        with pytest.raises(TypeError):
+            method(other.values)
+        with pytest.raises(TypeError):
+            method(pd.Index(other))
 
     # -------------------------------------------------------------
     # Timezone-Centric Tests
@@ -994,10 +1044,6 @@ class TestDatetimeIndexArithmetic(object):
         msg = "cannot add"
         with tm.assert_raises_regex(TypeError, msg):
             idx + Timestamp('2011-01-01')
-
-    def test_dti_radd_timestamp_raises(self):
-        idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
-        msg = "cannot add DatetimeIndex and Timestamp"
         with tm.assert_raises_regex(TypeError, msg):
             Timestamp('2011-01-01') + idx
 
@@ -1009,7 +1055,8 @@ class TestDatetimeIndexArithmetic(object):
         tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01 09:00', freq='H',
                             periods=10, tz=tz)
-        result = rng + one
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = rng + one
         expected = pd.date_range('2000-01-01 10:00', freq='H',
                                  periods=10, tz=tz)
         tm.assert_index_equal(result, expected)
@@ -1020,14 +1067,16 @@ class TestDatetimeIndexArithmetic(object):
                             periods=10, tz=tz)
         expected = pd.date_range('2000-01-01 10:00', freq='H',
                                  periods=10, tz=tz)
-        rng += one
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            rng += one
         tm.assert_index_equal(rng, expected)
 
     def test_dti_sub_int(self, tz_naive_fixture, one):
         tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01 09:00', freq='H',
                             periods=10, tz=tz)
-        result = rng - one
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = rng - one
         expected = pd.date_range('2000-01-01 08:00', freq='H',
                                  periods=10, tz=tz)
         tm.assert_index_equal(result, expected)
@@ -1038,7 +1087,8 @@ class TestDatetimeIndexArithmetic(object):
                             periods=10, tz=tz)
         expected = pd.date_range('2000-01-01 08:00', freq='H',
                                  periods=10, tz=tz)
-        rng -= one
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            rng -= one
         tm.assert_index_equal(rng, expected)
 
     # -------------------------------------------------------------
@@ -1050,10 +1100,15 @@ class TestDatetimeIndexArithmetic(object):
         # GH#19959
         dti = pd.date_range('2016-01-01', periods=2, freq=freq)
         other = box([4, -1])
-        expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))])
-        result = dti + other
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = DatetimeIndex([dti[n] + other[n]
+                                      for n in range(len(dti))])
+            result = dti + other
         tm.assert_index_equal(result, expected)
-        result = other + dti
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = other + dti
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('freq', ['W', 'M', 'MS', 'Q'])
@@ -1062,11 +1117,21 @@ class TestDatetimeIndexArithmetic(object):
         # GH#19959
         dti = pd.date_range('2016-01-01', periods=2, freq=freq)
         other = box([4, -1])
-        expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))])
-        with tm.assert_produces_warning(PerformanceWarning):
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = DatetimeIndex([dti[n] + other[n]
+                                      for n in range(len(dti))])
+
+        # tm.assert_produces_warning does not handle cases where we expect
+        # two warnings, in this case PerformanceWarning and FutureWarning.
+        # Until that is fixed, we don't catch either
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
             result = dti + other
         tm.assert_index_equal(result, expected)
-        with tm.assert_produces_warning(PerformanceWarning):
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
             result = other + dti
         tm.assert_index_equal(result, expected)
 
@@ -1600,13 +1665,15 @@ class TestDatetimeIndexArithmetic(object):
         dti = pd.date_range('2017-01-01', periods=2, tz=tz)
         other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        clear=[pd.core.arrays.datetimelike]):
             res = dti + other
         expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))],
                                  name=dti.name, freq='infer')
         tm.assert_index_equal(res, expected)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        clear=[pd.core.arrays.datetimelike]):
             res2 = other + dti
         tm.assert_index_equal(res2, expected)
 
@@ -1620,13 +1687,15 @@ class TestDatetimeIndexArithmetic(object):
         other = pd.Index([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
                          name=names[1])
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        clear=[pd.core.arrays.datetimelike]):
             res = dti + other
         expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))],
                                  name=names[2], freq='infer')
         tm.assert_index_equal(res, expected)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        clear=[pd.core.arrays.datetimelike]):
             res2 = other + dti
         tm.assert_index_equal(res2, expected)
 
@@ -1636,7 +1705,8 @@ class TestDatetimeIndexArithmetic(object):
         dti = pd.date_range('2017-01-01', periods=2, tz=tz)
         other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        clear=[pd.core.arrays.datetimelike]):
             res = dti - other
         expected = DatetimeIndex([dti[n] - other[n] for n in range(len(dti))],
                                  name=dti.name, freq='infer')
@@ -1652,7 +1722,8 @@ class TestDatetimeIndexArithmetic(object):
         other = pd.Index([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
                          name=names[1])
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        clear=[pd.core.arrays.datetimelike]):
             res = dti - other
         expected = DatetimeIndex([dti[n] - other[n] for n in range(len(dti))],
                                  name=names[2], freq='infer')
@@ -1671,18 +1742,21 @@ class TestDatetimeIndexArithmetic(object):
         expected_add = Series([dti[n] + other[n] for n in range(len(dti))],
                               name=names[2])
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        clear=[pd.core.arrays.datetimelike]):
             res = dti + other
         tm.assert_series_equal(res, expected_add)
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        clear=[pd.core.arrays.datetimelike]):
             res2 = other + dti
         tm.assert_series_equal(res2, expected_add)
 
         expected_sub = Series([dti[n] - other[n] for n in range(len(dti))],
                               name=names[2])
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning,
+                                        clear=[pd.core.arrays.datetimelike]):
             res3 = dti - other
         tm.assert_series_equal(res3, expected_sub)
 
@@ -1716,11 +1790,11 @@ def test_dt64_with_offset_array(klass):
     # GH#10699
     # array of offsets
     box = Series if klass is Series else pd.Index
-    dti = DatetimeIndex([Timestamp('2000-1-1'), Timestamp('2000-2-1')])
 
-    s = klass(dti)
+    s = klass([Timestamp('2000-1-1'), Timestamp('2000-2-1')])
 
-    with tm.assert_produces_warning(PerformanceWarning):
+    with tm.assert_produces_warning(PerformanceWarning,
+                                    clear=[pd.core.arrays.datetimelike]):
         result = s + box([pd.offsets.DateOffset(years=1),
                           pd.offsets.MonthEnd()])
         exp = klass([Timestamp('2001-1-1'), Timestamp('2000-2-29')])

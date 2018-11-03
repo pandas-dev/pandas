@@ -1,6 +1,7 @@
 from warnings import catch_warnings, simplefilter
 from itertools import combinations
 from collections import deque
+from decimal import Decimal
 
 import datetime as dt
 import dateutil
@@ -8,17 +9,17 @@ import numpy as np
 from numpy.random import randn
 
 from datetime import datetime
-from pandas.compat import StringIO, iteritems, PY2
+from pandas.compat import Iterable, StringIO, iteritems, PY2
 import pandas as pd
 from pandas import (DataFrame, concat,
                     read_csv, isna, Series, date_range,
                     Index, Panel, MultiIndex, Timestamp,
                     DatetimeIndex, Categorical)
-from pandas.compat import Iterable
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.util import testing as tm
 from pandas.util.testing import (assert_frame_equal,
                                  makeCustomDataframe as mkdf)
+from pandas.tests.extension.decimal import to_decimal
 
 import pytest
 
@@ -92,7 +93,7 @@ class TestConcatAppendCommon(ConcatenateBase):
                 assert obj.dtype == label
         elif isinstance(obj, pd.Series):
             if label.startswith('period'):
-                assert obj.dtype == 'object'
+                assert obj.dtype == 'Period[M]'
             else:
                 assert obj.dtype == label
         else:
@@ -1552,12 +1553,11 @@ class TestConcatenate(ConcatenateBase):
         panel1 = make_panel()
         panel2 = make_panel()
 
-        panel2 = panel2.rename_axis({x: "%s_1" % x
-                                     for x in panel2.major_axis},
-                                    axis=1)
+        panel2 = panel2.rename(major_axis={x: "%s_1" % x
+                                           for x in panel2.major_axis})
 
-        panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)
-        panel3 = panel3.rename_axis(lambda x: '%s_1' % x, axis=2)
+        panel3 = panel2.rename(major_axis=lambda x: '%s_1' % x)
+        panel3 = panel3.rename(minor_axis=lambda x: '%s_1' % x)
 
         # it works!
         concat([panel1, panel3], axis=1, verify_integrity=True, sort=sort)
@@ -1994,12 +1994,11 @@ bar2,12,13,14,15
     def test_concat_period_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='D'))
-        expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
+        expected = Series([x[0], x[1], y[0], y[1]], dtype='Period[D]')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
-        assert result.dtype == 'object'
 
-        # different freq
+    def test_concat_period_multiple_freq_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='M'))
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
@@ -2007,6 +2006,7 @@ bar2,12,13,14,15
         tm.assert_series_equal(result, expected)
         assert result.dtype == 'object'
 
+    def test_concat_period_other_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='M'))
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
@@ -2360,6 +2360,18 @@ bar2,12,13,14,15
                                  'b': [np.nan] * 3 + [1, 2, 3]},
                                 index=idx1.append(idx1))
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(PY2, reason="Unhashable Decimal dtype")
+    def test_concat_different_extension_dtypes_upcasts(self):
+        a = pd.Series(pd.core.arrays.integer_array([1, 2]))
+        b = pd.Series(to_decimal([1, 2]))
+
+        result = pd.concat([a, b], ignore_index=True)
+        expected = pd.Series([
+            1, 2,
+            Decimal(1), Decimal(2)
+        ], dtype=object)
+        tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])

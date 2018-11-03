@@ -1,18 +1,25 @@
-import os
 import importlib
+import os
 
+import hypothesis
+from hypothesis import strategies as st
+import numpy as np
 import pytest
 
-import pandas
-import numpy as np
-import pandas as pd
 from pandas.compat import PY3
 import pandas.util._test_decorators as td
-import hypothesis
 
+import pandas as pd
 
 hypothesis.settings.register_profile(
     "ci",
+    # Hypothesis timing checks are tuned for scalars by default, so we bump
+    # them from 200ms to 500ms per test case as the global default.  If this
+    # is too short for a specific test, (a) try to make it faster, and (b)
+    # if it really is slow add `@settings(deadline=...)` with a working value,
+    # or `deadline=None` to entirely disable timeouts for that test.
+    deadline=500,
+    timeout=hypothesis.unlimited,
     suppress_health_check=(hypothesis.HealthCheck.too_slow,)
 )
 hypothesis.settings.load_profile("ci")
@@ -127,6 +134,30 @@ if not PY3:
 def all_arithmetic_operators(request):
     """
     Fixture for dunder names for common arithmetic operations
+    """
+    return request.param
+
+
+_all_numeric_reductions = ['sum', 'max', 'min',
+                           'mean', 'prod', 'std', 'var', 'median',
+                           'kurt', 'skew']
+
+
+@pytest.fixture(params=_all_numeric_reductions)
+def all_numeric_reductions(request):
+    """
+    Fixture for numeric reduction names
+    """
+    return request.param
+
+
+_all_boolean_reductions = ['all', 'any']
+
+
+@pytest.fixture(params=_all_boolean_reductions)
+def all_boolean_reductions(request):
+    """
+    Fixture for boolean reduction names
     """
     return request.param
 
@@ -256,7 +287,7 @@ def datapath(request):
 @pytest.fixture
 def iris(datapath):
     """The iris dataset as a DataFrame."""
-    return pandas.read_csv(datapath('data', 'iris.csv'))
+    return pd.read_csv(datapath('data', 'iris.csv'))
 
 
 @pytest.fixture(params=['nlargest', 'nsmallest'])
@@ -271,6 +302,14 @@ def nselect_method(request):
 def closed(request):
     """
     Fixture for trying all interval closed parameters
+    """
+    return request.param
+
+
+@pytest.fixture(params=['left', 'right', 'both', 'neither'])
+def other_closed(request):
+    """
+    Secondary closed fixture to allow parametrizing over all pairs of closed
     """
     return request.param
 
@@ -475,7 +514,6 @@ def mock():
 # ----------------------------------------------------------------
 # Global setup for tests using Hypothesis
 
-from hypothesis import strategies as st
 
 # Registering these strategies makes them globally available via st.from_type,
 # which is use for offsets in tests/tseries/offsets/test_offsets_properties.py
