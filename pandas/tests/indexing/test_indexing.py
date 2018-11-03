@@ -1103,3 +1103,6 @@ def test_extension_array_cross_section_converts():
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
+
+def check_test():
+    assert False
