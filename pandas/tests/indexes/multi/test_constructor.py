@@ -514,35 +514,42 @@ def test_from_frame_non_frame():
 
 def test_from_frame_dtype_fidelity():
     df = pd.DataFrame({
-        'dates': pd.date_range('19910905', periods=6),
+        'dates': pd.date_range('19910905', periods=6, tz='US/Eastern'),
         'a': [1, 1, 1, 2, 2, 2],
         'b': pd.Categorical(['a', 'a', 'b', 'b', 'c', 'c'], ordered=True),
         'c': ['x', 'x', 'y', 'z', 'x', 'y']
     })
     original_dtypes = df.dtypes.to_dict()
+
+    expected_mi= pd.MultiIndex.from_arrays([
+        pd.date_range('19910905', periods=6, tz='US/Eastern'),
+        [1, 1, 1, 2, 2, 2],
+        pd.Categorical(['a', 'a', 'b', 'b', 'c', 'c'], ordered=True),
+        ['x', 'x', 'y', 'z', 'x', 'y']
+    ], names=['dates', 'a', 'b', 'c'])
     mi = pd.MultiIndex.from_frame(df)
     mi_dtypes = {name: mi.levels[i].dtype for i, name in enumerate(mi.names)}
+    
+    tm.assert_index_equal(expected_mi, mi)
     assert original_dtypes == mi_dtypes
 
 
-def test_from_frame_names_as_list():
+@pytest.mark.parametrize('names_in,names_out', [
+    (None, [('L1', 'x'), ('L2', 'y')]),
+    (['x', 'y'], ['x', 'y']),
+    (lambda x: '_'.join(x), ['L1_x', 'L2_y']),
+    ('bad_input', None),
+])
+def test_from_frame_names(names_in, names_out):
     df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
-                      columns=['L1', 'L2'])
-    mi = pd.MultiIndex.from_frame(df, names=['a', 'b'])
-    assert mi.names == ['a', 'b']
-
-
-def test_from_frame_names_as_callable():
-    df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
-                      columns=pd.MultiIndex.from_tuples([('L1', 'x'),
+                      columns=pd.MultiIndex.from_tuples([('L1', 'x'), 
                                                          ('L2', 'y')]))
-    mi = pd.MultiIndex.from_frame(df, names=lambda x: '_'.join(x))
-    assert mi.names == ['L1_x', 'L2_y']
+    if names_out is None:
+        with tm.assert_raises_regex(TypeError, "'names' must be a list / "
+                                               "sequence of column names, "
+                                               "or a callable."):
+            pd.MultiIndex.from_frame(df, names=names_in)
+    else:
+        mi = pd.MultiIndex.from_frame(df, names=names_in)
+        assert mi.names == names_out
 
-
-def test_from_frame_names_bad_input():
-    df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
-                      columns=['L1', 'L2'])
-    with tm.assert_raises_regex(TypeError, "names' must be a list / sequence "
-                                           "of column names, or a callable."):
-        pd.MultiIndex.from_frame(df, names='bad')
