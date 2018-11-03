@@ -304,7 +304,7 @@ def fast_zip(list ndarrays):
 
     # initialize tuples on first pass
     arr = ndarrays[0]
-    it = <flatiter> PyArray_IterNew(arr)
+    it = <flatiter>PyArray_IterNew(arr)
     for i in range(n):
         val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
         tup = PyTuple_New(k)
@@ -316,7 +316,7 @@ def fast_zip(list ndarrays):
 
     for j in range(1, k):
         arr = ndarrays[j]
-        it = <flatiter> PyArray_IterNew(arr)
+        it = <flatiter>PyArray_IterNew(arr)
         if len(arr) != n:
             raise ValueError('all arrays must be same length')
 
@@ -1994,8 +1994,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                 break
         elif util.is_integer_object(val):
             seen.int_ = 1
-            floats[i] = <float64_t> val
-            complexes[i] = <double complex> val
+            floats[i] = <float64_t>val
+            complexes[i] = <double complex>val
             if not seen.null_:
                 seen.saw_int(int(val))
 

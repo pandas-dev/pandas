@@ -32,7 +32,7 @@ cdef float64_t MINfloat64 = np.NINF
 cdef float32_t MAXfloat32 = np.inf
 cdef float64_t MAXfloat64 = np.inf
 
-cdef double NaN = <double> np.NaN
+cdef double NaN = <double>np.NaN
 
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
@@ -1498,7 +1498,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
                     output[i] = skiplist_get(skiplist, 0, &ret)
                 else:
                     idx_with_fraction = quantile * (nobs - 1)
-                    idx = <int> idx_with_fraction
+                    idx = <int>idx_with_fraction
 
                     if idx_with_fraction == idx:
                         # no need to interpolate
@@ -1529,7 +1529,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
                     elif interpolation_type == MIDPOINT:
                         vlow = skiplist_get(skiplist, idx, &ret)
                         vhigh = skiplist_get(skiplist, idx + 1, &ret)
-                        output[i] = <double> (vlow + vhigh) / 2
+                        output[i] = <double>(vlow + vhigh) / 2
             else:
                 output[i] = NaN
 
