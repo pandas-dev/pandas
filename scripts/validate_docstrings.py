@@ -404,9 +404,8 @@ class Docstring(object):
 
     @property
     def examples_source_code(self):
-        codes = doctest.DocTestParser().get_examples(self.raw_doc)
-        lines = [line.source for line in codes]
-        return lines
+        lines = doctest.DocTestParser().get_examples(self.raw_doc)
+        return [line.source for line in lines]
 
 
 def validate_one(func_name):
