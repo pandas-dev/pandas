@@ -939,7 +939,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
 
     if infer_dst:
         dst_hours = np.empty(n, dtype=np.int64)
-        dst_hours.fill(NPY_NAT)
+        dst_hours[:] = NPY_NAT
 
         # Get the ambiguous hours (given the above, these are the hours
         # where result_a != result_b and neither of them are NAT)
