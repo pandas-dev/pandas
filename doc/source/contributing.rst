@@ -658,7 +658,7 @@ to automatically format imports correctly. This will modify your local copy of t
 
 The `--recursive` flag can be passed to sort all files in a directory.
 
-You can then verify the changes look ok then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
+You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
