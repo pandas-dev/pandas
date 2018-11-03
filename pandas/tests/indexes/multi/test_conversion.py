@@ -85,11 +85,12 @@ def test_to_frame():
 def test_to_frame_dtype_fidelity():
     mi = pd.MultiIndex.from_arrays([
         pd.date_range('19910905', periods=6),
-        [1,1,1,2,2,2],
+        [1, 1, 1, 2, 2, 2],
         pd.Categorical(['a', 'a', 'b', 'b', 'c', 'c'], ordered=True),
         ['x', 'x', 'y', 'z', 'x', 'y']
     ], names=['dates', 'a', 'b', 'c'])
-    original_dtypes = {name: mi.levels[i].dtype for i, name in enumerate(mi.names)}
+    original_dtypes = {name: mi.levels[i].dtype 
+                       for i, name in enumerate(mi.names)}
     df = mi.to_frame()
     df_dtypes = df.dtypes.to_dict()
     assert original_dtypes == df_dtypes

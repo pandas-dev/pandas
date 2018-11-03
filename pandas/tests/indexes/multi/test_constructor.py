@@ -515,7 +515,7 @@ def test_from_frame_non_frame():
 def test_from_frame_dtype_fidelity():
     df = pd.DataFrame({
         'dates': pd.date_range('19910905', periods=6),
-        'a': [1,1,1,2,2,2],
+        'a': [1, 1, 1, 2, 2, 2],
         'b': pd.Categorical(['a', 'a', 'b', 'b', 'c', 'c'], ordered=True),
         'c': ['x', 'x', 'y', 'z', 'x', 'y']
     })
