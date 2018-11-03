@@ -100,10 +100,6 @@ def test_repeat():
         numbers, names.repeat(reps)], names=names)
     tm.assert_index_equal(m.repeat(reps), expected)
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = m.repeat(n=reps)
-        tm.assert_index_equal(result, expected)
-
 
 def test_insert_base(idx):
 
@@ -126,5 +122,5 @@ def test_delete_base(idx):
     assert result.name == expected.name
 
     with pytest.raises((IndexError, ValueError)):
-        # either depending on numpy version
-        result = idx.delete(len(idx))
+        # Exception raised depends on NumPy version.
+        idx.delete(len(idx))

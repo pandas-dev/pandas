@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import sys
 
 import numpy as np
-
-import pandas.util.testing as tm
-from pandas import Categorical, Index, Series
+import pytest
 
 from pandas.compat import PYPY
+
+from pandas import Categorical, Index, Series
+import pandas.util.testing as tm
 
 
 class TestCategoricalAnalytics(object):
@@ -117,11 +117,6 @@ class TestCategoricalAnalytics(object):
         # searchsorted call for unordered Categorical
         pytest.raises(ValueError, lambda: c2.searchsorted('apple'))
         pytest.raises(ValueError, lambda: s2.searchsorted('apple'))
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = c1.searchsorted(v=['bread'])
-            exp = np.array([3], dtype=np.intp)
-            tm.assert_numpy_array_equal(res, exp)
 
     def test_unique(self):
         # categories are reordered based on value when ordered=False

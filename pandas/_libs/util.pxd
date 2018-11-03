@@ -30,11 +30,6 @@ cdef extern from *:
     const char *get_c_string(object) except NULL
 
 
-cdef extern from "src/numpy_helper.h":
-    int assign_value_1d(ndarray, Py_ssize_t, object) except -1
-    object get_value_1d(ndarray, Py_ssize_t)
-
-
 cdef extern from "src/headers/stdint.h":
     enum: UINT8_MAX
     enum: UINT16_MAX
@@ -116,26 +111,4 @@ cdef inline object get_value_at(ndarray arr, object loc):
         Py_ssize_t i
 
     i = validate_indexer(arr, loc)
-    return get_value_1d(arr, i)
-
-
-cdef inline set_value_at_unsafe(ndarray arr, object loc, object value):
-    """Sets a value into the array without checking the writeable flag.
-
-    This should be used when setting values in a loop, check the writeable
-    flag above the loop and then eschew the check on each iteration.
-    """
-    cdef:
-        Py_ssize_t i
-
-    i = validate_indexer(arr, loc)
-    assign_value_1d(arr, i, value)
-
-
-cdef inline set_value_at(ndarray arr, object loc, object value):
-    """Sets a value into the array after checking that the array is mutable.
-    """
-    if not cnp.PyArray_ISWRITEABLE(arr):
-        raise ValueError('assignment destination is read-only')
-
-    set_value_at_unsafe(arr, loc, value)
+    return arr[i]

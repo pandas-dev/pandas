@@ -1,7 +1,6 @@
 """
 datetimelike delegation
 """
-
 import numpy as np
 
 from pandas.core.dtypes.generic import ABCSeries
@@ -12,10 +11,10 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype, is_categorical_dtype,
     is_list_like)
 
-from pandas.core.accessor import PandasDelegate
+from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.period import PeriodArray
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.algorithms import take_1d
 
@@ -46,7 +45,8 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         else:
             if is_period_arraylike(data):
-                return PeriodIndex(data, copy=False, name=self.name)
+                # TODO: use to_period_array
+                return PeriodArray(data, copy=False)
             if is_datetime_arraylike(data):
                 return DatetimeIndex(data, copy=False, name=self.name)
 
@@ -110,6 +110,12 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         return result
 
 
+@delegate_names(delegate=DatetimeIndex,
+                accessors=DatetimeIndex._datetimelike_ops,
+                typ="property")
+@delegate_names(delegate=DatetimeIndex,
+                accessors=DatetimeIndex._datetimelike_methods,
+                typ="method")
 class DatetimeProperties(Properties):
     """
     Accessor object for datetimelike properties of the Series values.
@@ -175,16 +181,12 @@ class DatetimeProperties(Properties):
         return self._get_values().inferred_freq
 
 
-DatetimeProperties._add_delegate_accessors(
-    delegate=DatetimeIndex,
-    accessors=DatetimeIndex._datetimelike_ops,
-    typ='property')
-DatetimeProperties._add_delegate_accessors(
-    delegate=DatetimeIndex,
-    accessors=DatetimeIndex._datetimelike_methods,
-    typ='method')
-
-
+@delegate_names(delegate=TimedeltaIndex,
+                accessors=TimedeltaIndex._datetimelike_ops,
+                typ="property")
+@delegate_names(delegate=TimedeltaIndex,
+                accessors=TimedeltaIndex._datetimelike_methods,
+                typ="method")
 class TimedeltaProperties(Properties):
     """
     Accessor object for datetimelike properties of the Series values.
@@ -268,16 +270,12 @@ class TimedeltaProperties(Properties):
         return self._get_values().inferred_freq
 
 
-TimedeltaProperties._add_delegate_accessors(
-    delegate=TimedeltaIndex,
-    accessors=TimedeltaIndex._datetimelike_ops,
-    typ='property')
-TimedeltaProperties._add_delegate_accessors(
-    delegate=TimedeltaIndex,
-    accessors=TimedeltaIndex._datetimelike_methods,
-    typ='method')
-
-
+@delegate_names(delegate=PeriodArray,
+                accessors=PeriodArray._datetimelike_ops,
+                typ="property")
+@delegate_names(delegate=PeriodArray,
+                accessors=PeriodArray._datetimelike_methods,
+                typ="method")
 class PeriodProperties(Properties):
     """
     Accessor object for datetimelike properties of the Series values.
@@ -291,16 +289,6 @@ class PeriodProperties(Properties):
     Returns a Series indexed like the original Series.
     Raises TypeError if the Series does not contain datetimelike values.
     """
-
-
-PeriodProperties._add_delegate_accessors(
-    delegate=PeriodIndex,
-    accessors=PeriodIndex._datetimelike_ops,
-    typ='property')
-PeriodProperties._add_delegate_accessors(
-    delegate=PeriodIndex,
-    accessors=PeriodIndex._datetimelike_methods,
-    typ='method')
 
 
 class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):

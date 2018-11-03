@@ -497,6 +497,17 @@ tools will be run to check your code for stylistic errors.
 Generating any warnings will cause the test to fail.
 Thus, good style is a requirement for submitting code to *pandas*.
 
+There is a tool in pandas to help contributors verify their changes before
+contributing them to the project::
+
+   ./ci/code_checks.sh
+
+The script verify the linting of code files, it looks for common mistake patterns
+(like missing spaces around sphinx directives that make the documentation not
+being rendered properly) and it also validates the doctests. It is possible to
+run the checks independently by using the parameters ``lint``, ``patterns`` and
+``doctests`` (e.g. ``./ci/code_checks.sh lint``).
+
 In addition, because a lot of people use our library, it is important that we
 do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
@@ -632,18 +643,26 @@ Otherwise, you need to do it manually:
         warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
         new_func()
 
+You'll also need to
+
+1. write a new test that asserts a warning is issued when calling with the deprecated argument
+2. Update all of pandas existing tests and code to use the new argument
+
+See :ref:`contributing.warnings` for more.
+
+
 .. _contributing.ci:
 
 Testing With Continuous Integration
 -----------------------------------
 
 The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__,
-`Appveyor <https://www.appveyor.com/>`__, and `Circle CI <https://circleci.com/>`__ continuous integration
-services, once your pull request is submitted.
+`Azure Pipelines <https://azure.microsoft.com/en-us/services/devops/pipelines/>`__,
+and `Circle CI <https://circleci.com/>`__ continuous integration services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
 then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
 for `Travis-CI <http://about.travis-ci.org/docs/user/getting-started/>`__,
-`Appveyor <https://www.appveyor.com/docs/>`__ , and `CircleCI <https://circleci.com/>`__.
+`Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/>`__, and `CircleCI <https://circleci.com/>`__.
 
 A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
 then you will get a red 'X', where you can click through to see the individual failed tests.
@@ -653,8 +672,8 @@ This is an example of a green build.
 
 .. note::
 
-   Each time you push to *your* fork, a *new* run of the tests will be triggered on the CI. Appveyor will auto-cancel
-   any non-currently-running tests for that same pull-request. You can enable the auto-cancel feature for
+   Each time you push to *your* fork, a *new* run of the tests will be triggered on the CI.
+   You can enable the auto-cancel feature, which removes any non-currently-running tests for that same pull-request, for
    `Travis-CI here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__ and
    for `CircleCI here <https://circleci.com/changelog-legacy/#option-to-auto-cancel-redundant-builds>`__.
 
@@ -665,7 +684,7 @@ Test-driven development/code writing
 ------------------------------------
 
 *pandas* is serious about testing and strongly encourages contributors to embrace
-`test-driven development (TDD) <http://en.wikipedia.org/wiki/Test-driven_development>`_.
+`test-driven development (TDD) <https://en.wikipedia.org/wiki/Test-driven_development>`_.
 This development process "relies on the repetition of a very short development cycle:
 first the developer writes an (initially failing) automated test case that defines a desired
 improvement or new function, then produces the minimum amount of code to pass that test."
@@ -858,6 +877,55 @@ To keep the Pandas test suite running quickly, parametrized tests are
 preferred if the inputs or logic are simple, with Hypothesis tests reserved
 for cases with complex logic or where there are too many combinations of
 options or subtle interactions to test (or think of!) all of them.
+
+.. _contributing.warnings:
+
+Testing Warnings
+~~~~~~~~~~~~~~~~
+
+By default, one of pandas CI workers will fail if any unhandled warnings are emitted.
+
+If your change involves checking that a warning is actually emitted, use
+``tm.assert_produces_warning(ExpectedWarning)``.
+
+
+.. code-block:: python
+
+   with tm.assert_produces_warning(FutureWarning):
+       df.some_operation()
+
+We prefer this to the ``pytest.warns`` context manager because ours checks that the warning's
+stacklevel is set correctly. The stacklevel is what ensure the *user's* file name and line number
+is printed in the warning, rather than something internal to pandas. It represents the number of
+function calls from user code (e.g. ``df.some_operation()``) to the function that actually emits
+the warning. Our linter will fail the build if you use ``pytest.warns`` in a test.
+
+If you have a test that would emit a warning, but you aren't actually testing the
+warning itself (say because it's going to be removed in the future, or because we're
+matching a 3rd-party library's behavior), then use ``pytest.mark.filterwarnings`` to
+ignore the error.
+
+.. code-block:: python
+
+   @pytest.mark.filterwarnings("ignore:msg:category")
+   def test_thing(self):
+       ...
+
+If the test generates a warning of class ``category`` whose message starts
+with ``msg``, the warning will be ignored and the test will pass.
+
+If you need finer-grained control, you can use Python's usual
+`warnings module <https://docs.python.org/3/library/warnings.html>`__
+to control whether a warning is ignored / raised at different places within
+a single test.
+
+.. code-block:: python
+
+   with warch.catch_warnings():
+       warnings.simplefilter("ignore", FutureWarning)
+       # Or use warnings.filterwarnings(...)
+
+Alternatively, consider breaking up the unit test.
 
 
 Running the test suite

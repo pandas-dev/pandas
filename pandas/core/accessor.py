@@ -105,6 +105,41 @@ class PandasDelegate(object):
                 setattr(cls, name, f)
 
 
+def delegate_names(delegate, accessors, typ, overwrite=False):
+    """
+    Add delegated names to a class using a class decorator.  This provides
+    an alternative usage to directly calling `_add_delegate_accessors`
+    below a class definition.
+
+    Parameters
+    ----------
+    delegate : object
+        the class to get methods/properties & doc-strings
+    acccessors : Sequence[str]
+        List of accessor to add
+    typ : {'property', 'method'}
+    overwrite : boolean, default False
+       overwrite the method/property in the target class if it exists
+
+    Returns
+    -------
+    callable
+        A class decorator.
+
+    Examples
+    --------
+    @delegate_names(Categorical, ["categories", "ordered"], "property")
+    class CategoricalAccessor(PandasDelegate):
+        [...]
+    """
+    def add_delegate_accessors(cls):
+        cls._add_delegate_accessors(delegate, accessors, typ,
+                                    overwrite=overwrite)
+        return cls
+
+    return add_delegate_accessors
+
+
 # Ported with modifications from xarray
 # https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
 # 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors

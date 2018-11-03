@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
 from datetime import datetime
-from pandas.compat import range
 
 import numpy as np
+import pytest
 
-from pandas import (Series, Index, Float64Index,
-                    Int64Index, UInt64Index)
-
-import pandas.util.testing as tm
+from pandas._libs.tslibs import Timestamp
+from pandas.compat import range
 
 import pandas as pd
-from pandas._libs.tslibs import Timestamp
-
+from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
 from pandas.tests.indexes.common import Base
+import pandas.util.testing as tm
 
 
 class Numeric(Base):
@@ -422,32 +418,32 @@ class NumericInt(Numeric):
         tm.assert_index_equal(i, self._holder(i_view, name='Foo'))
 
     def test_is_monotonic(self):
-        assert self.index.is_monotonic
-        assert self.index.is_monotonic_increasing
-        assert self.index._is_strictly_monotonic_increasing
-        assert not self.index.is_monotonic_decreasing
-        assert not self.index._is_strictly_monotonic_decreasing
+        assert self.index.is_monotonic is True
+        assert self.index.is_monotonic_increasing is True
+        assert self.index._is_strictly_monotonic_increasing is True
+        assert self.index.is_monotonic_decreasing is False
+        assert self.index._is_strictly_monotonic_decreasing is False
 
         index = self._holder([4, 3, 2, 1])
-        assert not index.is_monotonic
-        assert not index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is False
+        assert index._is_strictly_monotonic_increasing is False
+        assert index._is_strictly_monotonic_decreasing is True
 
         index = self._holder([1])
-        assert index.is_monotonic
-        assert index.is_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_increasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
     def test_is_strictly_monotonic(self):
         index = self._holder([1, 1, 2, 3])
-        assert index.is_monotonic_increasing
-        assert not index._is_strictly_monotonic_increasing
+        assert index.is_monotonic_increasing is True
+        assert index._is_strictly_monotonic_increasing is False
 
         index = self._holder([3, 2, 1, 1])
-        assert index.is_monotonic_decreasing
-        assert not index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_decreasing is False
 
         index = self._holder([1, 1])
         assert index.is_monotonic_increasing
@@ -564,40 +560,6 @@ class NumericInt(Numeric):
     def test_slice_keep_name(self):
         idx = self._holder([1, 2], name='asdf')
         assert idx.name == idx[1:].name
-
-    def test_ufunc_coercions(self):
-        idx = self._holder([1, 2, 3, 4, 5], name='x')
-
-        result = np.sqrt(idx)
-        assert isinstance(result, Float64Index)
-        exp = Float64Index(np.sqrt(np.array([1, 2, 3, 4, 5])), name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = np.divide(idx, 2.)
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
-        tm.assert_index_equal(result, exp)
-
-        # _evaluate_numeric_binop
-        result = idx + 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([3., 4., 5., 6., 7.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx - 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([-1., 0., 1., 2., 3.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx * 1.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([1., 2., 3., 4., 5.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx / 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
-        tm.assert_index_equal(result, exp)
 
 
 class TestInt64Index(NumericInt):

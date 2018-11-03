@@ -7,11 +7,13 @@ dependencies:
   - cython>=0.28.2
   - dask
   - fastparquet
-  - feather-format
+  - flake8>=3.5
+  - flake8-comprehensions
   - gcsfs
   - geopandas
   - html5lib
   - ipython
+  - isort
   - jinja2
   - lxml
   - matplotlib
@@ -20,7 +22,7 @@ dependencies:
   - numpy
   - openpyxl
   - psycopg2
-  - pyarrow
+  - pyarrow=0.9.0
   - pymysql
   - pytables
   - python-snappy
@@ -45,5 +47,6 @@ dependencies:
   - pip:
     - brotlipy
     - coverage
+    - cpplint
     - pandas-datareader
     - python-dateutil

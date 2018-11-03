@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 import time
 from cpython.datetime cimport (PyDateTime_IMPORT,
+                               PyDateTime_Check,
                                datetime, timedelta,
                                time as dt_time)
 PyDateTime_IMPORT
@@ -282,11 +283,6 @@ class ApplyTypeError(TypeError):
     pass
 
 
-# TODO: unused.  remove?
-class CacheableOffset(object):
-    _cacheable = True
-
-
 # ---------------------------------------------------------------------
 # Base Classes
 
@@ -296,8 +292,6 @@ class _BaseOffset(object):
     and will (after pickle errors are resolved) go into a cdef class.
     """
     _typ = "dateoffset"
-    _normalize_cache = True
-    _cacheable = False
     _day_opt = None
     _attributes = frozenset(['n', 'normalize'])
 
@@ -351,8 +345,8 @@ class _BaseOffset(object):
         return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
     def __add__(self, other):
-        if getattr(other, "_typ", None) in ["datetimeindex",
-                                            "series", "period"]:
+        if getattr(other, "_typ", None) in ["datetimeindex", "periodindex",
+                                            "series", "period", "dataframe"]:
             # defer to the other class's implementation
             return other + self
         try:
@@ -361,7 +355,7 @@ class _BaseOffset(object):
             return NotImplemented
 
     def __sub__(self, other):
-        if isinstance(other, datetime):
+        if PyDateTime_Check(other):
             raise TypeError('Cannot subtract datetime from offset.')
         elif type(other) == type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
@@ -385,10 +379,6 @@ class _BaseOffset(object):
         # Note: we are defering directly to __mul__ instead of __rmul__, as
         # that allows us to use methods that can go in a `cdef class`
         return self * 1
-
-    # TODO: this is never true.  fix it or get rid of it
-    def _should_cache(self):
-        return self.isAnchored() and self._cacheable
 
     def __repr__(self):
         className = getattr(self, '_outputName', type(self).__name__)
@@ -507,7 +497,7 @@ class _Tick(object):
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
-cpdef datetime shift_day(datetime other, int days):
+def shift_day(other: datetime, days: int) -> datetime:
     """
     Increment the datetime `other` by the given number of days, retaining
     the time-portion of the datetime.  For tz-naive datetimes this is
@@ -999,8 +989,7 @@ cpdef int roll_qtrday(datetime other, int n, int month, object day_opt,
     return n
 
 
-cpdef int roll_yearday(datetime other, int n, int month,
-                       object day_opt) except? -1:
+def roll_yearday(other: datetime, n: int, month: int, day_opt: object) -> int:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.

@@ -373,7 +373,7 @@ New Behavior:
    s = pd.Series([1,2,3], index=np.arange(3.))
    s
    s.index
-   print(s.to_csv(path=None))
+   print(s.to_csv(path_or_buf=None, header=False))
 
 Changes to dtype assignment behaviors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

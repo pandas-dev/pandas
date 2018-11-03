@@ -4,8 +4,8 @@ Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
 """
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
@@ -40,7 +40,9 @@ def get_time_micros(ndarray[int64_t] dtindex):
     return micros
 
 
-def build_field_sarray(ndarray[int64_t] dtindex):
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def build_field_sarray(int64_t[:] dtindex):
     """
     Datetime as int64 representation to a structured array of fields
     """
@@ -542,7 +544,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_timedelta_field(ndarray[int64_t] tdindex, object field):
+def get_timedelta_field(int64_t[:] tdindex, object field):
     """
     Given a int64-based timedelta index, extract the days, hrs, sec.,
     field and return an array of these values.

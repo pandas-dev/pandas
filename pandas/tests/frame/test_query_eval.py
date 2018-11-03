@@ -360,6 +360,7 @@ class TestDataFrameQueryWithMultiIndex(object):
             else:
                 raise AssertionError("object must be a Series or Index")
 
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_raise_on_panel_with_multiindex(self, parser, engine):
         p = tm.makePanel(7)
         p.items = tm.makeCustomIndex(len(p.items), nlevels=2)
