@@ -3971,7 +3971,8 @@ class AppendableTable(LegacyTable):
 
         # create the axes
         self.create_axes(axes=axes, obj=obj, validate=append,
-                         min_itemsize=min_itemsize, **kwargs)
+                         min_itemsize=min_itemsize,
+                         **kwargs)
 
         for a in self.axes:
             a.validate(self, append)
