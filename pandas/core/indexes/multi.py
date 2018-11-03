@@ -1472,7 +1472,7 @@ class MultiIndex(Index):
                    labels=[[0, 1]],
                    names=['number'])
         >>> df = pd.DataFrame([['a', 'b'], ['c', 'd'], ['e', 'f']],
-        ...                   columns=pd.MultiIndex.from_tuples([('L1', 'x'), 
+        ...                   columns=pd.MultiIndex.from_tuples([('L1', 'x'),
         ...                                                      ('L2', 'y')]))
         >>> df
           L1 L2
