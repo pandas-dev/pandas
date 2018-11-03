@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 from cpython cimport PyObject
-from cpython.slice cimport PySlice_Check
 
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
@@ -19,6 +18,9 @@ cdef extern from "compat_helper.h":
                                Py_ssize_t *slicelength) except -1
 
 
+from algos import ensure_int64
+
+
 cdef class BlockPlacement:
     # __slots__ = '_as_slice', '_as_array', '_len'
     cdef slice _as_slice
@@ -27,12 +29,15 @@ cdef class BlockPlacement:
     cdef bint _has_slice, _has_array, _is_known_slice_like
 
     def __init__(self, val):
-        cdef slice slc
+        cdef:
+            slice slc
 
+        self._as_slice = None
+        self._as_array = None
         self._has_slice = False
         self._has_array = False
 
-        if PySlice_Check(val):
+        if isinstance(val, slice):
             slc = slice_canonize(val)
 
             if slc.start != slc.stop:
@@ -50,7 +55,8 @@ cdef class BlockPlacement:
             self._has_array = True
 
     def __str__(self):
-        cdef slice s = self._ensure_has_slice()
+        cdef:
+            slice s = self._ensure_has_slice()
         if s is not None:
             v = self._as_slice
         else:
@@ -61,15 +67,17 @@ cdef class BlockPlacement:
     __repr__ = __str__
 
     def __len__(self):
-        cdef slice s = self._ensure_has_slice()
+        cdef:
+            slice s = self._ensure_has_slice()
         if s is not None:
             return slice_len(s)
         else:
             return len(self._as_array)
 
     def __iter__(self):
-        cdef slice s = self._ensure_has_slice()
-        cdef Py_ssize_t start, stop, step, _
+        cdef:
+            slice s = self._ensure_has_slice()
+            Py_ssize_t start, stop, step, _
         if s is not None:
             start, stop, step, _ = slice_get_indices_ex(s)
             return iter(range(start, stop, step))
@@ -78,7 +86,8 @@ cdef class BlockPlacement:
 
     @property
     def as_slice(self):
-        cdef slice s = self._ensure_has_slice()
+        cdef:
+            slice s = self._ensure_has_slice()
         if s is None:
             raise TypeError('Not slice-like')
         else:
@@ -86,7 +95,8 @@ cdef class BlockPlacement:
 
     @property
     def indexer(self):
-        cdef slice s = self._ensure_has_slice()
+        cdef:
+            slice s = self._ensure_has_slice()
         if s is not None:
             return s
         else:
@@ -98,7 +108,8 @@ cdef class BlockPlacement:
 
     @property
     def as_array(self):
-        cdef Py_ssize_t start, stop, end, _
+        cdef:
+            Py_ssize_t start, stop, end, _
         if not self._has_array:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
             self._as_array = np.arange(start, stop, step,
@@ -108,17 +119,19 @@ cdef class BlockPlacement:
 
     @property
     def is_slice_like(self):
-        cdef slice s = self._ensure_has_slice()
+        cdef:
+            slice s = self._ensure_has_slice()
         return s is not None
 
     def __getitem__(self, loc):
-        cdef slice s = self._ensure_has_slice()
+        cdef:
+            slice s = self._ensure_has_slice()
         if s is not None:
             val = slice_getitem(s, loc)
         else:
             val = self._as_array[loc]
 
-        if not PySlice_Check(val) and val.ndim == 0:
+        if not isinstance(val, slice) and val.ndim == 0:
             return val
 
         return BlockPlacement(val)
@@ -134,13 +147,15 @@ cdef class BlockPlacement:
                                              [o.as_array for o in others]))
 
     cdef iadd(self, other):
-        cdef slice s = self._ensure_has_slice()
-        cdef Py_ssize_t other_int, start, stop, step, l
+        cdef:
+            slice s = self._ensure_has_slice()
+            Py_ssize_t other_int, start, stop, step, l
 
         if isinstance(other, int) and s is not None:
             other_int = <Py_ssize_t>other
 
             if other_int == 0:
+                # BlockPlacement is treated as immutable
                 return self
 
             start, stop, step, l = slice_get_indices_ex(s)
@@ -152,33 +167,21 @@ cdef class BlockPlacement:
                 raise ValueError("iadd causes length change")
 
             if stop < 0:
-                self._as_slice = slice(start, None, step)
+                val = slice(start, None, step)
             else:
-                self._as_slice = slice(start, stop, step)
+                val = slice(start, stop, step)
 
-            self._has_array = False
-            self._as_array = None
+            return BlockPlacement(val)
         else:
             newarr = self.as_array + other
             if (newarr < 0).any():
                 raise ValueError("iadd causes length change")
 
-            self._as_array = newarr
-            self._has_array = True
-            self._has_slice = False
-            self._as_slice = None
-
-        return self
-
-    cdef BlockPlacement copy(self):
-        cdef slice s = self._ensure_has_slice()
-        if s is not None:
-            return BlockPlacement(s)
-        else:
-            return BlockPlacement(self._as_array)
+            val = newarr
+            return BlockPlacement(val)
 
     def add(self, other):
-        return self.copy().iadd(other)
+        return self.iadd(other)
 
     def sub(self, other):
         return self.add(-other)
@@ -190,7 +193,7 @@ cdef class BlockPlacement:
         return self._as_slice
 
 
-cpdef slice_canonize(slice s):
+cdef slice slice_canonize(slice s):
     """
     Convert slice to canonical bounded form.
     """
@@ -261,7 +264,7 @@ cpdef Py_ssize_t slice_len(
     return length
 
 
-cpdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
+cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     """
     Get (start, stop, step, length) tuple for a slice.
 
@@ -288,7 +291,7 @@ def slice_getitem(slice slc not None, ind):
 
     s_start, s_stop, s_step, s_len = slice_get_indices_ex(slc)
 
-    if PySlice_Check(ind):
+    if isinstance(ind, slice):
         ind_start, ind_stop, ind_step, ind_len = slice_get_indices_ex(ind,
                                                                       s_len)
 
@@ -390,7 +393,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
     start = 0
     cur_blkno = blknos[start]
 
-    if group == False:
+    if group is False:
         for i in range(1, n):
             if blknos[i] != cur_blkno:
                 yield cur_blkno, slice(start, i)
@@ -436,3 +439,26 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
                         i += 1
 
                 yield blkno, result
+
+
+def get_blkno_placements(blknos, blk_count, group=True):
+    """
+
+    Parameters
+    ----------
+    blknos : array of int64
+    blk_count : int
+    group : bool
+
+    Returns
+    -------
+    iterator
+        yield (BlockPlacement, blkno)
+
+    """
+
+    blknos = ensure_int64(blknos)
+
+    # FIXME: blk_count is unused, but it may avoid the use of dicts in cython
+    for blkno, indexer in get_blkno_indexers(blknos, group):
+        yield blkno, BlockPlacement(indexer)

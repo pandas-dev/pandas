@@ -5,7 +5,7 @@ from datetime import timedelta
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (PeriodIndex, period_range, DataFrame, date_range,
-                    Index, to_datetime, DatetimeIndex)
+                    Index, to_datetime, DatetimeIndex, Timedelta)
 
 
 def _permute(obj):
@@ -13,9 +13,6 @@ def _permute(obj):
 
 
 class TestPeriodIndex(object):
-
-    def setup_method(self, method):
-        pass
 
     def test_as_frame_columns(self):
         rng = period_range('1/1/2000', periods=5)
@@ -51,6 +48,7 @@ class TestPeriodIndex(object):
         df['mix'] = 'a'
 
         exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
+        exp_index = exp_index + Timedelta(1, 'D') - Timedelta(1, 'ns')
         result = df.to_timestamp('D', 'end')
         tm.assert_index_equal(result.index, exp_index)
         tm.assert_numpy_array_equal(result.values, df.values)
@@ -66,22 +64,26 @@ class TestPeriodIndex(object):
         delta = timedelta(hours=23)
         result = df.to_timestamp('H', 'end')
         exp_index = _get_with_delta(delta)
+        exp_index = exp_index + Timedelta(1, 'h') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
 
         delta = timedelta(hours=23, minutes=59)
         result = df.to_timestamp('T', 'end')
         exp_index = _get_with_delta(delta)
+        exp_index = exp_index + Timedelta(1, 'm') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
 
         result = df.to_timestamp('S', 'end')
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
+        exp_index = exp_index + Timedelta(1, 's') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
 
         # columns
         df = df.T
 
         exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
+        exp_index = exp_index + Timedelta(1, 'D') - Timedelta(1, 'ns')
         result = df.to_timestamp('D', 'end', axis=1)
         tm.assert_index_equal(result.columns, exp_index)
         tm.assert_numpy_array_equal(result.values, df.values)
@@ -93,16 +95,19 @@ class TestPeriodIndex(object):
         delta = timedelta(hours=23)
         result = df.to_timestamp('H', 'end', axis=1)
         exp_index = _get_with_delta(delta)
+        exp_index = exp_index + Timedelta(1, 'h') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.columns, exp_index)
 
         delta = timedelta(hours=23, minutes=59)
         result = df.to_timestamp('T', 'end', axis=1)
         exp_index = _get_with_delta(delta)
+        exp_index = exp_index + Timedelta(1, 'm') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.columns, exp_index)
 
         result = df.to_timestamp('S', 'end', axis=1)
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
+        exp_index = exp_index + Timedelta(1, 's') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.columns, exp_index)
 
         # invalid axis

@@ -6,10 +6,12 @@ from datetime import datetime, timedelta
 
 import pytest
 import numpy as np
+from hypothesis import given, assume, example, strategies as st
 
 from pandas import Timedelta, Timestamp
 from pandas.tseries import offsets
-from pandas.tseries.offsets import Hour, Minute, Second, Milli, Micro, Nano
+from pandas.tseries.offsets import (Day, Hour, Minute, Second, Milli, Micro,
+                                    Nano)
 
 from .common import assert_offset_equal
 
@@ -33,6 +35,45 @@ def test_delta_to_tick():
 
     tick = offsets._delta_to_tick(delta)
     assert (tick == offsets.Day(3))
+
+
+@pytest.mark.parametrize('cls', tick_classes)
+@example(n=2, m=3)
+@example(n=800, m=300)
+@example(n=1000, m=5)
+@given(n=st.integers(-999, 999), m=st.integers(-999, 999))
+def test_tick_add_sub(cls, n, m):
+    # For all Tick subclasses and all integers n, m, we should have
+    # tick(n) + tick(m) == tick(n+m)
+    # tick(n) - tick(m) == tick(n-m)
+    left = cls(n)
+    right = cls(m)
+    expected = cls(n + m)
+
+    assert left + right == expected
+    assert left.apply(right) == expected
+
+    expected = cls(n - m)
+    assert left - right == expected
+
+
+@pytest.mark.parametrize('cls', tick_classes)
+@example(n=2, m=3)
+@given(n=st.integers(-999, 999), m=st.integers(-999, 999))
+def test_tick_equality(cls, n, m):
+    assume(m != n)
+    # tick == tock iff tick.n == tock.n
+    left = cls(n)
+    right = cls(m)
+    assert left != right
+    assert not (left == right)
+
+    right = cls(n)
+    assert left == right
+    assert not (left != right)
+
+    if n != 0:
+        assert cls(n) != cls(-n)
 
 
 # ---------------------------------------------------------------------
@@ -171,6 +212,13 @@ def test_Nanosecond():
     assert Micro(5) + Nano(1) == Nano(5001)
 
 
+def test_Day_equals_24_Hours():
+    ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+    result = ts + Day(1)
+    expected = ts + Hour(24)
+    assert result == expected
+
+
 @pytest.mark.parametrize('kls, expected',
                          [(Hour, Timedelta(hours=5)),
                           (Minute, Timedelta(hours=2, minutes=3)),
@@ -200,20 +248,7 @@ def test_tick_zero(cls1, cls2):
 
 @pytest.mark.parametrize('cls', tick_classes)
 def test_tick_equalities(cls):
-    assert cls(3) == cls(3)
     assert cls() == cls(1)
-
-    # not equals
-    assert cls(3) != cls(2)
-    assert cls(3) != cls(-3)
-
-
-@pytest.mark.parametrize('cls', tick_classes)
-def test_tick_operators(cls):
-    assert cls(3) + cls(2) == cls(5)
-    assert cls(3) - cls(2) == cls(1)
-    assert cls(800) + cls(300) == cls(1100)
-    assert cls(1000) - cls(5) == cls(995)
 
 
 @pytest.mark.parametrize('cls', tick_classes)
@@ -226,11 +261,9 @@ def test_compare_ticks(cls):
     three = cls(3)
     four = cls(4)
 
-    # TODO: WTF?  What is this range(10) supposed to do?
-    for _ in range(10):
-        assert three < cls(4)
-        assert cls(3) < four
-        assert four > cls(3)
-        assert cls(4) > three
-        assert cls(3) == cls(3)
-        assert cls(3) != cls(4)
+    assert three < cls(4)
+    assert cls(3) < four
+    assert four > cls(3)
+    assert cls(4) > three
+    assert cls(3) == cls(3)
+    assert cls(3) != cls(4)

@@ -1,22 +1,25 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 from collections import OrderedDict
-
-import pytest
+import pydoc
+import warnings
 
 import numpy as np
+import pytest
+
+import pandas.compat as compat
+from pandas.compat import isidentifier, lzip, range, string_types
+
 import pandas as pd
-
-from pandas import Index, Series, DataFrame, date_range
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, Series, TimedeltaIndex,
+    date_range, period_range, timedelta_range)
+from pandas.core.arrays import PeriodArray
 from pandas.core.indexes.datetimes import Timestamp
-
-from pandas.compat import range, lzip, isidentifier, string_types
-from pandas import (compat, Categorical, period_range, timedelta_range,
-                    DatetimeIndex, PeriodIndex, TimedeltaIndex)
-import pandas.io.formats.printing as printing
-from pandas.util.testing import (assert_series_equal,
-                                 ensure_clean)
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal, ensure_clean
+
+import pandas.io.formats.printing as printing
 
 from .common import TestData
 
@@ -384,7 +387,8 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
     def test_class_axis(self):
         # https://github.com/pandas-dev/pandas/issues/18147
-        Series.index  # no exception!
+        # no exception and no empty docstring
+        assert pydoc.getdoc(Series.index)
 
     def test_numpy_unique(self):
         # it works!
@@ -422,19 +426,23 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         # compress
         # GH 6658
         s = Series([0, 1., -1], index=list('abc'))
-        result = np.compress(s > 0, s)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.compress(s > 0, s)
         tm.assert_series_equal(result, Series([1.], index=['b']))
 
-        result = np.compress(s < -1, s)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.compress(s < -1, s)
         # result empty Index(dtype=object) as the same as original
         exp = Series([], dtype='float64', index=Index([], dtype='object'))
         tm.assert_series_equal(result, exp)
 
         s = Series([0, 1., -1], index=[.1, .2, .3])
-        result = np.compress(s > 0, s)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.compress(s > 0, s)
         tm.assert_series_equal(result, Series([1.], index=[.2]))
 
-        result = np.compress(s < -1, s)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.compress(s < -1, s)
         # result empty Float64Index as the same as original
         exp = Series([], dtype='float64', index=Index([], dtype='float64'))
         tm.assert_series_equal(result, exp)
@@ -691,7 +699,7 @@ class TestCategoricalSeries(object):
 
         test_data = [
             ("Datetime", get_ops(DatetimeIndex), s_dr, c_dr),
-            ("Period", get_ops(PeriodIndex), s_pr, c_pr),
+            ("Period", get_ops(PeriodArray), s_pr, c_pr),
             ("Timedelta", get_ops(TimedeltaIndex), s_tdr, c_tdr)]
 
         assert isinstance(c_dr.dt, Properties)
@@ -722,8 +730,12 @@ class TestCategoricalSeries(object):
                     func_defs.append(f_def)
 
             for func, args, kwargs in func_defs:
-                res = getattr(c.dt, func)(*args, **kwargs)
-                exp = getattr(s.dt, func)(*args, **kwargs)
+                with warnings.catch_warnings():
+                    if func == 'to_period':
+                        # dropping TZ
+                        warnings.simplefilter("ignore", UserWarning)
+                    res = getattr(c.dt, func)(*args, **kwargs)
+                    exp = getattr(s.dt, func)(*args, **kwargs)
 
                 if isinstance(res, DataFrame):
                     tm.assert_frame_equal(res, exp)

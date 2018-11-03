@@ -5,13 +5,11 @@
 # Link: http://code.activestate.com/recipes/576930/
 
 # Cython version: Wes McKinney
+from random import random
 
 from libc.math cimport log
 
 import numpy as np
-cimport numpy as cnp
-from numpy cimport double_t
-cnp.import_array()
 
 
 # MSVC does not have log2!
@@ -20,23 +18,23 @@ cdef double Log2(double x):
     return log(x) / log(2.)
 
 
-from random import random
-
 # TODO: optimize this, make less messy
 
 cdef class Node:
     # cdef public:
-    #    double_t value
+    #    double value
     #    list next
     #    list width
 
-    def __init__(self, double_t value, list next, list width):
+    def __init__(self, double value, list next, list width):
         self.value = value
         self.next = next
         self.width = width
 
+
 # Singleton terminator node
 NIL = Node(np.inf, [], [])
+
 
 cdef class IndexableSkiplist:
     """

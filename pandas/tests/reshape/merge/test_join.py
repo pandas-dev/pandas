@@ -19,6 +19,7 @@ from pandas.tests.reshape.merge.test_merge import get_test_data, N, NGROUPS
 a_ = np.array
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestJoin(object):
 
     def setup_method(self, method):
@@ -228,16 +229,18 @@ class TestJoin(object):
                             index=tm.makeCustomIndex(10, 2))
             merge(df, df2, right_on='a', left_on=['a', 'b'])
 
-    def test_join_on_fails_with_wrong_object_type(self):
-        # GH12081
-        wrongly_typed = [Series([0, 1]), 2, 'str', None, np.array([0, 1])]
-        df = DataFrame({'a': [1, 1]})
+    @pytest.mark.parametrize("wrong_type", [2, 'str', None, np.array([0, 1])])
+    def test_join_on_fails_with_wrong_object_type(self, wrong_type):
+        # GH12081 - original issue
 
-        for obj in wrongly_typed:
-            with tm.assert_raises_regex(ValueError, str(type(obj))):
-                merge(obj, df, left_on='a', right_on='a')
-            with tm.assert_raises_regex(ValueError, str(type(obj))):
-                merge(df, obj, left_on='a', right_on='a')
+        # GH21220 - merging of Series and DataFrame is now allowed
+        # Edited test to remove the Series object from test parameters
+
+        df = DataFrame({'a': [1, 1]})
+        with tm.assert_raises_regex(TypeError, str(type(wrong_type))):
+            merge(wrong_type, df, left_on='a', right_on='a')
+        with tm.assert_raises_regex(TypeError, str(type(wrong_type))):
+            merge(df, wrong_type, left_on='a', right_on='a')
 
     def test_join_on_pass_vector(self):
         expected = self.target.join(self.source, on='C')
@@ -297,7 +300,25 @@ class TestJoin(object):
                               'b': [2, 2]}, index=df.index)
         tm.assert_frame_equal(result, expected)
 
-    def test_join_index_mixed(self):
+    def test_join_index_mixed(self, join_type):
+        # no overlapping blocks
+        df1 = DataFrame(index=np.arange(10))
+        df1['bool'] = True
+        df1['string'] = 'foo'
+
+        df2 = DataFrame(index=np.arange(5, 15))
+        df2['int'] = 1
+        df2['float'] = 1.
+
+        joined = df1.join(df2, how=join_type)
+        expected = _join_by_hand(df1, df2, how=join_type)
+        assert_frame_equal(joined, expected)
+
+        joined = df2.join(df1, how=join_type)
+        expected = _join_by_hand(df2, df1, how=join_type)
+        assert_frame_equal(joined, expected)
+
+    def test_join_index_mixed_overlap(self):
         df1 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
                         index=np.arange(10),
                         columns=['A', 'B', 'C', 'D'])
@@ -316,25 +337,6 @@ class TestJoin(object):
         df2.columns = expected_columns[4:]
         expected = _join_by_hand(df1, df2)
         assert_frame_equal(joined, expected)
-
-        # no overlapping blocks
-        df1 = DataFrame(index=np.arange(10))
-        df1['bool'] = True
-        df1['string'] = 'foo'
-
-        df2 = DataFrame(index=np.arange(5, 15))
-        df2['int'] = 1
-        df2['float'] = 1.
-
-        for kind in ['inner', 'outer', 'left', 'right']:
-
-            joined = df1.join(df2, how=kind)
-            expected = _join_by_hand(df1, df2, how=kind)
-            assert_frame_equal(joined, expected)
-
-            joined = df2.join(df1, how=kind)
-            expected = _join_by_hand(df2, df1, how=kind)
-            assert_frame_equal(joined, expected)
 
     def test_join_empty_bug(self):
         # generated an exception in 0.4.3

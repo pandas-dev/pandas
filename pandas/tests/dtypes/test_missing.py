@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 import numpy as np
 from datetime import datetime
 from pandas.util import testing as tm
@@ -15,7 +15,8 @@ from pandas._libs.tslib import iNaT
 from pandas import (NaT, Float64Index, Series,
                     DatetimeIndex, TimedeltaIndex, date_range)
 from pandas.core.dtypes.common import is_scalar
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype, PeriodDtype, IntervalDtype)
 from pandas.core.dtypes.missing import (
     array_equivalent, isna, notna, isnull, notnull,
     na_value_for_dtype)
@@ -93,6 +94,7 @@ class TestIsNA(object):
 
         # panel
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             for p in [tm.makePanel(), tm.makePeriodPanel(),
                       tm.add_nans(tm.makePanel())]:
                 result = isna_f(p)
@@ -115,6 +117,11 @@ class TestIsNA(object):
 
         result = isna([u('foo'), u('bar')])
         exp = np.array([False, False])
+        tm.assert_numpy_array_equal(result, exp)
+
+        # GH20675
+        result = isna([np.NaN, 'world'])
+        exp = np.array([True, False])
         tm.assert_numpy_array_equal(result, exp)
 
     def test_isna_nat(self):
@@ -311,23 +318,27 @@ def test_array_equivalent_str():
                                     np.array(['A', 'X'], dtype=dtype))
 
 
-def test_na_value_for_dtype():
-    for dtype in [np.dtype('M8[ns]'), np.dtype('m8[ns]'),
-                  DatetimeTZDtype('datetime64[ns, US/Eastern]')]:
-        assert na_value_for_dtype(dtype) is NaT
-
-    for dtype in ['u1', 'u2', 'u4', 'u8',
-                  'i1', 'i2', 'i4', 'i8']:
-        assert na_value_for_dtype(np.dtype(dtype)) == 0
-
-    for dtype in ['bool']:
-        assert na_value_for_dtype(np.dtype(dtype)) is False
-
-    for dtype in ['f2', 'f4', 'f8']:
-        assert np.isnan(na_value_for_dtype(np.dtype(dtype)))
-
-    for dtype in ['O']:
-        assert np.isnan(na_value_for_dtype(np.dtype(dtype)))
+@pytest.mark.parametrize('dtype, na_value', [
+    # Datetime-like
+    (np.dtype("M8[ns]"), NaT),
+    (np.dtype("m8[ns]"), NaT),
+    (DatetimeTZDtype('datetime64[ns, US/Eastern]'), NaT),
+    (PeriodDtype("M"), NaT),
+    # Integer
+    ('u1', 0), ('u2', 0), ('u4', 0), ('u8', 0),
+    ('i1', 0), ('i2', 0), ('i4', 0), ('i8', 0),
+    # Bool
+    ('bool', False),
+    # Float
+    ('f2', np.nan), ('f4', np.nan), ('f8', np.nan),
+    # Object
+    ('O', np.nan),
+    # Interval
+    (IntervalDtype(), np.nan),
+])
+def test_na_value_for_dtype(dtype, na_value):
+    result = na_value_for_dtype(dtype)
+    assert result is na_value
 
 
 class TestNAObj(object):

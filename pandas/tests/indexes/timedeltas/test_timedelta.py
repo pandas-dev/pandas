@@ -1,15 +1,17 @@
-import pytest
+from datetime import timedelta
 
 import numpy as np
-from datetime import timedelta
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import (timedelta_range, date_range, Series, Timedelta,
-                    TimedeltaIndex, Index, DataFrame,
-                    Int64Index)
-from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_index_equal)
+from pandas import (
+    DataFrame, Index, Int64Index, Series, Timedelta, TimedeltaIndex,
+    date_range, timedelta_range
+)
+from pandas.util.testing import (
+    assert_almost_equal, assert_index_equal, assert_series_equal
+)
 
 from ..datetimelike import DatetimeLike
 
@@ -102,10 +104,9 @@ class TestTimedeltaIndex(DatetimeLike):
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
 
-    @pytest.mark.parametrize('kind', ['outer', 'inner', 'left', 'right'])
-    def test_join_self(self, kind):
+    def test_join_self(self, join_type):
         index = timedelta_range('1 day', periods=10)
-        joined = index.join(index, how=kind)
+        joined = index.join(index, how=join_type)
         tm.assert_index_equal(index, joined)
 
     def test_does_not_convert_mixed_integer(self):
@@ -146,7 +147,10 @@ class TestTimedeltaIndex(DatetimeLike):
         idx = TimedeltaIndex(['1 day', '2 day', '2 day', '3 day', '3day',
                               '4day'])
 
-        result = idx.get_duplicates()
+        with tm.assert_produces_warning(FutureWarning):
+            # Deprecated - see GH20239
+            result = idx.get_duplicates()
+
         ex = TimedeltaIndex(['2 day', '3day'])
         tm.assert_index_equal(result, ex)
 

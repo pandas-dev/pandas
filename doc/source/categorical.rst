@@ -177,7 +177,7 @@ are consistent among all columns.
 .. note::
 
     To perform table-wise conversion, where all labels in the entire ``DataFrame`` are used as
-    categories for each column, the ``categories`` parameter can be determined programatically by
+    categories for each column, the ``categories`` parameter can be determined programmatically by
     ``categories = pd.unique(df.values.ravel())``.
 
 If you already have ``codes`` and ``categories``, you can use the 
@@ -358,10 +358,10 @@ Renaming categories is done by assigning new values to the
     s
     s.cat.categories = ["Group %s" % g for g in s.cat.categories]
     s
-    s.cat.rename_categories([1,2,3])
+    s = s.cat.rename_categories([1,2,3])
     s
     # You can also pass a dict-like object to map the renaming
-    s.cat.rename_categories({1: 'x', 2: 'y', 3: 'z'})
+    s = s.cat.rename_categories({1: 'x', 2: 'y', 3: 'z'})
     s
 
 .. note::
@@ -542,11 +542,11 @@ Comparisons
 
 Comparing categorical data with other objects is possible in three cases:
 
- * Comparing equality (``==`` and ``!=``) to a list-like object (list, Series, array,
-   ...) of the same length as the categorical data.
- * All comparisons (``==``, ``!=``, ``>``, ``>=``, ``<``, and ``<=``) of categorical data to
-   another categorical Series, when ``ordered==True`` and the `categories` are the same.
- * All comparisons of a categorical data to a scalar.
+* Comparing equality (``==`` and ``!=``) to a list-like object (list, Series, array,
+  ...) of the same length as the categorical data.
+* All comparisons (``==``, ``!=``, ``>``, ``>=``, ``<``, and ``<=``) of categorical data to
+  another categorical Series, when ``ordered==True`` and the `categories` are the same.
+* All comparisons of a categorical data to a scalar.
 
 All other comparisons, especially "non-equality" comparisons of two categoricals with different
 categories or a categorical with any list-like object, will raise a ``TypeError``.

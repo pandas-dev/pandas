@@ -3,6 +3,7 @@
 import pytest
 
 import numpy as np
+from pandas import Index
 from pandas._libs import lib, writers as libwriters
 import pandas.util.testing as tm
 
@@ -198,3 +199,8 @@ class TestIndexing(object):
         result = lib.get_reverse_indexer(indexer, 5)
         expected = np.array([4, 2, 3, 6, 7], dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
+
+
+def test_cache_readonly_preserve_docstrings():
+    # GH18197
+    assert Index.hasnans.__doc__ is not None
