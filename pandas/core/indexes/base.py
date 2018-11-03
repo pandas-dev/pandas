@@ -18,7 +18,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,
-    ABCPeriodIndex, ABCTimedeltaIndex,
+    ABCPeriodIndex, ABCTimedeltaIndex, ABCDatetimeIndex,
     ABCDateOffset)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
@@ -545,6 +545,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         # _simple_new expects an ndarray
         values = getattr(values, 'values', values)
+        if isinstance(values, ABCDatetimeIndex):
+            # `self.values` returns `self` for tz-aware, so we need to unwrap
+            #  more specifically
+            values = values.asi8
 
         return self._simple_new(values, **attributes)
 
@@ -2947,7 +2951,8 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
 
         if self.equals(other):
-            return self._shallow_copy([])
+            # pass an empty np.ndarray with the appropriate dtype
+            return self._shallow_copy(self._data[:0])
 
         other, result_name = self._convert_can_do_setop(other)
 
@@ -3715,7 +3720,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(target, Index) and len(target) == 0:
             attrs = self._get_attributes_dict()
             attrs.pop('freq', None)  # don't preserve freq
-            target = self._simple_new(None, dtype=self.dtype, **attrs)
+            values = self._data[:0]  # appropriately-dtyped empty array
+            target = self._simple_new(values, dtype=self.dtype, **attrs)
         else:
             target = ensure_index(target)
 
@@ -3930,46 +3936,72 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _join_multi(self, other, how, return_indexers=True):
         from .multi import MultiIndex
+        from pandas.core.reshape.merge import _restore_dropped_levels_multijoin
+
+        # figure out join names
+        self_names = set(com._not_none(*self.names))
+        other_names = set(com._not_none(*other.names))
+        overlap = self_names & other_names
+
+        # need at least 1 in common
+        if not overlap:
+            raise ValueError("cannot join with no overlapping index names")
+
         self_is_mi = isinstance(self, MultiIndex)
         other_is_mi = isinstance(other, MultiIndex)
 
-        # figure out join names
-        self_names = com._not_none(*self.names)
-        other_names = com._not_none(*other.names)
-        overlap = list(set(self_names) & set(other_names))
+        if self_is_mi and other_is_mi:
 
-        # need at least 1 in common, but not more than 1
-        if not len(overlap):
-            raise ValueError("cannot join with no level specified and no "
-                             "overlapping names")
-        if len(overlap) > 1:
-            raise NotImplementedError("merging with more than one level "
-                                      "overlap on a multi-index is not "
-                                      "implemented")
-        jl = overlap[0]
+            # Drop the non-matching levels from left and right respectively
+            ldrop_names = list(self_names - overlap)
+            rdrop_names = list(other_names - overlap)
 
+            self_jnlevels = self.droplevel(ldrop_names)
+            other_jnlevels = other.droplevel(rdrop_names)
+
+            # Join left and right
+            # Join on same leveled multi-index frames is supported
+            join_idx, lidx, ridx = self_jnlevels.join(other_jnlevels, how,
+                                                      return_indexers=True)
+
+            # Restore the dropped levels
+            # Returned index level order is
+            # common levels, ldrop_names, rdrop_names
+            dropped_names = ldrop_names + rdrop_names
+
+            levels, labels, names = (
+                _restore_dropped_levels_multijoin(self, other,
+                                                  dropped_names,
+                                                  join_idx,
+                                                  lidx, ridx))
+
+            # Re-create the multi-index
+            multi_join_idx = MultiIndex(levels=levels, labels=labels,
+                                        names=names, verify_integrity=False)
+
+            multi_join_idx = multi_join_idx.remove_unused_levels()
+
+            return multi_join_idx, lidx, ridx
+
+        jl = list(overlap)[0]
+
+        # Case where only one index is multi
         # make the indices into mi's that match
-        if not (self_is_mi and other_is_mi):
+        flip_order = False
+        if self_is_mi:
+            self, other = other, self
+            flip_order = True
+            # flip if join method is right or left
+            how = {'right': 'left', 'left': 'right'}.get(how, how)
 
-            flip_order = False
-            if self_is_mi:
-                self, other = other, self
-                flip_order = True
-                # flip if join method is right or left
-                how = {'right': 'left', 'left': 'right'}.get(how, how)
+        level = other.names.index(jl)
+        result = self._join_level(other, level, how=how,
+                                  return_indexers=return_indexers)
 
-            level = other.names.index(jl)
-            result = self._join_level(other, level, how=how,
-                                      return_indexers=return_indexers)
-
-            if flip_order:
-                if isinstance(result, tuple):
-                    return result[0], result[2], result[1]
-            return result
-
-        # 2 multi-indexes
-        raise NotImplementedError("merging with both multi-indexes is not "
-                                  "implemented")
+        if flip_order:
+            if isinstance(result, tuple):
+                return result[0], result[2], result[1]
+        return result
 
     def _join_non_unique(self, other, how='left', return_indexers=False):
         from pandas.core.reshape.merge import _get_join_indexers

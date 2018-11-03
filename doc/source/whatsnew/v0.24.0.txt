@@ -180,6 +180,47 @@ array, but rather an ``ExtensionArray``:
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
 
+.. _whatsnew_0240.enhancements.join_with_two_multiindexes:
+
+Joining with two multi-indexes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`Datafame.merge` and :func:`Dataframe.join` can now be used to join multi-indexed ``Dataframe`` instances on the overlaping index levels (:issue:`6360`)
+
+See the :ref:`Merge, join, and concatenate
+<merging.Join_with_two_multi_indexes>` documentation section.
+
+.. ipython:: python
+
+   index_left = pd.MultiIndex.from_tuples([('K0', 'X0'), ('K0', 'X1'),
+                                          ('K1', 'X2')],
+                                          names=['key', 'X'])
+
+
+   left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
+                        'B': ['B0', 'B1', 'B2']},
+                         index=index_left)
+
+
+   index_right = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
+                                           ('K2', 'Y2'), ('K2', 'Y3')],
+                                           names=['key', 'Y'])
+
+
+   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+                         'D': ['D0', 'D1', 'D2', 'D3']},
+                        index=index_right)
+
+
+    left.join(right)
+
+For earlier versions this can be done using the following.
+
+.. ipython:: python
+
+   pd.merge(left.reset_index(), right.reset_index(),
+            on=['key'], how='inner').set_index(['key','X','Y'])
+
 .. _whatsnew_0240.enhancements.rename_axis:
 
 Renaming names in a MultiIndex
@@ -227,6 +268,7 @@ Other Enhancements
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
 - :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support an ``ambiguous`` argument for handling datetimes that are rounded to ambiguous times (:issue:`18946`)
+- :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support a ``nonexistent`` argument for handling datetimes that are rounded to nonexistent times. See :ref:`timeseries.timezone_nonexsistent` (:issue:`22647`)
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
 - :meth:`pandas.core.dtypes.is_list_like` has gained a keyword ``allow_sets`` which is ``True`` by default; if ``False``,
@@ -1060,6 +1102,7 @@ Performance Improvements
 - Improved the performance of :func:`pandas.get_dummies` with ``sparse=True`` (:issue:`21997`)
 - Improved performance of :func:`IndexEngine.get_indexer_non_unique` for sorted, non-unique indexes (:issue:`9466`)
 - Improved performance of :func:`PeriodIndex.unique` (:issue:`23083`)
+- Improved performance of :func:`pd.concat` for `Series` objects (:issue:`23404`)
 
 
 .. _whatsnew_0240.docs:
