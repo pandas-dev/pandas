@@ -1294,13 +1294,11 @@ class GroupBy(_GroupBy):
                 return result.T
             return result.unstack()
 
-    @Substitution(name='groupby')
-    @Appender(_doc_template)
     def resample(self, rule, *args, **kwargs):
         """
         Provide resampling when using a TimeGrouper.
 
-        Given a grouper the function resamples it according to a string
+        Given a grouper, the function resamples it according to a string
         "string" -> "frequency".
 
         See the :ref:`frequency aliases <timeseries.offset-aliases>`
@@ -1310,15 +1308,16 @@ class GroupBy(_GroupBy):
         ----------
         rule : str or Offset
             The offset string or object representing target grouper conversion.
-        *args, **kwargs : [closed, label, loffset]
-            For compatibility with other groupby methods. See below for some
-            example parameters.
-        closed : {‘right’, ‘left’}
-            Which side of bin interval is closed.
-        label : {‘right’, ‘left’}
-            Which bin edge label to label bucket with.
-        loffset : timedelta
-            Adjust the resampled time labels.
+        *args, **kwargs
+            For compatibility with other groupby methods. Available keywor
+            arguments are:
+
+               * closed : {'right', 'left'}
+                 Which side of bin interval is closed.
+               * label : {'right', 'left'}
+                 Which bin edge label to label bucket with.
+               * loffset : timedelta
+                 Adjust the resampled time labels.
 
         Returns
         -------
@@ -1327,15 +1326,13 @@ class GroupBy(_GroupBy):
 
         See Also
         --------
-        pandas.Grouper : specify a frequency to resample with when
+        pandas.Grouper : Specify a frequency to resample with when
             grouping by a key.
         DatetimeIndex.resample : Frequency conversion and resampling of
             time series.
 
         Examples
         --------
-        Start by creating a length-4 DataFrame with minute frequency.
-
         >>> idx = pd.date_range('1/1/2000', periods=4, freq='T')
         >>> df = pd.DataFrame(data=4 * [range(2)],
         ...                   index=idx,
