@@ -516,7 +516,7 @@ def validate_one(func_name):
 
     pep8_errs = [error for error in doc.validate_pep8()]
     if pep8_errs:
-        errs.append('Errors in doctests')
+        errs.append('Linting issues in doctests:')
         for err in pep8_errs:
             errs.append('\t{} {} {}'.format(err.count, err.error_code,
                                             err.message))
