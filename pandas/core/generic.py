@@ -8365,15 +8365,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         When `freq` is not passed, shift the index without realigning the data.
         If `freq` is passed (in this case, the index must be date or datetime,
-        or it will raises a `NotImplementedError`), the index will be
+        or it will raise a `NotImplementedError`), the index will be
         increased using the periods and the `freq`.
 
         Parameters
         ----------
         periods : int
-            Number of periods to shift; can be positive or negative.
-        freq : DateOffset, timedelta, or time rule string, optional
-            Increment to use from the tseries module or time rule (e.g. 'EOM').
+            Number of periods to shift. Can be positive or negative.
+        freq : DateOffset, timedelta, or str, optional
+            Offset to use from the tseries module or time rule (e.g. 'EOM').
             If `freq` is specified then the index values are shifted but the
             data is not realigned. That is, use `freq` if you would like to
             extend the index when shifting and preserve the original data.
@@ -8413,50 +8413,13 @@ class NDFrame(PandasObject, SelectionMixin):
         3  10.0  13.0  17.0
         4  20.0  23.0  27.0
 
-        >>> df.shift(periods=1, axis=1)
+        >>> df.shift(periods=1, axis='columns')
            Col1  Col2  Col3
         0   NaN  10.0  13.0
         1   NaN  20.0  23.0
         2   NaN  15.0  18.0
         3   NaN  30.0  33.0
         4   NaN  45.0  48.0
-
-        **freq parameter**
-
-        When using the freq parameter with a :class:pandas.DateTimeIndex
-        the index values are shifted but the data is not realigned.
-
-        >>> names = ['Joaquim', 'Maria', 'Emanuel', 'Jussara', 'Geraldo']
-        >>> dates = pd.date_range(start='2018-03-05 11:15:00',
-        ...                       freq='5D', periods=5)
-        >>> df = pd.DataFrame(data={'names': names}, index=dates)
-        >>> df
-                               names
-        2018-03-05 11:15:00  Joaquim
-        2018-03-10 11:15:00    Maria
-        2018-03-15 11:15:00  Emanuel
-        2018-03-20 11:15:00  Jussara
-        2018-03-25 11:15:00  Geraldo
-
-        Shift the index by 2 days (offset-alias 'D').
-
-        >>> df.shift(periods=2, freq='D')
-                               names
-        2018-03-07 11:15:00  Joaquim
-        2018-03-12 11:15:00    Maria
-        2018-03-17 11:15:00  Emanuel
-        2018-03-22 11:15:00  Jussara
-        2018-03-27 11:15:00  Geraldo
-
-        Shift the index by 75 minutes (offset-alias 'min').
-
-        >>> df.shift(periods=75, freq='min')
-                               names
-        2018-03-05 12:30:00  Joaquim
-        2018-03-10 12:30:00    Maria
-        2018-03-15 12:30:00  Emanuel
-        2018-03-20 12:30:00  Jussara
-        2018-03-25 12:30:00  Geraldo
     """)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
