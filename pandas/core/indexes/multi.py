@@ -2,6 +2,7 @@
 # pylint: disable=E1101,E1103,W0232
 import datetime
 import warnings
+from collections import OrderedDict
 from sys import getsizeof
 
 import numpy as np
@@ -1190,9 +1191,13 @@ class MultiIndex(Index):
             idx_names = self.names
 
         result = DataFrame(
-            list(self),
-            columns=[n or i for i, n in enumerate(idx_names)]
+            OrderedDict([
+                ((name or level), self._get_level_values(level))
+                for name, level in zip(idx_names, range(len(self.levels)))
+            ]),
+            copy=False
         )
+
 
         if index:
             result.index = self
@@ -1416,7 +1421,7 @@ class MultiIndex(Index):
         return MultiIndex(levels, labels, sortorder=sortorder, names=names)
 
     @classmethod
-    def from_frame(cls, df, squeeze=True):
+    def from_frame(cls, df, squeeze=True, names=None):
         """
         Make a MultiIndex from a DataFrame.
 
@@ -1426,6 +1431,11 @@ class MultiIndex(Index):
             DataFrame to be converted to MultiIndex.
         squeeze : bool, default True
             If df is a single column, squeeze MultiIndex to be a regular Index.
+        names : list / sequence / callable, optonal
+            If no names provided, use column names, or tuple of column names if
+            the columns is a MultiIndex. If sequence, overwrite names with the
+            given sequence. If callable, pass each column name or tuples of
+            names to the callable.
 
         Returns
         -------
@@ -1435,21 +1445,21 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> df = pd.DataFrame([[0, 'green'], [0, 'purple'], [1, 'green'],
-        ...                    [1, 'purple'], [2, 'green'], [2, 'purple']],
-        ...                   columns=['number', 'color'])
+        >>> df = pd.DataFrame([[0, 'happy'], [0, 'jolly'], [1, 'happy'],
+        ...                    [1, 'jolly'], [2, 'joy'], [2, 'joy']],
+        ...                   columns=['number', 'mood'])
         >>> df
-           number   color
-        0       0   green
-        1       0  purple
-        2       1   green
-        3       1  purple
-        4       2   green
-        5       2  purple
+           number   mood
+        0       0  happy
+        1       0  jolly
+        2       1  happy
+        3       1  jolly
+        4       2    joy
+        5       2    joy
         >>> pd.MultiIndex.from_frame(df)
-        MultiIndex(levels=[[0, 1, 2], ['green', 'purple']],
-                   labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
-                   names=['number', 'color'])
+        MultiIndex(levels=[[0, 1, 2], ['happy', 'jolly', 'joy']],
+                   labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 2, 2]],
+                   names=['number', 'mood'])
 
         See Also
         --------
@@ -1459,12 +1469,26 @@ class MultiIndex(Index):
                                   of iterables
         """
         from pandas import DataFrame
-        # just let column level names be the tuple of the meta df columns
-        # since they're not required to be strings
         if not isinstance(df, DataFrame):
             raise TypeError("Input must be a DataFrame")
-        columns = list(df)
-        mi = cls.from_tuples(list(df.values), names=columns)
+
+        # Get MultiIndex names
+        if names is None:
+            names = list(df)
+        else:
+            if callable(names):
+                names = [names(x) for x in list(df)]
+            else:
+                if not is_list_like(names):
+                    raise TypeError("'names' must be a list / sequence "
+                                    "of column names, or a callable.")
+
+                if len(names) != len(list(df)):
+                    raise ValueError("'names' should have same length as "
+                                     "number of columns in df.")
+
+        # This way will preserve dtype of columns
+        mi = cls.from_arrays([df[x] for x in df], names=names)
         return mi.squeeze() if squeeze else mi
 
     def _sort_levels_monotonic(self):
