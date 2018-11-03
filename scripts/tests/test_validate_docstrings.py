@@ -714,9 +714,9 @@ class TestValidator(object):
                      marks=pytest.mark.xfail),
         # Examples tests
         ('BadGenericDocStrings', 'method',
-         ('Numpy does not need to be imported in the examples,')),
+         ('numpy does not need to be imported in the examples,')),
         ('BadGenericDocStrings', 'method',
-         ('Pandas does not need to be imported in the examples,')),
+         ('pandas does not need to be imported in the examples,')),
         # See Also tests
         ('BadSeeAlso', 'prefix_pandas',
          ('pandas.Series.rename in `See Also` section '
