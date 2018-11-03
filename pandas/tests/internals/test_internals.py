@@ -832,11 +832,11 @@ class TestBlockManager(object):
             with pytest.raises(ValueError):
                 bm1.replace_list([1], [2], inplace=value)
 
-    def test_swap_to_native_byteorder(self):
+    def test_swap_byteorder_in_little_endian_platform(self):
         # Issue #4737
         native_byteorder = '='
-        non_native_byteorder = '>' if sys.byteorder == 'little' else '<'
-        mgr = create_single_mgr('{order}i2'.format(order=non_native_byteorder))
+        big_endian_byteorder = '>'
+        mgr = create_single_mgr('{order}i2'.format(order=big_endian_byteorder))
         assert mgr.get_dtypes()[-1].byteorder == native_byteorder
 
 
