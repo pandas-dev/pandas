@@ -719,7 +719,7 @@ DataFrame will be pivoted in the answers below.
 
 .. ipython:: python
 
-   np.random.seed([3,1415])
+   np.random.seed([3, 1415])
    n = 20
 
    cols = np.array(['key', 'row', 'item', 'col'])
