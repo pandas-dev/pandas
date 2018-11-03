@@ -177,7 +177,7 @@ def round_nsint64(values, mode, freq):
 
     # if/elif above should catch all rounding modes defined in enum 'RoundTo':
     # if flow of control arrives here, it is a bug
-    assert False, "round_nsint64 called with an unrecognized rounding mode"
+    raise ValueError("round_nsint64 called with an unrecognized rounding mode")
 
 
 # This is PITA. Because we inherit from datetime, which has very specific
