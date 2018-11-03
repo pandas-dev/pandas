@@ -1667,7 +1667,7 @@ cdef class TimedeltaValidator(TemporalValidator):
 
 
 # TODO: Not used outside of tests; remove?
-def is_timedelta_array(values: ndarray) -> bint:
+def is_timedelta_array(values: ndarray) -> bool:
     cdef:
         TimedeltaValidator validator = TimedeltaValidator(len(values),
                                                           skipna=True)
@@ -1680,7 +1680,7 @@ cdef class Timedelta64Validator(TimedeltaValidator):
 
 
 # TODO: Not used outside of tests; remove?
-def is_timedelta64_array(values: ndarray) -> bint:
+def is_timedelta64_array(values: ndarray) -> bool:
     cdef:
         Timedelta64Validator validator = Timedelta64Validator(len(values),
                                                               skipna=True)
