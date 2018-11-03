@@ -353,7 +353,7 @@ def group_any_all(ndarray[uint8_t] out,
     The returned values will either be 0 or 1 (False or True, respectively).
     """
     cdef:
-        Py_ssize_t i, N=len(labels)
+        Py_ssize_t i, N = len(labels)
         int64_t lab
         uint8_t flag_val
 

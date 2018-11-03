@@ -816,7 +816,8 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
     return np.asarray(out)
 
 
-cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
+def shift_month(stamp: datetime, months: int,
+                day_opt: object=None) -> datetime:
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,
@@ -946,8 +947,8 @@ cpdef int roll_convention(int other, int n, int compare) nogil:
     return n
 
 
-cpdef int roll_qtrday(datetime other, int n, int month, object day_opt,
-                      int modby=3) except? -1:
+def roll_qtrday(other: datetime, n: int, month: int,
+                day_opt: object, modby: int=3) -> int:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.

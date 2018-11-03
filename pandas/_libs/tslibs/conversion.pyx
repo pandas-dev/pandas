@@ -75,7 +75,7 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def ensure_datetime64ns(ndarray arr, copy=True):
+def ensure_datetime64ns(arr: ndarray, copy: bool=True):
     """
     Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
 
@@ -122,7 +122,7 @@ def ensure_datetime64ns(ndarray arr, copy=True):
     return result
 
 
-def ensure_timedelta64ns(ndarray arr, copy=True):
+def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
     """
     Ensure a np.timedelta64 array has dtype specifically 'timedelta64[ns]'
 
@@ -137,11 +137,12 @@ def ensure_timedelta64ns(ndarray arr, copy=True):
 
     """
     return arr.astype(TD_DTYPE, copy=copy)
+    # TODO: check for overflows when going from a lower-resolution to nanos
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def datetime_to_datetime64(object[:] values):
+def datetime_to_datetime64(values: object[:]):
     """
     Convert ndarray of datetime-like objects to int64 array representing
     nanosecond timestamps.
@@ -614,6 +615,8 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
 # ----------------------------------------------------------------------
 # Timezone Conversion
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef inline int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
                                        bint to_utc=True):
     """
@@ -1220,7 +1223,7 @@ cdef inline int64_t _normalized_stamp(npy_datetimestruct *dts) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_date_array_normalized(int64_t[:] stamps, tz=None):
+def is_date_array_normalized(int64_t[:] stamps, object tz=None):
     """
     Check if all of the given (nanosecond) timestamps are normalized to
     midnight, i.e. hour == minute == second == 0.  If the optional timezone

@@ -114,7 +114,7 @@ def get_date_name_field(int64_t[:] dtindex, object field, object locale=None):
             dt64_to_dtstruct(dtindex[i], &dts)
             dow = dayofweek(dts.year, dts.month, dts.day)
             out[i] = names[dow].capitalize()
-        return out
+
     elif field == 'month_name':
         if locale is None:
             names = np.array(MONTHS_FULL, dtype=np.object_)
@@ -128,12 +128,15 @@ def get_date_name_field(int64_t[:] dtindex, object field, object locale=None):
 
             dt64_to_dtstruct(dtindex[i], &dts)
             out[i] = names[dts.month].capitalize()
-        return out
 
-    raise ValueError("Field %s not supported" % field)
+    else:
+        raise ValueError("Field {field} not supported".format(field=field))
+
+    return out
 
 
 @cython.wraparound(False)
+@cython.boundscheck(False)
 def get_start_end_field(int64_t[:] dtindex, object field,
                         object freqstr=None, int month_kw=12):
     """
@@ -163,8 +166,8 @@ def get_start_end_field(int64_t[:] dtindex, object field,
 
     if freqstr:
         if freqstr == 'C':
-            raise ValueError(
-                "Custom business days is not supported by %s" % field)
+            raise ValueError("Custom business days is not supported by {field}"
+                             .format(field=field))
         is_business = freqstr[0] == 'B'
 
         # YearBegin(), BYearBegin() use month = starting month of year.
@@ -196,7 +199,7 @@ def get_start_end_field(int64_t[:] dtindex, object field,
 
                 if (dom == 1 and dow < 5) or (dom <= 3 and dow == 0):
                     out[i] = 1
-            return out.view(bool)
+
         else:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -208,7 +211,6 @@ def get_start_end_field(int64_t[:] dtindex, object field,
 
                 if dom == 1:
                     out[i] = 1
-            return out.view(bool)
 
     elif field == 'is_month_end':
         if is_business:
@@ -228,7 +230,7 @@ def get_start_end_field(int64_t[:] dtindex, object field,
                 if (ldom == doy and dow < 5) or (
                         dow == 4 and (ldom - doy <= 2)):
                     out[i] = 1
-            return out.view(bool)
+
         else:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -244,7 +246,6 @@ def get_start_end_field(int64_t[:] dtindex, object field,
 
                 if ldom == doy:
                     out[i] = 1
-            return out.view(bool)
 
     elif field == 'is_quarter_start':
         if is_business:
@@ -260,7 +261,7 @@ def get_start_end_field(int64_t[:] dtindex, object field,
                 if ((dts.month - start_month) % 3 == 0) and (
                         (dom == 1 and dow < 5) or (dom <= 3 and dow == 0)):
                     out[i] = 1
-            return out.view(bool)
+
         else:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -272,7 +273,6 @@ def get_start_end_field(int64_t[:] dtindex, object field,
 
                 if ((dts.month - start_month) % 3 == 0) and dom == 1:
                     out[i] = 1
-            return out.view(bool)
 
     elif field == 'is_quarter_end':
         if is_business:
@@ -293,7 +293,7 @@ def get_start_end_field(int64_t[:] dtindex, object field,
                         (ldom == doy and dow < 5) or (
                             dow == 4 and (ldom - doy <= 2))):
                     out[i] = 1
-            return out.view(bool)
+
         else:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -309,7 +309,6 @@ def get_start_end_field(int64_t[:] dtindex, object field,
 
                 if ((dts.month - end_month) % 3 == 0) and (ldom == doy):
                     out[i] = 1
-            return out.view(bool)
 
     elif field == 'is_year_start':
         if is_business:
@@ -325,7 +324,7 @@ def get_start_end_field(int64_t[:] dtindex, object field,
                 if (dts.month == start_month) and (
                         (dom == 1 and dow < 5) or (dom <= 3 and dow == 0)):
                     out[i] = 1
-            return out.view(bool)
+
         else:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -337,7 +336,6 @@ def get_start_end_field(int64_t[:] dtindex, object field,
 
                 if (dts.month == start_month) and dom == 1:
                     out[i] = 1
-            return out.view(bool)
 
     elif field == 'is_year_end':
         if is_business:
@@ -358,7 +356,7 @@ def get_start_end_field(int64_t[:] dtindex, object field,
                         (ldom == doy and dow < 5) or (
                             dow == 4 and (ldom - doy <= 2))):
                     out[i] = 1
-            return out.view(bool)
+
         else:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -374,9 +372,11 @@ def get_start_end_field(int64_t[:] dtindex, object field,
 
                 if (dts.month == end_month) and (ldom == doy):
                     out[i] = 1
-            return out.view(bool)
 
-    raise ValueError("Field %s not supported" % field)
+    else:
+        raise ValueError("Field {field} not supported".format(field=field))
+
+    return out.view(bool)
 
 
 @cython.wraparound(False)
