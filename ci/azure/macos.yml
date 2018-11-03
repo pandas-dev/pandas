@@ -54,7 +54,7 @@ jobs:
           Write-Error "$($matches[1]) tests failed"
         }
 
-        $junitXmlMulti = "test-data-multi.xml"
+        $junitXmlMulti = "test-data-multiple.xml"
         $(Get-Content $junitXmlMulti | Out-String) -match 'failures="(.*?)"'
         if ($matches[1] -eq 0)
         {
