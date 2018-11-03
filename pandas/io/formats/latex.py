@@ -2,14 +2,16 @@
 """
 Module for formatting output data in Latex.
 """
-
 from __future__ import print_function
 
-from pandas.core.index import MultiIndex
+import numpy as np
+
 from pandas import compat
 from pandas.compat import range, map, zip, u
+
+from pandas.core.dtypes.generic import ABCMultiIndex
+
 from pandas.io.formats.format import TableFormatter
-import numpy as np
 
 
 class LatexFormatter(TableFormatter):
@@ -63,36 +65,33 @@ class LatexFormatter(TableFormatter):
                 return 'l'
 
         # reestablish the MultiIndex that has been joined by _to_str_column
-        if self.fmt.index and isinstance(self.frame.index, MultiIndex):
+        if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
+            out = self.frame.index.format(
+                adjoin=False, sparsify=self.fmt.sparsify,
+                names=self.fmt.has_index_names, na_rep=self.fmt.na_rep
+            )
+
+            # index.format will sparsify repeated entries with empty strings
+            # so pad these with some empty space
+            def pad_empties(x):
+                for pad in reversed(x):
+                    if pad:
+                        break
+                return [x[0]] + [i if i else ' ' * len(pad) for i in x[1:]]
+            out = (pad_empties(i) for i in out)
+
+            # Add empty spaces for each column level
             clevels = self.frame.columns.nlevels
-            strcols.pop(0)
-            name = any(self.frame.index.names)
-            cname = any(self.frame.columns.names)
-            lastcol = self.frame.index.nlevels - 1
-            previous_lev3 = None
-            for i, lev in enumerate(self.frame.index.levels):
-                lev2 = lev.format()
-                blank = ' ' * len(lev2[0])
-                # display column names in last index-column
-                if cname and i == lastcol:
-                    lev3 = [x if x else '{}' for x in self.frame.columns.names]
-                else:
-                    lev3 = [blank] * clevels
-                if name:
-                    lev3.append(lev.name)
-                current_idx_val = None
-                for level_idx in self.frame.index.labels[i]:
-                    if ((previous_lev3 is None or
-                        previous_lev3[len(lev3)].isspace()) and
-                            lev2[level_idx] == current_idx_val):
-                        # same index as above row and left index was the same
-                        lev3.append(blank)
-                    else:
-                        # different value than above or left index different
-                        lev3.append(lev2[level_idx])
-                        current_idx_val = lev2[level_idx]
-                strcols.insert(i, lev3)
-                previous_lev3 = lev3
+            out = [[' ' * len(i[-1])] * clevels + i for i in out]
+
+            # Add the column names to the last index column
+            cnames = self.frame.columns.names
+            if any(cnames):
+                new_names = [i if i else '{}' for i in cnames]
+                out[self.frame.index.nlevels - 1][:clevels] = new_names
+
+            # Get rid of old multiindex column and add new ones
+            strcols = out + strcols[1:]
 
         column_format = self.column_format
         if column_format is None:
@@ -118,7 +117,7 @@ class LatexFormatter(TableFormatter):
         ilevels = self.frame.index.nlevels
         clevels = self.frame.columns.nlevels
         nlevels = clevels
-        if any(self.frame.index.names):
+        if self.fmt.has_index_names and self.fmt.show_index_names:
             nlevels += 1
         strrows = list(zip(*strcols))
         self.clinebuf = []
@@ -137,11 +136,13 @@ class LatexFormatter(TableFormatter):
                     buf.write('\\endlastfoot\n')
             if self.fmt.kwds.get('escape', True):
                 # escape backslashes first
-                crow = [(x.replace('\\', '\\textbackslash').replace('_', '\\_')
+                crow = [(x.replace('\\', '\\textbackslash ')
+                         .replace('_', '\\_')
                          .replace('%', '\\%').replace('$', '\\$')
                          .replace('#', '\\#').replace('{', '\\{')
-                         .replace('}', '\\}').replace('~', '\\textasciitilde')
-                         .replace('^', '\\textasciicircum').replace('&', '\\&')
+                         .replace('}', '\\}').replace('~', '\\textasciitilde ')
+                         .replace('^', '\\textasciicircum ')
+                         .replace('&', '\\&')
                          if (x and x != '{}') else '{}') for x in row]
             else:
                 crow = [x if x else '{}' for x in row]

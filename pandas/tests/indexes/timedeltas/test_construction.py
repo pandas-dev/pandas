@@ -1,7 +1,7 @@
-import pytest
+from datetime import timedelta
 
 import numpy as np
-from datetime import timedelta
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -43,6 +43,13 @@ class TestTimedeltaIndex(object):
              '0 days 00:00:01.200'])
         tm.assert_index_equal(TimedeltaIndex([400, 450, 1200], unit='ms'),
                               expected)
+
+    def test_constructor_iso(self):
+        # GH #21877
+        expected = timedelta_range('1s', periods=9, freq='s')
+        durations = ['P0DT0H0M{}S'.format(i) for i in range(1, 10)]
+        result = to_timedelta(durations)
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_coverage(self):
         rng = timedelta_range('1 days', periods=10.5)

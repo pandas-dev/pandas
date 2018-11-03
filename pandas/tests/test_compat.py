@@ -4,9 +4,10 @@ Testing that functions from compat work as expected
 """
 
 import pytest
+import re
 from pandas.compat import (range, zip, map, filter, lrange, lzip, lmap,
                            lfilter, builtins, iterkeys, itervalues, iteritems,
-                           next, get_range_parameters, PY2)
+                           next, get_range_parameters, PY2, re_type)
 
 
 class TestBuiltinIterators(object):
@@ -89,3 +90,7 @@ class TestCompatFunctions(object):
         assert start_result == start_expected
         assert stop_result == stop_expected
         assert step_result == step_expected
+
+
+def test_re_type():
+    assert isinstance(re.compile(''), re_type)

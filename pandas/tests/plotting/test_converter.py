@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import pytest
 from datetime import datetime, date
 
@@ -27,7 +28,7 @@ class TestRegistration(object):
                 "import pandas as pd; "
                 "units = dict(matplotlib.units.registry); "
                 "assert pd.Timestamp in units)'")
-        call = ['python', '-c', code]
+        call = [sys.executable, '-c', code]
         assert subprocess.check_call(call) == 0
 
     def test_warns(self):

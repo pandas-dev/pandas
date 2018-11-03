@@ -161,14 +161,15 @@ class TestToNumeric(object):
         expected = pd.Series([np.nan, np.nan, np.nan])
         tm.assert_series_equal(res, expected)
 
-    def test_type_check(self):
-        # GH 11776
-        df = pd.DataFrame({'a': [1, -3.14, 7], 'b': ['4', '5', '6']})
-        with tm.assert_raises_regex(TypeError, "1-d array"):
-            to_numeric(df)
-        for errors in ['ignore', 'raise', 'coerce']:
-            with tm.assert_raises_regex(TypeError, "1-d array"):
-                to_numeric(df, errors=errors)
+    @pytest.mark.parametrize("errors", [None, "ignore", "raise", "coerce"])
+    def test_type_check(self, errors):
+        # see gh-11776
+        df = pd.DataFrame({"a": [1, -3.14, 7], "b": ["4", "5", "6"]})
+        kwargs = dict(errors=errors) if errors is not None else dict()
+        error_ctx = tm.assert_raises_regex(TypeError, "1-d array")
+
+        with error_ctx:
+            to_numeric(df, **kwargs)
 
     def test_scalar(self):
         assert pd.to_numeric(1) == 1
@@ -227,17 +228,17 @@ class TestToNumeric(object):
         res = pd.to_numeric(idx.values)
         tm.assert_numpy_array_equal(res, exp)
 
-    def test_datetimelike(self):
-        for tz in [None, 'US/Eastern', 'Asia/Tokyo']:
-            idx = pd.date_range('20130101', periods=3, tz=tz, name='xxx')
-            res = pd.to_numeric(idx)
-            tm.assert_index_equal(res, pd.Index(idx.asi8, name='xxx'))
+    def test_datetime_like(self, tz_naive_fixture):
+        idx = pd.date_range("20130101", periods=3,
+                            tz=tz_naive_fixture, name="xxx")
+        res = pd.to_numeric(idx)
+        tm.assert_index_equal(res, pd.Index(idx.asi8, name="xxx"))
 
-            res = pd.to_numeric(pd.Series(idx, name='xxx'))
-            tm.assert_series_equal(res, pd.Series(idx.asi8, name='xxx'))
+        res = pd.to_numeric(pd.Series(idx, name="xxx"))
+        tm.assert_series_equal(res, pd.Series(idx.asi8, name="xxx"))
 
-            res = pd.to_numeric(idx.values)
-            tm.assert_numpy_array_equal(res, idx.asi8)
+        res = pd.to_numeric(idx.values)
+        tm.assert_numpy_array_equal(res, idx.asi8)
 
     def test_timedelta(self):
         idx = pd.timedelta_range('1 days', periods=3, freq='D', name='xxx')
@@ -255,7 +256,7 @@ class TestToNumeric(object):
         res = pd.to_numeric(idx)
         tm.assert_index_equal(res, pd.Index(idx.asi8, name='xxx'))
 
-        # ToDo: enable when we can support native PeriodDtype
+        # TODO: enable when we can support native PeriodDtype
         # res = pd.to_numeric(pd.Series(idx, name='xxx'))
         # tm.assert_series_equal(res, pd.Series(idx.asi8, name='xxx'))
 
@@ -271,116 +272,147 @@ class TestToNumeric(object):
         with tm.assert_raises_regex(TypeError, "Invalid object type"):
             pd.to_numeric(s)
 
-    def test_downcast(self):
+    @pytest.mark.parametrize("data", [
+        ["1", 2, 3],
+        [1, 2, 3],
+        np.array(["1970-01-02", "1970-01-03",
+                  "1970-01-04"], dtype="datetime64[D]")
+    ])
+    def test_downcast_basic(self, data):
         # see gh-13352
-        mixed_data = ['1', 2, 3]
-        int_data = [1, 2, 3]
-        date_data = np.array(['1970-01-02', '1970-01-03',
-                              '1970-01-04'], dtype='datetime64[D]')
+        invalid_downcast = "unsigned-integer"
+        msg = "invalid downcasting method provided"
 
-        invalid_downcast = 'unsigned-integer'
-        msg = 'invalid downcasting method provided'
+        with tm.assert_raises_regex(ValueError, msg):
+            pd.to_numeric(data, downcast=invalid_downcast)
 
-        smallest_int_dtype = np.dtype(np.typecodes['Integer'][0])
-        smallest_uint_dtype = np.dtype(np.typecodes['UnsignedInteger'][0])
+        expected = np.array([1, 2, 3], dtype=np.int64)
 
-        # support below np.float32 is rare and far between
+        # Basic function tests.
+        res = pd.to_numeric(data)
+        tm.assert_numpy_array_equal(res, expected)
+
+        res = pd.to_numeric(data, downcast=None)
+        tm.assert_numpy_array_equal(res, expected)
+
+        # Basic dtype support.
+        smallest_uint_dtype = np.dtype(np.typecodes["UnsignedInteger"][0])
+
+        # Support below np.float32 is rare and far between.
         float_32_char = np.dtype(np.float32).char
         smallest_float_dtype = float_32_char
 
-        for data in (mixed_data, int_data, date_data):
-            with tm.assert_raises_regex(ValueError, msg):
-                pd.to_numeric(data, downcast=invalid_downcast)
+        expected = np.array([1, 2, 3], dtype=smallest_uint_dtype)
+        res = pd.to_numeric(data, downcast="unsigned")
+        tm.assert_numpy_array_equal(res, expected)
 
-            expected = np.array([1, 2, 3], dtype=np.int64)
+        expected = np.array([1, 2, 3], dtype=smallest_float_dtype)
+        res = pd.to_numeric(data, downcast="float")
+        tm.assert_numpy_array_equal(res, expected)
 
-            res = pd.to_numeric(data)
-            tm.assert_numpy_array_equal(res, expected)
+    @pytest.mark.parametrize("signed_downcast", ["integer", "signed"])
+    @pytest.mark.parametrize("data", [
+        ["1", 2, 3],
+        [1, 2, 3],
+        np.array(["1970-01-02", "1970-01-03",
+                  "1970-01-04"], dtype="datetime64[D]")
+    ])
+    def test_signed_downcast(self, data, signed_downcast):
+        # see gh-13352
+        smallest_int_dtype = np.dtype(np.typecodes["Integer"][0])
+        expected = np.array([1, 2, 3], dtype=smallest_int_dtype)
 
-            res = pd.to_numeric(data, downcast=None)
-            tm.assert_numpy_array_equal(res, expected)
+        res = pd.to_numeric(data, downcast=signed_downcast)
+        tm.assert_numpy_array_equal(res, expected)
 
-            expected = np.array([1, 2, 3], dtype=smallest_int_dtype)
-
-            for signed_downcast in ('integer', 'signed'):
-                res = pd.to_numeric(data, downcast=signed_downcast)
-                tm.assert_numpy_array_equal(res, expected)
-
-            expected = np.array([1, 2, 3], dtype=smallest_uint_dtype)
-            res = pd.to_numeric(data, downcast='unsigned')
-            tm.assert_numpy_array_equal(res, expected)
-
-            expected = np.array([1, 2, 3], dtype=smallest_float_dtype)
-            res = pd.to_numeric(data, downcast='float')
-            tm.assert_numpy_array_equal(res, expected)
-
-        # if we can't successfully cast the given
+    def test_ignore_downcast_invalid_data(self):
+        # If we can't successfully cast the given
         # data to a numeric dtype, do not bother
-        # with the downcast parameter
-        data = ['foo', 2, 3]
+        # with the downcast parameter.
+        data = ["foo", 2, 3]
         expected = np.array(data, dtype=object)
-        res = pd.to_numeric(data, errors='ignore',
-                            downcast='unsigned')
+
+        res = pd.to_numeric(data, errors="ignore",
+                            downcast="unsigned")
         tm.assert_numpy_array_equal(res, expected)
 
-        # cannot cast to an unsigned integer because
-        # we have a negative number
-        data = ['-1', 2, 3]
+    def test_ignore_downcast_neg_to_unsigned(self):
+        # Cannot cast to an unsigned integer
+        # because we have a negative number.
+        data = ["-1", 2, 3]
         expected = np.array([-1, 2, 3], dtype=np.int64)
-        res = pd.to_numeric(data, downcast='unsigned')
+
+        res = pd.to_numeric(data, downcast="unsigned")
         tm.assert_numpy_array_equal(res, expected)
 
-        # cannot cast to an integer (signed or unsigned)
-        # because we have a float number
-        data = (['1.1', 2, 3],
-                [10000.0, 20000, 3000, 40000.36, 50000, 50000.00])
-        expected = (np.array([1.1, 2, 3], dtype=np.float64),
-                    np.array([10000.0, 20000, 3000,
-                              40000.36, 50000, 50000.00], dtype=np.float64))
+    @pytest.mark.parametrize("downcast", ["integer", "signed", "unsigned"])
+    @pytest.mark.parametrize("data,expected", [
+        (["1.1", 2, 3],
+         np.array([1.1, 2, 3], dtype=np.float64)),
+        ([10000.0, 20000, 3000, 40000.36, 50000, 50000.00],
+         np.array([10000.0, 20000, 3000,
+                   40000.36, 50000, 50000.00], dtype=np.float64))
+    ])
+    def test_ignore_downcast_cannot_convert_float(
+            self, data, expected, downcast):
+        # Cannot cast to an integer (signed or unsigned)
+        # because we have a float number.
+        res = pd.to_numeric(data, downcast=downcast)
+        tm.assert_numpy_array_equal(res, expected)
 
-        for _data, _expected in zip(data, expected):
-            for downcast in ('integer', 'signed', 'unsigned'):
-                res = pd.to_numeric(_data, downcast=downcast)
-                tm.assert_numpy_array_equal(res, _expected)
-
+    @pytest.mark.parametrize("downcast,expected_dtype", [
+        ("integer", np.int16),
+        ("signed", np.int16),
+        ("unsigned", np.uint16)
+    ])
+    def test_downcast_not8bit(self, downcast, expected_dtype):
         # the smallest integer dtype need not be np.(u)int8
-        data = ['256', 257, 258]
+        data = ["256", 257, 258]
 
-        for downcast, expected_dtype in zip(
-                ['integer', 'signed', 'unsigned'],
-                [np.int16, np.int16, np.uint16]):
-            expected = np.array([256, 257, 258], dtype=expected_dtype)
-            res = pd.to_numeric(data, downcast=downcast)
-            tm.assert_numpy_array_equal(res, expected)
+        expected = np.array([256, 257, 258], dtype=expected_dtype)
+        res = pd.to_numeric(data, downcast=downcast)
+        tm.assert_numpy_array_equal(res, expected)
 
-    def test_downcast_limits(self):
-        # Test the limits of each downcast. Bug: #14401.
-
-        i = 'integer'
-        u = 'unsigned'
-        dtype_downcast_min_max = [
-            ('int8', i, [iinfo(np.int8).min, iinfo(np.int8).max]),
-            ('int16', i, [iinfo(np.int16).min, iinfo(np.int16).max]),
-            ('int32', i, [iinfo(np.int32).min, iinfo(np.int32).max]),
-            ('int64', i, [iinfo(np.int64).min, iinfo(np.int64).max]),
-            ('uint8', u, [iinfo(np.uint8).min, iinfo(np.uint8).max]),
-            ('uint16', u, [iinfo(np.uint16).min, iinfo(np.uint16).max]),
-            ('uint32', u, [iinfo(np.uint32).min, iinfo(np.uint32).max]),
-            ('uint64', u, [iinfo(np.uint64).min, iinfo(np.uint64).max]),
-            ('int16', i, [iinfo(np.int8).min, iinfo(np.int8).max + 1]),
-            ('int32', i, [iinfo(np.int16).min, iinfo(np.int16).max + 1]),
-            ('int64', i, [iinfo(np.int32).min, iinfo(np.int32).max + 1]),
-            ('int16', i, [iinfo(np.int8).min - 1, iinfo(np.int16).max]),
-            ('int32', i, [iinfo(np.int16).min - 1, iinfo(np.int32).max]),
-            ('int64', i, [iinfo(np.int32).min - 1, iinfo(np.int64).max]),
-            ('uint16', u, [iinfo(np.uint8).min, iinfo(np.uint8).max + 1]),
-            ('uint32', u, [iinfo(np.uint16).min, iinfo(np.uint16).max + 1]),
-            ('uint64', u, [iinfo(np.uint32).min, iinfo(np.uint32).max + 1])
-        ]
-
-        for dtype, downcast, min_max in dtype_downcast_min_max:
-            series = pd.to_numeric(pd.Series(min_max), downcast=downcast)
-            assert series.dtype == dtype
+    @pytest.mark.parametrize("dtype,downcast,min_max", [
+        ("int8", "integer", [iinfo(np.int8).min,
+                             iinfo(np.int8).max]),
+        ("int16", "integer", [iinfo(np.int16).min,
+                              iinfo(np.int16).max]),
+        ('int32', "integer", [iinfo(np.int32).min,
+                              iinfo(np.int32).max]),
+        ('int64', "integer", [iinfo(np.int64).min,
+                              iinfo(np.int64).max]),
+        ('uint8', "unsigned", [iinfo(np.uint8).min,
+                               iinfo(np.uint8).max]),
+        ('uint16', "unsigned", [iinfo(np.uint16).min,
+                                iinfo(np.uint16).max]),
+        ('uint32', "unsigned", [iinfo(np.uint32).min,
+                                iinfo(np.uint32).max]),
+        ('uint64', "unsigned", [iinfo(np.uint64).min,
+                                iinfo(np.uint64).max]),
+        ('int16', "integer", [iinfo(np.int8).min,
+                              iinfo(np.int8).max + 1]),
+        ('int32', "integer", [iinfo(np.int16).min,
+                              iinfo(np.int16).max + 1]),
+        ('int64', "integer", [iinfo(np.int32).min,
+                              iinfo(np.int32).max + 1]),
+        ('int16', "integer", [iinfo(np.int8).min - 1,
+                              iinfo(np.int16).max]),
+        ('int32', "integer", [iinfo(np.int16).min - 1,
+                              iinfo(np.int32).max]),
+        ('int64', "integer", [iinfo(np.int32).min - 1,
+                              iinfo(np.int64).max]),
+        ('uint16', "unsigned", [iinfo(np.uint8).min,
+                                iinfo(np.uint8).max + 1]),
+        ('uint32', "unsigned", [iinfo(np.uint16).min,
+                                iinfo(np.uint16).max + 1]),
+        ('uint64', "unsigned", [iinfo(np.uint32).min,
+                                iinfo(np.uint32).max + 1])
+    ])
+    def test_downcast_limits(self, dtype, downcast, min_max):
+        # see gh-14404: test the limits of each downcast.
+        series = pd.to_numeric(pd.Series(min_max), downcast=downcast)
+        assert series.dtype == dtype
 
     def test_coerce_uint64_conflict(self):
         # see gh-17007 and gh-17125
