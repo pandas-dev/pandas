@@ -11,7 +11,7 @@ import numpy as np
 from pandas._libs import lib, internals as libinternals
 
 from pandas.util._validators import validate_bool_kwarg
-from pandas.compat import range, map, zip
+from pandas.compat import range, map, zip, is_platform_little_endian
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
@@ -105,11 +105,14 @@ class BlockManager(PandasObject):
     def __init__(self, blocks, axes, do_integrity_check=True):
         self.axes = [ensure_index(ax) for ax in axes]
 
-        non_native_byteorder = '>' if sys.byteorder == 'little' else '<'
-        self.blocks = tuple(block.astype(block.dtype.newbyteorder('='))
-                            if non_native_byteorder in str(block.dtype)
-                            else block
-                            for block in blocks)
+        if is_platform_little_endian():
+            big_endian_byteorder = '>'
+            self.blocks = tuple(block.astype(block.dtype.newbyteorder('='))
+                                if big_endian_byteorder in str(block.dtype)
+                                else block
+                                for block in blocks)
+        else:
+            self.blocks = tuple(blocks)
 
         for block in blocks:
             if block.is_sparse:
