@@ -1356,7 +1356,9 @@ class Categorical(ExtensionArray, PandasObject):
         if is_scalar(value):
             codes = self.categories.get_loc(value)
         else:
-            codes = [self.categories.get_loc(val) for val in value]
+            codes = self.categories.get_indexer(value)
+            if -1 in codes:
+                raise KeyError("All values not in self.categories")
         codes = self._ensure_codes_dtype(codes)
 
         return self.codes.searchsorted(codes, side=side, sorter=sorter)
