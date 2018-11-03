@@ -30,7 +30,7 @@ cdef extern from "src/datetime/np_datetime.h":
                                            npy_datetimestruct *d) nogil
 
 cimport util
-from util cimport is_period_object, is_string_object
+from util cimport is_period_object, is_string_object, is_offset_object
 
 from timestamps import Timestamp, maybe_integer_op_deprecated
 from timezones cimport is_utc, is_tzlocal, get_dst_info
@@ -1567,12 +1567,12 @@ cdef class _Period(object):
 
     @classmethod
     def _maybe_convert_freq(cls, object freq):
+        if not is_offset_object(freq):
+            if isinstance(freq, (int, tuple)):
+                code, stride = get_freq_code(freq)
+                freq = get_freq_str(code, stride)
 
-        if isinstance(freq, (int, tuple)):
-            code, stride = get_freq_code(freq)
-            freq = get_freq_str(code, stride)
-
-        freq = to_offset(freq)
+            freq = to_offset(freq)
 
         if freq.n <= 0:
             raise ValueError('Frequency must be positive, because it'
