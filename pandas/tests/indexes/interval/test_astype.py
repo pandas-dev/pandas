@@ -1,17 +1,14 @@
 from __future__ import division
 
-import pytest
 import numpy as np
-from pandas import (
-    Index,
-    IntervalIndex,
-    interval_range,
-    CategoricalIndex,
-    Timestamp,
-    Timedelta,
-    NaT)
-from pandas.core.dtypes.dtypes import CategoricalDtype, IntervalDtype
+import pytest
+
 import pandas.util.testing as tm
+from pandas import (
+    CategoricalIndex, Index, IntervalIndex, NaT, Timedelta, Timestamp,
+    interval_range
+)
+from pandas.core.dtypes.dtypes import CategoricalDtype, IntervalDtype
 
 
 class Base(object):

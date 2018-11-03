@@ -19,6 +19,7 @@ from pandas.tests.reshape.merge.test_merge import get_test_data, N, NGROUPS
 a_ = np.array
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestJoin(object):
 
     def setup_method(self, method):

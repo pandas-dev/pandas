@@ -1,18 +1,16 @@
-import warnings
+from datetime import date
 import sys
 
+import dateutil
+import numpy as np
 import pytest
 
-import numpy as np
-from datetime import date
-
-import dateutil
-import pandas as pd
-import pandas.util.testing as tm
 from pandas.compat import lrange
-from pandas import (DatetimeIndex, Index, date_range, DataFrame,
-                    Timestamp, offsets)
 
+import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Index, Timestamp, date_range, offsets)
+import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 randn = np.random.randn
@@ -201,7 +199,7 @@ class TestDatetimeIndex(object):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-02',
                              '2000-01-03', '2000-01-03', '2000-01-04'])
 
-        with warnings.catch_warnings(record=True):
+        with tm.assert_produces_warning(FutureWarning):
             # Deprecated - see GH20239
             result = idx.get_duplicates()
 

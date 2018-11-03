@@ -1,13 +1,16 @@
-from datetime import datetime, timedelta, time
-import pytest
+from datetime import datetime, time, timedelta
 
-import pytz
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
+import pytest
+import pytz
+
 import pandas.compat as compat
-from pandas import notna, Index, DatetimeIndex, date_range, Timestamp
-from pandas.tseries.offsets import CDay, BDay
+
+import pandas as pd
+from pandas import DatetimeIndex, Index, Timestamp, date_range, notna
+import pandas.util.testing as tm
+
+from pandas.tseries.offsets import BDay, CDay
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -586,3 +589,17 @@ class TestDatetimeIndex(object):
         with pytest.raises(KeyError) as excinfo:
             index.get_loc('1/1/2000')
         assert '2000' in str(excinfo.value)
+
+    @pytest.mark.parametrize('key', [pd.Timedelta(0),
+                                     pd.Timedelta(1),
+                                     timedelta(0)])
+    def test_timedelta_invalid_key(self, key):
+        # GH#20464
+        dti = pd.date_range('1970-01-01', periods=10)
+        with pytest.raises(TypeError):
+            dti.get_loc(key)
+
+    def test_get_loc_nat(self):
+        # GH#20464
+        index = DatetimeIndex(['1/3/2000', 'NaT'])
+        assert index.get_loc(pd.NaT) == 1

@@ -8,10 +8,10 @@ dependencies:
   - bottleneck
   - cython>=0.28.2
   - fastparquet
-  - feather-format
   - html5lib
+  - hypothesis>=3.58.0
   - ipykernel
-  - ipython
+  - ipython==6.5.0
   - ipywidgets
   - lxml
   - matplotlib
@@ -23,6 +23,7 @@ dependencies:
   - numpy=1.13*
   - openpyxl
   - pandoc
+  - pyarrow
   - pyqt
   - pytables
   - python-dateutil
@@ -36,6 +37,7 @@ dependencies:
   - sphinx
   - sqlalchemy
   - statsmodels
+  - tzlocal
   - xarray
   - xlrd
   - xlsxwriter

@@ -10,6 +10,7 @@ from cython cimport Py_ssize_t
 import numpy as np
 from numpy cimport ndarray
 
+from operator import le, lt
 
 cimport util
 util.import_array()
@@ -271,7 +272,7 @@ cdef class Interval(IntervalMixin):
         return ((self.left < key if self.open_left else self.left <= key) and
                 (key < self.right if self.open_right else key <= self.right))
 
-    def __richcmp__(self, other, int op):
+    def __richcmp__(self, other, op: int):
         if hasattr(other, 'ndim'):
             # let numpy (or IntervalIndex) handle vectorization
             return NotImplemented
@@ -326,43 +327,105 @@ cdef class Interval(IntervalMixin):
 
     def __add__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left + y, self.right + y)
+            return Interval(self.left + y, self.right + y, closed=self.closed)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
-            return Interval(y.left + self, y.right + self)
+            return Interval(y.left + self, y.right + self, closed=y.closed)
         return NotImplemented
 
     def __sub__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left - y, self.right - y)
+            return Interval(self.left - y, self.right - y, closed=self.closed)
         return NotImplemented
 
     def __mul__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left * y, self.right * y)
+            return Interval(self.left * y, self.right * y, closed=self.closed)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
-            return Interval(y.left * self, y.right * self)
+            return Interval(y.left * self, y.right * self, closed=y.closed)
         return NotImplemented
 
     def __div__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left / y, self.right / y)
+            return Interval(self.left / y, self.right / y, closed=self.closed)
         return NotImplemented
 
     def __truediv__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left / y, self.right / y)
+            return Interval(self.left / y, self.right / y, closed=self.closed)
         return NotImplemented
 
     def __floordiv__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left // y, self.right // y)
+            return Interval(
+                self.left // y, self.right // y, closed=self.closed)
         return NotImplemented
+
+    def overlaps(self, other):
+        """
+        Check whether two Interval objects overlap.
+
+        Two intervals overlap if they share a common point, including closed
+        endpoints. Intervals that only have an open endpoint in common do not
+        overlap.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        other : Interval
+            The interval to check against for an overlap.
+
+        Returns
+        -------
+        bool
+            ``True`` if the two intervals overlap, else ``False``.
+
+        Examples
+        --------
+        >>> i1 = pd.Interval(0, 2)
+        >>> i2 = pd.Interval(1, 3)
+        >>> i1.overlaps(i2)
+        True
+        >>> i3 = pd.Interval(4, 5)
+        >>> i1.overlaps(i3)
+        False
+
+        Intervals that share closed endpoints overlap:
+
+        >>> i4 = pd.Interval(0, 1, closed='both')
+        >>> i5 = pd.Interval(1, 2, closed='both')
+        >>> i4.overlaps(i5)
+        True
+
+        Intervals that only have an open endpoint in common do not overlap:
+
+        >>> i6 = pd.Interval(1, 2, closed='neither')
+        >>> i4.overlaps(i6)
+        False
+
+        See Also
+        --------
+        IntervalArray.overlaps : The corresponding method for IntervalArray
+        IntervalIndex.overlaps : The corresponding method for IntervalIndex
+        """
+        if not isinstance(other, Interval):
+            msg = '`other` must be an Interval, got {other}'
+            raise TypeError(msg.format(other=type(other).__name__))
+
+        # equality is okay if both endpoints are closed (overlap at a point)
+        op1 = le if (self.closed_left and other.closed_right) else lt
+        op2 = le if (other.closed_left and self.closed_right) else lt
+
+        # overlaps is equivalent negation of two interval being disjoint:
+        # disjoint = (A.left > B.right) or (B.left > A.right)
+        # (simplifying the negation allows this to be done in less operations)
+        return op1(self.left, other.right) and op2(other.left, self.right)
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef intervals_to_interval_bounds(ndarray intervals,
-                                   bint validate_closed=True):
+def intervals_to_interval_bounds(ndarray intervals,
+                                 bint validate_closed=True):
     """
     Parameters
     ----------
@@ -413,5 +476,6 @@ cpdef intervals_to_interval_bounds(ndarray intervals,
                 raise ValueError(msg)
 
     return left, right, closed
+
 
 include "intervaltree.pxi"

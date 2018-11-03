@@ -384,7 +384,7 @@ class option_context(object):
     --------
 
     >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
-            ...
+    ...     ...
 
     """
 

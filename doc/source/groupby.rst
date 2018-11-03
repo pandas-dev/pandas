@@ -103,12 +103,9 @@ consider the following ``DataFrame``:
 
 .. note::
 
-   .. versionadded:: 0.20
-
    A string passed to ``groupby`` may refer to either a column or an index level.
-   If a string matches both a column name and an index level name then a warning is
-   issued and the column takes precedence. This will result in an ambiguity error
-   in a future version.
+   If a string matches both a column name and an index level name, a
+   ``ValueError`` will be raised.
 
 .. ipython:: python
 
@@ -127,6 +124,16 @@ We could naturally group by either the ``A`` or ``B`` columns, or both:
 
    grouped = df.groupby('A')
    grouped = df.groupby(['A', 'B'])
+
+.. versionadded:: 0.24
+
+If we also have a MultiIndex on columns ``A`` and ``B``, we can group by all
+but the specified columns
+
+.. ipython:: python
+
+   df2 = df.set_index(['A', 'B'])
+   grouped = df2.groupby(level=df2.index.names.difference(['B'])
 
 These will split the DataFrame on its index (rows). We could also split by the
 columns:
@@ -389,7 +396,7 @@ This is mainly syntactic sugar for the alternative and much more verbose:
 Additionally this method avoids recomputing the internal grouping information
 derived from the passed key.
 
-.. _groupby.iterating:
+.. _groupby.iterating-label:
 
 Iterating through groups
 ------------------------
@@ -415,8 +422,7 @@ In the case of grouping by multiple keys, the group name will be a tuple:
       ...:        print(group)
       ...:
 
-It's standard Python-fu but remember you can unpack the tuple in the for loop
-statement if you wish: ``for (k1, k2), group in grouped:``.
+See :ref:`timeseries.iterating-label`.
 
 Selecting a group
 -----------------

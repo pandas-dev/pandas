@@ -133,11 +133,15 @@ def df_letters():
     return df
 
 
-@pytest.mark.parametrize(
-    "obj, whitelist", zip((df_letters(), df_letters().floats),
-                          (df_whitelist, s_whitelist)))
-def test_groupby_whitelist(df_letters, obj, whitelist):
+@pytest.mark.parametrize("whitelist", [df_whitelist, s_whitelist])
+def test_groupby_whitelist(df_letters, whitelist):
     df = df_letters
+    if whitelist == df_whitelist:
+        # dataframe
+        obj = df_letters
+    else:
+        obj = df_letters['floats']
+
     gb = obj.groupby(df.letters)
 
     assert set(whitelist) == set(gb._apply_whitelist)

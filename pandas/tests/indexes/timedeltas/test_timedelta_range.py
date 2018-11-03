@@ -1,9 +1,10 @@
-import pytest
 import numpy as np
+import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
+from pandas import timedelta_range, to_timedelta
 from pandas.tseries.offsets import Day, Second
-from pandas import to_timedelta, timedelta_range
 
 
 class TestTimedeltas(object):
@@ -47,6 +48,10 @@ class TestTimedeltas(object):
         expected = df.loc[pd.Timedelta('0s'):, :]
         result = df.loc['0s':, :]
         tm.assert_frame_equal(expected, result)
+
+        with pytest.raises(ValueError):
+            # GH 22274: CalendarDay is a relative time measurement
+            timedelta_range('1day', freq='CD', periods=2)
 
     @pytest.mark.parametrize('periods, freq', [
         (3, '2D'), (5, 'D'), (6, '19H12T'), (7, '16H'), (9, '12H')])

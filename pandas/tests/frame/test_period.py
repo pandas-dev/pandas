@@ -14,9 +14,6 @@ def _permute(obj):
 
 class TestPeriodIndex(object):
 
-    def setup_method(self, method):
-        pass
-
     def test_as_frame_columns(self):
         rng = period_range('1/1/2000', periods=5)
         df = DataFrame(randn(10, 5), columns=rng)

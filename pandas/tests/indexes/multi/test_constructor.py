@@ -3,13 +3,16 @@
 import re
 
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import pytest
-from pandas import Index, MultiIndex, date_range
+
 from pandas._libs.tslib import Timestamp
 from pandas.compat import lrange, range
+
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+
+import pandas as pd
+from pandas import Index, MultiIndex, date_range
+import pandas.util.testing as tm
 
 
 def test_constructor_single_level():
@@ -463,3 +466,12 @@ def test_tuples_with_name_string():
         pd.Index(li, name='abc')
     with pytest.raises(ValueError):
         pd.Index(li, name='a')
+
+
+def test_from_tuples_with_tuple_label():
+    # GH 15457
+    expected = pd.DataFrame([[2, 1, 2], [4, (1, 2), 3]],
+                            columns=['a', 'b', 'c']).set_index(['a', 'b'])
+    idx = pd.MultiIndex.from_tuples([(2, 1), (4, (1, 2))], names=('a', 'b'))
+    result = pd.DataFrame([2, 3], columns=['c'], index=idx)
+    tm.assert_frame_equal(expected, result)

@@ -1,19 +1,27 @@
 import decimal
 import numbers
+import random
 import sys
 
 import numpy as np
 
-import pandas as pd
-from pandas.core.arrays import (ExtensionArray,
-                                ExtensionScalarOpsMixin)
 from pandas.core.dtypes.base import ExtensionDtype
+
+import pandas as pd
+from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 
 
 class DecimalDtype(ExtensionDtype):
     type = decimal.Decimal
     name = 'decimal'
     na_value = decimal.Decimal('NaN')
+    _metadata = ('context',)
+
+    def __init__(self, context=None):
+        self.context = context or decimal.getcontext()
+
+    def __repr__(self):
+        return 'DecimalDtype(context={})'.format(self.context)
 
     @classmethod
     def construct_array_type(cls):
@@ -33,15 +41,19 @@ class DecimalDtype(ExtensionDtype):
             raise TypeError("Cannot construct a '{}' from "
                             "'{}'".format(cls, string))
 
+    @property
+    def _is_numeric(self):
+        return True
+
 
 class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
-    dtype = DecimalDtype()
+    __array_priority__ = 1000
 
-    def __init__(self, values, dtype=None, copy=False):
+    def __init__(self, values, dtype=None, copy=False, context=None):
         for val in values:
-            if not isinstance(val, self.dtype.type):
+            if not isinstance(val, decimal.Decimal):
                 raise TypeError("All values must be of type " +
-                                str(self.dtype.type))
+                                str(decimal.Decimal))
         values = np.asarray(values, dtype=object)
 
         self._data = values
@@ -51,6 +63,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         # those aliases are currently not working due to assumptions
         # in internal code (GH-20735)
         # self._values = self.values = self.data
+        self._dtype = DecimalDtype(context)
+
+    @property
+    def dtype(self):
+        return self._dtype
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
@@ -82,6 +99,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
             return type(self)(self._data.copy())
         return type(self)(self)
 
+    def astype(self, dtype, copy=True):
+        if isinstance(dtype, type(self.dtype)):
+            return type(self)(self._data, context=dtype.context)
+        return super(DecimalArray, self).astype(dtype, copy)
+
     def __setitem__(self, key, value):
         if pd.api.types.is_list_like(value):
             value = [decimal.Decimal(v) for v in value]
@@ -112,6 +134,26 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     @classmethod
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
+
+    def _reduce(self, name, skipna=True, **kwargs):
+
+        if skipna:
+            raise NotImplementedError("decimal does not support skipna=True")
+
+        try:
+            op = getattr(self.data, name)
+        except AttributeError:
+            raise NotImplementedError("decimal does not support "
+                                      "the {} operation".format(name))
+        return op(axis=0)
+
+
+def to_decimal(values, context=None):
+    return DecimalArray([decimal.Decimal(x) for x in values], context=context)
+
+
+def make_data():
+    return [decimal.Decimal(random.random()) for _ in range(100)]
 
 
 DecimalArray._add_arithmetic_ops()

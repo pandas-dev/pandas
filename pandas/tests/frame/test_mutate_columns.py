@@ -233,7 +233,7 @@ class TestDataFrameMutateColumns(TestData):
         self.frame['foo'] = 'bar'
         self.frame.pop('foo')
         assert 'foo' not in self.frame
-        # TODO assert self.frame.columns.name == 'baz'
+        assert self.frame.columns.name == 'baz'
 
         # gh-10912: inplace ops cause caching issue
         a = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[

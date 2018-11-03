@@ -3,22 +3,25 @@ HTML IO.
 
 """
 
+from distutils.version import LooseVersion
+import numbers
 import os
 import re
-import numbers
-import collections
 
-from distutils.version import LooseVersion
+import pandas.compat as compat
+from pandas.compat import (
+    binary_type, iteritems, lmap, lrange, raise_with_traceback, string_types,
+    u)
+from pandas.errors import EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.errors import EmptyDataError
-from pandas.io.common import _is_url, urlopen, _validate_header_arg
-from pandas.io.parsers import TextParser
-from pandas.compat import (lrange, lmap, u, string_types, iteritems,
-                           raise_with_traceback, binary_type)
+
 from pandas import Series
 import pandas.core.common as com
+
+from pandas.io.common import _is_url, _validate_header_arg, urlopen
 from pandas.io.formats.printing import pprint_thing
+from pandas.io.parsers import TextParser
 
 _IMPORTS = False
 _HAS_BS4 = False
@@ -859,7 +862,7 @@ def _validate_flavor(flavor):
         flavor = 'lxml', 'bs4'
     elif isinstance(flavor, string_types):
         flavor = flavor,
-    elif isinstance(flavor, collections.Iterable):
+    elif isinstance(flavor, compat.Iterable):
         if not all(isinstance(flav, string_types) for flav in flavor):
             raise TypeError('Object of type {typ!r} is not an iterable of '
                             'strings'

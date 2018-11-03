@@ -23,9 +23,8 @@ from pandas.core import common as com, algorithms
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
-from pandas.compat import PYPY
-from pandas.util._decorators import (Appender, cache_readonly,
-                                     deprecate_kwarg, Substitution)
+from pandas.compat import PYPY, OrderedDict
+from pandas.util._decorators import Appender, cache_readonly, Substitution
 
 from pandas.core.accessor import DirNamesMixin
 
@@ -179,28 +178,40 @@ class SelectionMixin(object):
     _selection = None
     _internal_names = ['_cache', '__setstate__']
     _internal_names_set = set(_internal_names)
-    _builtin_table = {
-        builtins.sum: np.sum,
-        builtins.max: np.max,
-        builtins.min: np.min
-    }
-    _cython_table = {
-        builtins.sum: 'sum',
-        builtins.max: 'max',
-        builtins.min: 'min',
-        np.all: 'all',
-        np.any: 'any',
-        np.sum: 'sum',
-        np.mean: 'mean',
-        np.prod: 'prod',
-        np.std: 'std',
-        np.var: 'var',
-        np.median: 'median',
-        np.max: 'max',
-        np.min: 'min',
-        np.cumprod: 'cumprod',
-        np.cumsum: 'cumsum'
-    }
+
+    _builtin_table = OrderedDict((
+        (builtins.sum, np.sum),
+        (builtins.max, np.max),
+        (builtins.min, np.min),
+    ))
+
+    _cython_table = OrderedDict((
+        (builtins.sum, 'sum'),
+        (builtins.max, 'max'),
+        (builtins.min, 'min'),
+        (np.all, 'all'),
+        (np.any, 'any'),
+        (np.sum, 'sum'),
+        (np.nansum, 'sum'),
+        (np.mean, 'mean'),
+        (np.nanmean, 'mean'),
+        (np.prod, 'prod'),
+        (np.nanprod, 'prod'),
+        (np.std, 'std'),
+        (np.nanstd, 'std'),
+        (np.var, 'var'),
+        (np.nanvar, 'var'),
+        (np.median, 'median'),
+        (np.nanmedian, 'median'),
+        (np.max, 'max'),
+        (np.nanmax, 'max'),
+        (np.min, 'min'),
+        (np.nanmin, 'min'),
+        (np.cumprod, 'cumprod'),
+        (np.nancumprod, 'cumprod'),
+        (np.cumsum, 'cumsum'),
+        (np.nancumsum, 'cumsum'),
+    ))
 
     @property
     def _selection_name(self):
@@ -246,8 +257,8 @@ class SelectionMixin(object):
 
     def __getitem__(self, key):
         if self._selection is not None:
-            raise Exception('Column(s) {selection} already selected'
-                            .format(selection=self._selection))
+            raise IndexError('Column(s) {selection} already selected'
+                             .format(selection=self._selection))
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass,
                             np.ndarray)):
@@ -396,8 +407,8 @@ class SelectionMixin(object):
 
                     elif isinstance(obj, ABCSeries):
                         nested_renaming_depr()
-                    elif isinstance(obj, ABCDataFrame) and \
-                            k not in obj.columns:
+                    elif (isinstance(obj, ABCDataFrame) and
+                          k not in obj.columns):
                         raise KeyError(
                             "Column '{col}' does not exist!".format(col=k))
 
@@ -665,6 +676,21 @@ class IndexOpsMixin(object):
                                 "definition self")
 
     @property
+    def _is_homogeneous_type(self):
+        """Whether the object has a single dtype.
+
+        By definition, Series and Index are always considered homogeneous.
+        A MultiIndex may or may not be homogeneous, depending on the
+        dtypes of the levels.
+
+        See Also
+        --------
+        DataFrame._is_homogeneous_type
+        MultiIndex._is_homogeneous_type
+        """
+        return True
+
+    @property
     def shape(self):
         """ return a tuple of the shape of the underlying data """
         return self._values.shape
@@ -875,7 +901,7 @@ class IndexOpsMixin(object):
     @cache_readonly
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
-        return isna(self).any()
+        return bool(isna(self).any())
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
@@ -1228,7 +1254,6 @@ class IndexOpsMixin(object):
 
     @Substitution(klass='IndexOpsMixin')
     @Appender(_shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         # needs coercion on the key (DatetimeIndex does already)
         return self.values.searchsorted(value, side=side, sorter=sorter)

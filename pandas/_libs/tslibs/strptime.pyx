@@ -20,7 +20,7 @@ except:
         except:
             from _dummy_thread import allocate_lock as _thread_allocate_lock
 
-from cython cimport Py_ssize_t
+from cython import Py_ssize_t
 
 
 import pytz

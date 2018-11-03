@@ -300,14 +300,14 @@ class TestDatetimeBlock(object):
         block = create_block('datetime', [0])
 
         # coerce None
-        none_coerced = block._try_coerce_args(block.values, None)[2]
+        none_coerced = block._try_coerce_args(block.values, None)[1]
         assert pd.Timestamp(none_coerced) is pd.NaT
 
         # coerce different types of date bojects
         vals = (np.datetime64('2010-10-10'), datetime(2010, 10, 10),
                 date(2010, 10, 10))
         for val in vals:
-            coerced = block._try_coerce_args(block.values, val)[2]
+            coerced = block._try_coerce_args(block.values, val)[1]
             assert np.int64 == type(coerced)
             assert pd.Timestamp('2010-10-10') == pd.Timestamp(coerced)
 
@@ -852,23 +852,18 @@ class TestIndexing(object):
     MANAGERS = [
         create_single_mgr('f8', N),
         create_single_mgr('i8', N),
-        # create_single_mgr('sparse', N),
-        create_single_mgr('sparse_na', N),
 
         # 2-dim
         create_mgr('a,b,c,d,e,f: f8', item_shape=(N,)),
         create_mgr('a,b,c,d,e,f: i8', item_shape=(N,)),
         create_mgr('a,b: f8; c,d: i8; e,f: string', item_shape=(N,)),
         create_mgr('a,b: f8; c,d: i8; e,f: f8', item_shape=(N,)),
-        # create_mgr('a: sparse', item_shape=(N,)),
-        create_mgr('a: sparse_na', item_shape=(N,)),
 
         # 3-dim
         create_mgr('a,b,c,d,e,f: f8', item_shape=(N, N)),
         create_mgr('a,b,c,d,e,f: i8', item_shape=(N, N)),
         create_mgr('a,b: f8; c,d: i8; e,f: string', item_shape=(N, N)),
         create_mgr('a,b: f8; c,d: i8; e,f: f8', item_shape=(N, N)),
-        # create_mgr('a: sparse', item_shape=(1, N)),
     ]
 
     # MANAGERS = [MANAGERS[6]]
@@ -1242,16 +1237,30 @@ class TestCanHoldElement(object):
                 (operator.truediv, 'bool'),
                 (operator.mod, 'i8'),
                 (operator.mod, 'complex128'),
-                (operator.mod, '<M8[ns]'),
-                (operator.mod, '<m8[ns]'),
                 (operator.pow, 'bool')}
         if (op, dtype) in skip:
             pytest.skip("Invalid combination {},{}".format(op, dtype))
+
         e = DummyElement(value, dtype)
         s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
-        result = op(s, e).dtypes
-        expected = op(s, value).dtypes
-        assert_series_equal(result, expected)
+
+        invalid = {(operator.pow, '<M8[ns]'),
+                   (operator.mod, '<M8[ns]'),
+                   (operator.truediv, '<M8[ns]'),
+                   (operator.mul, '<M8[ns]'),
+                   (operator.add, '<M8[ns]'),
+                   (operator.pow, '<m8[ns]'),
+                   (operator.mul, '<m8[ns]')}
+
+        if (op, dtype) in invalid:
+            with pytest.raises(TypeError):
+                result = op(s, e.value)
+        else:
+            # FIXME: Since dispatching to Series, this test no longer
+            # asserts anything meaningful
+            result = op(s, e.value).dtypes
+            expected = op(s, value).dtypes
+            assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize('typestr, holder', [
@@ -1277,7 +1286,7 @@ def test_deprecated_fastpath():
 def test_validate_ndim():
     values = np.array([1.0, 2.0])
     placement = slice(2)
-    msg = "Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
+    msg = r"Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
 
     with tm.assert_raises_regex(ValueError, msg):
         make_block(values, placement, ndim=2)

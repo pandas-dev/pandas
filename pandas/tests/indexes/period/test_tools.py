@@ -1,17 +1,17 @@
-import numpy as np
 from datetime import datetime, timedelta
+
+import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import Timedelta
-import pandas.util.testing as tm
-import pandas.core.indexes.period as period
+from pandas._libs.tslibs.ccalendar import MONTHS
 from pandas.compat import lrange
 
-from pandas._libs.tslibs.ccalendar import MONTHS
-
-from pandas import (PeriodIndex, Period, DatetimeIndex, Timestamp, Series,
-                    date_range, to_datetime, period_range)
+import pandas as pd
+from pandas import (
+    DatetimeIndex, Period, PeriodIndex, Series, Timedelta, Timestamp,
+    date_range, period_range, to_datetime)
+import pandas.core.indexes.period as period
+import pandas.util.testing as tm
 
 
 class TestPeriodRepresentation(object):
@@ -100,6 +100,12 @@ class TestPeriodIndex(object):
         exp_index = exp_index + Timedelta(1, 's') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
         assert result.name == 'foo'
+
+    def test_to_timestamp_freq(self):
+        idx = pd.period_range('2017', periods=12, freq="A-DEC")
+        result = idx.to_timestamp()
+        expected = pd.date_range("2017", periods=12, freq="AS-JAN")
+        tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_repr_is_code(self):
         zs = [Timestamp('99-04-17 00:00:00', tz='UTC'),
@@ -219,9 +225,6 @@ class TestPeriodIndex(object):
         msg = "Input has different freq=5D from PeriodIndex"
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             pidx.searchsorted(pd.Period('2014-01-01', freq='5D'))
-
-        with tm.assert_produces_warning(FutureWarning):
-            pidx.searchsorted(key=p2)
 
 
 class TestPeriodIndexConversion(object):

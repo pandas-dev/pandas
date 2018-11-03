@@ -1,12 +1,15 @@
+import numpy as np
 import pytest
 
-import numpy as np
+from pandas.compat import PY3, lmap, lrange, text_type
+
+from pandas.core.dtypes.dtypes import PeriodDtype
+
 import pandas as pd
-import pandas.util.testing as tm
+from pandas import (
+    Index, Period, PeriodIndex, Series, date_range, offsets, period_range)
 import pandas.core.indexes.period as period
-from pandas.compat import lrange, PY3, text_type, lmap
-from pandas import (Period, PeriodIndex, period_range, offsets, date_range,
-                    Series, Index)
+import pandas.util.testing as tm
 
 
 class TestPeriodIndex(object):
@@ -155,6 +158,21 @@ class TestPeriodIndex(object):
 
         pytest.raises(ValueError, PeriodIndex, vals, freq='D')
 
+    @pytest.mark.parametrize('box', [None, 'series', 'index'])
+    def test_constructor_datetime64arr_ok(self, box):
+        # https://github.com/pandas-dev/pandas/issues/23438
+        data = pd.date_range('2017', periods=4, freq="M")
+        if box is None:
+            data = data._values
+        elif box == 'series':
+            data = pd.Series(data)
+
+        result = PeriodIndex(data, freq='D')
+        expected = PeriodIndex([
+            '2017-01-31', '2017-02-28', '2017-03-31', '2017-04-30'
+        ], freq="D")
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_dtype(self):
         # passing a dtype with a tz should localize
         idx = PeriodIndex(['2013-01', '2013-03'], dtype='period[M]')
@@ -264,20 +282,10 @@ class TestPeriodIndex(object):
 
     def test_constructor_simple_new(self):
         idx = period_range('2007-01', name='p', periods=2, freq='M')
-        result = idx._simple_new(idx, 'p', freq=idx.freq)
+        result = idx._simple_new(idx, name='p', freq=idx.freq)
         tm.assert_index_equal(result, idx)
 
-        result = idx._simple_new(idx.astype('i8'), 'p', freq=idx.freq)
-        tm.assert_index_equal(result, idx)
-
-        result = idx._simple_new([pd.Period('2007-01', freq='M'),
-                                  pd.Period('2007-02', freq='M')],
-                                 'p', freq=idx.freq)
-        tm.assert_index_equal(result, idx)
-
-        result = idx._simple_new(np.array([pd.Period('2007-01', freq='M'),
-                                           pd.Period('2007-02', freq='M')]),
-                                 'p', freq=idx.freq)
+        result = idx._simple_new(idx.astype('i8'), name='p', freq=idx.freq)
         tm.assert_index_equal(result, idx)
 
     def test_constructor_simple_new_empty(self):
@@ -288,7 +296,6 @@ class TestPeriodIndex(object):
 
     @pytest.mark.parametrize('floats', [[1.1, 2.1], np.array([1.1, 2.1])])
     def test_constructor_floats(self, floats):
-        # GH#13079
         with pytest.raises(TypeError):
             pd.PeriodIndex._simple_new(floats, freq='M')
 
@@ -484,6 +491,7 @@ class TestSeriesPeriod(object):
                    dtype=float)
 
     def test_constructor_cast_object(self):
-        s = Series(period_range('1/1/2000', periods=10), dtype=object)
+        s = Series(period_range('1/1/2000', periods=10),
+                   dtype=PeriodDtype("D"))
         exp = Series(period_range('1/1/2000', periods=10))
         tm.assert_series_equal(s, exp)
