@@ -252,7 +252,7 @@ cdef class IntIndex(SparseIndex):
         result = np.empty(other.npoints, dtype=np.float64)
         result[:] = fill_value
 
-        for 0 <= i < other.npoints:
+        for i in range(other.npoints):
             while oinds[i] > sinds[j] and j < self.npoints:
                 j += 1
 
