@@ -325,6 +325,25 @@ $1$,$2$
         exp = tm.convert_rows_list_to_csv_str(exp_rows)
         assert df.to_csv(index=False) == exp
 
+    @pytest.mark.parametrize("ind,expected", [
+        (pd.MultiIndex(levels=[[1.0]],
+                       labels=[[0]],
+                       names=["x"]),
+         "x,data\n1.0,1\n"),
+        (pd.MultiIndex(levels=[[1.], [2.]],
+                       labels=[[0], [0]],
+                       names=["x", "y"]),
+         "x,y,data\n1.0,2.0,1\n")
+    ])
+    @pytest.mark.parametrize("klass", [
+        pd.DataFrame, pd.Series
+    ])
+    def test_to_csv_single_level_multi_index(self, ind, expected, klass):
+        # see gh-19589
+        result = klass(pd.Series([1], ind, name="data")).to_csv(
+            line_terminator="\n", header=True)
+        assert result == expected
+
     def test_to_csv_string_array_ascii(self):
         # GH 10813
         str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]

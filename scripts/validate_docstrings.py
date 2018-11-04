@@ -335,26 +335,6 @@ class Docstring(object):
 
         return errs
 
-    def validate_pep8(self):
-        if not self.examples:
-            return
-
-        content = ''.join(('import numpy as np  # noqa: F401\n',
-                           'import pandas as pd  # noqa: F401\n',
-                           *self.examples_source_code))
-
-        application = flake8.main.application.Application()
-        application.initialize(["--quiet"])
-
-        with tempfile.NamedTemporaryFile(mode='w') as file:
-            file.write(content)
-            file.flush()
-            application.run_checks([file.name])
-
-        application.report()
-
-        yield from application.guide.stats.statistics_for('')
-
     @property
     def correct_parameters(self):
         return not bool(self.parameter_mismatches)
@@ -425,6 +405,31 @@ class Docstring(object):
             runner.run(test, out=f.write)
             error_msgs += f.getvalue()
         return error_msgs
+
+    @property
+    def examples_source_code(self):
+        lines = doctest.DocTestParser().get_examples(self.raw_doc)
+        return [line.source for line in lines]
+
+    def validate_pep8(self):
+        if not self.examples:
+            return
+
+        content = ''.join(('import numpy as np  # noqa: F401\n',
+                           'import pandas as pd  # noqa: F401\n',
+                           *self.examples_source_code))
+
+        application = flake8.main.application.Application()
+        application.initialize(["--quiet"])
+
+        with tempfile.NamedTemporaryFile(mode='w') as file:
+            file.write(content)
+            file.flush()
+            application.run_checks([file.name])
+
+        application.report()
+
+        yield from application.guide.stats.statistics_for('')
 
 
 def validate_one(func_name):
@@ -562,6 +567,13 @@ def validate_one(func_name):
         examples_errs = doc.examples_errors
         if examples_errs:
             errs.append('Examples do not pass tests')
+        examples_source_code = ''.join(doc.examples_source_code)
+        if 'import numpy' in examples_source_code:
+            errs.append("numpy does not need to be imported in the examples, "
+                        "as it's assumed to be already imported as np")
+        if 'import pandas' in examples_source_code:
+            errs.append("pandas does not need to be imported in the examples, "
+                        "as it's assumed to be already imported as pd")
 
     return {'type': doc.type,
             'docstring': doc.clean_doc,
@@ -641,11 +653,11 @@ def main(func_name, fd):
         fd.write('{}\n'.format(doc_info['docstring']))
         fd.write(header('Validation'))
         if doc_info['errors']:
-            fd.write('Errors found:\n')
+            fd.write('{} Errors found:\n'.format(len(doc_info['errors'])))
             for err in doc_info['errors']:
                 fd.write('\t{}\n'.format(err))
         if doc_info['warnings']:
-            fd.write('Warnings found:\n')
+            fd.write('{} Warnings found:\n'.format(len(doc_info['warnings'])))
             for wrn in doc_info['warnings']:
                 fd.write('\t{}\n'.format(wrn))
 

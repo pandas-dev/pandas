@@ -358,41 +358,44 @@ class NDFrame(PandasObject, SelectionMixin):
             d.update(kwargs)
             return cls(data, **d)
 
-    def _get_axis_number(self, axis):
-        axis = self._AXIS_ALIASES.get(axis, axis)
+    @classmethod
+    def _get_axis_number(cls, axis):
+        axis = cls._AXIS_ALIASES.get(axis, axis)
         if is_integer(axis):
-            if axis in self._AXIS_NAMES:
+            if axis in cls._AXIS_NAMES:
                 return axis
         else:
             try:
-                return self._AXIS_NUMBERS[axis]
+                return cls._AXIS_NUMBERS[axis]
             except KeyError:
                 pass
         raise ValueError('No axis named {0} for object type {1}'
-                         .format(axis, type(self)))
+                         .format(axis, type(cls)))
 
-    def _get_axis_name(self, axis):
-        axis = self._AXIS_ALIASES.get(axis, axis)
+    @classmethod
+    def _get_axis_name(cls, axis):
+        axis = cls._AXIS_ALIASES.get(axis, axis)
         if isinstance(axis, string_types):
-            if axis in self._AXIS_NUMBERS:
+            if axis in cls._AXIS_NUMBERS:
                 return axis
         else:
             try:
-                return self._AXIS_NAMES[axis]
+                return cls._AXIS_NAMES[axis]
             except KeyError:
                 pass
         raise ValueError('No axis named {0} for object type {1}'
-                         .format(axis, type(self)))
+                         .format(axis, type(cls)))
 
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
         return getattr(self, name)
 
-    def _get_block_manager_axis(self, axis):
+    @classmethod
+    def _get_block_manager_axis(cls, axis):
         """Map the axis to the block_manager axis."""
-        axis = self._get_axis_number(axis)
-        if self._AXIS_REVERSED:
-            m = self._AXIS_LEN - 1
+        axis = cls._get_axis_number(axis)
+        if cls._AXIS_REVERSED:
+            m = cls._AXIS_LEN - 1
             return m - axis
         return axis
 
@@ -5276,7 +5279,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Convert to ordered categorical type with custom ordering:
 
-        >>> ser.astype('category', ordered=True, categories=[2, 1])
+        >>> cat_dtype = pd.api.types.CategoricalDtype(
+        ...                     categories=[2, 1], ordered=True)
+        >>> ser.astype(cat_dtype)
         0    1
         1    2
         dtype: category
@@ -8713,6 +8718,13 @@ class NDFrame(PandasObject, SelectionMixin):
         copy : boolean, default True
             Also make a copy of the underlying data
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            When clocks moved backward due to DST, ambiguous times may arise.
+            For example in Central European Time (UTC+01), when going from
+            03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
+            00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
+            `ambiguous` parameter dictates how ambiguous times should be
+            handled.
+
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False designates
@@ -8740,6 +8752,52 @@ class NDFrame(PandasObject, SelectionMixin):
         ------
         TypeError
             If the TimeSeries is tz-aware and tz is not None.
+
+        Examples
+        --------
+
+        Localize local times:
+
+        >>> s = pd.Series([1],
+        ... index=pd.DatetimeIndex(['2018-09-15 01:30:00']))
+        >>> s.tz_localize('CET')
+        2018-09-15 01:30:00+02:00    1
+        dtype: int64
+
+        Be careful with DST changes. When there is sequential data, pandas
+        can infer the DST time:
+
+        >>> s = pd.Series(range(7), index=pd.DatetimeIndex([
+        ... '2018-10-28 01:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 03:00:00',
+        ... '2018-10-28 03:30:00']))
+        >>> s.tz_localize('CET', ambiguous='infer')
+        2018-10-28 01:30:00+02:00    0
+        2018-10-28 02:00:00+02:00    1
+        2018-10-28 02:30:00+02:00    2
+        2018-10-28 02:00:00+01:00    3
+        2018-10-28 02:30:00+01:00    4
+        2018-10-28 03:00:00+01:00    5
+        2018-10-28 03:30:00+01:00    6
+        dtype: int64
+
+        In some cases, inferring the DST is impossible. In such cases, you can
+        pass an ndarray to the ambiguous parameter to set the DST explicitly
+
+        >>> s = pd.Series(range(3), index=pd.DatetimeIndex([
+        ... '2018-10-28 01:20:00',
+        ... '2018-10-28 02:36:00',
+        ... '2018-10-28 03:46:00']))
+        >>> s.tz_localize('CET', ambiguous=np.array([True, True, False]))
+        2018-10-28 01:20:00+02:00    0
+        2018-10-28 02:36:00+02:00    1
+        2018-10-28 03:46:00+01:00    2
+        dtype: int64
+
         """
         if nonexistent not in ('raise', 'NaT', 'shift'):
             raise ValueError("The nonexistent argument must be one of 'raise',"
