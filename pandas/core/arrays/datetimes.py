@@ -216,9 +216,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         tz = dtl.validate_tz_from_dtype(dtype, tz)
 
         if lib.is_scalar(values):
-            raise ValueError('{cls}() must be called with a '
-                             'collection of some kind, {data} was passed'
-                             .format(cls=cls.__name__, data=repr(values)))
+            raise TypeError(dtl.scalar_data_error(values, cls))
         elif isinstance(values, ABCSeries):
             # extract nanosecond unix timestamps
             if tz is None:

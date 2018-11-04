@@ -12,7 +12,16 @@ import pandas.util.testing as tm
 
 class TestDatetimeArrayConstructors(object):
 
+    def test_scalar_raises_type_error(self):
+        # GH#23493
+        with pytest.raises(TypeError):
+            DatetimeArray(2)
+
+        with pytest.raises(TypeError):
+            pd.DatetimeIndex(pd.Timestamp.now())
+
     def test_init_from_object_dtype(self, tz_naive_fixture):
+        # GH#23493
         tz = tz_naive_fixture
         if tz is not None:
             pytest.xfail(reason="Casting DatetimeIndex to object-dtype raises "
@@ -35,6 +44,7 @@ class TestDatetimeArrayConstructors(object):
     # NB: for now we re-wrap in DatetimeIndex to use assert_index_equal
     #  once assert_datetime_array_equal is in place, this will be changed
     def test_init_only_freq_infer(self, tz_naive_fixture):
+        # GH#23493
         # just pass data and freq='infer' if relevant; no other kwargs
         tz = tz_naive_fixture
 

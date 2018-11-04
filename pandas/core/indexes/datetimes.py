@@ -258,9 +258,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             return result
 
         if is_scalar(data):
-            raise ValueError('{cls}() must be called with a '
-                             'collection of some kind, {data} was passed'
-                             .format(cls=cls.__name__, data=repr(data)))
+            raise TypeError(dtl.scalar_data_error(data, cls))
 
         elif not isinstance(data, (np.ndarray, Index, ABCSeries,
                                    DatetimeArrayMixin)):
