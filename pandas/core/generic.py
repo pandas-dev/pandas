@@ -10297,7 +10297,7 @@ Examples
 """ % dict(multi_index_example=_shared_docs['stat_func_multi_index'] %
            _shared_docs['max_multi_index'])
 
-_min_examples = f"""\
+_min_examples = """\
 Examples
 --------
 %(multi_index_example)s
