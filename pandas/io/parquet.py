@@ -5,7 +5,7 @@ from warnings import catch_warnings
 
 from pandas.compat import string_types
 
-from pandas import DataFrame, Int64Index, RangeIndex, get_option
+from pandas import DataFrame, get_option
 import pandas.core.common as com
 
 from pandas.io.common import get_filepath_or_buffer, is_s3_url
