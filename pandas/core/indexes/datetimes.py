@@ -263,7 +263,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                              .format(cls=cls.__name__, data=repr(data)))
 
         elif not isinstance(data, (np.ndarray, Index, ABCSeries,
-                                 DatetimeArrayMixin)):
+                                   DatetimeArrayMixin)):
             if not isinstance(data, (list, tuple)):
                 data = list(data)
             data = np.asarray(data, dtype='O')
@@ -321,11 +321,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             if freq is not None and not freq_infer:
                 cls._validate_frequency(subarr, freq, ambiguous=ambiguous)
 
-        if freq_infer:
-            inferred = subarr.inferred_freq
-            if inferred:
-                subarr.freq = to_offset(inferred)
-
+        dtl.maybe_define_freq(freq_infer, subarr)
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
     @classmethod

@@ -217,7 +217,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         if lib.is_scalar(values):
             raise ValueError('{cls}() must be called with a '
                              'collection of some kind, {data} was passed'
-                             .format(cls=cls.__name__, data=repr(data)))
+                             .format(cls=cls.__name__, data=repr(values)))
         elif isinstance(values, DatetimeArrayMixin):
             # extract nanosecond unix timestamps
             values = values.asi8
@@ -230,10 +230,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         values = conversion.ensure_datetime64ns(values, copy=copy)
 
         result = cls._simple_new(values, freq=freq, tz=tz)
-        if freq_infer:
-            inferred = result.inferred_freq
-            if inferred:
-                result.freq = to_offset(inferred)
+        dtl.maybe_define_freq(freq_infer, result)
 
         # NB: Among other things not yet ported from the DatetimeIndex
         # constructor, this does not call _deepcopy_if_needed

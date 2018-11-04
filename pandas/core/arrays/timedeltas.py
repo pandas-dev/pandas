@@ -19,7 +19,6 @@ import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
 
 from pandas.tseries.offsets import Tick
-from pandas.tseries.frequencies import to_offset
 
 from . import datetimelike as dtl
 
@@ -152,11 +151,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             values = values.astype(_TD_DTYPE)
 
         result = cls._simple_new(values, freq=freq)
-        if freq_infer:
-            inferred = result.inferred_freq
-            if inferred:
-                result.freq = to_offset(inferred)
-
+        dtl.maybe_define_freq(freq_infer, result)
         return result
 
     @classmethod

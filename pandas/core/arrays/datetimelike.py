@@ -888,6 +888,22 @@ def maybe_infer_freq(freq):
     return freq, freq_infer
 
 
+def maybe_define_freq(freq_infer, result):
+    """
+    If appropriate, infer the frequency of the given Datetime/Timedelta Array
+    and pin it to the object at the end of the construction.
+
+    Parameters
+    ----------
+    freq_infer : bool
+    result : DatetimeArray or TimedeltaArray
+    """
+    if freq_infer:
+        inferred = result.inferred_freq
+        if inferred:
+            result.freq = frequencies.to_offset(inferred)
+
+
 def validate_tz_from_dtype(dtype, tz):
     """
     If the given dtype is a DatetimeTZDtype, extract the implied

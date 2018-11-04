@@ -35,7 +35,6 @@ from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT)
-from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
 
 class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
@@ -182,11 +181,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             if freq is not None and not freq_infer:
                 cls._validate_frequency(subarr, freq)
 
-        if freq_infer:
-            inferred = subarr.inferred_freq
-            if inferred:
-                subarr.freq = to_offset(inferred)
-
+        dtl.maybe_define_freq(freq_infer, subarr)
         return subarr
 
     @classmethod
