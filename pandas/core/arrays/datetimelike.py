@@ -897,6 +897,11 @@ def maybe_define_freq(freq_infer, result):
     ----------
     freq_infer : bool
     result : DatetimeArray or TimedeltaArray
+
+    Notes
+    -----
+    This may alter `result` in-place, should only ever be called
+    from __new__/__init__.
     """
     if freq_infer:
         inferred = result.inferred_freq
