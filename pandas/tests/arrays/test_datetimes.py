@@ -13,7 +13,7 @@ import pandas.util.testing as tm
 class TestDatetimeArrayComparisons(object):
     # TODO: merge this into tests/arithmetic/test_datetime64 once it is
     #  sufficiently robust
-    
+
     def test_cmp_dt64_arraylike_tznaive(self):
         # arbitrary tz-naive DatetimeIndex
         dti = pd.date_range('2016-01-1', freq='MS', periods=9, tz=None)
