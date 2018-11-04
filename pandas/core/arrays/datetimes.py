@@ -201,7 +201,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             # TODO: Can we set copy=False here to avoid re-coping?
 
         if tz is None and hasattr(values, 'tz'):
-            # e.g. DatetimeIndex
+            # e.g. DatetimeArray, DatetimeIndex
             tz = values.tz
 
         if freq is None and hasattr(values, "freq"):
@@ -213,6 +213,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
 
+        # TODO: what about ABCSeries?
         if lib.is_scalar(values):
             raise ValueError('{cls}() must be called with a '
                              'collection of some kind, {data} was passed'

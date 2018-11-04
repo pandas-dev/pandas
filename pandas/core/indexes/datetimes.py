@@ -219,6 +219,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     _timezone = cache_readonly(DatetimeArrayMixin._timezone.fget)
     is_normalized = cache_readonly(DatetimeArrayMixin.is_normalized.fget)
 
+    # --------------------------------------------------------------------
+    # Constructors
+
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None, tz=None,
                 normalize=False, closed=None, ambiguous='raise',
@@ -252,7 +255,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                              'collection of some kind, {data} was passed'
                              .format(cls=cls.__name__, data=repr(data)))
 
-        if not isinstance(data, (np.ndarray, Index, ABCSeries,
+        elif not isinstance(data, (np.ndarray, Index, ABCSeries,
                                  DatetimeArrayMixin)):
             if not isinstance(data, (list, tuple)):
                 data = list(data)
@@ -318,12 +321,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
-    def _convert_for_op(self, value):
-        """ Convert value to be insertable to ndarray """
-        if self._has_same_tz(value):
-            return _to_m8(value)
-        raise ValueError('Passed item and index have different timezone')
-
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, tz=None,
                     dtype=None, **kwargs):
@@ -339,6 +336,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         result.name = name
         result._reset_identity()
         return result
+
+    # --------------------------------------------------------------------
 
     @property
     def _values(self):
@@ -390,6 +389,12 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         """Return a boolean if we are only dates (and don't have a timezone)"""
         from pandas.io.formats.format import _is_dates_only
         return _is_dates_only(self.values) and self.tz is None
+
+    def _convert_for_op(self, value):
+        """ Convert value to be insertable to ndarray """
+        if self._has_same_tz(value):
+            return _to_m8(value)
+        raise ValueError('Passed item and index have different timezone')
 
     @property
     def _formatter_func(self):
