@@ -4793,7 +4793,7 @@ class DataFrame(NDFrame):
         --------
         DataFrame.nlargest : Return the first `n` rows ordered by `columns` in
             descending order.
-        DataFrame.sort_values : Sort DataFrame by the values
+        DataFrame.sort_values : Sort DataFrame by the values.
         DataFrame.head : Return the first `n` rows without re-ordering.
 
         Examples
