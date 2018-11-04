@@ -495,7 +495,10 @@ class TestTableOrient(object):
 class TestTableOrientReader(object):
 
     @pytest.mark.parametrize("index_nm", [
-        None, "idx", pytest.param("index", marks=pytest.mark.xfail),
+        None,
+        "idx",
+        pytest.param("index",
+                     marks=pytest.mark.xfail(strict=True)),
         'level_0'])
     @pytest.mark.parametrize("vals", [
         {'ints': [1, 2, 3, 4]},
@@ -504,7 +507,8 @@ class TestTableOrientReader(object):
         {'categoricals': pd.Series(pd.Categorical(['a', 'b', 'c', 'c']))},
         {'ordered_cats': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'],
                                                   ordered=True))},
-        pytest.param({'floats': [1., 2., 3., 4.]}, marks=pytest.mark.xfail),
+        pytest.param({'floats': [1., 2., 3., 4.]},
+                     marks=pytest.mark.xfail(strict=True)),
         {'floats': [1.1, 2.2, 3.3, 4.4]},
         {'bools': [True, False, False, True]}])
     def test_read_json_table_orient(self, index_nm, vals, recwarn):
@@ -560,3 +564,18 @@ class TestTableOrientReader(object):
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize("strict_check", [
+        pytest.param(True, marks=pytest.mark.xfail(strict=True)),
+        False
+    ])
+    def test_empty_frame_roundtrip(self, strict_check):
+        # GH 21287
+        df = pd.DataFrame([], columns=['a', 'b', 'c'])
+        expected = df.copy()
+        out = df.to_json(orient='table')
+        result = pd.read_json(out, orient='table')
+        # TODO: When DF coercion issue (#21345) is resolved tighten type checks
+        tm.assert_frame_equal(expected, result,
+                              check_dtype=strict_check,
+                              check_index_type=strict_check)

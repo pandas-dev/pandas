@@ -1,10 +1,9 @@
-from pandas import PeriodIndex
-
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
 import pandas as pd
+from pandas import PeriodIndex
+import pandas.util.testing as tm
 
 
 def test_to_native_types():
@@ -13,7 +12,7 @@ def test_to_native_types():
 
     # First, with no arguments.
     expected = np.array(['2017-01-01', '2017-01-02',
-                         '2017-01-03'], dtype='<U10')
+                         '2017-01-03'], dtype='=U10')
 
     result = index.to_native_types()
     tm.assert_numpy_array_equal(result, expected)
@@ -23,14 +22,14 @@ def test_to_native_types():
     tm.assert_numpy_array_equal(result, expected)
 
     # Make sure slicing works
-    expected = np.array(['2017-01-01', '2017-01-03'], dtype='<U10')
+    expected = np.array(['2017-01-01', '2017-01-03'], dtype='=U10')
 
     result = index.to_native_types([0, 2])
     tm.assert_numpy_array_equal(result, expected)
 
     # Make sure date formatting works
     expected = np.array(['01-2017-01', '01-2017-02',
-                         '01-2017-03'], dtype='<U10')
+                         '01-2017-03'], dtype='=U10')
 
     result = index.to_native_types(date_format='%m-%Y-%d')
     tm.assert_numpy_array_equal(result, expected)
@@ -116,41 +115,41 @@ class TestPeriodIndexRendering(object):
         idx8 = pd.period_range('2013Q1', periods=2, freq="Q")
         idx9 = pd.period_range('2013Q1', periods=3, freq="Q")
 
-        exp1 = """Series([], dtype: object)"""
+        exp1 = """Series([], dtype: period[D])"""
 
-        exp2 = """0   2011-01-01
-dtype: object"""
+        exp2 = """0    2011-01-01
+dtype: period[D]"""
 
-        exp3 = """0   2011-01-01
-1   2011-01-02
-dtype: object"""
+        exp3 = """0    2011-01-01
+1    2011-01-02
+dtype: period[D]"""
 
-        exp4 = """0   2011-01-01
-1   2011-01-02
-2   2011-01-03
-dtype: object"""
+        exp4 = """0    2011-01-01
+1    2011-01-02
+2    2011-01-03
+dtype: period[D]"""
 
-        exp5 = """0   2011
-1   2012
-2   2013
-dtype: object"""
+        exp5 = """0    2011
+1    2012
+2    2013
+dtype: period[A-DEC]"""
 
-        exp6 = """0   2011-01-01 09:00
-1   2012-02-01 10:00
-2                NaT
-dtype: object"""
+        exp6 = """0    2011-01-01 09:00
+1    2012-02-01 10:00
+2                 NaT
+dtype: period[H]"""
 
-        exp7 = """0   2013Q1
-dtype: object"""
+        exp7 = """0    2013Q1
+dtype: period[Q-DEC]"""
 
-        exp8 = """0   2013Q1
-1   2013Q2
-dtype: object"""
+        exp8 = """0    2013Q1
+1    2013Q2
+dtype: period[Q-DEC]"""
 
-        exp9 = """0   2013Q1
-1   2013Q2
-2   2013Q3
-dtype: object"""
+        exp9 = """0    2013Q1
+1    2013Q2
+2    2013Q3
+dtype: period[Q-DEC]"""
 
         for idx, expected in zip([idx1, idx2, idx3, idx4, idx5,
                                   idx6, idx7, idx8, idx9],

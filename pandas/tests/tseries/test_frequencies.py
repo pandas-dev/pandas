@@ -8,7 +8,7 @@ from pandas import (Index, DatetimeIndex, Timestamp, Series,
                     date_range, period_range)
 
 from pandas._libs.tslibs.frequencies import (_period_code_map,
-                                             _INVALID_FREQ_ERROR)
+                                             INVALID_FREQ_ERR_MSG)
 from pandas._libs.tslibs.ccalendar import MONTHS
 from pandas._libs.tslibs import resolution
 import pandas.tseries.frequencies as frequencies
@@ -797,7 +797,7 @@ class TestFrequencyInference(object):
                  'WOM@4THU', 'WOM@1FRI', 'WOM@2FRI', 'WOM@3FRI',
                  'WOM@4FRI']
 
-        msg = _INVALID_FREQ_ERROR
+        msg = INVALID_FREQ_ERR_MSG
         for freq in freqs:
             with tm.assert_raises_regex(ValueError, msg):
                 frequencies.get_offset(freq)

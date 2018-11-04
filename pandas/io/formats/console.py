@@ -21,7 +21,7 @@ def detect_console_encoding():
     encoding = None
     try:
         encoding = sys.stdout.encoding or sys.stdin.encoding
-    except AttributeError:
+    except (AttributeError, IOError):
         pass
 
     # try again for something better
@@ -49,7 +49,6 @@ def get_console_size():
     Returns (None,None) in non-interactive session.
     """
     from pandas import get_option
-    from pandas.core import common as com
 
     display_width = get_option('display.width')
     # deprecated.
@@ -65,8 +64,8 @@ def get_console_size():
     # should use Auto-Detection, But only in interactive shell-terminal.
     # Simple. yeah.
 
-    if com.in_interactive_session():
-        if com.in_ipython_frontend():
+    if in_interactive_session():
+        if in_ipython_frontend():
             # sane defaults for interactive non-shell terminal
             # match default for width,height in config_init
             from pandas.core.config import get_default_val
@@ -82,3 +81,75 @@ def get_console_size():
     # and we're in a script (non-inter), this will return (None,None)
     # caller needs to deal.
     return (display_width or terminal_width, display_height or terminal_height)
+
+
+# ----------------------------------------------------------------------
+# Detect our environment
+
+def in_interactive_session():
+    """ check if we're running in an interactive shell
+
+    returns True if running under python/ipython interactive shell
+    """
+    from pandas import get_option
+
+    def check_main():
+        import __main__ as main
+        return (not hasattr(main, '__file__') or
+                get_option('mode.sim_interactive'))
+
+    try:
+        return __IPYTHON__ or check_main()  # noqa
+    except NameError:
+        return check_main()
+
+
+def in_qtconsole():
+    """
+    check if we're inside an IPython qtconsole
+
+    .. deprecated:: 0.14.1
+       This is no longer needed, or working, in IPython 3 and above.
+    """
+    try:
+        ip = get_ipython()  # noqa
+        front_end = (
+            ip.config.get('KernelApp', {}).get('parent_appname', "") or
+            ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
+        if 'qtconsole' in front_end.lower():
+            return True
+    except NameError:
+        return False
+    return False
+
+
+def in_ipnb():
+    """
+    check if we're inside an IPython Notebook
+
+    .. deprecated:: 0.14.1
+       This is no longer needed, or working, in IPython 3 and above.
+    """
+    try:
+        ip = get_ipython()  # noqa
+        front_end = (
+            ip.config.get('KernelApp', {}).get('parent_appname', "") or
+            ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
+        if 'notebook' in front_end.lower():
+            return True
+    except NameError:
+        return False
+    return False
+
+
+def in_ipython_frontend():
+    """
+    check if we're inside an an IPython zmq frontend
+    """
+    try:
+        ip = get_ipython()  # noqa
+        return 'zmq' in str(type(ip)).lower()
+    except NameError:
+        pass
+
+    return False

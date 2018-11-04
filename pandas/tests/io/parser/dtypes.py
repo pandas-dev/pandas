@@ -5,16 +5,17 @@ Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
-
-from pandas import DataFrame, Series, Index, MultiIndex, Categorical
 from pandas.compat import StringIO
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.errors import ParserWarning
+
+from pandas.core.dtypes.dtypes import CategoricalDtype
+
+import pandas as pd
+from pandas import Categorical, DataFrame, Index, MultiIndex, Series
+import pandas.util.testing as tm
 
 
 class DtypeTests(object):
@@ -125,9 +126,9 @@ one,two
             np.sort(actual.a.cat.categories), ordered=True)
         tm.assert_frame_equal(actual, expected)
 
-    def test_categorical_dtype_encoding(self):
+    def test_categorical_dtype_encoding(self, datapath):
         # GH 10153
-        pth = tm.get_data_path('unicode_series.csv')
+        pth = datapath('io', 'parser', 'data', 'unicode_series.csv')
         encoding = 'latin-1'
         expected = self.read_csv(pth, header=None, encoding=encoding)
         expected[1] = Categorical(expected[1])
@@ -135,7 +136,7 @@ one,two
                                dtype={1: 'category'})
         tm.assert_frame_equal(actual, expected)
 
-        pth = tm.get_data_path('utf16_ex.txt')
+        pth = datapath('io', 'parser', 'data', 'utf16_ex.txt')
         encoding = 'utf-16'
         expected = self.read_table(pth, encoding=encoding)
         expected = expected.apply(Categorical)

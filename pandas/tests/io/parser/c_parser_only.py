@@ -11,33 +11,32 @@ import os
 import sys
 import tarfile
 
-import pytest
 import numpy as np
+import pytest
+
+from pandas.compat import StringIO, lrange, range
+import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 from pandas import DataFrame
-from pandas.compat import StringIO, range, lrange
+import pandas.util.testing as tm
 
 
 class CParserTests(object):
 
-    def test_buffer_overflow(self):
+    @pytest.mark.parametrize(
+        'malf',
+        ['1\r1\r1\r 1\r 1\r',
+         '1\r1\r1\r 1\r 1\r11\r',
+         '1\r1\r1\r 1\r 1\r11\r1\r'],
+        ids=['words pointer', 'stream pointer', 'lines pointer'])
+    def test_buffer_overflow(self, malf):
         # see gh-9205: test certain malformed input files that cause
         # buffer overflows in tokenizer.c
-
-        malfw = "1\r1\r1\r 1\r 1\r"         # buffer overflow in words pointer
-        malfs = "1\r1\r1\r 1\r 1\r11\r"     # buffer overflow in stream pointer
-        malfl = "1\r1\r1\r 1\r 1\r11\r1\r"  # buffer overflow in lines pointer
-
         cperr = 'Buffer overflow caught - possible malformed input file.'
-
-        for malf in (malfw, malfs, malfl):
-            try:
-                self.read_table(StringIO(malf))
-            except Exception as err:
-                assert cperr in str(err)
+        with pytest.raises(pd.errors.ParserError) as excinfo:
+            self.read_table(StringIO(malf))
+        assert cperr in str(excinfo.value)
 
     def test_buffer_rd_bytes(self):
         # see gh-12098: src->buffer in the C parser can be freed twice leading

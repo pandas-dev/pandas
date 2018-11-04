@@ -4,9 +4,11 @@ import pytest
 import numpy as np
 from pandas.compat import zip
 
+import pandas as pd
 from pandas import (DataFrame, Series, isna, to_datetime, DatetimeIndex, Index,
                     Timestamp, Interval, IntervalIndex, Categorical,
-                    cut, qcut, date_range, NaT, TimedeltaIndex)
+                    cut, qcut, date_range, timedelta_range, NaT,
+                    TimedeltaIndex)
 from pandas.tseries.offsets import Nano, Day
 import pandas.util.testing as tm
 from pandas.api.types import CategoricalDtype as CDT
@@ -281,10 +283,10 @@ class TestCut(object):
         result = tmod._round_frac(0.000123456, precision=2)
         assert result == 0.00012
 
-    def test_qcut_binning_issues(self):
+    def test_qcut_binning_issues(self, datapath):
         # #1978, 1979
-        path = os.path.join(tm.get_data_path(), 'cut_data.csv')
-        arr = np.loadtxt(path)
+        cut_file = datapath(os.path.join('reshape', 'data', 'cut_data.csv'))
+        arr = np.loadtxt(cut_file)
 
         result = qcut(arr, 20)
 
@@ -336,6 +338,21 @@ class TestCut(object):
             [-0.001, 1.5, 3], closed='right').repeat(2)).astype(
             CDT(ordered=True))
         tm.assert_series_equal(result, expected)
+
+    def test_cut_duplicates_bin(self):
+        # issue 20947
+        values = Series(np.array([1, 3, 5, 7, 9]),
+                        index=["a", "b", "c", "d", "e"])
+        bins = [0, 2, 4, 6, 10, 10]
+        result = cut(values, bins, duplicates='drop')
+        expected = cut(values, pd.unique(bins))
+        tm.assert_series_equal(result, expected)
+
+        pytest.raises(ValueError, cut, values, bins)
+        pytest.raises(ValueError, cut, values, bins, duplicates='raise')
+
+        # invalid
+        pytest.raises(ValueError, cut, values, bins, duplicates='foo')
 
     def test_qcut_duplicates_bin(self):
         # GH 7751
@@ -589,3 +606,38 @@ class TestDatelike(object):
         mask = result.isna()
         tm.assert_numpy_array_equal(
             mask, np.array([False, True, True, True, True]))
+
+    @pytest.mark.parametrize('tz', [None, 'UTC', 'US/Pacific'])
+    def test_datetime_cut_roundtrip(self, tz):
+        # GH 19891
+        s = Series(date_range('20180101', periods=3, tz=tz))
+        result, result_bins = cut(s, 2, retbins=True)
+        expected = cut(s, result_bins)
+        tm.assert_series_equal(result, expected)
+        expected_bins = DatetimeIndex(['2017-12-31 23:57:07.200000',
+                                       '2018-01-02 00:00:00',
+                                       '2018-01-03 00:00:00'])
+        expected_bins = expected_bins.tz_localize(tz)
+        tm.assert_index_equal(result_bins, expected_bins)
+
+    def test_timedelta_cut_roundtrip(self):
+        # GH 19891
+        s = Series(timedelta_range('1day', periods=3))
+        result, result_bins = cut(s, 2, retbins=True)
+        expected = cut(s, result_bins)
+        tm.assert_series_equal(result, expected)
+        expected_bins = TimedeltaIndex(['0 days 23:57:07.200000',
+                                        '2 days 00:00:00',
+                                        '3 days 00:00:00'])
+        tm.assert_index_equal(result_bins, expected_bins)
+
+    @pytest.mark.parametrize('arg, expected_bins', [
+        [timedelta_range('1day', periods=3),
+         TimedeltaIndex(['1 days', '2 days', '3 days'])],
+        [date_range('20180101', periods=3),
+         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'])]])
+    def test_datelike_qcut_bins(self, arg, expected_bins):
+        # GH 19891
+        s = Series(arg)
+        result, result_bins = qcut(s, 2, retbins=True)
+        tm.assert_index_equal(result_bins, expected_bins)
