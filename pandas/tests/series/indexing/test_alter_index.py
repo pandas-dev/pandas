@@ -459,6 +459,13 @@ def test_reindex_datetimeindexes_tz_naive_and_aware():
         s.reindex(newidx, method='ffill')
 
 
+def test_reindex_empty_series_tz_dtype():
+    # GH 20869
+    result = Series(dtype='datetime64[ns, UTC]').reindex([0, 1])
+    expected = Series([pd.NaT] * 2, dtype='datetime64[ns, UTC]')
+    tm.assert_equal(result, expected)
+
+
 def test_rename():
     # GH 17407
     s = Series(range(1, 6), index=pd.Index(range(2, 7), name='IntIndex'))
