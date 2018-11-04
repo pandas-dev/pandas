@@ -6,6 +6,7 @@ import warnings
 import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
+import cython
 from cython import Py_ssize_t
 
 from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
@@ -82,6 +83,8 @@ _no_input = object()
 # ----------------------------------------------------------------------
 # API
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def ints_to_pytimedelta(int64_t[:] arr, box=False):
     """
     convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
@@ -198,6 +201,8 @@ cpdef convert_to_timedelta64(object ts, object unit):
     return ts.astype('timedelta64[ns]')
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
@@ -368,7 +373,7 @@ cdef inline parse_timedelta_string(object ts):
                 elif current_unit == 'm':
                     current_unit = 's'
                     m = 1000000000L
-                r = <int64_t> int(''.join(number)) * m
+                r = <int64_t>int(''.join(number)) * m
                 result += timedelta_as_neg(r, neg)
                 have_hhmmss = 1
             else:
@@ -388,7 +393,7 @@ cdef inline parse_timedelta_string(object ts):
                 if current_unit != 'm':
                     raise ValueError("expected hh:mm:ss format before .")
                 m = 1000000000L
-                r = <int64_t> int(''.join(number)) * m
+                r = <int64_t>int(''.join(number)) * m
                 result += timedelta_as_neg(r, neg)
                 have_value = 1
                 unit, number, frac = [], [], []
@@ -422,7 +427,7 @@ cdef inline parse_timedelta_string(object ts):
         else:
             m = 10**(9 -len(frac))
 
-        r = <int64_t> int(''.join(frac)) * m
+        r = <int64_t>int(''.join(frac)) * m
         result += timedelta_as_neg(r, neg)
 
     # we have a regular format
@@ -431,7 +436,7 @@ cdef inline parse_timedelta_string(object ts):
         if current_unit != 'm':
             raise ValueError("expected hh:mm:ss format")
         m = 1000000000L
-        r = <int64_t> int(''.join(number)) * m
+        r = <int64_t>int(''.join(number)) * m
         result += timedelta_as_neg(r, neg)
 
     # we have a last abbreviation

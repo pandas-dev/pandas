@@ -47,12 +47,16 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     echo "flake8-rst --version"
     flake8-rst --version
 
-    MSG='Linting code-blocks in .py docstrings' ; echo $MSG
-    flake8-rst pandas
+    MSG='Linting code-blocks in .rst documentation' ; echo $MSG
+    flake8-rst doc/source --filename=*.rst
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Linting code-blocks in .rst documentation' ; echo $MSG
-    flake8-rst doc --filename=*.rst
+    # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
+    # it doesn't make a difference, but we want to be internally consistent.
+    # Note: this grep pattern is (intended to be) equivalent to the python
+    # regex r'(?<![ ->])> '
+    MSG='Linting .pyx code for spacing conventions in casting' ; echo $MSG
+    ! grep -r -E --include '*.pyx' --include '*.pxi.in' '> ' pandas/_libs | grep -v '[ ->]> '
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # readability/casting: Warnings about C casting instead of C++ casting
