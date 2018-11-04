@@ -237,3 +237,11 @@ class BaseReshapingTests(BaseExtensionTests):
             result = result.astype(object)
 
             self.assert_frame_equal(result, expected)
+
+    def test_merge_on_int_array(self, df_merge_on_int_array):
+        # GH  23020
+        result = pd.merge(df_merge_on_int_array, df_merge_on_int_array, on='A')
+        expected = pd.DataFrame({'A': pd.Series([1, 2, np.nan], dtype='Int64'),
+                                 'B_x': 1,
+                                 'B_y': 1})
+        self.assert_frame_equal(result, expected, check_dtype=True)
