@@ -550,7 +550,8 @@ class TestSeriesDatetimeValues():
         assert nat.max()[0] is pd.NaT
 
     def test_set_dt_with_string_index(self):
-        from datetime import date
+        # GH 23451
         x = pd.Series([1, 2, 3], index=['Date', 'b', 'other'])
-        x.Date = date.today()
+        x['Date'] = date.today()
         assert x.Date == date.today()
+        assert x['Date'] == date.today()
