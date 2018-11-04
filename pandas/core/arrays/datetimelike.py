@@ -802,6 +802,19 @@ DatetimeLikeArrayMixin._add_comparison_ops()
 # Shared Constructor Helpers
 
 def scalar_data_error(scalar, cls):
+    """
+    Produce the error message to issue when raising a TypeError if a scalar
+    is passed to an array constructor.
+
+    Parameters
+    ----------
+    scalar : object
+    cls : class
+
+    Returns
+    -------
+    message : str
+    """
     return ('{cls}() must be called with a '
             'collection of some kind, {data} was passed'
             .format(cls=cls.__name__, data=repr(scalar)))
