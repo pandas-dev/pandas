@@ -99,6 +99,12 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         the 'left', 'right', or both sides (None)
     tz : pytz.timezone or dateutil.tz.tzfile
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        When clocks moved backward due to DST, ambiguous times may arise.
+        For example in Central European Time (UTC+01), when going from 03:00
+        DST to 02:00 non-DST, 02:30:00 local time occurs both at 00:30:00 UTC
+        and at 01:30:00 UTC. In such a situation, the `ambiguous` parameter
+        dictates how ambiguous times should be handled.
+
         - 'infer' will attempt to infer fall dst-transition hours based on
           order
         - bool-ndarray where True signifies a DST time, False signifies a
@@ -173,6 +179,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     TimedeltaIndex : Index of timedelta64 data
     PeriodIndex : Index of Period data
     pandas.to_datetime : Convert argument to datetime
+
     """
     _resolution = cache_readonly(DatetimeArrayMixin._resolution.fget)
     _shallow_copy = Index._shallow_copy
@@ -1413,7 +1420,8 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
 
     >>> pd.date_range(start='2018-04-24', end='2018-04-27', periods=3)
     DatetimeIndex(['2018-04-24 00:00:00', '2018-04-25 12:00:00',
-                   '2018-04-27 00:00:00'], freq=None)
+                   '2018-04-27 00:00:00'],
+                  dtype='datetime64[ns]', freq=None)
 
     **Other Parameters**
 
@@ -1484,37 +1492,39 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     Parameters
     ----------
     start : string or datetime-like, default None
-        Left bound for generating dates
+        Left bound for generating dates.
     end : string or datetime-like, default None
-        Right bound for generating dates
+        Right bound for generating dates.
     periods : integer, default None
-        Number of periods to generate
+        Number of periods to generate.
     freq : string or DateOffset, default 'B' (business daily)
-        Frequency strings can have multiples, e.g. '5H'
+        Frequency strings can have multiples, e.g. '5H'.
     tz : string or None
         Time zone name for returning localized DatetimeIndex, for example
-        Asia/Beijing
+        Asia/Beijing.
     normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
+        Normalize start/end dates to midnight before generating date range.
     name : string, default None
-        Name of the resulting DatetimeIndex
+        Name of the resulting DatetimeIndex.
     weekmask : string or None, default None
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``,
         only used when custom frequency strings are passed.  The default
-        value None is equivalent to 'Mon Tue Wed Thu Fri'
+        value None is equivalent to 'Mon Tue Wed Thu Fri'.
 
         .. versionadded:: 0.21.0
 
     holidays : list-like or None, default None
         Dates to exclude from the set of valid business days, passed to
         ``numpy.busdaycalendar``, only used when custom frequency strings
-        are passed
+        are passed.
 
         .. versionadded:: 0.21.0
 
     closed : string, default None
         Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None)
+        the 'left', 'right', or both sides (None).
+    **kwargs
+        For compatibility. Has no effect on the result.
 
     Notes
     -----
@@ -1528,7 +1538,16 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 
     Returns
     -------
-    rng : DatetimeIndex
+    DatetimeIndex
+
+    Examples
+    --------
+    Note how the two weekend days are skipped in the result.
+
+    >>> pd.bdate_range(start='1/1/2018', end='1/08/2018')
+    DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
+               '2018-01-05', '2018-01-08'],
+              dtype='datetime64[ns]', freq='B')
     """
     if freq is None:
         msg = 'freq must be specified for bdate_range; use date_range instead'

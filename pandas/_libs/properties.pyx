@@ -31,7 +31,7 @@ cdef class CachedProperty(object):
 
         if PyDict_Contains(cache, self.name):
             # not necessary to Py_INCREF
-            val = <object> PyDict_GetItem(cache, self.name)
+            val = <object>PyDict_GetItem(cache, self.name)
         else:
             val = self.func(obj)
             PyDict_SetItem(cache, self.name, val)

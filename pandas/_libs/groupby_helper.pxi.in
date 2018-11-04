@@ -48,7 +48,7 @@ def group_add_{{name}}(ndarray[{{c_type}}, ndim=2] out,
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
 
     with nogil:
 
@@ -95,7 +95,7 @@ def group_prod_{{name}}(ndarray[{{c_type}}, ndim=2] out,
     nobs = np.zeros_like(out)
     prodx = np.ones_like(out)
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
 
     with nogil:
         for i in range(N):
@@ -141,7 +141,7 @@ def group_var_{{name}}(ndarray[{{c_type}}, ndim=2] out,
     nobs = np.zeros_like(out)
     mean = np.zeros_like(out)
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
 
     out[:, :] = 0.0
 
@@ -193,7 +193,7 @@ def group_mean_{{name}}(ndarray[{{c_type}}, ndim=2] out,
     nobs = np.zeros_like(out)
     sumx = np.zeros_like(out)
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
 
     with nogil:
         for i in range(N):
@@ -238,7 +238,7 @@ def group_ohlc_{{name}}(ndarray[{{c_type}}, ndim=2] out,
     if len(labels) == 0:
         return
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
 
     if out.shape[1] != 4:
         raise ValueError('Output array must have 4 columns')
@@ -312,14 +312,14 @@ def group_last_{{name}}(ndarray[{{c_type}}, ndim=2] out,
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
-    nobs = np.zeros((<object> out).shape, dtype=np.int64)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     {{if name == 'object'}}
-    resx = np.empty((<object> out).shape, dtype=object)
+    resx = np.empty((<object>out).shape, dtype=object)
     {{else}}
     resx = np.empty_like(out)
     {{endif}}
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
 
     {{if name == "object"}}
     if True:  # make templating happy
@@ -369,14 +369,14 @@ def group_nth_{{name}}(ndarray[{{c_type}}, ndim=2] out,
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
-    nobs = np.zeros((<object> out).shape, dtype=np.int64)
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     {{if name=='object'}}
-    resx = np.empty((<object> out).shape, dtype=object)
+    resx = np.empty((<object>out).shape, dtype=object)
     {{else}}
     resx = np.empty_like(out)
     {{endif}}
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
 
     {{if name == "object"}}
     if True:  # make templating happy
@@ -462,7 +462,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
 
     tiebreak = tiebreakers[ties_method]
     keep_na = na_option == 'keep'
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
     grp_sizes = np.ones_like(out)
 
     # Copy values into new array in order to fill missing data
@@ -635,7 +635,7 @@ def group_max(ndarray[groupby_t, ndim=2] out,
         maxx[:] = -np.inf
         nan_val = NAN
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
 
     with nogil:
         for i in range(N):
@@ -697,7 +697,7 @@ def group_min(ndarray[groupby_t, ndim=2] out,
         minx[:] = np.inf
         nan_val = NAN
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
 
     with nogil:
         for i in range(N):
@@ -744,7 +744,7 @@ def group_cummin(ndarray[groupby_t, ndim=2] out,
         ndarray[groupby_t, ndim=2] accum
         int64_t lab
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
     accum = np.empty_like(values)
     if groupby_t is int64_t:
         accum[:] = _int64_max
@@ -792,7 +792,7 @@ def group_cummax(ndarray[groupby_t, ndim=2] out,
         ndarray[groupby_t, ndim=2] accum
         int64_t lab
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
     accum = np.empty_like(values)
     if groupby_t is int64_t:
         accum[:] = -_int64_max
