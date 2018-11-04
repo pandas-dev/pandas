@@ -175,7 +175,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     pandas.to_datetime : Convert argument to datetime
     """
     _resolution = cache_readonly(DatetimeArrayMixin._resolution.fget)
-    _shallow_copy = Index._shallow_copy
 
     _typ = 'datetimeindex'
     _join_precedence = 10
@@ -192,10 +191,11 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
     _engine_type = libindex.DatetimeEngine
 
-    tz = None
+    _tz = None
     _freq = None
     _comparables = ['name', 'freqstr', 'tz']
     _attributes = ['name', 'freq', 'tz']
+    timetuple = None
 
     # define my properties & methods for delegation
     _bool_ops = ['is_month_start', 'is_month_end',
@@ -247,13 +247,13 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             result.name = name
             return result
 
+        if is_scalar(data):
+            raise ValueError('{cls}() must be called with a '
+                             'collection of some kind, {data} was passed'
+                             .format(cls=cls.__name__, data=repr(data)))
+
         if not isinstance(data, (np.ndarray, Index, ABCSeries,
                                  DatetimeArrayMixin)):
-            if is_scalar(data):
-                raise ValueError('DatetimeIndex() must be called with a '
-                                 'collection of some kind, %s was passed'
-                                 % repr(data))
-            # other iterable of some kind
             if not isinstance(data, (list, tuple)):
                 data = list(data)
             data = np.asarray(data, dtype='O')
@@ -273,16 +273,15 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 data = data.tz_localize(tz, ambiguous=ambiguous)
             else:
                 # the tz's must match
-                if str(tz) != str(data.tz):
+                if not timezones.tz_compare(tz, data.tz):
                     msg = ('data is already tz-aware {0}, unable to '
                            'set specified tz: {1}')
                     raise TypeError(msg.format(data.tz, tz))
 
-            subarr = data.values
-
             if freq is None:
                 freq = data.freq
                 verify_integrity = False
+            data = data._data
         elif issubclass(data.dtype.type, np.datetime64):
             if data.dtype != _NS_DTYPE:
                 data = conversion.ensure_datetime64ns(data)
@@ -291,14 +290,13 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 tz = timezones.maybe_get_tz(tz)
                 data = conversion.tz_localize_to_utc(data.view('i8'), tz,
                                                      ambiguous=ambiguous)
-            subarr = data.view(_NS_DTYPE)
         else:
             # must be integer dtype otherwise
             # assume this data are epoch timestamps
             if data.dtype != _INT64_DTYPE:
                 data = data.astype(np.int64, copy=False)
-            subarr = data.view(_NS_DTYPE)
 
+        subarr = data.view(_NS_DTYPE)
         assert isinstance(subarr, np.ndarray), type(subarr)
         assert subarr.dtype == 'M8[ns]', subarr.dtype
 
