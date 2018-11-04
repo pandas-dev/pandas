@@ -6,6 +6,7 @@ from functools import wraps
 import locale
 import os
 import re
+from shutil import rmtree
 import string
 import subprocess
 import sys
@@ -27,6 +28,7 @@ from pandas.core.dtypes.common import (
     is_datetimelike_v_object, is_extension_array_dtype, is_interval_dtype,
     is_list_like, is_number, is_sequence, needs_i8_conversion)
 from pandas.core.dtypes.missing import array_equivalent
+
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
@@ -35,11 +37,9 @@ from pandas import (
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import ExtensionArray, IntervalArray, PeriodArray
 import pandas.core.common as com
-from shutil import rmtree
 
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
-from shutil import rmtree
 
 N = 30
 K = 4
