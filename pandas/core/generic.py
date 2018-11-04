@@ -8372,19 +8372,13 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         periods : int
             Number of periods to shift. Can be positive or negative.
-        freq : DateOffset, timedelta, or str, optional
+        freq : DateOffset, tseries.offsets, timedelta, or str, optional
             Offset to use from the tseries module or time rule (e.g. 'EOM').
             If `freq` is specified then the index values are shifted but the
             data is not realigned. That is, use `freq` if you would like to
             extend the index when shifting and preserve the original data.
-        axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Shift direction.
-
-        Notes
-        -----
-        If freq is specified then the index values are shifted but the data
-        is not realigned. That is, use freq if you would like to extend the
-        index when shifting and preserve the original data.
 
         Returns
         -------
