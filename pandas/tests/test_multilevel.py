@@ -1931,6 +1931,19 @@ Thur,Lunch,Yes,51.51,17"""
         expected = df.loc[idx != 4]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('box', [Series, DataFrame])
+    def test_drop_tz_aware_timestamp_across_dst(self, box):
+        # GH 21761
+        start = Timestamp('2017-10-29', tz='Europe/Berlin')
+        end = Timestamp('2017-10-29 04:00:00', tz='Europe/Berlin')
+        index = pd.date_range(start, end, freq='15min')
+        data = box(data=[1] * len(index), index=index)
+        result = data.drop(start)
+        expected_start = Timestamp('2017-10-29 00:15:00', tz='Europe/Berlin')
+        expected_idx = pd.date_range(expected_start, end, freq='15min')
+        expected = box(data=[1] * len(expected_idx), index=expected_idx)
+        tm.assert_equal(result, expected)
+
     def test_drop_preserve_names(self):
         index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1],
                                         [1, 2, 3, 1, 2, 3]],

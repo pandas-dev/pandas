@@ -44,6 +44,14 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     flake8 pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
+    # it doesn't make a difference, but we want to be internally consistent.
+    # Note: this grep pattern is (intended to be) equivalent to the python
+    # regex r'(?<![ ->])> '
+    MSG='Linting .pyx code for spacing conventions in casting' ; echo $MSG
+    ! grep -r -E --include '*.pyx' --include '*.pxi.in' '> ' pandas/_libs | grep -v '[ ->]> '
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # readability/casting: Warnings about C casting instead of C++ casting
     # runtime/int: Warnings about using C number types instead of C++ ones
     # build/include_subdir: Warnings about prefacing included header files with directory

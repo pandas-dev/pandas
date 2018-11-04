@@ -1129,8 +1129,9 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
 
     Returns the levels, labels and names of a multil-index to multi-index join.
     Depending on the type of join, this method restores the appropriate
-    dropped levels of the joined multi-index. The method relies on lidx, rindexer
-    which hold the index positions of left and right, where a join was feasible
+    dropped levels of the joined multi-index.
+    The method relies on lidx, rindexer which hold the index positions of
+    left and right, where a join was feasible
 
     Parameters
     ----------
@@ -1141,7 +1142,8 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
     dropped_level_names : str array
         list of non-common levels
     join_index : MultiIndex
-        the index of the join between the common levels of left and right
+        the index of the join between
+        the common levels of left and right
     lindexer : intp array
         left indexer
     right : intp array
