@@ -70,7 +70,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     # Note: this grep pattern is (intended to be) equivalent to the python
     # regex r'(?<![ ->])> '
     MSG='Linting .pyx code for spacing conventions in casting' ; echo $MSG
-    ! grep -r -E --include '*.pyx' --include '*.pxi.in' '> ' pandas/_libs | grep -v '[ ->]> '
+    invgrep -r -E --include '*.pyx' --include '*.pxi.in' '[\w*]> ' pandas/_libs  # TODO this will conflict with #23486 and we'll wait for it to be merged, so we know the exact pattern to use
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # readability/casting: Warnings about C casting instead of C++ casting
