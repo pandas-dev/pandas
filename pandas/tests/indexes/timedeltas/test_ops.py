@@ -1,18 +1,17 @@
-import pytest
+from datetime import timedelta
 
 import numpy as np
-from datetime import timedelta
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import to_timedelta
-from pandas import (Series, Timedelta, Timestamp, TimedeltaIndex,
-                    timedelta_range,
-                    _np_version_under1p10)
-from pandas._libs.tslib import iNaT
+from pandas import (
+    Series, Timedelta, TimedeltaIndex, Timestamp, timedelta_range,
+    to_timedelta
+)
+from pandas.core.dtypes.generic import ABCDateOffset
 from pandas.tests.test_base import Ops
 from pandas.tseries.offsets import Day, Hour
-from pandas.core.dtypes.generic import ABCDateOffset
 
 
 class TestTimedeltaIndexOps(Ops):
@@ -68,12 +67,11 @@ class TestTimedeltaIndexOps(Ops):
         assert np.argmin(td) == 0
         assert np.argmax(td) == 5
 
-        if not _np_version_under1p10:
-            errmsg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmin, td, out=0)
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmax, td, out=0)
+        errmsg = "the 'out' parameter is not supported"
+        tm.assert_raises_regex(
+            ValueError, errmsg, np.argmin, td, out=0)
+        tm.assert_raises_regex(
+            ValueError, errmsg, np.argmax, td, out=0)
 
     def test_value_counts_unique(self):
         # GH 7735
@@ -239,17 +237,6 @@ class TestTimedeltaIndexOps(Ops):
         tm.assert_index_equal(idx, result)
         assert result.freq == freq
 
-    def test_nat_new(self):
-
-        idx = pd.timedelta_range('1', freq='D', periods=5, name='x')
-        result = idx._nat_new()
-        exp = pd.TimedeltaIndex([pd.NaT] * 5, name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx._nat_new(box=False)
-        exp = np.array([iNaT] * 5, dtype=np.int64)
-        tm.assert_numpy_array_equal(result, exp)
-
     def test_shift(self):
         pass  # handled in test_arithmetic.py
 
@@ -276,7 +263,7 @@ class TestTimedeltaIndexOps(Ops):
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
-        assert not idx.hasnans
+        assert idx.hasnans is False
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([], dtype=np.intp))
 
@@ -284,7 +271,7 @@ class TestTimedeltaIndexOps(Ops):
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
-        assert idx.hasnans
+        assert idx.hasnans is True
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([1], dtype=np.intp))
 

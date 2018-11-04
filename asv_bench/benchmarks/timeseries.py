@@ -8,12 +8,9 @@ try:
 except ImportError:
     from pandas.tseries.converter import DatetimeConverter
 
-from .pandas_vb_common import setup  # noqa
-
 
 class DatetimeIndex(object):
 
-    goal_time = 0.2
     params = ['dst', 'repeated', 'tz_aware', 'tz_naive']
     param_names = ['index_type']
 
@@ -60,8 +57,6 @@ class DatetimeIndex(object):
 
 class TzLocalize(object):
 
-    goal_time = 0.2
-
     def setup(self):
         dst_rng = date_range(start='10/29/2000 1:00:00',
                              end='10/29/2000 1:59:59', freq='S')
@@ -79,7 +74,6 @@ class TzLocalize(object):
 
 class ResetIndex(object):
 
-    goal_time = 0.2
     params = [None, 'US/Eastern']
     param_names = 'tz'
 
@@ -93,7 +87,6 @@ class ResetIndex(object):
 
 class Factorize(object):
 
-    goal_time = 0.2
     params = [None, 'Asia/Tokyo']
     param_names = 'tz'
 
@@ -108,7 +101,6 @@ class Factorize(object):
 
 class InferFreq(object):
 
-    goal_time = 0.2
     params = [None, 'D', 'B']
     param_names = ['freq']
 
@@ -125,8 +117,6 @@ class InferFreq(object):
 
 class TimeDatetimeConverter(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 100000
         self.rng = date_range(start='1/1/2000', periods=N, freq='T')
@@ -137,7 +127,6 @@ class TimeDatetimeConverter(object):
 
 class Iteration(object):
 
-    goal_time = 0.2
     params = [date_range, period_range]
     param_names = ['time_index']
 
@@ -158,7 +147,6 @@ class Iteration(object):
 
 class ResampleDataFrame(object):
 
-    goal_time = 0.2
     params = ['max', 'mean', 'min']
     param_names = ['method']
 
@@ -173,7 +161,6 @@ class ResampleDataFrame(object):
 
 class ResampleSeries(object):
 
-    goal_time = 0.2
     params = (['period', 'datetime'], ['5min', '1D'], ['mean', 'ohlc'])
     param_names = ['index', 'freq', 'method']
 
@@ -194,8 +181,6 @@ class ResampleSeries(object):
 
 class ResampleDatetetime64(object):
     # GH 7754
-    goal_time = 0.2
-
     def setup(self):
         rng3 = date_range(start='2000-01-01 00:00:00',
                           end='2000-01-01 10:00:00', freq='555000U')
@@ -207,7 +192,6 @@ class ResampleDatetetime64(object):
 
 class AsOf(object):
 
-    goal_time = 0.2
     params = ['DataFrame', 'Series']
     param_names = ['constructor']
 
@@ -255,7 +239,6 @@ class AsOf(object):
 
 class SortIndex(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['monotonic']
 
@@ -275,8 +258,6 @@ class SortIndex(object):
 
 class IrregularOps(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 10**5
         idx = date_range(start='1/1/2000', periods=N, freq='s')
@@ -289,8 +270,6 @@ class IrregularOps(object):
 
 
 class Lookup(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 1500000
@@ -305,8 +284,6 @@ class Lookup(object):
 
 class ToDatetimeYYYYMMDD(object):
 
-    goal_time = 0.2
-
     def setup(self):
         rng = date_range(start='1/1/2000', periods=10000, freq='D')
         self.stringsD = Series(rng.strftime('%Y%m%d'))
@@ -316,8 +293,6 @@ class ToDatetimeYYYYMMDD(object):
 
 
 class ToDatetimeISO8601(object):
-
-    goal_time = 0.2
 
     def setup(self):
         rng = date_range(start='1/1/2000', periods=20000, freq='H')
@@ -344,8 +319,6 @@ class ToDatetimeISO8601(object):
 
 class ToDatetimeNONISO8601(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 10000
         half = int(N / 2)
@@ -363,8 +336,6 @@ class ToDatetimeNONISO8601(object):
 
 class ToDatetimeFormat(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.s = Series(['19MAY11', '19MAY11:00:00:00'] * 100000)
         self.s2 = self.s.str.replace(':\\S+$', '')
@@ -378,7 +349,6 @@ class ToDatetimeFormat(object):
 
 class ToDatetimeCache(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['cache']
 
@@ -416,3 +386,6 @@ class DatetimeAccessor(object):
 
     def time_dt_accessor_normalize(self):
         self.series.dt.normalize()
+
+
+from .pandas_vb_common import setup  # noqa: F401

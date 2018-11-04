@@ -15,7 +15,6 @@ import numpy as np
 from pandas.compat import lrange, PY35
 from pandas import (compat, isna, notna, DataFrame, Series,
                     MultiIndex, date_range, Timestamp, Categorical,
-                    _np_version_under1p12,
                     to_datetime, to_timedelta)
 import pandas as pd
 import pandas.core.nanops as nanops
@@ -2021,9 +2020,6 @@ class TestDataFrameAnalytics():
 
     @pytest.mark.skipif(not PY35,
                         reason='matmul supported for Python>=3.5')
-    @pytest.mark.xfail(
-        _np_version_under1p12,
-        reason="unpredictable return types under numpy < 1.12")
     def test_matmul(self):
         # matmul test is for GH 10259
         a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
@@ -2046,8 +2042,11 @@ class TestDataFrameAnalytics():
 
         # np.array @ DataFrame
         result = operator.matmul(a.values, b)
+        assert isinstance(result, DataFrame)
+        assert result.columns.equals(b.columns)
+        assert result.index.equals(pd.Index(range(3)))
         expected = np.dot(a.values, b.values)
-        tm.assert_almost_equal(result, expected)
+        tm.assert_almost_equal(result.values, expected)
 
         # nested list @ DataFrame (__rmatmul__)
         result = operator.matmul(a.values.tolist(), b)
@@ -2154,7 +2153,7 @@ class TestNLargestNSmallest(object):
             tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('columns', [
-        ('group', 'category_string'), ('group', 'string')])
+        ['group', 'category_string'], ['group', 'string']])
     def test_n_error(self, df_main_dtypes, nselect_method, columns):
         df = df_main_dtypes
         col = columns[1]
@@ -2259,4 +2258,21 @@ class TestNLargestNSmallest(object):
         expected = df.copy()
         df.rank()
         result = df
+        tm.assert_frame_equal(result, expected)
+
+    def test_multiindex_column_lookup(self):
+        # Check whether tuples are correctly treated as multi-level lookups.
+        # GH 23033
+        df = pd.DataFrame(
+            columns=pd.MultiIndex.from_product([['x'], ['a', 'b']]),
+            data=[[0.33, 0.13], [0.86, 0.25], [0.25, 0.70], [0.85, 0.91]])
+
+        # nsmallest
+        result = df.nsmallest(3, ('x', 'a'))
+        expected = df.iloc[[2, 0, 3]]
+        tm.assert_frame_equal(result, expected)
+
+        # nlargest
+        result = df.nlargest(3, ('x', 'b'))
+        expected = df.iloc[[3, 2, 1]]
         tm.assert_frame_equal(result, expected)

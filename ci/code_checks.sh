@@ -14,7 +14,7 @@
 #   $ ./ci/code_checks.sh patterns    # check for patterns that should not exist
 #   $ ./ci/code_checks.sh doctests    # run doctests
 
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" ]] || { echo "Unkown command $1. Usage: $0 [lint|patterns|doctests]"; exit 9999; }
+[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" ]] || { echo "Unknown command $1. Usage: $0 [lint|patterns|doctests]"; exit 9999; }
 
 source activate pandas
 RET=0
@@ -65,6 +65,14 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     flake8 --format="$FLAKE8_FORMAT" pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
+    # it doesn't make a difference, but we want to be internally consistent.
+    # Note: this grep pattern is (intended to be) equivalent to the python
+    # regex r'(?<![ ->])> '
+    MSG='Linting .pyx code for spacing conventions in casting' ; echo $MSG
+    ! grep -r -E --include '*.pyx' --include '*.pxi.in' '> ' pandas/_libs | grep -v '[ ->]> '
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # readability/casting: Warnings about C casting instead of C++ casting
     # runtime/int: Warnings about using C number types instead of C++ ones
     # build/include_subdir: Warnings about prefacing included header files with directory
@@ -75,6 +83,11 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     # we can lint all header files since they aren't "generated" like C files are.
     MSG='Linting .c and .h' ; echo $MSG
     cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # Imports - Check formatting using isort see setup.cfg for settings
+    MSG='Check import format using isort ' ; echo $MSG
+    isort --recursive --check-only pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -138,27 +151,34 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
-    pytest --doctest-modules -v pandas/core/frame.py \
-        -k"-axes -combine -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_dict -to_stata"
+    pytest -q --doctest-modules pandas/core/frame.py \
+        -k"-axes -combine -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_stata"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
-    pytest --doctest-modules -v pandas/core/series.py \
+    pytest -q --doctest-modules pandas/core/series.py \
         -k"-nonzero -reindex -searchsorted -to_dict"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests generic.py' ; echo $MSG
-    pytest --doctest-modules -v pandas/core/generic.py \
+    pytest -q --doctest-modules pandas/core/generic.py \
         -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -to_json -transpose -values -xs"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests top-level reshaping functions' ; echo $MSG
-    pytest --doctest-modules -v \
+    pytest -q --doctest-modules \
         pandas/core/reshape/concat.py \
         pandas/core/reshape/pivot.py \
         pandas/core/reshape/reshape.py \
         pandas/core/reshape/tile.py \
         -k"-crosstab -pivot_table -cut"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests interval classes' ; echo $MSG
+    pytest --doctest-modules -v \
+        pandas/core/indexes/interval.py \
+        pandas/core/arrays/interval.py \
+        -k"-from_arrays -from_breaks -from_intervals -from_tuples -get_loc -set_closed -to_tuples -interval_range"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

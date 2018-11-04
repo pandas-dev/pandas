@@ -1,12 +1,13 @@
-import operator
 import collections
+import operator
 
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
 from pandas.compat import PY2, PY36
+
+import pandas as pd
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
 
@@ -160,6 +161,10 @@ unstable = pytest.mark.skipif(not PY36,  # 3.6 or higher
                               reason="Dictionary order unstable")
 
 
+class TestReduce(base.BaseNoReduceTests):
+    pass
+
+
 class TestMethods(BaseJSON, base.BaseMethodsTests):
     @unhashable
     def test_value_counts(self, all_data, dropna):
@@ -198,6 +203,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     @pytest.mark.skip(reason="combine for JSONArray not supported")
     def test_combine_add(self, data_repeated):
         pass
+
+    @unhashable
+    def test_hash_pandas_object_works(self, data, kind):
+        super().test_hash_pandas_object_works(data, kind)
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):

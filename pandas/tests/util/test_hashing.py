@@ -1,13 +1,13 @@
-import pytest
 import datetime
 
 import numpy as np
-import pandas as pd
+import pytest
 
-from pandas import DataFrame, Series, Index, MultiIndex
-from pandas.util import hash_array, hash_pandas_object
-from pandas.core.util.hashing import hash_tuples, hash_tuple, _hash_scalar
+import pandas as pd
 import pandas.util.testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series
+from pandas.core.util.hashing import _hash_scalar, hash_tuple, hash_tuples
+from pandas.util import hash_array, hash_pandas_object
 
 
 class TestHashing(object):
@@ -110,9 +110,9 @@ class TestHashing(object):
     def test_multiindex_unique(self):
         mi = MultiIndex.from_tuples([(118, 472), (236, 118),
                                      (51, 204), (102, 51)])
-        assert mi.is_unique
+        assert mi.is_unique is True
         result = hash_pandas_object(mi)
-        assert result.is_unique
+        assert result.is_unique is True
 
     def test_multiindex_objects(self):
         mi = MultiIndex(levels=[['b', 'd', 'a'], [1, 2, 3]],

@@ -1603,7 +1603,7 @@ function takes a number of arguments. Only the first is required.
 * ``sep`` : Field delimiter for the output file (default ",")
 * ``na_rep``: A string representation of a missing value (default '')
 * ``float_format``: Format string for floating point numbers
-* ``cols``: Columns to write (default None)
+* ``columns``: Columns to write (default None)
 * ``header``: Whether to write out the column names (default True)
 * ``index``: whether to write row (index) names (default True)
 * ``index_label``: Column label(s) for index column(s) if desired. If None

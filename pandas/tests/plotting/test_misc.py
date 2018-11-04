@@ -76,10 +76,7 @@ class TestDataFramePlots(TestPlotBase):
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
 
         # GH 5662
-        if self.mpl_ge_2_0_0:
-            expected = ['-2', '0', '2']
-        else:
-            expected = ['-2', '-1', '0', '1', '2']
+        expected = ['-2', '0', '2']
         self._check_text_labels(axes0_labels, expected)
         self._check_ticks_props(
             axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
@@ -91,10 +88,7 @@ class TestDataFramePlots(TestPlotBase):
             axes = _check_plot_works(scatter_matrix, filterwarnings='always',
                                      frame=df, range_padding=.1)
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
-        if self.mpl_ge_2_0_0:
-            expected = ['-1.0', '-0.5', '0.0']
-        else:
-            expected = ['-1.2', '-1.0', '-0.8', '-0.6', '-0.4', '-0.2', '0.0']
+        expected = ['-1.0', '-0.5', '0.0']
         self._check_text_labels(axes0_labels, expected)
         self._check_ticks_props(
             axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
