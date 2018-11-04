@@ -225,8 +225,9 @@ class GoodDocStrings(object):
         Examples
         --------
         This example does not import pandas or import numpy.
-        >>> import time
         >>> import datetime
+        >>> datetime.MAXYEAR
+        9999
         """
         pass
 
@@ -596,6 +597,44 @@ class BadSeeAlso(object):
         pass
 
 
+class BadExamples(object):
+
+    def unused_import(self):
+        """
+        Examples
+        --------
+        >>> import pandas as pdf
+        >>> df = pd.DataFrame(np.ones((3, 3)), columns=('a', 'b', 'c'))
+        """
+        pass
+
+    def missing_whitespace_around_arithmetic_operator(self):
+        """
+        Examples
+        --------
+        >>> 2+5
+        7
+        """
+        pass
+
+    def indentation_is_not_a_multiple_of_four(self):
+        """
+        Examples
+        --------
+        >>> if 2 + 5:
+        ...   pass
+        """
+        pass
+
+    def missing_whitespace_after_comma(self):
+        """
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.ones((3,3)),columns=('a','b', 'c'))
+        """
+        pass
+
+
 class TestValidator(object):
 
     def _import_path(self, klass=None, func=None):
@@ -634,7 +673,7 @@ class TestValidator(object):
     @capture_stderr
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
-        'contains', 'mode'])
+        'contains', 'mode', 'good_imports'])
     def test_good_functions(self, func):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings', func=func))['errors']
@@ -714,16 +753,25 @@ class TestValidator(object):
                      marks=pytest.mark.xfail),
         # Examples tests
         ('BadGenericDocStrings', 'method',
-         ('numpy does not need to be imported in the examples,')),
+         ('numpy does not need to be imported in the examples',)),
         ('BadGenericDocStrings', 'method',
-         ('pandas does not need to be imported in the examples,')),
+         ('pandas does not need to be imported in the examples',)),
         # See Also tests
         ('BadSeeAlso', 'prefix_pandas',
          ('pandas.Series.rename in `See Also` section '
-          'does not need `pandas` prefix',))
+          'does not need `pandas` prefix',)),
+        # Examples tests
+        ('BadExamples', 'unused_import',
+         ('1 F401 \'pandas as pdf\' imported but unused',)),
+        ('BadExamples', 'indentation_is_not_a_multiple_of_four',
+         ('1 E111 indentation is not a multiple of four',)),
+        ('BadExamples', 'missing_whitespace_around_arithmetic_operator',
+         ('1 E226 missing whitespace around arithmetic operator',)),
+        ('BadExamples', 'missing_whitespace_after_comma',
+         ('3 E231 missing whitespace after \',\'',)),
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
-        result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
+        result = validate_one(self._import_path(klass=klass, func=func))
         for msg in msgs:
             assert msg in ' '.join(result['errors'])
 
