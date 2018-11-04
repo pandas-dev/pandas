@@ -167,16 +167,12 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         elif copy:
             data = np.array(data, copy=True)
 
-        data = np.array(data, copy=False)
-        if data.dtype == np.object_:
-            data = array_to_timedelta64(data)
-        if data.dtype != _TD_DTYPE:
-            if is_timedelta64_dtype(data):
-                # non-nano unit
-                # TODO: watch out for overflows
-                data = data.astype(_TD_DTYPE)
-            else:
-                data = ensure_int64(data).view(_TD_DTYPE)
+        arr = TimedeltaArrayMixin(data, freq=freq)
+        if freq_infer and arr.freq is not None:
+            freq_infer = False
+            verify_integrity = False
+        freq = arr.freq
+        data = arr._data
 
         assert data.dtype == 'm8[ns]', data.dtype
 
@@ -208,8 +204,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         result.name = name
         result._reset_identity()
         return result
-
-    _shallow_copy = Index._shallow_copy
 
     @property
     def _formatter_func(self):
