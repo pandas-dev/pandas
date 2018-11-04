@@ -5,6 +5,7 @@ from cython import Py_ssize_t
 
 import time
 from cpython.datetime cimport (PyDateTime_IMPORT,
+                               PyDateTime_Check,
                                datetime, timedelta,
                                time as dt_time)
 PyDateTime_IMPORT
@@ -344,8 +345,8 @@ class _BaseOffset(object):
         return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
     def __add__(self, other):
-        if getattr(other, "_typ", None) in ["datetimeindex",
-                                            "series", "period"]:
+        if getattr(other, "_typ", None) in ["datetimeindex", "periodindex",
+                                            "series", "period", "dataframe"]:
             # defer to the other class's implementation
             return other + self
         try:
@@ -354,7 +355,7 @@ class _BaseOffset(object):
             return NotImplemented
 
     def __sub__(self, other):
-        if isinstance(other, datetime):
+        if PyDateTime_Check(other):
             raise TypeError('Cannot subtract datetime from offset.')
         elif type(other) == type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
@@ -496,7 +497,7 @@ class _Tick(object):
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
-cpdef datetime shift_day(datetime other, int days):
+def shift_day(other: datetime, days: int) -> datetime:
     """
     Increment the datetime `other` by the given number of days, retaining
     the time-portion of the datetime.  For tz-naive datetimes this is
@@ -815,7 +816,8 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
     return np.asarray(out)
 
 
-cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
+def shift_month(stamp: datetime, months: int,
+                day_opt: object=None) -> datetime:
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,
@@ -945,8 +947,8 @@ cpdef int roll_convention(int other, int n, int compare) nogil:
     return n
 
 
-cpdef int roll_qtrday(datetime other, int n, int month, object day_opt,
-                      int modby=3) except? -1:
+def roll_qtrday(other: datetime, n: int, month: int,
+                day_opt: object, modby: int=3) -> int:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
@@ -988,8 +990,7 @@ cpdef int roll_qtrday(datetime other, int n, int month, object day_opt,
     return n
 
 
-cpdef int roll_yearday(datetime other, int n, int month,
-                       object day_opt) except? -1:
+def roll_yearday(other: datetime, n: int, month: int, day_opt: object) -> int:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.

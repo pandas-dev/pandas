@@ -36,8 +36,8 @@ cdef inline bint is_tzlocal(object tz):
 
 
 cdef inline bint treat_tz_as_pytz(object tz):
-    return hasattr(tz, '_utc_transition_times') and hasattr(
-        tz, '_transition_info')
+    return (hasattr(tz, '_utc_transition_times') and
+            hasattr(tz, '_transition_info'))
 
 
 cdef inline bint treat_tz_as_dateutil(object tz):

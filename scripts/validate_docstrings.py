@@ -505,10 +505,20 @@ def validate_one(func_name):
         wrns.append('See Also section not found')
     else:
         for rel_name, rel_desc in doc.see_also.items():
-            if not rel_desc:
+            if rel_desc:
+                if not rel_desc.endswith('.'):
+                    errs.append('Missing period at end of description for '
+                                'See Also "{}" reference'.format(rel_name))
+                if not rel_desc[0].isupper():
+                    errs.append('Description should be capitalized for '
+                                'See Also "{}" reference'.format(rel_name))
+            else:
                 errs.append('Missing description for '
                             'See Also "{}" reference'.format(rel_name))
-
+            if rel_name.startswith('pandas.'):
+                errs.append('{} in `See Also` section does not '
+                            'need `pandas` prefix, use {} instead.'
+                            .format(rel_name, rel_name[len('pandas.'):]))
     for line in doc.raw_doc.splitlines():
         if re.match("^ *\t", line):
             errs.append('Tabs found at the start of line "{}", '
@@ -600,11 +610,11 @@ def main(func_name, fd):
         fd.write('{}\n'.format(doc_info['docstring']))
         fd.write(header('Validation'))
         if doc_info['errors']:
-            fd.write('Errors found:\n')
+            fd.write('{} Errors found:\n'.format(len(doc_info['errors'])))
             for err in doc_info['errors']:
                 fd.write('\t{}\n'.format(err))
         if doc_info['warnings']:
-            fd.write('Warnings found:\n')
+            fd.write('{} Warnings found:\n'.format(len(doc_info['warnings'])))
             for wrn in doc_info['warnings']:
                 fd.write('\t{}\n'.format(wrn))
 
