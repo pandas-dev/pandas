@@ -11,7 +11,7 @@ from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas import compat
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, is_list_like)
+    _TD_DTYPE, is_list_like, is_object_dtype, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -112,9 +112,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     @classmethod
     def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
-        # `dtype` is passed by _shallow_copy in corner cases, should always
-        #  be timedelta64[ns] if present
-        assert dtype == _TD_DTYPE
+        _require_m8ns_dtype(dtype)
         assert isinstance(values, np.ndarray), type(values)
 
         if values.dtype == 'i8':
@@ -127,13 +125,30 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         result._freq = freq
         return result
 
-    def __new__(cls, values, freq=None):
+    def __new__(cls, values, freq=None, dtype=_TD_DTYPE):
+        _require_m8ns_dtype(dtype)
+
+        if isinstance(values, (list, tuple)) or is_object_dtype(values):
+            values = cls._from_sequence(values)._data
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
+        if isinstance(values, TimedeltaArrayMixin):
+            if freq is None and values.freq is not None:
+                freq = values.freq
+                freq_infer = False
+            values = values._data
+
         values = np.array(values, copy=False)
-        if values.dtype == np.object_:
-            values = array_to_timedelta64(values)
+
+        if values.dtype == 'i8':
+            pass
+        elif not is_timedelta64_dtype(values):
+            raise TypeError(values.dtype)
+        elif values.dtype != _TD_DTYPE:
+            # i.e. non-nano unit
+            # TODO: use tslibs.conversion func? watch out for overflows
+            values = values.astype(_TD_DTYPE)
 
         result = cls._simple_new(values, freq=freq)
         if freq_infer:
@@ -142,6 +157,14 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                 result.freq = to_offset(inferred)
 
         return result
+
+    @classmethod
+    def _from_sequence(cls, scalars, dtype=_TD_DTYPE, copy=False):
+        # list, tuple, or object-dtype ndarray/Index
+        values = np.array(scalars, dtype=np.object_, copy=copy)
+
+        result = array_to_timedelta64(values)
+        return cls(result, dtype=dtype)
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, closed=None):
@@ -413,3 +436,21 @@ def _generate_regular_range(start, end, periods, offset):
 
     data = np.arange(b, e, stride, dtype=np.int64)
     return data
+
+
+def _require_m8ns_dtype(dtype):
+    """
+    `dtype` is included in the constructor signature for consistency with
+    DatetimeArray and PeriodArray, but only timedelta64[ns] is considered
+    valid.  Raise if anything else is passed.
+
+    Parameters
+    ----------
+    dtype : dtype
+
+    Raises
+    ------
+    ValueError
+    """
+    if dtype != _TD_DTYPE:
+        raise ValueError("Only timedelta64[ns] dtype is valid.", dtype)
