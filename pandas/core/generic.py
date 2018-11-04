@@ -3779,8 +3779,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         %(optional_labels)s
-        %(axes)s : array-like, optional (should be specified using keywords)
-            New labels / index to conform to. Preferably an Index object to
+        %(axes)s : array-like, optional
+            New labels / index to conform to, should be specified using keywords. Preferably an Index object to
             avoid duplicating data
         %(optional_axis)s
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
