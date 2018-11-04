@@ -278,7 +278,7 @@ cdef _take_2d(ndarray[take_t, ndim=2] values, object idx):
         ndarray[take_t, ndim=2] result
         object val
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
 
     if take_t is object:
         # evaluated at compile-time

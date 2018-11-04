@@ -105,7 +105,7 @@ cdef class IndexableSkiplist:
             steps += steps_at_level[level]
 
         for level in range(d, self.maxlevels):
-            (<Node> chain[level]).width[level] += 1
+            (<Node>chain[level]).width[level] += 1
 
         self.size += 1
 
@@ -126,11 +126,11 @@ cdef class IndexableSkiplist:
 
             chain[level] = node
 
-        if value != (<Node> (<Node> (<Node> chain[0]).next)[0]).value:
+        if value != (<Node>(<Node>(<Node>chain[0]).next)[0]).value:
             raise KeyError('Not Found')
 
         # remove one link at each level
-        d = len((<Node> (<Node> (<Node> chain[0]).next)[0]).next)
+        d = len((<Node>(<Node>(<Node>chain[0]).next)[0]).next)
 
         for level in range(d):
             prevnode = chain[level]

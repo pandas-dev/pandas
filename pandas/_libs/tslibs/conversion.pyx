@@ -95,7 +95,7 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
         NPY_DATETIMEUNIT unit
         npy_datetimestruct dts
 
-    shape = (<object> arr).shape
+    shape = (<object>arr).shape
 
     ivalues = arr.view(np.int64).ravel()
 

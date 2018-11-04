@@ -11,7 +11,7 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 
-cdef double NaN = <double> np.NaN
+cdef double NaN = <double>np.NaN
 cdef double nan = NaN
 
 from pandas._libs.algos import groupsort_indexer, ensure_platform_int

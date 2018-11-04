@@ -153,7 +153,7 @@ cdef class Reducer:
                     result = _get_result_array(res,
                                                self.nresults,
                                                len(self.dummy))
-                    it = <flatiter> PyArray_IterNew(result)
+                    it = <flatiter>PyArray_IterNew(result)
 
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
                 chunk.data = chunk.data + self.increment
@@ -574,7 +574,7 @@ cdef class BlockSlider:
 
         self.base_ptrs = <char**> malloc(sizeof(char*) * len(self.blocks))
         for i, block in enumerate(self.blocks):
-            self.base_ptrs[i] = (<ndarray> block).data
+            self.base_ptrs[i] = (<ndarray>block).data
 
     def __dealloc__(self):
         free(self.base_ptrs)

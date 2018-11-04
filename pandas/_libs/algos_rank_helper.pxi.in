@@ -263,7 +263,7 @@ def rank_2d_{{dtype}}(object in_arr, axis=0, ties_method='average',
     np.putmask(values, mask, nan_value)
     {{endif}}
 
-    n, k = (<object> values).shape
+    n, k = (<object>values).shape
     ranks = np.empty((n, k), dtype='f8')
 
     {{if dtype == 'object'}}
