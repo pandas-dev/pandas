@@ -13,7 +13,6 @@ Usage::
     $ ./validate_docstrings.py
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
-import contextlib
 import os
 import sys
 import json
@@ -173,7 +172,7 @@ class Docstring(object):
     @staticmethod
     def _to_original_callable(obj):
         """
-        Find the Python object that contains the source code ot the object.
+        Find the Python object that contains the source code of the object.
 
         This is useful to find the place in the source code (file and line
         number) where a docstring is defined. It does not currently work for
@@ -336,32 +335,25 @@ class Docstring(object):
 
         return errs
 
-    @contextlib.contextmanager
-    def _write_examples_code_to_temp_file(self):
-        """
-        Generate file with source code from examples section.
-        """
-        content = ''.join(('import numpy as np; '
-                           'import pandas as pd  # noqa: F401,E702\n',
+    def validate_pep8(self):
+        if not self.examples:
+            return
+
+        content = ''.join(('import numpy as np  # noqa: F401\n',
+                           'import pandas as pd  # noqa: F401\n',
                            *self.examples_source_code))
+
+        application = flake8.main.application.Application()
+        application.initialize(["--quiet"])
+
         with tempfile.NamedTemporaryFile(mode='w') as file:
             file.write(content)
             file.flush()
-            yield file
+            application.run_checks([file.name])
 
-    def validate_pep8(self):
-        if self.examples:
-            with self._write_examples_code_to_temp_file() as file:
-                application = flake8.main.application.Application()
-                application.initialize(["--quiet"])
-                application.run_checks([file.name])
-                application.report()
+        application.report()
 
-            for statistic in application.guide.stats.statistics_for(''):
-                if statistic.message.endswith('from line 1'):
-                    statistic.message = "It's assumed that pandas and numpy" \
-                                        " are imported as pd or np"
-                yield statistic
+        yield from application.guide.stats.statistics_for('')
 
     @property
     def correct_parameters(self):

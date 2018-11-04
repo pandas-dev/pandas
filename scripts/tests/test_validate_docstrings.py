@@ -584,21 +584,12 @@ class BadSeeAlso(object):
 
 class BadExamples(object):
 
-    def numpy_imported(self):
+    def unused_import(self):
         """
         Examples
         --------
-        >>> import numpy as np
+        >>> import pandas as pdf
         >>> df = pd.DataFrame(np.ones((3, 3)), columns=('a', 'b', 'c'))
-        """
-        pass
-
-    def pandas_imported(self):
-        """
-        Examples
-        --------
-        >>> import pandas as pd
-        >>> s = pd.Series(['Antelope', 'Lion', 'Zebra', np.nan])
         """
         pass
 
@@ -750,16 +741,12 @@ class TestValidator(object):
          ('pandas.Series.rename in `See Also` section '
           'does not need `pandas` prefix',)),
         # Examples tests
-        ('BadExamples', 'numpy_imported',
-         ('F811 It\'s assumed that pandas and numpy'
-          ' are imported as pd or np',)),
-        ('BadExamples', 'pandas_imported',
-         ('F811 It\'s assumed that pandas and numpy'
-          ' are imported as pd or np',)),
+        ('BadExamples', 'unused_import',
+         ('1 F401 \'pandas as pdf\' imported but unused',)),
         ('BadExamples', 'indentation_is_not_a_multiple_of_four',
-         ('E111 indentation is not a multiple of four',)),
+         ('1 E111 indentation is not a multiple of four',)),
         ('BadExamples', 'missing_whitespace_around_arithmetic_operator',
-         ('E226 missing whitespace around arithmetic operator',)),
+         ('1 E226 missing whitespace around arithmetic operator',)),
         ('BadExamples', 'missing_whitespace_after_comma',
          ('3 E231 missing whitespace after \',\'',)),
     ])
