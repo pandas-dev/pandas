@@ -225,8 +225,7 @@ class FastParquetImpl(BaseImpl):
         # Use tobytes() instead.
 
         if 'partition_on' in kwargs:
-            partition_cols = kwargs['partition_on']
-            del kwargs['partition_on']
+            partition_cols = kwargs.pop('partition_on')
 
         if partition_cols is not None:
             kwargs['file_scheme'] = 'hive'

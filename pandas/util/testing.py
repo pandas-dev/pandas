@@ -51,6 +51,7 @@ from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
 
 from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
+from shutil import rmtree
 
 
 N = 30
@@ -786,10 +787,9 @@ def ensure_clean_dir():
         yield directory_name
     finally:
         try:
-            import shutil
-            shutil.rmtree(directory_name)
+            rmtree(directory_name)
         except Exception as e:
-            print("Exception on removing folder: {error}".format(error=e))
+            pass
 
 
 # -----------------------------------------------------------------------------
