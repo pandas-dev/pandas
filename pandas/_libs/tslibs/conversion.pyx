@@ -907,7 +907,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
 
     trans, deltas, typ = get_dst_info(tz)
 
-    tdata = <int64_t*> cnp.PyArray_DATA(trans)
+    tdata = <int64_t*>cnp.PyArray_DATA(trans)
     ntrans = len(trans)
 
     # Determine whether each date lies left of the DST transition (store in
