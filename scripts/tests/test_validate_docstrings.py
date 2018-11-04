@@ -225,8 +225,9 @@ class GoodDocStrings(object):
         Examples
         --------
         This example does not import pandas or import numpy.
-        >>> import time
         >>> import datetime
+        >>> datetime.MAXYEAR
+        9999
         """
         pass
 
@@ -672,7 +673,7 @@ class TestValidator(object):
     @capture_stderr
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
-        'contains', 'mode'])
+        'contains', 'mode', 'good_imports'])
     def test_good_functions(self, func):
         errors = validate_one(self._import_path(
             klass='GoodDocStrings', func=func))['errors']
