@@ -3359,12 +3359,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Notes
         -----
-        Like calling ``.reindex(index=other.index, columns=other.columns,...)``.
+        Like calling ``.reindex(index=other.index,columns=other.columns,...)``.
 
         Returns
         -------
-        Object
-            Same data type as input, but with changed indices on each axis.
+        Object with input data type, but with changed indices on each axis.
 
         See Also
         --------
@@ -3780,8 +3779,8 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         %(optional_labels)s
         %(axes)s : array-like, optional
-            New labels / index to conform to, should be specified using keywords. Preferably an Index object to
-            avoid duplicating data
+            New labels / index to conform to, should be specified using
+            keywords. Preferably an Index object to avoid duplicating data
         %(optional_axis)s
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
             Method to use for filling holes in reindexed DataFrame.
@@ -3970,7 +3969,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        reindexed : %(klass)s
+        %(klass)s with changed index.
         """
         # TODO: Decide if we care about having different examples for different
         # kinds
