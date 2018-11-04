@@ -947,6 +947,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 except Exception:
                     pass
 
+            if isinstance(key, str):
+                key = [key]
+
             if not isinstance(key, (list, Series, np.ndarray, Series)):
                 try:
                     key = list(key)
