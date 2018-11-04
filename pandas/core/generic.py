@@ -8718,6 +8718,13 @@ class NDFrame(PandasObject, SelectionMixin):
         copy : boolean, default True
             Also make a copy of the underlying data
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            When clocks moved backward due to DST, ambiguous times may arise.
+            For example in Central European Time (UTC+01), when going from
+            03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
+            00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
+            `ambiguous` parameter dictates how ambiguous times should be
+            handled.
+
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False designates
@@ -8745,6 +8752,52 @@ class NDFrame(PandasObject, SelectionMixin):
         ------
         TypeError
             If the TimeSeries is tz-aware and tz is not None.
+
+        Examples
+        --------
+
+        Localize local times:
+
+        >>> s = pd.Series([1],
+        ... index=pd.DatetimeIndex(['2018-09-15 01:30:00']))
+        >>> s.tz_localize('CET')
+        2018-09-15 01:30:00+02:00    1
+        dtype: int64
+
+        Be careful with DST changes. When there is sequential data, pandas
+        can infer the DST time:
+
+        >>> s = pd.Series(range(7), index=pd.DatetimeIndex([
+        ... '2018-10-28 01:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 03:00:00',
+        ... '2018-10-28 03:30:00']))
+        >>> s.tz_localize('CET', ambiguous='infer')
+        2018-10-28 01:30:00+02:00    0
+        2018-10-28 02:00:00+02:00    1
+        2018-10-28 02:30:00+02:00    2
+        2018-10-28 02:00:00+01:00    3
+        2018-10-28 02:30:00+01:00    4
+        2018-10-28 03:00:00+01:00    5
+        2018-10-28 03:30:00+01:00    6
+        dtype: int64
+
+        In some cases, inferring the DST is impossible. In such cases, you can
+        pass an ndarray to the ambiguous parameter to set the DST explicitly
+
+        >>> s = pd.Series(range(3), index=pd.DatetimeIndex([
+        ... '2018-10-28 01:20:00',
+        ... '2018-10-28 02:36:00',
+        ... '2018-10-28 03:46:00']))
+        >>> s.tz_localize('CET', ambiguous=np.array([True, True, False]))
+        2018-10-28 01:20:00+02:00    0
+        2018-10-28 02:36:00+02:00    1
+        2018-10-28 03:46:00+01:00    2
+        dtype: int64
+
         """
         if nonexistent not in ('raise', 'NaT', 'shift'):
             raise ValueError("The nonexistent argument must be one of 'raise',"
