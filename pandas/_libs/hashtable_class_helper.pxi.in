@@ -318,7 +318,7 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 key = keys[i]
                 k = kh_put_{{dtype}}(self.table, key, &ret)
-                self.table.vals[k] = <Py_ssize_t> values[i]
+                self.table.vals[k] = <Py_ssize_t>values[i]
 
     @cython.boundscheck(False)
     def map_locations(self, ndarray[{{dtype}}_t, ndim=1] values):

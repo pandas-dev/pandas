@@ -57,7 +57,7 @@ from tslibs.conversion cimport convert_to_tsobject
 from tslibs.timedeltas cimport convert_to_timedelta64
 from tslibs.timezones cimport get_timezone, tz_compare
 
-from missing cimport (checknull,
+from missing cimport (checknull, isnaobj,
                       is_null_datetime64, is_null_timedelta64, is_null_period)
 
 
@@ -304,7 +304,7 @@ def fast_zip(list ndarrays):
 
     # initialize tuples on first pass
     arr = ndarrays[0]
-    it = <flatiter> PyArray_IterNew(arr)
+    it = <flatiter>PyArray_IterNew(arr)
     for i in range(n):
         val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
         tup = PyTuple_New(k)
@@ -316,7 +316,7 @@ def fast_zip(list ndarrays):
 
     for j in range(1, k):
         arr = ndarrays[j]
-        it = <flatiter> PyArray_IterNew(arr)
+        it = <flatiter>PyArray_IterNew(arr)
         if len(arr) != n:
             raise ValueError('all arrays must be same length')
 
@@ -1181,6 +1181,9 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
         values = construct_1d_object_array_from_listlike(value)
 
     values = getattr(values, 'values', values)
+    if skipna:
+        values = values[~isnaobj(values)]
+
     val = _try_infer_map(values)
     if val is not None:
         return val
@@ -1994,8 +1997,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                 break
         elif util.is_integer_object(val):
             seen.int_ = 1
-            floats[i] = <float64_t> val
-            complexes[i] = <double complex> val
+            floats[i] = <float64_t>val
+            complexes[i] = <double complex>val
             if not seen.null_:
                 seen.saw_int(int(val))
 

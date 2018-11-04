@@ -402,6 +402,11 @@ class Docstring(object):
             error_msgs += f.getvalue()
         return error_msgs
 
+    @property
+    def examples_source_code(self):
+        lines = doctest.DocTestParser().get_examples(self.raw_doc)
+        return [line.source for line in lines]
+
 
 def validate_one(func_name):
     """
@@ -531,6 +536,13 @@ def validate_one(func_name):
         examples_errs = doc.examples_errors
         if examples_errs:
             errs.append('Examples do not pass tests')
+        examples_source_code = ''.join(doc.examples_source_code)
+        if 'import numpy' in examples_source_code:
+            errs.append("numpy does not need to be imported in the examples, "
+                        "as it's assumed to be already imported as np")
+        if 'import pandas' in examples_source_code:
+            errs.append("pandas does not need to be imported in the examples, "
+                        "as it's assumed to be already imported as pd")
 
     return {'type': doc.type,
             'docstring': doc.clean_doc,

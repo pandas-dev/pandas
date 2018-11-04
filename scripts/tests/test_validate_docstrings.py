@@ -218,6 +218,18 @@ class GoodDocStrings(object):
         """
         pass
 
+    def good_imports(self):
+        """
+        Ensure import other than numpy and pandas are fine.
+
+        Examples
+        --------
+        This example does not import pandas or import numpy.
+        >>> import time
+        >>> import datetime
+        """
+        pass
+
 
 class BadGenericDocStrings(object):
     """Everything here has a bad docstring
@@ -700,6 +712,11 @@ class TestValidator(object):
                      marks=pytest.mark.xfail),
         pytest.param('BadReturns', 'no_punctuation', ('foo',),
                      marks=pytest.mark.xfail),
+        # Examples tests
+        ('BadGenericDocStrings', 'method',
+         ('numpy does not need to be imported in the examples,')),
+        ('BadGenericDocStrings', 'method',
+         ('pandas does not need to be imported in the examples,')),
         # See Also tests
         ('BadSeeAlso', 'prefix_pandas',
          ('pandas.Series.rename in `See Also` section '
