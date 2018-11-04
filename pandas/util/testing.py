@@ -35,6 +35,7 @@ from pandas import (
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import ExtensionArray, IntervalArray, PeriodArray
 import pandas.core.common as com
+from shutil import rmtree
 
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
