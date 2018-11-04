@@ -612,6 +612,54 @@ Alternatively, you can install the ``grep`` and ``xargs`` commands via the
 `MinGW <http://www.mingw.org/>`__ toolchain, and it will allow you to run the
 commands above.
 
+.. _contributing.import-formatting:
+
+Import Formatting
+~~~~~~~~~~~~~~~~~
+*pandas* uses `isort <https://pypi.org/project/isort/>`__ to standardise import
+formatting across the codebase.
+
+A guide to import layout as per pep8 can be found `here <https://www.python.org/dev/peps/pep-0008/#imports/>`__.
+
+A summary of our current import sections ( in order ):
+
+* Future
+* Python Standard Library
+* Third Party
+* ``pandas._libs``, ``pandas.compat``, ``pandas.util._*``, ``pandas.errors`` (largely not dependent on ``pandas.core``)
+* ``pandas.core.dtypes`` (largely not dependent on the rest of ``pandas.core``)
+* Rest of ``pandas.core.*``
+* Non-core ``pandas.io``, ``pandas.plotting``, ``pandas.tseries``
+* Local application/library specific imports
+
+Imports are alphabetically sorted within these sections.
+
+
+As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
+
+    isort --recursive --check-only pandas
+
+to check that imports are correctly formatted as per the `setup.cfg`.
+
+If you see output like the below in :ref:`Continuous Integration <contributing.ci>` checks:
+
+.. code-block:: shell
+
+   Check import format using isort
+   ERROR: /home/travis/build/pandas-dev/pandas/pandas/io/pytables.py Imports are incorrectly sorted
+   Check import format using isort DONE
+   The command "ci/code_checks.sh" exited with 1
+
+You should run::
+
+    isort pandas/io/pytables.py
+
+to automatically format imports correctly. This will modify your local copy of the files.
+
+The `--recursive` flag can be passed to sort all files in a directory.
+
+You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
+
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -684,7 +732,7 @@ Test-driven development/code writing
 ------------------------------------
 
 *pandas* is serious about testing and strongly encourages contributors to embrace
-`test-driven development (TDD) <http://en.wikipedia.org/wiki/Test-driven_development>`_.
+`test-driven development (TDD) <https://en.wikipedia.org/wiki/Test-driven_development>`_.
 This development process "relies on the repetition of a very short development cycle:
 first the developer writes an (initially failing) automated test case that defines a desired
 improvement or new function, then produces the minimum amount of code to pass that test."
@@ -1078,6 +1126,8 @@ or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v
 Contributing your changes to *pandas*
 =====================================
 
+.. _contributing.commit-code:
+
 Committing your code
 --------------------
 
@@ -1121,6 +1171,8 @@ is fine, but the former is generally preferred:
 Now you can commit your changes in your local repository::
 
     git commit -m
+
+.. _contributing.push-code:
 
 Pushing your changes
 --------------------

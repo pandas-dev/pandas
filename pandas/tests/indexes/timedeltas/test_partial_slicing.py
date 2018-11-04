@@ -1,10 +1,9 @@
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas.util.testing as tm
-
 import pandas as pd
-from pandas import Series, timedelta_range, Timedelta
+import pandas.util.testing as tm
+from pandas import Series, Timedelta, timedelta_range
 from pandas.util.testing import assert_series_equal
 
 
