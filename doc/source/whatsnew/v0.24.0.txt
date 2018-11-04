@@ -250,7 +250,7 @@ Backwards incompatible API changes
 Dependencies have increased minimum versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have updated our minimum supported versions of dependencies (:issue:`21242`).
+We have updated our minimum supported versions of dependencies (:issue:`21242`, `18742`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+
@@ -267,6 +267,8 @@ If installed, we now require:
 | pytables        | 3.4.2           |          |
 +-----------------+-----------------+----------+
 | scipy           | 0.18.1          |          |
++-----------------+-----------------+----------+
+| pyarrow         | 0.7.0           |          |
 +-----------------+-----------------+----------+
 
 Additionally we no longer depend on `feather-format` for feather based storage

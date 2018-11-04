@@ -12,7 +12,7 @@ matplotlib>=2.0.0
 nbsphinx
 numexpr>=2.6.1
 openpyxl
-pyarrow>=0.4.1
+pyarrow>=0.7.0
 pymysql
 pytables>=3.4.2
 pytest-cov
