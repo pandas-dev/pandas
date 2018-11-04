@@ -119,7 +119,8 @@ def _dt_array_cmp(cls, op):
             if isinstance(other, list):
                 # FIXME: This can break for object-dtype with mixed types
                 other = type(self)(other)
-            elif not isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
+            elif not isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries,
+                                        DatetimeArrayMixin)):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
                 return ops.invalid_comparison(self, other, op)
@@ -204,6 +205,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             # e.g. DatetimeArray, DatetimeIndex
             tz = values.tz
 
+        # TODO: what about if freq == 'infer'?
         if freq is None and hasattr(values, "freq"):
             # i.e. DatetimeArray, DatetimeIndex
             freq = values.freq
@@ -219,7 +221,10 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                              .format(cls=cls.__name__, data=repr(values)))
         elif isinstance(values, ABCSeries):
             # extract nanosecond unix timestamps
-            values = values._values.asi8
+            if tz is None:
+                # TODO: Try to do this in just one place
+                tz = values.dt.tz
+            values = np.array(values.view('i8'))
         elif isinstance(values, DatetimeArrayMixin):
             # extract nanosecond unix timestamps
             values = values.asi8
