@@ -28,7 +28,7 @@ Statistics and Machine Learning
 -------------------------------
 
 `Statsmodels <https://www.statsmodels.org/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Statsmodels is the prominent Python "statistics and econometrics library" and it has
 a long-standing special relationship with pandas. Statsmodels provides powerful statistics,
@@ -63,7 +63,7 @@ minimal amount of code. Altair works with Pandas DataFrames.
 
 
 `Bokeh <https://bokeh.pydata.org>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Bokeh is a Python interactive visualization library for large datasets that natively uses
 the latest web technologies. Its goal is to provide elegant, concise construction of novel
@@ -117,7 +117,7 @@ IDE
 ------
 
 `IPython <https://ipython.org/documentation.html>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 IPython is an interactive command shell and distributed computing
 environment. IPython tab completion works with Pandas methods and also
