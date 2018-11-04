@@ -218,12 +218,6 @@ class TestMultiLevel(Base):
         chunk = ymdT.loc[:, new_index]
         assert chunk.columns is new_index
 
-    def test_reindex_empty_series_tz_dtype(self):
-        # GH 20869
-        result = Series(dtype='datetime64[ns, UTC]').reindex([0, 1])
-        expected = Series([pd.NaT] * 2, dtype='datetime64[ns, UTC]')
-        tm.assert_equal(result, expected)
-
     def test_repr_to_string(self):
         repr(self.frame)
         repr(self.ymd)
