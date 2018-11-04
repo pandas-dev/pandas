@@ -157,6 +157,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         _freq
         _data
     """
+    _typ = "datetimearray"
     _bool_ops = ['is_month_start', 'is_month_end',
                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
                  'is_year_end', 'is_leap_year']

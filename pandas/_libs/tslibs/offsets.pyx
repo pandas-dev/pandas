@@ -346,6 +346,7 @@ class _BaseOffset(object):
 
     def __add__(self, other):
         if getattr(other, "_typ", None) in ["datetimeindex", "periodindex",
+                                            "datetimearray", "periodarray",
                                             "series", "period", "dataframe"]:
             # defer to the other class's implementation
             return other + self

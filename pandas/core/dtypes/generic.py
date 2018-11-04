@@ -53,6 +53,10 @@ ABCSparseArray = create_pandas_abc_type("ABCSparseArray", "_subtyp",
                                         ('sparse_array', 'sparse_series'))
 ABCCategorical = create_pandas_abc_type("ABCCategorical", "_typ",
                                         ("categorical"))
+ABCDatetimeArray = create_pandas_abc_type("ABCDatetimeArray", "_typ",
+                                          ("datetimearray"))
+ABCTimedeltaArray = create_pandas_abc_type("ABCTimedeltaArray", "_typ",
+                                           ("timedeltaarray"))
 ABCPeriodArray = create_pandas_abc_type("ABCPeriodArray", "_typ",
                                         ("periodarray", ))
 ABCPeriod = create_pandas_abc_type("ABCPeriod", "_typ", ("period", ))
