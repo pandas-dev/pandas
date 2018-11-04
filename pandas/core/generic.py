@@ -3363,7 +3363,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        Same object type as input, but with changed indices on each axis.
+        Object
+            Same data type as input, but with changed indices on each axis.
 
         See Also
         --------
@@ -3381,12 +3382,25 @@ class NDFrame(PandasObject, SelectionMixin):
         ...          index=pd.date_range(start='2014-02-12',
         ...                              end='2014-02-15', freq='D'))
 
+        >>> df_weather_station_1
+                    temp_celsius  temp_fahrenheit windspeed
+        2014-02-12          24.3             75.7      high
+        2014-02-13          31.0             87.8      high
+        2014-02-14          22.0             71.6    medium
+        2014-02-15          35.0             95.0    medium
+
         >>> df_weather_station_2 = pd.DataFrame([[28, 'low'],
         ...                                      [30, 'low'],
         ...                                      [35.1, 'medium']],
         ...          columns=['temp_celsius', 'windspeed'],
         ...          index=pd.DatetimeIndex(['2014-02-12', '2014-02-13',
         ...                                  '2014-02-15']))
+
+        >>> df_weather_station_2
+                    temp_celsius windspeed
+        2014-02-12          28.0       low
+        2014-02-13          30.0       low
+        2014-02-15          35.1    medium
 
         >>> df_weather_station_2.reindex_like(df_weather_station_1)
                     temp_celsius  temp_fahrenheit windspeed
