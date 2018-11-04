@@ -5,9 +5,8 @@ import operator
 
 import numpy as np
 
-from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
-
 import pandas as pd
+from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 import pandas.util.testing as tm
 
 
