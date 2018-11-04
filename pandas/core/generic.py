@@ -3769,18 +3769,18 @@ class NDFrame(PandasObject, SelectionMixin):
             New labels / index to conform to. Preferably an Index object to
             avoid duplicating data
         %(optional_axis)s
-        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
 
-            * default: don't fill gaps
+            * None (default): don't fill gaps
             * pad / ffill: propagate last valid observation forward to next
               valid
             * backfill / bfill: use next valid observation to fill gap
             * nearest: use nearest valid observations to fill gap
 
-        copy : boolean, default True
+        copy : bool, default True
             Return a new object, even if the passed indexes are the same.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -3805,9 +3805,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        DataFrame.set_index : set row labels
-        DataFrame.reset_index : remove row labels or move them to new columns
-        DataFrame.reindex_like : change to same indices as other DataFrame
+        DataFrame.set_index : Set row labels.
+        DataFrame.reset_index : Remove row labels or move them to new columns.
+        DataFrame.reindex_like : Change to same indices as other DataFrame.
 
         Examples
         --------
