@@ -10,8 +10,6 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-
-
 class TestDatetimeArrayConstructors(object):
 
     def test_init_from_object_dtype(self, tz_naive_fixture):
