@@ -1470,7 +1470,7 @@ class GroupBy(_GroupBy):
 
         Parameters
         ----------
-        rule : str or Offset
+        rule : str or DateOffset
             The offset string or object representing target grouper conversion.
         *args, **kwargs : [closed, label, loffset]
             For compatibility with other groupby methods. See below for some
