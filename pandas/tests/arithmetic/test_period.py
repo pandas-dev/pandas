@@ -579,15 +579,15 @@ class TestPeriodIndexArithmetic(object):
         result = per.freq + pi
         tm.assert_equal(result, expected)
 
-    def test_pi_add_offset_n_gt1_not_divisible(self, box):
+    def test_pi_add_offset_n_gt1_not_divisible(self, pbox):
         # GH#23215
         # PeriodIndex with freq.n > 1 add offset with offset.n % freq.n != 0
 
         pi = pd.PeriodIndex(['2016-01'], freq='2M')
-        pi = tm.box_expected(pi, box)
+        pi = tm.box_expected(pi, pbox)
 
         expected = pd.PeriodIndex(['2016-04'], freq='2M')
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, pbox)
 
         result = pi + to_offset('3M')
         tm.assert_equal(result, expected)
@@ -883,10 +883,10 @@ class TestPeriodIndexSeriesMethods(object):
         tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize('ng', ["str", 1.5])
-    def test_pi_ops_errors(self, ng, box):
+    def test_pi_ops_errors(self, ng, pbox):
         idx = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                           freq='M', name='idx')
-        obj = tm.box_expected(idx, box)
+        obj = tm.box_expected(idx, pbox)
 
         msg = r"unsupported operand type\(s\)"
         with tm.assert_raises_regex(TypeError, msg):

@@ -34,7 +34,9 @@ from pandas import (
     IntervalIndex, MultiIndex, Panel, PeriodIndex, RangeIndex, Series,
     TimedeltaIndex, bdate_range)
 from pandas.core.algorithms import take_1d
-from pandas.core.arrays import ExtensionArray, IntervalArray, PeriodArray
+from pandas.core.arrays import (
+    ExtensionArray, IntervalArray, PeriodArray, period_array,
+    DatetimeArrayMixin as DatetimeArray)
 import pandas.core.common as com
 
 from pandas.io.common import urlopen
@@ -1049,6 +1051,18 @@ def assert_period_array_equal(left, right, obj='PeriodArray'):
     assert_attr_equal('freq', left, right, obj=obj)
 
 
+def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
+    _check_isinstance(left, right, DatetimeArray)
+
+    assert_numpy_array_equal(left._data, right._data,
+                             obj='{obj}._data'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
+    assert_attr_equal('tz', left, right, obj=obj)
+
+    # Check that == works as expected
+    assert ((left == right) | (left._isnan & right._isnan)).all()
+
+
 def raise_assert_detail(obj, message, left, right, diff=None):
     __tracebackhide__ = True
 
@@ -1546,6 +1560,8 @@ def assert_equal(left, right, **kwargs):
         assert_interval_array_equal(left, right, **kwargs)
     elif isinstance(left, PeriodArray):
         assert_period_array_equal(left, right, **kwargs)
+    elif isinstance(left, DatetimeArray):
+        assert_datetime_array_equal(left, right, **kwargs)
     elif isinstance(left, ExtensionArray):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):
@@ -1573,6 +1589,11 @@ def box_expected(expected, box_cls):
         expected = pd.Series(expected)
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
+    elif box_cls is PeriodArray:
+        # the PeriodArray constructor is not as flexible as period_array
+        expected = period_array(expected)
+    elif box_cls is DatetimeArray:
+        expected = DatetimeArray(expected)
     elif box_cls is np.ndarray:
         expected = np.array(expected)
     else:
