@@ -125,11 +125,12 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         result._freq = freq
         return result
 
-    def __new__(cls, values, freq=None, dtype=_TD_DTYPE):
+    def __new__(cls, values, freq=None, dtype=_TD_DTYPE, copy=False):
         _require_m8ns_dtype(dtype)
 
         if isinstance(values, (list, tuple)) or is_object_dtype(values):
-            values = cls._from_sequence(values)._data
+            values = cls._from_sequence(values, copy=copy)._data
+            # TODO: can we set copy=False to avoid re-copying?
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
@@ -139,7 +140,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                 freq_infer = False
             values = values._data
 
-        values = np.array(values, copy=False)
+        values = np.array(values, copy=copy)
 
         if values.dtype == 'i8':
             pass

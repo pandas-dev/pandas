@@ -195,9 +195,10 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         result._tz = timezones.tz_standardize(tz)
         return result
 
-    def __new__(cls, values, freq=None, tz=None, dtype=None):
+    def __new__(cls, values, freq=None, tz=None, dtype=None, copy=False):
         if isinstance(values, (list, tuple)) or is_object_dtype(values):
-            values = cls._from_sequence(values)
+            values = cls._from_sequence(values, copy=copy)
+            # TODO: Can we set copy=False here to avoid re-coping?
 
         if tz is None and hasattr(values, 'tz'):
             # e.g. DatetimeIndex
@@ -215,7 +216,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         if lib.is_scalar(values):
             raise ValueError('{cls}() must be called with a '
                              'collection of some kind, {data} was passed'
-                             .format(cls=type(self).__name__, data=repr(data)))
+                             .format(cls=cls.__name__, data=repr(data)))
         elif isinstance(values, DatetimeArrayMixin):
             # extract nanosecond unix timestamps
             values = values.asi8
@@ -225,7 +226,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         assert isinstance(values, np.ndarray), type(values)
         assert is_datetime64_dtype(values)  # not yet assured nanosecond
-        values = conversion.ensure_datetime64ns(values, copy=False)
+        values = conversion.ensure_datetime64ns(values, copy=copy)
 
         result = cls._simple_new(values, freq=freq, tz=tz)
         if freq_infer:
