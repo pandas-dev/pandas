@@ -933,6 +933,7 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in :func:`pandas.concat` when joining resampled DataFrames with timezone aware index (:issue:`13783`)
+- Bug in :func:`pandas.concat` when joining only series the `names` argument of `concat` is no longer ignored (:issue:`23490`)
 - Bug in :meth:`Series.combine_first` with ``datetime64[ns, tz]`` dtype which would return tz-naive result (:issue:`21469`)
 - Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``datetime64[ns, tz]`` dtype (:issue:`21546`)
 - Bug in :meth:`Series.mask` and :meth:`DataFrame.mask` with ``list`` conditionals (:issue:`21891`)
