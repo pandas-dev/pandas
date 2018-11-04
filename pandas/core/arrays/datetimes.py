@@ -213,11 +213,13 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
 
-        # TODO: what about ABCSeries?
         if lib.is_scalar(values):
             raise ValueError('{cls}() must be called with a '
                              'collection of some kind, {data} was passed'
                              .format(cls=cls.__name__, data=repr(values)))
+        elif isinstance(values, ABCSeries):
+            # extract nanosecond unix timestamps
+            values = values._values.asi8
         elif isinstance(values, DatetimeArrayMixin):
             # extract nanosecond unix timestamps
             values = values.asi8
