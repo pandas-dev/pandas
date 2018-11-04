@@ -3359,7 +3359,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Notes
         -----
-        Like calling `.reindex(index=other.index, columns=other.columns,...)`.
+        Like calling ``.reindex(index=other.index, columns=other.columns,...)``.
 
         Returns
         -------
@@ -3774,7 +3774,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Conform %(klass)s to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
-        copy=False.
+        ``copy=False``.
 
         Parameters
         ----------
