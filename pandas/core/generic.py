@@ -8421,32 +8421,59 @@ class NDFrame(PandasObject, SelectionMixin):
                           errors=errors)
 
     _shared_docs['shift'] = ("""
-        Shift index by desired number of periods with an optional time freq
+        Shift index by desired number of periods with an optional time `freq`.
+
+        When `freq` is not passed, shift the index without realigning the data.
+        If `freq` is passed (in this case, the index must be date or datetime,
+        or it will raise a `NotImplementedError`), the index will be
+        increased using the periods and the `freq`.
 
         Parameters
         ----------
         periods : int
-            Number of periods to move, can be positive or negative.
-        freq : DateOffset, timedelta, or time rule string, optional
-            Increment to use from the tseries module or time rule (e.g. 'EOM').
-            See Notes.
-        axis : %(axes_single_arg)s
+            Number of periods to shift. Can be positive or negative.
+        freq : DateOffset, tseries.offsets, timedelta, or str, optional
+            Offset to use from the tseries module or time rule (e.g. 'EOM').
+            If `freq` is specified then the index values are shifted but the
+            data is not realigned. That is, use `freq` if you would like to
+            extend the index when shifting and preserve the original data.
+        axis : {0 or 'index', 1 or 'columns', None}, default None
+            Shift direction.
+
+        Returns
+        -------
+        %(klass)s
+            Copy of input object, shifted.
 
         See Also
         --------
         Index.shift : Shift values of Index.
         DatetimeIndex.shift : Shift values of DatetimeIndex.
         PeriodIndex.shift : Shift values of PeriodIndex.
+        tshift : Shift the time index, using the index's frequency if
+            available.
 
-        Notes
-        -----
-        If freq is specified then the index values are shifted but the data
-        is not realigned. That is, use freq if you would like to extend the
-        index when shifting and preserve the original data.
+        Examples
+        --------
+        >>> df = pd.DataFrame({'Col1': [10, 20, 15, 30, 45],
+        ...                    'Col2': [13, 23, 18, 33, 48],
+        ...                    'Col3': [17, 27, 22, 37, 52]})
 
-        Returns
-        -------
-        shifted : %(klass)s
+        >>> df.shift(periods=3)
+           Col1  Col2  Col3
+        0   NaN   NaN   NaN
+        1   NaN   NaN   NaN
+        2   NaN   NaN   NaN
+        3  10.0  13.0  17.0
+        4  20.0  23.0  27.0
+
+        >>> df.shift(periods=1, axis='columns')
+           Col1  Col2  Col3
+        0   NaN  10.0  13.0
+        1   NaN  20.0  23.0
+        2   NaN  15.0  18.0
+        3   NaN  30.0  33.0
+        4   NaN  45.0  48.0
     """)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
