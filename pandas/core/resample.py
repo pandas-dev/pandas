@@ -422,11 +422,11 @@ one pass, you can do
 
         When resampling data, missing values may appear (e.g., when the
         resampling frequency is higher than the original frequency).
-        The nearest fill will replace ``NaN`` values that appeared in
+        The `nearest` method will replace ``NaN`` values that appeared in
         the resampled data with the value from the nearest member of the
         sequence, based on the index value.
         Missing values that existed in the original data will not be modified.
-        If `limit` is given, fill only `limit` values in each direction for
+        If `limit` is given, fill only this many values in each direction for
         each of the original values.
 
         Parameters
@@ -444,54 +444,37 @@ one pass, you can do
 
         See Also
         --------
-        backfill: Backward fill the new missing values in the resampled data.
-        fillna : Fill ``NaN`` values using the specified method, which can be
-            'backfill'.
+        backfill : Backward fill the new missing values in the resampled data.
         pad : Forward fill ``NaN`` values.
-        pandas.Series.fillna : Fill ``NaN`` values in the Series using the
-            specified method, which can be 'backfill'.
-        pandas.DataFrame.fillna : Fill ``NaN`` values in the DataFrame using
-            the specified method, which can be 'backfill'.
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3],
+        >>> s = pd.Series([1, 2],
         ...               index=pd.date_range('20180101',
-        ...                                   periods=3,
+        ...                                   periods=2,
         ...                                   freq='1h'))
         >>> s
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
-        2018-01-01 02:00:00    3
         Freq: H, dtype: int64
 
-        >>> s.resample('20min').nearest()
+        >>> s.resample('15min').nearest()
         2018-01-01 00:00:00    1
-        2018-01-01 00:20:00    1
-        2018-01-01 00:40:00    2
+        2018-01-01 00:15:00    1
+        2018-01-01 00:30:00    2
+        2018-01-01 00:45:00    2
         2018-01-01 01:00:00    2
-        2018-01-01 01:20:00    2
-        2018-01-01 01:40:00    3
-        2018-01-01 02:00:00    3
-        Freq: 20T, dtype: int64
+        Freq: 15T, dtype: int64
 
         Limit the number of upsampled values imputed by the nearest:
 
-        >>> s.resample('10min').nearest(limit=1)
+        >>> s.resample('15min').nearest(limit=1)
         2018-01-01 00:00:00    1.0
-        2018-01-01 00:10:00    1.0
-        2018-01-01 00:20:00    NaN
+        2018-01-01 00:15:00    1.0
         2018-01-01 00:30:00    NaN
-        2018-01-01 00:40:00    NaN
-        2018-01-01 00:50:00    2.0
+        2018-01-01 00:45:00    2.0
         2018-01-01 01:00:00    2.0
-        2018-01-01 01:10:00    2.0
-        2018-01-01 01:20:00    NaN
-        2018-01-01 01:30:00    NaN
-        2018-01-01 01:40:00    NaN
-        2018-01-01 01:50:00    3.0
-        2018-01-01 02:00:00    3.0
-        Freq: 10T, dtype: float64
+        Freq: 15T, dtype: float64
         """
         return self._upsample('nearest', limit=limit)
 
