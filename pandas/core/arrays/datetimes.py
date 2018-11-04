@@ -170,6 +170,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     # Constructors
 
     _attributes = ["freq", "tz"]
+    _freq = None
+    _tz = None
 
     @classmethod
     def _simple_new(cls, values, freq=None, tz=None, **kwargs):
@@ -194,6 +196,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         return result
 
     def __new__(cls, values, freq=None, tz=None, dtype=None):
+        if isinstance(values, (list, tuple)) or is_object_dtype(values):
+            values = cls._from_sequence(values)
+
         if tz is None and hasattr(values, 'tz'):
             # e.g. DatetimeIndex
             tz = values.tz
@@ -207,9 +212,14 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
 
-        if isinstance(values, DatetimeArrayMixin):
+        if lib.is_scalar(values):
+            raise ValueError('{cls}() must be called with a '
+                             'collection of some kind, {data} was passed'
+                             .format(cls=type(self).__name__, data=repr(data)))
+        elif isinstance(values, DatetimeArrayMixin):
             # extract nanosecond unix timestamps
             values = values.asi8
+
         if values.dtype == 'i8':
             values = values.view('M8[ns]')
 
@@ -226,6 +236,18 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # NB: Among other things not yet ported from the DatetimeIndex
         # constructor, this does not call _deepcopy_if_needed
         return result
+
+    @classmethod
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        # list, tuple, or object-dtype ndarray/Index
+        values = np.array(scalars, dtype=np.object_, copy=copy)
+
+        # TODO: See if we can decrease circularity
+        from pandas.core.tools.datetimes import to_datetime
+        values = to_datetime(values)
+
+        # pass dtype to constructor in order to convert timezone if necessary
+        return cls(values, dtype=dtype)
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, tz=None,
