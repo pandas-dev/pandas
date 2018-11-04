@@ -3919,13 +3919,13 @@ class DataFrame(NDFrame):
         keys : str or list of str or array
             Column label or list of column labels / arrays that will
             form the new index.
-        drop : boolean, default True
+        drop : bool, default True
             Delete columns to be used as the new index.
-        append : boolean, default False
+        append : bool, default False
             Whether to append columns to existing index.
-        inplace : boolean, default False
+        inplace : bool, default False
             Modify the DataFrame in place (do not create a new object).
-        verify_integrity : boolean, default False
+        verify_integrity : bool, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
             method.
@@ -3937,15 +3937,21 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.reset_index : opposite of set_index
-        DataFrame.reindex : change to new indices or expand indices
-        DataFrame.reindex_like : change to same indices as other DataFrame
+        DataFrame.reset_index : Opposite of set_index.
+        DataFrame.reindex : Change to new indices or expand indices.
+        DataFrame.reindex_like : Change to same indices as other DataFrame.
 
         Examples
         --------
         >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
         ...                    'year': [2012, 2014, 2013, 2014],
         ...                    'sale': [55, 40, 84, 31]})
+        >>> df
+           month  year  sale
+        0      1  2012    55
+        1      4  2014    40
+        2      7  2013    84
+        3     10  2014    31
 
         Set the index to become the 'month' column:
 
@@ -4056,10 +4062,10 @@ class DataFrame(NDFrame):
         level : int, str, tuple, or list, default None
             Only remove the given levels from the index. Removes all levels by
             default.
-        drop : boolean, default False
+        drop : bool, default False
             Do not try to insert index into dataframe columns. This resets
             the index to the default integer index.
-        inplace : boolean, default False
+        inplace : bool, default False
             Modify the DataFrame in place (do not create a new object).
         col_level : int or str, default 0
             If the columns have multiple levels, determines which level the
@@ -4076,9 +4082,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.set_index : opposite of reset_index
-        DataFrame.reindex : change to new indices or expand indices
-        DataFrame.reindex_like : change to same indices as other DataFrame
+        DataFrame.set_index : Opposite of reset_index.
+        DataFrame.reindex : Change to new indices or expand indices.
+        DataFrame.reindex_like : Change to same indices as other DataFrame.
 
         Examples
         --------

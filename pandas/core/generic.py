@@ -3326,21 +3326,21 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        other : Object
+        other : Object of the same data type
             Its row and column indices are used to define the new indices
             of this object.
-        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
 
-            * default: don't fill gaps
+            * None (default): don't fill gaps
             * pad / ffill: propagate last valid observation forward to next
               valid
             * backfill / bfill: use next valid observation to fill gap
             * nearest: use nearest valid observations to fill gap
 
-        copy : boolean, default True
+        copy : bool, default True
             Return a new object, even if the passed indexes are the same.
         limit : int, default None
             Maximum number of consecutive labels to fill for inexact matches.
@@ -3359,7 +3359,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Notes
         -----
-        Like calling `.reindex(index=other.index, columns=other.columns, ...)`
+        Like calling `.reindex(index=other.index, columns=other.columns,...)`.
 
         Returns
         -------
@@ -3367,9 +3367,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        DataFrame.set_index : set row labels
-        DataFrame.reset_index : remove row labels or move them to new columns
-        DataFrame.reindex : change to new indices or expand indices
+        DataFrame.set_index : Set row labels.
+        DataFrame.reset_index : Remove row labels or move them to new columns.
+        DataFrame.reindex : Change to new indices or expand indices.
 
         Examples
         --------
