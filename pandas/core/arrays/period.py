@@ -165,7 +165,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     # --------------------------------------------------------------------
     # Constructors
-    def __init__(self, values, freq=None, copy=False):
+    def __init__(self, values, freq=None, dtype=None, copy=False):
+        freq = dtl.validate_dtype_freq(dtype, freq)
+
         if freq is not None:
             freq = Period._maybe_convert_freq(freq)
 
