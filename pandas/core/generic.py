@@ -3359,7 +3359,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Notes
         -----
-        Like calling `.reindex(index=other.index, columns=other.columns,...)`.
+        Like calling ``.reindex(index=other.index, columns=other.columns,...)``.
 
         Returns
         -------
