@@ -570,7 +570,7 @@ def linkcode_resolve(domain, info):
 
     try:
         # inspect.unwrap() was added in Python version 3.4
-        if sys.version_info >= (3, 4):
+        if sys.version_info >= (3, 5):
             fn = inspect.getsourcefile(inspect.unwrap(obj))
         else:
             fn = inspect.getsourcefile(obj)
