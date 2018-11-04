@@ -10182,29 +10182,8 @@ True
 Series([], dtype: bool)
 """
 
-
-def _multi_index_example(stat_func, default_output, named_level_output,
-                         indexed_level_output):
-    """
-    Template for creating a ``MultiIndex`` series example for stat functions.
-
-    Parameters
-    ----------
-    stat_func : str
-        The stat function to have the examples generated for.
-    default_output : int, float or str
-        Formatted output produced by the stat function with no arguments.
-    named_level_output : tuple of (int or float or str,)
-        Formatted outputs of executing the stat method with arg level='city'.
-    indexed_level_output : tuple of (int or float or str,)
-        Formatted outputs of executing the stat method with arg level=1.
-
-    Returns
-    -------
-    str
-        A templated string for the Examples section.
-    """
-    return f"""``MultiIndex`` series example of monthly rainfall
+_shared_docs['stat_func_multi_index'] = """
+``MultiIndex`` series example of monthly rainfall
 
 >>> index = pd.MultiIndex.from_product(
 ...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
@@ -10219,30 +10198,52 @@ New York  Jun      112
           Aug      113
 dtype: int64
 
->>> s.{stat_func}()
-{default_output}
+>>> s.%(stat_func)s()
+%(default_output)s
 
-{stat_func.capitalize()} using level names, as well as indices.
+%(verb)s using level names, as well as indices.
 
->>> s.{stat_func}(level='city')
+>>> s.%(stat_func)s(level='city')
 city
-London      {named_level_output[0]}
-New York    {named_level_output[1]}
+London      %(named_level_output_0)s
+New York    %(named_level_output_1)s
 dtype: int64
 
->>> s.{stat_func}(level=1)
+>>> s.%(stat_func)s(level=1)
 month
-Jun    {indexed_level_output[0]}
-Jul    {indexed_level_output[1]}
-Aug    {indexed_level_output[2]}
+Jun    %(indexed_level_output_0)s
+Jul    %(indexed_level_output_1)s
+Aug    %(indexed_level_output_2)s
 dtype: int64
 """
+_shared_docs['sum_multi_index'] = dict(stat_func='sum', verb='Sum',
+                                       default_output='478',
+                                       named_level_output_0='136',
+                                       named_level_output_1='342',
+                                       indexed_level_output_0='159',
+                                       indexed_level_output_1='152',
+                                       indexed_level_output_2='167')
 
+_shared_docs['max_multi_index'] = dict(stat_func='max', verb='Maximize',
+                                       default_output='117',
+                                       named_level_output_0=' 54',
+                                       named_level_output_1='117',
+                                       indexed_level_output_0='112',
+                                       indexed_level_output_1='117',
+                                       indexed_level_output_2='113')
 
-_sum_examples = f"""\
+_shared_docs['min_multi_index'] = dict(stat_func='min', verb='Minimize',
+                                       default_output='35',
+                                       named_level_output_0=' 35',
+                                       named_level_output_1='112',
+                                       indexed_level_output_0='47',
+                                       indexed_level_output_1='35',
+                                       indexed_level_output_2='54')
+
+_sum_examples = """\
 Examples
 --------
-{_multi_index_example('sum', 478, (136, 342), (159, 152, 167))}
+%(multi_index_example)s
 
 By default, the sum of an empty or all-NA Series is ``0``.
 
@@ -10263,7 +10264,8 @@ empty series identically.
 
 >>> pd.Series([np.nan]).sum(min_count=1)
 nan
-"""
+""" % dict(multi_index_example=_shared_docs['stat_func_multi_index'] %
+           _shared_docs['sum_multi_index'])
 
 _prod_examples = """\
 Examples
@@ -10288,17 +10290,19 @@ empty series identically.
 nan
 """
 
-_max_examples = f"""\
+_max_examples = """\
 Examples
 --------
-{_multi_index_example('max', 117, (' 54', 117), (112, 117, 113))}
-"""
+%(multi_index_example)s
+""" % dict(multi_index_example=_shared_docs['stat_func_multi_index'] %
+           _shared_docs['max_multi_index'])
 
 _min_examples = f"""\
 Examples
 --------
-{_multi_index_example('min', 35, (' 35', 112), (47, 35, 54))}
-"""
+%(multi_index_example)s
+""" % dict(multi_index_example=_shared_docs['stat_func_multi_index'] %
+           _shared_docs['min_multi_index'])
 
 _min_count_stub = """\
 min_count : int, default 0
