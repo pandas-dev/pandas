@@ -1421,14 +1421,19 @@ class MultiIndex(Index):
         return MultiIndex(levels, labels, sortorder=sortorder, names=names)
 
     @classmethod
-    def from_frame(cls, df, names=None, squeeze=True):
+    def from_frame(cls, df, sortorder=None, names=None, squeeze=True):
         """
         Make a MultiIndex from a DataFrame.
+
+        .. versionadded:: 0.24.0
 
         Parameters
         ----------
         df : pd.DataFrame
             DataFrame to be converted to MultiIndex.
+        sortorder : int or None
+            Level of sortedness (must be lexicographically sorted by that
+            level).
         names : list-like / callable, optonal
             If no names provided, use column names, or tuple of column names if
             the columns is a MultiIndex. If sequence, overwrite names with the
@@ -1499,20 +1504,19 @@ class MultiIndex(Index):
         # Get MultiIndex names
         if names is None:
             names = list(df)
-        else:
-            if callable(names):
-                names = [names(x) for x in list(df)]
-            else:
-                if not is_list_like(names):
-                    raise TypeError("'names' must be a list / sequence "
-                                    "of column names, or a callable.")
-
-                if len(names) != len(list(df)):
+        elif callable(names):
+            names = [names(x) for x in list(df)]
+        elif is_list_like(names):
+            if len(names) != len(list(df)):
                     raise ValueError("'names' should have same length as "
                                      "number of columns in df.")
+            # else: use the passed in sequence
+        else:
+            raise TypeError("'names' must be a list / sequence of column "
+                            "names, or a callable.")
 
         # This way will preserve dtype of columns
-        mi = cls.from_arrays([df[x] for x in df], names=names)
+        mi = cls.from_arrays([df[x] for x in df], sortorder=sortorder, names=names)
         return mi.squeeze() if squeeze else mi
 
     def _sort_levels_monotonic(self):
@@ -1580,6 +1584,8 @@ class MultiIndex(Index):
     def squeeze(self):
         """
         Squeeze a single level MultiIndex to be a regular Index instance.
+
+        .. versionadded:: 0.24.0
 
         Returns
         -------
