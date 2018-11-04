@@ -6519,8 +6519,8 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        Options `on`, `lsuffix`, and `rsuffix` options are not supported
-        when passing a list of DataFrame objects.
+        Parameters `on`, `lsuffix`, and `rsuffix` are not supported when
+        passing a list of `DataFrame` objects.
 
         Support for specifying index levels as the `on` parameter was added
         in version 0.23.0.
