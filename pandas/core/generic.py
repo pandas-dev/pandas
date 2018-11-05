@@ -10419,7 +10419,7 @@ empty series identically.
 nan
 """
 
-_shared_docs['stat_func_example'] = """
+_shared_docs['stat_func_example'] = """\
 Examples
 --------
 ``MultiIndex`` series example of monthly rainfall
@@ -10454,8 +10454,8 @@ Jun    %(indexed_level_output_0)s
 Jul    %(indexed_level_output_1)s
 Aug    %(indexed_level_output_2)s
 dtype: int64
-%(additional)s
-"""
+%(additional)s"""
+
 _shared_docs['sum_multi_index'] = dict(stat_func='sum', verb='Sum',
                                        default_output='478',
                                        named_level_output_0='136',
