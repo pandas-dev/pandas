@@ -22,15 +22,15 @@ class TestSparseGroupBy(object):
     def test_first_last_nth(self):
         # tests for first / last / nth
         sparse_grouped = self.sparse.groupby('A')
-        dense_grouped = self.dense.groupby('A')
+        dense_grouped = self.dense.to_sparse().groupby('A')
 
         # TODO: shouldn't these all be spares or not?
         tm.assert_frame_equal(sparse_grouped.first(),
-                              dense_grouped.first().to_sparse())
+                              dense_grouped.first())
         tm.assert_frame_equal(sparse_grouped.last(),
-                              dense_grouped.last().to_sparse())
+                              dense_grouped.last())
         tm.assert_frame_equal(sparse_grouped.nth(1),
-                              dense_grouped.nth(1).to_sparse())
+                              dense_grouped.nth(1))
 
     def test_aggfuncs(self):
         sparse_grouped = self.sparse.groupby('A')
@@ -54,6 +54,5 @@ def test_groupby_includes_fill_value(fill_value):
                        'b': [fill_value, 1, fill_value, fill_value]})
     sdf = df.to_sparse(fill_value=fill_value)
     result = sdf.groupby('a').sum()
-    expected = df.groupby('a').sum()
-    tm.assert_frame_equal(result, expected.to_sparse(fill_value=fill_value),
-                          check_index_type=False)
+    expected = df.groupby('a').sum().to_sparse(fill_value=fill_value)
+    tm.assert_frame_equal(result, expected, check_index_type=False)
