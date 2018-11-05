@@ -549,7 +549,7 @@ class TestSeriesDatetimeValues():
         assert nat.min()[0] is pd.NaT
         assert nat.max()[0] is pd.NaT
 
-    def test_set_dt_with_string_index(self):
+    def test_setitem_with_string_index(self):
         # GH 23451
         x = pd.Series([1, 2, 3], index=['Date', 'b', 'other'])
         x['Date'] = date.today()
