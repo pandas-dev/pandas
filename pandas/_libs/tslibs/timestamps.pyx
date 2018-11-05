@@ -30,6 +30,7 @@ from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
                           npy_datetimestruct, dt64_to_dtstruct)
 from offsets cimport to_offset
+from offsets import _BaseOffset
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
 from timezones cimport (
@@ -731,7 +732,7 @@ class Timestamp(_Timestamp):
         if ts.value == NPY_NAT:
             return NaT
 
-        if freq is not None:
+        if is_string_object(freq) or isinstance(freq, _BaseOffset):
             freq = to_offset(freq)
         else:
             # GH 22311: Try to extract the frequency of a given Timestamp input
