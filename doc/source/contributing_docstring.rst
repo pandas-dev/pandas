@@ -16,7 +16,7 @@ function or method, so programmers can understand what it does without having
 to read the details of the implementation.
 
 Also, it is a common practice to generate online (html) documentation
-automatically from docstrings. `Sphinx <http://www.sphinx-doc.org>`_ serves
+automatically from docstrings. `Sphinx <https://www.sphinx-doc.org>`_ serves
 this purpose.
 
 Next example gives an idea on how a docstring looks like:
@@ -68,7 +68,7 @@ As PEP-257 is quite open, and some other standards exist on top of it. In the
 case of pandas, the numpy docstring convention is followed. The conventions is
 explained in this document:
 
-* `numpydoc docstring guide <http://numpydoc.readthedocs.io/en/latest/format.html>`_
+* `numpydoc docstring guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_
   (which is based in the original `Guide to NumPy/SciPy documentation
   <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_)
 
@@ -78,7 +78,7 @@ The standard uses reStructuredText (reST). reStructuredText is a markup
 language that allows encoding styles in plain text files. Documentation
 about reStructuredText can be found in:
 
-* `Sphinx reStructuredText primer <http://www.sphinx-doc.org/en/stable/rest.html>`_
+* `Sphinx reStructuredText primer <https://www.sphinx-doc.org/en/stable/rest.html>`_
 * `Quick reStructuredText reference <http://docutils.sourceforge.net/docs/user/rst/quickref.html>`_
 * `Full reStructuredText specification <http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html>`_
 
@@ -119,7 +119,7 @@ backticks. It is considered inline code:
     function, prefix it with ``~``. For example, ``:class:`~pandas.Series```
     will link to ``pandas.Series`` but only display the last part, ``Series``
     as the link text. See `Sphinx cross-referencing syntax
-    <http://www.sphinx-doc.org/en/stable/domains.html#cross-referencing-syntax>`_
+    <https://www.sphinx-doc.org/en/stable/domains.html#cross-referencing-syntax>`_
     for details.
 
 **Good:**

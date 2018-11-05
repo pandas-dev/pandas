@@ -20,7 +20,7 @@ Release Notes
 *************
 
 This is the list of changes to pandas between each release. For full details,
-see the commit logs at http://github.com/pandas-dev/pandas
+see the commit logs at https://github.com/pandas-dev/pandas
 
 **What is it**
 
@@ -33,9 +33,9 @@ analysis / manipulation tool available in any language.
 
 **Where to get it**
 
-* Source code: http://github.com/pandas-dev/pandas
+* Source code: https://github.com/pandas-dev/pandas
 * Binary installers on PyPI: https://pypi.org/project/pandas
-* Documentation: http://pandas.pydata.org
+* Documentation: https://pandas.pydata.org
 
 pandas 0.23.2
 -------------
@@ -586,7 +586,7 @@ Highlights include:
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` function and :meth:`DataFrame.to_parquet` method, see :ref:`here <whatsnew_0210.enhancements.parquet>`.
 - New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
   categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
-- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, and ``sum`` and ``prod`` on empty Series now return NaN instead of 0, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`.
+- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <https://berkeleyanalytics.com/bottleneck>`__ is installed, and ``sum`` and ``prod`` on empty Series now return NaN instead of 0, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`.
 - Compatibility fixes for pypy, see :ref:`here <whatsnew_0210.pypy>`.
 - Additions to the ``drop``, ``reindex`` and ``rename`` API to make them more consistent, see :ref:`here <whatsnew_0210.enhancements.drop_api>`.
 - Addition of the new methods ``DataFrame.infer_objects`` (see :ref:`here <whatsnew_0210.enhancements.infer_objects>`) and ``GroupBy.pipe`` (see :ref:`here <whatsnew_0210.enhancements.GroupBy_pipe>`).
@@ -1171,7 +1171,7 @@ Highlights include:
 - Sparse data structures gained enhanced support of ``int`` and ``bool`` dtypes, see :ref:`here <whatsnew_0190.sparse>`
 - Comparison operations with ``Series`` no longer ignores the index, see :ref:`here <whatsnew_0190.api.series_ops>` for an overview of the API changes.
 - Introduction of a pandas development API for utility functions, see :ref:`here <whatsnew_0190.dev_api>`.
-- Deprecation of ``Panel4D`` and ``PanelND``. We recommend to represent these types of n-dimensional data with the `xarray package <http://xarray.pydata.org/en/stable/>`__.
+- Deprecation of ``Panel4D`` and ``PanelND``. We recommend to represent these types of n-dimensional data with the `xarray package <https://xarray.pydata.org/en/stable/>`__.
 - Removal of the previously deprecated modules ``pandas.io.data``, ``pandas.io.wb``, ``pandas.tools.rplot``.
 
 See the :ref:`v0.19.0 Whatsnew <whatsnew_0190>` overview for an extensive list
@@ -1402,7 +1402,7 @@ Highlights include:
 - Removal of support for positional indexing with floats, which was deprecated
   since 0.14.0. This will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.float_indexers>`.
 - The ``.to_xarray()`` function has been added for compatibility with the
-  `xarray package <http://xarray.pydata.org/en/stable/>`__, see :ref:`here <whatsnew_0180.enhancements.xarray>`.
+  `xarray package <https://xarray.pydata.org/en/stable/>`__, see :ref:`here <whatsnew_0180.enhancements.xarray>`.
 - The ``read_sas`` function has been enhanced to read ``sas7bdat`` files, see :ref:`here <whatsnew_0180.enhancements.sas>`.
 - Addition of the :ref:`.str.extractall() method <whatsnew_0180.enhancements.extract>`,
   and API changes to the :ref:`.str.extract() method <whatsnew_0180.enhancements.extract>`
@@ -1757,7 +1757,7 @@ along with several new features, enhancements, and performance improvements.
 Highlights include:
 
 - A new ``pipe`` method, see :ref:`here <whatsnew_0162.enhancements.pipe>`
-- Documentation on how to use `numba <http://numba.pydata.org>`_ with *pandas*, see :ref:`here <enhancingperf.numba>`
+- Documentation on how to use `numba <https://numba.pydata.org>`_ with *pandas*, see :ref:`here <enhancingperf.numba>`
 
 See the :ref:`v0.16.2 Whatsnew <whatsnew_0162>` overview for an extensive list
 of all enhancements and bugs that have been fixed in 0.16.2.
@@ -1889,9 +1889,9 @@ Highlights include:
 - Changes to the default for ordering in the ``Categorical`` constructor, see :ref:`here <whatsnew_0160.api_breaking.categorical>`
 - The ``pandas.tools.rplot``, ``pandas.sandbox.qtpandas`` and ``pandas.rpy``
   modules are deprecated. We refer users to external packages like
-  `seaborn <http://stanford.edu/~mwaskom/software/seaborn/>`_,
+  `seaborn <https://stanford.edu/~mwaskom/software/seaborn/>`_,
   `pandas-qt <https://github.com/datalyze-solutions/pandas-qt>`_ and
-  `rpy2 <http://rpy2.bitbucket.org/>`_ for similar or equivalent
+  `rpy2 <https://rpy2.bitbucket.org/>`_ for similar or equivalent
   functionality, see :ref:`here <whatsnew_0160.deprecations>`
 
 See the :ref:`v0.16.0 Whatsnew <whatsnew_0160>` overview or the issue tracker on GitHub for an extensive list
