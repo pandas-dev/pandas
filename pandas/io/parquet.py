@@ -145,9 +145,9 @@ class FastParquetImpl(BaseImpl):
                 "\nor via pip\n"
                 "pip install -U fastparquet"
             )
-        if LooseVersion(fastparquet.__version__) < '0.1.0':
+        if LooseVersion(fastparquet.__version__) < '0.1.2':
             raise ImportError(
-                "fastparquet >= 0.1.0 is required for parquet "
+                "fastparquet >= 0.1.2 is required for parquet "
                 "support\n\n"
                 "you can install via conda\n"
                 "conda install fastparquet -c conda-forge\n"

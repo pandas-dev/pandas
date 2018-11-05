@@ -1,7 +1,7 @@
 beautifulsoup4>=4.2.1
 blosc
 bottleneck>=1.2.0
-fastparquet
+fastparquet>=0.1.2
 gcsfs
 html5lib
 ipython>=5.6.0
