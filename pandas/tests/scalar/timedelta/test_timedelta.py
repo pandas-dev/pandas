@@ -311,29 +311,28 @@ class TestTimedeltas(object):
                               (['ns', 'nanoseconds', 'nanosecond', 'nano',
                                 'nanos', 'n', 'NS', 'Nanoseconds',
                                 'Nanosecond', 'Nano', 'Nanos', 'N'], 'ns')])
-    def test_unit_parser(self, units, np_unit):
+    @pytest.mark.parametrize('wrapper', [np.array, list, pd.Index])
+    def test_unit_parser(self, units, np_unit, wrapper):
         # validate all units, GH 6855, GH 21762
         for unit in units:
             # array-likes
             expected = TimedeltaIndex([np.timedelta64(i, np_unit)
                                        for i in np.arange(5).tolist()])
-            for wrapper in [np.array, list, pd.Index]:
-                result = to_timedelta(wrapper(range(5)), unit=unit)
-                tm.assert_index_equal(result, expected)
-                result = TimedeltaIndex(wrapper(range(5)), unit=unit)
-                tm.assert_index_equal(result, expected)
+            result = to_timedelta(wrapper(range(5)), unit=unit)
+            tm.assert_index_equal(result, expected)
+            result = TimedeltaIndex(wrapper(range(5)), unit=unit)
+            tm.assert_index_equal(result, expected)
 
             if unit == 'M':
                 # M is treated as minutes in string repr
                 expected = TimedeltaIndex([np.timedelta64(i, 'm')
                                            for i in np.arange(5).tolist()])
 
-            for wrapper in [np.array, list, pd.Index]:
-                str_repr = ['{}{}'.format(x, unit) for x in np.arange(5)]
-                result = to_timedelta(wrapper(str_repr))
-                tm.assert_index_equal(result, expected)
-                result = TimedeltaIndex(wrapper(str_repr))
-                tm.assert_index_equal(result, expected)
+            str_repr = ['{}{}'.format(x, unit) for x in np.arange(5)]
+            result = to_timedelta(wrapper(str_repr))
+            tm.assert_index_equal(result, expected)
+            result = TimedeltaIndex(wrapper(str_repr))
+            tm.assert_index_equal(result, expected)
 
             # scalar
             expected = Timedelta(np.timedelta64(2, np_unit).astype(
