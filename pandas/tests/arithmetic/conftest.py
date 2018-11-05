@@ -176,7 +176,7 @@ def box_df_broadcast_failure(request):
 
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, PeriodArray],
                 ids=lambda x: x.__name__)
-def pbox(request):
+def box_with_period(request):
     """
     Like `box`, but specific to PeriodDtype for also testing PeriodArray
     """
@@ -185,7 +185,7 @@ def pbox(request):
 
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, DatetimeArray],
                 ids=lambda x: x.__name__)
-def dbox(request):
+def box_with_dtarray(request):
     """
     Like `box`, but specific to datetime64 for also testing DatetimeArray
     """
