@@ -177,28 +177,15 @@ parsed : DataFrame or dict of DataFrame
 Examples
 --------
 
-An example DataFrame written to a local file
-
->>> df_out = pd.DataFrame([('string1', 1),
-...                        ('string2', 2),
-...                        ('string3', 3)],
-...                       columns=['Name', 'Value'])
->>> df_out
-      Name  Value
-0  string1      1
-1  string2      2
-2  string3      3
->>> df_out.to_excel('tmp.xlsx')
-
 The file can be read using the file name as string or an open file object:
 
->>> pd.read_excel('tmp.xlsx')
+>>> pd.read_excel('tmp.xlsx') # doctest: +SKIP
       Name  Value
 0  string1      1
 1  string2      2
 2  string3      3
 
->>> pd.read_excel(open('tmp.xlsx', 'rb'))
+>>> pd.read_excel(open('tmp.xlsx', 'rb')) # doctest: +SKIP
       Name  Value
 0  string1      1
 1  string2      2
@@ -206,7 +193,7 @@ The file can be read using the file name as string or an open file object:
 
 Index and header can be specified via the `index_col` and `header` arguments
 
->>> pd.read_excel('tmp.xlsx', index_col=None, header=None)
+>>> pd.read_excel('tmp.xlsx', index_col=None, header=None) # doctest: +SKIP
      0        1      2
 0  NaN     Name  Value
 1  0.0  string1      1
@@ -215,7 +202,7 @@ Index and header can be specified via the `index_col` and `header` arguments
 
 Column types are inferred but can be explicitly specified
 
->>> pd.read_excel('tmp.xlsx', dtype={'Name': str, 'Value': float})
+>>> pd.read_excel('tmp.xlsx', dtype={'Name': str, 'Value': float}) # doctest: +SKIP
       Name  Value
 0  string1    1.0
 1  string2    2.0
@@ -226,7 +213,7 @@ but can be explicitly specified, too. Supply the values you would like
 as strings or lists of strings!
 
 >>> pd.read_excel('tmp.xlsx',
-...               na_values=['string1', 'string2'])
+...               na_values=['string1', 'string2']) # doctest: +SKIP
       Name  Value
 0      NaN      1
 1      NaN      2
@@ -234,14 +221,12 @@ as strings or lists of strings!
 
 Comment lines in the excel input file can be skipped using the `comment` kwarg
 
->>> df = pd.DataFrame({'a': ['1', '#2'], 'b': ['2', '3']})
->>> df.to_excel('tmp.xlsx', index=False)
->>> pd.read_excel('tmp.xlsx')
+>>> pd.read_excel('tmp.xlsx') # doctest: +SKIP
     a  b
 0   1  2
 1  #2  3
 
->>> pd.read_excel('tmp.xlsx', comment='#')
+>>> pd.read_excel('tmp.xlsx', comment='#') # doctest: +SKIP
    a  b
 0  1  2
 """
