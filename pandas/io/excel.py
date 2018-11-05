@@ -195,7 +195,7 @@ The file can be read using the file name as string or an open file object:
 1  string2      2
 2  string3      3
 
->>> pd.read_excel(open('tmp.xlsx','rb'))
+>>> pd.read_excel(open('tmp.xlsx', 'rb'))
       Name  Value
 0  string1      1
 1  string2      2
@@ -212,7 +212,7 @@ Index and header can be specified via the `index_col` and `header` arguments
 
 Column types are inferred but can be explicitly specified
 
->>> pd.read_excel('tmp.xlsx', dtype={'Name':str, 'Value':float})
+>>> pd.read_excel('tmp.xlsx', dtype={'Name': str, 'Value': float})
       Name  Value
 0  string1    1.0
 1  string2    2.0
