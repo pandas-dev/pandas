@@ -767,7 +767,7 @@ We encourage you to view the source code of :meth:`~DataFrame.pipe`.
 
 .. _dplyr: https://github.com/hadley/dplyr
 .. _magrittr: https://github.com/smbache/magrittr
-.. _R: http://www.r-project.org
+.. _R: https://www.r-project.org
 
 
 Row or Column-wise Function Application
@@ -2296,7 +2296,7 @@ For example, to select ``bool`` columns:
    df.select_dtypes(include=[bool])
 
 You can also pass the name of a dtype in the `NumPy dtype hierarchy
-<http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__:
+<https://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__:
 
 .. ipython:: python
 
