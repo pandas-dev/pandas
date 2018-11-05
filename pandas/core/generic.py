@@ -10397,7 +10397,31 @@ True
 Series([], dtype: bool)
 """
 
-_shared_docs['stat_func_multi_index'] = """
+_sum_na = """
+By default, the sum of an empty or all-NA Series is ``0``.
+
+>>> pd.Series([]).sum()  # min_count=0 is the default
+0.0
+
+This can be controlled with the ``min_count`` parameter. For example, if
+you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
+
+>>> pd.Series([]).sum(min_count=1)
+nan
+
+Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
+empty series identically.
+
+>>> pd.Series([np.nan]).sum()
+0.0
+
+>>> pd.Series([np.nan]).sum(min_count=1)
+nan
+"""
+
+_shared_docs['stat_func_example'] = """
+Examples
+--------
 ``MultiIndex`` series example of monthly rainfall
 
 >>> index = pd.MultiIndex.from_product(
@@ -10430,6 +10454,7 @@ Jun    %(indexed_level_output_0)s
 Jul    %(indexed_level_output_1)s
 Aug    %(indexed_level_output_2)s
 dtype: int64
+%(additional)s
 """
 _shared_docs['sum_multi_index'] = dict(stat_func='sum', verb='Sum',
                                        default_output='478',
@@ -10437,7 +10462,8 @@ _shared_docs['sum_multi_index'] = dict(stat_func='sum', verb='Sum',
                                        named_level_output_1='342',
                                        indexed_level_output_0='159',
                                        indexed_level_output_1='152',
-                                       indexed_level_output_2='167')
+                                       indexed_level_output_2='167',
+                                       additional=_sum_na)
 
 _shared_docs['max_multi_index'] = dict(stat_func='max', verb='Maximize',
                                        default_output='117',
@@ -10445,7 +10471,8 @@ _shared_docs['max_multi_index'] = dict(stat_func='max', verb='Maximize',
                                        named_level_output_1='117',
                                        indexed_level_output_0='112',
                                        indexed_level_output_1='117',
-                                       indexed_level_output_2='113')
+                                       indexed_level_output_2='113',
+                                       additional=None)
 
 _shared_docs['min_multi_index'] = dict(stat_func='min', verb='Minimize',
                                        default_output='35',
@@ -10453,34 +10480,11 @@ _shared_docs['min_multi_index'] = dict(stat_func='min', verb='Minimize',
                                        named_level_output_1='112',
                                        indexed_level_output_0='47',
                                        indexed_level_output_1='35',
-                                       indexed_level_output_2='54')
+                                       indexed_level_output_2='54',
+                                       additional=None)
 
-_sum_examples = """\
-Examples
---------
-%(multi_index_example)s
-
-By default, the sum of an empty or all-NA Series is ``0``.
-
->>> pd.Series([]).sum()  # min_count=0 is the default
-0.0
-
-This can be controlled with the ``min_count`` parameter. For example, if
-you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
-
->>> pd.Series([]).sum(min_count=1)
-nan
-
-Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
-empty series identically.
-
->>> pd.Series([np.nan]).sum()
-0.0
-
->>> pd.Series([np.nan]).sum(min_count=1)
-nan
-""" % dict(multi_index_example=_shared_docs['stat_func_multi_index'] %
-           _shared_docs['sum_multi_index'])
+_sum_examples = _shared_docs['stat_func_example'] % \
+    _shared_docs['sum_multi_index']
 
 _prod_examples = """\
 Examples
@@ -10505,19 +10509,11 @@ empty series identically.
 nan
 """
 
-_max_examples = """\
-Examples
---------
-%(multi_index_example)s
-""" % dict(multi_index_example=_shared_docs['stat_func_multi_index'] %
-           _shared_docs['max_multi_index'])
+_max_examples = _shared_docs['stat_func_example'] % \
+    _shared_docs['max_multi_index']
 
-_min_examples = """\
-Examples
---------
-%(multi_index_example)s
-""" % dict(multi_index_example=_shared_docs['stat_func_multi_index'] %
-           _shared_docs['min_multi_index'])
+_min_examples = _shared_docs['stat_func_example'] % \
+    _shared_docs['min_multi_index']
 
 _min_count_stub = """\
 min_count : int, default 0
