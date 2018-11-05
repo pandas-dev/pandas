@@ -93,7 +93,7 @@ parse_cols : int or list, default None
 
     .. deprecated:: 0.21.0
 
-       Pass in `usecols` instead.
+       Use `usecols` instead.
 usecols : int or list, default None
     Select which columns to parse.
     * If None then parse all columns,
