@@ -82,7 +82,7 @@ header : int, list of int, default 0
 names : array-like, default None
     List of column names to use. If file contains no header row,
     then you should explicitly pass header=None.
-index_col : int, list of ints, default None
+index_col : int, list of int, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
     those columns will be combined into a ``MultiIndex``.  If a
