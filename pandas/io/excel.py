@@ -40,7 +40,7 @@ _writer_extensions = ["xlsx", "xls", "xlsm"]
 _writers = {}
 
 _read_excel_doc = """
-Read an Excel table into a pandas DataFrame
+Read an Excel table into a pandas DataFrame.
 
 Parameters
 ----------
@@ -68,13 +68,13 @@ sheet_name : str, int, mixed list of strs/ints, or None, default 0
     * "Sheet1" -> 1st sheet as a DataFrame
     * [0,1,"Sheet5"] -> 1st, 2nd & 5th sheet as a dictionary of DataFrames
     * None -> All sheets as a dictionary of DataFrames.
-
 sheetname : str, int, mixed list of strs/ints, or None, default 0
     Name or index of sheet or sheets to read into a DataFrame or
-    dictionary of DataFrames .
-    .. deprecated:: 0.21.0
-       Use `sheet_name` instead
+    dictionary of DataFrames.
 
+    .. deprecated:: 0.21.0
+
+       Use `sheet_name` instead
 header : int, list of ints, default 0
     Row (0-indexed) to use for the column labels of the parsed
     DataFrame. If a list of integers is passed those row positions will
@@ -90,9 +90,10 @@ index_col : int, list of ints, default None
     is based on the subset.
 parse_cols : int or list, default None
     Same as usecols.
-    .. deprecated:: 0.21.0
-       Pass in `usecols` instead.
 
+    .. deprecated:: 0.21.0
+
+       Pass in `usecols` instead.
 usecols : int or list, default None
     Select which columns to parse.
     * If None then parse all columns,
@@ -156,7 +157,9 @@ comment : str, default None
     comment string and the end of the current line is ignored.
 skip_footer : int, default 0
     Rows at the end to skip (0-indexed).
+
     .. deprecated:: 0.23.0
+
        Pass in `skipfooter` instead.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
