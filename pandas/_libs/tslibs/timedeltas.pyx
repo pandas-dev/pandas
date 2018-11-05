@@ -152,7 +152,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
     # handle the numpy < 1.7 case
     """
     if unit is None:
-        unit='ns'
+        unit = 'ns'
     if checknull_with_nat(ts):
         return np.timedelta64(NPY_NAT)
     elif isinstance(ts, Timedelta):
