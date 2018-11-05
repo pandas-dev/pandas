@@ -309,11 +309,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         assert subarr.dtype == 'M8[ns]', subarr.dtype
 
         subarr = cls._simple_new(subarr, name=name, freq=freq, tz=tz)
-        if dtype is not None:
-            if not is_dtype_equal(subarr.dtype, dtype):
-                # dtype must be coerced to DatetimeTZDtype above
-                if subarr.tz is not None:
-                    raise ValueError("cannot localize from non-UTC data")
 
         if verify_integrity and len(subarr) > 0:
             if freq is not None and not freq_infer:
