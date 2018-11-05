@@ -967,24 +967,15 @@ def dt64arr_to_periodarr(data, freq, tz=None):
     if data.dtype != np.dtype('M8[ns]'):
         raise ValueError('Wrong dtype: %s' % data.dtype)
 
-    if freq is not None:
-        freq = Period._maybe_convert_freq(freq)
+    if freq is None:
+        if isinstance(data, ABCIndexClass):
+            data, freq = data._values, data.freq
+        elif isinstance(data, ABCSeries):
+            data, freq = data._values, data.dt.freq
 
-    if isinstance(data, ABCIndexClass):
-        if freq is None:
-            freq = data.freq
-        elif freq != data.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(freq.freqstr, data.freq.freqstr)
-            raise IncompatibleFrequency(msg)
-        data = data._values
+    freq = Period._maybe_convert_freq(freq)
 
-    elif isinstance(data, ABCSeries):
-        if freq is None:
-            freq = data.dt.freq
-        elif freq != data.dt.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(freq.freqstr,
-                                              data.dt.freq.freqstr)
-            raise IncompatibleFrequency(msg)
+    if isinstance(data, (ABCIndexClass, ABCSeries)):
         data = data._values
 
     base, mult = frequencies.get_freq_code(freq)

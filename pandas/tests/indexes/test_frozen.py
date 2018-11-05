@@ -11,7 +11,7 @@ class TestFrozenList(CheckImmutable, CheckStringMixin):
     mutable_methods = ('extend', 'pop', 'remove', 'insert')
     unicode_container = FrozenList([u("\u05d0"), u("\u05d1"), "c"])
 
-    def setup_method(self, method):
+    def setup_method(self, _):
         self.lst = [1, 2, 3, 4, 5]
         self.container = FrozenList(self.lst)
         self.klass = FrozenList
@@ -25,12 +25,29 @@ class TestFrozenList(CheckImmutable, CheckStringMixin):
         expected = FrozenList([1, 2, 3] + self.lst)
         self.check_result(result, expected)
 
-    def test_inplace(self):
+    def test_iadd(self):
         q = r = self.container
+
         q += [5]
         self.check_result(q, self.lst + [5])
-        # other shouldn't be mutated
+
+        # Other shouldn't be mutated.
         self.check_result(r, self.lst)
+
+    def test_union(self):
+        result = self.container.union((1, 2, 3))
+        expected = FrozenList(self.lst + [1, 2, 3])
+        self.check_result(result, expected)
+
+    def test_difference(self):
+        result = self.container.difference([2])
+        expected = FrozenList([1, 3, 4, 5])
+        self.check_result(result, expected)
+
+    def test_difference_dupe(self):
+        result = FrozenList([1, 2, 3, 2]).difference([2])
+        expected = FrozenList([1, 3])
+        self.check_result(result, expected)
 
 
 class TestFrozenNDArray(CheckImmutable, CheckStringMixin):

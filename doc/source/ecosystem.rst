@@ -27,8 +27,8 @@ substantial projects that you feel should be on this list, please let us know.
 Statistics and Machine Learning
 -------------------------------
 
-`Statsmodels <http://www.statsmodels.org/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`Statsmodels <https://www.statsmodels.org/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Statsmodels is the prominent Python "statistics and econometrics library" and it has
 a long-standing special relationship with pandas. Statsmodels provides powerful statistics,
@@ -38,7 +38,7 @@ Statsmodels leverages pandas objects as the underlying data container for comput
 `sklearn-pandas <https://github.com/paulgb/sklearn-pandas>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use pandas DataFrames in your `scikit-learn <http://scikit-learn.org/>`__
+Use pandas DataFrames in your `scikit-learn <https://scikit-learn.org/>`__
 ML pipeline.
 
 `Featuretools <https://github.com/featuretools/featuretools/>`__
@@ -62,8 +62,8 @@ simplicity produces beautiful and effective visualizations with a
 minimal amount of code. Altair works with Pandas DataFrames.
 
 
-`Bokeh <http://bokeh.pydata.org>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`Bokeh <https://bokeh.pydata.org>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Bokeh is a Python interactive visualization library for large datasets that natively uses
 the latest web technologies. Its goal is to provide elegant, concise construction of novel
@@ -74,7 +74,7 @@ large data to thin clients.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Seaborn is a Python visualization library based on
-`matplotlib <http://matplotlib.org>`__. It provides a high-level, dataset-oriented
+`matplotlib <https://matplotlib.org>`__. It provides a high-level, dataset-oriented
 interface for creating attractive statistical graphics. The plotting functions
 in seaborn understand pandas objects and leverage pandas grouping operations
 internally to support concise specification of complex visualizations. Seaborn
@@ -85,8 +85,8 @@ fit of statistical models to emphasize patterns in a dataset.
 `yhat/ggpy <https://github.com/yhat/ggpy>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Hadley Wickham's `ggplot2 <http://ggplot2.org/>`__ is a foundational exploratory visualization package for the R language.
-Based on `"The Grammar of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
+Hadley Wickham's `ggplot2 <https://ggplot2.tidyverse.org/>`__ is a foundational exploratory visualization package for the R language.
+Based on `"The Grammar of Graphics" <https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
 provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
 It's really quite incredible. Various implementations to other languages are available,
 but a faithful implementation for Python users has long been missing. Although still young
@@ -102,7 +102,7 @@ progressing quickly in that direction.
 `Plotly <https://plot.ly/python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`Plotly’s <https://plot.ly/>`__ `Python API <https://plot.ly/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <http://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plot.ly/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plot.ly/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `cloud <https://plot.ly/product/plans/>`__, `offline <https://plot.ly/python/offline/>`__, or `on-premise <https://plot.ly/product/enterprise/>`__ accounts for private use.
+`Plotly’s <https://plot.ly/>`__ `Python API <https://plot.ly/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <https://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plot.ly/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plot.ly/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `cloud <https://plot.ly/product/plans/>`__, `offline <https://plot.ly/python/offline/>`__, or `on-premise <https://plot.ly/product/enterprise/>`__ accounts for private use.
 
 `QtPandas <https://github.com/draperjames/qtpandas>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,8 +116,8 @@ library enables DataFrame visualization and manipulation in PyQt4 and PySide app
 IDE
 ------
 
-`IPython <http://ipython.org/documentation.html>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`IPython <https://ipython.org/documentation.html>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 IPython is an interactive command shell and distributed computing
 environment. IPython tab completion works with Pandas methods and also
@@ -221,7 +221,7 @@ This package requires valid credentials for this API (non free).
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pandaSDMX is a library to retrieve and acquire statistical data
 and metadata disseminated in
-`SDMX <http://www.sdmx.org>`_ 2.1, an ISO-standard
+`SDMX <https://www.sdmx.org>`_ 2.1, an ISO-standard
 widely used by institutions such as statistics offices, central banks,
 and international organisations. pandaSDMX can expose datasets and related
 structural metadata including data flows, code-lists,
@@ -230,7 +230,7 @@ or MultiIndexed DataFrames.
 
 `fredapi <https://github.com/mortada/fredapi>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-fredapi is a Python interface to the `Federal Reserve Economic Data (FRED) <http://research.stlouisfed.org/fred2/>`__
+fredapi is a Python interface to the `Federal Reserve Economic Data (FRED) <https://fred.stlouisfed.org/>`__
 provided by the Federal Reserve Bank of St. Louis. It works with both the FRED database and ALFRED database that
 contains point-in-time data (i.e. historic data revisions). fredapi provides a wrapper in Python to the FRED
 HTTP API, and also provides several convenient methods for parsing and analyzing point-in-time data from ALFRED.
@@ -316,7 +316,7 @@ Increasingly, packages are being built on top of pandas to address specific need
 Data validation
 ---------------
 
-`Engarde <http://engarde.readthedocs.io/en/latest/>`__
+`Engarde <https://engarde.readthedocs.io/en/latest/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Engarde is a lightweight library used to explicitly state your assumptions about your datasets
