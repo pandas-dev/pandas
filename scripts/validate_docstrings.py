@@ -23,7 +23,6 @@ import argparse
 import pydoc
 import inspect
 import importlib
-import itertools
 import doctest
 import tempfile
 
