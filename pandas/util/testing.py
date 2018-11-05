@@ -1,53 +1,44 @@
 from __future__ import division
-# pylint: disable-msg=W0402
 
-import re
-import string
-import sys
-import tempfile
-import warnings
-import os
-import subprocess
-import locale
-import traceback
-
+from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-from contextlib import contextmanager
+import locale
+import os
+import re
+import string
+import subprocess
+import sys
+import tempfile
+import traceback
+import warnings
 
-from numpy.random import randn, rand
 import numpy as np
-
-import pandas as pd
-from pandas.core.arrays import ExtensionArray, IntervalArray
-from pandas.core.dtypes.missing import array_equivalent
-from pandas.core.dtypes.common import (
-    is_datetimelike_v_numeric,
-    is_datetimelike_v_object,
-    is_number, is_bool,
-    needs_i8_conversion,
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_sequence,
-    is_list_like,
-    is_extension_array_dtype)
-from pandas.io.formats.printing import pprint_thing
-from pandas.core.algorithms import take_1d
-import pandas.core.common as com
-
-import pandas.compat as compat
-from pandas.compat import (
-    filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, StringIO, string_types, PY3, PY2)
-
-from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
-                    DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
-                    Index, MultiIndex,
-                    Series, DataFrame, Panel)
+from numpy.random import rand, randn
 
 from pandas._libs import testing as _testing
-from pandas.io.common import urlopen
+import pandas.compat as compat
+from pandas.compat import (
+    PY2, PY3, Counter, StringIO, callable, filter, httplib, lmap, lrange, lzip,
+    map, raise_with_traceback, range, string_types, u, unichr, zip)
 
+from pandas.core.dtypes.common import (
+    is_bool, is_categorical_dtype, is_datetimelike_v_numeric,
+    is_datetimelike_v_object, is_extension_array_dtype, is_interval_dtype,
+    is_list_like, is_number, is_sequence, needs_i8_conversion)
+from pandas.core.dtypes.missing import array_equivalent
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
+    IntervalIndex, MultiIndex, Panel, PeriodIndex, RangeIndex, Series,
+    TimedeltaIndex, bdate_range)
+from pandas.core.algorithms import take_1d
+from pandas.core.arrays import ExtensionArray, IntervalArray, PeriodArray
+import pandas.core.common as com
+
+from pandas.io.common import urlopen
+from pandas.io.formats.printing import pprint_thing
 
 N = 30
 K = 4
@@ -758,7 +749,7 @@ def ensure_clean(filename=None, return_filelike=False):
         finally:
             try:
                 os.close(fd)
-            except Exception as e:
+            except Exception:
                 print("Couldn't close file descriptor: {fdesc} (file: {fname})"
                       .format(fdesc=fd, fname=filename))
             try:
@@ -1048,6 +1039,14 @@ def assert_interval_array_equal(left, right, exact='equiv',
     assert_index_equal(left.right, right.right, exact=exact,
                        obj='{obj}.left'.format(obj=obj))
     assert_attr_equal('closed', left, right, obj=obj)
+
+
+def assert_period_array_equal(left, right, obj='PeriodArray'):
+    _check_isinstance(left, right, PeriodArray)
+
+    assert_numpy_array_equal(left._data, right._data,
+                             obj='{obj}.values'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
 
 
 def raise_assert_detail(obj, message, left, right, diff=None):
@@ -1543,6 +1542,10 @@ def assert_equal(left, right, **kwargs):
         assert_series_equal(left, right, **kwargs)
     elif isinstance(left, pd.DataFrame):
         assert_frame_equal(left, right, **kwargs)
+    elif isinstance(left, IntervalArray):
+        assert_interval_array_equal(left, right, **kwargs)
+    elif isinstance(left, PeriodArray):
+        assert_period_array_equal(left, right, **kwargs)
     elif isinstance(left, ExtensionArray):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):

@@ -65,7 +65,7 @@ CParserError = ParserError
 
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
-cdef double INF = <double> np.inf
+cdef double INF = <double>np.inf
 cdef double NEGINF = -INF
 
 
@@ -1438,7 +1438,7 @@ cdef _string_box_factorize(parser_t *parser, int64_t col,
         # in the hash table
         if k != table.n_buckets:
             # this increments the refcount, but need to test
-            pyval = <object> table.vals[k]
+            pyval = <object>table.vals[k]
         else:
             # box it. new ref?
             pyval = PyBytes_FromString(word)
@@ -1492,7 +1492,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         # in the hash table
         if k != table.n_buckets:
             # this increments the refcount, but need to test
-            pyval = <object> table.vals[k]
+            pyval = <object>table.vals[k]
         else:
             # box it. new ref?
             pyval = PyUnicode_FromString(word)
@@ -1549,7 +1549,7 @@ cdef _string_box_decode(parser_t *parser, int64_t col,
         # in the hash table
         if k != table.n_buckets:
             # this increments the refcount, but need to test
-            pyval = <object> table.vals[k]
+            pyval = <object>table.vals[k]
         else:
             # box it. new ref?
             size = strlen(word)
@@ -2087,14 +2087,14 @@ cdef raise_parser_error(object base, parser_t *parser):
         Py_XDECREF(traceback)
 
         if value != NULL:
-            old_exc = <object> value
+            old_exc = <object>value
             Py_XDECREF(value)
 
             # PyErr_Fetch only returned the error message in *value,
             # so the Exception class must be extracted from *type.
             if isinstance(old_exc, compat.string_types):
                 if type != NULL:
-                    exc_type = <object> type
+                    exc_type = <object>type
                 else:
                     exc_type = ParserError
 

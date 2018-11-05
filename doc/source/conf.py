@@ -99,7 +99,7 @@ with open("index.rst") as f:
 # JP: added from sphinxdocs
 autosummary_generate = False
 
-if any(re.match("\s*api\s*", l) for l in index_rst_lines):
+if any(re.match(r"\s*api\s*", l) for l in index_rst_lines):
     autosummary_generate = True
 
 # numpydoc
@@ -341,8 +341,8 @@ nbsphinx_allow_errors = True
 # file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
     ('index', 'pandas.tex',
-     u'pandas: powerful Python data analysis toolkit',
-     u'Wes McKinney\n\& PyData Development Team', 'manual'),
+     'pandas: powerful Python data analysis toolkit',
+     r'Wes McKinney\n\& PyData Development Team', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -569,7 +569,11 @@ def linkcode_resolve(domain, info):
             return None
 
     try:
-        fn = inspect.getsourcefile(obj)
+        # inspect.unwrap() was added in Python version 3.4
+        if sys.version_info >= (3, 5):
+            fn = inspect.getsourcefile(inspect.unwrap(obj))
+        else:
+            fn = inspect.getsourcefile(obj)
     except:
         fn = None
     if not fn:

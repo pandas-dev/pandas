@@ -8,6 +8,7 @@ import numpy as np
 from pandas._libs import lib, iNaT, NaT
 from pandas._libs.tslibs import timezones
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
+from pandas._libs.tslibs.timestamps import maybe_integer_op_deprecated
 from pandas._libs.tslibs.period import (
     Period, DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
@@ -88,18 +89,6 @@ class AttributesMixin(object):
     def _get_attributes_dict(self):
         """return an attributes dict for my class"""
         return {k: getattr(self, k, None) for k in self._attributes}
-
-    def _shallow_copy(self, values=None, **kwargs):
-        if values is None:
-            # Note: slightly different from Index implementation which defaults
-            # to self.values
-            values = self._ndarray_values
-
-        attributes = self._get_attributes_dict()
-        attributes.update(kwargs)
-        if not len(values) and 'dtype' not in kwargs:
-            attributes['dtype'] = self.dtype
-        return self._simple_new(values, **attributes)
 
 
 class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
@@ -219,13 +208,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     @property  # NB: override with cache_readonly in immutable subclasses
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
-        return self._isnan.any()
+        return bool(self._isnan.any())
 
-    def _maybe_mask_results(self, result, fill_value=None, convert=None):
+    def _maybe_mask_results(self, result, fill_value=iNaT, convert=None):
         """
         Parameters
         ----------
         result : a ndarray
+        fill_value : object, default iNaT
         convert : string/dtype or None
 
         Returns
@@ -245,27 +235,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 fill_value = np.nan
             result[self._isnan] = fill_value
         return result
-
-    def _nat_new(self, box=True):
-        """
-        Return Array/Index or ndarray filled with NaT which has the same
-        length as the caller.
-
-        Parameters
-        ----------
-        box : boolean, default True
-            - If True returns a Array/Index as the same as caller.
-            - If False returns ndarray of np.int64.
-        """
-        result = np.zeros(len(self), dtype=np.int64)
-        result.fill(iNaT)
-        if not box:
-            return result
-
-        attribs = self._get_attributes_dict()
-        if not is_period_dtype(self):
-            attribs['freq'] = None
-        return self._simple_new(result, **attribs)
 
     # ------------------------------------------------------------------
     # Frequency Properties/Methods
@@ -346,24 +315,58 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
-    def _add_datelike(self, other):
+    def _add_datetimelike_scalar(self, other):
+        # Overriden by TimedeltaArray
         raise TypeError("cannot add {cls} and {typ}"
                         .format(cls=type(self).__name__,
                                 typ=type(other).__name__))
 
-    def _sub_datelike(self, other):
-        raise com.AbstractMethodError(self)
+    _add_datetime_arraylike = _add_datetimelike_scalar
+
+    def _sub_datetimelike_scalar(self, other):
+        # Overridden by DatetimeArray
+        assert other is not NaT
+        raise TypeError("cannot subtract a datelike from a {cls}"
+                        .format(cls=type(self).__name__))
+
+    _sub_datetime_arraylike = _sub_datetimelike_scalar
 
     def _sub_period(self, other):
-        return NotImplemented
+        # Overriden by PeriodArray
+        raise TypeError("cannot subtract Period from a {cls}"
+                        .format(cls=type(self).__name__))
 
     def _add_offset(self, offset):
         raise com.AbstractMethodError(self)
 
     def _add_delta(self, other):
-        return NotImplemented
+        """
+        Add a timedelta-like, Tick or TimedeltaIndex-like object
+        to self, yielding an int64 numpy array
 
-    def _add_delta_td(self, other):
+        Parameters
+        ----------
+        delta : {timedelta, np.timedelta64, Tick,
+                 TimedeltaIndex, ndarray[timedelta64]}
+
+        Returns
+        -------
+        result : ndarray[int64]
+
+        Notes
+        -----
+        The result's name is set outside of _add_delta by the calling
+        method (__add__ or __sub__), if necessary (i.e. for Indexes).
+        """
+        if isinstance(other, (Tick, timedelta, np.timedelta64)):
+            new_values = self._add_timedeltalike_scalar(other)
+        elif is_timedelta64_dtype(other):
+            # ndarray[timedelta64] or TimedeltaArray/index
+            new_values = self._add_delta_tdi(other)
+
+        return new_values
+
+    def _add_timedeltalike_scalar(self, other):
         """
         Add a delta of a timedeltalike
         return the i8 result view
@@ -371,8 +374,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         inc = delta_to_nanoseconds(other)
         new_values = checked_add_with_arr(self.asi8, inc,
                                           arr_mask=self._isnan).view('i8')
-        if self.hasnans:
-            new_values[self._isnan] = iNaT
+        new_values = self._maybe_mask_results(new_values)
         return new_values.view('i8')
 
     def _add_delta_tdi(self, other):
@@ -380,7 +382,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         Add a delta of a TimedeltaIndex
         return the i8 result view
         """
-        if not len(self) == len(other):
+        if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
 
         if isinstance(other, np.ndarray):
@@ -407,7 +409,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         # GH#19124 pd.NaT is treated like a timedelta for both timedelta
         # and datetime dtypes
-        return self._nat_new(box=True)
+        result = np.zeros(len(self), dtype=np.int64)
+        result.fill(iNaT)
+        if is_timedelta64_dtype(self):
+            return type(self)(result, freq=None)
+        return type(self)(result, tz=self.tz, freq=None)
 
     def _sub_nat(self):
         """Subtract pd.NaT from self"""
@@ -441,7 +447,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                             .format(dtype=other.dtype,
                                     cls=type(self).__name__))
 
-        if not len(self) == len(other):
+        if len(self) != len(other):
             raise ValueError("cannot subtract arrays/indices of "
                              "unequal length")
         if self.freq != other.freq:
@@ -473,18 +479,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         -------
         result : same class as self
         """
+        # _addsub_int_array is overriden by PeriodArray
+        assert not is_period_dtype(self)
         assert op in [operator.add, operator.sub]
-        if is_period_dtype(self):
-            # easy case for PeriodIndex
-            if op is operator.sub:
-                other = -other
-            res_values = checked_add_with_arr(self.asi8, other,
-                                              arr_mask=self._isnan)
-            res_values = res_values.view('i8')
-            res_values[self._isnan] = iNaT
-            return self._from_ordinals(res_values, freq=self.freq)
 
-        elif self.freq is None:
+        if self.freq is None:
             # GH#19123
             raise NullFrequencyError("Cannot shift with no freq")
 
@@ -524,10 +523,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         left = lib.values_from_object(self.astype('O'))
 
         res_values = op(left, np.array(other))
-        kwargs = {}
         if not is_period_dtype(self):
-            kwargs['freq'] = 'infer'
-        return type(self)(res_values, **kwargs)
+            return type(self)(res_values, freq='infer')
+        return self._from_sequence(res_values)
 
     @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
     def shift(self, periods, freq=None):
@@ -623,10 +621,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 # specifically _not_ a Tick
                 result = self._add_offset(other)
             elif isinstance(other, (datetime, np.datetime64)):
-                result = self._add_datelike(other)
+                result = self._add_datetimelike_scalar(other)
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
+                maybe_integer_op_deprecated(self)
                 result = self._time_shift(other)
 
             # array-like others
@@ -638,8 +637,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 result = self._addsub_offset_array(other, operator.add)
             elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
                 # DatetimeIndex, ndarray[datetime64]
-                return self._add_datelike(other)
+                return self._add_datetime_arraylike(other)
             elif is_integer_dtype(other):
+                maybe_integer_op_deprecated(self)
                 result = self._addsub_int_array(other, operator.add)
             elif is_float_dtype(other):
                 # Explicitly catch invalid dtypes
@@ -681,11 +681,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 # specifically _not_ a Tick
                 result = self._add_offset(-other)
             elif isinstance(other, (datetime, np.datetime64)):
-                result = self._sub_datelike(other)
+                result = self._sub_datetimelike_scalar(other)
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
+                maybe_integer_op_deprecated(self)
                 result = self._time_shift(-other)
+
             elif isinstance(other, Period):
                 result = self._sub_period(other)
 
@@ -698,11 +700,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 result = self._addsub_offset_array(other, operator.sub)
             elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
                 # DatetimeIndex, ndarray[datetime64]
-                result = self._sub_datelike(other)
+                result = self._sub_datetime_arraylike(other)
             elif is_period_dtype(other):
                 # PeriodIndex
                 result = self._sub_period_array(other)
             elif is_integer_dtype(other):
+                maybe_integer_op_deprecated(self)
                 result = self._addsub_int_array(other, operator.sub)
             elif isinstance(other, ABCIndexClass):
                 raise TypeError("cannot subtract {cls} and {typ}"
@@ -937,6 +940,9 @@ def validate_dtype_freq(dtype, freq):
     ValueError : non-period dtype
     IncompatibleFrequency : mismatch between dtype and freq
     """
+    if freq is not None:
+        freq = frequencies.to_offset(freq)
+
     if dtype is not None:
         dtype = pandas_dtype(dtype)
         if not is_period_dtype(dtype):

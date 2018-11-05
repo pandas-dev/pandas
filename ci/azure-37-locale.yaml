@@ -5,7 +5,6 @@ channels:
 dependencies:
   - beautifulsoup4
   - cython>=0.28.2
-  - gcsfs
   - html5lib
   - ipython
   - jinja2
@@ -14,7 +13,7 @@ dependencies:
   - nomkl
   - numexpr
   - numpy
-  - openpyxl=2.5.5
+  - openpyxl
   - psycopg2
   - pymysql
   - pytables
