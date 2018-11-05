@@ -137,7 +137,7 @@ Using startup scripts for the python/ipython environment to import pandas and se
   $IPYTHONDIR/profile_default/startup
 
 More information can be found in the `ipython documentation
-<http://ipython.org/ipython-doc/stable/interactive/tutorial.html#startup-files>`__.  An example startup script for pandas is displayed below:
+<https://ipython.org/ipython-doc/stable/interactive/tutorial.html#startup-files>`__.  An example startup script for pandas is displayed below:
 
 .. code-block:: python
 
