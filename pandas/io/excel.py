@@ -65,7 +65,7 @@ sheet_name : str, int, list or None, default 0
 
     * Defaults to 0 -> 1st sheet as a DataFrame
     * 1 -> 2nd sheet as a DataFrame
-    * "Sheet1" -> 1st sheet as a DataFrame
+    - ``"Sheet1"``: Load sheet with name "Sheet1"
     * [0,1,"Sheet5"] -> 1st, 2nd & 5th sheet as a dictionary of DataFrames
     * None -> All sheets as a dictionary of DataFrames.
 sheetname : str, int, mixed list of strs/ints, or None, default 0
