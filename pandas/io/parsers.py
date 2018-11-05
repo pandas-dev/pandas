@@ -72,14 +72,6 @@ filepath_or_buffer : str, path object, or file-like object
     By file-like object, we refer to objects with a ``read()`` method, such as
     a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
 %s
-delim_whitespace : bool, default False
-    Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
-    used as the sep. Equivalent to setting ``sep='\s+'``. If this option
-    is set to True, nothing should be passed in for the ``delimiter``
-    parameter.
-
-    .. versionadded:: 0.18.1 support for the Python parser.
-
 header : int or list of ints, default 'infer'
     Row number(s) to use as the column names, and the start of the
     data.  Default behavior is to infer the column names: if no names
@@ -242,11 +234,6 @@ thousands : str, default None
     Thousands separator.
 decimal : str, default '.'
     Character to recognize as decimal point (e.g. use ',' for European data).
-float_precision : str, default None
-    Specifies which converter the C engine should use for floating-point
-    values. The options are `None` for the ordinary converter,
-    `high` for the high-precision converter, and `round_trip` for the
-    round-trip converter.
 lineterminator : str (length 1), default None
     Character to break file into lines. Only valid with C parser.
 quotechar : str (length 1), optional
@@ -280,11 +267,11 @@ dialect : str or csv.Dialect instance, default None
     override values, a ParserWarning will be issued. See csv.Dialect
     documentation for more details.
 tupleize_cols : bool, default False
+    Leave a list of tuples on columns as is (default is to convert to
+    a MultiIndex on the columns).
     .. deprecated:: 0.21.0
        This argument will be removed and will always convert to MultiIndex
 
-    Leave a list of tuples on columns as is (default is to convert to
-    a MultiIndex on the columns).
 error_bad_lines : bool, default True
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
@@ -293,6 +280,14 @@ error_bad_lines : bool, default True
 warn_bad_lines : bool, default True
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
     "bad line" will be output.
+delim_whitespace : bool, default False
+    Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
+    used as the sep. Equivalent to setting ``sep='\s+'``. If this option
+    is set to True, nothing should be passed in for the ``delimiter``
+    parameter.
+
+    .. versionadded:: 0.18.1 support for the Python parser.
+
 low_memory : bool, default True
     Internally process the file in chunks, resulting in lower memory use
     while parsing, but possibly mixed type inference.  To ensure no mixed
@@ -304,11 +299,15 @@ memory_map : bool, default False
     If a filepath is provided for `filepath_or_buffer`, map the file object
     directly onto memory and access the data directly from there. Using this
     option can improve performance because there is no longer any I/O overhead.
+float_precision : str, default None
+    Specifies which converter the C engine should use for floating-point
+    values. The options are `None` for the ordinary converter,
+    `high` for the high-precision converter, and `round_trip` for the
+    round-trip converter.
 
 Returns
 -------
-result : DataFrame or TextParser
-"""
+result : DataFrame or TextParser"""
 
 # engine is not used in read_fwf() so is factored out of the shared docstring
 _engine_doc = """engine : {'c', 'python'}, optional
@@ -334,11 +333,10 @@ Read CSV (comma-separated) file into DataFrame.
 """ % (_parser_params % (_sep_doc.format(default="','"), _engine_doc))
 
 _read_table_doc = """
+Read general delimited file into DataFrame.
 
 .. deprecated:: 0.24.0
    Use :func:`pandas.read_csv` instead, passing ``sep='\t'`` if necessary.
-
-Read general delimited file into DataFrame
 
 %s
 """ % (_parser_params % (_sep_doc.format(default="\\t (tab-stop)"),
@@ -361,7 +359,7 @@ delimiter : str, default ``'\t' + ' '``
 """
 
 _read_fwf_doc = """
-Read a table of fixed-width formatted lines into DataFrame
+Read a table of fixed-width formatted lines into DataFrame.
 
 %s
 """ % (_parser_params % (_fwf_widths, ''))
@@ -471,10 +469,10 @@ def _read(filepath_or_buffer, kwds):
 _parser_defaults = {
     'delimiter': None,
 
-    'doublequote': True,
     'escapechar': None,
     'quotechar': '"',
     'quoting': csv.QUOTE_MINIMAL,
+    'doublequote': True,
     'skipinitialspace': False,
     'lineterminator': None,
 
@@ -483,14 +481,16 @@ _parser_defaults = {
     'names': None,
     'prefix': None,
     'skiprows': None,
+    'skipfooter': 0,
+    'nrows': None,
     'na_values': None,
+    'keep_default_na': True,
+
     'true_values': None,
     'false_values': None,
     'converters': None,
     'dtype': None,
-    'skipfooter': 0,
 
-    'keep_default_na': True,
     'thousands': None,
     'comment': None,
     'decimal': b'.',
@@ -500,10 +500,8 @@ _parser_defaults = {
     'keep_date_col': False,
     'dayfirst': False,
     'date_parser': None,
-
     'usecols': None,
 
-    'nrows': None,
     # 'iterator': False,
     'chunksize': None,
     'verbose': False,
@@ -576,6 +574,7 @@ def _make_parser_function(name, default_sep=','):
                  false_values=None,
                  skipinitialspace=False,
                  skiprows=None,
+                 skipfooter=0,
                  nrows=None,
 
                  # NA and Missing Data Handling
@@ -603,6 +602,7 @@ def _make_parser_function(name, default_sep=','):
                  lineterminator=None,
                  quotechar='"',
                  quoting=csv.QUOTE_MINIMAL,
+                 doublequote=True,
                  escapechar=None,
                  comment=None,
                  encoding=None,
@@ -613,10 +613,7 @@ def _make_parser_function(name, default_sep=','):
                  error_bad_lines=True,
                  warn_bad_lines=True,
 
-                 skipfooter=0,
-
                  # Internal
-                 doublequote=True,
                  delim_whitespace=False,
                  low_memory=_c_parser_defaults['low_memory'],
                  memory_map=False,
@@ -668,6 +665,7 @@ def _make_parser_function(name, default_sep=','):
                     names=names,
                     prefix=prefix,
                     skiprows=skiprows,
+                    skipfooter=skipfooter,
                     na_values=na_values,
                     true_values=true_values,
                     false_values=false_values,
@@ -684,7 +682,6 @@ def _make_parser_function(name, default_sep=','):
                     nrows=nrows,
                     iterator=iterator,
                     chunksize=chunksize,
-                    skipfooter=skipfooter,
                     converters=converters,
                     dtype=dtype,
                     usecols=usecols,
