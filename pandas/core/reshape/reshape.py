@@ -12,12 +12,12 @@ from pandas.compat import PY2, range, text_type, u, zip
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
     ensure_platform_int, is_bool_dtype, is_extension_array_dtype, is_list_like,
-    is_object_dtype, is_sparse, needs_i8_conversion)
+    is_object_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import notna
 
 from pandas import compat
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical, SparseArray
+from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import _factorize_from_iterable
 from pandas.core.frame import DataFrame
 from pandas.core.index import Index, MultiIndex
@@ -82,28 +82,15 @@ class _Unstacker(object):
     def __init__(self, values, index, level=-1, value_columns=None,
                  fill_value=None, constructor=None):
 
-        self.is_categorical = None
-        self.is_sparse = is_sparse(values)
         if values.ndim == 1:
-            if isinstance(values, Categorical):
-                self.is_categorical = values
-                values = np.array(values)
-            elif self.is_sparse:
-                # XXX: Makes SparseArray *dense*, but it's supposedly
-                # a single column at a time, so it's "doable"
-                values = values.values
             values = values[:, np.newaxis]
         self.values = values
         self.value_columns = value_columns
         self.fill_value = fill_value
 
         if constructor is None:
-            if self.is_sparse:
-                self.constructor = SparseDataFrame
-            else:
-                self.constructor = DataFrame
-        else:
-            self.constructor = constructor
+            constructor = DataFrame
+        self.constructor = constructor
 
         if value_columns is None and values.shape[1] != 1:  # pragma: no cover
             raise ValueError('must pass column labels for multi-column data')
@@ -173,14 +160,6 @@ class _Unstacker(object):
         values, _ = self.get_new_values()
         columns = self.get_new_columns()
         index = self.get_new_index()
-
-        # may need to coerce categoricals here
-        if self.is_categorical is not None:
-            categories = self.is_categorical.categories
-            ordered = self.is_categorical.ordered
-            values = [Categorical(values[:, i], categories=categories,
-                                  ordered=ordered)
-                      for i in range(values.shape[-1])]
 
         return self.constructor(values, index=index, columns=columns)
 
