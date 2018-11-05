@@ -42,6 +42,9 @@ _writers = {}
 _read_excel_doc = """
 Read an Excel file into a pandas DataFrame.
 
+This function can read .xls or .xlsx files from a local file or url.
+It can be used to read one sheet or multiple sheets with different parameters.
+
 Parameters
 ----------
 io : str, path object (pathlib.Path or py._path.local.LocalPath), \
