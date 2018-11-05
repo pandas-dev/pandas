@@ -1,6 +1,7 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
+
 from __future__ import print_function
 
 from collections import defaultdict
@@ -71,7 +72,7 @@ filepath_or_buffer : str, path object, or file-like object
     By file-like object, we refer to objects with a ``read()`` method, such as
     a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
 %s
-delim_whitespace : boolean, default False
+delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
     used as the sep. Equivalent to setting ``sep='\s+'``. If this option
     is set to True, nothing should be passed in for the ``delimiter``
@@ -101,7 +102,7 @@ index_col : int or sequence or False, default None
     Column to use as the row labels of the DataFrame. If a sequence is given, a
     MultiIndex is used. If you have a malformed file with delimiters at the end
     of each line, you might consider index_col=False to force pandas to _not_
-    use the first column as the index (row names)
+    use the first column as the index (row names).
 usecols : list-like or callable, default None
     Return a subset of the columns. If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
@@ -120,11 +121,11 @@ usecols : list-like or callable, default None
     example of a valid callable argument would be ``lambda x: x.upper() in
     ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
     parsing time and lower memory usage.
-squeeze : boolean, default False
-    If the parsed data only contains one column then return a Series
+squeeze : bool, default False
+    If the parsed data only contains one column then return a Series.
 prefix : str, default None
     Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
-mangle_dupe_cols : boolean, default True
+mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
@@ -137,14 +138,14 @@ dtype : Type name or dict of column -> type, default None
 %s
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can either
-    be integers or column labels
+    be integers or column labels.
 true_values : list, default None
-    Values to consider as True
+    Values to consider as True.
 false_values : list, default None
-    Values to consider as False
-skipinitialspace : boolean, default False
+    Values to consider as False.
+skipinitialspace : bool, default False
     Skip spaces after delimiter.
-skiprows : list-like or integer or callable, default None
+skiprows : list-like or int or callable, default None
     Line numbers to skip (0-indexed) or number of lines to skip (int)
     at the start of the file.
 
@@ -152,9 +153,9 @@ skiprows : list-like or integer or callable, default None
     indices, returning True if the row should be skipped and False otherwise.
     An example of a valid callable argument would be ``lambda x: x in [0, 2]``.
 skipfooter : int, default 0
-    Number of lines at bottom of file to skip (Unsupported with engine='c')
+    Number of lines at bottom of file to skip (Unsupported with engine='c').
 nrows : int, default None
-    Number of rows of file to read. Useful for reading pieces of large files
+    Number of rows of file to read. Useful for reading pieces of large files.
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values.  By default the following values are interpreted as
@@ -175,16 +176,17 @@ keep_default_na : bool, default True
 
     Note that if `na_filter` is passed in as False, the `keep_default_na` and
     `na_values` parameters will be ignored.
-na_filter : boolean, default True
+na_filter : bool, default True
     Detect missing value markers (empty strings and the value of na_values). In
     data without any NAs, passing na_filter=False can improve the performance
-    of reading a large file
-verbose : boolean, default False
-    Indicate number of NA values placed in non-numeric columns
-skip_blank_lines : boolean, default True
-    If True, skip over blank lines rather than interpreting as NaN values
-parse_dates : boolean or list of ints or names or list of lists or dict, \
+    of reading a large file.
+verbose : bool, default False
+    Indicate number of NA values placed in non-numeric columns.
+skip_blank_lines : bool, default True
+    If True, skip over blank lines rather than interpreting as NaN values.
+parse_dates : bool or list of ints or names or list of lists or dict, \
 default False
+    The behavior is as follows:
 
     * boolean. If True -> try parsing the index.
     * list of ints or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
@@ -199,12 +201,12 @@ default False
     datetime parsing, use ``pd.to_datetime`` after ``pd.read_csv``
 
     Note: A fast-path exists for iso8601-formatted dates.
-infer_datetime_format : boolean, default False
+infer_datetime_format : bool, default False
     If True and `parse_dates` is enabled, pandas will attempt to infer the
     format of the datetime strings in the columns, and if it can be inferred,
     switch to a faster method of parsing them. In some cases this can increase
     the parsing speed by 5-10x.
-keep_date_col : boolean, default False
+keep_date_col : bool, default False
     If True and `parse_dates` specifies combining multiple columns then
     keep the original columns.
 date_parser : function, default None
@@ -217,9 +219,9 @@ date_parser : function, default None
     and pass that; and 3) call `date_parser` once for each row using one or
     more strings (corresponding to the columns defined by `parse_dates`) as
     arguments.
-dayfirst : boolean, default False
-    DD/MM format dates, international and European format
-iterator : boolean, default False
+dayfirst : bool, default False
+    DD/MM format dates, international and European format.
+iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
 chunksize : int, default None
@@ -237,10 +239,10 @@ compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
     .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
 
 thousands : str, default None
-    Thousands separator
+    Thousands separator.
 decimal : str, default '.'
     Character to recognize as decimal point (e.g. use ',' for European data).
-float_precision : string, default None
+float_precision : str, default None
     Specifies which converter the C engine should use for floating-point
     values. The options are `None` for the ordinary converter,
     `high` for the high-precision converter, and `round_trip` for the
@@ -253,7 +255,7 @@ quotechar : str (length 1), optional
 quoting : int or csv.QUOTE_* instance, default 0
     Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
     QUOTE_MINIMAL (0), QUOTE_ALL (1), QUOTE_NONNUMERIC (2) or QUOTE_NONE (3).
-doublequote : boolean, default ``True``
+doublequote : bool, default ``True``
    When quotechar is specified and quoting is not ``QUOTE_NONE``, indicate
    whether or not to interpret two consecutive quotechar elements INSIDE a
    field as a single ``quotechar`` element.
@@ -270,35 +272,35 @@ comment : str, default None
 encoding : str, default None
     Encoding to use for UTF when reading/writing (ex. 'utf-8'). `List of Python
     standard encodings
-    <https://docs.python.org/3/library/codecs.html#standard-encodings>`_
+    <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
 dialect : str or csv.Dialect instance, default None
     If provided, this parameter will override values (default or not) for the
     following parameters: `delimiter`, `doublequote`, `escapechar`,
     `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
     override values, a ParserWarning will be issued. See csv.Dialect
     documentation for more details.
-tupleize_cols : boolean, default False
+tupleize_cols : bool, default False
     .. deprecated:: 0.21.0
        This argument will be removed and will always convert to MultiIndex
 
     Leave a list of tuples on columns as is (default is to convert to
-    a MultiIndex on the columns)
-error_bad_lines : boolean, default True
+    a MultiIndex on the columns).
+error_bad_lines : bool, default True
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
     If False, then these "bad lines" will dropped from the DataFrame that is
     returned.
-warn_bad_lines : boolean, default True
+warn_bad_lines : bool, default True
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
     "bad line" will be output.
-low_memory : boolean, default True
+low_memory : bool, default True
     Internally process the file in chunks, resulting in lower memory use
     while parsing, but possibly mixed type inference.  To ensure no mixed
     types either set False, or specify the type with the `dtype` parameter.
     Note that the entire file is read into a single DataFrame regardless,
     use the `chunksize` or `iterator` parameter to return the data in chunks.
-    (Only valid with C parser)
-memory_map : boolean, default False
+    (Only valid with C parser).
+memory_map : bool, default False
     If a filepath is provided for `filepath_or_buffer`, map the file object
     directly onto memory and access the data directly from there. Using this
     option can improve performance because there is no longer any I/O overhead.
@@ -320,12 +322,13 @@ _sep_doc = r"""sep : str, default {default}
     tool, ``csv.Sniffer``. In addition, separators longer than 1 character and
     different from ``'\s+'`` will be interpreted as regular expressions and
     will also force the use of the Python parsing engine. Note that regex
-    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``
+    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``.
 delimiter : str, default ``None``
-    Alternative argument name for sep."""
+    Alternative argument name for sep.
+    """
 
 _read_csv_doc = """
-Read CSV (comma-separated) file into DataFrame
+Read CSV (comma-separated) file into DataFrame.
 
 %s
 """ % (_parser_params % (_sep_doc.format(default="','"), _engine_doc))
@@ -1994,9 +1997,9 @@ def TextParser(*args, **kwds):
         rows will be discarded
     index_col : int or list, default None
         Column or columns to use as the (possibly hierarchical) index
-    has_index_names: boolean, default False
+    has_index_names: bool, default False
         True if the cols defined in index_col have an index name and are
-        not in the header
+        not in the header.
     na_values : scalar, str, list-like, or dict, default None
         Additional strings to recognize as NA/NaN.
     keep_default_na : bool, default True
@@ -2004,8 +2007,8 @@ def TextParser(*args, **kwds):
         Thousands separator
     comment : str, default None
         Comment out remainder of line
-    parse_dates : boolean, default False
-    keep_date_col : boolean, default False
+    parse_dates : bool, default False
+    keep_date_col : bool, default False
     date_parser : function, default None
     skiprows : list of integers
         Row numbers to skip
@@ -2016,15 +2019,15 @@ def TextParser(*args, **kwds):
         either be integers or column labels, values are functions that take one
         input argument, the cell (not column) content, and return the
         transformed content.
-    encoding : string, default None
+    encoding : str, default None
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
-    squeeze : boolean, default False
-        returns Series if only one column
-    infer_datetime_format: boolean, default False
+    squeeze : bool, default False
+        returns Series if only one column.
+    infer_datetime_format: bool, default False
         If True and `parse_dates` is True for a column, try to infer the
         datetime format based on the first datetime string. If the format
         can be inferred, there often will be a large parsing speed-up.
-    float_precision : string, default None
+    float_precision : str, default None
         Specifies which converter the C engine should use for floating-point
         values. The options are None for the ordinary converter,
         'high' for the high-precision converter, and 'round_trip' for the
