@@ -44,15 +44,19 @@ class TestSparseGroupBy(object):
         sparse_grouped = self.sparse.groupby('A')
         dense_grouped = self.dense.groupby('A')
 
-        tm.assert_frame_equal(sparse_grouped.mean().to_sparse(),
-                              dense_grouped.mean().to_sparse())
+        result = sparse_grouped.mean().to_sparse()
+        expected = dense_grouped.mean().to_sparse()
+
+        tm.assert_frame_equal(result, expected)
 
         # ToDo: sparse sum includes str column
         # tm.assert_frame_equal(sparse_grouped.sum(),
         #                       dense_grouped.sum())
 
-        tm.assert_frame_equal(sparse_grouped.count().to_sparse(),
-                              dense_grouped.count().to_sparse())
+        result = sparse_grouped.count().to_sparse()
+        expected = dense_grouped.count().to_sparse()
+
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("fill_value", [0, np.nan])
