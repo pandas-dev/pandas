@@ -303,7 +303,6 @@ def read_excel(io,
                skipfooter=0,
                convert_float=True,
                **kwds):
-    encoding = kwds.get("encoding")
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
     if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
         warnings.warn("The `sheetname` keyword is deprecated, use "
@@ -315,7 +314,7 @@ def read_excel(io,
                         "`sheet`")
 
     if not isinstance(io, ExcelFile):
-        io = ExcelFile(io, engine=engine, encoding=encoding)
+        io = ExcelFile(io, engine=engine, **kwds)
 
     return io.parse(
         sheet_name=sheet_name,
@@ -356,9 +355,8 @@ class ExcelFile(object):
     """
 
     def __init__(self, io, **kwds):
-
+        kwargs = {'encoding_override': kwds.get("encoding")}
         err_msg = "Install xlrd >= 0.9.0 for Excel support"
-        encoding = kwds.get("encoding")
         try:
             import xlrd
         except ImportError:
@@ -400,15 +398,9 @@ class ExcelFile(object):
                     pass
 
             data = io.read()
-            if encoding:
-                self.book = xlrd.open_workbook(file_contents=data, encoding_override=encoding)
-            else:
-                self.book = xlrd.open_workbook(file_contents=data)
+            self.book = xlrd.open_workbook(file_contents=data, **kwargs)
         elif isinstance(self._io, compat.string_types):
-            if encoding:
-                self.book = xlrd.open_workbook(self._io, encoding_override=encoding)
-            else:
-                self.book = xlrd.open_workbook(self._io)
+            self.book = xlrd.open_workbook(self._io, **kwargs)
         else:
             raise ValueError('Must explicitly set engine if not passing in'
                              ' buffer or path for io.')
