@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas._libs import tslibs
+from pandas._libs import tslibs, lib, algos
 from pandas._libs.tslibs import Timedelta, Timestamp, NaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
@@ -133,7 +133,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
-        if isinstance(values, TimedeltaArrayMixin):
+        if lib.is_scalar(values):
+            raise TypeError(dtl.scalar_data_error(values, cls))
+        elif isinstance(values, TimedeltaArrayMixin):
             if freq is None and values.freq is not None:
                 freq = values.freq
                 freq_infer = False
@@ -158,6 +160,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     def _from_sequence(cls, scalars, dtype=_TD_DTYPE, copy=False):
         # list, tuple, or object-dtype ndarray/Index
         values = np.array(scalars, dtype=np.object_, copy=copy)
+        if values.ndim != 1:
+            raise TypeError("Values must be 1-dimensional")
 
         result = array_to_timedelta64(values)
         return cls(result, dtype=dtype)
@@ -198,6 +202,23 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             index = index[:-1]
 
         return cls._simple_new(index, freq=freq)
+
+    # ----------------------------------------------------------------
+    # Array-Like Methods
+    # NB: these are appreciably less efficient than the TimedeltaIndex versions
+
+    @property
+    def is_monotonic_increasing(self):
+        return algos.is_monotonic(self.asi8, timelike=True)[0]
+
+    @property
+    def is_monotonic_decreasing(self):
+        return algos.is_monotonic(self.asi8, timelike=True)[1]
+
+    @property
+    def is_unique(self):
+        from pandas.core.algorithms import unique1d
+        return len(unique1d(self.asi8)) == len(self)
 
     # ----------------------------------------------------------------
     # Arithmetic Methods

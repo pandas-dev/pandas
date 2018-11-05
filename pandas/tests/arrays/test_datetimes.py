@@ -20,6 +20,21 @@ class TestDatetimeArrayConstructors(object):
         with pytest.raises(TypeError):
             pd.DatetimeIndex(pd.Timestamp.now())
 
+    def test_from_sequence_requires_1dim(self):
+        arr2d = np.arange(10).view('M8[s]').astype(object).reshape(2, 5)
+        with pytest.raises(TypeError):
+            DatetimeArray(arr2d)
+
+        with pytest.raises(TypeError):
+            pd.DatetimeIndex(arr2d)
+
+        arr0d = np.array(pd.Timestamp.now())
+        with pytest.raises(TypeError):
+            DatetimeArray(arr0d)
+
+        with pytest.raises(TypeError):
+            pd.DatetimeIndex(arr0d)
+
     def test_init_from_object_dtype(self, tz_naive_fixture):
         # GH#23493
         tz = tz_naive_fixture
@@ -31,7 +46,6 @@ class TestDatetimeArrayConstructors(object):
         # arbitrary DatetimeIndex; this should work for any DatetimeIndex
         #  with non-None freq
         dti = pd.date_range('2016-01-1', freq='MS', periods=9, tz=tz)
-        expected = DatetimeArray(dti)
 
         # Fails because np.array(dti, dtype=object) incorrectly returns Longs
         result = DatetimeArray(np.array(dti, dtype=object), freq='infer')

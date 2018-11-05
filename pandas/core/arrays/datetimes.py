@@ -245,6 +245,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         # list, tuple, or object-dtype ndarray/Index
         values = np.array(scalars, dtype=np.object_, copy=copy)
+        if values.ndim != 1:
+            raise TypeError("Values must be 1-dimensional")
 
         # TODO: See if we can decrease circularity
         from pandas.core.tools.datetimes import to_datetime

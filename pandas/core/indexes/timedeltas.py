@@ -156,9 +156,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             data = to_timedelta(data, unit=unit, box=False)
 
         if is_scalar(data):
-            raise ValueError('TimedeltaIndex() must be called with a '
-                             'collection of some kind, {data} was passed'
-                             .format(data=repr(data)))
+            raise dtl.scalar_data_error(data, cls)
 
         # convert if not already
         if getattr(data, 'dtype', None) != _TD_DTYPE:
@@ -232,12 +230,22 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                                     nat_rep=na_rep,
                                     justify='all').get_result()
 
+    # -----------------------------------------------------------------
+    # Wrapping TimedeltaArray
+
     days = wrap_field_accessor(TimedeltaArrayMixin.days)
     seconds = wrap_field_accessor(TimedeltaArrayMixin.seconds)
     microseconds = wrap_field_accessor(TimedeltaArrayMixin.microseconds)
     nanoseconds = wrap_field_accessor(TimedeltaArrayMixin.nanoseconds)
 
     total_seconds = wrap_array_method(TimedeltaArrayMixin.total_seconds, True)
+
+    # override TimedeltaArray versions
+    is_monotonic_increasing = Index.is_monotonic_increasing
+    is_monotonic_decreasing = Index.is_monotonic_decreasing
+    is_unique = Index.is_unique
+
+    # -----------------------------------------------------------------
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
