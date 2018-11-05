@@ -591,6 +591,22 @@ class TestTypeInference(object):
         expected = 'unicode' if PY2 else 'string'
         assert result == expected
 
+    @pytest.mark.parametrize('dtype, missing, skipna, expected', [
+        (float, np.nan, False, 'floating'),
+        (float, np.nan, True, 'floating'),
+        (object, np.nan, False, 'floating'),
+        (object, np.nan, True, 'empty'),
+        (object, None, False, 'mixed'),
+        (object, None, True, 'empty')
+    ])
+    @pytest.mark.parametrize('box', [pd.Series, np.array])
+    def test_object_empty(self, box, missing, dtype, skipna, expected):
+        # GH 23421
+        arr = box([missing, missing], dtype=dtype)
+
+        result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == expected
+
     def test_datetime(self):
 
         dates = [datetime(2012, 1, x) for x in range(1, 20)]

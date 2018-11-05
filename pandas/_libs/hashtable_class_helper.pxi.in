@@ -86,12 +86,12 @@ cdef class {{name}}Vector:
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.ao = np.empty(self.data.m, dtype={{idtype}})
-        self.data.data = <{{arg}}*> self.ao.data
+        self.data.data = <{{arg}}*>self.ao.data
 
     cdef resize(self):
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
         self.ao.resize(self.data.m, refcheck=False)
-        self.data.data = <{{arg}}*> self.ao.data
+        self.data.data = <{{arg}}*>self.ao.data
 
     def __dealloc__(self):
         if self.data is not NULL:
@@ -140,7 +140,7 @@ cdef class StringVector:
         self.external_view_exists = False
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
-        self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+        self.data.data = <char **>malloc(self.data.m * sizeof(char *))
         if not self.data.data:
             raise MemoryError()
 
@@ -153,7 +153,7 @@ cdef class StringVector:
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
 
         orig_data = self.data.data
-        self.data.data = <char **> malloc(self.data.m * sizeof(char *))
+        self.data.data = <char **>malloc(self.data.m * sizeof(char *))
         if not self.data.data:
             raise MemoryError()
         for i in range(m):
@@ -208,22 +208,22 @@ cdef class ObjectVector:
         self.n = 0
         self.m = _INIT_VEC_CAP
         self.ao = np.empty(_INIT_VEC_CAP, dtype=object)
-        self.data = <PyObject**> self.ao.data
+        self.data = <PyObject**>self.ao.data
 
     def __len__(self):
         return self.n
 
-    cdef inline append(self, object o):
+    cdef inline append(self, object obj):
         if self.n == self.m:
             if self.external_view_exists:
                 raise ValueError("external reference but "
                                  "Vector.resize() needed")
             self.m = max(self.m * 2, _INIT_VEC_CAP)
             self.ao.resize(self.m, refcheck=False)
-            self.data = <PyObject**> self.ao.data
+            self.data = <PyObject**>self.ao.data
 
-        Py_INCREF(o)
-        self.data[self.n] = <PyObject*> o
+        Py_INCREF(obj)
+        self.data[self.n] = <PyObject*>obj
         self.n += 1
 
     def to_array(self):
@@ -318,7 +318,7 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 key = keys[i]
                 k = kh_put_{{dtype}}(self.table, key, &ret)
-                self.table.vals[k] = <Py_ssize_t> values[i]
+                self.table.vals[k] = <Py_ssize_t>values[i]
 
     @cython.boundscheck(False)
     def map_locations(self, ndarray[{{dtype}}_t, ndim=1] values):
@@ -768,7 +768,7 @@ cdef class StringHashTable(HashTable):
         use_na_value = na_value is not None
 
         # assign pointers and pre-filter out missing
-        vecs = <const char **> malloc(n * sizeof(char *))
+        vecs = <const char **>malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 
@@ -844,9 +844,9 @@ cdef class PyObjectHashTable(HashTable):
 
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
-        return self.table.n_buckets * (sizeof(PyObject *) + # keys
-                                       sizeof(Py_ssize_t) + # vals
-                                       sizeof(uint32_t)) # flags
+        return self.table.n_buckets * (sizeof(PyObject *) +  # keys
+                                       sizeof(Py_ssize_t) +  # vals
+                                       sizeof(uint32_t))  # flags
 
     cpdef get_item(self, object val):
         cdef khiter_t k

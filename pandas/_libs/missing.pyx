@@ -13,7 +13,7 @@ cimport util
 from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
 from tslibs.nattype import NaT
 
-cdef double INF = <double> np.inf
+cdef double INF = <double>np.inf
 cdef double NEGINF = -INF
 
 cdef int64_t NPY_NAT = util.get_nat()
@@ -124,7 +124,7 @@ cdef inline bint _check_none_nan_inf_neginf(object val):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnaobj(ndarray arr):
+cpdef ndarray[uint8_t] isnaobj(ndarray arr):
     """
     Return boolean mask denoting which elements of a 1-D array are na-like,
     according to the criteria defined in `_check_all_nulls`:
@@ -224,7 +224,7 @@ def isnaobj2d(ndarray arr):
 
     assert arr.ndim == 2, "'arr' must be 2-D."
 
-    n, m = (<object> arr).shape
+    n, m = (<object>arr).shape
     result = np.zeros((n, m), dtype=np.uint8)
     for i in range(n):
         for j in range(m):
@@ -268,7 +268,7 @@ def isnaobj2d_old(ndarray arr):
 
     assert arr.ndim == 2, "'arr' must be 2-D."
 
-    n, m = (<object> arr).shape
+    n, m = (<object>arr).shape
     result = np.zeros((n, m), dtype=np.uint8)
     for i in range(n):
         for j in range(m):
