@@ -22,15 +22,23 @@ class TestSparseGroupBy(object):
     def test_first_last_nth(self):
         # tests for first / last / nth
         sparse_grouped = self.sparse.groupby('A')
-        dense_grouped = self.dense.to_sparse().groupby('A')
+        dense_grouped = self.dense.groupby('A')
+
+        sparse_grouped_first = sparse_grouped.first()
+        sparse_grouped_last = sparse_grouped.last()
+        sparse_grouped_nth = sparse_grouped.nth(1)
+
+        dense_grouped_first = dense_grouped.first().to_sparse()
+        dense_grouped_last = dense_grouped.last().to_sparse()
+        dense_grouped_nth = dense_grouped.nth(1).to_sparse()
 
         # TODO: shouldn't these all be spares or not?
-        tm.assert_frame_equal(sparse_grouped.first(),
-                              dense_grouped.first())
-        tm.assert_frame_equal(sparse_grouped.last(),
-                              dense_grouped.last())
-        tm.assert_frame_equal(sparse_grouped.nth(1),
-                              dense_grouped.nth(1))
+        tm.assert_frame_equal(sparse_grouped_first,
+                              dense_grouped_first)
+        tm.assert_frame_equal(sparse_grouped_last,
+                              dense_grouped_last)
+        tm.assert_frame_equal(sparse_grouped_nth,
+                              dense_grouped_nth)
 
     def test_aggfuncs(self):
         sparse_grouped = self.sparse.groupby('A')

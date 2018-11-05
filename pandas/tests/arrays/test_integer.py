@@ -651,8 +651,11 @@ def test_preserve_dtypes(op):
     # groupby
     result = getattr(df.groupby("A"), op)()
 
-    assert result.dtypes['B'].name == 'float64'
-    assert result.dtypes['C'].name == 'Int64'
+    expected = pd.DataFrame({
+        "B": np.array([1.0, 3.0]),
+        "C": integer_array([1, 3], dtype="Int64")
+    }, index=pd.Index(['a', 'b'], name='A'))
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize('op', ['mean'])
