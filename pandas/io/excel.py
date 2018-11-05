@@ -155,13 +155,13 @@ comment : str, default None
     argument to indicate comments in the input file. Any data between the
     comment string and the end of the current line is ignored.
 skip_footer : int, default 0
-
+    Rows at the end to skip (0-indexed).
     .. deprecated:: 0.23.0
        Pass in `skipfooter` instead.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
 convert_float : bool, default True
-    convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
+    Convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally.
 
