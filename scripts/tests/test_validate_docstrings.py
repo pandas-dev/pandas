@@ -1,5 +1,4 @@
 import io
-import os
 import random
 import string
 import textwrap
@@ -712,9 +711,9 @@ class TestValidator(object):
         ('BadSummaries', 'no_capitalization',
          ('Summary must start with infinitive verb',)),
         ('BadSummaries', 'multi_line',
-         ('Summary should fit in a single line.',)),
+         ('Summary should fit in a single line',)),
         ('BadSummaries', 'two_paragraph_multi_line',
-         ('Summary should fit in a single line.',)),
+         ('Summary should fit in a single line',)),
         # Parameters tests
         ('BadParameters', 'missing_params',
          ('Parameters {**kwargs} not documented',)),
@@ -753,27 +752,28 @@ class TestValidator(object):
                      marks=pytest.mark.xfail),
         # Examples tests
         ('BadGenericDocStrings', 'method',
-         ('numpy does not need to be imported in the examples',)),
+         ('Do not import numpy, as it is imported automatically',)),
         ('BadGenericDocStrings', 'method',
-         ('pandas does not need to be imported in the examples',)),
+         ('Do not import pandas, as it is imported automatically',)),
         # See Also tests
         ('BadSeeAlso', 'prefix_pandas',
          ('pandas.Series.rename in `See Also` section '
           'does not need `pandas` prefix',)),
         # Examples tests
         ('BadExamples', 'unused_import',
-         ('1 F401 \'pandas as pdf\' imported but unused',)),
+         ("flake8 error: F401 'pandas as pdf' imported but unused",)),
         ('BadExamples', 'indentation_is_not_a_multiple_of_four',
-         ('1 E111 indentation is not a multiple of four',)),
+         ('flake8 error: E111 indentation is not a multiple of four',)),
         ('BadExamples', 'missing_whitespace_around_arithmetic_operator',
-         ('1 E226 missing whitespace around arithmetic operator',)),
+         ('flake8 error: '
+          'E226 missing whitespace around arithmetic operator',)),
         ('BadExamples', 'missing_whitespace_after_comma',
-         ('3 E231 missing whitespace after \',\'',)),
+         ("flake8 error: E231 missing whitespace after ',' (3 times)",)),
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))
         for msg in msgs:
-            assert msg in ' '.join(result['errors'])
+            assert msg in ' '.join(err[1] for err in result['errors'])
 
 
 class ApiItems(object):
@@ -852,45 +852,93 @@ class ApiItems(object):
         assert result[idx][3] == subsection
 
 
-def test_num_errors_for_validate_one(monkeypatch):
-    monkeypatch.setattr(validate_docstrings, 'validate_one',
-                        lambda func_name: {'docstring': 'docstring1',
-                                           'errors': ['err1', 'err2', 'err3'],
-                                           'warnings': [],
-                                           'examples_errors': ''})
-    with open(os.devnull, 'w') as devnull:
-        num_errors = validate_docstrings.main('docstring1', devnull)
-    assert num_errors == 3
+class MainFunction(object):
+    def test_num_errors_for_validate_one(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_one',
+            lambda func_name: {'docstring': 'docstring1',
+                               'errors': [('ER01', 'err desc'),
+                                          ('ER02', 'err desc')
+                                          ('ER03', 'err desc')],
+                               'warnings': [],
+                               'examples_errors': ''})
+        num_errors = validate_docstrings.main(func_name='docstring1',
+                                              prefix=None,
+                                              errors=[],
+                                              output_format='default')
+        assert num_errors == 3
 
+    def test_no_num_errors_for_validate_one(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_one',
+            lambda func_name: {'docstring': 'docstring1',
+                               'errors': [],
+                               'warnings': [('WN01', 'warn desc')],
+                               'examples_errors': ''})
+        num_errors = validate_docstrings.main(func_name='docstring1',
+                                              prefix=None,
+                                              errors=[],
+                                              output_format='default')
+        assert num_errors == 0
 
-def test_no_num_errors_for_validate_one(monkeypatch):
-    monkeypatch.setattr(validate_docstrings, 'validate_one',
-                        lambda func_name: {'docstring': 'docstring1',
-                                           'errors': [],
-                                           'warnings': ['warn1'],
-                                           'examples_errors': ''})
-    with open(os.devnull, 'w') as devnull:
-        num_errors = validate_docstrings.main('docstring1', devnull)
-    assert num_errors == 0
+    def test_num_errors_for_validate_all(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_all',
+            lambda: {'docstring1': {'errors': [('ER01', 'err desc'),
+                                               ('ER02', 'err desc'),
+                                               ('ER03', 'err desc')]},
+                     'docstring2': {'errors': [('ER04', 'err desc'),
+                                               ('ER05', 'err desc')]}})
+        num_errors = validate_docstrings.main(func_name=None,
+                                              prefix=None,
+                                              errors=[],
+                                              output_format='default')
+        assert num_errors == 5
 
+    def test_no_num_errors_for_validate_all(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_all',
+            lambda: {'docstring1': {'errors': [],
+                                    'warnings': [('WN01', 'warn desc')]},
+                     'docstring2': {'errors': []}})
+        num_errors = validate_docstrings.main(func_name=None,
+                                              prefix=None,
+                                              errors=[],
+                                              output_format='default')
+        assert num_errors == 0
 
-def test_num_errors_for_validate_all(monkeypatch):
-    monkeypatch.setattr(validate_docstrings, 'validate_all',
-                        lambda: {'docstring1': {'errors': ['err1',
-                                                           'err2',
-                                                           'err3']},
-                                 'docstring2': {'errors': ['err4',
-                                                           'err5']}})
-    with open(os.devnull, 'w') as devnull:
-        num_errors = validate_docstrings.main(None, devnull)
-    assert num_errors == 5
+    def test_prefix_param_filters_docstrings(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_all',
+            lambda: {'Series.foo': {'errors': [('ER01', 'err desc'),
+                                               ('ER02', 'err desc'),
+                                               ('ER03', 'err desc')]},
+                     'DataFrame.bar': {'errors': [('ER04', 'err desc'),
+                                                  ('ER05', 'err desc')]},
+                     'Series.foobar': {'errors': [('ER06', 'err desc')]}})
+        num_errors = validate_docstrings.main(func_name=None,
+                                              prefix='Series.',
+                                              errors=[],
+                                              output_format='default')
+        assert num_errors == 4
 
+    def test_errors_param_filters_errors(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_all',
+            lambda: {'Series.foo': {'errors': [('ER01', 'err desc'),
+                                               ('ER02', 'err desc'),
+                                               ('ER03', 'err desc')]},
+                     'DataFrame.bar': {'errors': [('ER01', 'err desc'),
+                                                  ('ER02', 'err desc')]},
+                     'Series.foobar': {'errors': [('ER01', 'err desc')]}})
+        num_errors = validate_docstrings.main(func_name=None,
+                                              prefix=None,
+                                              errors=['E01'],
+                                              output_format='default')
+        assert num_errors == 3
 
-def test_no_num_errors_for_validate_all(monkeypatch):
-    monkeypatch.setattr(validate_docstrings, 'validate_all',
-                        lambda: {'docstring1': {'errors': [],
-                                                'warnings': ['warn1']},
-                                 'docstring2': {'errors': []}})
-    with open(os.devnull, 'w') as devnull:
-        num_errors = validate_docstrings.main(None, devnull)
-    assert num_errors == 0
+        num_errors = validate_docstrings.main(func_name=None,
+                                              prefix=None,
+                                              errors=['E03'],
+                                              output_format='default')
+        assert num_errors == 1

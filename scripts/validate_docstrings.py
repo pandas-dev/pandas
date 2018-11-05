@@ -453,7 +453,7 @@ def validate_one(func_name):
 
     Notes
     -----
-    The errors are codified in the next way:
+    The errors codes are defined as:
     - First two characters: Section where the error happens:
        * GL: Global (no section, like section ordering errors)
        * SS: Short summary
@@ -469,9 +469,12 @@ def validate_one(func_name):
        * EX: Examples
     - Last two characters: Numeric error code inside the section
 
-    For example, RT02 is the second codified error in the Returns section.
+    For example, EX02 is the second codified error in the Examples section
+    (which in this case is assigned to examples that do not pass the tests).
 
-    The exact codes are available in the source code of this function.
+    The error codes, their corresponding error messages, and the details on how
+    they are validated, are not documented more than in the source code of this
+    function.
     """
     doc = Docstring(func_name)
 
@@ -598,7 +601,7 @@ def validate_one(func_name):
         examples_source_code = ''.join(doc.examples_source_code)
         for wrong_import in ('import numpy', 'import pandas'):
             if wrong_import in examples_source_code:
-                errs.append(('EX04', "Do not {}, as it's imported "
+                errs.append(('EX04', "Do not {}, as it is imported "
                              'automatically for the examples (numpy as np, '
                              'pandas as pd)'.format(wrong_import)))
 
@@ -620,9 +623,9 @@ def validate_all(prefix):
 
     Parameters
     ----------
-    prefix : str, optional
+    prefix : str or None
         If provided, only the docstrings that start with this pattern will be
-        validated.
+        validated. If None, all docstrings will be validated.
 
     Returns
     -------
@@ -760,9 +763,9 @@ if __name__ == '__main__':
                            nargs='?',
                            default=None,
                            help=func_help)
-    argparser.add_argument('--format', default='default', help='format of the '
-                           'output when validating multiple docstrings '
-                           '(ignored when validating one). '
+    argparser.add_argument('--format', default='default', choices=format_opts,
+                           help='format of the output when validating '
+                           'multiple docstrings (ignored when validating one).'
                            'It can be {}'.format(str(format_opts)[1:-1]))
     argparser.add_argument('--prefix', default=None, help='pattern for the '
                            'docstring names, in order to decide which ones '
@@ -776,8 +779,6 @@ if __name__ == '__main__':
                            'a single docstring)')
 
     args = argparser.parse_args()
-    if args.format not in format_opts:
-        raise ValueError('--format argument must be one of {}'.format(
-            str(format_opts)[1:-1]))
-    sys.exit(main(args.function, args.prefix, args.errors.split(','),
+    sys.exit(main(args.function, args.prefix,
+                  args.errors.split(',') if args.errors else None,
                   args.format))
