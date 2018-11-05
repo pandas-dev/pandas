@@ -669,7 +669,7 @@ def validate_all(prefix):
     return result
 
 
-def main(func_name, prefix, output_format):
+def main(func_name, prefix, errors, output_format):
     def header(title, width=80, char='#'):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
@@ -683,8 +683,6 @@ def main(func_name, prefix, output_format):
 
     if func_name is None:
         result = validate_all(prefix)
-        errors = itertools.chain(*(doc['errors'] for doc in result.values()))
-        num_errors = sum(1 for err in errors)
 
         if output_format == 'json':
             output = json.dumps(result)
@@ -701,9 +699,15 @@ def main(func_name, prefix, output_format):
                 raise ValueError('Unknown output_format "{}"'.format(
                     output_format))
 
-            output = ''
+            num_errors, output = 0, ''
             for name, res in result.items():
                 for err_code, err_desc in res['errors']:
+                    # The script would be faster if instead of filtering the
+                    # errors after validating them, it didn't validate them
+                    # initially. But that would complicate the code too much
+                    if errors and err_code not in errors:
+                        continue
+                    num_errors += 1
                     output += output_format.format(
                         name=name,
                         path=res['file'],
@@ -767,9 +771,14 @@ if __name__ == '__main__':
                            'will make the script validate all the docstrings'
                            'of methods starting by this pattern. It is '
                            'ignored if parameter function is provided')
+    argparser.add_argument('--errors', default=None, help='comma separated '
+                           'list of error codes to validate. By default it '
+                           'validates all errors (ignored when validating '
+                           'a single docstring)')
 
     args = argparser.parse_args()
     if args.format not in format_opts:
         raise ValueError('--format argument must be one of {}'.format(
             str(format_opts)[1:-1]))
-    sys.exit(main(args.function, args.prefix, args.format))
+    sys.exit(main(args.function, args.prefix, args.errors.split(','),
+                  args.format))
