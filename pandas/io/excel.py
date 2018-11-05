@@ -40,7 +40,7 @@ _writer_extensions = ["xlsx", "xls", "xlsm"]
 _writers = {}
 
 _read_excel_doc = """
-Read an Excel table into a pandas DataFrame.
+Read an Excel file into a pandas DataFrame.
 
 Parameters
 ----------
