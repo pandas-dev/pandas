@@ -725,7 +725,8 @@ class TestValidator(object):
         ('BadReturns', 'no_punctuation',
          ('Return value description should finish with "."',)),
         ('BadReturns', 'named_single_return',
-         ('No name is to be provided when returning a single value',)),
+         ('The first line of the Returns section should contain only the '
+          'type, unless multiple values are being returned.',)),
         ('BadReturns', 'no_capitalization',
          ('Return value "foo" description should start with a capital '
           'letter',)),
