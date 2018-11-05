@@ -174,11 +174,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         assert data.dtype == 'm8[ns]', data.dtype
 
         subarr = cls._simple_new(data, name=name, freq=freq)
-        # check that we are matching freqs
-        if verify_integrity and len(subarr) > 0:
-            if freq is not None and not freq_infer:
-                cls._validate_frequency(subarr, freq)
-
+        dtl.maybe_validate_freq(subarr, verify_integrity, freq, freq_infer)
         dtl.maybe_define_freq(freq_infer, subarr)
         return subarr
 

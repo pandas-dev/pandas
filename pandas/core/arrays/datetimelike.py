@@ -928,6 +928,26 @@ def maybe_define_freq(freq_infer, result):
             result.freq = frequencies.to_offset(inferred)
 
 
+def maybe_validate_freq(result, verify, freq, freq_infer, **kwargs):
+    """
+    If a frequency was passed by the user and not inferred or extracted
+    from the underlying data, then validate that the data is consistent with
+    the user-provided frequency.
+
+    Parameters
+    ----------
+    result : DatetimeIndex or TimedeltaIndex
+    verify : bool
+    freq : DateOffset or None
+    freq_infer : bool
+    **kwargs : arguments to pass to `_validate_frequency`
+        For DatetimeIndex this is just "ambiguous", empty for TimedeltaIndex
+    """
+    if verify and len(result) > 0:
+        if freq is not None and not freq_infer:
+            result._validate_frequency(result, freq, **kwargs)
+
+
 def validate_tz_from_dtype(dtype, tz):
     """
     If the given dtype is a DatetimeTZDtype, extract the implied

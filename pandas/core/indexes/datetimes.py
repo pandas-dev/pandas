@@ -309,11 +309,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         assert subarr.dtype == 'M8[ns]', subarr.dtype
 
         subarr = cls._simple_new(subarr, name=name, freq=freq, tz=tz)
-
-        if verify_integrity and len(subarr) > 0:
-            if freq is not None and not freq_infer:
-                cls._validate_frequency(subarr, freq, ambiguous=ambiguous)
-
+        dtl.maybe_validate_freq(subarr, verify_integrity, freq, freq_infer,
+                                ambiguous=ambiguous)
         dtl.maybe_define_freq(freq_infer, subarr)
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
