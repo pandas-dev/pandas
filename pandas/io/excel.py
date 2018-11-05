@@ -49,7 +49,7 @@ io : str, path object (pathlib.Path or py._path.local.LocalPath), \
     The string could be a URL. Valid URL schemes include http, ftp, s3,
     gcs, and file. For file URLs, a host is expected. For instance, a local
     file could be file://localhost/path/to/workbook.xlsx.
-sheet_name : str, int, mixed list of strs/ints, or None, default 0
+sheet_name : str, int, list or None, default 0
     Strings are used for sheet names, Integers are used in zero-indexed
     sheet positions.
 
