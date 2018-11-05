@@ -120,19 +120,19 @@ converters : dict, default None
     input argument, the Excel cell content, and return the transformed
     content.
 true_values : list, default None
-    Values to consider as True
+    Values to consider as True.
 
     .. versionadded:: 0.19.0
 
 false_values : list, default None
-    Values to consider as False
+    Values to consider as False.
 
     .. versionadded:: 0.19.0
 
 skiprows : list-like
-    Rows to skip at the beginning (0-indexed)
+    Rows to skip at the beginning (0-indexed).
 nrows : int, default None
-    Number of rows to parse
+    Number of rows to parse.
 
     .. versionadded:: 0.23.0
 
@@ -144,7 +144,7 @@ keep_default_na : bool, default True
     If na_values are specified and keep_default_na is False the default NaN
     values are overridden, otherwise they're appended to.
 verbose : boolean, default False
-    Indicate number of NA values placed in non-numeric columns
+    Indicate number of NA values placed in non-numeric columns.
 thousands : str, default None
     Thousands separator for parsing string columns to numeric.  Note that
     this parameter is only necessary for columns stored as TEXT in Excel,
@@ -159,11 +159,11 @@ skip_footer : int, default 0
     .. deprecated:: 0.23.0
        Pass in `skipfooter` instead.
 skipfooter : int, default 0
-    Rows at the end to skip (0-indexed)
+    Rows at the end to skip (0-indexed).
 convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
-    internally
+    internally.
 
 Returns
 -------
