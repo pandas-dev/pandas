@@ -1,13 +1,13 @@
-import string
-import random
 import io
+import os
+import random
+import string
+import textwrap
 import pytest
 import numpy as np
-
+from pandas.util.testing import capture_stderr
 import validate_docstrings
 validate_one = validate_docstrings.validate_one
-
-from pandas.util.testing import capture_stderr
 
 
 class GoodDocStrings(object):
@@ -779,40 +779,40 @@ class TestValidator(object):
 class ApiItems(object):
     @property
     def api_doc(self):
-        return io.StringIO('''
-.. currentmodule:: itertools
+        return textwrap.dedent(io.StringIO('''
+            .. currentmodule:: itertools
 
-Itertools
----------
+            Itertools
+            ---------
 
-Infinite
-~~~~~~~~
+            Infinite
+            ~~~~~~~~
 
-.. autosummary::
+            .. autosummary::
 
-    cycle
-    count
+                cycle
+                count
 
-Finite
-~~~~~~
+            Finite
+            ~~~~~~
 
-.. autosummary::
+            .. autosummary::
 
-    chain
+                chain
 
-.. currentmodule:: random
+            .. currentmodule:: random
 
-Random
-------
+            Random
+            ------
 
-All
-~~~
+            All
+            ~~~
 
-.. autosummary::
+            .. autosummary::
 
-    seed
-    randint
-''')
+                seed
+                randint
+            '''))
 
     @pytest.mark.parametrize('idx,name', [(0, 'itertools.cycle'),
                                           (1, 'itertools.count'),
@@ -850,3 +850,47 @@ All
     def test_item_subsection(self, idx, subsection):
         result = list(validate_docstrings.get_api_items(self.api_doc))
         assert result[idx][3] == subsection
+
+
+def test_num_errors_for_validate_one(monkeypatch):
+    monkeypatch.setattr(validate_docstrings, 'validate_one',
+                        lambda func_name: {'docstring': 'docstring1',
+                                           'errors': ['err1', 'err2', 'err3'],
+                                           'warnings': [],
+                                           'examples_errors': ''})
+    with open(os.devnull, 'w') as devnull:
+        num_errors = validate_docstrings.main('docstring1', devnull)
+    assert num_errors == 3
+
+
+def test_no_num_errors_for_validate_one(monkeypatch):
+    monkeypatch.setattr(validate_docstrings, 'validate_one',
+                        lambda func_name: {'docstring': 'docstring1',
+                                           'errors': [],
+                                           'warnings': ['warn1'],
+                                           'examples_errors': ''})
+    with open(os.devnull, 'w') as devnull:
+        num_errors = validate_docstrings.main('docstring1', devnull)
+    assert num_errors == 0
+
+
+def test_num_errors_for_validate_all(monkeypatch):
+    monkeypatch.setattr(validate_docstrings, 'validate_all',
+                        lambda: {'docstring1': {'errors': ['err1',
+                                                           'err2',
+                                                           'err3']},
+                                 'docstring2': {'errors': ['err4',
+                                                           'err5']}})
+    with open(os.devnull, 'w') as devnull:
+        num_errors = validate_docstrings.main(None, devnull)
+    assert num_errors == 5
+
+
+def test_no_num_errors_for_validate_all(monkeypatch):
+    monkeypatch.setattr(validate_docstrings, 'validate_all',
+                        lambda: {'docstring1': {'errors': [],
+                                                'warnings': ['warn1']},
+                                 'docstring2': {'errors': []}})
+    with open(os.devnull, 'w') as devnull:
+        num_errors = validate_docstrings.main(None, devnull)
+    assert num_errors == 0

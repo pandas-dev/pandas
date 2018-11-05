@@ -23,6 +23,7 @@ import argparse
 import pydoc
 import inspect
 import importlib
+import itertools
 import doctest
 import tempfile
 
@@ -644,29 +645,35 @@ def main(func_name, fd):
             full_line=full_line, title_line=title_line)
 
     if func_name is None:
-        json_doc = validate_all()
-        fd.write(json.dumps(json_doc))
+        result = validate_all()
+        fd.write(json.dumps(result))
+        errors = itertools.chain(*(doc['errors'] for doc in result.values()))
+        num_errors = sum(1 for err in errors)
     else:
-        doc_info = validate_one(func_name)
+        result = validate_one(func_name)
 
         fd.write(header('Docstring ({})'.format(func_name)))
-        fd.write('{}\n'.format(doc_info['docstring']))
+        fd.write('{}\n'.format(result['docstring']))
         fd.write(header('Validation'))
-        if doc_info['errors']:
-            fd.write('{} Errors found:\n'.format(len(doc_info['errors'])))
-            for err in doc_info['errors']:
+        if result['errors']:
+            fd.write('{} Errors found:\n'.format(len(result['errors'])))
+            for err in result['errors']:
                 fd.write('\t{}\n'.format(err))
-        if doc_info['warnings']:
-            fd.write('{} Warnings found:\n'.format(len(doc_info['warnings'])))
-            for wrn in doc_info['warnings']:
+        if result['warnings']:
+            fd.write('{} Warnings found:\n'.format(len(result['warnings'])))
+            for wrn in result['warnings']:
                 fd.write('\t{}\n'.format(wrn))
 
-        if not doc_info['errors']:
+        if not result['errors']:
             fd.write('Docstring for "{}" correct. :)\n'.format(func_name))
 
-        if doc_info['examples_errors']:
+        if result['examples_errors']:
             fd.write(header('Doctests'))
-            fd.write(doc_info['examples_errors'])
+            fd.write(result['examples_errors'])
+
+        num_errors = len(result['errors'])
+
+    return num_errors
 
 
 if __name__ == '__main__':
