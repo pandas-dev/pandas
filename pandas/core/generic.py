@@ -10472,7 +10472,7 @@ _shared_docs['max_multi_index'] = dict(stat_func='max', verb='Maximize',
                                        indexed_level_output_0='112',
                                        indexed_level_output_1='117',
                                        indexed_level_output_2='113',
-                                       additional=None)
+                                       additional='')
 
 _shared_docs['min_multi_index'] = dict(stat_func='min', verb='Minimize',
                                        default_output='35',
@@ -10481,7 +10481,7 @@ _shared_docs['min_multi_index'] = dict(stat_func='min', verb='Minimize',
                                        indexed_level_output_0='47',
                                        indexed_level_output_1='35',
                                        indexed_level_output_2='54',
-                                       additional=None)
+                                       additional='')
 
 _sum_examples = _shared_docs['stat_func_example'] % \
     _shared_docs['sum_multi_index']
