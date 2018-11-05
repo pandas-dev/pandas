@@ -89,7 +89,7 @@ index_col : int, list of ints, default None
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
 parse_cols : int or list, default None
-    Same as usecols.
+    Alias of `usecols`.
 
     .. deprecated:: 0.21.0
 
