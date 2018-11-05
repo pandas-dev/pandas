@@ -2104,6 +2104,62 @@ Methods
     Timedelta.to_timedelta64
     Timedelta.total_seconds
 
+.. _api.dateoffsets:
+
+Date Offsets
+------------
+
+.. currentmodule:: pandas.tseries.offsets
+
+.. autosummary::
+   :toctree: generated/
+
+   DateOffset
+   BusinessDay
+   BusinessHour
+   CustomBusinessDay
+   CustomBusinessHour
+   MonthOffset
+   MonthEnd
+   MonthBegin
+   BusinessMonthEnd
+   BusinessMonthBegin
+   CustomBusinessMonthEnd
+   CustomBusinessMonthBegin
+   SemiMonthOffset
+   SemiMonthEnd
+   SemiMonthBegin
+   Week
+   WeekOfMonth
+   LastWeekOfMonth
+   QuarterOffset
+   BQuarterEnd
+   BQuarterBegin
+   QuarterEnd
+   QuarterBegin
+   YearOffset
+   BYearEnd
+   BYearBegin
+   YearEnd
+   YearBegin
+   FY5253
+   FY5253Quarter
+   Easter
+   Tick
+   Day
+   Hour
+   Minute
+   Second
+   Milli
+   Micro
+   Nano
+   BDay
+   BMonthEnd
+   BMonthBegin
+   CBMonthEnd
+   CBMonthBegin
+   CDay
+
 .. _api.frequencies:
 
 Frequencies
