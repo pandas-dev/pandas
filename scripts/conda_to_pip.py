@@ -64,7 +64,7 @@ def main(conda_fname, pip_fname, compare=False):
         True if the comparison fails, False otherwise
     """
     with open(conda_fname) as conda_fd:
-        deps = yaml.load(conda_fd)['dependencies']
+        deps = yaml.safe_load(conda_fd)['dependencies']
 
     pip_content = '\n'.join(filter(None, map(conda_package_to_pip, deps)))
 
