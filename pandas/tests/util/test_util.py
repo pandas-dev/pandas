@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
 import codecs
+from collections import OrderedDict
 import locale
 import os
 import sys
-from collections import OrderedDict
 from uuid import uuid4
 
 import pytest
 
-import pandas.core.common as com
-import pandas.util._test_decorators as td
-import pandas.util.testing as tm
 from pandas.compat import PY3, intern
 from pandas.util._decorators import deprecate_kwarg, make_signature
 from pandas.util._move import BadMove, move_into_mutable_buffer, stolenbuf
+import pandas.util._test_decorators as td
 from pandas.util._validators import (
     validate_args, validate_args_and_kwargs, validate_bool_kwarg,
-    validate_kwargs
-)
+    validate_kwargs)
+
+import pandas.core.common as com
+import pandas.util.testing as tm
 
 
 class TestDecorators(object):

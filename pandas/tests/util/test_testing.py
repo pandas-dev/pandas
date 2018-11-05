@@ -6,14 +6,14 @@ import textwrap
 import numpy as np
 import pytest
 
-import pandas as pd
 import pandas.util._test_decorators as td
-import pandas.util.testing as tm
+
+import pandas as pd
 from pandas import DataFrame, Series, compat
+import pandas.util.testing as tm
 from pandas.util.testing import (
     RNGContext, assert_almost_equal, assert_frame_equal, assert_index_equal,
-    assert_numpy_array_equal, assert_series_equal, raise_with_traceback
-)
+    assert_numpy_array_equal, assert_series_equal, raise_with_traceback)
 
 
 class TestAssertAlmostEqual(object):
