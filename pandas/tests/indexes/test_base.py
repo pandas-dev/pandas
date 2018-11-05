@@ -715,10 +715,7 @@ class TestIndex(Base):
     # FutureWarning from non-tuple sequence of nd indexing
     @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_getitem_error(self, indices, itm):
-        error_type = IndexError
-        if isinstance(indices, RangeIndex) and (itm == 'no_int'):
-            error_type = ValueError
-        with pytest.raises(error_type):
+        with pytest.raises(IndexError):
             indices[itm]
 
     def test_intersection(self):
@@ -2581,10 +2578,6 @@ def test_generated_op_names(opname, indices):
         # pd.Index.__rsub__ does not exist; though the method does exist
         # for subclasses.  see GH#19723
         return
-    if (isinstance(index, RangeIndex) and
-        opname in ['add', 'radd', 'sub', 'rsub',
-                   'mul', 'rmul', 'truediv', 'rtruediv']):
-        pytest.skip("RangeIndex does operators differently")
     opname = '__{name}__'.format(name=opname)
     method = getattr(index, opname)
     assert method.__name__ == opname
