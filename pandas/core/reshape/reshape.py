@@ -467,13 +467,7 @@ def stack(frame, level=-1, dropna=True):
             new_values = arr._concat_same_type([
                 col._values for _, col in frame.iteritems()
             ])
-            # final take to get the order correct.
-            # idx is an indexer like
-            # [c0r0, c1r0, c2r0, ...,
-            #  c0r1, c1r1, c2r1, ...]
-            idx = np.arange(N * K).reshape(K, N).T.ravel()
-            new_values = new_values.take(idx)
-
+            new_values = _reorder_for_extension_array_stack(new_values, N, K)
         else:
             # homogeneous, non-EA
             new_values = frame.values.ravel()
@@ -602,14 +596,14 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             slice_len = loc.stop - loc.start
 
         if slice_len != levsize:
-            chunk = this.loc[:, this.columns[loc]]
+            chunk = this[this.columns[loc]]
             chunk.columns = level_vals.take(chunk.columns.labels[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
         else:
             if (frame._is_homogeneous_type and
                     is_extension_array_dtype(frame.dtypes.iloc[0])):
-                dtype = this.loc[:, this.columns[loc]].dtypes.iloc[0]
-                subset = this.loc[:, this.columns[loc]]
+                dtype = this[this.columns[loc]].dtypes.iloc[0]
+                subset = this[this.columns[loc]]
 
                 value_slice = dtype.construct_array_type()._concat_same_type(
                     [x._values for _, x in subset.iteritems()]
@@ -619,7 +613,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
                 value_slice = value_slice.take(idx)
 
             elif frame._is_mixed_type:
-                value_slice = this.loc[:, this.columns[loc]].values
+                value_slice = this[this.columns[loc]].values
             else:
                 value_slice = this.values[:, loc]
 
@@ -965,3 +959,38 @@ def make_axis_dummies(frame, axis='minor', transform=None):
     values = values.take(labels, axis=0)
 
     return DataFrame(values, columns=items, index=frame.index)
+
+
+def _reorder_for_extension_array_stack(arr, n_rows, n_columns):
+    """
+    Re-orders the values when stacking multiple extension-arrays.
+
+    The indirect stacking method used for EAs requires a followup
+    take to get the order correct.
+
+    Parameters
+    ----------
+    arr : ExtensionArray
+    n_rows, n_columns : int
+        The number of rows and columns in the original DataFrame.
+
+    Returns
+    -------
+    taken : ExtensionArray
+        The original `arr` with elements re-ordered appropriately
+
+    Examples
+    --------
+    >>> arr = np.array(['a', 'b', 'c', 'd', 'e', 'f'])
+    >>> _reorder_for_extension_array_stack(arr, 2, 3)
+    array(['a', 'c', 'e', 'b', 'd', 'f'], dtype='<U1')
+
+    >>> _reorder_for_extension_array_stack(arr, 3, 2)
+    array(['a', 'd', 'b', 'e', 'c', 'f'], dtype='<U1')
+    """
+    # final take to get the order correct.
+    # idx is an indexer like
+    # [c0r0, c1r0, c2r0, ...,
+    #  c0r1, c1r1, c2r1, ...]
+    idx = np.arange(n_rows * n_columns).reshape(n_columns, n_rows).T.ravel()
+    return arr.take(idx)
