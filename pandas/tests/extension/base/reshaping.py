@@ -181,6 +181,9 @@ class BaseReshapingTests(BaseExtensionTests):
         df.columns = columns
         result = df.stack()
         expected = df.astype(object).stack()
+        # we need a second astype(object), in case the constructor inferred
+        # object -> specialized, as is done for period.
+        expected = expected.astype(object)
 
         if isinstance(expected, pd.Series):
             assert result.dtype == df.iloc[:, 0].dtype
