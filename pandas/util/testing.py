@@ -775,7 +775,7 @@ def ensure_clean_dir():
     finally:
         try:
             rmtree(directory_name)
-        except Exception as e:
+        except Exception:
             pass
 
 
