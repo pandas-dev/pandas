@@ -4574,8 +4574,6 @@ Several caveats.
 * Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
-* ``partition_cols`` will be used for partitioning the dataset, where the dataset will be written to multiple
-  files in the path specified. Therefore, the path specified, must be a directory path.
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``,
@@ -4668,6 +4666,33 @@ this file into a ``DataFrame``.
 
 Passing ``index=True`` will *always* write the index, even if that's not the
 underlying engine's default behavior.
+
+
+Partitioning Parquet files
+''''''''''''''''''''''''''
+
+Parquet supports partitioning of data based on the values of one or more columns.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
+    df.to_parquet(fname='test', engine='pyarrow', partition_cols=['a'], compression=None)
+
+The `fname` specifies the parent directory to which data will be saved.
+The `partition_cols` are the column names by which the dataset will be partitioned.
+Columns are partitioned in the order they are given. The partition splits are
+determined by the unique values in the partition columns.
+The above example creates a partitioned dataset that may look like:
+
+::
+
+    test/
+        a=0/
+           0bac803e32dc42ae83fddfd029cbdebc.parquet
+           ...
+        a=1/
+           e6ab24a4f45147b49b54a662f0c412a3.parquet
+           ...
 
 
 .. _io.sql:

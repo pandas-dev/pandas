@@ -589,3 +589,13 @@ class TestParquetFastParquet(Base):
             import fastparquet
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
+
+    def test_error_on_using_partition_cols_and_partition_on(self, fp, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with pytest.raises(ValueError):
+            with tm.ensure_clean_dir() as path:
+                df.to_parquet(path, engine="fastparquet", compression=None,
+                              partition_on=partition_cols,
+                              partition_cols=partition_cols)

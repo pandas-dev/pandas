@@ -227,7 +227,12 @@ class FastParquetImpl(BaseImpl):
         # Use tobytes() instead.
 
         if 'partition_on' in kwargs:
-            partition_cols = kwargs.pop('partition_on')
+            if partition_cols is None:
+                partition_cols = kwargs.pop('partition_on')
+            else:
+                raise ValueError("Cannot use both partition_on and "
+                                 "partition_cols. Use partition_cols for "
+                                 "partitioning data")
 
         if partition_cols is not None:
             kwargs['file_scheme'] = 'hive'
@@ -290,8 +295,8 @@ def to_parquet(df, path, engine='auto', compression='snappy', index=None,
     partition_cols : list, optional
             Column names by which to partition the dataset
             Columns are partitioned in the order they are given
-            The behaviour applies only to pyarrow >= 0.7.0 and fastparquet
-            For other versions, this argument will be ignored.
+            The behaviour applies only to pyarrow >= 0.7.0 and fastparquet.
+            Raises a ValueError for other versions.
             .. versionadded:: 0.24.0
     kwargs
         Additional keyword arguments passed to the engine
