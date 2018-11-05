@@ -61,6 +61,10 @@ class Unstack(object):
         if dtype == 'int':
             values = np.arange(m * m * n).reshape(m * m, n)
         else:
+            # the category branch is ~20x slower than int. So we
+            # cut down the size a bit. Now it's only ~3x slower.
+            n = 50
+            columns = columns[:n]
             indices = np.random.randint(0, 52, size=(m * m, n))
             values = np.take(list(string.ascii_letters), indices)
             values = [pd.Categorical(v) for v in values.T]
