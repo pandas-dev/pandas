@@ -500,21 +500,20 @@ def validate_one(func_name):
                 returns_errs.append('The first line of the Returns section '
                                     'should contain only the type, unless '
                                     'multiple values are being returned.')
+            missing_desc, missing_cap, missing_period = False, False, False
             for name, type_, desc in doc.returns:
                 desc = ''.join(desc)
-                name = '"' + name + '" ' if type_ else ''
-                if not desc:
-                    returns_errs.append('Return value {}has no '
-                                        'description'.format(name))
-                else:
-                    if not desc[0].isupper():
-                        returns_errs.append('Return value {}description '
-                                            'should start with a capital '
-                                            'letter'.format(name))
-                    if desc[-1] != '.':
-                        returns_errs.append('Return value {}description '
-                                            'should finish with '
-                                            '"."'.format(name))
+                missing_desc = missing_desc or not desc
+                missing_cap = missing_cap or desc and not desc[0].isupper()
+                missing_period = missing_period or desc and not desc.endswith('.')
+            if missing_desc:
+                returns_errs.append('Return value has no description.')
+            if missing_cap:
+                returns_errs.append('Return value description should start '
+                                    'with a capital letter.')
+            if missing_period:
+                returns_errs.append('Return value description should finish '
+                                    'with ".".')
             if returns_errs:
                 errs.append('Errors in Returns section')
                 for returns_err in returns_errs:

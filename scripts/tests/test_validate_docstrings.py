@@ -563,7 +563,7 @@ class BadReturns(object):
         Returns
         -------
         foo : str
-           the first returned string.
+           The first returned string.
         bar : str
            the second returned string.
         """
@@ -728,10 +728,7 @@ class TestValidator(object):
          ('The first line of the Returns section should contain only the '
           'type, unless multiple values are being returned.',)),
         ('BadReturns', 'no_capitalization',
-         ('Return value "foo" description should start with a capital '
-          'letter',)),
-        ('BadReturns', 'no_capitalization',
-         ('Return value "bar" description should start with a capital '
+         ('Return value description should start with a capital '
           'letter',)),
         # See Also tests
         ('BadSeeAlso', 'prefix_pandas',
