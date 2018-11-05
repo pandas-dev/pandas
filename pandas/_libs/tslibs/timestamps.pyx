@@ -16,7 +16,8 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 from util cimport (is_datetime64_object, is_timedelta64_object,
-                   is_integer_object, is_string_object, is_array)
+                   is_integer_object, is_string_object, is_array,
+                   is_offset_object)
 
 cimport ccalendar
 from conversion import tz_localize_to_utc, normalize_i8_timestamps
@@ -30,7 +31,6 @@ from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
                           npy_datetimestruct, dt64_to_dtstruct)
 from offsets cimport to_offset
-from offsets import _BaseOffset
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
 from timezones cimport (
@@ -732,9 +732,9 @@ class Timestamp(_Timestamp):
         if ts.value == NPY_NAT:
             return NaT
 
-        if is_string_object(freq) or isinstance(freq, _BaseOffset):
+        if is_string_object(freq):
             freq = to_offset(freq)
-        else:
+        elif not is_offset_object(freq):
             # GH 22311: Try to extract the frequency of a given Timestamp input
             freq = getattr(ts_input, 'freq', None)
 
