@@ -497,8 +497,9 @@ def validate_one(func_name):
         else:
             returns_errs = []
             if len(doc.returns) == 1 and doc.returns[0][1]:
-                returns_errs.append('No name is to be provided when '
-                                    'returning a single value.')
+                returns_errs.append('The first line of the Returns section '
+                                    'should contain only the type, unless '
+                                    'multiple values are being returned.')
             for name, type_, desc in doc.returns:
                 desc = ''.join(desc)
                 name = '"' + name + '" ' if type_ else ''
