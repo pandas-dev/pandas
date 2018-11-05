@@ -2051,7 +2051,7 @@ class StringMethods(NoNewAttributesMixin):
                 return ([Series(others, index=idx)], False)
         raise TypeError(err_msg)
 
-    def cat(self, others=None, sep='', na_rep=None, join=None):
+    def cat(self, others=None, sep=None, na_rep=None, join=None):
         """
         Concatenate strings in the Series/Index with given separator.
 
