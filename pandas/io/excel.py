@@ -143,7 +143,7 @@ na_values : scalar, str, list-like, or dict, default None
 keep_default_na : bool, default True
     If na_values are specified and keep_default_na is False the default NaN
     values are overridden, otherwise they're appended to.
-verbose : boolean, default False
+verbose : bool, default False
     Indicate number of NA values placed in non-numeric columns.
 thousands : str, default None
     Thousands separator for parsing string columns to numeric.  Note that
@@ -160,7 +160,7 @@ skip_footer : int, default 0
        Pass in `skipfooter` instead.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
-convert_float : boolean, default True
+convert_float : bool, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally.
