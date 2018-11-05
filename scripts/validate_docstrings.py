@@ -323,16 +323,18 @@ class Docstring(object):
         doc_params = tuple(self.doc_parameters)
         missing = set(signature_params) - set(doc_params)
         if missing:
-            errs.append(
-                'Parameters {} not documented'.format(pprint_thing(missing)))
+            errs.append(('PR01',
+                         'Parameters {} not documented'.format(
+                             pprint_thing(missing))))
         extra = set(doc_params) - set(signature_params)
         if extra:
-            errs.append('Unknown parameters {}'.format(pprint_thing(extra)))
+            errs.append(('PR02', 'Unknown parameters {}'.format(
+                pprint_thing(extra))))
         if (not missing and not extra and signature_params != doc_params
                 and not (not signature_params and not doc_params)):
-            errs.append('Wrong parameters order. ' +
-                        'Actual: {!r}. '.format(signature_params) +
-                        'Documented: {!r}'.format(doc_params))
+            errs.append(('PR03', 'Wrong parameters order. ' +
+                         'Actual: {!r}. '.format(signature_params) +
+                         'Documented: {!r}'.format(doc_params)))
 
         return errs
 
@@ -449,134 +451,157 @@ def validate_one(func_name):
     dict
         A dictionary containing all the information obtained from validating
         the docstring.
+
+    Notes
+    -----
+    The errors are codified in the next way:
+    - First two characters: Section where the error happens:
+       * GL: Global (no section, like section ordering errors)
+       * SS: Short summary
+       * ES: Extended summary
+       * PR: Parameters
+       * RT: Returns
+       * YD: Yields
+       * RS: Raises
+       * WN: Warns
+       * SA: See Also
+       * NT: Notes
+       * RF: References
+       * EX: Examples
+    - Last two characters: Numeric error code inside the section
+
+    For example, RT02 is the second codified error in the Returns section.
+
+    The exact codes are available in the source code of this function.
     """
     doc = Docstring(func_name)
 
     errs = []
     wrns = []
     if doc.start_blank_lines != 1:
-        errs.append('Docstring text (summary) should start in the line '
-                    'immediately after the opening quotes (not in the same '
-                    'line, or leaving a blank line in between)')
+        errs.append(('GL01', 'Docstring text (summary) should start in the '
+                     'line immediately after the opening quotes (not in the '
+                     'same line, or leaving a blank line in between)'))
     if doc.end_blank_lines != 1:
-        errs.append('Closing quotes should be placed in the line after '
-                    'the last text in the docstring (do not close the '
-                    'quotes in the same line as the text, or leave a '
-                    'blank line between the last text and the quotes)')
+        errs.append(('GL02', 'Closing quotes should be placed in the line '
+                     'after the last text in the docstring (do not close the '
+                     'quotes in the same line as the text, or leave a '
+                     'blank line between the last text and the quotes)'))
     if doc.double_blank_lines:
-        errs.append('Use only one blank line to separate sections or '
-                    'paragraphs')
+        errs.append(('GL03', 'Use only one blank line to separate sections or '
+                     'paragraphs'))
+    mentioned_errs = doc.mentioned_private_classes
+    if mentioned_errs:
+        errs.append(('GL04', 'Private classes ({}) should not be mentioned in '
+                     'public docstring.'.format(mentioned_errs)))
+    for line in doc.raw_doc.splitlines():
+        if re.match("^ *\t", line):
+            errs.append(('GL05', 'Tabs found at the start of line "{}", '
+                         'please use whitespace only'.format(line.lstrip())))
 
     if not doc.summary:
-        errs.append('No summary found (a short summary in a single line '
-                    'should be present at the beginning of the docstring)')
+        errs.append(('SS01', 'No summary found (a short summary in a single '
+                     'line should be present at the beginning of the '
+                     'docstring)'))
     else:
         if not doc.summary[0].isupper():
-            errs.append('Summary does not start with a capital letter')
+            errs.append(('SS02',
+                         'Summary does not start with a capital letter'))
         if doc.summary[-1] != '.':
-            errs.append('Summary does not end with a period')
+            errs.append(('SS03', 'Summary does not end with a period'))
         if doc.summary != doc.summary.lstrip():
-            errs.append('Summary contains heading whitespaces.')
+            errs.append(('SS04', 'Summary contains heading whitespaces'))
         elif (doc.is_function_or_method
                 and doc.summary.split(' ')[0][-1] == 's'):
-            errs.append('Summary must start with infinitive verb, '
-                        'not third person (e.g. use "Generate" instead of '
-                        '"Generates")')
+            errs.append(('SS05', 'Summary must start with infinitive verb, '
+                         'not third person (e.g. use "Generate" instead of '
+                         '"Generates")'))
         if doc.num_summary_lines > 1:
-            errs.append("Summary should fit in a single line.")
-    if not doc.extended_summary:
-        wrns.append('No extended summary found')
+            errs.append(('SS06', "Summary should fit in a single line"))
 
-    param_errs = doc.parameter_mismatches
+    if not doc.extended_summary:
+        wrns.append(('ES01', 'No extended summary found'))
+
+    # PR01: Parameters not documented
+    # PR02: Unknown parameters
+    # PR03: Wrong parameters order
+    errs += doc.parameter_mismatches
+
     for param in doc.doc_parameters:
         if not param.startswith("*"):  # Check can ignore var / kwargs
             if not doc.parameter_type(param):
-                param_errs.append('Parameter "{}" has no type'.format(param))
+                errs.append(('PR04',
+                             'Parameter "{}" has no type'.format(param)))
             else:
                 if doc.parameter_type(param)[-1] == '.':
-                    param_errs.append('Parameter "{}" type should '
-                                      'not finish with "."'.format(param))
+                    errs.append(('PR05', 'Parameter "{}" type should '
+                                 'not finish with "."'.format(param)))
                 common_type_errors = [('integer', 'int'),
                                       ('boolean', 'bool'),
                                       ('string', 'str')]
                 for incorrect_type, correct_type in common_type_errors:
                     if incorrect_type in doc.parameter_type(param):
-                        param_errs.append('Parameter "{}" type should use '
-                                          '"{}" instead of "{}"'
-                                          .format(param,
-                                                  correct_type,
-                                                  incorrect_type))
+                        errs.append(('PR06', 'Parameter "{}" type '
+                                     'should use "{}" instead of "{}"'
+                                     .format(param,
+                                             correct_type,
+                                             incorrect_type)))
         if not doc.parameter_desc(param):
-            param_errs.append('Parameter "{}" '
-                              'has no description'.format(param))
+            errs.append(('PR07', 'Parameter "{}" '
+                         'has no description'.format(param)))
         else:
             if not doc.parameter_desc(param)[0].isupper():
-                param_errs.append('Parameter "{}" description '
-                                  'should start with a '
-                                  'capital letter'.format(param))
+                errs.append(('PR08', 'Parameter "{}" description should start '
+                             'with a capital letter'.format(param)))
             if doc.parameter_desc(param)[-1] != '.':
-                param_errs.append('Parameter "{}" description '
-                                  'should finish with "."'.format(param))
-    if param_errs:
-        errs.append('Errors in parameters section')
-        for param_err in param_errs:
-            errs.append('\t{}'.format(param_err))
-
-    pep8_errs = list(doc.validate_pep8())
-    if pep8_errs:
-        errs.append('Linting issues in doctests:')
-        for err in pep8_errs:
-            errs.append('\t{} {} {}'.format(err.count, err.error_code,
-                                            err.message))
+                errs.append(('PR09', 'Parameter "{}" description '
+                             'should finish with "."'.format(param)))
 
     if doc.is_function_or_method:
         if not doc.returns and "return" in doc.method_source:
-            errs.append('No Returns section found')
+            errs.append(('RT01', 'No Returns section found'))
         if not doc.yields and "yield" in doc.method_source:
-            errs.append('No Yields section found')
-
-    mentioned_errs = doc.mentioned_private_classes
-    if mentioned_errs:
-        errs.append('Private classes ({}) should not be mentioned in public '
-                    'docstring.'.format(mentioned_errs))
+            errs.append(('YD01', 'No Yields section found'))
 
     if not doc.see_also:
-        wrns.append('See Also section not found')
+        wrns.append(('SA01', 'See Also section not found'))
     else:
         for rel_name, rel_desc in doc.see_also.items():
             if rel_desc:
                 if not rel_desc.endswith('.'):
-                    errs.append('Missing period at end of description for '
-                                'See Also "{}" reference'.format(rel_name))
+                    errs.append(('SA02', 'Missing period at end of '
+                                 'description for See Also "{}" '
+                                 'reference'.format(rel_name)))
                 if not rel_desc[0].isupper():
-                    errs.append('Description should be capitalized for '
-                                'See Also "{}" reference'.format(rel_name))
+                    errs.append(('SA03',
+                                 'Description should be capitalized for See '
+                                 'Also "{}" reference'.format(rel_name)))
             else:
-                errs.append('Missing description for '
-                            'See Also "{}" reference'.format(rel_name))
+                errs.append(('SA04', 'Missing description for '
+                             'See Also "{}" reference'.format(rel_name)))
             if rel_name.startswith('pandas.'):
-                errs.append('{} in `See Also` section does not '
-                            'need `pandas` prefix, use {} instead.'
-                            .format(rel_name, rel_name[len('pandas.'):]))
-    for line in doc.raw_doc.splitlines():
-        if re.match("^ *\t", line):
-            errs.append('Tabs found at the start of line "{}", '
-                        'please use whitespace only'.format(line.lstrip()))
+                errs.append(('SA05', '{} in `See Also` section does not '
+                             'need `pandas` prefix, use {} instead.'
+                             .format(rel_name, rel_name[len('pandas.'):])))
 
     examples_errs = ''
     if not doc.examples:
-        wrns.append('No examples section found')
+        wrns.append(('EX01', 'No examples section found'))
     else:
         examples_errs = doc.examples_errors
         if examples_errs:
-            errs.append('Examples do not pass tests')
+            errs.append(('EX02', 'Examples do not pass tests:'
+                         '\n{}'.format(examples_errs)))
+        for err in doc.validate_pep8():
+            errs.append(('EX03', 'flake8 error: {} {}{}'.format(
+                err.error_code, err.message,
+                ' ({} times)'.format(err.count) if err.count > 1 else '')))
         examples_source_code = ''.join(doc.examples_source_code)
-        if 'import numpy' in examples_source_code:
-            errs.append("numpy does not need to be imported in the examples, "
-                        "as it's assumed to be already imported as np")
-        if 'import pandas' in examples_source_code:
-            errs.append("pandas does not need to be imported in the examples, "
-                        "as it's assumed to be already imported as pd")
+        for wrong_import in ('import numpy', 'import pandas'):
+            if wrong_import in examples_source_code:
+                errs.append(('EX04', "Do not {}, as it's imported "
+                             'automatically for the examples (numpy as np, '
+                             'pandas as pd)'.format(wrong_import)))
 
     return {'type': doc.type,
             'docstring': doc.clean_doc,
@@ -678,13 +703,13 @@ def main(func_name, prefix, output_format):
 
             output = ''
             for name, res in result.items():
-                for error in res['errors']:
-                    output += output_format.format(name=name,
-                                                   path=res['file'],
-                                                   row=res['file_line'],
-                                                   code='ERR',
-                                                   text='{}: {}'.format(name,
-                                                                        error))
+                for err_code, err_desc in res['errors']:
+                    output += output_format.format(
+                        name=name,
+                        path=res['file'],
+                        row=res['file_line'],
+                        code=err_code,
+                        text='{}: {}'.format(name, err_desc))
 
         sys.stderr.write(output)
 
@@ -698,13 +723,17 @@ def main(func_name, prefix, output_format):
         if result['errors']:
             sys.stderr.write('{} Errors found:\n'.format(
                 len(result['errors'])))
-            for err in result['errors']:
-                sys.stderr.write('\t{}\n'.format(err))
+            for err_code, err_desc in result['errors']:
+                # Failing examples are printed at the end
+                if err_code == 'EX02':
+                    sys.stderr.write('\tExamples do not pass tests\n')
+                    continue
+                sys.stderr.write('\t{}\n'.format(err_desc))
         if result['warnings']:
             sys.stderr.write('{} Warnings found:\n'.format(
                 len(result['warnings'])))
-            for wrn in result['warnings']:
-                sys.stderr.write('\t{}\n'.format(wrn))
+            for wrn_code, wrn_desc in result['warnings']:
+                sys.stderr.write('\t{}\n'.format(wrn_desc))
 
         if not result['errors']:
             sys.stderr.write('Docstring for "{}" correct. :)\n'.format(
