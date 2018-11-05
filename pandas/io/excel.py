@@ -170,7 +170,7 @@ convert_float : bool, default True
 
 Returns
 -------
-parsed : DataFrame or Dict of DataFrames
+parsed : DataFrame or dict of DataFrame
     DataFrame from the passed in Excel file.  See notes in sheet_name
     argument for more information on when a Dict of Dataframes is returned.
 
