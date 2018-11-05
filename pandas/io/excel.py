@@ -49,8 +49,7 @@ io : str, path object (pathlib.Path or py._path.local.LocalPath), \
     The string could be a URL. Valid URL schemes include http, ftp, s3,
     gcs, and file. For file URLs, a host is expected. For instance, a local
     file could be file://localhost/path/to/workbook.xlsx.
-sheet_name : string, int, mixed list of strings/ints, or None, default 0
-
+sheet_name : str, int, mixed list of strs/ints, or None, default 0
     Strings are used for sheet names, Integers are used in zero-indexed
     sheet positions.
 
@@ -68,10 +67,11 @@ sheet_name : string, int, mixed list of strings/ints, or None, default 0
     * 1 -> 2nd sheet as a DataFrame
     * "Sheet1" -> 1st sheet as a DataFrame
     * [0,1,"Sheet5"] -> 1st, 2nd & 5th sheet as a dictionary of DataFrames
-    * None -> All sheets as a dictionary of DataFrames
+    * None -> All sheets as a dictionary of DataFrames.
 
-sheetname : string, int, mixed list of strings/ints, or None, default 0
-
+sheetname : str, int, mixed list of strs/ints, or None, default 0
+    Name or index of sheet or sheets to read into a DataFrame or
+    dictionary of DataFrames .
     .. deprecated:: 0.21.0
        Use `sheet_name` instead
 
