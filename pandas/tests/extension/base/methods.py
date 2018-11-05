@@ -24,6 +24,12 @@ class BaseMethodsTests(BaseExtensionTests):
 
         self.assert_series_equal(result, expected)
 
+    def test_value_counts_no_sort(self, data_for_grouping):
+        data = data_for_grouping.take([0, 7, 7, 7, 0, 4])
+        result = pd.Series(data).value_counts(sort=False)
+        expected = pd.Series([1, 2, 3], data_for_grouping.take([4, 0, 7]))
+        self.assert_series_equal(result, expected)
+
     def test_count(self, data_missing):
         df = pd.DataFrame({"A": data_missing})
         result = df.count(axis='columns')
