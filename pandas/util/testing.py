@@ -40,6 +40,7 @@ import pandas.core.common as com
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
 
+
 class NullContextManager(object):
     def __init__(self, dummy_resource=None):
         self.dummy_resource = dummy_resource
