@@ -488,7 +488,14 @@ def validate_one(func_name):
     for param in doc.doc_parameters:
         if not param.startswith("*"):  # Check can ignore var / kwargs
             if not doc.parameter_type(param):
-                param_errs.append('Parameter "{}" has no type'.format(param))
+                if ':' in param:
+                    param_errs.append('Parameter "{}" requires a space '
+                                      'before the colon separating the '
+                                      'parameter name and type'
+                                      .format(param.split(':')[0]))
+                else:
+                    param_errs.append('Parameter "{}" has no type'
+                                      .format(param))
             else:
                 if doc.parameter_type(param)[-1] == '.':
                     param_errs.append('Parameter "{}" type should '
