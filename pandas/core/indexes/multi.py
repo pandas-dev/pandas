@@ -6,6 +6,7 @@ from sys import getsizeof
 
 import numpy as np
 from pandas._libs import algos as libalgos, index as libindex, lib, Timestamp
+from pandas._libs import tslibs
 
 from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
@@ -39,8 +40,7 @@ from pandas.core.indexes.base import (
     Index, ensure_index,
     InvalidIndexError,
     _index_shared_docs)
-from pandas.core.indexes.frozen import (
-    FrozenNDArray, FrozenList, _ensure_frozen)
+from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -388,6 +388,9 @@ class MultiIndex(Index):
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'foo', u'bar'])
         """
+        if is_list_like(levels) and not isinstance(levels, Index):
+            levels = list(levels)
+
         if level is not None and not is_list_like(level):
             if not is_list_like(levels):
                 raise TypeError("Levels must be list-like")
@@ -555,7 +558,7 @@ class MultiIndex(Index):
         result._id = self._id
         return result
 
-    def _shallow_copy_with_infer(self, values=None, **kwargs):
+    def _shallow_copy_with_infer(self, values, **kwargs):
         # On equal MultiIndexes the difference is empty.
         # Therefore, an empty MultiIndex is returned GH13490
         if len(values) == 0:
@@ -729,11 +732,14 @@ class MultiIndex(Index):
             new_levels.append(level)
             new_labels.append(label)
 
-        # reconstruct the multi-index
-        mi = MultiIndex(levels=new_levels, labels=new_labels, names=self.names,
-                        sortorder=self.sortorder, verify_integrity=False)
-
-        return mi.values
+        if len(new_levels) == 1:
+            return Index(new_levels[0])._format_native_types()
+        else:
+            # reconstruct the multi-index
+            mi = MultiIndex(levels=new_levels, labels=new_labels,
+                            names=self.names, sortorder=self.sortorder,
+                            verify_integrity=False)
+            return mi.values
 
     @Appender(_index_shared_docs['_get_grouper_for_level'])
     def _get_grouper_for_level(self, mapper, level):
@@ -1000,14 +1006,15 @@ class MultiIndex(Index):
                     (compat.PY3 and isinstance(key, compat.string_types))):
                 try:
                     return _try_mi(key)
-                except (KeyError):
+                except KeyError:
                     raise
-                except:
+                except (IndexError, ValueError, TypeError):
                     pass
 
                 try:
                     return _try_mi(Timestamp(key))
-                except:
+                except (KeyError, TypeError,
+                        IndexError, ValueError, tslibs.OutOfBoundsDatetime):
                     pass
 
             raise InvalidIndexError(key)
@@ -1650,7 +1657,7 @@ class MultiIndex(Index):
                 for new_label in taken:
                     label_values = new_label.values()
                     label_values[mask] = na_value
-                    masked.append(FrozenNDArray(label_values))
+                    masked.append(np.asarray(label_values))
                 taken = masked
         else:
             taken = [lab.take(indices) for lab in self.labels]
@@ -1686,7 +1693,7 @@ class MultiIndex(Index):
         # if all(isinstance(x, MultiIndex) for x in other):
         try:
             return MultiIndex.from_tuples(new_tuples, names=self.names)
-        except:
+        except (TypeError, IndexError):
             return Index(new_tuples)
 
     def argsort(self, *args, **kwargs):
@@ -2315,7 +2322,7 @@ class MultiIndex(Index):
             for i in sorted(levels, reverse=True):
                 try:
                     new_index = new_index.droplevel(i)
-                except:
+                except ValueError:
 
                     # no dropping here
                     return orig_index
@@ -2818,7 +2825,7 @@ class MultiIndex(Index):
                 msg = 'other must be a MultiIndex or a list of tuples'
                 try:
                     other = MultiIndex.from_tuples(other)
-                except:
+                except TypeError:
                     raise TypeError(msg)
         else:
             result_names = self.names if self.names == other.names else None

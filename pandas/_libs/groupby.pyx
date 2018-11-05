@@ -22,7 +22,7 @@ from algos import take_2d_axis1_float64_float64, groupsort_indexer, tiebreakers
 
 cdef int64_t iNaT = get_nat()
 
-cdef double NaN = <double> np.NaN
+cdef double NaN = <double>np.NaN
 cdef double nan = NaN
 
 
@@ -115,7 +115,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     assert min_count == -1, "'min_count' only used in add and prod"
 
     ngroups = len(counts)
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
 
     indexer, _counts = groupsort_indexer(labels, ngroups)
     counts[:] = _counts[1:]
@@ -152,7 +152,7 @@ def group_cumprod_float64(float64_t[:, :] out,
         float64_t[:, :] accum
         int64_t lab
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
     accum = np.ones_like(values)
 
     with nogil:
@@ -189,7 +189,7 @@ def group_cumsum(numeric[:, :] out,
         numeric[:, :] accum
         int64_t lab
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
     accum = np.zeros_like(values)
 
     with nogil:
@@ -226,7 +226,7 @@ def group_shift_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
         int64_t[:] label_seen = np.zeros(ngroups, dtype=np.int64)
         int64_t[:, :] label_indexer
 
-    N, = (<object> labels).shape
+    N, = (<object>labels).shape
 
     if periods < 0:
         periods = -periods
@@ -353,7 +353,7 @@ def group_any_all(ndarray[uint8_t] out,
     The returned values will either be 0 or 1 (False or True, respectively).
     """
     cdef:
-        Py_ssize_t i, N=len(labels)
+        Py_ssize_t i, N = len(labels)
         int64_t lab
         uint8_t flag_val
 

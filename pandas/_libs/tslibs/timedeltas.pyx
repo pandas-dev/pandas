@@ -6,6 +6,7 @@ import warnings
 import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
+import cython
 from cython import Py_ssize_t
 
 from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
@@ -82,6 +83,8 @@ _no_input = object()
 # ----------------------------------------------------------------------
 # API
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def ints_to_pytimedelta(int64_t[:] arr, box=False):
     """
     convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
@@ -119,8 +122,6 @@ def ints_to_pytimedelta(int64_t[:] arr, box=False):
 # ----------------------------------------------------------------------
 
 cpdef int64_t delta_to_nanoseconds(delta) except? -1:
-    if util.is_array(delta):
-        return delta.astype('m8[ns]').astype('int64')
     if hasattr(delta, 'nanos'):
         return delta.nanos
     if hasattr(delta, 'delta'):
@@ -129,10 +130,12 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
         return delta.astype("timedelta64[ns]").item()
     if is_integer_object(delta):
         return delta
+    if PyDelta_Check(delta):
+        return (delta.days * 24 * 60 * 60 * 1000000 +
+                delta.seconds * 1000000 +
+                delta.microseconds) * 1000
 
-    return (delta.days * 24 * 60 * 60 * 1000000 +
-            delta.seconds * 1000000 +
-            delta.microseconds) * 1000
+    raise TypeError(type(delta))
 
 
 cpdef convert_to_timedelta64(object ts, object unit):
@@ -198,7 +201,9 @@ cpdef convert_to_timedelta64(object ts, object unit):
     return ts.astype('timedelta64[ns]')
 
 
-cpdef array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
@@ -235,7 +240,7 @@ cpdef array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     return iresult.base  # .base to access underlying np.ndarray
 
 
-cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
+cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     """ return a casting of the unit represented to nanoseconds
         round the fractional part of a float to our precision, p """
     cdef:
@@ -368,7 +373,7 @@ cdef inline parse_timedelta_string(object ts):
                 elif current_unit == 'm':
                     current_unit = 's'
                     m = 1000000000L
-                r = <int64_t> int(''.join(number)) * m
+                r = <int64_t>int(''.join(number)) * m
                 result += timedelta_as_neg(r, neg)
                 have_hhmmss = 1
             else:
@@ -388,7 +393,7 @@ cdef inline parse_timedelta_string(object ts):
                 if current_unit != 'm':
                     raise ValueError("expected hh:mm:ss format before .")
                 m = 1000000000L
-                r = <int64_t> int(''.join(number)) * m
+                r = <int64_t>int(''.join(number)) * m
                 result += timedelta_as_neg(r, neg)
                 have_value = 1
                 unit, number, frac = [], [], []
@@ -422,7 +427,7 @@ cdef inline parse_timedelta_string(object ts):
         else:
             m = 10**(9 -len(frac))
 
-        r = <int64_t> int(''.join(frac)) * m
+        r = <int64_t>int(''.join(frac)) * m
         result += timedelta_as_neg(r, neg)
 
     # we have a regular format
@@ -431,7 +436,7 @@ cdef inline parse_timedelta_string(object ts):
         if current_unit != 'm':
             raise ValueError("expected hh:mm:ss format")
         m = 1000000000L
-        r = <int64_t> int(''.join(number)) * m
+        r = <int64_t>int(''.join(number)) * m
         result += timedelta_as_neg(r, neg)
 
     # we have a last abbreviation
@@ -724,27 +729,12 @@ cdef class _Timedelta(timedelta):
                     if is_timedelta64_object(other):
                         other = Timedelta(other)
                     else:
-                        if op == Py_EQ:
-                            return False
-                        elif op == Py_NE:
-                            return True
-
-                        # only allow ==, != ops
-                        raise TypeError('Cannot compare type {cls} with '
-                                        'type {other}'
-                                        .format(cls=type(self).__name__,
-                                                other=type(other).__name__))
+                        return NotImplemented
                 if util.is_array(other):
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
-                if op == Py_EQ:
-                    return False
-                elif op == Py_NE:
-                    return True
-                raise TypeError('Cannot compare type {cls} with type {other}'
-                                .format(cls=type(self).__name__,
-                                        other=type(other).__name__))
+                return NotImplemented
 
         return cmp_scalar(self.value, ots.value, op)
 
@@ -1228,6 +1218,12 @@ class Timedelta(_Timedelta):
                 return other.delta * self
             return NotImplemented
 
+        elif util.is_nan(other):
+            # i.e. np.nan, but also catch np.float64("NaN") which would
+            #  otherwise get caught by the hasattr(other, "dtype") branch
+            #  incorrectly return a np.timedelta64 object.
+            return NaT
+
         elif hasattr(other, 'dtype'):
             # ndarray-like
             return other * self.to_timedelta64()
@@ -1254,6 +1250,12 @@ class Timedelta(_Timedelta):
         elif is_timedelta64_object(other):
             # convert to Timedelta below
             pass
+
+        elif util.is_nan(other):
+            # i.e. np.nan, but also catch np.float64("NaN") which would
+            #  otherwise get caught by the hasattr(other, "dtype") branch
+            #  incorrectly return a np.timedelta64 object.
+            return NaT
 
         elif hasattr(other, 'dtype'):
             return self.to_timedelta64() / other

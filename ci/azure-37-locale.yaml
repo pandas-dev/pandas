@@ -1,21 +1,28 @@
 name: pandas
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - beautifulsoup4
-  - bottleneck
   - cython>=0.28.2
   - html5lib
+  - ipython
   - jinja2
   - lxml
   - matplotlib
   - nomkl
   - numexpr
-  - numpy=1.10.4
-  - openpyxl=2.5.5
+  - numpy
+  - openpyxl
+  - psycopg2
+  - pymysql
   - pytables
-  - python=3.5*
+  - python-dateutil
+  - python=3.6*
   - pytz
+  - s3fs
+  - scipy
+  - sqlalchemy
   - xarray
   - xlrd
   - xlsxwriter
@@ -23,6 +30,6 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
+  - moto
   - pip:
-    - python-dateutil==2.5.3
     - hypothesis>=3.58.0

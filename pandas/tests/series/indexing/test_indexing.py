@@ -3,22 +3,22 @@
 
 """ test get/set & misc """
 
-import pytest
-
 from datetime import timedelta
 
 import numpy as np
-import pandas as pd
-
-from pandas.core.dtypes.common import is_scalar
-from pandas import (Series, DataFrame, MultiIndex,
-                    Timestamp, Timedelta, Categorical)
-from pandas.tseries.offsets import BDay
+import pytest
 
 from pandas.compat import lrange, range
 
-from pandas.util.testing import (assert_series_equal)
+from pandas.core.dtypes.common import is_scalar
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, MultiIndex, Series, Timedelta, Timestamp)
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
+
+from pandas.tseries.offsets import BDay
 
 
 def test_basic_indexing():
@@ -387,7 +387,7 @@ def test_set_value(test_data):
 def test_setslice(test_data):
     sl = test_data.ts[5:20]
     assert len(sl) == len(sl.index)
-    assert sl.index.is_unique
+    assert sl.index.is_unique is True
 
 
 # FutureWarning from NumPy about [slice(None, 5).

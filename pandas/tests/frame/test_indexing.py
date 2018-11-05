@@ -2076,9 +2076,9 @@ class TestDataFrameIndexing(TestData):
         # a named argument
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6],
                         "c": [7, 8, 9]}).set_index(["a", "b"])
-        l = list(df.index)
-        l[0] = ["a", "b"]
-        df.index = l
+        index = list(df.index)
+        index[0] = ["a", "b"]
+        df.index = index
 
         try:
             repr(df)
@@ -2290,7 +2290,7 @@ class TestDataFrameIndexing(TestData):
         sp_series = (pd.Series([0, 0, 1], index=[2, 1, 0])
                      .to_sparse(fill_value=0))
         df['new_column'] = sp_series
-        exp = pd.Series([1, 0, 0], name='new_column')
+        exp = pd.SparseSeries([1, 0, 0], name='new_column')
         assert_series_equal(df['new_column'], exp)
 
     def test_setitem_with_unaligned_tz_aware_datetime_column(self):

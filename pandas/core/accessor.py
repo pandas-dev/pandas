@@ -113,15 +113,18 @@ def delegate_names(delegate, accessors, typ, overwrite=False):
 
     Parameters
     ----------
-    delegate : the class to get methods/properties & doc-strings
-    acccessors : string list of accessors to add
-    typ : 'property' or 'method'
+    delegate : object
+        the class to get methods/properties & doc-strings
+    acccessors : Sequence[str]
+        List of accessor to add
+    typ : {'property', 'method'}
     overwrite : boolean, default False
        overwrite the method/property in the target class if it exists
 
     Returns
     -------
-    decorator
+    callable
+        A class decorator.
 
     Examples
     --------
