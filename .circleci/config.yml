@@ -34,9 +34,3 @@ jobs:
       - run:
           name: test
           command: ./ci/circle/run_circle.sh  --skip-slow --skip-network
-
-workflows:
-  version: 2
-  build_and_test:
-    jobs:
-      - py36_locale
