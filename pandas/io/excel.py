@@ -81,7 +81,7 @@ header : int, list of ints, default 0
     be combined into a ``MultiIndex``. Use None if there is no header.
 names : array-like, default None
     List of column names to use. If file contains no header row,
-    then you should explicitly pass header=None
+    then you should explicitly pass header=None.
 index_col : int, list of ints, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
@@ -89,19 +89,20 @@ index_col : int, list of ints, default None
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
 parse_cols : int or list, default None
-
+    Same as usecols.
     .. deprecated:: 0.21.0
        Pass in `usecols` instead.
 
 usecols : int or list, default None
+    Select which columns to parse.
     * If None then parse all columns,
     * If int then indicates last column to be parsed
     * If list of ints then indicates list of column numbers to be parsed
     * If string then indicates comma separated list of Excel column letters and
       column ranges (e.g. "A:E" or "A,C,E:F").  Ranges are inclusive of
       both sides.
-squeeze : boolean, default False
-    If the parsed data only contains one column then return a Series
+squeeze : bool, default False
+    If the parsed data only contains one column then return a Series.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     Use `object` to preserve data as stored in Excel and not interpret dtype.
@@ -110,9 +111,9 @@ dtype : Type name or dict of column -> type, default None
 
     .. versionadded:: 0.20.0
 
-engine: string, default None
+engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
-    Acceptable values are None or xlrd
+    Acceptable values are None or xlrd.
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
