@@ -63,7 +63,9 @@ class TestTimedeltaIndex(object):
         pytest.raises(ValueError, TimedeltaIndex, start='1 days',
                       end='10 days')
 
-        pytest.raises(ValueError, TimedeltaIndex, '1 days')
+        with pytest.raises(TypeError):
+            # GH#23493
+            TimedeltaIndex('1 days')
 
         # generator expression
         gen = (timedelta(i) for i in range(10))

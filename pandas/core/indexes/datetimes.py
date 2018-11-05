@@ -1101,6 +1101,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             else:
                 raise
 
+    # -----------------------------------------------------------------
+    # Wrapping DatetimeArray
+
     year = wrap_field_accessor(DatetimeArrayMixin.year)
     month = wrap_field_accessor(DatetimeArrayMixin.month)
     day = wrap_field_accessor(DatetimeArrayMixin.day)
@@ -1138,6 +1141,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                                        False)
     month_name = wrap_array_method(DatetimeArrayMixin.month_name, True)
     day_name = wrap_array_method(DatetimeArrayMixin.day_name, True)
+
+    # -----------------------------------------------------------------
 
     @Substitution(klass='DatetimeIndex')
     @Appender(_shared_docs['searchsorted'])

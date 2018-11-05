@@ -156,7 +156,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             data = to_timedelta(data, unit=unit, box=False)
 
         if is_scalar(data):
-            raise dtl.scalar_data_error(data, cls)
+            raise TypeError(dtl.scalar_data_error(data, cls))
 
         # convert if not already
         if getattr(data, 'dtype', None) != _TD_DTYPE:
