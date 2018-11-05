@@ -515,7 +515,7 @@ def validate_one(func_name):
                                             'should finish with '
                                             '"."'.format(name))
             if returns_errs:
-                errs.append('Errors in returns section')
+                errs.append('Errors in Returns section')
                 for returns_err in returns_errs:
                     errs.append('\t{}'.format(returns_err))
 
