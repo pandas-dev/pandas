@@ -75,7 +75,7 @@ sheetname : str, int, mixed list of strs/ints, or None, default 0
     .. deprecated:: 0.21.0
 
        Use `sheet_name` instead
-header : int, list of ints, default 0
+header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
     DataFrame. If a list of integers is passed those row positions will
     be combined into a ``MultiIndex``. Use None if there is no header.
