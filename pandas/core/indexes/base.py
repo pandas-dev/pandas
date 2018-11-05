@@ -724,7 +724,7 @@ class Index(IndexOpsMixin, PandasObject):
         index             | values          | _values       | _ndarray_values |
         ----------------- | --------------- | ------------- | --------------- |
         Index             | ndarray         | ndarray       | ndarray         |
-        CategoricalIndex  | Categorical     | Categorical   | codes           |
+        CategoricalIndex  | Categorical     | Categorical   | ndarray[int]    |
         DatetimeIndex     | ndarray[M8ns]   | ndarray[M8ns] | ndarray[M8ns]   |
         DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]       | ndarray[M8ns]   |
         PeriodIndex       | ndarray[object] | PeriodArray   | ndarray[int]    |
