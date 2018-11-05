@@ -133,7 +133,8 @@ but the specified columns
 .. ipython:: python
 
    df2 = df.set_index(['A', 'B'])
-   grouped = df2.groupby(level=df2.index.names.difference(['B'])
+   grouped = df2.groupby(level=df2.index.names.difference(['B']))
+   grouped.sum()
 
 These will split the DataFrame on its index (rows). We could also split by the
 columns:
