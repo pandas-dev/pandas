@@ -282,7 +282,7 @@ warn_bad_lines : bool, default True
     "bad line" will be output.
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
-    used as the sep. Equivalent to setting ``sep='\s+'``. If this option
+    used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
     is set to True, nothing should be passed in for the ``delimiter``
     parameter.
 
