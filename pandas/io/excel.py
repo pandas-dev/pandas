@@ -40,7 +40,7 @@ _writer_extensions = ["xlsx", "xls", "xlsm"]
 _writers = {}
 
 _read_excel_doc = """
-Read an Excel table into a pandas DataFrame.
+Read an Excel file into a pandas DataFrame.
 
 Parameters
 ----------
@@ -49,7 +49,7 @@ io : str, path object (pathlib.Path or py._path.local.LocalPath), \
     The string could be a URL. Valid URL schemes include http, ftp, s3,
     gcs, and file. For file URLs, a host is expected. For instance, a local
     file could be file://localhost/path/to/workbook.xlsx.
-sheet_name : str, int, mixed list of strs/ints, or None, default 0
+sheet_name : str, int, list or None, default 0
     Strings are used for sheet names, Integers are used in zero-indexed
     sheet positions.
 
@@ -65,8 +65,8 @@ sheet_name : str, int, mixed list of strs/ints, or None, default 0
 
     * Defaults to 0 -> 1st sheet as a DataFrame
     * 1 -> 2nd sheet as a DataFrame
-    * "Sheet1" -> 1st sheet as a DataFrame
-    * [0,1,"Sheet5"] -> 1st, 2nd & 5th sheet as a dictionary of DataFrames
+    - ``"Sheet1"``: Load sheet with name "Sheet1"
+    - ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5" as a dict of `DataFrame`
     * None -> All sheets as a dictionary of DataFrames.
 sheetname : str, int, mixed list of strs/ints, or None, default 0
     Name or index of sheet or sheets to read into a DataFrame or
@@ -75,25 +75,25 @@ sheetname : str, int, mixed list of strs/ints, or None, default 0
     .. deprecated:: 0.21.0
 
        Use `sheet_name` instead
-header : int, list of ints, default 0
+header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
     DataFrame. If a list of integers is passed those row positions will
     be combined into a ``MultiIndex``. Use None if there is no header.
 names : array-like, default None
     List of column names to use. If file contains no header row,
     then you should explicitly pass header=None.
-index_col : int, list of ints, default None
+index_col : int, list of int, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
     those columns will be combined into a ``MultiIndex``.  If a
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
 parse_cols : int or list, default None
-    Same as usecols.
+    Alias of `usecols`.
 
     .. deprecated:: 0.21.0
 
-       Pass in `usecols` instead.
+       Use `usecols` instead.
 usecols : int or list, default None
     Select which columns to parse.
     * If None then parse all columns,
