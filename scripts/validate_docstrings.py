@@ -416,6 +416,8 @@ class Docstring(object):
         if not self.examples:
             return
 
+        # F401 is needed to not generate flake8 errors in examples
+        # that do not user numpy or pandas
         content = ''.join(('import numpy as np  # noqa: F401\n',
                            'import pandas as pd  # noqa: F401\n',
                            *self.examples_source_code))
@@ -587,10 +589,16 @@ def validate_one(func_name):
             'examples_errors': examples_errs}
 
 
-def validate_all():
+def validate_all(prefix):
     """
     Execute the validation of all docstrings, and return a dict with the
     results.
+
+    Parameters
+    ----------
+    prefix : str, optional
+        If provided, only the docstrings that start with this pattern will be
+        validated.
 
     Returns
     -------
@@ -606,6 +614,8 @@ def validate_all():
     with open(api_doc_fname) as f:
         api_items = list(get_api_items(f))
     for func_name, func_obj, section, subsection in api_items:
+        if prefix and not func_name.startswith(prefix):
+            continue
         doc_info = validate_one(func_name)
         result[func_name] = doc_info
 
@@ -625,6 +635,8 @@ def validate_all():
             func_name = 'pandas.{}.{}'.format(class_.__name__, member[0])
             if (not member[0].startswith('_')
                     and func_name not in api_item_names):
+                if prefix and not func_name.startswith(prefix):
+                    continue
                 doc_info = validate_one(func_name)
                 result[func_name] = doc_info
                 result[func_name]['in_api'] = False
@@ -632,7 +644,7 @@ def validate_all():
     return result
 
 
-def main(func_name, fd):
+def main(func_name, prefix, output_format):
     def header(title, width=80, char='#'):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
@@ -645,38 +657,68 @@ def main(func_name, fd):
             full_line=full_line, title_line=title_line)
 
     if func_name is None:
-        result = validate_all()
-        fd.write(json.dumps(result))
+        result = validate_all(prefix)
         errors = itertools.chain(*(doc['errors'] for doc in result.values()))
         num_errors = sum(1 for err in errors)
+
+        if output_format == 'json':
+            output = json.dumps(result)
+        else:
+            if output_format == 'default':
+                output_format = '{text}\n'
+            elif output_format == 'azure':
+                output_format = ('##vso[task.logissue type=error;'
+                                 'sourcepath={path};'
+                                 'linenumber={row};'
+                                 'code={code};'
+                                 ']{text}\n')
+            else:
+                raise ValueError('Unknown output_format "{}"'.format(
+                    output_format))
+
+            output = ''
+            for name, res in result.items():
+                for error in res['errors']:
+                    output += output_format.format(name=name,
+                                                   path=res['file'],
+                                                   row=res['file_line'],
+                                                   code='ERR',
+                                                   text='{}: {}'.format(name,
+                                                                        error))
+
+        sys.stderr.write(output)
+
     else:
         result = validate_one(func_name)
+        num_errors = len(result['errors'])
 
-        fd.write(header('Docstring ({})'.format(func_name)))
-        fd.write('{}\n'.format(result['docstring']))
-        fd.write(header('Validation'))
+        sys.stderr.write(header('Docstring ({})'.format(func_name)))
+        sys.stderr.write('{}\n'.format(result['docstring']))
+        sys.stderr.write(header('Validation'))
         if result['errors']:
-            fd.write('{} Errors found:\n'.format(len(result['errors'])))
+            sys.stderr.write('{} Errors found:\n'.format(
+                len(result['errors'])))
             for err in result['errors']:
-                fd.write('\t{}\n'.format(err))
+                sys.stderr.write('\t{}\n'.format(err))
         if result['warnings']:
-            fd.write('{} Warnings found:\n'.format(len(result['warnings'])))
+            sys.stderr.write('{} Warnings found:\n'.format(
+                len(result['warnings'])))
             for wrn in result['warnings']:
-                fd.write('\t{}\n'.format(wrn))
+                sys.stderr.write('\t{}\n'.format(wrn))
 
         if not result['errors']:
-            fd.write('Docstring for "{}" correct. :)\n'.format(func_name))
+            sys.stderr.write('Docstring for "{}" correct. :)\n'.format(
+                func_name))
 
         if result['examples_errors']:
-            fd.write(header('Doctests'))
-            fd.write(result['examples_errors'])
-
-        num_errors = len(result['errors'])
+            sys.stderr.write(header('Doctests'))
+            sys.stderr.write(result['examples_errors'])
 
     return num_errors
 
 
 if __name__ == '__main__':
+    format_opts = 'default', 'json', 'azure'
     func_help = ('function or method to validate (e.g. pandas.DataFrame.head) '
                  'if not provided, all docstrings are validated and returned '
                  'as JSON')
@@ -686,5 +728,19 @@ if __name__ == '__main__':
                            nargs='?',
                            default=None,
                            help=func_help)
+    argparser.add_argument('--format', default='default', help='format of the '
+                           'output when validating multiple docstrings '
+                           '(ignored when validating one). '
+                           'It can be {}'.format(str(format_opts)[1:-1]))
+    argparser.add_argument('--prefix', default=None, help='pattern for the '
+                           'docstring names, in order to decide which ones '
+                           'will be validated. A prefix "pandas.Series.str.'
+                           'will make the script validate all the docstrings'
+                           'of methods starting by this pattern. It is '
+                           'ignored if parameter function is provided')
+
     args = argparser.parse_args()
-    sys.exit(main(args.function, sys.stdout))
+    if args.format not in format_opts:
+        raise ValueError('--format argument must be one of {}'.format(
+            str(format_opts)[1:-1]))
+    sys.exit(main(args.function, args.prefix, args.format))
