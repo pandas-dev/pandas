@@ -61,7 +61,7 @@ import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
 from pandas.io.formats.printing import (
     pprint_thing, default_pprint, format_object_summary, format_object_attrs)
-from pandas.core.ops import make_invalid_op
+from pandas.core.ops import make_invalid_op, get_op_result_name
 from pandas.core.strings import StringMethods
 
 __all__ = ['Index']
@@ -1253,7 +1253,7 @@ class Index(IndexOpsMixin, PandasObject):
             other = Index(other, name=self.name)
             result_name = self.name
         else:
-            result_name = self.name if self.name == other.name else None
+            result_name = get_op_result_name(self, other)
         return other, result_name
 
     def _convert_for_op(self, value):
@@ -2745,19 +2745,15 @@ class Index(IndexOpsMixin, PandasObject):
     def __xor__(self, other):
         return self.symmetric_difference(other)
 
-    def _get_consensus_name(self, other):
+    def _get_reconciled_name_object(self, other):
         """
-        Given 2 indexes, give a consensus name meaning
-        we take the not None one, or None if the names differ.
-        Return a new object if we are resetting the name
+        If the result of a set operation will be self,
+        return self, unless the name changes, in which
+        case make a shallow copy of self.
         """
-        if self.name != other.name:
-            if self.name is None or other.name is None:
-                name = self.name or other.name
-            else:
-                name = None
-            if self.name != name:
-                return self._shallow_copy(name=name)
+        name = get_op_result_name(self, other)
+        if self.name != name:
+            return self._shallow_copy(name=name)
         return self
 
     def union(self, other):
@@ -2785,10 +2781,10 @@ class Index(IndexOpsMixin, PandasObject):
         other = ensure_index(other)
 
         if len(other) == 0 or self.equals(other):
-            return self._get_consensus_name(other)
+            return self._get_reconciled_name_object(other)
 
         if len(self) == 0:
-            return other._get_consensus_name(self)
+            return other._get_reconciled_name_object(self)
 
         # TODO: is_dtype_union_equal is a hack around
         # 1. buggy set ops with duplicates (GH #13432)
@@ -2851,11 +2847,10 @@ class Index(IndexOpsMixin, PandasObject):
                                   stacklevel=3)
 
         # for subclasses
-        return self._wrap_union_result(other, result)
+        return self._wrap_setop_result(other, result)
 
-    def _wrap_union_result(self, other, result):
-        name = self.name if self.name == other.name else None
-        return self.__class__(result, name=name)
+    def _wrap_setop_result(self, other, result):
+        return self._constructor(result, name=get_op_result_name(self, other))
 
     def intersection(self, other):
         """
@@ -2885,7 +2880,7 @@ class Index(IndexOpsMixin, PandasObject):
         other = ensure_index(other)
 
         if self.equals(other):
-            return self._get_consensus_name(other)
+            return self._get_reconciled_name_object(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
@@ -2905,7 +2900,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_monotonic and other.is_monotonic:
             try:
                 result = self._inner_indexer(lvals, rvals)[0]
-                return self._wrap_union_result(other, result)
+                return self._wrap_setop_result(other, result)
             except TypeError:
                 pass
 
@@ -4175,7 +4170,7 @@ class Index(IndexOpsMixin, PandasObject):
             return join_index
 
     def _wrap_joined_index(self, joined, other):
-        name = self.name if self.name == other.name else None
+        name = get_op_result_name(self, other)
         return Index(joined, name=name)
 
     def _get_string_slice(self, key, use_lhs=True, use_rhs=True):

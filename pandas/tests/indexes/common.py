@@ -360,10 +360,10 @@ class Base(object):
     def test_duplicated(self, indices, keep):
         if type(indices) is not self._holder:
             pytest.skip('Can only check if we know the index type')
-        if not len(indices) or isinstance(indices, MultiIndex):
+        if not len(indices) or isinstance(indices, (MultiIndex, RangeIndex)):
             # MultiIndex tested separately in:
             # tests/indexes/multi/test_unique_and_duplicates
-            pytest.skip('Skip check for empty Index and MultiIndex')
+            pytest.skip('Skip check for empty Index, MultiIndex, RangeIndex')
 
         idx = self._holder(indices)
         if idx.has_duplicates:
