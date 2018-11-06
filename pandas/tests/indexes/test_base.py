@@ -148,7 +148,7 @@ class TestIndex(Base):
         if isinstance(index, pd.DatetimeIndex):
             assert result.tz == index.tz
             if cast_as_obj:
-                # GH#???? check that Index(dti, dtype=object) does not
+                # GH#23524 check that Index(dti, dtype=object) does not
                 #  incorrectly raise ValueError, and that nanoseconds are not
                 #  dropped
                 index += pd.Timedelta(nanoseconds=50)

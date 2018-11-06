@@ -188,6 +188,7 @@ class Base(object):
         assert self.d + (-3 * self._offset(-2)) == self.d + self._offset(6)
 
     def test_compare_str(self):
+        # GH#23524
         # comparing to strings that cannot be cast to DateOffsets should
         #  not raise for __eq__ or __ne__
         if self._offset is None:

@@ -271,6 +271,7 @@ def test_compare_ticks(cls):
 
 @pytest.mark.parametrize('cls', tick_classes)
 def test_compare_ticks_to_strs(cls):
+    # GH#23524
     off = cls(19)
 
     # These tests should work with any strings, but we particularly are

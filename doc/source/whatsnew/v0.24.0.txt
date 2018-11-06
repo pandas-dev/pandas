@@ -1162,7 +1162,7 @@ Offsets
 - Bug in :class:`FY5253` where date offsets could incorrectly raise an ``AssertionError`` in arithmetic operatons (:issue:`14774`)
 - Bug in :class:`DateOffset` where keyword arguments ``week`` and ``milliseconds`` were accepted and ignored.  Passing these will now raise ``ValueError`` (:issue:`19398`)
 - Bug in adding :class:`DateOffset` with :class:`DataFrame` or :class:`PeriodIndex` incorrectly raising ``TypeError`` (:issue:`23215`)
-- Bug in comparing :class:`DateOffset` objects with non-DateOffset objects, particularly strings, raising ``ValueError`` instead of returning ``False`` for equality checks and ``True`` for not-equal checks (:issue:`????`)
+- Bug in comparing :class:`DateOffset` objects with non-DateOffset objects, particularly strings, raising ``ValueError`` instead of returning ``False`` for equality checks and ``True`` for not-equal checks (:issue:`23524`)
 
 Numeric
 ^^^^^^^
@@ -1357,5 +1357,5 @@ Other
 - :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax`` (:issue:`21548` and :issue:`21526`). ``NaN`` values are also handled properly.
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
-- Bug in :class:`Index` where passing a timezone-aware :class:`DatetimeIndex` and `dtype=object` would incorrectly raise a ``ValueError`` (:issue:`????`)
-- Bug in :class:`DatetimeIndex` where calling `np.array(dtindex, dtype=object)` would incorrectly return an array of ``long`` objects (:issue:`????`)
+- Bug in :class:`Index` where passing a timezone-aware :class:`DatetimeIndex` and `dtype=object` would incorrectly raise a ``ValueError`` (:issue:`23524`)
+- Bug in :class:`DatetimeIndex` where calling `np.array(dtindex, dtype=object)` would incorrectly return an array of ``long`` objects (:issue:`23524`)
