@@ -2199,9 +2199,18 @@ class CalendarDay(SingleConstructorOffset):
 
 
 def _tick_comp(op):
-    def f(self, other):
-        return op(self.delta, other.delta)
+    assert op not in [operator.eq, operator.ne]
 
+    def f(self, other):
+        try:
+            return op(self.delta, other.delta)
+        except AttributeError:
+            # comparing with a non-Tick object
+            raise TypeError("Invalid comparison between {cls} and {typ}"
+                            .format(cls=type(self).__name__,
+                                    typ=type(other).__name__))
+
+    f.__name__ = '__{opname}__'.format(opname=op.__name__)
     return f
 
 
@@ -2220,8 +2229,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     __ge__ = _tick_comp(operator.ge)
     __lt__ = _tick_comp(operator.lt)
     __le__ = _tick_comp(operator.le)
-    __eq__ = _tick_comp(operator.eq)
-    __ne__ = _tick_comp(operator.ne)
 
     def __add__(self, other):
         if isinstance(other, Tick):
@@ -2242,8 +2249,11 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
-
-            other = to_offset(other)
+            try:
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return False
 
         if isinstance(other, Tick):
             return self.delta == other.delta
@@ -2258,8 +2268,11 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     def __ne__(self, other):
         if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
-
-            other = to_offset(other)
+            try:
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return True
 
         if isinstance(other, Tick):
             return self.delta != other.delta
