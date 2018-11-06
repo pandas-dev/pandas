@@ -1127,7 +1127,7 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
     """
     *this is an internal non-public method*
 
-    Returns the levels, labels and names of a multil-index to multi-index join.
+    Returns the levels, labels and names of a multi-index to multi-index join.
     Depending on the type of join, this method restores the appropriate
     dropped levels of the joined multi-index.
     The method relies on lidx, rindexer which hold the index positions of
@@ -1140,13 +1140,13 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
     right : MultiIndex
         right index
     dropped_level_names : str array
-        list of non-common levels
+        list of non-common level names
     join_index : MultiIndex
-        the index of the join between
-        the common levels of left and right
+        the index of the join between the
+        common levels of left and right
     lindexer : intp array
         left indexer
-    right : intp array
+    rindexer : intp array
         right indexer
 
     Returns
@@ -1160,21 +1160,29 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
 
     """
 
-    # Convert to 1 level multi-index if not
-    if not isinstance(join_index, MultiIndex):
-        levels = [join_index.values]
-        labels = [list(range(join_index.size))]
-        names = [join_index.name]
-        join_index = MultiIndex(levels=levels, labels=labels,
-                                names=names, verify_integrity=False)
+    def _convert_to_mulitindex(index):
+        if isinstance(index, MultiIndex):
+            return index
+        else:
+            levels = [index.values]
+            labels = [list(range(index.size))]
+            names = [index.name]
+            return MultiIndex(levels=levels, labels=labels, names=names,
+                              verify_integrity=False)
+
+    # For multi-multi joins with one overlapping level,
+    # the returned index if of type Index
+    # Assure that join_index is of type MultiIndex
+    # so that dropped levels can be appended
+    join_index = _convert_to_mulitindex(join_index)
 
     join_levels = join_index.levels
     join_labels = join_index.labels
     join_names = join_index.names
 
-    # lindexer and rindexer hold the indexes where the join occured
-    # for left and right respectively. If left (right) is None then
-    # the join occured on all indices of left (right)
+    # lindexer and rindexer hold the indexes where the join occurred
+    # for left and right respectively. If left/right is None then
+    # the join occurred on all indices of left/right
     if lindexer is None:
         lindexer = range(left.size)
 
