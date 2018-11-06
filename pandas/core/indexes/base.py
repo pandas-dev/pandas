@@ -301,11 +301,15 @@ class Index(IndexOpsMixin, PandasObject):
               (dtype is not None and is_datetime64_any_dtype(dtype)) or
                 'tz' in kwargs):
             from pandas import DatetimeIndex
-            result = DatetimeIndex(data, copy=copy, name=name,
-                                   dtype=dtype, **kwargs)
+
             if dtype is not None and is_dtype_equal(_o_dtype, dtype):
-                return Index(result.to_pydatetime(), dtype=_o_dtype)
+                # if `data` is already a TZaware DatetimeIndex, then passing
+                #  dtype=object to the constructor will raise spuriously
+                result = DatetimeIndex(data, copy=copy, name=name, **kwargs)
+                return Index(list(result), dtype=_o_dtype)
             else:
+                result = DatetimeIndex(data, copy=copy, name=name,
+                                       dtype=dtype, **kwargs)
                 return result
 
         elif (is_timedelta64_dtype(data) or

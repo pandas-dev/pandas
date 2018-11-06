@@ -132,7 +132,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("cast_as_obj", [True, False])
     @pytest.mark.parametrize("index", [
         pd.date_range('2015-01-01 10:00', freq='D', periods=3,
-                      tz='US/Eastern'),  # DTI with tz
+                      tz='US/Eastern', name='Green Eggs & Ham'),  # DTI with tz
         pd.date_range('2015-01-01 10:00', freq='D', periods=3),  # DTI no tz
         pd.timedelta_range('1 days', freq='D', periods=3),  # td
         pd.period_range('2015-01-01', freq='D', periods=3)  # period
@@ -145,8 +145,16 @@ class TestIndex(Base):
 
         tm.assert_index_equal(result, index)
 
-        if isinstance(index, pd.DatetimeIndex) and hasattr(index, 'tz'):
+        if isinstance(index, pd.DatetimeIndex):
             assert result.tz == index.tz
+            if cast_as_obj:
+                # GH#???? check that Index(dti, dtype=object) does not
+                #  incorrectly raise ValueError, and that nanoseconds are not
+                #  dropped
+                index += pd.Timedelta(nanoseconds=50)
+                result = pd.Index(index, dtype=object)
+                assert result.dtype == np.object_
+                assert list(result) == list(index)
 
     @pytest.mark.parametrize("index,has_tz", [
         (pd.date_range('2015-01-01 10:00', freq='D', periods=3,

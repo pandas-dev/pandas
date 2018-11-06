@@ -374,6 +374,16 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     # ----------------------------------------------------------------
     # Array-like Methods
 
+    def __array__(self, dtype=None):
+        if is_object_dtype(dtype):
+            return np.array(list(self), dtype=object)
+        elif dtype == 'i8':
+            return self.asi8
+
+        # TODO: warn that dtype is not used?
+        #  warn that conversion may be lossy?
+        return self._data.view(np.ndarray)  # follow Index.__array__
+
     def __iter__(self):
         """
         Return an iterator over the boxed values

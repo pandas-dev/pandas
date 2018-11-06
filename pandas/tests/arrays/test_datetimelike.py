@@ -57,6 +57,29 @@ def timedelta_index(request):
 
 class TestDatetimeArray(object):
 
+    def test_array_object_dtype(self, tz_naive_fixture):
+        tz = tz_naive_fixture
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        arr = DatetimeArrayMixin(dti)
+
+        expected = np.array(list(dti))
+
+        result = np.array(arr, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # also test the DatetimeIndex method while we're at it
+        result = np.array(dti, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_array(self, tz_naive_fixture):
+        tz = tz_naive_fixture
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        arr = DatetimeArrayMixin(dti)
+
+        expected = dti.asi8.view('M8[ns]')
+        result = np.array(arr)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_from_dti(self, tz_naive_fixture):
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
