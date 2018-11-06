@@ -854,6 +854,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - :func:`ExtensionArray.isna` is allowed to return an ``ExtensionArray`` (:issue:`22325`).
 - Support for reduction operations such as ``sum``, ``mean`` via opt-in base class method override (:issue:`22762`)
 - :meth:`Series.unstack` and :meth:`DataFrame.unstack` no longer convert extension arrays to object-dtype ndarrays. Each column in the output ``DataFrame`` will now have the same dtype as the input (:issue:`23077`).
+- Bug when grouping :meth:`Dataframe.groupby()` and aggregating on ``ExtensionArray`` it was not returning the actual ``ExtensionArray`` dtype (:issue:`23227`).
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -1090,6 +1091,7 @@ Categorical
 - Constructing a :class:`CategoricalIndex` with empty values and boolean categories was raising a ``ValueError`` after a change to dtype coercion (:issue:`22702`).
 - Bug in :meth:`Categorical.take` with a user-provided ``fill_value`` not encoding the ``fill_value``, which could result in a ``ValueError``, incorrect results, or a segmentation fault (:issue:`23296`).
 - In meth:`Series.unstack`, specifying a ``fill_value`` not present in the categories now raises a ``TypeError`` rather than ignoring the ``fill_value`` (:issue:`23284`)
+- Bug when resampling :meth:`Dataframe.resample()` and aggregating on categorical data, the categorical dtype was getting lost. (:issue:`23227`)
 
 Datetimelike
 ^^^^^^^^^^^^
