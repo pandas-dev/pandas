@@ -2289,16 +2289,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Combine the Series and `other` using `func` to perform elementwise
         selection for combined Series.
-        `fill_value` is assumed when value is missing from one
-        of the two objects being combined at some index.
+        `fill_value` is assumed when value is missing at some index
+        from one of the two objects being combined .
 
         Parameters
         ----------
         other : Series or scalar
             The value(s) to be combined with the `Series`.
         func : function
-            Function that takes two scalars as inputs and returns a `bool`.
-        fill_value : scalar
+            Function that takes two scalars as inputs and returns an element.
+        fill_value : scalar, default None
             The optional value to assume when an index is missing from
             one Series or the other. The default specifies to use the
             appropriate NaN value for the underlying dtype of the Series.
@@ -2329,8 +2329,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    4
         dtype: int64
 
-        `fill_value` is the _default comparison value_ 
-        in the function if a value is missing in the series.
         >>> s1.combine(s2, lambda x1, x2: x1 if x1 > x2 else x2,
         ...            fill_value=787)
         0      1
