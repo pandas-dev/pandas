@@ -1162,6 +1162,7 @@ Offsets
 - Bug in :class:`FY5253` where date offsets could incorrectly raise an ``AssertionError`` in arithmetic operatons (:issue:`14774`)
 - Bug in :class:`DateOffset` where keyword arguments ``week`` and ``milliseconds`` were accepted and ignored.  Passing these will now raise ``ValueError`` (:issue:`19398`)
 - Bug in adding :class:`DateOffset` with :class:`DataFrame` or :class:`PeriodIndex` incorrectly raising ``TypeError`` (:issue:`23215`)
+- Bug in comparing :class:`DateOffset` objects with non-DateOffset objects, particularly strings, raising ``ValueError`` instead of returning ``False`` for equality checks and ``True`` for not-equal checks (:issue:`????`)
 
 Numeric
 ^^^^^^^
