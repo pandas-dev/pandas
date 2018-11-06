@@ -180,14 +180,18 @@ array, but rather an ``ExtensionArray``:
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
 
+
+.. _whatsnew_0240.enhancements.styler_pipe:
+
 New ``Styler.pipe()`` method
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The dataframe Styler class has gained a :meth:`~pandas.io.formats.style.Styler.pipe` method
-(:issue:`23229`).  This provides a convenient way to apply users' predefined styling functions,
-and can help reduce "boilerplate" when using DataFrame styling functionality repeatedly within
+The :class:`~pandas.io.formats.style.Styler` class has gained a
+:meth:`~pandas.io.formats.style.Styler.pipe` method (:issue:`23229`).  This provides a
+convenient way to apply users' predefined styling functions, and can help reduce
+"boilerplate" when using DataFrame styling functionality repeatedly within
 a notebook.
 
-.. code-block:: ipython
+.. ipython:: python
 
     def set_summary_style(styler):
         return (styler.format({'N': '{:,}', 'X': '{:.1%}'})
