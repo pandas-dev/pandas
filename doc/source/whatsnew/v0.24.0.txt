@@ -1229,7 +1229,6 @@ Missing
 - Bug in :func:`Series.hasnans` that could be incorrectly cached and return incorrect answers if null elements are introduced after an initial call (:issue:`19700`)
 - :func:`Series.isin` now treats all NaN-floats as equal also for `np.object`-dtype. This behavior is consistent with the behavior for float64 (:issue:`22119`)
 - :func:`unique` no longer mangles NaN-floats and the ``NaT``-object for `np.object`-dtype, i.e. ``NaT`` is no longer coerced to a NaN-value and is treated as a different entity. (:issue:`22295`)
-- :meth:`isna` now considers ``decimal.Decimal('NaN')`` a missing value (:issue:`23284`).
 
 
 MultiIndex

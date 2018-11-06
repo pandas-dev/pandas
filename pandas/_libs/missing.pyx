@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import cython
-import decimal
 from cython import Py_ssize_t
 
 import numpy as np
@@ -34,8 +33,6 @@ cdef inline bint _check_all_nulls(object val):
         res = get_datetime64_value(val) == NPY_NAT
     elif util.is_timedelta64_object(val):
         res = get_timedelta64_value(val) == NPY_NAT
-    elif isinstance(val, decimal.Decimal):
-        return val.is_nan()
     else:
         res = 0
     return res
@@ -74,8 +71,6 @@ cpdef bint checknull(object val):
         return get_timedelta64_value(val) == NPY_NAT
     elif util.is_array(val):
         return False
-    elif isinstance(val, decimal.Decimal):
-        return val.is_nan()
     else:
         return val is None or util.is_nan(val)
 

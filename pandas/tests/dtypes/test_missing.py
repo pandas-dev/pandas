@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import decimal
 import pytest
 from warnings import catch_warnings, simplefilter
 import numpy as np
@@ -248,43 +247,6 @@ class TestIsNA(object):
         s = pd.Series(idx, dtype=object)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
-
-    def test_decimal(self):
-        # scalars
-        a = decimal.Decimal(1.0)
-        assert pd.isna(a) is False
-        assert pd.notna(a) is True
-
-        b = decimal.Decimal('NaN')
-        assert pd.isna(b) is True
-        assert pd.notna(b) is False
-
-        # array
-        arr = np.array([a, b])
-        expected = np.array([False, True])
-        result = pd.isna(arr)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = pd.notna(arr)
-        tm.assert_numpy_array_equal(result, ~expected)
-
-        # series
-        ser = pd.Series(arr)
-        expected = pd.Series(expected)
-        result = pd.isna(ser)
-        tm.assert_series_equal(result, expected)
-
-        result = pd.notna(ser)
-        tm.assert_series_equal(result, ~expected)
-
-        # index
-        idx = pd.Index(arr)
-        expected = np.array([False, True])
-        result = pd.isna(idx)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = pd.notna(idx)
-        tm.assert_numpy_array_equal(result, ~expected)
 
 
 def test_array_equivalent():
