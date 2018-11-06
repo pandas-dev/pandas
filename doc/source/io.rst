@@ -40,14 +40,14 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     :delim: ;
 
     text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
-    text;`JSON <http://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
+    text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
     binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
-    binary;`Msgpack <http://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
+    binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
     binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
@@ -2273,7 +2273,7 @@ indicate missing values and the subsequent read cannot distinguish the intent.
    new_df = pd.read_json('test.json', orient='table')
    print(new_df.index.name)
 
-.. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
+.. _Table Schema: https://specs.frictionlessdata.io/json-table-schema/
 
 HTML
 ----
@@ -2301,7 +2301,7 @@ Read a URL with no options:
 
 .. ipython:: python
 
-   url = 'http://www.fdic.gov/bank/individual/failed/banklist.html'
+   url = 'https://www.fdic.gov/bank/individual/failed/banklist.html'
    dfs = pd.read_html(url)
    dfs
 
@@ -2341,7 +2341,7 @@ You can even pass in an instance of ``StringIO`` if you so desire:
    that having so many network-accessing functions slows down the documentation
    build. If you spot an error or an example that doesn't run, please do not
    hesitate to report it over on `pandas GitHub issues page
-   <http://www.github.com/pandas-dev/pandas/issues>`__.
+   <https://www.github.com/pandas-dev/pandas/issues>`__.
 
 
 Read a URL and match a table that contains specific text:
@@ -2650,16 +2650,16 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
 
 .. |svm| replace:: **strictly valid markup**
-.. _svm: http://validator.w3.org/docs/help.html#validation_basics
+.. _svm: https://validator.w3.org/docs/help.html#validation_basics
 
 .. |html5lib| replace:: **html5lib**
 .. _html5lib: https://github.com/html5lib/html5lib-python
 
 .. |BeautifulSoup4| replace:: **BeautifulSoup4**
-.. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
+.. _BeautifulSoup4: https://www.crummy.com/software/BeautifulSoup
 
 .. |lxml| replace:: **lxml**
-.. _lxml: http://lxml.de
+.. _lxml: https://lxml.de
 
 
 
@@ -3143,10 +3143,10 @@ any pickled pandas object (or any other pickled object) from file:
    for such cases, pickled ``DataFrames``, ``Series`` etc, must be read with
    ``pd.read_pickle``, rather than ``pickle.load``.
 
-   See `here <http://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0130-refactoring>`__
-   and `here <http://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0150-refactoring>`__
+   See `here <https://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0130-refactoring>`__
+   and `here <https://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0150-refactoring>`__
    for some examples of compatibility-breaking changes. See
-   `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
+   `this question <https://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
    for a detailed explanation.
 
 .. _io.pickle.compression:
@@ -3294,7 +3294,7 @@ HDF5 (PyTables)
 
 ``HDFStore`` is a dict-like object which reads and writes pandas using
 the high performance HDF5 format using the excellent `PyTables
-<http://www.pytables.org/>`__ library. See the :ref:`cookbook <cookbook.hdf>`
+<https://www.pytables.org/>`__ library. See the :ref:`cookbook <cookbook.hdf>`
 for some advanced strategies
 
 .. warning::
@@ -3878,7 +3878,7 @@ Then create the index when finished appending.
 
    os.remove('appends.h5')
 
-See `here <http://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__ for how to create a completely-sorted-index (CSI) on an existing store.
+See `here <https://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__ for how to create a completely-sorted-index (CSI) on an existing store.
 
 .. _io.hdf5-query-data-columns:
 
@@ -4151,8 +4151,8 @@ control compression: ``complevel`` and ``complib``.
             compression to choose depends on your specific needs and
             data. The list of supported compression libraries:
 
-             - `zlib <http://zlib.net/>`_: The default compression library. A classic in terms of compression, achieves good compression rates but is somewhat slow.
-             - `lzo <http://www.oberhumer.com/opensource/lzo/>`_: Fast compression and decompression.
+             - `zlib <https://zlib.net/>`_: The default compression library. A classic in terms of compression, achieves good compression rates but is somewhat slow.
+             - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast compression and decompression.
              - `bzip2 <http://bzip.org/>`_: Good compression rates.
              - `blosc <http://www.blosc.org/>`_: Fast compression and decompression.
 
@@ -4171,7 +4171,7 @@ control compression: ``complevel`` and ``complib``.
                   compression ratios at the expense of speed.
                 - `blosc:snappy <https://google.github.io/snappy/>`_:
                   A popular compressor used in many places.
-                - `blosc:zlib <http://zlib.net/>`_: A classic;
+                - `blosc:zlib <https://zlib.net/>`_: A classic;
                   somewhat slower than the previous ones, but
                   achieving better compression ratios.
                 - `blosc:zstd <https://facebook.github.io/zstd/>`_: An
@@ -4372,7 +4372,7 @@ tables.
 It is possible to write an ``HDFStore`` object that can easily be imported into ``R`` using the
 ``rhdf5`` library (`Package website`_). Create a table format store like this:
 
-.. _package website: http://www.bioconductor.org/packages/release/bioc/html/rhdf5.html
+.. _package website: https://www.bioconductor.org/packages/release/bioc/html/rhdf5.html
 
 .. ipython:: python
 
@@ -4471,7 +4471,7 @@ Performance
 * A ``PerformanceWarning`` will be raised if you are attempting to
   store types that will be pickled by PyTables (rather than stored as
   endemic types). See
-  `Here <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190>`__
+  `Here <https://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190>`__
   for more information and some solutions.
 
 
@@ -4579,7 +4579,7 @@ You can specify an ``engine`` to direct the serialization. This can be one of ``
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``,
 then ``pyarrow`` is tried, and falling back to ``fastparquet``.
 
-See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__.
+See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ and `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__.
 
 .. note::
 
@@ -4681,13 +4681,13 @@ for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
 You can find an overview of supported drivers for each SQL dialect in the
-`SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
+`SQLAlchemy docs <https://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
 
 If SQLAlchemy is not installed, a fallback is only provided for sqlite (and
 for mysql for backwards compatibility, but this is deprecated and will be
 removed in a future version).
 This mode requires a Python database adapter which respect the `Python
-DB-API <http://www.python.org/dev/peps/pep-0249/>`__.
+DB-API <https://www.python.org/dev/peps/pep-0249/>`__.
 
 See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategies.
 
@@ -4709,7 +4709,7 @@ The key functions are:
     the provided input (database table name or sql query).
     Table names do not need to be quoted if they have special characters.
 
-In the following example, we use the `SQlite <http://www.sqlite.org/>`__ SQL database
+In the following example, we use the `SQlite <https://www.sqlite.org/>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
 "memory".
 
@@ -4717,7 +4717,7 @@ To connect with SQLAlchemy you use the :func:`create_engine` function to create 
 object from database URI. You only need to create the engine once per database you are
 connecting to.
 For more information on :func:`create_engine` and the URI formatting, see the examples
-below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/latest/core/engines.html>`__
+below and the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
 .. ipython:: python
 
@@ -4930,7 +4930,7 @@ connecting to.
    # or absolute, starting with a slash:
    engine = create_engine('sqlite:////absolute/path/to/foo.db')
 
-For more information see the examples the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/latest/core/engines.html>`__
+For more information see the examples the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
 
 Advanced SQLAlchemy queries
@@ -4975,7 +4975,7 @@ Sqlite fallback
 
 The use of sqlite is supported without using SQLAlchemy.
 This mode requires a Python database adapter which respect the `Python
-DB-API <http://www.python.org/dev/peps/pep-0249/>`__.
+DB-API <https://www.python.org/dev/peps/pep-0249/>`__.
 
 You can create connections like so:
 
@@ -5233,7 +5233,7 @@ xarray_ provides data structures inspired by the pandas ``DataFrame`` for workin
 with multi-dimensional datasets, with a focus on the netCDF file format and
 easy conversion to and from pandas.
 
-.. _xarray: http://xarray.pydata.org/
+.. _xarray: https://xarray.pydata.org/
 
 .. _io.perf:
 
