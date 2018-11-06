@@ -409,7 +409,7 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     nleft = len(old)
     nright = len(new)
     indexer = np.empty(nright, dtype=np.int64)
-    indexer.fill(-1)
+    indexer[:] = -1
 
     if limit is None:
         lim = nright
@@ -607,7 +607,7 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     nleft = len(old)
     nright = len(new)
     indexer = np.empty(nright, dtype=np.int64)
-    indexer.fill(-1)
+    indexer[:] = -1
 
     if limit is None:
         lim = nright

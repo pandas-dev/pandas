@@ -8,9 +8,9 @@ cdef extern from "numpy/npy_math.h":
     double NAN "NPY_NAN"
 _int64_max = np.iinfo(np.int64).max
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # group_add, group_prod, group_var, group_mean, group_ohlc
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 {{py:
 
@@ -246,7 +246,7 @@ def group_ohlc_{{name}}(ndarray[{{c_type}}, ndim=2] out,
     if K > 1:
         raise NotImplementedError("Argument 'values' must have only "
                                   "one dimension")
-    out.fill(np.nan)
+    out[:] = np.nan
 
     with nogil:
         for i in range(N):
@@ -629,10 +629,10 @@ def group_max(ndarray[groupby_t, ndim=2] out,
     maxx = np.empty_like(out)
     if groupby_t is int64_t:
         # Note: evaluated at compile-time
-        maxx.fill(-_int64_max)
+        maxx[:] = -_int64_max
         nan_val = iNaT
     else:
-        maxx.fill(-np.inf)
+        maxx[:] = -np.inf
         nan_val = NAN
 
     N, K = (<object>values).shape
@@ -691,10 +691,10 @@ def group_min(ndarray[groupby_t, ndim=2] out,
 
     minx = np.empty_like(out)
     if groupby_t is int64_t:
-        minx.fill(_int64_max)
+        minx[:] = _int64_max
         nan_val = iNaT
     else:
-        minx.fill(np.inf)
+        minx[:] = np.inf
         nan_val = NAN
 
     N, K = (<object>values).shape
@@ -747,9 +747,9 @@ def group_cummin(ndarray[groupby_t, ndim=2] out,
     N, K = (<object>values).shape
     accum = np.empty_like(values)
     if groupby_t is int64_t:
-        accum.fill(_int64_max)
+        accum[:] = _int64_max
     else:
-        accum.fill(np.inf)
+        accum[:] = np.inf
 
     with nogil:
         for i in range(N):
@@ -795,9 +795,9 @@ def group_cummax(ndarray[groupby_t, ndim=2] out,
     N, K = (<object>values).shape
     accum = np.empty_like(values)
     if groupby_t is int64_t:
-        accum.fill(-_int64_max)
+        accum[:] = -_int64_max
     else:
-        accum.fill(-np.inf)
+        accum[:] = -np.inf
 
     with nogil:
         for i in range(N):

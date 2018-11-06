@@ -221,7 +221,7 @@ cdef class IntIndex(SparseIndex):
 
         n = len(indexer)
         results = np.empty(n, dtype=np.int32)
-        results.fill(-1)
+        results[:] = -1
 
         if self.npoints == 0:
             return results
@@ -250,9 +250,9 @@ cdef class IntIndex(SparseIndex):
         sinds = self.indices
 
         result = np.empty(other.npoints, dtype=np.float64)
-        result.fill(fill_value)
+        result[:] = fill_value
 
-        for 0 <= i < other.npoints:
+        for i in range(other.npoints):
             while oinds[i] > sinds[j] and j < self.npoints:
                 j += 1
 
@@ -582,7 +582,7 @@ cdef class BlockIndex(SparseIndex):
 
         n = len(indexer)
         results = np.empty(n, dtype=np.int32)
-        results.fill(-1)
+        results[:] = -1
 
         if self.npoints == 0:
             return results
