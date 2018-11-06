@@ -85,12 +85,6 @@ def test_construction():
     with pytest.raises(ValueError):
         Timedelta('10 days -1 h 1.5m 1s 3us')
 
-    # no units specified
-    with pytest.raises(ValueError):
-        Timedelta('3.1415')
-    with pytest.raises(ValueError):
-        Timedelta('2000')
-
     # invalid construction
     tm.assert_raises_regex(ValueError, "cannot construct a Timedelta",
                            lambda: Timedelta())
@@ -214,15 +208,28 @@ def test_td_constructor_value_error():
         Timedelta(nanoseconds='abc')
 
 
-@pytest.mark.parametrize("str_unit, unit, expectation", [
-    ("", "s", tm.do_not_raise),              # Expected case
-    ("s", "d", pytest.raises(ValueError)),   # Units doubly defined
-    ("s", "s", pytest.raises(ValueError)),   # Units doubly defined (same)
-    ("", None, pytest.raises(ValueError)),   # No units
+@pytest.mark.parametrize("value", [
+    3.1415,  # Number with decimals (original test)
+    10,      # Integer number, did not raise before
 ])
-def test_string_with_unit(str_unit, unit, expectation):
+@pytest.mark.parametrize("str_unit, unit, expectation", [
+    # Expected case
+    ("", "s", tm.do_not_raise),
+
+    # Units doubly defined
+    ("s", "d", pytest.raises(ValueError,
+                             message="units were doubly specified, both as an argument (d) and inside string (s)")),
+
+    # Units doubly defined (same)
+    ("s", "s", pytest.raises(ValueError,
+                             message="units were doubly specified, both as an argument (s) and inside string (s)")),
+
+    # No units
+    ("", None, pytest.raises(ValueError, message="number string without units")),
+])
+def test_string_with_unit(value, str_unit, unit, expectation):
     with expectation:
-        val_str = "10{}".format(str_unit)
+        val_str = "{}{}".format(value, str_unit)
         expected_td = Timedelta(10, unit=unit)
 
         assert Timedelta(val_str, unit=unit) == expected_td

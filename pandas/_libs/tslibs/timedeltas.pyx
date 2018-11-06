@@ -216,7 +216,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def array_to_timedelta64(object[:] values, unit='None', errors='raise'):
+def array_to_timedelta64(object[:] values, unit=None, errors='raise'):
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
@@ -435,7 +435,7 @@ cpdef inline parse_timedelta_string(object ts, specified_unit=None):
             unit = [specified_unit]
     else:
         if specified_unit:
-            raise ValueError("units doubly specified")
+            raise ValueError("units were doubly specified, both as an argument ({}) and inside string ({}).".format(specified_unit, unit))
 
     # we had a dot, but we have a fractional
     # value since we have an unit

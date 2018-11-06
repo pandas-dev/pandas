@@ -42,6 +42,27 @@ from pandas.io.formats.printing import pprint_thing
 
 
 class NullContextManager(object):
+    """No-op context manager (does nothing).
+
+    Mainly used for defining ``do_not_raise`` context manager,
+    for pytest tests where we are required to parametrize on
+    whether we should raise something or not:
+
+    Example
+    -------
+
+        >>> import pytest
+        >>> from pytest import raises
+        >>> from pandas.util.testing import do_not_raise
+        >>> @pytest.mark.parametrize("input, expectation", [
+        ...     (1, do_not_raise),
+        ...     ("a", raises(ValueError))
+        ... ])
+        >>> def test_convert_number(input, expectation):
+        ...     with expectation:
+        ...         float(input)
+
+    """
     def __init__(self, dummy_resource=None):
         self.dummy_resource = dummy_resource
 
