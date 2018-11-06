@@ -4676,7 +4676,6 @@ Partitioning Parquet files
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
-   :suppress:
 
     df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
     df.to_parquet(fname='test', engine='pyarrow', partition_cols=['a'], compression=None)
@@ -4697,6 +4696,14 @@ The above example creates a partitioned dataset that may look like:
         ├── e6ab24a4f45147b49b54a662f0c412a3.parquet
         └── ...
 
+.. ipython:: python
+   :suppress:
+
+   from shutil import rmtree
+   try:
+       rmtree('test')
+   except Exception:
+       pass
 
 .. _io.sql:
 
