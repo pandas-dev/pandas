@@ -2473,20 +2473,20 @@ Categorical
 
 Pandas defines a custom data type for representing data that can take only a
 limited, fixed set of values. The dtype of a ``Categorical`` can be described by
-a :class:`pandas.api.types.CategoricalDtype`.
+a :class:`CategoricalDtype`.
 See :ref:`categorical` for more on working with Categorical data.
 
 .. autosummary::
    :toctree: generated/
    :template: autosummary/class_without_autosummary.rst
 
-   api.types.CategoricalDtype
+   CategoricalDtype
 
 .. autosummary::
    :toctree: generated/
 
-   api.types.CategoricalDtype.categories
-   api.types.CategoricalDtype.ordered
+   CategoricalDtype.categories
+   CategoricalDtype.ordered
 
 Categorical data can be stored in a :class:`pandas.Categorical`
 
@@ -2536,7 +2536,7 @@ To create a Series of dtype ``category``, use ``cat = s.astype(dtype)`` or
 ``Series(..., dtype=dtype)`` where ``dtype`` is either
 
 * the string ``'category'``
-* an instance of :class:`~pandas.api.types.CategoricalDtype`.
+* an instance of :class:`CategoricalDtype`.
 
 If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
 data. This accessor is similar to the ``Series.dt`` or ``Series.str`` and has the

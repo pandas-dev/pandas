@@ -717,11 +717,9 @@ and allows efficient indexing and storage of an index with a large number of dup
 
 .. ipython:: python
 
-   from pandas.api.types import CategoricalDtype
-
    df = pd.DataFrame({'A': np.arange(6),
                       'B': list('aabbca')})
-   df['B'] = df['B'].astype(CategoricalDtype(list('cab')))
+   df['B'] = df['B'].astype(pd.CategoricalDtype(list('cab')))
    df
    df.dtypes
    df.B.cat.categories
@@ -747,7 +745,7 @@ The ``CategoricalIndex`` is **preserved** after indexing:
    df2.loc['a'].index
 
 Sorting the index will sort by the order of the categories (recall that we
-created the index with ``CategoricalDtype(list('cab'))``, so the sorted
+created the index with ``pd.CategoricalDtype(list('cab'))``, so the sorted
 order is ``cab``).
 
 .. ipython:: python

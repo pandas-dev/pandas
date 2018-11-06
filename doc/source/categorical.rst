@@ -150,11 +150,11 @@ behavior:
 2. Categories are unordered.
 
 To control those behaviors, instead of passing ``'category'``, use an instance
-of :class:`~pandas.api.types.CategoricalDtype`.
+of :class:`CategoricalDtype`.
 
 .. ipython:: python
 
-    from pandas.api.types import CategoricalDtype
+    from pandas import CategoricalDtype
 
     s = pd.Series(["a", "b", "c", "a"])
     cat_type = CategoricalDtype(categories=["b", "c", "d"],
@@ -227,7 +227,7 @@ A categorical's type is fully described by
 1. ``categories``: a sequence of unique values and no missing values
 2. ``ordered``: a boolean
 
-This information can be stored in a :class:`~pandas.api.types.CategoricalDtype`.
+This information can be stored in a :class:`CategoricalDtype`.
 The ``categories`` argument is optional, which implies that the actual categories
 should be inferred from whatever is present in the data when the
 :class:`pandas.Categorical` is created. The categories are assumed to be unordered
@@ -235,20 +235,20 @@ by default.
 
 .. ipython:: python
 
-   from pandas.api.types import CategoricalDtype
+   from pandas import CategoricalDtype
 
    CategoricalDtype(['a', 'b', 'c'])
    CategoricalDtype(['a', 'b', 'c'], ordered=True)
    CategoricalDtype()
 
-A :class:`~pandas.api.types.CategoricalDtype` can be used in any place pandas
+A :class:`CategoricalDtype` can be used in any place pandas
 expects a `dtype`. For example :func:`pandas.read_csv`,
 :func:`pandas.DataFrame.astype`, or in the ``Series`` constructor.
 
 .. note::
 
     As a convenience, you can use the string ``'category'`` in place of a
-    :class:`~pandas.api.types.CategoricalDtype` when you want the default behavior of
+    :class:`CategoricalDtype` when you want the default behavior of
     the categories being unordered, and equal to the set values present in the
     array. In other words, ``dtype='category'`` is equivalent to
     ``dtype=CategoricalDtype()``.
@@ -256,7 +256,7 @@ expects a `dtype`. For example :func:`pandas.read_csv`,
 Equality Semantics
 ~~~~~~~~~~~~~~~~~~
 
-Two instances of :class:`~pandas.api.types.CategoricalDtype` compare equal
+Two instances of :class:`CategoricalDtype` compare equal
 whenever they have the same categories and order. When comparing two
 unordered categoricals, the order of the ``categories`` is not considered.
 
@@ -834,7 +834,7 @@ Unioning
 .. versionadded:: 0.19.0
 
 If you want to combine categoricals that do not necessarily have the same 
-categories, the :func:`~pandas.api.types.union_categoricals` function will
+categories, the :func:`union_categoricals` function will
 combine a list-like of categoricals. The new categories will be the union of 
 the categories being combined.
 
@@ -884,7 +884,7 @@ using the ``ignore_ordered=True`` argument.
     b = pd.Categorical(["c", "b", "a"], ordered=True)
     union_categoricals([a, b], ignore_order=True)
 
-:func:`~pandas.api.types.union_categoricals` also works with a 
+:func:`union_categoricals` also works with a 
 ``CategoricalIndex``, or ``Series`` containing categorical data, but note that 
 the resulting array will always be a plain ``Categorical``:
 

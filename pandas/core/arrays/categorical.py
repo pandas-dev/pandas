@@ -315,7 +315,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     See also
     --------
-    pandas.api.types.CategoricalDtype : Type for categorical data
+    CategoricalDtype : Type for categorical data
     CategoricalIndex : An Index with an underlying ``Categorical``
     """
 
@@ -484,7 +484,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     @property
     def dtype(self):
-        """The :class:`~pandas.api.types.CategoricalDtype` for this instance"""
+        """The :class:`CategoricalDtype` for this instance"""
         return self._dtype
 
     @property

@@ -858,10 +858,8 @@ The left frame.
 
 .. ipython:: python
 
-   from pandas.api.types import CategoricalDtype
-
    X = pd.Series(np.random.choice(['foo', 'bar'], size=(10,)))
-   X = X.astype(CategoricalDtype(categories=['foo', 'bar']))
+   X = X.astype(pd.CategoricalDtype(categories=['foo', 'bar']))
 
    left = pd.DataFrame({'X': X,
                         'Y': np.random.choice(['one', 'two', 'three'], size=(10,))})
@@ -874,7 +872,7 @@ The right frame.
 
    right = pd.DataFrame({
         'X': pd.Series(['foo', 'bar'],
-                       dtype=CategoricalDtype(['foo', 'bar'])),
+                       dtype=pd.CategoricalDtype(['foo', 'bar'])),
         'Z': [1, 2]
    })
    right

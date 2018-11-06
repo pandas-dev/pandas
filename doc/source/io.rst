@@ -451,7 +451,7 @@ Specifying Categorical dtype
 .. versionadded:: 0.19.0
 
 ``Categorical`` columns can be parsed directly by specifying ``dtype='category'`` or
-``dtype=CategoricalDtype(categories, ordered)``.
+``dtype=pd.CategoricalDtype(categories, ordered)``.
 
 .. ipython:: python
 
@@ -473,14 +473,12 @@ specification:
 Specifying ``dtype='cateogry'`` will result in an unordered ``Categorical``
 whose ``categories`` are the unique values observed in the data. For more
 control on the categories and order, create a
-:class:`~pandas.api.types.CategoricalDtype` ahead of time, and pass that for
+:class:`CategoricalDtype` ahead of time, and pass that for
 that column's ``dtype``.
 
 .. ipython:: python
 
-   from pandas.api.types import CategoricalDtype
-
-   dtype = CategoricalDtype(['d', 'c', 'b', 'a'], ordered=True)
+   dtype = pd.CategoricalDtype(['d', 'c', 'b', 'a'], ordered=True)
    pd.read_csv(StringIO(data), dtype={'col1': dtype}).dtypes
 
 When using ``dtype=CategoricalDtype``, "unexpected" values outside of
@@ -488,7 +486,7 @@ When using ``dtype=CategoricalDtype``, "unexpected" values outside of
 
 .. ipython:: python
 
-   dtype = CategoricalDtype(['a', 'b', 'd'])  # No 'c'
+   dtype = pd.CategoricalDtype(['a', 'b', 'd'])  # No 'c'
    pd.read_csv(StringIO(data), dtype={'col1': dtype}).col1
 
 This matches the behavior of :meth:`Categorical.set_categories`.
