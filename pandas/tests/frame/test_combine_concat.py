@@ -759,7 +759,6 @@ class TestDataFrameCombineFirst(TestData):
         tm.assert_frame_equal(res, exp)
         assert res['TD'].dtype == 'timedelta64[ns]'
 
-    @pytest.mark.xfail(reason="GH-23079", strict=True)
     def test_combine_first_period(self):
         data1 = pd.PeriodIndex(['2011-01', 'NaT', '2011-03',
                                 '2011-04'], freq='M')

@@ -1,17 +1,18 @@
 """ test indexing with ix """
 
-import pytest
-
 from warnings import catch_warnings
 
 import numpy as np
-import pandas as pd
+import pytest
+
+from pandas.compat import lrange
+from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_scalar
-from pandas.compat import lrange
-from pandas import Series, DataFrame, option_context, MultiIndex
+
+import pandas as pd
+from pandas import DataFrame, MultiIndex, Series, option_context
 from pandas.util import testing as tm
-from pandas.errors import PerformanceWarning
 
 
 def test_ix_deprecation():

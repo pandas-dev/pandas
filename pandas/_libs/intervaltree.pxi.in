@@ -72,6 +72,12 @@ cdef class IntervalTree(IntervalMixin):
 
         self.closed = closed
 
+        # GH 23352: ensure no nan in nodes
+        mask = ~np.isnan(self.left)
+        self.left = self.left[mask]
+        self.right = self.right[mask]
+        indices = indices[mask]
+
         node_cls = NODE_CLASSES[str(self.dtype), closed]
         self.root = node_cls(self.left, self.right, indices, leaf_size)
 

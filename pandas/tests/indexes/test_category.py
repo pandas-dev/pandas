@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
+import pytest
 
-import pandas.util.testing as tm
-from pandas.core.indexes.api import Index, CategoricalIndex
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas._libs import index as libindex
-from .common import Base
-
-from pandas.compat import range, PY3
-
-from pandas import Categorical, IntervalIndex, compat
-from pandas.util.testing import assert_almost_equal
-import pandas.core.config as cf
 import pandas as pd
+import pandas.core.config as cf
+import pandas.util.testing as tm
+from pandas import Categorical, IntervalIndex, compat
+from pandas._libs import index as libindex
+from pandas.compat import PY3, range
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.indexes.api import CategoricalIndex, Index
+from pandas.util.testing import assert_almost_equal
+
+from .common import Base
 
 if PY3:
     unicode = lambda x: x

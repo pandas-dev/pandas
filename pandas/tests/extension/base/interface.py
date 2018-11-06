@@ -1,9 +1,11 @@
 import numpy as np
 
-import pandas as pd
 from pandas.compat import StringIO
+
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
+
+import pandas as pd
 
 from .base import BaseExtensionTests
 

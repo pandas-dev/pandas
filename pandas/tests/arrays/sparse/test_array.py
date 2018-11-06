@@ -1,19 +1,19 @@
-from pandas.compat import range
-
-import re
 import operator
-import pytest
+import re
 import warnings
 
-from numpy import nan
 import numpy as np
-import pandas as pd
+from numpy import nan
+import pytest
 
-from pandas.core.sparse.api import SparseArray, SparseSeries, SparseDtype
 from pandas._libs.sparse import IntIndex
-from pandas.util.testing import assert_almost_equal
-import pandas.util.testing as tm
+from pandas.compat import range
 import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas.core.sparse.api import SparseArray, SparseDtype, SparseSeries
+import pandas.util.testing as tm
+from pandas.util.testing import assert_almost_equal
 
 
 @pytest.fixture(params=["integer", "block"])
@@ -995,6 +995,55 @@ class TestSparseArrayAnalytics(object):
             pd.to_datetime(['2012', None, None, '2013'])
         )
         np.asarray(s)
+
+    def test_density(self):
+        arr = SparseArray([0, 1])
+        assert arr.density == 0.5
+
+    def test_npoints(self):
+        arr = SparseArray([0, 1])
+        assert arr.npoints == 1
+
+
+class TestAccessor(object):
+
+    @pytest.mark.parametrize('attr', [
+        'npoints', 'density', 'fill_value', 'sp_values',
+    ])
+    def test_get_attributes(self, attr):
+        arr = SparseArray([0, 1])
+        ser = pd.Series(arr)
+
+        result = getattr(ser.sparse, attr)
+        expected = getattr(arr, attr)
+        assert result == expected
+
+    def test_from_coo(self):
+        sparse = pytest.importorskip("scipy.sparse")
+
+        row = [0, 3, 1, 0]
+        col = [0, 3, 1, 2]
+        data = [4, 5, 7, 9]
+        sp_array = sparse.coo_matrix(data, (row, col))
+        result = pd.Series.sparse.from_coo(sp_array)
+
+        index = pd.MultiIndex.from_product([[0], [0, 1, 2, 3]])
+        expected = pd.Series(data, index=index, dtype='Sparse[int]')
+        tm.assert_series_equal(result, expected)
+
+    def test_to_coo(self):
+        sparse = pytest.importorskip("scipy.sparse")
+        ser = pd.Series([1, 2, 3],
+                        index=pd.MultiIndex.from_product([[0], [1, 2, 3]],
+                                                         names=['a', 'b']),
+                        dtype='Sparse[int]')
+        A, _, _ = ser.sparse.to_coo()
+        assert isinstance(A, sparse.coo.coo_matrix)
+
+    def test_non_sparse_raises(self):
+        ser = pd.Series([1, 2, 3])
+        with tm.assert_raises_regex(AttributeError, '.sparse'):
+            ser.sparse.density
 
 
 def test_setting_fill_value_fillna_still_works():

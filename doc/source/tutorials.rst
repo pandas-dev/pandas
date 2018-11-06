@@ -7,13 +7,16 @@ Tutorials
 This is a guide to many pandas tutorials, geared mainly for new users.
 
 Internal Guides
----------------
+===============
 
 pandas' own :ref:`10 Minutes to pandas<10min>`.
 
 More complex recipes are in the :ref:`Cookbook<cookbook>`.
 
 A handy pandas `cheat sheet <http://pandas.pydata.org/Pandas_Cheat_Sheet.pdf>`_.
+
+Community Guides
+================
 
 pandas Cookbook
 ---------------
@@ -200,6 +203,5 @@ Various Tutorials
 * `Financial analysis in Python, by Thomas Wiecki <http://nbviewer.ipython.org/github/twiecki/financial-analysis-python-tutorial/blob/master/1.%20Pandas%20Basics.ipynb>`_
 * `Intro to pandas data structures, by Greg Reda <http://www.gregreda.com/2013/10/26/intro-to-pandas-data-structures/>`_
 * `Pandas and Python: Top 10, by Manish Amde <http://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/>`_
-* `Pandas Tutorial, by Mikhail Semeniuk <http://www.bearrelroll.com/2013/05/python-pandas-tutorial>`_
 * `Pandas DataFrames Tutorial, by Karlijn Willems <http://www.datacamp.com/community/tutorials/pandas-tutorial-dataframe-python>`_
 * `A concise tutorial with real life examples <https://tutswiki.com/pandas-cookbook/chapter1>`_

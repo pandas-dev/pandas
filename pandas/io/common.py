@@ -1,20 +1,21 @@
 """Common IO api utilities"""
 
 import codecs
+from contextlib import closing, contextmanager
 import csv
 import mmap
 import os
 import zipfile
-from contextlib import closing, contextmanager
+
+import pandas.compat as compat
+from pandas.compat import BytesIO, StringIO, string_types, text_type
+from pandas.errors import (  # noqa
+    DtypeWarning, EmptyDataError, ParserError, ParserWarning)
+
+from pandas.core.dtypes.common import is_file_like, is_number
 
 import pandas.core.common as com
-from pandas import compat
-from pandas.compat import BytesIO, StringIO, string_types, text_type
-from pandas.core.dtypes.common import is_file_like, is_number
-# compat
-from pandas.errors import (  # noqa
-    DtypeWarning, EmptyDataError, ParserError, ParserWarning
-)
+
 from pandas.io.formats.printing import pprint_thing
 
 # gh-12665: Alias for now and remove later.
