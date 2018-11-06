@@ -303,8 +303,10 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas import DatetimeIndex
 
             if dtype is not None and is_dtype_equal(_o_dtype, dtype):
-                # GH#23524 if `data` is already a TZaware DatetimeIndex,
-                #  then passing dtype=object to the constructor would raise
+                # GH#23524 passing `dtype=object` to DatetimeIndex is invalid,
+                #  will raise in the where `data` is already tz-aware.  So
+                #  we leave it out of this step and cast to object-dtype after
+                #  the DatetimeIndex construction.
                 result = DatetimeIndex(data, copy=copy, name=name, **kwargs)
                 return Index(list(result), dtype=_o_dtype)
             else:
