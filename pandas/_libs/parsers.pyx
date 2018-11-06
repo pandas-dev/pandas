@@ -302,6 +302,7 @@ cdef class TextReader:
         object tupleize_cols
         object usecols
         list dtype_cast_order
+        set unnamed_cols
         set noconvert
 
     def __cinit__(self, source,
@@ -361,7 +362,7 @@ cdef class TextReader:
             if not isinstance(encoding, bytes):
                 encoding = encoding.encode('utf-8')
             encoding = encoding.lower()
-            self.c_encoding = <char*> encoding
+            self.c_encoding = <char*>encoding
         else:
             self.c_encoding = NULL
 
@@ -536,7 +537,7 @@ cdef class TextReader:
                 self.header = [ header ]
 
         self.names = names
-        self.header, self.table_width = self._get_header()
+        self.header, self.table_width, self.unnamed_cols = self._get_header()
 
         if not self.table_width:
             raise EmptyDataError("No columns to parse from file")
@@ -611,7 +612,7 @@ cdef class TextReader:
             for i in self.skiprows:
                 parser_add_skiprow(self.parser, i)
         else:
-            self.parser.skipfunc = <PyObject *> self.skiprows
+            self.parser.skipfunc = <PyObject *>self.skiprows
 
     cdef _setup_parser_source(self, source):
         cdef:
@@ -668,7 +669,7 @@ cdef class TextReader:
                 source = icom.UTF8Recoder(source,
                                           self.encoding.decode('utf-8'))
                 self.encoding = b'utf-8'
-                self.c_encoding = <char*> self.encoding
+                self.c_encoding = <char*>self.encoding
 
             self.handle = source
 
@@ -720,13 +721,15 @@ cdef class TextReader:
         cdef:
             Py_ssize_t i, start, field_count, passed_count, unnamed_count  # noqa
             char *word
-            object name
+            object name, old_name
             int status
             int64_t hr, data_line
             char *errors = "strict"
             cdef StringPath path = _string_path(self.c_encoding)
 
         header = []
+        unnamed_cols = set()
+
         if self.parser.header_start >= 0:
 
             # Header is in the file
@@ -759,6 +762,7 @@ cdef class TextReader:
 
                 counts = {}
                 unnamed_count = 0
+
                 for i in range(field_count):
                     word = self.parser.words[start + i]
 
@@ -769,6 +773,9 @@ cdef class TextReader:
                     elif path == ENCODED:
                         name = PyUnicode_Decode(word, strlen(word),
                                                 self.c_encoding, errors)
+
+                    # We use this later when collecting placeholder names.
+                    old_name = name
 
                     if name == '':
                         if self.has_mi_columns:
@@ -786,6 +793,9 @@ cdef class TextReader:
                             name = '%s.%d' % (name, count)
                             count = counts.get(name, 0)
 
+                    if old_name == '':
+                        unnamed_cols.add(name)
+
                     this_header.append(name)
                     counts[name] = count + 1
 
@@ -798,6 +808,7 @@ cdef class TextReader:
                         lc = len(this_header)
                         ic = (len(self.index_col) if self.index_col
                               is not None else 0)
+
                         if lc != unnamed_count and lc - ic > unnamed_count:
                             hr -= 1
                             self.parser_start -= 1
@@ -830,7 +841,7 @@ cdef class TextReader:
             if self.parser.lines < 1:
                 self._tokenize_rows(1)
 
-            return None, self.parser.line_fields[0]
+            return None, self.parser.line_fields[0], unnamed_cols
 
         # Corner case, not enough lines in the file
         if self.parser.lines < data_line + 1:
@@ -864,7 +875,7 @@ cdef class TextReader:
             elif self.allow_leading_cols and passed_count < field_count:
                 self.leading_cols = field_count - passed_count
 
-        return header, field_count
+        return header, field_count, unnamed_cols
 
     def read(self, rows=None):
         """
@@ -1444,7 +1455,7 @@ cdef _string_box_factorize(parser_t *parser, int64_t col,
             pyval = PyBytes_FromString(word)
 
             k = kh_put_strbox(table, word, &ret)
-            table.vals[k] = <PyObject*> pyval
+            table.vals[k] = <PyObject*>pyval
 
         result[i] = pyval
 
@@ -1498,7 +1509,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
             pyval = PyUnicode_FromString(word)
 
             k = kh_put_strbox(table, word, &ret)
-            table.vals[k] = <PyObject *> pyval
+            table.vals[k] = <PyObject *>pyval
 
         result[i] = pyval
 
@@ -1556,7 +1567,7 @@ cdef _string_box_decode(parser_t *parser, int64_t col,
             pyval = PyUnicode_Decode(word, size, encoding, errors)
 
             k = kh_put_strbox(table, word, &ret)
-            table.vals[k] = <PyObject *> pyval
+            table.vals[k] = <PyObject *>pyval
 
         result[i] = pyval
 
@@ -1648,7 +1659,7 @@ cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
         ndarray result
 
     result = np.empty(line_end - line_start, dtype='|S%d' % width)
-    data = <char*> result.data
+    data = <char*>result.data
 
     with nogil:
         _to_fw_string_nogil(parser, col, line_start, line_end, width, data)
@@ -1695,7 +1706,7 @@ cdef _try_double(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.float64)
-    data = <double *> result.data
+    data = <double *>result.data
     na_fset = kset_float64_from_list(na_flist)
     if parser.double_converter_nogil != NULL:  # if it can run without the GIL
         with nogil:
@@ -1803,7 +1814,7 @@ cdef _try_uint64(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.uint64)
-    data = <uint64_t *> result.data
+    data = <uint64_t *>result.data
 
     uint_state_init(&state)
     coliter_setup(&it, parser, col, line_start)
@@ -1879,7 +1890,7 @@ cdef _try_int64(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.int64)
-    data = <int64_t *> result.data
+    data = <int64_t *>result.data
     coliter_setup(&it, parser, col, line_start)
     with nogil:
         error = _try_int64_nogil(parser, col, line_start, line_end,
@@ -1951,7 +1962,7 @@ cdef _try_bool_flex(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.uint8)
-    data = <uint8_t *> result.data
+    data = <uint8_t *>result.data
     with nogil:
         error = _try_bool_flex_nogil(parser, col, line_start, line_end,
                                      na_filter, na_hashset, true_hashset,
