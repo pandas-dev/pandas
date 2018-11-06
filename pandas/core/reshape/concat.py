@@ -177,12 +177,12 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
       letter  number animal
     0      c       3    cat
     1      d       4    dog
-    >>> pd.concat([df1, df3])
-      animal letter  number
-    0    NaN      a       1
-    1    NaN      b       2
-    0    cat      c       3
-    1    dog      d       4
+    >>> pd.concat([df1, df3], sort=False)
+      letter  number animal
+    0      a       1    NaN
+    1      b       2    NaN
+    0      c       3    cat
+    1      d       4    dog
 
     Combine ``DataFrame`` objects with overlapping columns
     and return only those that are shared by passing ``inner`` to
