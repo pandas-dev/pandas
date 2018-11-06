@@ -51,24 +51,18 @@ io : str, file descriptor, pathlib.Path, ExcelFile, or xlrd.Book
     Path to the excel document. The string could be a URL. Valid URL schemes
     include http, ftp, s3, gcs, and file. For file URLs, a host is expected.
 sheet_name : str, int, list or None, default 0
-    Strings are used for sheet names, Integers are used in zero-indexed
-    sheet positions.
+    Strings are used for sheet names, integers are used in zero-indexed
+    sheet positions. Lists of strings/integers are used to request multiple
+    sheets. Specify None to get all sheets.
 
-    Lists of strings/integers are used to request multiple sheets.
+    Available cases:
 
-    Specify None to get all sheets.
-
-    str|int -> DataFrame is returned.
-    list|None -> Dict of DataFrames is returned, with keys representing
-    sheets.
-
-    Available Cases
-
-    * Defaults to 0 -> 1st sheet as a DataFrame
-    * 1 -> 2nd sheet as a DataFrame
+    * Defaults to 0: 1st sheet as a DataFrame
+    * 1: 2nd sheet as a DataFrame
     - ``"Sheet1"``: Load sheet with name "Sheet1"
-    - ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5" as a dict of `DataFrame`
-    * None -> All sheets as a dictionary of DataFrames.
+    - ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5" as a
+      dict of `DataFrame`
+    * None: All sheets as a dictionary of DataFrames.
 sheetname : str, int, mixed list of strs/ints, or None, default 0
     Name or index of sheet or sheets to read into a DataFrame or
     dictionary of DataFrames.
@@ -105,7 +99,7 @@ usecols : int or list, default None
       both sides.
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
-dtype : Type name or dict of column -> type, default None
+dtype : Type name or dict of column: type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     Use `object` to preserve data as stored in Excel and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
