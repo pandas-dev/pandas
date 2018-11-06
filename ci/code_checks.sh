@@ -20,7 +20,7 @@ echo "inside $0"
 [[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" || "$1" == "dependencies"  ]] \
     || { echo "Unknown command $1. Usage: $0 [lint|patterns|doctests|dependencies]"; exit 9999; }
 
-#source activate pandas
+source activate pandas
 BASE_DIR="$(dirname $0)/.."
 RET=0
 CHECK=$1
