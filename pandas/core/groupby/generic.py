@@ -410,7 +410,9 @@ class NDFrameGroupBy(GroupBy):
                         if (isinstance(v.index, MultiIndex) or
                                 key_index is None or
                                 isinstance(key_index, MultiIndex)):
-                            stacked_values = np.vstack(map(np.asarray, values))
+                            stacked_values = np.vstack([
+                                np.asarray(v) for v in values
+                            ])
                             result = DataFrame(stacked_values, index=key_index,
                                                columns=index)
                         else:
@@ -422,7 +424,8 @@ class NDFrameGroupBy(GroupBy):
                                             axis=self.axis).unstack()
                             result.columns = index
                     else:
-                        stacked_values = np.vstack(map(np.asarray, values))
+                        stacked_values = np.vstack([np.asarray(v)
+                                                    for v in values])
                         result = DataFrame(stacked_values.T, index=v.index,
                                            columns=key_index)
 

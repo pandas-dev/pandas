@@ -104,8 +104,10 @@ def _skip_if_not_us_locale():
 
 
 def _skip_if_no_scipy():
-    return not (safe_import('scipy.stats') and safe_import('scipy.sparse') and
-                safe_import('scipy.interpolate'))
+    return not (safe_import('scipy.stats') and
+                safe_import('scipy.sparse') and
+                safe_import('scipy.interpolate') and
+                safe_import('scipy.signal'))
 
 
 def _skip_if_no_lzma():
