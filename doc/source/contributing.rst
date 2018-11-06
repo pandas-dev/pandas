@@ -170,7 +170,7 @@ We'll now kick off a three-step process:
 .. code-block:: none
 
    # Create and activate the build environment
-   conda env create
+   conda env create -f environment.yml
    conda activate pandas-dev
 
    # or with older versions of Anaconda:
