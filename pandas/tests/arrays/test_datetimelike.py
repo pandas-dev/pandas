@@ -82,6 +82,19 @@ class TestDatetimeArray(object):
         result = np.array(arr)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_array_i8_dtype(self, tz_naive_fixture):
+        # GH#23524
+        tz = tz_naive_fixture
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        arr = DatetimeArrayMixin(dti)
+
+        expected = dti.asi8
+        result = np.array(arr, dtype='i8')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.array(arr, dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_from_dti(self, tz_naive_fixture):
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
