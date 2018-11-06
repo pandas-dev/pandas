@@ -27,15 +27,16 @@ dataframe's indexes from the resulting Parquet file. (:issue:`20768`)
 Pandas Extension Types
 ^^^^^^^^^^^^^^^^^^^^^^
 
-All of pandas internal extension types (datetime with timezone, categorical, period, interval, sparse)
-now follow the public Extension Array API. The following methods and classes have been added to the public
-API for working with these types.
+All of pandas internal extension types (datetime with timezone, categorical,
+period, interval, sparse) now follow the public Extension Array API. The
+following methods and classes have been added to the public API for working with
+these types.
 
 **dtypes**
 
 - :class:`CategoricalDtype`
 
-**Array constructors**
+**Array Constructors**
 
 - :class:`period_array`
 - :class:`integer_array`

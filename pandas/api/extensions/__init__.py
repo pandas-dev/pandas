@@ -1,42 +1,14 @@
 """Public API for extending panadas objects."""
-from pandas.core.accessor import (register_dataframe_accessor,
+from pandas.core.accessor import (register_dataframe_accessor,  # noqa: F401
                                   register_index_accessor,
                                   register_series_accessor)
-from pandas.core.algorithms import take
-from pandas.core.arrays import (ExtensionArray,
+from pandas.core.algorithms import take  # noqa: F401
+from pandas.core.arrays import (ExtensionArray,  # noqa: F401
                                 ExtensionScalarOpsMixin)
-from pandas.core.dtypes.dtypes import (
+from pandas.core.dtypes.dtypes import (  # noqa: F401
     ExtensionDtype, register_extension_dtype,
-    CategoricalDtype, PeriodDtype, IntervalDtype, DatetimeTZDtype,
 )
-from pandas.core.arrays.sparse import SparseDtype
-from pandas.core.arrays import (
-    SparseArray, Categorical, IntegerArray, PeriodArray,
-    IntervalArray,
+# ExtensionArrays not publicly exposed elsewhere
+from pandas.core.arrays import (  # noqa: F401
+    IntegerArray, PeriodArray,
 )
-
-__all__ = [
-    # 3rd party accessors
-    'register_index_accessor',
-    'register_series_accessor',
-    'register_dataframe_accessor',
-    # EA helpers
-    'register_extension_dtype',
-    'take',
-    # EA base classes
-    'ExtensionDtype',
-    'ExtensionArray',
-    'ExtensionScalarOpsMixin',
-    # First-party Dtypes
-    'CategoricalDtype',
-    'DatetimeTZDtype',
-    'IntervalDtype',
-    'PeriodDtype',
-    'SparseDtype',
-    # First-party Arrays
-    'Categorical',
-    'IntegerArray',
-    'IntervalArray',
-    'PeriodArray',
-    'SparseArray',
-]
