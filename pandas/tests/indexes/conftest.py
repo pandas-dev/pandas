@@ -15,6 +15,7 @@ import pandas.util.testing as tm
                         tm.makeTimedeltaIndex(100),
                         tm.makeIntIndex(100),
                         tm.makeUIntIndex(100),
+                        tm.makeRangeIndex(100),
                         tm.makeFloatIndex(100),
                         Index([True, False]),
                         tm.makeCategoricalIndex(100),

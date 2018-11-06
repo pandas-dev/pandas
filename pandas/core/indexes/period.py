@@ -12,9 +12,9 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_datetime64_any_dtype,
     is_bool_dtype,
-    pandas_dtype,
+    pandas_dtype
 )
-
+from pandas.core.ops import get_op_result_name
 from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.datetimelike import (
@@ -848,8 +848,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
 
-    def _wrap_union_result(self, other, result):
-        name = self.name if self.name == other.name else None
+    def _wrap_setop_result(self, other, result):
+        name = get_op_result_name(self, other)
         result = self._apply_meta(result)
         result.name = name
         return result

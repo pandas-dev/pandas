@@ -5,7 +5,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import index as libindex, lib
 import pandas.compat as compat
 from pandas.compat import get_range_parameters, lrange, range
 from pandas.compat.numpy import function as nv
@@ -263,8 +263,9 @@ class RangeIndex(Int64Index):
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
+            name = kwargs.get("name", self.name)
             return RangeIndex._simple_new(
-                name=self.name, **dict(self._get_data_as_items()))
+                name=name, **dict(self._get_data_as_items()))
         else:
             kwargs.setdefault('name', self.name)
             return self._int64index._shallow_copy(values, **kwargs)
@@ -344,6 +345,10 @@ class RangeIndex(Int64Index):
         -------
         intersection : Index
         """
+
+        if self.equals(other):
+            return self._get_reconciled_name_object(other)
+
         if not isinstance(other, RangeIndex):
             return super(RangeIndex, self).intersection(other)
 
@@ -424,10 +429,9 @@ class RangeIndex(Int64Index):
         union : Index
         """
         self._assert_can_do_setop(other)
-        if len(other) == 0 or self.equals(other):
-            return self
-        if len(self) == 0:
-            return other
+        if len(other) == 0 or self.equals(other) or len(self) == 0:
+            return super(RangeIndex, self).union(other)
+
         if isinstance(other, RangeIndex):
             start_s, step_s = self._start, self._step
             end_s = self._start + self._step * (len(self) - 1)
@@ -498,7 +502,12 @@ class RangeIndex(Int64Index):
         super_getitem = super(RangeIndex, self).__getitem__
 
         if is_scalar(key):
-            n = int(key)
+            if not lib.is_integer(key):
+                raise IndexError("only integers, slices (`:`), "
+                                 "ellipsis (`...`), numpy.newaxis (`None`) "
+                                 "and integer or boolean "
+                                 "arrays are valid indices")
+            n = com.cast_scalar_indexer(key)
             if n != key:
                 return super_getitem(key)
             if n < 0:
@@ -649,7 +658,8 @@ class RangeIndex(Int64Index):
                     return op(self._int64index, other)
                     # TODO: Do attrs get handled reliably?
 
-            return _evaluate_numeric_binop
+            name = '__{name}__'.format(name=op.__name__)
+            return compat.set_function_name(_evaluate_numeric_binop, name, cls)
 
         cls.__add__ = _make_evaluate_binop(operator.add)
         cls.__radd__ = _make_evaluate_binop(ops.radd)
