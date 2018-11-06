@@ -4707,7 +4707,7 @@ class Index(IndexOpsMixin, PandasObject):
                                                       'radd', 'rsub']:
             raise TypeError("Operation {opname} between {cls} and {other} "
                             "is invalid".format(opname=op.__name__,
-                                                cls=type(self).__name__,
+                                                cls=self.dtype,
                                                 other=type(other).__name__))
 
         other = Timedelta(other)
