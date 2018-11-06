@@ -1618,6 +1618,7 @@ class TestConcatenate(ConcatenateBase):
         expected = DataFrame({'A': s, 'B': s2})
         assert_frame_equal(result, expected)
 
+    def test_concat_series_axis1_names_applied(self):
         # ensure names argument is not ignored on axis=1, #23490
         s = Series([1, 2, 3])
         s2 = Series([4, 5, 6])
