@@ -5,16 +5,17 @@ Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
-
-from pandas import DataFrame, Series, Index, MultiIndex, Categorical
 from pandas.compat import StringIO
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.errors import ParserWarning
+
+from pandas.core.dtypes.dtypes import CategoricalDtype
+
+import pandas as pd
+from pandas import Categorical, DataFrame, Index, MultiIndex, Series
+import pandas.util.testing as tm
 
 
 class DtypeTests(object):

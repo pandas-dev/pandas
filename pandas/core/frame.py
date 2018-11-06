@@ -361,7 +361,7 @@ class DataFrame(NDFrame):
 
     _constructor_sliced = Series
     _deprecations = NDFrame._deprecations | frozenset(
-        ['sortlevel', 'get_value', 'set_value', 'from_csv', 'from_items'])
+        ['get_value', 'set_value', 'from_csv', 'from_items'])
     _accessors = set()
 
     @property
@@ -4645,40 +4645,6 @@ class DataFrame(NDFrame):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    def sortlevel(self, level=0, axis=0, ascending=True, inplace=False,
-                  sort_remaining=True):
-        """Sort multilevel index by chosen axis and primary level. Data will be
-        lexicographically sorted by the chosen level followed by the other
-        levels (in order).
-
-        .. deprecated:: 0.20.0
-            Use :meth:`DataFrame.sort_index`
-
-
-        Parameters
-        ----------
-        level : int
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-        ascending : boolean, default True
-        inplace : boolean, default False
-            Sort the DataFrame without creating a new instance
-        sort_remaining : boolean, default True
-            Sort by the other levels too.
-
-        Returns
-        -------
-        sorted : DataFrame
-
-        See Also
-        --------
-        DataFrame.sort_index(level=...)
-
-        """
-        warnings.warn("sortlevel is deprecated, use sort_index(level= ...)",
-                      FutureWarning, stacklevel=2)
-        return self.sort_index(level=level, axis=axis, ascending=ascending,
-                               inplace=inplace, sort_remaining=sort_remaining)
-
     def nlargest(self, n, columns, keep='first'):
         """
         Return the first `n` rows ordered by `columns` in descending order.
@@ -4728,60 +4694,63 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, 8, 2],
-        ...                    'b': list('abdcef'),
-        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0, 9.0]})
+        >>> df = pd.DataFrame({'population': [59000000, 65000000, 434000,
+        ...                                   434000, 434000, 337000, 11300,
+        ...                                   11300, 11300],
+        ...                    'GDP': [1937894, 2583560 , 12011, 4520, 12128,
+        ...                            17036, 182, 38, 311],
+        ...                    'alpha-2': ["IT", "FR", "MT", "MV", "BN",
+        ...                                "IS", "NR", "TV", "AI"]},
+        ...                   index=["Italy", "France", "Malta",
+        ...                          "Maldives", "Brunei", "Iceland",
+        ...                          "Nauru", "Tuvalu", "Anguilla"])
         >>> df
-            a  b    c
-        0   1  a  1.0
-        1  10  b  2.0
-        2   8  d  NaN
-        3  11  c  3.0
-        4   8  e  4.0
-        5   2  f  9.0
+                  population      GDP alpha-2
+        Italy       59000000  1937894      IT
+        France      65000000  2583560      FR
+        Malta         434000    12011      MT
+        Maldives      434000     4520      MV
+        Brunei        434000    12128      BN
+        Iceland       337000    17036      IS
+        Nauru          11300      182      NR
+        Tuvalu         11300       38      TV
+        Anguilla       11300      311      AI
 
         In the following example, we will use ``nlargest`` to select the three
-        rows having the largest values in column "a".
+        rows having the largest values in column "population".
 
-        >>> df.nlargest(3, 'a')
-            a  b    c
-        3  11  c  3.0
-        1  10  b  2.0
-        2   8  d  NaN
+        >>> df.nlargest(3, 'population')
+                population      GDP alpha-2
+        France    65000000  2583560      FR
+        Italy     59000000  1937894      IT
+        Malta       434000    12011      MT
 
         When using ``keep='last'``, ties are resolved in reverse order:
 
-        >>> df.nlargest(3, 'a', keep='last')
-            a  b    c
-        3  11  c  3.0
-        1  10  b  2.0
-        4   8  e  4.0
+        >>> df.nlargest(3, 'population', keep='last')
+                population      GDP alpha-2
+        France    65000000  2583560      FR
+        Italy     59000000  1937894      IT
+        Brunei      434000    12128      BN
 
         When using ``keep='all'``, all duplicate items are maintained:
 
-        >>> df.nlargest(3, 'a', keep='all')
-            a  b    c
-        3  11  c  3.0
-        1  10  b  2.0
-        2   8  d  NaN
-        4   8  e  4.0
+        >>> df.nlargest(3, 'population', keep='all')
+                  population      GDP alpha-2
+        France      65000000  2583560      FR
+        Italy       59000000  1937894      IT
+        Malta         434000    12011      MT
+        Maldives      434000     4520      MV
+        Brunei        434000    12128      BN
 
-        To order by the largest values in column "a" and then "c", we can
-        specify multiple columns like in the next example.
+        To order by the largest values in column "population" and then "GDP",
+        we can specify multiple columns like in the next example.
 
-        >>> df.nlargest(3, ['a', 'c'])
-            a  b    c
-        4   8  e  4.0
-        3  11  c  3.0
-        1  10  b  2.0
-
-        Attempting to use ``nlargest`` on non-numeric dtypes will raise a
-        ``TypeError``:
-
-        >>> df.nlargest(3, 'b')
-
-        Traceback (most recent call last):
-        TypeError: Column 'b' has dtype object, cannot use method 'nlargest'
+        >>> df.nlargest(3, ['population', 'GDP'])
+                population      GDP alpha-2
+        France    65000000  2583560      FR
+        Italy     59000000  1937894      IT
+        Brunei      434000    12128      BN
         """
         return algorithms.SelectNFrame(self,
                                        n=n,
@@ -4789,15 +4758,23 @@ class DataFrame(NDFrame):
                                        columns=columns).nlargest()
 
     def nsmallest(self, n, columns, keep='first'):
-        """Get the rows of a DataFrame sorted by the `n` smallest
-        values of `columns`.
+        """
+        Return the first `n` rows ordered by `columns` in ascending order.
+
+        Return the first `n` rows with the smallest values in `columns`, in
+        ascending order. The columns that are not specified are returned as
+        well, but not used for ordering.
+
+        This method is equivalent to
+        ``df.sort_values(columns, ascending=True).head(n)``, but more
+        performant.
 
         Parameters
         ----------
         n : int
-            Number of items to retrieve
+            Number of items to retrieve.
         columns : list or str
-            Column name or names to order by
+            Column name or names to order by.
         keep : {'first', 'last', 'all'}, default 'first'
             Where there are duplicate values:
 
@@ -4812,62 +4789,70 @@ class DataFrame(NDFrame):
         -------
         DataFrame
 
+        See Also
+        --------
+        DataFrame.nlargest : Return the first `n` rows ordered by `columns` in
+            descending order.
+        DataFrame.sort_values : Sort DataFrame by the values.
+        DataFrame.head : Return the first `n` rows without re-ordering.
+
         Examples
         --------
-        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, 8, 2],
-        ...                    'b': list('abdcef'),
-        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0, 9.0]})
+        >>> df = pd.DataFrame({'population': [59000000, 65000000, 434000,
+        ...                                   434000, 434000, 337000, 11300,
+        ...                                   11300, 11300],
+        ...                    'GDP': [1937894, 2583560 , 12011, 4520, 12128,
+        ...                            17036, 182, 38, 311],
+        ...                    'alpha-2': ["IT", "FR", "MT", "MV", "BN",
+        ...                                "IS", "NR", "TV", "AI"]},
+        ...                   index=["Italy", "France", "Malta",
+        ...                          "Maldives", "Brunei", "Iceland",
+        ...                          "Nauru", "Tuvalu", "Anguilla"])
         >>> df
-            a  b    c
-        0   1  a  1.0
-        1  10  b  2.0
-        2   8  d  NaN
-        3  11  c  3.0
-        4   8  e  4.0
-        5   2  f  9.0
+                  population      GDP alpha-2
+        Italy       59000000  1937894      IT
+        France      65000000  2583560      FR
+        Malta         434000    12011      MT
+        Maldives      434000     4520      MV
+        Brunei        434000    12128      BN
+        Iceland       337000    17036      IS
+        Nauru          11300      182      NR
+        Tuvalu         11300       38      TV
+        Anguilla       11300      311      AI
 
         In the following example, we will use ``nsmallest`` to select the
         three rows having the smallest values in column "a".
 
-        >>> df.nsmallest(3, 'a')
-           a  b    c
-        0  1  a  1.0
-        5  2  f  9.0
-        2  8  d  NaN
+        >>> df.nsmallest(3, 'population')
+                  population  GDP alpha-2
+        Nauru          11300  182      NR
+        Tuvalu         11300   38      TV
+        Anguilla       11300  311      AI
 
         When using ``keep='last'``, ties are resolved in reverse order:
 
-        >>> df.nsmallest(3, 'a', keep='last')
-           a  b    c
-        0  1  a  1.0
-        5  2  f  9.0
-        4  8  e  4.0
+        >>> df.nsmallest(3, 'population', keep='last')
+                  population  GDP alpha-2
+        Anguilla       11300  311      AI
+        Tuvalu         11300   38      TV
+        Nauru          11300  182      NR
 
         When using ``keep='all'``, all duplicate items are maintained:
 
-        >>> df.nsmallest(3, 'a', keep='all')
-           a  b    c
-        0  1  a  1.0
-        5  2  f  9.0
-        2  8  d  NaN
-        4  8  e  4.0
+        >>> df.nsmallest(3, 'population', keep='all')
+                  population  GDP alpha-2
+        Nauru          11300  182      NR
+        Tuvalu         11300   38      TV
+        Anguilla       11300  311      AI
 
         To order by the largest values in column "a" and then "c", we can
         specify multiple columns like in the next example.
 
-        >>> df.nsmallest(3, ['a', 'c'])
-           a  b    c
-        0  1  a  1.0
-        5  2  f  9.0
-        4  8  e  4.0
-
-        Attempting to use ``nsmallest`` on non-numeric dtypes will raise a
-        ``TypeError``:
-
-        >>> df.nsmallest(3, 'b')
-
-        Traceback (most recent call last):
-        TypeError: Column 'b' has dtype object, cannot use method 'nsmallest'
+        >>> df.nsmallest(3, ['population', 'GDP'])
+                  population  GDP alpha-2
+        Tuvalu         11300   38      TV
+        Nauru          11300  182      NR
+        Anguilla       11300  311      AI
         """
         return algorithms.SelectNFrame(self,
                                        n=n,
@@ -4978,7 +4963,7 @@ class DataFrame(NDFrame):
         assert left.columns.equals(right.index)
         return ops.dispatch_to_series(left, right, func, axis="columns")
 
-    def _combine_const(self, other, func, errors='raise'):
+    def _combine_const(self, other, func):
         assert lib.is_scalar(other) or np.ndim(other) == 0
         return ops.dispatch_to_series(self, other, func)
 
@@ -5141,22 +5126,14 @@ class DataFrame(NDFrame):
                 if not is_dtype_equal(other_dtype, new_dtype):
                     otherSeries = otherSeries.astype(new_dtype)
 
-            # see if we need to be represented as i8 (datetimelike)
-            # try to keep us at this dtype
-            needs_i8_conversion_i = needs_i8_conversion(new_dtype)
-            if needs_i8_conversion_i:
-                arr = func(series, otherSeries, True)
-            else:
-                arr = func(series, otherSeries)
-
+            arr = func(series, otherSeries)
             arr = maybe_downcast_to_dtype(arr, this_dtype)
 
             result[col] = arr
 
         # convert_objects just in case
         return self._constructor(result, index=new_index,
-                                 columns=new_columns)._convert(datetime=True,
-                                                               copy=False)
+                                 columns=new_columns)
 
     def combine_first(self, other):
         """
@@ -5203,15 +5180,28 @@ class DataFrame(NDFrame):
         """
         import pandas.core.computation.expressions as expressions
 
-        def combiner(x, y, needs_i8_conversion=False):
-            x_values = x.values if hasattr(x, 'values') else x
-            y_values = y.values if hasattr(y, 'values') else y
-            if needs_i8_conversion:
-                mask = isna(x)
-                x_values = x_values.view('i8')
-                y_values = y_values.view('i8')
-            else:
-                mask = isna(x_values)
+        def extract_values(arr):
+            # Does two things:
+            # 1. maybe gets the values from the Series / Index
+            # 2. convert datelike to i8
+            if isinstance(arr, (ABCIndexClass, ABCSeries)):
+                arr = arr._values
+
+            if needs_i8_conversion(arr):
+                # TODO(DatetimelikeArray): just use .asi8
+                if is_extension_array_dtype(arr.dtype):
+                    arr = arr.asi8
+                else:
+                    arr = arr.view('i8')
+            return arr
+
+        def combiner(x, y):
+            mask = isna(x)
+            if isinstance(mask, (ABCIndexClass, ABCSeries)):
+                mask = mask._values
+
+            x_values = extract_values(x)
+            y_values = extract_values(y)
 
             # If the column y in other DataFrame is not in first DataFrame,
             # just return y_values.

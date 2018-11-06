@@ -1,37 +1,34 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
-from datetime import datetime, timedelta
-from decimal import Decimal
-from collections import defaultdict
-
-import pandas.util.testing as tm
-from pandas.core.dtypes.generic import ABCIndex
-from pandas.core.dtypes.common import is_unsigned_integer_dtype
-from pandas.core.indexes.api import Index, MultiIndex
-from pandas.tests.indexes.common import Base
-
-from pandas.compat import (range, lrange, lzip, u,
-                           text_type, zip, PY3, PY35, PY36, StringIO)
 import math
 import operator
+from collections import defaultdict
+from datetime import datetime, timedelta
+from decimal import Decimal
+
 import numpy as np
-
-from pandas import (period_range, date_range, Series,
-                    DataFrame, Float64Index, Int64Index, UInt64Index,
-                    CategoricalIndex, DatetimeIndex, TimedeltaIndex,
-                    PeriodIndex, RangeIndex, isna)
-from pandas.core.index import _get_combined_index, ensure_index_from_sequences
-from pandas.util.testing import assert_almost_equal
-from pandas.compat.numpy import np_datetime64_compat
-
-import pandas.core.config as cf
-
-from pandas.core.indexes.datetimes import _to_m8
+import pytest
 
 import pandas as pd
+import pandas.core.config as cf
+import pandas.util.testing as tm
+from pandas import (
+    CategoricalIndex, DataFrame, DatetimeIndex, Float64Index, Int64Index,
+    PeriodIndex, RangeIndex, Series, TimedeltaIndex, UInt64Index, date_range,
+    isna, period_range
+)
 from pandas._libs.tslib import Timestamp
+from pandas.compat import (
+    PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip
+)
+from pandas.compat.numpy import np_datetime64_compat
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.index import _get_combined_index, ensure_index_from_sequences
+from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.datetimes import _to_m8
+from pandas.tests.indexes.common import Base
+from pandas.util.testing import assert_almost_equal
 
 
 class TestIndex(Base):

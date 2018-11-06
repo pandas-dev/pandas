@@ -16,6 +16,9 @@ from pandas.compat import range
 import pandas.util.testing as tm
 
 
+api_exceptions = pytest.importorskip("google.api_core.exceptions")
+bigquery = pytest.importorskip("google.cloud.bigquery")
+service_account = pytest.importorskip("google.oauth2.service_account")
 pandas_gbq = pytest.importorskip('pandas_gbq')
 
 PROJECT_ID = None
@@ -67,20 +70,16 @@ def _get_private_key_path():
     return private_key_path
 
 
-def clean_gbq_environment(private_key=None):
-    dataset = pandas_gbq.gbq._Dataset(_get_project_id(),
-                                      private_key=private_key)
+def _get_client():
+    project_id = _get_project_id()
+    credentials = None
 
-    for i in range(1, 10):
-        if DATASET_ID + str(i) in dataset.datasets():
-            dataset_id = DATASET_ID + str(i)
-            table = pandas_gbq.gbq._Table(_get_project_id(), dataset_id,
-                                          private_key=private_key)
-            for j in range(1, 20):
-                if TABLE_ID + str(j) in dataset.tables(dataset_id):
-                    table.delete(TABLE_ID + str(j))
+    private_key_path = _get_private_key_path()
+    if private_key_path:
+        credentials = service_account.Credentials.from_service_account_file(
+            private_key_path)
 
-            dataset.delete(dataset_id)
+    return bigquery.Client(project=project_id, credentials=credentials)
 
 
 def make_mixed_dataframe_v2(test_size):
@@ -109,7 +108,6 @@ def test_read_gbq_without_dialect_warns_future_change(monkeypatch):
         pd.read_gbq("SELECT 1")
 
 
-@pytest.mark.xfail(reason="failing for pandas-gbq >= 0.7.0")
 @pytest.mark.single
 class TestToGBQIntegrationWithServiceAccountKeyPath(object):
 
@@ -122,18 +120,22 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
-        clean_gbq_environment(_get_private_key_path())
-        pandas_gbq.gbq._Dataset(_get_project_id(),
-                                private_key=_get_private_key_path()
-                                ).create(DATASET_ID + "1")
+        cls.client = _get_client()
+        cls.dataset = cls.client.dataset(DATASET_ID + "1")
+        try:
+            # Clean-up previous test runs.
+            cls.client.delete_dataset(cls.dataset, delete_contents=True)
+        except api_exceptions.NotFound:
+            pass  # It's OK if the dataset doesn't already exist.
+
+        cls.client.create_dataset(bigquery.Dataset(cls.dataset))
 
     @classmethod
     def teardown_class(cls):
         # - GLOBAL CLASS FIXTURES -
         # put here any instruction you want to execute only *ONCE* *AFTER*
         # executing all tests.
-
-        clean_gbq_environment(_get_private_key_path())
+        cls.client.delete_dataset(cls.dataset, delete_contents=True)
 
     def test_roundtrip(self):
         destination_table = DESTINATION_TABLE + "1"
@@ -147,5 +149,6 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         result = pd.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                              .format(destination_table),
                              project_id=_get_project_id(),
-                             private_key=_get_private_key_path())
+                             private_key=_get_private_key_path(),
+                             dialect="standard")
         assert result['num_rows'][0] == test_size
