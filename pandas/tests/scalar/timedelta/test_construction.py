@@ -230,7 +230,7 @@ def test_td_constructor_value_error():
 def test_string_with_unit(value, str_unit, unit, expectation):
     with expectation:
         val_str = "{}{}".format(value, str_unit)
-        expected_td = Timedelta(10, unit=unit)
+        expected_td = Timedelta(value, unit=unit)
 
         assert Timedelta(val_str, unit=unit) == expected_td
         assert pd.to_timedelta(val_str, unit=unit) == expected_td

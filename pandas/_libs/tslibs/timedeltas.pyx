@@ -532,10 +532,9 @@ cpdef inline object parse_timedelta_unit(object unit):
     ----------
     unit : an unit string
     """
-    if unit is None:
-        return 'ns'
-    elif unit == 'M':
+    if unit is None or unit == 'M':
         return unit
+
     try:
         return timedelta_abbrevs[unit.lower()]
     except (KeyError, AttributeError):
