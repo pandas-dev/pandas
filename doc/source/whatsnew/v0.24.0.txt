@@ -1220,6 +1220,8 @@ Indexing
 - Bug in `scalar in Index` if scalar is a float while the ``Index`` is of integer dtype (:issue:`22085`)
 - Bug in `MultiIndex.set_levels` when levels value is not subscriptable (:issue:`23273`)
 - Bug where setting a timedelta column by ``Index`` causes it to be casted to double, and therefore lose precision (:issue:`23511`)
+- Bug in :func:`Index.union` and :func:`Index.intersection` where name of the ``Index`` of the result was not computed correctly for certain cases (:issue:`9943`, :issue:`9862`)
+
 
 Missing
 ^^^^^^^
