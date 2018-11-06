@@ -1863,8 +1863,11 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        fname : str, file descriptor or pathlib.Path
-            String or path to file which needs to be converted.
+        fname : str, buffer or path object
+            String, path object (pathlib.Path or py._path.local.LocalPath) or
+            object implementing a binary write() function. If using a buffer
+            then the buffer will not be automatically closed after the file
+            data has been written.
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
             internal format to use when writing the dates. Options are 'tc',
@@ -1927,12 +1930,10 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        Converting DataFrame to Stata "dta" file using the to_stata method.
-
         >>> df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
         ...                               'parrot'],
         ...                    'speed': [350, 18, 361, 15]})
-        >>> df.to_stata('animals.dta')
+        >>> df.to_stata('animals.dta')  # doctest: +SKIP
         """
         kwargs = {}
         if version not in (114, 117):
