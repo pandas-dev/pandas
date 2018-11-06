@@ -154,8 +154,7 @@ cpdef get_freq_code(freqstr):
         freqstr = (freqstr.rule_code, freqstr.n)
 
     if isinstance(freqstr, tuple):
-        if (is_integer_object(freqstr[0]) and
-                is_integer_object(freqstr[1])):
+        if is_integer_object(freqstr[0]) and is_integer_object(freqstr[1]):
             # e.g., freqstr = (2000, 1)
             return freqstr
         else:
@@ -171,7 +170,7 @@ cpdef get_freq_code(freqstr):
             return code, stride
 
     if is_integer_object(freqstr):
-        return (freqstr, 1)
+        return freqstr, 1
 
     base, stride = _base_and_stride(freqstr)
     code = _period_str_to_code(base)
@@ -182,6 +181,11 @@ cpdef get_freq_code(freqstr):
 cpdef _base_and_stride(freqstr):
     """
     Return base freq and stride info from string representation
+
+    Returns
+    -------
+    base : str
+    stride : int
 
     Examples
     --------
@@ -201,7 +205,7 @@ cpdef _base_and_stride(freqstr):
 
     base = groups.group(2)
 
-    return (base, stride)
+    return base, stride
 
 
 cpdef _period_str_to_code(freqstr):
