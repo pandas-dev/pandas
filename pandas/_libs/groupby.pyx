@@ -370,7 +370,7 @@ def group_any_all(ndarray[uint8_t] out,
     else:
         raise ValueError("'bool_func' must be either 'any' or 'all'!")
 
-    out.fill(1 - flag_val)
+    out[:] = 1 - flag_val
 
     with nogil:
         for i in range(N):
