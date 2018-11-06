@@ -209,8 +209,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         result._reset_identity()
         return result
 
-    _shallow_copy = Index._shallow_copy
-
     @property
     def _formatter_func(self):
         from pandas.io.formats.format import _get_format_timedelta64
@@ -243,12 +241,17 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                                     nat_rep=na_rep,
                                     justify='all').get_result()
 
+    # -------------------------------------------------------------------
+    # Wrapping TimedeltaArray
+
     days = wrap_field_accessor(TimedeltaArrayMixin.days)
     seconds = wrap_field_accessor(TimedeltaArrayMixin.seconds)
     microseconds = wrap_field_accessor(TimedeltaArrayMixin.microseconds)
     nanoseconds = wrap_field_accessor(TimedeltaArrayMixin.nanoseconds)
 
     total_seconds = wrap_array_method(TimedeltaArrayMixin.total_seconds, True)
+
+    # -------------------------------------------------------------------
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
