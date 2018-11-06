@@ -250,7 +250,7 @@ Backwards incompatible API changes
 Dependencies have increased minimum versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have updated our minimum supported versions of dependencies (:issue:`21242`).
+We have updated our minimum supported versions of dependencies (:issue:`21242`, `18742`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+
@@ -267,6 +267,10 @@ If installed, we now require:
 | pytables        | 3.4.2           |          |
 +-----------------+-----------------+----------+
 | scipy           | 0.18.1          |          |
++-----------------+-----------------+----------+
+| pyarrow         | 0.7.0           |          |
++-----------------+-----------------+----------+
+| fastparquet     | 0.1.2           |          |
 +-----------------+-----------------+----------+
 
 Additionally we no longer depend on `feather-format` for feather based storage
@@ -1127,6 +1131,8 @@ Timedelta
 - Fixed bug in adding a :class:`DataFrame` with all-`timedelta64[ns]` dtypes to a :class:`DataFrame` with all-integer dtypes returning incorrect results instead of raising ``TypeError`` (:issue:`22696`)
 - Bug in :class:`TimedeltaIndex` where adding a timezone-aware datetime scalar incorrectly returned a timezone-naive :class:`DatetimeIndex` (:issue:`23215`)
 - Bug in :class:`TimedeltaIndex` where adding ``np.timedelta64('NaT')`` incorrectly returned an all-`NaT` :class:`DatetimeIndex` instead of an all-`NaT` :class:`TimedeltaIndex` (:issue:`23215`)
+- Bug in :class:`Timedelta` and :func:`to_timedelta()` have inconsistencies in supported unit string (:issue:`21762`)
+
 
 Timezones
 ^^^^^^^^^
@@ -1198,6 +1204,7 @@ Indexing
 - The traceback from a ``KeyError`` when asking ``.loc`` for a single missing label is now shorter and more clear (:issue:`21557`)
 - When ``.ix`` is asked for a missing integer label in a :class:`MultiIndex` with a first level of integer type, it now raises a ``KeyError``, consistently with the case of a flat :class:`Int64Index`, rather than falling back to positional indexing (:issue:`21593`)
 - Bug in :meth:`DatetimeIndex.reindex` when reindexing a tz-naive and tz-aware :class:`DatetimeIndex` (:issue:`8306`)
+- Bug in :meth:`Series.reindex` when reindexing an empty series with a ``datetime64[ns, tz]`` dtype (:issue:`20869`)
 - Bug in :class:`DataFrame` when setting values with ``.loc`` and a timezone aware :class:`DatetimeIndex` (:issue:`11365`)
 - ``DataFrame.__getitem__`` now accepts dictionaries and dictionary keys as list-likes of labels, consistently with ``Series.__getitem__`` (:issue:`21294`)
 - Fixed ``DataFrame[np.nan]`` when columns are non-unique (:issue:`21428`)
@@ -1209,6 +1216,7 @@ Indexing
 - :class:`Index` no longer mangles ``None``, ``NaN`` and ``NaT``, i.e. they are treated as three different keys. However, for numeric Index all three are still coerced to a ``NaN`` (:issue:`22332`)
 - Bug in `scalar in Index` if scalar is a float while the ``Index`` is of integer dtype (:issue:`22085`)
 - Bug in `MultiIndex.set_levels` when levels value is not subscriptable (:issue:`23273`)
+- Bug where setting a timedelta column by ``Index`` causes it to be casted to double, and therefore lose precision (:issue:`23511`)
 
 Missing
 ^^^^^^^
