@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import Index, PeriodIndex, date_range, period_range
 import pandas.core.indexes.period as period
 import pandas.util.testing as tm
-from pandas import Index, PeriodIndex, date_range, period_range
 
 
 def _permute(obj):

@@ -53,7 +53,8 @@ from pandas.compat import (map, zip, lzip, lrange, string_types, to_str,
                            isidentifier, set_function_name, cPickle as pkl)
 from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import (Appender, Substitution,
+                                     rewrite_axis_style_signature)
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core import config
 
@@ -357,41 +358,44 @@ class NDFrame(PandasObject, SelectionMixin):
             d.update(kwargs)
             return cls(data, **d)
 
-    def _get_axis_number(self, axis):
-        axis = self._AXIS_ALIASES.get(axis, axis)
+    @classmethod
+    def _get_axis_number(cls, axis):
+        axis = cls._AXIS_ALIASES.get(axis, axis)
         if is_integer(axis):
-            if axis in self._AXIS_NAMES:
+            if axis in cls._AXIS_NAMES:
                 return axis
         else:
             try:
-                return self._AXIS_NUMBERS[axis]
+                return cls._AXIS_NUMBERS[axis]
             except KeyError:
                 pass
         raise ValueError('No axis named {0} for object type {1}'
-                         .format(axis, type(self)))
+                         .format(axis, type(cls)))
 
-    def _get_axis_name(self, axis):
-        axis = self._AXIS_ALIASES.get(axis, axis)
+    @classmethod
+    def _get_axis_name(cls, axis):
+        axis = cls._AXIS_ALIASES.get(axis, axis)
         if isinstance(axis, string_types):
-            if axis in self._AXIS_NUMBERS:
+            if axis in cls._AXIS_NUMBERS:
                 return axis
         else:
             try:
-                return self._AXIS_NAMES[axis]
+                return cls._AXIS_NAMES[axis]
             except KeyError:
                 pass
         raise ValueError('No axis named {0} for object type {1}'
-                         .format(axis, type(self)))
+                         .format(axis, type(cls)))
 
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
         return getattr(self, name)
 
-    def _get_block_manager_axis(self, axis):
+    @classmethod
+    def _get_block_manager_axis(cls, axis):
         """Map the axis to the block_manager axis."""
-        axis = self._get_axis_number(axis)
-        if self._AXIS_REVERSED:
-            m = self._AXIS_LEN - 1
+        axis = cls._get_axis_number(axis)
+        if cls._AXIS_REVERSED:
+            m = cls._AXIS_LEN - 1
             return m - axis
         return axis
 
@@ -1079,20 +1083,6 @@ class NDFrame(PandasObject, SelectionMixin):
         if com.count_not_none(*axes.values()) == 0:
             raise TypeError('must pass an index to rename')
 
-        # renamer function if passed a dict
-        def _get_rename_function(mapper):
-            if isinstance(mapper, (dict, ABCSeries)):
-
-                def f(x):
-                    if x in mapper:
-                        return mapper[x]
-                    else:
-                        return x
-            else:
-                f = mapper
-
-            return f
-
         self._consolidate_inplace()
         result = self if inplace else self.copy(deep=copy)
 
@@ -1101,7 +1091,7 @@ class NDFrame(PandasObject, SelectionMixin):
             v = axes.get(self._AXIS_NAMES[axis])
             if v is None:
                 continue
-            f = _get_rename_function(v)
+            f = com._get_rename_function(v)
 
             baxis = self._get_block_manager_axis(axis)
             if level is not None:
@@ -1115,16 +1105,28 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             return result.__finalize__(self)
 
-    def rename_axis(self, mapper, axis=0, copy=True, inplace=False):
+    @rewrite_axis_style_signature('mapper', [('copy', True),
+                                             ('inplace', False)])
+    def rename_axis(self, mapper=None, **kwargs):
         """
-        Alter the name of the index or columns.
+        Alter the name of the index or name of Index object that is the
+        columns.
 
         Parameters
         ----------
         mapper : scalar, list-like, optional
-            Value to set as the axis name attribute.
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            The index or the name of the axis.
+            Value to set the axis name attribute.
+        index, columns : scalar, list-like, dict-like or function, optional
+            dict-like or functions transformations to apply to
+            that axis' values.
+
+            Use either ``mapper`` and ``axis`` to
+            specify the axis to target with ``mapper``, or ``index``
+            and/or ``columns``.
+
+            .. versionchanged:: 0.24.0
+
+        axis : int or string, default 0
         copy : boolean, default True
             Also copy underlying data.
         inplace : boolean, default False
@@ -1142,6 +1144,23 @@ class NDFrame(PandasObject, SelectionMixin):
         the axis *labels* by passing a mapping or scalar. This behavior is
         deprecated and will be removed in a future version. Use ``rename``
         instead.
+
+        ``DataFrame.rename_axis`` supports two calling conventions
+
+        * ``(index=index_mapper, columns=columns_mapper, ...)``
+        * ``(mapper, axis={'index', 'columns'}, ...)``
+
+        The first calling convention will only modify the names of
+        the index and/or the names of the Index object that is the columns.
+        In this case, the parameter ``copy`` is ignored.
+
+        The second calling convention will modify the names of the
+        the corresponding index if mapper is a list or a scalar.
+        However, if mapper is dict-like or a function, it will use the
+        deprecated behavior of modifying the axis *labels*.
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
 
         See Also
         --------
@@ -1176,20 +1195,94 @@ class NDFrame(PandasObject, SelectionMixin):
         0    1  4
         1    2  5
         2    3  6
+
+        >>> mi = pd.MultiIndex.from_product([['a', 'b', 'c'], [1, 2]],
+        ...                                 names=['let','num'])
+        >>> df = pd.DataFrame({'x': [i for i in range(len(mi))],
+        ...                    'y' : [i*10 for i in range(len(mi))]},
+        ...                    index=mi)
+        >>> df.rename_axis(index={'num' : 'n'})
+               x   y
+        let n
+        a   1  0   0
+            2  1  10
+        b   1  2  20
+            2  3  30
+        c   1  4  40
+            2  5  50
+
+        >>> cdf = df.rename_axis(columns='col')
+        >>> cdf
+        col      x   y
+        let num
+        a   1    0   0
+            2    1  10
+        b   1    2  20
+            2    3  30
+        c   1    4  40
+            2    5  50
+
+        >>> cdf.rename_axis(columns=str.upper)
+        COL      x   y
+        let num
+        a   1    0   0
+            2    1  10
+        b   1    2  20
+            2    3  30
+        c   1    4  40
+            2    5  50
+
         """
+        axes, kwargs = self._construct_axes_from_arguments((), kwargs)
+        copy = kwargs.pop('copy', True)
+        inplace = kwargs.pop('inplace', False)
+        axis = kwargs.pop('axis', 0)
+        if axis is not None:
+            axis = self._get_axis_number(axis)
+
+        if kwargs:
+            raise TypeError('rename_axis() got an unexpected keyword '
+                            'argument "{0}"'.format(list(kwargs.keys())[0]))
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
-                                           is_dict_like(mapper))
-        if non_mapper:
-            return self._set_axis_name(mapper, axis=axis, inplace=inplace)
+
+        if (mapper is not None):
+            # Use v0.23 behavior if a scalar or list
+            non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
+                                               is_dict_like(mapper))
+            if non_mapper:
+                return self._set_axis_name(mapper, axis=axis, inplace=inplace)
+            else:
+                # Deprecated (v0.21) behavior is if mapper is specified,
+                # and not a list or scalar, then call rename
+                msg = ("Using 'rename_axis' to alter labels is deprecated. "
+                       "Use '.rename' instead")
+                warnings.warn(msg, FutureWarning, stacklevel=3)
+                axis = self._get_axis_name(axis)
+                d = {'copy': copy, 'inplace': inplace}
+                d[axis] = mapper
+                return self.rename(**d)
         else:
-            msg = ("Using 'rename_axis' to alter labels is deprecated. "
-                   "Use '.rename' instead")
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-            axis = self._get_axis_name(axis)
-            d = {'copy': copy, 'inplace': inplace}
-            d[axis] = mapper
-            return self.rename(**d)
+            # Use new behavior.  Means that index and/or columns
+            # is specified
+            result = self if inplace else self.copy(deep=copy)
+
+            for axis in lrange(self._AXIS_LEN):
+                v = axes.get(self._AXIS_NAMES[axis])
+                if v is None:
+                    continue
+                non_mapper = is_scalar(v) or (is_list_like(v) and not
+                                              is_dict_like(v))
+                if non_mapper:
+                    newnames = v
+                else:
+                    f = com._get_rename_function(v)
+                    curnames = self._get_axis(axis).names
+                    newnames = [f(name) for name in curnames]
+                result._set_axis_name(newnames, axis=axis,
+                                      inplace=True)
+            if not inplace:
+                return result
 
     def _set_axis_name(self, name, axis=0, inplace=False):
         """
@@ -5186,7 +5279,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Convert to ordered categorical type with custom ordering:
 
-        >>> ser.astype('category', ordered=True, categories=[2, 1])
+        >>> cat_dtype = pd.api.types.CategoricalDtype(
+        ...                     categories=[2, 1], ordered=True)
+        >>> ser.astype(cat_dtype)
         0    1
         1    2
         dtype: category
@@ -6402,40 +6497,98 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def asof(self, where, subset=None):
         """
-        The last row without any NaN is taken (or the last row without
-        NaN considering only the subset of columns in the case of a DataFrame)
+        Return the last row(s) without any `NaN`s before `where`.
+
+        The last row (for each element in `where`, if list) without any
+        `NaN` is taken.
+        In case of a :class:`~pandas.DataFrame`, the last row without `NaN`
+        considering only the subset of columns (if not `None`)
 
         .. versionadded:: 0.19.0 For DataFrame
 
-        If there is no good value, NaN is returned for a Series
+        If there is no good value, `NaN` is returned for a Series or
         a Series of NaN values for a DataFrame
 
         Parameters
         ----------
-        where : date or array of dates
-        subset : string or list of strings, default None
-           if not None use these columns for NaN propagation
+        where : date or array-like of dates
+            Date(s) before which the last row(s) are returned.
+        subset : str or array-like of str, default `None`
+            For DataFrame, if not `None`, only use these columns to
+            check for `NaN`s.
 
         Notes
         -----
-        Dates are assumed to be sorted
-        Raises if this is not the case
+        Dates are assumed to be sorted. Raises if this is not the case.
 
         Returns
         -------
-        where is scalar
+        scalar, Series, or DataFrame
 
-          - value or NaN if input is Series
-          - Series if input is DataFrame
-
-        where is Index: same shape object as input
+           * scalar : when `self` is a Series and `where` is a scalar
+           * Series: when `self` is a Series and `where` is an array-like,
+             or when `self` is a DataFrame and `where` is a scalar
+           * DataFrame : when `self` is a DataFrame and `where` is an
+             array-like
 
         See Also
         --------
-        merge_asof
+        merge_asof : Perform an asof merge. Similar to left join.
 
+        Examples
+        --------
+        A Series and a scalar `where`.
+
+        >>> s = pd.Series([1, 2, np.nan, 4], index=[10, 20, 30, 40])
+        >>> s
+        10    1.0
+        20    2.0
+        30    NaN
+        40    4.0
+        dtype: float64
+
+        >>> s.asof(20)
+        2.0
+
+        For a sequence `where`, a Series is returned. The first value is
+        ``NaN``, because the first element of `where` is before the first
+        index value.
+
+        >>> s.asof([5, 20])
+        5     NaN
+        20    2.0
+        dtype: float64
+
+        Missing values are not considered. The following is ``2.0``, not
+        ``NaN``, even though ``NaN`` is at the index location for ``30``.
+
+        >>> s.asof(30)
+        2.0
+
+        Take all columns into consideration
+
+        >>> df = pd.DataFrame({'a': [10, 20, 30, 40, 50],
+        ...                    'b': [None, None, None, None, 500]},
+        ...                   index=pd.DatetimeIndex(['2018-02-27 09:01:00',
+        ...                                           '2018-02-27 09:02:00',
+        ...                                           '2018-02-27 09:03:00',
+        ...                                           '2018-02-27 09:04:00',
+        ...                                           '2018-02-27 09:05:00']))
+        >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
+        ...                           '2018-02-27 09:04:30']))
+                              a   b
+        2018-02-27 09:03:30 NaN NaN
+        2018-02-27 09:04:30 NaN NaN
+
+        Take a single column into consideration
+
+        >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
+        ...                           '2018-02-27 09:04:30']),
+        ...         subset=['a'])
+                                 a   b
+        2018-02-27 09:03:30   30.0 NaN
+        2018-02-27 09:04:30   40.0 NaN
         """
-
         if isinstance(where, compat.string_types):
             from pandas import to_datetime
             where = to_datetime(where)
@@ -7989,7 +8142,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # This is a single-dimensional object.
             if not is_bool_dtype(cond):
                 raise ValueError(msg.format(dtype=cond.dtype))
-        else:
+        elif not cond.empty:
             for dt in cond.dtypes:
                 if not is_bool_dtype(dt):
                     raise ValueError(msg.format(dtype=dt))
@@ -8268,32 +8421,59 @@ class NDFrame(PandasObject, SelectionMixin):
                           errors=errors)
 
     _shared_docs['shift'] = ("""
-        Shift index by desired number of periods with an optional time freq
+        Shift index by desired number of periods with an optional time `freq`.
+
+        When `freq` is not passed, shift the index without realigning the data.
+        If `freq` is passed (in this case, the index must be date or datetime,
+        or it will raise a `NotImplementedError`), the index will be
+        increased using the periods and the `freq`.
 
         Parameters
         ----------
         periods : int
-            Number of periods to move, can be positive or negative.
-        freq : DateOffset, timedelta, or time rule string, optional
-            Increment to use from the tseries module or time rule (e.g. 'EOM').
-            See Notes.
-        axis : %(axes_single_arg)s
+            Number of periods to shift. Can be positive or negative.
+        freq : DateOffset, tseries.offsets, timedelta, or str, optional
+            Offset to use from the tseries module or time rule (e.g. 'EOM').
+            If `freq` is specified then the index values are shifted but the
+            data is not realigned. That is, use `freq` if you would like to
+            extend the index when shifting and preserve the original data.
+        axis : {0 or 'index', 1 or 'columns', None}, default None
+            Shift direction.
+
+        Returns
+        -------
+        %(klass)s
+            Copy of input object, shifted.
 
         See Also
         --------
         Index.shift : Shift values of Index.
         DatetimeIndex.shift : Shift values of DatetimeIndex.
         PeriodIndex.shift : Shift values of PeriodIndex.
+        tshift : Shift the time index, using the index's frequency if
+            available.
 
-        Notes
-        -----
-        If freq is specified then the index values are shifted but the data
-        is not realigned. That is, use freq if you would like to extend the
-        index when shifting and preserve the original data.
+        Examples
+        --------
+        >>> df = pd.DataFrame({'Col1': [10, 20, 15, 30, 45],
+        ...                    'Col2': [13, 23, 18, 33, 48],
+        ...                    'Col3': [17, 27, 22, 37, 52]})
 
-        Returns
-        -------
-        shifted : %(klass)s
+        >>> df.shift(periods=3)
+           Col1  Col2  Col3
+        0   NaN   NaN   NaN
+        1   NaN   NaN   NaN
+        2   NaN   NaN   NaN
+        3  10.0  13.0  17.0
+        4  20.0  23.0  27.0
+
+        >>> df.shift(periods=1, axis='columns')
+           Col1  Col2  Col3
+        0   NaN  10.0  13.0
+        1   NaN  20.0  23.0
+        2   NaN  15.0  18.0
+        3   NaN  30.0  33.0
+        4   NaN  45.0  48.0
     """)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
@@ -8623,6 +8803,13 @@ class NDFrame(PandasObject, SelectionMixin):
         copy : boolean, default True
             Also make a copy of the underlying data
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            When clocks moved backward due to DST, ambiguous times may arise.
+            For example in Central European Time (UTC+01), when going from
+            03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
+            00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
+            `ambiguous` parameter dictates how ambiguous times should be
+            handled.
+
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False designates
@@ -8650,6 +8837,52 @@ class NDFrame(PandasObject, SelectionMixin):
         ------
         TypeError
             If the TimeSeries is tz-aware and tz is not None.
+
+        Examples
+        --------
+
+        Localize local times:
+
+        >>> s = pd.Series([1],
+        ... index=pd.DatetimeIndex(['2018-09-15 01:30:00']))
+        >>> s.tz_localize('CET')
+        2018-09-15 01:30:00+02:00    1
+        dtype: int64
+
+        Be careful with DST changes. When there is sequential data, pandas
+        can infer the DST time:
+
+        >>> s = pd.Series(range(7), index=pd.DatetimeIndex([
+        ... '2018-10-28 01:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 03:00:00',
+        ... '2018-10-28 03:30:00']))
+        >>> s.tz_localize('CET', ambiguous='infer')
+        2018-10-28 01:30:00+02:00    0
+        2018-10-28 02:00:00+02:00    1
+        2018-10-28 02:30:00+02:00    2
+        2018-10-28 02:00:00+01:00    3
+        2018-10-28 02:30:00+01:00    4
+        2018-10-28 03:00:00+01:00    5
+        2018-10-28 03:30:00+01:00    6
+        dtype: int64
+
+        In some cases, inferring the DST is impossible. In such cases, you can
+        pass an ndarray to the ambiguous parameter to set the DST explicitly
+
+        >>> s = pd.Series(range(3), index=pd.DatetimeIndex([
+        ... '2018-10-28 01:20:00',
+        ... '2018-10-28 02:36:00',
+        ... '2018-10-28 03:46:00']))
+        >>> s.tz_localize('CET', ambiguous=np.array([True, True, False]))
+        2018-10-28 01:20:00+02:00    0
+        2018-10-28 02:36:00+02:00    1
+        2018-10-28 03:46:00+01:00    2
+        dtype: int64
+
         """
         if nonexistent not in ('raise', 'NaT', 'shift'):
             raise ValueError("The nonexistent argument must be one of 'raise',"

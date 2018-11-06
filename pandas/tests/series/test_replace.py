@@ -4,8 +4,9 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 import pandas._libs.lib as lib
+
+import pandas as pd
 import pandas.util.testing as tm
 
 from .common import TestData

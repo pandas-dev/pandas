@@ -5,21 +5,21 @@ from datetime import datetime, timedelta
 from distutils.version import LooseVersion
 
 import numpy as np
+from numpy import nan
 import pytest
 import pytz
-from numpy import nan
 
-import pandas as pd
-import pandas.util._test_decorators as td
-import pandas.util.testing as tm
-from pandas import (
-    Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
-    Timestamp, date_range, isna
-)
 from pandas._libs.tslib import iNaT
 from pandas.compat import range
-from pandas.core.series import remove_na
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
+    Timestamp, date_range, isna)
+from pandas.core.series import remove_na
+import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 try:

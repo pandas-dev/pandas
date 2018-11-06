@@ -4,9 +4,10 @@
 import numpy as np
 import pytest
 
+from pandas.compat import lrange
+
 import pandas as pd
 from pandas import Series, Timestamp
-from pandas.compat import lrange
 from pandas.util.testing import assert_series_equal
 
 

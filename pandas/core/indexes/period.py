@@ -1,5 +1,5 @@
 # pylint: disable=E1101,E1103,W0232
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 import operator
 import warnings
@@ -29,7 +29,7 @@ from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
 from pandas._libs.tslibs import resolution
 
 from pandas.core.algorithms import unique1d
-from pandas.core.dtypes.dtypes import PeriodDtype
+import pandas.core.arrays.datetimelike as dtl
 from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
@@ -39,22 +39,14 @@ from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg
 )
 
+from pandas.tseries.offsets import Tick, DateOffset
+from pandas.tseries import frequencies
+
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(target_klass='PeriodIndex or list of Periods'))
 
-
-def _wrap_field_accessor(name):
-    fget = getattr(PeriodArray, name).fget
-
-    def f(self):
-        result = fget(self)
-        return Index(result, name=self.name)
-
-    f.__name__ = name
-    f.__doc__ = fget.__doc__
-    return property(f)
 
 # --- Period index sketch
 
@@ -208,27 +200,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
         if data is None and ordinal is None:
             # range-based.
-            if periods is not None:
-                if is_float(periods):
-                    periods = int(periods)
-
-                elif not is_integer(periods):
-                    msg = 'periods must be a number, got {periods}'
-                    raise TypeError(msg.format(periods=periods))
-
             data, freq = PeriodArray._generate_range(start, end, periods,
                                                      freq, fields)
             data = PeriodArray(data, freq=freq)
         else:
-            if freq is None and dtype is not None:
-                freq = PeriodDtype(dtype).freq
-            elif freq and dtype:
-                freq = PeriodDtype(freq).freq
-                dtype = PeriodDtype(dtype).freq
-
-                if freq != dtype:
-                    msg = "specified freq and dtype are different"
-                    raise IncompatibleFrequency(msg)
+            freq = dtl.validate_dtype_freq(dtype, freq)
 
             # PeriodIndex allow PeriodIndex(period_index, freq=different)
             # Let's not encourage that kind of behavior in PeriodArray.
@@ -395,7 +371,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     def to_timestamp(self, freq=None, how='start'):
         from pandas import DatetimeIndex
         result = self._data.to_timestamp(freq=freq, how=how)
-        return DatetimeIndex._simple_new(result,
+        return DatetimeIndex._simple_new(result.asi8,
                                          name=self.name,
                                          freq=result.freq)
 
@@ -406,8 +382,46 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                                                **kwargs)
 
     def _maybe_convert_timedelta(self, other):
-        # just dispatch, return ndarray
-        return self._data._maybe_convert_timedelta(other)
+        """
+        Convert timedelta-like input to an integer multiple of self.freq
+
+        Parameters
+        ----------
+        other : timedelta, np.timedelta64, DateOffset, int, np.ndarray
+
+        Returns
+        -------
+        converted : int, np.ndarray[int64]
+
+        Raises
+        ------
+        IncompatibleFrequency : if the input cannot be written as a multiple
+            of self.freq.  Note IncompatibleFrequency subclasses ValueError.
+        """
+        if isinstance(
+                other, (timedelta, np.timedelta64, Tick, np.ndarray)):
+            offset = frequencies.to_offset(self.freq.rule_code)
+            if isinstance(offset, Tick):
+                # _check_timedeltalike_freq_compat will raise if incompatible
+                delta = self._data._check_timedeltalike_freq_compat(other)
+                return delta
+        elif isinstance(other, DateOffset):
+            freqstr = other.rule_code
+            base = frequencies.get_base_alias(freqstr)
+            if base == self.freq.rule_code:
+                return other.n
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+        elif is_integer(other):
+            # integer is passed to .shift via
+            # _add_datetimelike_methods basically
+            # but ufunc may pass integer to _add_delta
+            return other
+
+        # raise when input doesn't have freq
+        msg = "Input has different freq from {cls}(freq={freqstr})"
+        raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
+                                               freqstr=self.freqstr))
 
     # ------------------------------------------------------------------------
     # Indexing

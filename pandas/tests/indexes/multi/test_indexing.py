@@ -6,14 +6,14 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas.compat import lrange
+
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import (
     Categorical, CategoricalIndex, Index, IntervalIndex, MultiIndex,
-    date_range
-)
-from pandas.compat import lrange
+    date_range)
 from pandas.core.indexes.base import InvalidIndexError
+import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 

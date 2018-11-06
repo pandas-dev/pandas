@@ -2,15 +2,15 @@
 Module parse to/from Excel
 """
 
-import abc
-import os
-import warnings
 # ---------------------------------------------------------------------
 # ExcelFile class
+import abc
 from datetime import MINYEAR, date, datetime, time, timedelta
 from distutils.version import LooseVersion
 from io import UnsupportedOperation
+import os
 from textwrap import fill
+import warnings
 
 import numpy as np
 
@@ -18,21 +18,21 @@ import pandas._libs.json as json
 import pandas.compat as compat
 from pandas.compat import (
     OrderedDict, add_metaclass, lrange, map, range, reduce, string_types, u,
-    zip
-)
-from pandas.core import config
-from pandas.core.dtypes.common import (
-    is_bool, is_float, is_integer, is_list_like
-)
-from pandas.core.frame import DataFrame
+    zip)
 from pandas.errors import EmptyDataError
+from pandas.util._decorators import Appender, deprecate_kwarg
+
+from pandas.core.dtypes.common import (
+    is_bool, is_float, is_integer, is_list_like)
+
+from pandas.core import config
+from pandas.core.frame import DataFrame
+
 from pandas.io.common import (
     _NA_VALUES, _is_url, _stringify_path, _urlopen, _validate_header_arg,
-    get_filepath_or_buffer
-)
+    get_filepath_or_buffer)
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
-from pandas.util._decorators import Appender, deprecate_kwarg
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 

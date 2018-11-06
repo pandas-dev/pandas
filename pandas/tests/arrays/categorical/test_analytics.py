@@ -5,9 +5,10 @@ import sys
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
-from pandas import Categorical, Index, Series
 from pandas.compat import PYPY
+
+from pandas import Categorical, Index, Series
+import pandas.util.testing as tm
 
 
 class TestCategoricalAnalytics(object):

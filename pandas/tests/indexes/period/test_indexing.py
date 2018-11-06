@@ -3,13 +3,13 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import (
-    DatetimeIndex, Period, PeriodIndex, Series, notna, period_range
-)
 from pandas._libs import tslibs
 from pandas._libs.tslibs import period as libperiod
 from pandas.compat import lrange
+
+import pandas as pd
+from pandas import (
+    DatetimeIndex, Period, PeriodIndex, Series, notna, period_range)
 from pandas.util import testing as tm
 
 

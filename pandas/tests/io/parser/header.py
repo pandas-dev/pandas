@@ -10,9 +10,10 @@ from collections import namedtuple
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
-from pandas import DataFrame, Index, MultiIndex
 from pandas.compat import StringIO, lrange, u
+
+from pandas import DataFrame, Index, MultiIndex
+import pandas.util.testing as tm
 
 
 class HeaderTests(object):

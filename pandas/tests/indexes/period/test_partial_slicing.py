@@ -3,8 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    DataFrame, DatetimeIndex, Period, PeriodIndex, Series, period_range
-)
+    DataFrame, DatetimeIndex, Period, PeriodIndex, Series, period_range)
 from pandas.util import testing as tm
 
 

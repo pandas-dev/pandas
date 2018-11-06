@@ -9,7 +9,6 @@ from pandas import (
     Series, Timedelta, TimedeltaIndex, Timestamp, timedelta_range,
     to_timedelta
 )
-from pandas._libs.tslib import iNaT
 from pandas.core.dtypes.generic import ABCDateOffset
 from pandas.tests.test_base import Ops
 from pandas.tseries.offsets import Day, Hour
@@ -237,17 +236,6 @@ class TestTimedeltaIndexOps(Ops):
         result = pd.TimedeltaIndex(idx.asi8, freq='infer')
         tm.assert_index_equal(idx, result)
         assert result.freq == freq
-
-    def test_nat_new(self):
-
-        idx = pd.timedelta_range('1', freq='D', periods=5, name='x')
-        result = idx._nat_new()
-        exp = pd.TimedeltaIndex([pd.NaT] * 5, name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx._nat_new(box=False)
-        exp = np.array([iNaT] * 5, dtype=np.int64)
-        tm.assert_numpy_array_equal(result, exp)
 
     def test_shift(self):
         pass  # handled in test_arithmetic.py

@@ -9,17 +9,17 @@ import pytest
 import pytz
 from pytz import timezone
 
-import pandas as pd
-import pandas.util._test_decorators as td
-import pandas.util.testing as tm
-from pandas import (
-    DatetimeIndex, Timestamp, bdate_range, compat, date_range, offsets
-)
+import pandas.compat as compat
 from pandas.errors import OutOfBoundsDatetime
+import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import DatetimeIndex, Timestamp, bdate_range, date_range, offsets
 from pandas.tests.series.common import TestData
+import pandas.util.testing as tm
+
 from pandas.tseries.offsets import (
-    BDay, CDay, DateOffset, MonthEnd, generate_range, prefix_mapping
-)
+    BDay, CDay, DateOffset, MonthEnd, generate_range, prefix_mapping)
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 

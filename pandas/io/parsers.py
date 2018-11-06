@@ -3,49 +3,48 @@ Module contains tools for processing files into DataFrames or other objects
 """
 from __future__ import print_function
 
+from collections import defaultdict
 import csv
 import datetime
 import re
 import sys
-import warnings
-from collections import defaultdict
 from textwrap import fill
+import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
-import pandas.core.common as com
-from pandas import compat
 from pandas._libs.tslibs import parsing
+import pandas.compat as compat
 from pandas.compat import (
-    PY3, StringIO, lrange, lzip, map, range, string_types, u, zip
-)
-from pandas.core import algorithms
-from pandas.core.arrays import Categorical
+    PY3, StringIO, lrange, lzip, map, range, string_types, u, zip)
+from pandas.errors import EmptyDataError, ParserError, ParserWarning
+from pandas.util._decorators import Appender
+
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     ensure_object, is_categorical_dtype, is_dtype_equal, is_float, is_integer,
     is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
-    is_string_dtype
-)
+    is_string_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
+
+from pandas.core import algorithms
+from pandas.core.arrays import Categorical
+import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.index import (
-    Index, MultiIndex, RangeIndex, ensure_index_from_sequences
-)
+    Index, MultiIndex, RangeIndex, ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
-from pandas.errors import EmptyDataError, ParserError, ParserWarning
+
 from pandas.io.common import (
     _NA_VALUES, BaseIterator, UnicodeReader, UTF8Recoder, _get_handle,
     _infer_compression, _validate_header_arg, get_filepath_or_buffer,
-    is_file_like
-)
+    is_file_like)
 from pandas.io.date_converters import generic_parser
-from pandas.util._decorators import Appender
 
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness
@@ -1266,6 +1265,7 @@ class ParserBase(object):
         self.prefix = kwds.pop('prefix', None)
 
         self.index_col = kwds.get('index_col', None)
+        self.unnamed_cols = set()
         self.index_names = None
         self.col_names = None
 
@@ -1375,7 +1375,8 @@ class ParserBase(object):
         # clean the index_names
         index_names = header.pop(-1)
         index_names, names, index_col = _clean_index_names(index_names,
-                                                           self.index_col)
+                                                           self.index_col,
+                                                           self.unnamed_cols)
 
         # extract the columns
         field_count = len(header[0])
@@ -1455,7 +1456,8 @@ class ParserBase(object):
             if not self._name_processed:
                 (self.index_names, _,
                  self.index_col) = _clean_index_names(list(columns),
-                                                      self.index_col)
+                                                      self.index_col,
+                                                      self.unnamed_cols)
                 self._name_processed = True
             index = self._get_complex_date_index(data, columns)
             index = self._agg_index(index, try_parse_dates=False)
@@ -1733,6 +1735,7 @@ class CParserWrapper(ParserBase):
         kwds['usecols'] = self.usecols
 
         self._reader = parsers.TextReader(src, **kwds)
+        self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
 
@@ -1793,7 +1796,8 @@ class CParserWrapper(ParserBase):
                 self._name_processed = True
                 (index_names, self.names,
                  self.index_col) = _clean_index_names(self.names,
-                                                      self.index_col)
+                                                      self.index_col,
+                                                      self.unnamed_cols)
 
                 if self.index_names is None:
                     self.index_names = index_names
@@ -1967,7 +1971,8 @@ class CParserWrapper(ParserBase):
 
         if self._reader.leading_cols == 0 and self.index_col is not None:
             (idx_names, names,
-             self.index_col) = _clean_index_names(names, self.index_col)
+             self.index_col) = _clean_index_names(names, self.index_col,
+                                                  self.unnamed_cols)
 
         return names, idx_names
 
@@ -2113,7 +2118,8 @@ class PythonParser(ParserBase):
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
         self._col_indices = None
-        self.columns, self.num_original_columns = self._infer_columns()
+        (self.columns, self.num_original_columns,
+         self.unnamed_cols) = self._infer_columns()
 
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.
@@ -2368,6 +2374,8 @@ class PythonParser(ParserBase):
         names = self.names
         num_original_columns = 0
         clear_buffer = True
+        unnamed_cols = set()
+
         if self.header is not None:
             header = self.header
 
@@ -2401,7 +2409,7 @@ class PythonParser(ParserBase):
                         if clear_buffer:
                             self._clear_buffer()
                         columns.append([None] * len(columns[-1]))
-                        return columns, num_original_columns
+                        return columns, num_original_columns, unnamed_cols
 
                     if not self.names:
                         raise EmptyDataError(
@@ -2409,16 +2417,19 @@ class PythonParser(ParserBase):
 
                     line = self.names[:]
 
-                unnamed_count = 0
                 this_columns = []
+                this_unnamed_cols = []
+
                 for i, c in enumerate(line):
                     if c == '':
                         if have_mi_columns:
-                            this_columns.append('Unnamed: %d_level_%d'
-                                                % (i, level))
+                            col_name = ("Unnamed: {i}_level_{level}"
+                                        .format(i=i, level=level))
                         else:
-                            this_columns.append('Unnamed: %d' % i)
-                        unnamed_count += 1
+                            col_name = "Unnamed: {i}".format(i=i)
+
+                        this_unnamed_cols.append(i)
+                        this_columns.append(col_name)
                     else:
                         this_columns.append(c)
 
@@ -2444,12 +2455,17 @@ class PythonParser(ParserBase):
                         lc = len(this_columns)
                         ic = (len(self.index_col)
                               if self.index_col is not None else 0)
+                        unnamed_count = len(this_unnamed_cols)
+
                         if lc != unnamed_count and lc - ic > unnamed_count:
                             clear_buffer = False
                             this_columns = [None] * lc
                             self.buf = [self.buf[-1]]
 
                 columns.append(this_columns)
+                unnamed_cols.update({this_columns[i]
+                                     for i in this_unnamed_cols})
+
                 if len(columns) == 1:
                     num_original_columns = len(this_columns)
 
@@ -2514,7 +2530,7 @@ class PythonParser(ParserBase):
                     columns = [names]
                     num_original_columns = ncols
 
-        return columns, num_original_columns
+        return columns, num_original_columns, unnamed_cols
 
     def _handle_usecols(self, columns, usecols_key):
         """
@@ -2880,7 +2896,8 @@ class PythonParser(ParserBase):
         else:
             # Case 2
             (index_name, columns_,
-             self.index_col) = _clean_index_names(columns, self.index_col)
+             self.index_col) = _clean_index_names(columns, self.index_col,
+                                                  self.unnamed_cols)
 
         return index_name, orig_names, columns
 
@@ -3179,7 +3196,7 @@ def _clean_na_values(na_values, keep_default_na=True):
     return na_values, na_fvalues
 
 
-def _clean_index_names(columns, index_col):
+def _clean_index_names(columns, index_col, unnamed_cols):
     if not _is_index_col(index_col):
         return None, columns, index_col
 
@@ -3204,10 +3221,10 @@ def _clean_index_names(columns, index_col):
             columns.remove(name)
             index_names.append(name)
 
-    # hack
-    if (isinstance(index_names[0], compat.string_types) and
-            'Unnamed' in index_names[0]):
-        index_names[0] = None
+    # Only clean index names that were placeholders.
+    for i, name in enumerate(index_names):
+        if isinstance(name, compat.string_types) and name in unnamed_cols:
+            index_names[i] = None
 
     return index_names, columns, index_col
 

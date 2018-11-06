@@ -1,14 +1,15 @@
 import numpy as np
 import pytest
 
+from pandas.compat import PY3, lmap, lrange, text_type
+
+from pandas.core.dtypes.dtypes import PeriodDtype
+
 import pandas as pd
+from pandas import (
+    Index, Period, PeriodIndex, Series, date_range, offsets, period_range)
 import pandas.core.indexes.period as period
 import pandas.util.testing as tm
-from pandas import (
-    Index, Period, PeriodIndex, Series, date_range, offsets, period_range
-)
-from pandas.compat import PY3, lmap, lrange, text_type
-from pandas.core.dtypes.dtypes import PeriodDtype
 
 
 class TestPeriodIndex(object):
@@ -156,6 +157,21 @@ class TestPeriodIndex(object):
         vals = vals.view(np.dtype('M8[us]'))
 
         pytest.raises(ValueError, PeriodIndex, vals, freq='D')
+
+    @pytest.mark.parametrize('box', [None, 'series', 'index'])
+    def test_constructor_datetime64arr_ok(self, box):
+        # https://github.com/pandas-dev/pandas/issues/23438
+        data = pd.date_range('2017', periods=4, freq="M")
+        if box is None:
+            data = data._values
+        elif box == 'series':
+            data = pd.Series(data)
+
+        result = PeriodIndex(data, freq='D')
+        expected = PeriodIndex([
+            '2017-01-31', '2017-02-28', '2017-03-31', '2017-04-30'
+        ], freq="D")
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_dtype(self):
         # passing a dtype with a tz should localize

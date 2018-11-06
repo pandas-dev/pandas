@@ -3,13 +3,14 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas as pd
 import pandas.util._test_decorators as td
-import pandas.util.testing as tm
+
+import pandas as pd
 from pandas import (
     DataFrame, DatetimeIndex, Index, Int64Index, Series, bdate_range,
-    date_range, to_datetime
-)
+    date_range, to_datetime)
+import pandas.util.testing as tm
+
 from pandas.tseries.offsets import BMonthEnd, Minute, MonthEnd
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)

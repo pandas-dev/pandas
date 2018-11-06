@@ -9,16 +9,19 @@ import os
 import sys
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
 
 import pandas._libs.parsers as parser
-import pandas.util.testing as tm
-from pandas import DataFrame, compat
 from pandas._libs.parsers import TextReader
+import pandas.compat as compat
 from pandas.compat import BytesIO, StringIO, map
-from pandas.io.parsers import TextFileReader, read_csv
+
+from pandas import DataFrame
+import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
+
+from pandas.io.parsers import TextFileReader, read_csv
 
 
 class TestTextReader(object):

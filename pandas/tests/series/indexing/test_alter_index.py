@@ -4,13 +4,15 @@
 from datetime import datetime
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
+
+import pandas.compat as compat
+from pandas.compat import lrange, range
 
 import pandas as pd
+from pandas import Categorical, Series, date_range, isna
 import pandas.util.testing as tm
-from pandas import Categorical, Series, compat, date_range, isna
-from pandas.compat import lrange, range
 from pandas.util.testing import assert_series_equal
 
 
@@ -455,6 +457,13 @@ def test_reindex_datetimeindexes_tz_naive_and_aware():
     s = Series(range(7), index=idx)
     with pytest.raises(TypeError):
         s.reindex(newidx, method='ffill')
+
+
+def test_reindex_empty_series_tz_dtype():
+    # GH 20869
+    result = Series(dtype='datetime64[ns, UTC]').reindex([0, 1])
+    expected = Series([pd.NaT] * 2, dtype='datetime64[ns, UTC]')
+    tm.assert_equal(result, expected)
 
 
 def test_rename():

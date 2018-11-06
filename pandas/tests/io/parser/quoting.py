@@ -7,10 +7,11 @@ during parsing for all of the parsers defined in parsers.py
 
 import csv
 
-import pandas.util.testing as tm
-from pandas import DataFrame
 from pandas.compat import PY3, StringIO, u
 from pandas.errors import ParserError
+
+from pandas import DataFrame
+import pandas.util.testing as tm
 
 
 class QuotingTests(object):

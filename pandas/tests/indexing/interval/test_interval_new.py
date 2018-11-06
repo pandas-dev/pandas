@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
 from pandas import Interval, IntervalIndex, Series
+import pandas.util.testing as tm
 
 pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
 

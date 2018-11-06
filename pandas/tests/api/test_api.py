@@ -29,7 +29,7 @@ class TestPDApi(Base):
 
     # top-level sub-packages
     lib = ['api', 'compat', 'core', 'errors', 'pandas',
-           'plotting', 'test', 'testing', 'tools', 'tseries',
+           'plotting', 'test', 'testing', 'tseries',
            'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
@@ -88,7 +88,7 @@ class TestPDApi(Base):
     deprecated_funcs_in_future = []
 
     # these are already deprecated; awaiting removal
-    deprecated_funcs = ['plot_params', 'scatter_matrix']
+    deprecated_funcs = []
 
     def test_api(self):
 
@@ -133,20 +133,6 @@ class TestTopLevelDeprecations(object):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             pd.TimeGrouper(freq='D')
-
-
-class TestTypes(object):
-
-    def test_deprecation_access_func(self):
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            from pandas.types.concat import union_categoricals
-            c1 = pd.Categorical(list('aabc'))
-            c2 = pd.Categorical(list('abcd'))
-            union_categoricals(
-                [c1, c2],
-                sort_categories=True,
-                ignore_order=True)
 
 
 class TestCDateRange(object):

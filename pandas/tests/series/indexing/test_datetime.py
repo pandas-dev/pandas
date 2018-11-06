@@ -6,15 +6,15 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas._libs.index as _index
-import pandas.util.testing as tm
-from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
 from pandas._libs import tslib
+import pandas._libs.index as _index
 from pandas.compat import lrange, range
+
+import pandas as pd
+from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
+import pandas.util.testing as tm
 from pandas.util.testing import (
-    assert_almost_equal, assert_frame_equal, assert_series_equal
-)
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 
 """
