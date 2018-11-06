@@ -4,10 +4,12 @@ import collections
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
-from pandas import Categorical, Index, isna
 from pandas.compat import lrange
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
+
+from pandas import Categorical, Index, isna
+import pandas.util.testing as tm
 
 
 class TestCategoricalMissing(object):

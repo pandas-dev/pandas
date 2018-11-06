@@ -3,11 +3,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas.core.arrays import (
+    DatetimeArrayMixin, PeriodArray, TimedeltaArrayMixin)
 import pandas.util.testing as tm
-
-from pandas.core.arrays import (DatetimeArrayMixin,
-                                TimedeltaArrayMixin,
-                                PeriodArray)
 
 
 # TODO: more freq variants

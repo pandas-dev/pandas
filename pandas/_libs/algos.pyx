@@ -32,7 +32,7 @@ import missing
 
 cdef float64_t FP_ERR = 1e-13
 
-cdef double NaN = <double> np.NaN
+cdef double NaN = <double>np.NaN
 cdef double nan = NaN
 
 cdef int64_t iNaT = get_nat()
@@ -77,6 +77,8 @@ class NegInfinity(object):
     __ge__ = lambda self, other: isinstance(other, NegInfinity)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
     """
     Efficiently find the unique first-differences of the given array.
@@ -240,7 +242,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
         int64_t nobs = 0
         float64_t vx, vy, sumx, sumy, sumxx, sumyy, meanx, meany, divisor
 
-    N, K = (<object> mat).shape
+    N, K = (<object>mat).shape
 
     if minp is None:
         minpv = 1
@@ -305,7 +307,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
         int64_t nobs = 0
         float64_t vx, vy, sumx, sumxx, sumyy, mean, divisor
 
-    N, K = (<object> mat).shape
+    N, K = (<object>mat).shape
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
@@ -529,7 +531,7 @@ def pad_2d_inplace(ndarray[algos_t, ndim=2] values,
         algos_t val
         int lim, fill_count = 0
 
-    K, N = (<object> values).shape
+    K, N = (<object>values).shape
 
     # GH#2778
     if N == 0:
@@ -728,7 +730,7 @@ def backfill_2d_inplace(ndarray[algos_t, ndim=2] values,
         algos_t val
         int lim, fill_count = 0
 
-    K, N = (<object> values).shape
+    K, N = (<object>values).shape
 
     # GH#2778
     if N == 0:
@@ -793,7 +795,7 @@ arrmap_bool = arrmap["uint8_t"]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def is_monotonic(ndarray[algos_t] arr, bint timelike):
+def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     """
     Returns
     -------

@@ -3,54 +3,47 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import division
 
-import warnings
 from textwrap import dedent
+import warnings
 
 import numpy as np
 import numpy.ma as ma
 
-import pandas.core.algorithms as algorithms
-import pandas.core.common as com
-import pandas.core.indexes.base as ibase
-import pandas.core.nanops as nanops
-import pandas.core.ops as ops
-import pandas.io.formats.format as fmt
-import pandas.plotting._core as gfx
-from pandas import compat
 from pandas._libs import iNaT, index as libindex, lib, tslibs
+import pandas.compat as compat
 from pandas.compat import (
-    PY36, OrderedDict, StringIO, get_range_parameters, range, u, zip
-)
+    PY36, OrderedDict, StringIO, get_range_parameters, range, u, zip)
 from pandas.compat.numpy import function as nv
-from pandas.core import base, generic
-from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray, SparseArray, period_array
-from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
-from pandas.core.arrays.sparse import SparseAccessor
-from pandas.core.config import get_option
+from pandas.util._decorators import Appender, Substitution, deprecate
+from pandas.util._validators import validate_bool_kwarg
+
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar, construct_1d_ndarray_preserving_na,
     construct_1d_object_array_from_listlike, infer_dtype_from_scalar,
     maybe_cast_to_datetime, maybe_cast_to_integer_array, maybe_castable,
-    maybe_convert_platform, maybe_upcast
-)
+    maybe_convert_platform, maybe_upcast)
 from pandas.core.dtypes.common import (
     _is_unorderable_exception, ensure_platform_int, is_bool,
     is_categorical_dtype, is_datetime64tz_dtype, is_datetimelike, is_dict_like,
     is_extension_array_dtype, is_extension_type, is_float_dtype, is_hashable,
     is_integer, is_integer_dtype, is_iterator, is_list_like, is_object_dtype,
-    is_scalar, is_string_like, is_timedelta64_dtype, pandas_dtype
-)
+    is_scalar, is_string_like, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries
-)
+    ABCDataFrame, ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
 from pandas.core.dtypes.missing import (
-    isna, na_value_for_dtype, notna, remove_na_arraylike
-)
+    isna, na_value_for_dtype, notna, remove_na_arraylike)
+
+from pandas.core import algorithms, base, generic, nanops, ops
+from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray, SparseArray, period_array
+from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
+from pandas.core.arrays.sparse import SparseAccessor
+import pandas.core.common as com
+from pandas.core.config import get_option
 from pandas.core.index import (
-    Float64Index, Index, InvalidIndexError, MultiIndex, ensure_index
-)
+    Float64Index, Index, InvalidIndexError, MultiIndex, ensure_index)
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
+import pandas.core.indexes.base as ibase
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -58,9 +51,10 @@ from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core.internals import SingleBlockManager
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
+
+import pandas.io.formats.format as fmt
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.util._decorators import Appender, Substitution, deprecate
-from pandas.util._validators import validate_bool_kwarg
+import pandas.plotting._core as gfx
 
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
@@ -145,7 +139,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _metadata = ['name']
     _accessors = {'dt', 'cat', 'str', 'sparse'}
     _deprecations = generic.NDFrame._deprecations | frozenset(
-        ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
+        ['asobject', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
 
     # Override cache_readonly bc Series is mutable
@@ -2069,16 +2063,53 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def dot(self, other):
         """
-        Matrix multiplication with DataFrame or inner-product with Series
-        objects. Can also be called using `self @ other` in Python >= 3.5.
+        Compute the dot product between the Series and the columns of other.
+
+        This method computes the dot product between the Series and another
+        one, or the Series and each columns of a DataFrame, or the Series and
+        each columns of an array.
+
+        It can also be called using `self @ other` in Python >= 3.5.
 
         Parameters
         ----------
-        other : Series or DataFrame
+        other : Series, DataFrame or array-like
+            The other object to compute the dot product with its columns.
 
         Returns
         -------
-        dot_product : scalar or Series
+        scalar, Series or numpy.ndarray
+            Return the dot product of the Series and other if other is a
+            Series, the Series of the dot product of Series and each rows of
+            other if other is a DataFrame or a numpy.ndarray between the Series
+            and each columns of the numpy array.
+
+        See Also
+        --------
+        DataFrame.dot: Compute the matrix product with the DataFrame.
+        Series.mul: Multiplication of series and other, element-wise.
+
+        Notes
+        -----
+        The Series and other has to share the same index if other is a Series
+        or a DataFrame.
+
+        Examples
+        --------
+        >>> s = pd.Series([0, 1, 2, 3])
+        >>> other = pd.Series([-1, 2, -3, 4])
+        >>> s.dot(other)
+        8
+        >>> s @ other
+        8
+        >>> df = pd.DataFrame([[0 ,1], [-2, 3], [4, -5], [6, 7]])
+        >>> s.dot(df)
+        0    24
+        1    14
+        dtype: int64
+        >>> arr = np.array([[0, 1], [-2, 3], [4, -5], [6, 7]])
+        >>> s.dot(arr)
+        array([24, 14])
         """
         from pandas.core.frame import DataFrame
         if isinstance(other, (Series, DataFrame)):
@@ -2961,33 +2992,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: int64
         """
         return algorithms.SelectNSeries(self, n=n, keep=keep).nsmallest()
-
-    def sortlevel(self, level=0, ascending=True, sort_remaining=True):
-        """Sort Series with MultiIndex by chosen level. Data will be
-        lexicographically sorted by the chosen level followed by the other
-        levels (in order),
-
-        .. deprecated:: 0.20.0
-            Use :meth:`Series.sort_index`
-
-        Parameters
-        ----------
-        level : int or level name, default None
-        ascending : bool, default True
-
-        Returns
-        -------
-        sorted : Series
-
-        See Also
-        --------
-        Series.sort_index(level=...)
-
-        """
-        warnings.warn("sortlevel is deprecated, use sort_index(level=...)",
-                      FutureWarning, stacklevel=2)
-        return self.sort_index(level=level, ascending=ascending,
-                               sort_remaining=sort_remaining)
 
     def swaplevel(self, i=-2, j=-1, copy=True):
         """

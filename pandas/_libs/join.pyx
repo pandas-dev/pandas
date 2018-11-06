@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
@@ -11,7 +11,7 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 
-cdef double NaN = <double> np.NaN
+cdef double NaN = <double>np.NaN
 cdef double nan = NaN
 
 from pandas._libs.algos import groupsort_indexer, ensure_platform_int
