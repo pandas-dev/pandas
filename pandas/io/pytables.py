@@ -4637,7 +4637,7 @@ def _convert_string_array(data, encoding, errors, itemsize=None):
     # create the sized dtype
     if itemsize is None:
         ensured = ensure_object(data.ravel())
-        itemsize = libwriters.max_len_string_array(ensured)
+        itemsize = max(1, libwriters.max_len_string_array(ensured))
 
     data = np.asarray(data, dtype="S%d" % itemsize)
     return data
