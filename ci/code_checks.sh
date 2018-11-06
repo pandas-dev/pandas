@@ -49,7 +49,7 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     # Note: this grep pattern is (intended to be) equivalent to the python
     # regex r'(?<![ ->])> '
     MSG='Linting .pyx code for spacing conventions in casting' ; echo $MSG
-    ! grep -r -E --include '*.pyx' --include '*.pxi.in' '> ' pandas/_libs | grep -v '[ ->]> '
+    ! grep -r -E --include '*.pyx' --include '*.pxi.in' '[a-zA-Z0-9*]> ' pandas/_libs
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # readability/casting: Warnings about C casting instead of C++ casting
@@ -131,7 +131,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/frame.py \
-        -k"-axes -combine -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_stata"
+        -k"-axes -combine -itertuples -join -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_stata"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG

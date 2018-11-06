@@ -170,6 +170,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     # Constructors
 
     _attributes = ["freq", "tz"]
+    _tz = None
+    _freq = None
 
     @classmethod
     def _simple_new(cls, values, freq=None, tz=None, **kwargs):
