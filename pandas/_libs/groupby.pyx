@@ -22,7 +22,7 @@ from algos import take_2d_axis1_float64_float64, groupsort_indexer, tiebreakers
 
 cdef int64_t iNaT = get_nat()
 
-cdef double NaN = <double> np.NaN
+cdef double NaN = <double>np.NaN
 cdef double nan = NaN
 
 
@@ -44,7 +44,7 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
         if na_count == n:
             return NaN
 
-        tmp = <float64_t*> malloc((n - na_count) * sizeof(float64_t))
+        tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
 
         j = 0
         for i in range(n):
@@ -115,13 +115,13 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     assert min_count == -1, "'min_count' only used in add and prod"
 
     ngroups = len(counts)
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
 
     indexer, _counts = groupsort_indexer(labels, ngroups)
     counts[:] = _counts[1:]
 
     data = np.empty((K, N), dtype=np.float64)
-    ptr = <float64_t*> cnp.PyArray_DATA(data)
+    ptr = <float64_t*>cnp.PyArray_DATA(data)
 
     take_2d_axis1_float64_float64(values.T, indexer, out=data)
 
@@ -152,7 +152,7 @@ def group_cumprod_float64(float64_t[:, :] out,
         float64_t[:, :] accum
         int64_t lab
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
     accum = np.ones_like(values)
 
     with nogil:
@@ -189,7 +189,7 @@ def group_cumsum(numeric[:, :] out,
         numeric[:, :] accum
         int64_t lab
 
-    N, K = (<object> values).shape
+    N, K = (<object>values).shape
     accum = np.zeros_like(values)
 
     with nogil:
@@ -226,7 +226,7 @@ def group_shift_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
         int64_t[:] label_seen = np.zeros(ngroups, dtype=np.int64)
         int64_t[:, :] label_indexer
 
-    N, = (<object> labels).shape
+    N, = (<object>labels).shape
 
     if periods < 0:
         periods = -periods
@@ -370,7 +370,7 @@ def group_any_all(ndarray[uint8_t] out,
     else:
         raise ValueError("'bool_func' must be either 'any' or 'all'!")
 
-    out.fill(1 - flag_val)
+    out[:] = 1 - flag_val
 
     with nogil:
         for i in range(N):

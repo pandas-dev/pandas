@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 from pandas._libs import tslibs
 from pandas._libs.tslibs.timedeltas import (convert_to_timedelta64,
-                                            array_to_timedelta64)
+                                            array_to_timedelta64,
+                                            parse_timedelta_unit)
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -23,8 +24,14 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     Parameters
     ----------
     arg : string, timedelta, list, tuple, 1-d array, or Series
-    unit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, which is an
-        integer/float number
+    unit : string, {'Y', 'M', 'W', 'D', 'days', 'day',
+                    'hours', hour', 'hr', 'h', 'm', 'minute', 'min', 'minutes',
+                    'T', 'S', 'seconds', 'sec', 'second', 'ms',
+                    'milliseconds', 'millisecond', 'milli', 'millis', 'L',
+                    'us', 'microseconds', 'microsecond', 'micro', 'micros',
+                    'U', 'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond'
+                    'N'}, optional
+        Denote the unit of the input, if input is an integer. Default 'ns'.
     box : boolean, default True
         - If True returns a Timedelta/TimedeltaIndex of the results
         - if False returns a np.timedelta64 or ndarray of values of dtype
@@ -69,7 +76,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     pandas.DataFrame.astype : Cast argument to a specified dtype.
     pandas.to_datetime : Convert argument to datetime.
     """
-    unit = _validate_timedelta_unit(unit)
+    unit = parse_timedelta_unit(unit)
 
     if errors not in ('ignore', 'raise', 'coerce'):
         raise ValueError("errors must be one of 'ignore', "
@@ -97,45 +104,6 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     # ...so it must be a scalar value. Return scalar.
     return _coerce_scalar_to_timedelta_type(arg, unit=unit,
                                             box=box, errors=errors)
-
-
-_unit_map = {
-    'Y': 'Y',
-    'y': 'Y',
-    'W': 'W',
-    'w': 'W',
-    'D': 'D',
-    'd': 'D',
-    'days': 'D',
-    'Days': 'D',
-    'day': 'D',
-    'Day': 'D',
-    'M': 'M',
-    'H': 'h',
-    'h': 'h',
-    'm': 'm',
-    'T': 'm',
-    'S': 's',
-    's': 's',
-    'L': 'ms',
-    'MS': 'ms',
-    'ms': 'ms',
-    'US': 'us',
-    'us': 'us',
-    'NS': 'ns',
-    'ns': 'ns',
-}
-
-
-def _validate_timedelta_unit(arg):
-    """ provide validation / translation for timedelta short units """
-    try:
-        return _unit_map[arg]
-    except (KeyError, TypeError):
-        if arg is None:
-            return 'ns'
-        raise ValueError("invalid timedelta unit {arg} provided"
-                         .format(arg=arg))
 
 
 def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):

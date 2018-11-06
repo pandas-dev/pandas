@@ -11,7 +11,7 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 
-cdef double NaN = <double> np.NaN
+cdef double NaN = <double>np.NaN
 cdef double nan = NaN
 
 from pandas._libs.algos import groupsort_indexer, ensure_platform_int
@@ -212,7 +212,7 @@ def _get_result_indexer(sorter, indexer):
     else:
         # length-0 case
         res = np.empty(len(indexer), dtype=np.int64)
-        res.fill(-1)
+        res[:] = -1
 
     return res
 
