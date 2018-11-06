@@ -1258,13 +1258,17 @@ class Styler(object):
         application of several user-defined functions to a styler.  Instead
         of writing:
 
-        >>> f(g(df.style.set_precision(3), arg1=a), arg2=b, arg3=c)
+        .. code-block:: python
+
+            f(g(df.style.set_precision(3), arg1=a), arg2=b, arg3=c)
 
         users can write:
 
-        >>> (df.style.set_precision(3)
-        ...    .pipe(g, arg1=a)
-        ...    .pipe(f, arg2=b, arg3=c))
+        .. code-block:: python
+
+            (df.style.set_precision(3)
+               .pipe(g, arg1=a)
+               .pipe(f, arg2=b, arg3=c))
 
         In particular, this allows users to define functions that take a
         styler object, along with other parameters, and return the styler after
