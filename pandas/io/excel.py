@@ -47,11 +47,9 @@ It can be used to read one sheet or multiple sheets with different parameters.
 
 Parameters
 ----------
-io : str, path object (pathlib.Path or py._path.local.LocalPath), \
-     file-like object, pandas ExcelFile, or xlrd workbook
-    The string could be a URL. Valid URL schemes include http, ftp, s3,
-    gcs, and file. For file URLs, a host is expected. For instance, a local
-    file could be file://localhost/path/to/workbook.xlsx.
+io : str, file descriptor, pathlib.Path, ExcelFile, or xlrd.Book
+    Path to the excel document. The string could be a URL. Valid URL schemes
+    include http, ftp, s3, gcs, and file. For file URLs, a host is expected.
 sheet_name : str, int, list or None, default 0
     Strings are used for sheet names, Integers are used in zero-indexed
     sheet positions.
