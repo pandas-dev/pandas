@@ -2002,8 +2002,6 @@ class DataFrame(NDFrame):
         partition_cols : list, optional, default None
             Column names by which to partition the dataset
             Columns are partitioned in the order they are given
-            The behaviour applies only to pyarrow >= 0.7.0 and fastparquet.
-            Raises a ValueError for other versions.
 
             .. versionadded:: 0.24.0
 

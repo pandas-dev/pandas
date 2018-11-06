@@ -455,7 +455,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(df_compat, pa,
                          path='s3://pandas-test/pyarrow.parquet')
 
-    def test_partition_cols_supported(self, pa_ge_070, df_full):
+    def test_partition_cols_supported(self, pa, df_full):
         # GH #23283
         partition_cols = ['bool', 'int']
         df = df_full
@@ -466,15 +466,6 @@ class TestParquetPyArrow(Base):
             dataset = pq.ParquetDataset(path, validate_schema=False)
             assert len(dataset.partitions.partition_names) == 2
             assert dataset.partitions.partition_names == set(partition_cols)
-
-    def test_partition_cols_not_supported_pa_lt_70(self, pa_lt_070, df_full):
-        # GH #23283
-        partition_cols = ['bool', 'int']
-        df = df_full
-        with pytest.raises(ValueError):
-            with tm.ensure_clean_dir() as path:
-                df.to_parquet(path, partition_cols=partition_cols,
-                              compression=None)
 
 
 class TestParquetFastParquet(Base):

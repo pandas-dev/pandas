@@ -106,10 +106,6 @@ class PyArrowImpl(BaseImpl):
         self.validate_dataframe(df)
         path, _, _, _ = get_filepath_or_buffer(path, mode='wb')
 
-        if partition_cols is not None and self._pyarrow_lt_070:
-            raise ValueError("Partitioning of parquet files are only "
-                             "supported with pyarrow >= 0.7.0")
-
         if index is None:
             from_pandas_kwargs = {}
         else:
@@ -239,12 +235,11 @@ def to_parquet(df, path, engine='auto', compression='snappy', index=None,
         engine's default behavior will be used.
 
         .. versionadded 0.24.0
-    partition_cols : list, optional
-            Column names by which to partition the dataset
-            Columns are partitioned in the order they are given
-            The behaviour applies only to pyarrow >= 0.7.0 and fastparquet.
-            Raises a ValueError for other versions.
-            .. versionadded:: 0.24.0
+    partition_cols : list, optional, default None
+        Column names by which to partition the dataset
+        Columns are partitioned in the order they are given
+
+        .. versionadded:: 0.24.0
     kwargs
         Additional keyword arguments passed to the engine
     """
