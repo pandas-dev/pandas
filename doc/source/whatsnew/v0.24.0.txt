@@ -13,10 +13,9 @@ v0.24.0 (Month XX, 2018)
 New features
 ~~~~~~~~~~~~
 - :func:`merge` now directly allows merge between objects of type ``DataFrame`` and named ``Series``, without the need to convert the ``Series`` object into a ``DataFrame`` beforehand (:issue:`21220`)
-
-
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
-
+- ``FrozenList`` has gained the ``.union()`` and ``.difference()`` methods. This functionality greatly simplifies groupby's that rely on explicitly excluding certain columns. See :ref:`Splitting an object into groups
+<groupby.split>` for more information (:issue:`15475`, :issue:`15506`)
 - :func:`DataFrame.to_parquet` now accepts ``index`` as an argument, allowing
 the user to override the engine's default behavior to include or omit the
 dataframe's indexes from the resulting Parquet file. (:issue:`20768`)
@@ -180,6 +179,29 @@ array, but rather an ``ExtensionArray``:
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
 
+.. _whatsnew_0240.enhancements.rename_axis:
+
+Renaming names in a MultiIndex
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`DataFrame.rename_axis` now supports ``index`` and ``columns`` arguments
+and :func:`Series.rename_axis` supports ``index`` argument (:issue:`19978`)
+
+This change allows a dictionary to be passed so that some of the names
+of a ``MultiIndex`` can be changed.
+
+Example:
+
+.. ipython:: python
+
+    mi = pd.MultiIndex.from_product([list('AB'), list('CD'), list('EF')],
+                                    names=['AB', 'CD', 'EF'])
+    df = pd.DataFrame([i for i in range(len(mi))], index=mi, columns=['N'])
+    df
+    df.rename_axis(index={'CD': 'New'})
+
+See the :ref:`advanced docs on renaming<advanced.index_names>` for more details.
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
@@ -204,6 +226,7 @@ Other Enhancements
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
 - :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support an ``ambiguous`` argument for handling datetimes that are rounded to ambiguous times (:issue:`18946`)
+- :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support a ``nonexistent`` argument for handling datetimes that are rounded to nonexistent times. See :ref:`timeseries.timezone_nonexsistent` (:issue:`22647`)
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
 - :meth:`pandas.core.dtypes.is_list_like` has gained a keyword ``allow_sets`` which is ``True`` by default; if ``False``,
@@ -227,7 +250,7 @@ Backwards incompatible API changes
 Dependencies have increased minimum versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have updated our minimum supported versions of dependencies (:issue:`21242`).
+We have updated our minimum supported versions of dependencies (:issue:`21242`, `18742`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+
@@ -245,6 +268,13 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | scipy           | 0.18.1          |          |
 +-----------------+-----------------+----------+
+| pyarrow         | 0.7.0           |          |
++-----------------+-----------------+----------+
+| fastparquet     | 0.1.2           |          |
++-----------------+-----------------+----------+
+
+Additionally we no longer depend on `feather-format` for feather based storage
+and replaced it with references to `pyarrow` (:issue:`21639` and :issue:`23053`).
 
 .. _whatsnew_0240.api_breaking.csv_line_terminator:
 
@@ -930,6 +960,59 @@ Deprecations
 - :func:`DatetimeIndex.shift` and :func:`PeriodIndex.shift` now accept ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`, :issue:`22912`)
 - The ``fastpath`` keyword of the different Index constructors is deprecated (:issue:`23110`).
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have deprecated the ``errors`` argument in favor of the ``nonexistent`` argument (:issue:`8917`)
+- The class ``FrozenNDArray`` has been deprecated. When unpickling, ``FrozenNDArray`` will be unpickled to ``np.ndarray`` once this class is removed (:issue:`9031`)
+- Deprecated the `nthreads` keyword of :func:`pandas.read_feather` in favor of
+  `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
+
+.. _whatsnew_0240.deprecations.datetimelike_int_ops:
+
+Integer Addition/Subtraction with Datetime-like Classes Is Deprecated
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In the past, users could add or subtract integers or integer-dtypes arrays
+from :class:`Period`, :class:`PeriodIndex`, and in some cases
+:class:`Timestamp`, :class:`DatetimeIndex` and :class:`TimedeltaIndex`.
+
+This usage is now deprecated.  Instead add or subtract integer multiples of
+the object's ``freq`` attribute (:issue:`21939`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [3]: per = pd.Period('2016Q1')
+    In [4]: per + 3
+    Out[4]: Period('2016Q4', 'Q-DEC')
+
+    In [5]: ts = pd.Timestamp('1994-05-06 12:15:16', freq=pd.offsets.Hour())
+    In [6]: ts + 2
+    Out[6]: Timestamp('1994-05-06 14:15:16', freq='H')
+
+    In [7]: tdi = pd.timedelta_range('1D', periods=2)
+    In [8]: tdi - np.array([2, 1])
+    Out[8]: TimedeltaIndex(['-1 days', '1 days'], dtype='timedelta64[ns]', freq=None)
+
+    In [9]: dti = pd.date_range('2001-01-01', periods=2, freq='7D')
+    In [10]: dti + pd.Index([1, 2])
+    Out[10]: DatetimeIndex(['2001-01-08', '2001-01-22'], dtype='datetime64[ns]', freq=None)
+
+Current Behavior:
+
+.. ipython:: python
+    :okwarning:
+    per = pd.Period('2016Q1')
+    per + 3
+
+    per = pd.Period('2016Q1')
+    per + 3 * per.freq
+
+    ts = pd.Timestamp('1994-05-06 12:15:16', freq=pd.offsets.Hour())
+    ts + 2 * ts.freq
+
+    tdi = pd.timedelta_range('1D', periods=2)
+    tdi - np.array([2 * tdi.freq, 1 * tdi.freq])
+
+    dti = pd.date_range('2001-01-01', periods=2, freq='7D')
+    dti + pd.Index([1 * dti.freq, 2 * dti.freq])
 
 .. _whatsnew_0240.prior_deprecations:
 
@@ -981,6 +1064,7 @@ Performance Improvements
 - Improved the performance of :func:`pandas.get_dummies` with ``sparse=True`` (:issue:`21997`)
 - Improved performance of :func:`IndexEngine.get_indexer_non_unique` for sorted, non-unique indexes (:issue:`9466`)
 - Improved performance of :func:`PeriodIndex.unique` (:issue:`23083`)
+- Improved performance of :func:`pd.concat` for `Series` objects (:issue:`23404`)
 
 
 .. _whatsnew_0240.docs:
@@ -1047,6 +1131,8 @@ Timedelta
 - Fixed bug in adding a :class:`DataFrame` with all-`timedelta64[ns]` dtypes to a :class:`DataFrame` with all-integer dtypes returning incorrect results instead of raising ``TypeError`` (:issue:`22696`)
 - Bug in :class:`TimedeltaIndex` where adding a timezone-aware datetime scalar incorrectly returned a timezone-naive :class:`DatetimeIndex` (:issue:`23215`)
 - Bug in :class:`TimedeltaIndex` where adding ``np.timedelta64('NaT')`` incorrectly returned an all-`NaT` :class:`DatetimeIndex` instead of an all-`NaT` :class:`TimedeltaIndex` (:issue:`23215`)
+- Bug in :class:`Timedelta` and :func:`to_timedelta()` have inconsistencies in supported unit string (:issue:`21762`)
+
 
 Timezones
 ^^^^^^^^^
@@ -1070,6 +1156,7 @@ Timezones
 - Bug in :meth:`DatetimeIndex.unique` that did not re-localize tz-aware dates correctly (:issue:`21737`)
 - Bug when indexing a :class:`Series` with a DST transition (:issue:`21846`)
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` where an ``AmbiguousTimeError`` or ``NonExistentTimeError`` would raise if a timezone aware timeseries ended on a DST transition (:issue:`19375`, :issue:`10117`)
+- Bug in :meth:`DataFrame.drop` and :meth:`Series.drop` when specifying a tz-aware Timestamp key to drop from a :class:`DatetimeIndex` with a DST transition (:issue:`21761`)
 
 Offsets
 ^^^^^^^
@@ -1109,6 +1196,7 @@ Interval
 - Bug in the ``IntervalIndex`` repr where a trailing comma was missing after the list of intervals (:issue:`20611`)
 - Bug in :class:`Interval` where scalar arithmetic operations did not retain the ``closed`` value (:issue:`22313`)
 - Bug in :class:`IntervalIndex` where indexing with datetime-like values raised a ``KeyError`` (:issue:`20636`)
+- Bug in ``IntervalTree`` where data containing ``NaN`` triggered a warning and resulted in incorrect indexing queries with :class:`IntervalIndex` (:issue:`23352`)
 
 Indexing
 ^^^^^^^^
@@ -1116,6 +1204,7 @@ Indexing
 - The traceback from a ``KeyError`` when asking ``.loc`` for a single missing label is now shorter and more clear (:issue:`21557`)
 - When ``.ix`` is asked for a missing integer label in a :class:`MultiIndex` with a first level of integer type, it now raises a ``KeyError``, consistently with the case of a flat :class:`Int64Index`, rather than falling back to positional indexing (:issue:`21593`)
 - Bug in :meth:`DatetimeIndex.reindex` when reindexing a tz-naive and tz-aware :class:`DatetimeIndex` (:issue:`8306`)
+- Bug in :meth:`Series.reindex` when reindexing an empty series with a ``datetime64[ns, tz]`` dtype (:issue:`20869`)
 - Bug in :class:`DataFrame` when setting values with ``.loc`` and a timezone aware :class:`DatetimeIndex` (:issue:`11365`)
 - ``DataFrame.__getitem__`` now accepts dictionaries and dictionary keys as list-likes of labels, consistently with ``Series.__getitem__`` (:issue:`21294`)
 - Fixed ``DataFrame[np.nan]`` when columns are non-unique (:issue:`21428`)
@@ -1127,6 +1216,7 @@ Indexing
 - :class:`Index` no longer mangles ``None``, ``NaN`` and ``NaT``, i.e. they are treated as three different keys. However, for numeric Index all three are still coerced to a ``NaN`` (:issue:`22332`)
 - Bug in `scalar in Index` if scalar is a float while the ``Index`` is of integer dtype (:issue:`22085`)
 - Bug in `MultiIndex.set_levels` when levels value is not subscriptable (:issue:`23273`)
+- Bug where setting a timedelta column by ``Index`` causes it to be casted to double, and therefore lose precision (:issue:`23511`)
 
 Missing
 ^^^^^^^
@@ -1191,6 +1281,8 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - :func:`read_sas()` will correctly parse sas7bdat files with data page types having also bit 7 set (so page type is 128 + 256 = 384) (:issue:`16615`)
 - Bug in :meth:`detect_client_encoding` where potential ``IOError`` goes unhandled when importing in a mod_wsgi process due to restricted access to stdout. (:issue:`21552`)
 - Bug in :func:`to_string()` that broke column alignment when ``index=False`` and width of first column's values is greater than the width of first column's header (:issue:`16839`, :issue:`13032`)
+- Bug in :func:`DataFrame.to_csv` where a single level MultiIndex incorrectly wrote a tuple. Now just the value of the index is written (:issue:`19589`).
+- Bug in :meth:`HDFStore.append` when appending a :class:`DataFrame` with an empty string column and ``min_itemsize`` < 8 (:issue:`12242`)
 
 Plotting
 ^^^^^^^^
@@ -1213,6 +1305,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`SeriesGroupBy.mean` when values were integral but could not fit inside of int64, overflowing instead. (:issue:`22487`)
 - :func:`RollingGroupby.agg` and :func:`ExpandingGroupby.agg` now support multiple aggregation functions as parameters (:issue:`15072`)
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` when resampling by a weekly offset (``'W'``) across a DST transition (:issue:`9119`, :issue:`21459`)
+- Bug in :meth:`DataFrame.expanding` in which the ``axis`` argument was not being respected during aggregations (:issue:`23372`)
 
 Reshaping
 ^^^^^^^^^

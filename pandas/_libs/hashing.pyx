@@ -54,8 +54,8 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
     n = len(arr)
 
     # create an array of bytes
-    vecs = <char **> malloc(n * sizeof(char *))
-    lens = <uint64_t*> malloc(n * sizeof(uint64_t))
+    vecs = <char **>malloc(n * sizeof(char *))
+    lens = <uint64_t*>malloc(n * sizeof(uint64_t))
 
     for i in range(n):
         val = arr[i]
