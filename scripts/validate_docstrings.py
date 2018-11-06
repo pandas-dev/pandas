@@ -541,7 +541,8 @@ def validate_one(func_name):
                 desc = ''.join(desc)
                 missing_desc = missing_desc or not desc
                 missing_cap = missing_cap or desc and not desc[0].isupper()
-                missing_period = missing_period or desc and not desc.endswith('.')
+                missing_period = (missing_period
+                                  or desc and not desc.endswith('.'))
             if missing_desc:
                 returns_errs.append('Return value has no description.')
             if missing_cap:
