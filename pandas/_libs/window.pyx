@@ -32,7 +32,7 @@ cdef float64_t MINfloat64 = np.NINF
 cdef float32_t MAXfloat32 = np.inf
 cdef float64_t MAXfloat64 = np.inf
 
-cdef double NaN = <double> np.NaN
+cdef double NaN = <double>np.NaN
 
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
@@ -1498,7 +1498,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
                     output[i] = skiplist_get(skiplist, 0, &ret)
                 else:
                     idx_with_fraction = quantile * (nobs - 1)
-                    idx = <int> idx_with_fraction
+                    idx = <int>idx_with_fraction
 
                     if idx_with_fraction == idx:
                         # no need to interpolate
@@ -1529,7 +1529,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
                     elif interpolation_type == MIDPOINT:
                         vlow = skiplist_get(skiplist, idx, &ret)
                         vhigh = skiplist_get(skiplist, idx + 1, &ret)
-                        output[i] = <double> (vlow + vhigh) / 2
+                        output[i] = <double>(vlow + vhigh) / 2
             else:
                 output[i] = NaN
 
@@ -1611,17 +1611,17 @@ def roll_generic(object obj,
                 output[i] = NaN
 
         # remaining full-length windows
-        buf = <float64_t *> arr.data
+        buf = <float64_t *>arr.data
         bufarr = np.empty(win, dtype=float)
-        oldbuf = <float64_t *> bufarr.data
+        oldbuf = <float64_t *>bufarr.data
         for i from (win - offset) <= i < (N - offset):
             buf = buf + 1
-            bufarr.data = <char *> buf
+            bufarr.data = <char *>buf
             if counts[i] >= minp:
                 output[i] = func(bufarr, *args, **kwargs)
             else:
                 output[i] = NaN
-        bufarr.data = <char *> oldbuf
+        bufarr.data = <char *>oldbuf
 
         # truncated windows at the end
         for i from int_max(N - offset, 0) <= i < N:
