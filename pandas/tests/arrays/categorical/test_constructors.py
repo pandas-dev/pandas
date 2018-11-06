@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 from datetime import datetime
 
 import numpy as np
+import pytest
+
+from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DatetimeIndex, Index, Interval,
+    IntervalIndex, NaT, Series, Timestamp, date_range, period_range,
+    timedelta_range)
 import pandas.util.testing as tm
-from pandas import (Categorical, Index, Series, Timestamp,
-                    CategoricalIndex, date_range, DatetimeIndex,
-                    period_range, timedelta_range, NaT,
-                    Interval, IntervalIndex)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 
 class TestCategoricalConstructors(object):
@@ -41,6 +42,12 @@ class TestCategoricalConstructors(object):
         c = Categorical([], categories=[1, 2, 3])
         expected = pd.Int64Index([1, 2, 3])
         tm.assert_index_equal(c.categories, expected)
+
+    def test_constructor_empty_boolean(self):
+        # see gh-22702
+        cat = pd.Categorical([], categories=[True, False])
+        categories = sorted(cat.categories.tolist())
+        assert categories == [False, True]
 
     def test_constructor_tuples(self):
         values = np.array([(1,), (1, 2), (1,), (1, 2)], dtype=object)

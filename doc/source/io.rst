@@ -40,14 +40,14 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     :delim: ;
 
     text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
-    text;`JSON <http://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
+    text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
     binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
     binary;`HDF5 Format <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__;:ref:`read_hdf<io.hdf5>`;:ref:`to_hdf<io.hdf5>`
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
-    binary;`Msgpack <http://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
+    binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
     binary;`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__;:ref:`read_pickle<io.pickle>`;:ref:`to_pickle<io.pickle>`
@@ -66,16 +66,13 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 CSV & Text files
 ----------------
 
-The two workhorse functions for reading text files (a.k.a. flat files) are
-:func:`read_csv` and :func:`read_table`. They both use the same parsing code to
-intelligently convert tabular data into a ``DataFrame`` object. See the
-:ref:`cookbook<cookbook.csv>` for some advanced strategies.
+The workhorse function for reading text files (a.k.a. flat files) is
+:func:`read_csv`. See the :ref:`cookbook<cookbook.csv>` for some advanced strategies.
 
 Parsing options
 '''''''''''''''
 
-The functions :func:`read_csv` and :func:`read_table` accept the following
-common arguments:
+:func:`read_csv` accepts the following common arguments:
 
 Basic
 +++++
@@ -780,8 +777,8 @@ Date Handling
 Specifying Date Columns
 +++++++++++++++++++++++
 
-To better facilitate working with datetime data, :func:`read_csv` and
-:func:`read_table` use the keyword arguments ``parse_dates`` and ``date_parser``
+To better facilitate working with datetime data, :func:`read_csv`
+uses the keyword arguments ``parse_dates`` and ``date_parser``
 to allow users to specify a variety of columns and date/time formats to turn the
 input text data into ``datetime`` objects.
 
@@ -1434,7 +1431,7 @@ Suppose you have data indexed by two columns:
 
    print(open('data/mindex_ex.csv').read())
 
-The ``index_col`` argument to ``read_csv`` and ``read_table`` can take a list of
+The ``index_col`` argument to ``read_csv`` can take a list of
 column numbers to turn multiple columns into a ``MultiIndex`` for the index of the
 returned object:
 
@@ -1505,8 +1502,8 @@ class of the csv module. For this, you have to specify ``sep=None``.
 
 .. ipython:: python
 
-    print(open('tmp2.sv').read())
-    pd.read_csv('tmp2.sv', sep=None, engine='python')
+   print(open('tmp2.sv').read())
+   pd.read_csv('tmp2.sv', sep=None, engine='python')
 
 .. _io.multiple_files:
 
@@ -1528,16 +1525,16 @@ rather than reading the entire file into memory, such as the following:
 .. ipython:: python
 
    print(open('tmp.sv').read())
-   table = pd.read_table('tmp.sv', sep='|')
+   table = pd.read_csv('tmp.sv', sep='|')
    table
 
 
-By specifying a ``chunksize`` to ``read_csv`` or ``read_table``, the return
+By specifying a ``chunksize`` to ``read_csv``, the return
 value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
 
-   reader = pd.read_table('tmp.sv', sep='|', chunksize=4)
+   reader = pd.read_csv('tmp.sv', sep='|', chunksize=4)
    reader
 
    for chunk in reader:
@@ -1548,7 +1545,7 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 
-   reader = pd.read_table('tmp.sv', sep='|', iterator=True)
+   reader = pd.read_csv('tmp.sv', sep='|', iterator=True)
    reader.get_chunk(5)
 
 .. ipython:: python
@@ -1606,7 +1603,7 @@ function takes a number of arguments. Only the first is required.
 * ``sep`` : Field delimiter for the output file (default ",")
 * ``na_rep``: A string representation of a missing value (default '')
 * ``float_format``: Format string for floating point numbers
-* ``cols``: Columns to write (default None)
+* ``columns``: Columns to write (default None)
 * ``header``: Whether to write out the column names (default True)
 * ``index``: whether to write row (index) names (default True)
 * ``index_label``: Column label(s) for index column(s) if desired. If None
@@ -2276,7 +2273,7 @@ indicate missing values and the subsequent read cannot distinguish the intent.
    new_df = pd.read_json('test.json', orient='table')
    print(new_df.index.name)
 
-.. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
+.. _Table Schema: https://specs.frictionlessdata.io/json-table-schema/
 
 HTML
 ----
@@ -2304,7 +2301,7 @@ Read a URL with no options:
 
 .. ipython:: python
 
-   url = 'http://www.fdic.gov/bank/individual/failed/banklist.html'
+   url = 'https://www.fdic.gov/bank/individual/failed/banklist.html'
    dfs = pd.read_html(url)
    dfs
 
@@ -2344,7 +2341,7 @@ You can even pass in an instance of ``StringIO`` if you so desire:
    that having so many network-accessing functions slows down the documentation
    build. If you spot an error or an example that doesn't run, please do not
    hesitate to report it over on `pandas GitHub issues page
-   <http://www.github.com/pandas-dev/pandas/issues>`__.
+   <https://www.github.com/pandas-dev/pandas/issues>`__.
 
 
 Read a URL and match a table that contains specific text:
@@ -2653,16 +2650,16 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
 
 .. |svm| replace:: **strictly valid markup**
-.. _svm: http://validator.w3.org/docs/help.html#validation_basics
+.. _svm: https://validator.w3.org/docs/help.html#validation_basics
 
 .. |html5lib| replace:: **html5lib**
 .. _html5lib: https://github.com/html5lib/html5lib-python
 
 .. |BeautifulSoup4| replace:: **BeautifulSoup4**
-.. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
+.. _BeautifulSoup4: https://www.crummy.com/software/BeautifulSoup
 
 .. |lxml| replace:: **lxml**
-.. _lxml: http://lxml.de
+.. _lxml: https://lxml.de
 
 
 
@@ -3067,7 +3064,7 @@ Clipboard
 
 A handy way to grab data is to use the :meth:`~DataFrame.read_clipboard` method,
 which takes the contents of the clipboard buffer and passes them to the
-``read_table`` method. For instance, you can copy the following text to the
+``read_csv`` method. For instance, you can copy the following text to the
 clipboard (CTRL-C on many operating systems):
 
 .. code-block:: python
@@ -3146,10 +3143,10 @@ any pickled pandas object (or any other pickled object) from file:
    for such cases, pickled ``DataFrames``, ``Series`` etc, must be read with
    ``pd.read_pickle``, rather than ``pickle.load``.
 
-   See `here <http://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0130-refactoring>`__
-   and `here <http://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0150-refactoring>`__
+   See `here <https://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0130-refactoring>`__
+   and `here <https://pandas.pydata.org/pandas-docs/stable/whatsnew.html#whatsnew-0150-refactoring>`__
    for some examples of compatibility-breaking changes. See
-   `this question <http://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
+   `this question <https://stackoverflow.com/questions/20444593/pandas-compiled-from-source-default-pickle-behavior-changed>`__
    for a detailed explanation.
 
 .. _io.pickle.compression:
@@ -3297,7 +3294,7 @@ HDF5 (PyTables)
 
 ``HDFStore`` is a dict-like object which reads and writes pandas using
 the high performance HDF5 format using the excellent `PyTables
-<http://www.pytables.org/>`__ library. See the :ref:`cookbook <cookbook.hdf>`
+<https://www.pytables.org/>`__ library. See the :ref:`cookbook <cookbook.hdf>`
 for some advanced strategies
 
 .. warning::
@@ -3881,7 +3878,7 @@ Then create the index when finished appending.
 
    os.remove('appends.h5')
 
-See `here <http://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__ for how to create a completely-sorted-index (CSI) on an existing store.
+See `here <https://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__ for how to create a completely-sorted-index (CSI) on an existing store.
 
 .. _io.hdf5-query-data-columns:
 
@@ -4154,8 +4151,8 @@ control compression: ``complevel`` and ``complib``.
             compression to choose depends on your specific needs and
             data. The list of supported compression libraries:
 
-             - `zlib <http://zlib.net/>`_: The default compression library. A classic in terms of compression, achieves good compression rates but is somewhat slow.
-             - `lzo <http://www.oberhumer.com/opensource/lzo/>`_: Fast compression and decompression.
+             - `zlib <https://zlib.net/>`_: The default compression library. A classic in terms of compression, achieves good compression rates but is somewhat slow.
+             - `lzo <https://www.oberhumer.com/opensource/lzo/>`_: Fast compression and decompression.
              - `bzip2 <http://bzip.org/>`_: Good compression rates.
              - `blosc <http://www.blosc.org/>`_: Fast compression and decompression.
 
@@ -4174,7 +4171,7 @@ control compression: ``complevel`` and ``complib``.
                   compression ratios at the expense of speed.
                 - `blosc:snappy <https://google.github.io/snappy/>`_:
                   A popular compressor used in many places.
-                - `blosc:zlib <http://zlib.net/>`_: A classic;
+                - `blosc:zlib <https://zlib.net/>`_: A classic;
                   somewhat slower than the previous ones, but
                   achieving better compression ratios.
                 - `blosc:zstd <https://facebook.github.io/zstd/>`_: An
@@ -4375,7 +4372,7 @@ tables.
 It is possible to write an ``HDFStore`` object that can easily be imported into ``R`` using the
 ``rhdf5`` library (`Package website`_). Create a table format store like this:
 
-.. _package website: http://www.bioconductor.org/packages/release/bioc/html/rhdf5.html
+.. _package website: https://www.bioconductor.org/packages/release/bioc/html/rhdf5.html
 
 .. ipython:: python
 
@@ -4474,7 +4471,7 @@ Performance
 * A ``PerformanceWarning`` will be raised if you are attempting to
   store types that will be pickled by PyTables (rather than stored as
   endemic types). See
-  `Here <http://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190>`__
+  `Here <https://stackoverflow.com/questions/14355151/how-to-make-pandas-hdfstore-put-operation-faster/14370190#14370190>`__
   for more information and some solutions.
 
 
@@ -4570,6 +4567,9 @@ dtypes, including extension dtypes such as datetime with tz.
 Several caveats.
 
 * Duplicate column names and non-string columns names are not supported.
+* The ``pyarrow`` engine always writes the index to the output, but ``fastparquet`` only writes non-default
+  indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
+  force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
 * Index level names, if specified, must be strings.
 * Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
@@ -4579,7 +4579,7 @@ You can specify an ``engine`` to direct the serialization. This can be one of ``
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``,
 then ``pyarrow`` is tried, and falling back to ``fastparquet``.
 
-See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__.
+See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ and `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__.
 
 .. note::
 
@@ -4633,6 +4633,41 @@ Read only certain columns of a parquet file.
    os.remove('example_pa.parquet')
    os.remove('example_fp.parquet')
 
+
+Handling Indexes
+''''''''''''''''
+
+Serializing a ``DataFrame`` to parquet may include the implicit index as one or
+more columns in the output file. Thus, this code:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+    df.to_parquet('test.parquet', engine='pyarrow')
+
+creates a parquet file with *three* columns if you use ``pyarrow`` for serialization:
+``a``, ``b``, and ``__index_level_0__``. If you're using ``fastparquet``, the
+index `may or may not <https://fastparquet.readthedocs.io/en/latest/api.html#fastparquet.write>`_
+be written to the file.
+
+This unexpected extra column causes some databases like Amazon Redshift to reject
+the file, because that column doesn't exist in the target table.
+
+If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
+:func:`~pandas.DataFrame.to_parquet`:
+
+.. ipython:: python
+
+    df.to_parquet('test.parquet', index=False)
+
+This creates a parquet file with just the two expected columns, ``a`` and ``b``.
+If your ``DataFrame`` has a custom index, you won't get it back when you load
+this file into a ``DataFrame``.
+
+Passing ``index=True`` will *always* write the index, even if that's not the
+underlying engine's default behavior.
+
+
 .. _io.sql:
 
 SQL Queries
@@ -4646,13 +4681,13 @@ for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
 You can find an overview of supported drivers for each SQL dialect in the
-`SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
+`SQLAlchemy docs <https://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
 
 If SQLAlchemy is not installed, a fallback is only provided for sqlite (and
 for mysql for backwards compatibility, but this is deprecated and will be
 removed in a future version).
 This mode requires a Python database adapter which respect the `Python
-DB-API <http://www.python.org/dev/peps/pep-0249/>`__.
+DB-API <https://www.python.org/dev/peps/pep-0249/>`__.
 
 See also some :ref:`cookbook examples <cookbook.sql>` for some advanced strategies.
 
@@ -4674,7 +4709,7 @@ The key functions are:
     the provided input (database table name or sql query).
     Table names do not need to be quoted if they have special characters.
 
-In the following example, we use the `SQlite <http://www.sqlite.org/>`__ SQL database
+In the following example, we use the `SQlite <https://www.sqlite.org/>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
 "memory".
 
@@ -4682,7 +4717,7 @@ To connect with SQLAlchemy you use the :func:`create_engine` function to create 
 object from database URI. You only need to create the engine once per database you are
 connecting to.
 For more information on :func:`create_engine` and the URI formatting, see the examples
-below and the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/latest/core/engines.html>`__
+below and the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
 .. ipython:: python
 
@@ -4895,7 +4930,7 @@ connecting to.
    # or absolute, starting with a slash:
    engine = create_engine('sqlite:////absolute/path/to/foo.db')
 
-For more information see the examples the SQLAlchemy `documentation <http://docs.sqlalchemy.org/en/latest/core/engines.html>`__
+For more information see the examples the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/core/engines.html>`__
 
 
 Advanced SQLAlchemy queries
@@ -4940,7 +4975,7 @@ Sqlite fallback
 
 The use of sqlite is supported without using SQLAlchemy.
 This mode requires a Python database adapter which respect the `Python
-DB-API <http://www.python.org/dev/peps/pep-0249/>`__.
+DB-API <https://www.python.org/dev/peps/pep-0249/>`__.
 
 You can create connections like so:
 
@@ -5198,7 +5233,7 @@ xarray_ provides data structures inspired by the pandas ``DataFrame`` for workin
 with multi-dimensional datasets, with a focus on the netCDF file format and
 easy conversion to and from pandas.
 
-.. _xarray: http://xarray.pydata.org/
+.. _xarray: https://xarray.pydata.org/
 
 .. _io.perf:
 

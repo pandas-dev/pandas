@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101,W0141
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 import datetime
 import itertools
 import pytest
@@ -194,6 +194,7 @@ class TestMultiLevel(Base):
         tm.assert_frame_equal(reindexed, expected)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             reindexed = self.frame.ix[[('foo', 'one'), ('bar', 'one')]]
         tm.assert_frame_equal(reindexed, expected)
 
@@ -206,6 +207,7 @@ class TestMultiLevel(Base):
         assert chunk.index is new_index
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             chunk = self.ymd.ix[new_index]
         assert chunk.index is new_index
 
@@ -269,6 +271,7 @@ class TestMultiLevel(Base):
         tm.assert_series_equal(result, expected)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
         tm.assert_series_equal(result, expected)
 
@@ -348,6 +351,7 @@ class TestMultiLevel(Base):
         tm.assert_series_equal(df['value'], result)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             result = df.ix[:, 'value']
         tm.assert_series_equal(df['value'], result)
 
@@ -423,6 +427,7 @@ class TestMultiLevel(Base):
         expected = idf.loc[0, 0]
         expected2 = idf.xs((0, 0))
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             expected3 = idf.ix[0, 0]
 
         tm.assert_series_equal(result, expected)
@@ -490,7 +495,7 @@ class TestMultiLevel(Base):
     def test_xs_with_duplicates(self):
         # Issue #13719
         df_dup = concat([self.frame] * 2)
-        assert not df_dup.index.is_unique
+        assert df_dup.index.is_unique is False
         expected = concat([self.frame.xs('one', level='second')] * 2)
         tm.assert_frame_equal(df_dup.xs('one', level='second'), expected)
         tm.assert_frame_equal(df_dup.xs(['one'], level=['second']), expected)
@@ -684,6 +689,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert df.loc[('bar', 'two'), 1] == 7
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             df = self.frame.copy()
             df.columns = lrange(3)
             df.ix[('bar', 'two'), 1] = 7
@@ -713,6 +719,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tm.assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             result = df.ix[('a', 'y'), [1, 0]]
         tm.assert_frame_equal(result, expected)
 
@@ -733,13 +740,16 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
     def test_reset_index_with_drop(self):
         deleveled = self.ymd.reset_index(drop=True)
         assert len(deleveled.columns) == len(self.ymd.columns)
+        assert deleveled.index.name == self.ymd.index.name
 
         deleveled = self.series.reset_index()
         assert isinstance(deleveled, DataFrame)
         assert len(deleveled.columns) == len(self.series.index.levels) + 1
+        assert deleveled.index.name == self.series.index.name
 
         deleveled = self.series.reset_index(drop=True)
         assert isinstance(deleveled, Series)
+        assert deleveled.index.name == self.series.index.name
 
     def test_count_level(self):
         def _check_counts(frame, axis=0):
@@ -882,7 +892,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # GH10417
         def check(left, right):
             tm.assert_series_equal(left, right)
-            assert not left.index.is_unique
+            assert left.index.is_unique is False
             li, ri = left.index, right.index
             tm.assert_index_equal(li, ri)
 
@@ -1294,6 +1304,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_swaplevel_panel(self):
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
             expected = panel.copy()
             expected.major_axis = expected.major_axis.swaplevel(0, 1)
@@ -1914,11 +1925,24 @@ Thur,Lunch,Yes,51.51,17"""
         df['tstamp'] = idxdt
         df = df.set_index('tstamp', append=True)
         ts = Timestamp('201603231600')
-        assert not df.index.is_unique
+        assert df.index.is_unique is False
 
         result = df.drop(ts, level='tstamp')
         expected = df.loc[idx != 4]
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('box', [Series, DataFrame])
+    def test_drop_tz_aware_timestamp_across_dst(self, box):
+        # GH 21761
+        start = Timestamp('2017-10-29', tz='Europe/Berlin')
+        end = Timestamp('2017-10-29 04:00:00', tz='Europe/Berlin')
+        index = pd.date_range(start, end, freq='15min')
+        data = box(data=[1] * len(index), index=index)
+        result = data.drop(start)
+        expected_start = Timestamp('2017-10-29 00:15:00', tz='Europe/Berlin')
+        expected_idx = pd.date_range(expected_start, end, freq='15min')
+        expected = box(data=[1] * len(expected_idx), index=expected_idx)
+        tm.assert_equal(result, expected)
 
     def test_drop_preserve_names(self):
         index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1],
@@ -2054,14 +2078,14 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame({"a": [1, 2, 3],
                         "b": [4, 5, 6],
                         "c": [7, 8, 9]}).set_index(["a", "b"])
-        l = list(df.index)
-        l[0] = ("faz", "boo")
-        df.index = l
+        index = list(df.index)
+        index[0] = ("faz", "boo")
+        df.index = index
         repr(df)
 
         # this travels an improper code path
-        l[0] = ["faz", "boo"]
-        df.index = l
+        index[0] = ["faz", "boo"]
+        df.index = index
         repr(df)
 
     def test_tuples_have_na(self):

@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 from datetime import datetime
 
 import itertools
@@ -56,6 +56,7 @@ class TestDataFrameReshape(TestData):
 
         with catch_warnings(record=True):
             # pivot multiple columns
+            simplefilter("ignore", FutureWarning)
             wp = tm.makePanel()
             lp = wp.to_frame()
             df = lp.reset_index()
@@ -276,6 +277,8 @@ class TestDataFrameReshape(TestData):
                              index=['x', 'y', 'z'])
         assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(reason="GH-23077",
+                       strict=True)
     def test_unstack_fill_frame_period(self):
 
         # Test unstacking with period

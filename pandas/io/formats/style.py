@@ -14,10 +14,9 @@ try:
         PackageLoader, Environment, ChoiceLoader, FileSystemLoader
     )
 except ImportError:
-    msg = "pandas.Styler requires jinja2. "\
-          "Please install with `conda install Jinja2`\n"\
-          "or `pip install Jinja2`"
-    raise ImportError(msg)
+    raise ImportError("pandas.Styler requires jinja2. "
+                      "Please install with `conda install Jinja2`\n"
+                      "or `pip install Jinja2`")
 
 from pandas.core.dtypes.common import is_float, is_string_like
 
@@ -65,6 +64,11 @@ class Styler(object):
         a unique identifier to avoid CSS collisions; generated automatically
     caption: str, default None
         caption to attach to the table
+    cell_ids: bool, default True
+        If True, each cell will have an ``id`` attribute in their HTML tag.
+        The ``id`` takes the form ``T_<uuid>_row<num_row>_col<num_col>``
+        where ``<uuid>`` is the unique identifier, ``<num_row>`` is the row
+        number and ``<num_col>`` is the column number.
 
     Attributes
     ----------
@@ -113,7 +117,7 @@ class Styler(object):
     template = env.get_template("html.tpl")
 
     def __init__(self, data, precision=None, table_styles=None, uuid=None,
-                 caption=None, table_attributes=None):
+                 caption=None, table_attributes=None, cell_ids=True):
         self.ctx = defaultdict(list)
         self._todo = []
 
@@ -137,6 +141,7 @@ class Styler(object):
         self.table_attributes = table_attributes
         self.hidden_index = False
         self.hidden_columns = []
+        self.cell_ids = cell_ids
 
         # display_funcs maps (row, col) -> formatting function
 
@@ -307,14 +312,16 @@ class Styler(object):
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
                 formatter = self._display_funcs[(r, c)]
                 value = self.data.iloc[r, c]
-                row_es.append({
-                    "type": "td",
-                    "value": value,
-                    "class": " ".join(cs),
-                    "id": "_".join(cs[1:]),
-                    "display_value": formatter(value),
-                    "is_visible": (c not in hidden_columns)
-                })
+                row_dict = {"type": "td",
+                            "value": value,
+                            "class": " ".join(cs),
+                            "display_value": formatter(value),
+                            "is_visible": (c not in hidden_columns)}
+                # only add an id if the cell has a style
+                if (self.cell_ids or
+                        not(len(ctx[r, c]) == 1 and ctx[r, c][0] == '')):
+                    row_dict["id"] = "_".join(cs[1:])
+                row_es.append(row_dict)
                 props = []
                 for x in ctx[r, c]:
                     # have to handle empty styles like ['']
@@ -1073,6 +1080,7 @@ class Styler(object):
             percent of the cell's width.
         align : {'left', 'zero',' mid'}, default 'left'
             How to align the bars with the cells.
+
             - 'left' : the min value starts at the left of the cell.
             - 'zero' : a value of zero is located at the center of the cell.
             - 'mid' : the center of the cell is at (max-min)/2, or

@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import warnings
 from itertools import product
-import pytest
 
 import numpy as np
+import pytest
 
-from pandas.compat import range, u
-from pandas import MultiIndex, DatetimeIndex
-from pandas._libs import hashtable
 import pandas.util.testing as tm
+from pandas import DatetimeIndex, MultiIndex
+from pandas._libs import hashtable
+from pandas.compat import range, u
 
 
 @pytest.mark.parametrize('names', [None, ['first', 'second']])
@@ -132,16 +131,16 @@ def test_duplicate_meta_data():
 
 def test_has_duplicates(idx, idx_dup):
     # see fixtures
-    assert idx.is_unique
-    assert not idx.has_duplicates
-    assert not idx_dup.is_unique
-    assert idx_dup.has_duplicates
+    assert idx.is_unique is True
+    assert idx.has_duplicates is False
+    assert idx_dup.is_unique is False
+    assert idx_dup.has_duplicates is True
 
     mi = MultiIndex(levels=[[0, 1], [0, 1, 2]],
                     labels=[[0, 0, 0, 0, 1, 1, 1],
                             [0, 1, 2, 0, 0, 1, 2]])
-    assert not mi.is_unique
-    assert mi.has_duplicates
+    assert mi.is_unique is False
+    assert mi.has_duplicates is True
 
 
 def test_has_duplicates_from_tuples():
@@ -241,7 +240,7 @@ def test_get_duplicates():
         mi = MultiIndex.from_arrays([[101, a], [3.5, np.nan]])
         assert not mi.has_duplicates
 
-        with warnings.catch_warnings(record=True):
+        with tm.assert_produces_warning(FutureWarning):
             # Deprecated - see GH20239
             assert mi.get_duplicates().equals(MultiIndex.from_arrays([[], []]))
 
@@ -257,7 +256,7 @@ def test_get_duplicates():
             assert len(mi) == (n + 1) * (m + 1)
             assert not mi.has_duplicates
 
-            with warnings.catch_warnings(record=True):
+            with tm.assert_produces_warning(FutureWarning):
                 # Deprecated - see GH20239
                 assert mi.get_duplicates().equals(MultiIndex.from_arrays(
                     [[], []]))

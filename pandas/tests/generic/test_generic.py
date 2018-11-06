@@ -2,7 +2,7 @@
 # pylint: disable-msg=E1101,W0612
 
 from copy import copy, deepcopy
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 
 import pytest
 import numpy as np
@@ -638,6 +638,7 @@ class TestNDFrame(object):
             s.sample(n=3, weights='weight_column')
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             panel = Panel(items=[0, 1, 2], major_axis=[2, 3, 4],
                           minor_axis=[3, 4, 5])
             with pytest.raises(ValueError):
@@ -705,6 +706,7 @@ class TestNDFrame(object):
 
         # Test default axes
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             p = Panel(items=['a', 'b', 'c'], major_axis=[2, 4, 6],
                       minor_axis=[1, 3, 5])
             assert_panel_equal(
@@ -743,6 +745,7 @@ class TestNDFrame(object):
         for df in [tm.makeTimeDataFrame()]:
             tm.assert_frame_equal(df.squeeze(), df)
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             for p in [tm.makePanel()]:
                 tm.assert_panel_equal(p.squeeze(), p)
 
@@ -751,6 +754,7 @@ class TestNDFrame(object):
         tm.assert_series_equal(df.squeeze(), df['A'])
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             p = tm.makePanel().reindex(items=['ItemA'])
             tm.assert_frame_equal(p.squeeze(), p['ItemA'])
 
@@ -761,6 +765,7 @@ class TestNDFrame(object):
         empty_series = Series([], name='five')
         empty_frame = DataFrame([empty_series])
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             empty_panel = Panel({'six': empty_frame})
 
         [tm.assert_series_equal(empty_series, higher_dim.squeeze())
@@ -798,6 +803,7 @@ class TestNDFrame(object):
             tm.assert_frame_equal(df.transpose().transpose(), df)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             for p in [tm.makePanel()]:
                 tm.assert_panel_equal(p.transpose(2, 0, 1)
                                       .transpose(1, 2, 0), p)
@@ -820,6 +826,7 @@ class TestNDFrame(object):
                                np.transpose, df, axes=1)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             p = tm.makePanel()
             tm.assert_panel_equal(np.transpose(
                 np.transpose(p, axes=(2, 0, 1)),
@@ -842,6 +849,7 @@ class TestNDFrame(object):
 
         indices = [-3, 2, 0, 1]
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             for p in [tm.makePanel()]:
                 out = p.take(indices)
                 expected = Panel(data=p.values.take(indices, axis=0),
@@ -856,6 +864,7 @@ class TestNDFrame(object):
         df = tm.makeTimeDataFrame()
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             p = tm.makePanel()
 
         for obj in (s, df, p):
@@ -963,6 +972,7 @@ class TestNDFrame(object):
 
     def test_describe_raises(self):
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             with pytest.raises(NotImplementedError):
                 tm.makePanel().describe()
 
@@ -996,6 +1006,7 @@ class TestNDFrame(object):
 
     def test_pipe_panel(self):
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             wp = Panel({'r1': DataFrame({"A": [1, 2, 3]})})
             f = lambda x, y: x + y
             result = wp.pipe(f, 2)
@@ -1008,3 +1019,15 @@ class TestNDFrame(object):
 
             with pytest.raises(ValueError):
                 result = wp.pipe((f, 'y'), x=1, y=1)
+
+    @pytest.mark.parametrize('box', [pd.Series, pd.DataFrame])
+    def test_axis_classmethods(self, box):
+        obj = box()
+        values = (list(box._AXIS_NAMES.keys()) +
+                  list(box._AXIS_NUMBERS.keys()) +
+                  list(box._AXIS_ALIASES.keys()))
+        for v in values:
+            assert obj._get_axis_number(v) == box._get_axis_number(v)
+            assert obj._get_axis_name(v) == box._get_axis_name(v)
+            assert obj._get_block_manager_axis(v) == \
+                box._get_block_manager_axis(v)

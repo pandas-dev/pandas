@@ -4,6 +4,7 @@ from __future__ import print_function
 
 from datetime import datetime
 
+import pytest
 import numpy as np
 from numpy import nan
 
@@ -30,6 +31,24 @@ class TestDataFrameConcatCommon(TestData):
         expected = Series(dict(float64=2, float32=2))
         assert_series_equal(results, expected)
 
+    @pytest.mark.parametrize('data', [
+        pd.date_range('2000', periods=4),
+        pd.date_range('2000', periods=4, tz="US/Central"),
+        pd.period_range('2000', periods=4),
+        pd.timedelta_range(0, periods=4),
+    ])
+    def test_combine_datetlike_udf(self, data):
+        # https://github.com/pandas-dev/pandas/issues/23079
+        df = pd.DataFrame({"A": data})
+        other = df.copy()
+        df.iloc[1, 0] = None
+
+        def combiner(a, b):
+            return b
+
+        result = df.combine(other, combiner)
+        tm.assert_frame_equal(result, other)
+
     def test_concat_multiple_tzs(self):
         # GH 12467
         # combining datetime tz-aware and naive DataFrames
@@ -52,6 +71,38 @@ class TestDataFrameConcatCommon(TestData):
         results = pd.concat([df2, df3]).reset_index(drop=True)
         expected = DataFrame(dict(time=[ts2, ts3]))
         assert_frame_equal(results, expected)
+
+    @pytest.mark.parametrize(
+        't1',
+        [
+            '2015-01-01',
+            pytest.param(pd.NaT, marks=pytest.mark.xfail(
+                reason='GH23037 incorrect dtype when concatenating',
+                strict=True))])
+    def test_concat_tz_NaT(self, t1):
+        # GH 22796
+        # Concating tz-aware multicolumn DataFrames
+        ts1 = Timestamp(t1, tz='UTC')
+        ts2 = Timestamp('2015-01-01', tz='UTC')
+        ts3 = Timestamp('2015-01-01', tz='UTC')
+
+        df1 = DataFrame([[ts1, ts2]])
+        df2 = DataFrame([[ts3]])
+
+        result = pd.concat([df1, df2])
+        expected = DataFrame([[ts1, ts2], [ts3, pd.NaT]], index=[0, 0])
+
+        assert_frame_equal(result, expected)
+
+    def test_concat_tz_not_aligned(self):
+        # GH 22796
+        ts = pd.to_datetime([1, 2]).tz_localize("UTC")
+        a = pd.DataFrame({"A": ts})
+        b = pd.DataFrame({"A": ts, "B": ts})
+        result = pd.concat([a, b], sort=True, ignore_index=True)
+        expected = pd.DataFrame({"A": list(ts) + list(ts),
+                                 "B": [pd.NaT, pd.NaT] + list(ts)})
+        assert_frame_equal(result, expected)
 
     def test_concat_tuple_keys(self):
         # GH 14438
@@ -722,7 +773,7 @@ class TestDataFrameCombineFirst(TestData):
                                  freq='M')
         exp = pd.DataFrame({'P': exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
-        assert res['P'].dtype == 'object'
+        assert res['P'].dtype == data1.dtype
 
         # different freq
         dts2 = pd.PeriodIndex(['2012-01-01', '2012-01-02',
@@ -749,6 +800,17 @@ class TestDataFrameCombineFirst(TestData):
         res = df1.combine_first(df2)
         tm.assert_frame_equal(res, df1)
         assert res['a'].dtype == 'int64'
+
+    @pytest.mark.parametrize("val", [1, 1.0])
+    def test_combine_first_with_asymmetric_other(self, val):
+        # see gh-20699
+        df1 = pd.DataFrame({'isNum': [val]})
+        df2 = pd.DataFrame({'isBool': [True]})
+
+        res = df1.combine_first(df2)
+        exp = pd.DataFrame({'isBool': [True], 'isNum': [val]})
+
+        tm.assert_frame_equal(res, exp)
 
     def test_concat_datetime_datetime64_frame(self):
         # #2624

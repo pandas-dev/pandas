@@ -8,6 +8,7 @@ which was more ambitious but less idiomatic in its use of Hypothesis.
 You may wish to consult the previous version for inspiration on further
 tests, or when trying to pin down the bugs exposed by the tests below.
 """
+import warnings
 
 import pytest
 from hypothesis import given, assume, strategies as st
@@ -25,6 +26,11 @@ from pandas.tseries.offsets import (
 # ----------------------------------------------------------------
 # Helpers for generating random data
 
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+    min_dt = pd.Timestamp(1900, 1, 1).to_pydatetime(),
+    max_dt = pd.Timestamp(1900, 1, 1).to_pydatetime(),
+
 gen_date_range = st.builds(
     pd.date_range,
     start=st.datetimes(
@@ -38,8 +44,8 @@ gen_date_range = st.builds(
 )
 
 gen_random_datetime = st.datetimes(
-    min_value=pd.Timestamp.min.to_pydatetime(),
-    max_value=pd.Timestamp.max.to_pydatetime(),
+    min_value=min_dt,
+    max_value=max_dt,
     timezones=st.one_of(st.none(), dateutil_timezones(), pytz_timezones())
 )
 

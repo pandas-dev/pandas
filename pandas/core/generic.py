@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     is_number,
     is_integer, is_bool,
     is_bool_dtype,
-    is_categorical_dtype,
     is_numeric_dtype,
     is_datetime64_any_dtype,
     is_timedelta64_dtype,
@@ -28,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_re_compilable,
     is_period_arraylike,
     is_object_dtype,
+    is_extension_array_dtype,
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.inference import is_hashable
@@ -54,7 +54,7 @@ from pandas.compat import (map, zip, lzip, lrange, string_types, to_str,
 from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
 from pandas.util._decorators import (Appender, Substitution,
-                                     deprecate_kwarg)
+                                     rewrite_axis_style_signature)
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core import config
 
@@ -117,7 +117,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
     _deprecations = frozenset(['as_blocks', 'blocks',
-                               'consolidate', 'convert_objects', 'is_copy'])
+                               'convert_objects', 'is_copy'])
     _metadata = []
     _is_copy = None
 
@@ -358,41 +358,44 @@ class NDFrame(PandasObject, SelectionMixin):
             d.update(kwargs)
             return cls(data, **d)
 
-    def _get_axis_number(self, axis):
-        axis = self._AXIS_ALIASES.get(axis, axis)
+    @classmethod
+    def _get_axis_number(cls, axis):
+        axis = cls._AXIS_ALIASES.get(axis, axis)
         if is_integer(axis):
-            if axis in self._AXIS_NAMES:
+            if axis in cls._AXIS_NAMES:
                 return axis
         else:
             try:
-                return self._AXIS_NUMBERS[axis]
+                return cls._AXIS_NUMBERS[axis]
             except KeyError:
                 pass
         raise ValueError('No axis named {0} for object type {1}'
-                         .format(axis, type(self)))
+                         .format(axis, type(cls)))
 
-    def _get_axis_name(self, axis):
-        axis = self._AXIS_ALIASES.get(axis, axis)
+    @classmethod
+    def _get_axis_name(cls, axis):
+        axis = cls._AXIS_ALIASES.get(axis, axis)
         if isinstance(axis, string_types):
-            if axis in self._AXIS_NUMBERS:
+            if axis in cls._AXIS_NUMBERS:
                 return axis
         else:
             try:
-                return self._AXIS_NAMES[axis]
+                return cls._AXIS_NAMES[axis]
             except KeyError:
                 pass
         raise ValueError('No axis named {0} for object type {1}'
-                         .format(axis, type(self)))
+                         .format(axis, type(cls)))
 
     def _get_axis(self, axis):
         name = self._get_axis_name(axis)
         return getattr(self, name)
 
-    def _get_block_manager_axis(self, axis):
+    @classmethod
+    def _get_block_manager_axis(cls, axis):
         """Map the axis to the block_manager axis."""
-        axis = self._get_axis_number(axis)
-        if self._AXIS_REVERSED:
-            m = self._AXIS_LEN - 1
+        axis = cls._get_axis_number(axis)
+        if cls._AXIS_REVERSED:
+            m = cls._AXIS_LEN - 1
             return m - axis
         return axis
 
@@ -643,7 +646,8 @@ class NDFrame(PandasObject, SelectionMixin):
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
 
-    _shared_docs['transpose'] = """
+    def transpose(self, *args, **kwargs):
+        """
         Permute the dimensions of the %(klass)s
 
         Parameters
@@ -662,9 +666,6 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         y : same as input
         """
-
-    @Appender(_shared_docs['transpose'] % _shared_doc_kwargs)
-    def transpose(self, *args, **kwargs):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs,
@@ -965,9 +966,8 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Rename
 
-    # TODO: define separate funcs for DataFrame, Series and Panel so you can
-    # get completion on keyword arguments.
-    _shared_docs['rename'] = """
+    def rename(self, *args, **kwargs):
+        """
         Alter axes input function or functions. Function / dict values must be
         unique (1-to-1). Labels not contained in a dict / Series will be left
         as-is. Extra labels listed don't throw an error. Alternatively, change
@@ -975,13 +975,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        %(optional_mapper)s
         %(axes)s : scalar, list-like, dict-like or function, optional
             Scalar or list-like will alter the ``Series.name`` attribute,
             and raise on DataFrame or Panel.
             dict-like or functions are transformations to apply to
             that axis' values
-        %(optional_axis)s
         copy : boolean, default True
             Also copy underlying data
         inplace : boolean, default False
@@ -1069,12 +1067,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See the :ref:`user guide <basics.rename>` for more.
         """
-
-    @Appender(_shared_docs['rename'] % dict(axes='axes keywords for this'
-                                            ' object', klass='NDFrame',
-                                            optional_mapper='',
-                                            optional_axis=''))
-    def rename(self, *args, **kwargs):
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
         copy = kwargs.pop('copy', True)
         inplace = kwargs.pop('inplace', False)
@@ -1091,20 +1083,6 @@ class NDFrame(PandasObject, SelectionMixin):
         if com.count_not_none(*axes.values()) == 0:
             raise TypeError('must pass an index to rename')
 
-        # renamer function if passed a dict
-        def _get_rename_function(mapper):
-            if isinstance(mapper, (dict, ABCSeries)):
-
-                def f(x):
-                    if x in mapper:
-                        return mapper[x]
-                    else:
-                        return x
-            else:
-                f = mapper
-
-            return f
-
         self._consolidate_inplace()
         result = self if inplace else self.copy(deep=copy)
 
@@ -1113,7 +1091,7 @@ class NDFrame(PandasObject, SelectionMixin):
             v = axes.get(self._AXIS_NAMES[axis])
             if v is None:
                 continue
-            f = _get_rename_function(v)
+            f = com._get_rename_function(v)
 
             baxis = self._get_block_manager_axis(axis)
             if level is not None:
@@ -1127,18 +1105,28 @@ class NDFrame(PandasObject, SelectionMixin):
         else:
             return result.__finalize__(self)
 
-    rename.__doc__ = _shared_docs['rename']
-
-    def rename_axis(self, mapper, axis=0, copy=True, inplace=False):
+    @rewrite_axis_style_signature('mapper', [('copy', True),
+                                             ('inplace', False)])
+    def rename_axis(self, mapper=None, **kwargs):
         """
-        Alter the name of the index or columns.
+        Alter the name of the index or name of Index object that is the
+        columns.
 
         Parameters
         ----------
         mapper : scalar, list-like, optional
-            Value to set as the axis name attribute.
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            The index or the name of the axis.
+            Value to set the axis name attribute.
+        index, columns : scalar, list-like, dict-like or function, optional
+            dict-like or functions transformations to apply to
+            that axis' values.
+
+            Use either ``mapper`` and ``axis`` to
+            specify the axis to target with ``mapper``, or ``index``
+            and/or ``columns``.
+
+            .. versionchanged:: 0.24.0
+
+        axis : int or string, default 0
         copy : boolean, default True
             Also copy underlying data.
         inplace : boolean, default False
@@ -1156,6 +1144,23 @@ class NDFrame(PandasObject, SelectionMixin):
         the axis *labels* by passing a mapping or scalar. This behavior is
         deprecated and will be removed in a future version. Use ``rename``
         instead.
+
+        ``DataFrame.rename_axis`` supports two calling conventions
+
+        * ``(index=index_mapper, columns=columns_mapper, ...)``
+        * ``(mapper, axis={'index', 'columns'}, ...)``
+
+        The first calling convention will only modify the names of
+        the index and/or the names of the Index object that is the columns.
+        In this case, the parameter ``copy`` is ignored.
+
+        The second calling convention will modify the names of the
+        the corresponding index if mapper is a list or a scalar.
+        However, if mapper is dict-like or a function, it will use the
+        deprecated behavior of modifying the axis *labels*.
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
 
         See Also
         --------
@@ -1190,20 +1195,94 @@ class NDFrame(PandasObject, SelectionMixin):
         0    1  4
         1    2  5
         2    3  6
+
+        >>> mi = pd.MultiIndex.from_product([['a', 'b', 'c'], [1, 2]],
+        ...                                 names=['let','num'])
+        >>> df = pd.DataFrame({'x': [i for i in range(len(mi))],
+        ...                    'y' : [i*10 for i in range(len(mi))]},
+        ...                    index=mi)
+        >>> df.rename_axis(index={'num' : 'n'})
+               x   y
+        let n
+        a   1  0   0
+            2  1  10
+        b   1  2  20
+            2  3  30
+        c   1  4  40
+            2  5  50
+
+        >>> cdf = df.rename_axis(columns='col')
+        >>> cdf
+        col      x   y
+        let num
+        a   1    0   0
+            2    1  10
+        b   1    2  20
+            2    3  30
+        c   1    4  40
+            2    5  50
+
+        >>> cdf.rename_axis(columns=str.upper)
+        COL      x   y
+        let num
+        a   1    0   0
+            2    1  10
+        b   1    2  20
+            2    3  30
+        c   1    4  40
+            2    5  50
+
         """
+        axes, kwargs = self._construct_axes_from_arguments((), kwargs)
+        copy = kwargs.pop('copy', True)
+        inplace = kwargs.pop('inplace', False)
+        axis = kwargs.pop('axis', 0)
+        if axis is not None:
+            axis = self._get_axis_number(axis)
+
+        if kwargs:
+            raise TypeError('rename_axis() got an unexpected keyword '
+                            'argument "{0}"'.format(list(kwargs.keys())[0]))
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
-                                           is_dict_like(mapper))
-        if non_mapper:
-            return self._set_axis_name(mapper, axis=axis, inplace=inplace)
+
+        if (mapper is not None):
+            # Use v0.23 behavior if a scalar or list
+            non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
+                                               is_dict_like(mapper))
+            if non_mapper:
+                return self._set_axis_name(mapper, axis=axis, inplace=inplace)
+            else:
+                # Deprecated (v0.21) behavior is if mapper is specified,
+                # and not a list or scalar, then call rename
+                msg = ("Using 'rename_axis' to alter labels is deprecated. "
+                       "Use '.rename' instead")
+                warnings.warn(msg, FutureWarning, stacklevel=3)
+                axis = self._get_axis_name(axis)
+                d = {'copy': copy, 'inplace': inplace}
+                d[axis] = mapper
+                return self.rename(**d)
         else:
-            msg = ("Using 'rename_axis' to alter labels is deprecated. "
-                   "Use '.rename' instead")
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-            axis = self._get_axis_name(axis)
-            d = {'copy': copy, 'inplace': inplace}
-            d[axis] = mapper
-            return self.rename(**d)
+            # Use new behavior.  Means that index and/or columns
+            # is specified
+            result = self if inplace else self.copy(deep=copy)
+
+            for axis in lrange(self._AXIS_LEN):
+                v = axes.get(self._AXIS_NAMES[axis])
+                if v is None:
+                    continue
+                non_mapper = is_scalar(v) or (is_list_like(v) and not
+                                              is_dict_like(v))
+                if non_mapper:
+                    newnames = v
+                else:
+                    f = com._get_rename_function(v)
+                    curnames = self._get_axis(axis).names
+                    newnames = [f(name) for name in curnames]
+                result._set_axis_name(newnames, axis=axis,
+                                      inplace=True)
+            if not inplace:
+                return result
 
     def _set_axis_name(self, name, axis=0, inplace=False):
         """
@@ -1808,6 +1887,10 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Array Interface
 
+    # This is also set in IndexOpsMixin
+    # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
+    __array_priority__ = 1000
+
     def __array__(self, dtype=None):
         return com.values_from_object(self)
 
@@ -1979,11 +2062,17 @@ class NDFrame(PandasObject, SelectionMixin):
     If you wish to write to more than one sheet in the workbook, it is
     necessary to specify an ExcelWriter object:
 
-    >>> writer = pd.ExcelWriter('output2.xlsx', engine='xlsxwriter')
-    >>> df1.to_excel(writer, sheet_name='Sheet1')
     >>> df2 = df1.copy()
-    >>> df2.to_excel(writer, sheet_name='Sheet2')
-    >>> writer.save()
+    >>> with pd.ExcelWriter('output.xlsx') as writer:
+    ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
+    ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
+
+    To set the library that is used to write the Excel file,
+    you can pass the `engine` keyword (the default engine is
+    automatically chosen depending on the file extension):
+
+    >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')
+
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
@@ -2054,10 +2143,12 @@ class NDFrame(PandasObject, SelectionMixin):
             like.
 
             .. versionadded:: 0.19.0
-        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None},
-                       default 'infer'
+
+        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
+
             A string representing the compression to use in the output file,
-            only used when the first argument is a filename.
+            only used when the first argument is a filename. By default, the
+            compression is inferred from the filename.
 
             .. versionadded:: 0.21.0
             .. versionchanged:: 0.24.0
@@ -2494,80 +2585,70 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        a DataArray for a Series
-        a Dataset for a DataFrame
-        a DataArray for higher dims
+        xarray.DataArray or xarray.Dataset
+            Data in the pandas structure converted to Dataset if the object is
+            a DataFrame, or a DataArray if the object is a Series.
+
+        See Also
+        --------
+        DataFrame.to_hdf : Write DataFrame to an HDF5 file.
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A' : [1, 1, 2],
-                               'B' : ['foo', 'bar', 'foo'],
-                               'C' : np.arange(4.,7)})
+        >>> df = pd.DataFrame([('falcon', 'bird',  389.0, 2),
+        ...                    ('parrot', 'bird', 24.0, 2),
+        ...                    ('lion',   'mammal', 80.5, 4),
+        ...                    ('monkey', 'mammal', np.nan, 4)],
+        ...                    columns=['name', 'class', 'max_speed',
+        ...                             'num_legs'])
         >>> df
-           A    B    C
-        0  1  foo  4.0
-        1  1  bar  5.0
-        2  2  foo  6.0
+             name   class  max_speed  num_legs
+        0  falcon    bird      389.0         2
+        1  parrot    bird       24.0         2
+        2    lion  mammal       80.5         4
+        3  monkey  mammal        NaN         4
 
         >>> df.to_xarray()
         <xarray.Dataset>
-        Dimensions:  (index: 3)
+        Dimensions:    (index: 4)
         Coordinates:
-          * index    (index) int64 0 1 2
+          * index      (index) int64 0 1 2 3
         Data variables:
-            A        (index) int64 1 1 2
-            B        (index) object 'foo' 'bar' 'foo'
-            C        (index) float64 4.0 5.0 6.0
+            name       (index) object 'falcon' 'parrot' 'lion' 'monkey'
+            class      (index) object 'bird' 'bird' 'mammal' 'mammal'
+            max_speed  (index) float64 389.0 24.0 80.5 nan
+            num_legs   (index) int64 2 2 4 4
 
-        >>> df = pd.DataFrame({'A' : [1, 1, 2],
-                               'B' : ['foo', 'bar', 'foo'],
-                               'C' : np.arange(4.,7)}
-                             ).set_index(['B','A'])
-        >>> df
-                 C
-        B   A
-        foo 1  4.0
-        bar 1  5.0
-        foo 2  6.0
+        >>> df['max_speed'].to_xarray()
+        <xarray.DataArray 'max_speed' (index: 4)>
+        array([389. ,  24. ,  80.5,   nan])
+        Coordinates:
+          * index    (index) int64 0 1 2 3
 
-        >>> df.to_xarray()
+        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-01',
+        ...                         '2018-01-02', '2018-01-02'])
+        >>> df_multiindex = pd.DataFrame({'date': dates,
+        ...                    'animal': ['falcon', 'parrot', 'falcon',
+        ...                               'parrot'],
+        ...                    'speed': [350, 18, 361, 15]}).set_index(['date',
+        ...                                                    'animal'])
+        >>> df_multiindex
+                           speed
+        date       animal
+        2018-01-01 falcon    350
+                   parrot     18
+        2018-01-02 falcon    361
+                   parrot     15
+
+        >>> df_multiindex.to_xarray()
         <xarray.Dataset>
-        Dimensions:  (A: 2, B: 2)
+        Dimensions:  (animal: 2, date: 2)
         Coordinates:
-          * B        (B) object 'bar' 'foo'
-          * A        (A) int64 1 2
+          * date     (date) datetime64[ns] 2018-01-01 2018-01-02
+          * animal   (animal) object 'falcon' 'parrot'
         Data variables:
-            C        (B, A) float64 5.0 nan 4.0 6.0
-
-        >>> p = pd.Panel(np.arange(24).reshape(4,3,2),
-                         items=list('ABCD'),
-                         major_axis=pd.date_range('20130101', periods=3),
-                         minor_axis=['first', 'second'])
-        >>> p
-        <class 'pandas.core.panel.Panel'>
-        Dimensions: 4 (items) x 3 (major_axis) x 2 (minor_axis)
-        Items axis: A to D
-        Major_axis axis: 2013-01-01 00:00:00 to 2013-01-03 00:00:00
-        Minor_axis axis: first to second
-
-        >>> p.to_xarray()
-        <xarray.DataArray (items: 4, major_axis: 3, minor_axis: 2)>
-        array([[[ 0,  1],
-                [ 2,  3],
-                [ 4,  5]],
-               [[ 6,  7],
-                [ 8,  9],
-                [10, 11]],
-               [[12, 13],
-                [14, 15],
-                [16, 17]],
-               [[18, 19],
-                [20, 21],
-                [22, 23]]])
-        Coordinates:
-          * items       (items) object 'A' 'B' 'C' 'D'
-          * major_axis  (major_axis) datetime64[ns] 2013-01-01 2013-01-02 2013-01-03  # noqa
-          * minor_axis  (minor_axis) object 'first' 'second'
+            speed    (date, animal) int64 350 18 361 15
 
         Notes
         -----
@@ -3026,7 +3107,8 @@ class NDFrame(PandasObject, SelectionMixin):
         except KeyError:
             pass
 
-    _shared_docs['_take'] = """
+    def _take(self, indices, axis=0, is_copy=True):
+        """
         Return the elements in the given *positional* indices along an axis.
 
         This means that we are not indexing according to actual values in
@@ -3057,9 +3139,6 @@ class NDFrame(PandasObject, SelectionMixin):
         numpy.ndarray.take
         numpy.take
         """
-
-    @Appender(_shared_docs['_take'])
-    def _take(self, indices, axis=0, is_copy=True):
         self._consolidate_inplace()
 
         new_data = self._data.take(indices,
@@ -3074,7 +3153,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return result
 
-    _shared_docs['take'] = """
+    def take(self, indices, axis=0, convert=None, is_copy=True, **kwargs):
+        """
         Return the elements in the given *positional* indices along an axis.
 
         This means that we are not indexing according to actual values in
@@ -3157,9 +3237,6 @@ class NDFrame(PandasObject, SelectionMixin):
         1  monkey  mammal        NaN
         3    lion  mammal       80.5
         """
-
-    @Appender(_shared_docs['take'])
-    def take(self, indices, axis=0, convert=None, is_copy=True, **kwargs):
         if convert is not None:
             msg = ("The 'convert' parameter is deprecated "
                    "and will be removed in a future version.")
@@ -3582,7 +3659,9 @@ class NDFrame(PandasObject, SelectionMixin):
         mapper = {self._info_axis_name: f}
         return self.rename(**mapper)
 
-    _shared_docs['sort_values'] = """
+    def sort_values(self, by=None, axis=0, ascending=True, inplace=False,
+                    kind='quicksort', na_position='last'):
+        """
         Sort by the values along either axis
 
         Parameters
@@ -3667,17 +3746,12 @@ class NDFrame(PandasObject, SelectionMixin):
         0   A    2    0
         1   A    1    1
         """
-
-    def sort_values(self, by=None, axis=0, ascending=True, inplace=False,
-                    kind='quicksort', na_position='last'):
-        """
-        NOT IMPLEMENTED: do not call this method, as sorting values is not
-        supported for Panel objects and will raise an error.
-        """
         raise NotImplementedError("sort_values has not been implemented "
                                   "on Panel or Panel4D objects.")
 
-    _shared_docs['sort_index'] = """
+    def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
+                   kind='quicksort', na_position='last', sort_remaining=True):
+        """
         Sort object by labels (along an axis)
 
         Parameters
@@ -3705,10 +3779,6 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         sorted_obj : %(klass)s
         """
-
-    @Appender(_shared_docs['sort_index'] % dict(axes="axes", klass="NDFrame"))
-    def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
-                   kind='quicksort', na_position='last', sort_remaining=True):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
@@ -3726,7 +3796,8 @@ class NDFrame(PandasObject, SelectionMixin):
         new_axis = labels.take(sort_index)
         return self.reindex(**{axis_name: new_axis})
 
-    _shared_docs['reindex'] = """
+    def reindex(self, *args, **kwargs):
+        """
         Conform %(klass)s to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -3922,14 +3993,8 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         reindexed : %(klass)s
         """
-
-    # TODO: Decide if we care about having different examples for different
-    #       kinds
-
-    @Appender(_shared_docs['reindex'] % dict(axes="axes", klass="NDFrame",
-                                             optional_labels="",
-                                             optional_axis=""))
-    def reindex(self, *args, **kwargs):
+        # TODO: Decide if we care about having different examples for different
+        # kinds
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
@@ -4095,16 +4160,6 @@ class NDFrame(PandasObject, SelectionMixin):
             new_data = new_data.copy()
 
         return self._constructor(new_data).__finalize__(self)
-
-    # TODO: unused; remove?
-    def _reindex_axis(self, new_index, fill_method, axis, copy):
-        new_data = self._data.reindex_axis(new_index, axis=axis,
-                                           method=fill_method, copy=copy)
-
-        if new_data is self._data and not copy:
-            return self
-        else:
-            return self._constructor(new_data).__finalize__(self)
 
     def filter(self, items=None, like=None, regex=None, axis=None):
         """
@@ -4328,8 +4383,8 @@ class NDFrame(PandasObject, SelectionMixin):
             Default = 1 if `frac` = None.
         frac : float, optional
             Fraction of axis items to return. Cannot be used with `n`.
-        replace : boolean, optional
-            Sample with or without replacement. Default = False.
+        replace : bool, default False
+            Sample with or without replacement.
         weights : str or ndarray-like, optional
             Default 'None' results in equal probability weighting.
             If passed a Series, will align with target object on index. Index
@@ -4342,7 +4397,7 @@ class NDFrame(PandasObject, SelectionMixin):
             being sampled.
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
-            inf and -inf values not allowed.
+            Infinite values not allowed.
         random_state : int or numpy.random.RandomState, optional
             Seed for the random number generator (if int), or numpy RandomState
             object.
@@ -4352,58 +4407,52 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        A new object of same type as caller.
+        Series or DataFrame
+            A new object of same type as caller containing `n` items randomly
+            sampled from the caller object.
+
+        See Also
+        --------
+        numpy.random.choice: Generates a random sample from a given 1-D numpy
+            array.
 
         Examples
         --------
-        Generate an example ``Series`` and ``DataFrame``:
+        >>> df = pd.DataFrame({'num_legs': [2, 4, 8, 0],
+        ...                    'num_wings': [2, 0, 0, 0],
+        ...                    'num_specimen_seen': [10, 2, 1, 8]},
+        ...                   index=['falcon', 'dog', 'spider', 'fish'])
+        >>> df
+                num_legs  num_wings  num_specimen_seen
+        falcon         2          2                 10
+        dog            4          0                  2
+        spider         8          0                  1
+        fish           0          0                  8
 
-        >>> s = pd.Series(np.random.randn(50))
-        >>> s.head()
-        0   -0.038497
-        1    1.820773
-        2   -0.972766
-        3   -1.598270
-        4   -1.095526
-        dtype: float64
-        >>> df = pd.DataFrame(np.random.randn(50, 4), columns=list('ABCD'))
-        >>> df.head()
-                  A         B         C         D
-        0  0.016443 -2.318952 -0.566372 -1.028078
-        1 -1.051921  0.438836  0.658280 -0.175797
-        2 -1.243569 -0.364626 -0.215065  0.057736
-        3  1.768216  0.404512 -0.385604 -1.457834
-        4  1.072446 -1.137172  0.314194 -0.046661
+        Extract 3 random elements from the ``Series`` ``df['num_legs']``:
+        Note that we use `random_state` to ensure the reproducibility of
+        the examples.
 
-        Next extract a random sample from both of these objects...
+        >>> df['num_legs'].sample(n=3, random_state=1)
+        fish      0
+        spider    8
+        falcon    2
+        Name: num_legs, dtype: int64
 
-        3 random elements from the ``Series``:
+        A random 50% sample of the ``DataFrame`` with replacement:
 
-        >>> s.sample(n=3)
-        27   -0.994689
-        55   -1.049016
-        67   -0.224565
-        dtype: float64
+        >>> df.sample(frac=0.5, replace=True, random_state=1)
+              num_legs  num_wings  num_specimen_seen
+        dog          4          0                  2
+        fish         0          0                  8
 
-        And a random 10% of the ``DataFrame`` with replacement:
+        Using a DataFrame column as weights. Rows with larger value in the
+        `num_specimen_seen` column are more likely to be sampled.
 
-        >>> df.sample(frac=0.1, replace=True)
-                   A         B         C         D
-        35  1.981780  0.142106  1.817165 -0.290805
-        49 -1.336199 -0.448634 -0.789640  0.217116
-        40  0.823173 -0.078816  1.009536  1.015108
-        15  1.421154 -0.055301 -1.922594 -0.019696
-        6  -0.148339  0.832938  1.787600 -1.383767
-
-        You can use `random state` for reproducibility:
-
-        >>> df.sample(random_state=1)
-        A         B         C         D
-        37 -2.027662  0.103611  0.237496 -0.165867
-        43 -0.259323 -0.583426  1.516140 -0.479118
-        12 -1.686325 -0.579510  0.985195 -0.460286
-        8   1.167946  0.429082  1.215742 -1.636041
-        9   1.197475 -0.864188  1.554031 -1.505264
+        >>> df.sample(n=2, weights='num_specimen_seen', random_state=1)
+                num_legs  num_wings  num_specimen_seen
+        falcon         2          2                 10
+        fish           0          0                  8
         """
 
         if axis is None:
@@ -4545,17 +4594,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    func : function, string, dictionary, or list of string/functions
+    func : function, str, list or dict
         Function to use for aggregating the data. If a function, must either
-        work when passed a %(klass)s or when passed to %(klass)s.apply. For
-        a DataFrame, can pass a dict, if the keys are DataFrame column names.
+        work when passed a %(klass)s or when passed to %(klass)s.apply.
 
         Accepted combinations are:
 
-        - string function name.
-        - function.
-        - list of functions.
-        - dict of column names -> functions (or list of functions).
+        - function
+        - string function name
+        - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+        - dict of axis labels -> functions, function names or list of such.
     %(axis)s
     *args
         Positional arguments to pass to `func`.
@@ -4564,7 +4612,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Returns
     -------
-    aggregated : %(klass)s
+    DataFrame, Series or scalar
+        if DataFrame.agg is called with a single function, returns a Series
+        if DataFrame.agg is called with several functions, returns a DataFrame
+        if Series.agg is called with single function, returns a scalar
+        if Series.agg is called with several functions, returns a Series
 
     Notes
     -----
@@ -4574,50 +4626,71 @@ class NDFrame(PandasObject, SelectionMixin):
     """)
 
     _shared_docs['transform'] = ("""
-    Call function producing a like-indexed %(klass)s
-    and return a %(klass)s with the transformed values
+    Call ``func`` on self producing a %(klass)s with transformed values
+    and that has the same axis length as self.
 
     .. versionadded:: 0.20.0
 
     Parameters
     ----------
-    func : callable, string, dictionary, or list of string/callables
-        To apply to column
+    func : function, str, list or dict
+        Function to use for transforming the data. If a function, must either
+        work when passed a %(klass)s or when passed to %(klass)s.apply.
 
-        Accepted Combinations are:
+        Accepted combinations are:
 
-        - string function name
         - function
-        - list of functions
-        - dict of column names -> functions (or list of functions)
+        - string function name
+        - list of functions and/or function names, e.g. ``[np.exp. 'sqrt']``
+        - dict of axis labels -> functions, function names or list of such.
+    %(axis)s
+    *args
+        Positional arguments to pass to `func`.
+    **kwargs
+        Keyword arguments to pass to `func`.
 
     Returns
     -------
-    transformed : %(klass)s
+    %(klass)s
+        A %(klass)s that must have the same length as self.
+
+    Raises
+    ------
+    ValueError : If the returned %(klass)s has a different length than self.
+
+    See Also
+    --------
+    %(klass)s.agg : Only perform aggregating type operations.
+    %(klass)s.apply : Invoke function on a %(klass)s.
 
     Examples
     --------
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
-    ...                   index=pd.date_range('1/1/2000', periods=10))
-    df.iloc[3:7] = np.nan
+    >>> df = pd.DataFrame({'A': range(3), 'B': range(1, 4)})
+    >>> df
+       A  B
+    0  0  1
+    1  1  2
+    2  2  3
+    >>> df.transform(lambda x: x + 1)
+       A  B
+    0  1  2
+    1  2  3
+    2  3  4
 
-    >>> df.transform(lambda x: (x - x.mean()) / x.std())
-                       A         B         C
-    2000-01-01  0.579457  1.236184  0.123424
-    2000-01-02  0.370357 -0.605875 -1.231325
-    2000-01-03  1.455756 -0.277446  0.288967
-    2000-01-04       NaN       NaN       NaN
-    2000-01-05       NaN       NaN       NaN
-    2000-01-06       NaN       NaN       NaN
-    2000-01-07       NaN       NaN       NaN
-    2000-01-08 -0.498658  1.274522  1.642524
-    2000-01-09 -0.540524 -1.012676 -0.828968
-    2000-01-10 -1.366388 -0.614710  0.005378
+    Even though the resulting %(klass)s must have the same length as the
+    input %(klass)s, it is possible to provide several input functions:
 
-    See also
-    --------
-    pandas.%(klass)s.aggregate
-    pandas.%(klass)s.apply
+    >>> s = pd.Series(range(3))
+    >>> s
+    0    0
+    1    1
+    2    2
+    dtype: int64
+    >>> s.transform([np.sqrt, np.exp])
+           sqrt        exp
+    0  0.000000   1.000000
+    1  1.000000   2.718282
+    2  1.414214   7.389056
     """)
 
     # ----------------------------------------------------------------------
@@ -4740,18 +4813,6 @@ class NDFrame(PandasObject, SelectionMixin):
             f = lambda: self._data.consolidate()
             cons_data = self._protect_consolidate(f)
             return self._constructor(cons_data).__finalize__(self)
-
-    def consolidate(self, inplace=False):
-        """Compute NDFrame with "consolidated" internals (data of each dtype
-        grouped together in a single ndarray).
-
-        .. deprecated:: 0.20.0
-            Consolidate will be an internal implementation only.
-        """
-        # 15483
-        warnings.warn("consolidate is deprecated and will be removed in a "
-                      "future release.", FutureWarning, stacklevel=2)
-        return self._consolidate(inplace)
 
     @property
     def _is_mixed_type(self):
@@ -5167,8 +5228,6 @@ class NDFrame(PandasObject, SelectionMixin):
         return {k: self._constructor(v).__finalize__(self)
                 for k, v, in self._data.to_dict(copy=copy).items()}
 
-    @deprecate_kwarg(old_arg_name='raise_on_error', new_arg_name='errors',
-                     mapping={True: 'raise', False: 'ignore'})
     def astype(self, dtype, copy=True, errors='raise', **kwargs):
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -5192,9 +5251,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.20.0
 
-        raise_on_error : raise on invalid input
-            .. deprecated:: 0.20.0
-               Use ``errors`` instead
         kwargs : keyword arguments to pass on to the constructor
 
         Returns
@@ -5223,7 +5279,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Convert to ordered categorical type with custom ordering:
 
-        >>> ser.astype('category', ordered=True, categories=[2, 1])
+        >>> cat_dtype = pd.api.types.CategoricalDtype(
+        ...                     categories=[2, 1], ordered=True)
+        >>> ser.astype(cat_dtype)
         0    1
         1    2
         dtype: category
@@ -5271,8 +5329,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 else:
                     results.append(results.append(col.copy() if copy else col))
 
-        elif is_categorical_dtype(dtype) and self.ndim > 1:
+        elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099: columnwise conversion to categorical
+            # and extension dtype
             results = (self[col].astype(dtype, copy=copy) for col in self)
 
         else:
@@ -5663,8 +5722,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 # fill in 2d chunks
                 result = {col: s.fillna(method=method, value=value)
                           for col, s in self.iteritems()}
-                new_obj = self._constructor.\
-                    from_dict(result).__finalize__(self)
+                prelim_obj = self._constructor.from_dict(result)
+                new_obj = prelim_obj.__finalize__(self)
                 new_data = new_obj._data
 
             else:
@@ -6400,7 +6459,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if _maybe_transposed_self._data.get_dtype_counts().get(
                 'object') == len(_maybe_transposed_self.T):
-            raise TypeError("Cannot interpolate with all NaNs.")
+            raise TypeError("Cannot interpolate with all object-dtype columns "
+                            "in the DataFrame. Try setting at least one "
+                            "column to a numeric dtype.")
 
         # create/use the index
         if method == 'linear':
@@ -6436,40 +6497,98 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def asof(self, where, subset=None):
         """
-        The last row without any NaN is taken (or the last row without
-        NaN considering only the subset of columns in the case of a DataFrame)
+        Return the last row(s) without any `NaN`s before `where`.
+
+        The last row (for each element in `where`, if list) without any
+        `NaN` is taken.
+        In case of a :class:`~pandas.DataFrame`, the last row without `NaN`
+        considering only the subset of columns (if not `None`)
 
         .. versionadded:: 0.19.0 For DataFrame
 
-        If there is no good value, NaN is returned for a Series
+        If there is no good value, `NaN` is returned for a Series or
         a Series of NaN values for a DataFrame
 
         Parameters
         ----------
-        where : date or array of dates
-        subset : string or list of strings, default None
-           if not None use these columns for NaN propagation
+        where : date or array-like of dates
+            Date(s) before which the last row(s) are returned.
+        subset : str or array-like of str, default `None`
+            For DataFrame, if not `None`, only use these columns to
+            check for `NaN`s.
 
         Notes
         -----
-        Dates are assumed to be sorted
-        Raises if this is not the case
+        Dates are assumed to be sorted. Raises if this is not the case.
 
         Returns
         -------
-        where is scalar
+        scalar, Series, or DataFrame
 
-          - value or NaN if input is Series
-          - Series if input is DataFrame
-
-        where is Index: same shape object as input
+           * scalar : when `self` is a Series and `where` is a scalar
+           * Series: when `self` is a Series and `where` is an array-like,
+             or when `self` is a DataFrame and `where` is a scalar
+           * DataFrame : when `self` is a DataFrame and `where` is an
+             array-like
 
         See Also
         --------
-        merge_asof
+        merge_asof : Perform an asof merge. Similar to left join.
 
+        Examples
+        --------
+        A Series and a scalar `where`.
+
+        >>> s = pd.Series([1, 2, np.nan, 4], index=[10, 20, 30, 40])
+        >>> s
+        10    1.0
+        20    2.0
+        30    NaN
+        40    4.0
+        dtype: float64
+
+        >>> s.asof(20)
+        2.0
+
+        For a sequence `where`, a Series is returned. The first value is
+        ``NaN``, because the first element of `where` is before the first
+        index value.
+
+        >>> s.asof([5, 20])
+        5     NaN
+        20    2.0
+        dtype: float64
+
+        Missing values are not considered. The following is ``2.0``, not
+        ``NaN``, even though ``NaN`` is at the index location for ``30``.
+
+        >>> s.asof(30)
+        2.0
+
+        Take all columns into consideration
+
+        >>> df = pd.DataFrame({'a': [10, 20, 30, 40, 50],
+        ...                    'b': [None, None, None, None, 500]},
+        ...                   index=pd.DatetimeIndex(['2018-02-27 09:01:00',
+        ...                                           '2018-02-27 09:02:00',
+        ...                                           '2018-02-27 09:03:00',
+        ...                                           '2018-02-27 09:04:00',
+        ...                                           '2018-02-27 09:05:00']))
+        >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
+        ...                           '2018-02-27 09:04:30']))
+                              a   b
+        2018-02-27 09:03:30 NaN NaN
+        2018-02-27 09:04:30 NaN NaN
+
+        Take a single column into consideration
+
+        >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
+        ...                           '2018-02-27 09:04:30']),
+        ...         subset=['a'])
+                                 a   b
+        2018-02-27 09:03:30   30.0 NaN
+        2018-02-27 09:04:30   40.0 NaN
         """
-
         if isinstance(where, compat.string_types):
             from pandas import to_datetime
             where = to_datetime(where)
@@ -7041,8 +7160,12 @@ class NDFrame(PandasObject, SelectionMixin):
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
                 group_keys=True, squeeze=False, observed=False, **kwargs):
         """
-        Group series using mapper (dict or key function, apply given function
-        to group, return result as series) or by a series of columns.
+        Group DataFrame or Series using a mapper or by a Series of columns.
+
+        A groupby operation involves some combination of splitting the
+        object, applying a function, and combining the results. This can be
+        used to group large amounts of data and compute operations on these
+        groups.
 
         Parameters
         ----------
@@ -7055,54 +7178,95 @@ class NDFrame(PandasObject, SelectionMixin):
             values are used as-is determine the groups. A label or list of
             labels may be passed to group by the columns in ``self``. Notice
             that a tuple is interpreted a (single) key.
-        axis : int, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            Split along rows (0) or columns (1).
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
-            level or levels
-        as_index : boolean, default True
+            level or levels.
+        as_index : bool, default True
             For aggregated output, return object with group labels as the
             index. Only relevant for DataFrame input. as_index=False is
-            effectively "SQL-style" grouped output
-        sort : boolean, default True
+            effectively "SQL-style" grouped output.
+        sort : bool, default True
             Sort group keys. Get better performance by turning this off.
             Note this does not influence the order of observations within each
-            group.  groupby preserves the order of rows within each group.
-        group_keys : boolean, default True
-            When calling apply, add group keys to index to identify pieces
-        squeeze : boolean, default False
-            reduce the dimensionality of the return type if possible,
-            otherwise return a consistent type
-        observed : boolean, default False
-            This only applies if any of the groupers are Categoricals
+            group. Groupby preserves the order of rows within each group.
+        group_keys : bool, default True
+            When calling apply, add group keys to index to identify pieces.
+        squeeze : bool, default False
+            Reduce the dimensionality of the return type if possible,
+            otherwise return a consistent type.
+        observed : bool, default False
+            This only applies if any of the groupers are Categoricals.
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
             .. versionadded:: 0.23.0
 
+        **kwargs
+            Optional, only accepts keyword argument 'mutated' and is passed
+            to groupby.
+
         Returns
         -------
-        GroupBy object
+        DataFrameGroupBy or SeriesGroupBy
+            Depends on the calling object and returns groupby object that
+            contains information about the groups.
 
-        Examples
+        See Also
         --------
-        DataFrame results
-
-        >>> data.groupby(func, axis=0).mean()
-        >>> data.groupby(['col1', 'col2'])['col3'].mean()
-
-        DataFrame with hierarchical index
-
-        >>> data.groupby(['col1', 'col2']).mean()
+        resample : Convenience method for frequency conversion and resampling
+            of time series.
 
         Notes
         -----
         See the `user guide
         <http://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
 
-        See also
+        Examples
         --------
-        resample : Convenience method for frequency conversion and resampling
-            of time series.
+        >>> df = pd.DataFrame({'Animal' : ['Falcon', 'Falcon',
+        ...                                'Parrot', 'Parrot'],
+        ...                    'Max Speed' : [380., 370., 24., 26.]})
+        >>> df
+           Animal  Max Speed
+        0  Falcon      380.0
+        1  Falcon      370.0
+        2  Parrot       24.0
+        3  Parrot       26.0
+        >>> df.groupby(['Animal']).mean()
+                Max Speed
+        Animal
+        Falcon      375.0
+        Parrot       25.0
+
+        **Hierarchical Indexes**
+
+        We can groupby different levels of a hierarchical index
+        using the `level` parameter:
+
+        >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
+        ...           ['Capitve', 'Wild', 'Capitve', 'Wild']]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
+        >>> df = pd.DataFrame({'Max Speed' : [390., 350., 30., 20.]},
+        ...                    index=index)
+        >>> df
+                        Max Speed
+        Animal Type
+        Falcon Capitve      390.0
+               Wild         350.0
+        Parrot Capitve       30.0
+               Wild          20.0
+        >>> df.groupby(level=0).mean()
+                Max Speed
+        Animal
+        Falcon      370.0
+        Parrot       25.0
+        >>> df.groupby(level=1).mean()
+                 Max Speed
+        Type
+        Capitve      210.0
+        Wild         185.0
         """
         from pandas.core.groupby.groupby import groupby
 
@@ -7978,7 +8142,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # This is a single-dimensional object.
             if not is_bool_dtype(cond):
                 raise ValueError(msg.format(dtype=cond.dtype))
-        else:
+        elif not cond.empty:
             for dt in cond.dtypes:
                 if not is_bool_dtype(dt):
                     raise ValueError(msg.format(dtype=dt))
@@ -8257,26 +8421,59 @@ class NDFrame(PandasObject, SelectionMixin):
                           errors=errors)
 
     _shared_docs['shift'] = ("""
-        Shift index by desired number of periods with an optional time freq
+        Shift index by desired number of periods with an optional time `freq`.
+
+        When `freq` is not passed, shift the index without realigning the data.
+        If `freq` is passed (in this case, the index must be date or datetime,
+        or it will raise a `NotImplementedError`), the index will be
+        increased using the periods and the `freq`.
 
         Parameters
         ----------
         periods : int
-            Number of periods to move, can be positive or negative.
-        freq : DateOffset, timedelta, or time rule string, optional
-            Increment to use from the tseries module or time rule (e.g. 'EOM').
-            See Notes.
-        axis : %(axes_single_arg)s
-
-        Notes
-        -----
-        If freq is specified then the index values are shifted but the data
-        is not realigned. That is, use freq if you would like to extend the
-        index when shifting and preserve the original data.
+            Number of periods to shift. Can be positive or negative.
+        freq : DateOffset, tseries.offsets, timedelta, or str, optional
+            Offset to use from the tseries module or time rule (e.g. 'EOM').
+            If `freq` is specified then the index values are shifted but the
+            data is not realigned. That is, use `freq` if you would like to
+            extend the index when shifting and preserve the original data.
+        axis : {0 or 'index', 1 or 'columns', None}, default None
+            Shift direction.
 
         Returns
         -------
-        shifted : %(klass)s
+        %(klass)s
+            Copy of input object, shifted.
+
+        See Also
+        --------
+        Index.shift : Shift values of Index.
+        DatetimeIndex.shift : Shift values of DatetimeIndex.
+        PeriodIndex.shift : Shift values of PeriodIndex.
+        tshift : Shift the time index, using the index's frequency if
+            available.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'Col1': [10, 20, 15, 30, 45],
+        ...                    'Col2': [13, 23, 18, 33, 48],
+        ...                    'Col3': [17, 27, 22, 37, 52]})
+
+        >>> df.shift(periods=3)
+           Col1  Col2  Col3
+        0   NaN   NaN   NaN
+        1   NaN   NaN   NaN
+        2   NaN   NaN   NaN
+        3  10.0  13.0  17.0
+        4  20.0  23.0  27.0
+
+        >>> df.shift(periods=1, axis='columns')
+           Col1  Col2  Col3
+        0   NaN  10.0  13.0
+        1   NaN  20.0  23.0
+        2   NaN  15.0  18.0
+        3   NaN  30.0  33.0
+        4   NaN  45.0  48.0
     """)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
@@ -8592,7 +8789,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return result.__finalize__(self)
 
     def tz_localize(self, tz, axis=0, level=None, copy=True,
-                    ambiguous='raise'):
+                    ambiguous='raise', nonexistent='raise'):
         """
         Localize tz-naive TimeSeries to target time zone.
 
@@ -8606,6 +8803,13 @@ class NDFrame(PandasObject, SelectionMixin):
         copy : boolean, default True
             Also make a copy of the underlying data
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            When clocks moved backward due to DST, ambiguous times may arise.
+            For example in Central European Time (UTC+01), when going from
+            03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
+            00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
+            `ambiguous` parameter dictates how ambiguous times should be
+            handled.
+
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False designates
@@ -8614,6 +8818,17 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent times forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -8622,11 +8837,61 @@ class NDFrame(PandasObject, SelectionMixin):
         ------
         TypeError
             If the TimeSeries is tz-aware and tz is not None.
+
+        Examples
+        --------
+
+        Localize local times:
+
+        >>> s = pd.Series([1],
+        ... index=pd.DatetimeIndex(['2018-09-15 01:30:00']))
+        >>> s.tz_localize('CET')
+        2018-09-15 01:30:00+02:00    1
+        dtype: int64
+
+        Be careful with DST changes. When there is sequential data, pandas
+        can infer the DST time:
+
+        >>> s = pd.Series(range(7), index=pd.DatetimeIndex([
+        ... '2018-10-28 01:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 03:00:00',
+        ... '2018-10-28 03:30:00']))
+        >>> s.tz_localize('CET', ambiguous='infer')
+        2018-10-28 01:30:00+02:00    0
+        2018-10-28 02:00:00+02:00    1
+        2018-10-28 02:30:00+02:00    2
+        2018-10-28 02:00:00+01:00    3
+        2018-10-28 02:30:00+01:00    4
+        2018-10-28 03:00:00+01:00    5
+        2018-10-28 03:30:00+01:00    6
+        dtype: int64
+
+        In some cases, inferring the DST is impossible. In such cases, you can
+        pass an ndarray to the ambiguous parameter to set the DST explicitly
+
+        >>> s = pd.Series(range(3), index=pd.DatetimeIndex([
+        ... '2018-10-28 01:20:00',
+        ... '2018-10-28 02:36:00',
+        ... '2018-10-28 03:46:00']))
+        >>> s.tz_localize('CET', ambiguous=np.array([True, True, False]))
+        2018-10-28 01:20:00+02:00    0
+        2018-10-28 02:36:00+02:00    1
+        2018-10-28 03:46:00+01:00    2
+        dtype: int64
+
         """
+        if nonexistent not in ('raise', 'NaT', 'shift'):
+            raise ValueError("The nonexistent argument must be one of 'raise',"
+                             " 'NaT' or 'shift'")
+
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
 
-        def _tz_localize(ax, tz, ambiguous):
+        def _tz_localize(ax, tz, ambiguous, nonexistent):
             if not hasattr(ax, 'tz_localize'):
                 if len(ax) > 0:
                     ax_name = self._get_axis_name(axis)
@@ -8635,19 +8900,23 @@ class NDFrame(PandasObject, SelectionMixin):
                 else:
                     ax = DatetimeIndex([], tz=tz)
             else:
-                ax = ax.tz_localize(tz, ambiguous=ambiguous)
+                ax = ax.tz_localize(
+                    tz, ambiguous=ambiguous, nonexistent=nonexistent
+                )
             return ax
 
         # if a level is given it must be a MultiIndex level or
         # equivalent to the axis name
         if isinstance(ax, MultiIndex):
             level = ax._get_level_number(level)
-            new_level = _tz_localize(ax.levels[level], tz, ambiguous)
+            new_level = _tz_localize(
+                ax.levels[level], tz, ambiguous, nonexistent
+            )
             ax = ax.set_levels(new_level, level=level)
         else:
             if level not in (None, 0, ax.name):
                 raise ValueError("The level {0} is not valid".format(level))
-            ax = _tz_localize(ax, tz, ambiguous)
+            ax = _tz_localize(ax, tz, ambiguous, nonexistent)
 
         result = self._constructor(self._data, copy=copy)
         result.set_axis(ax, axis=axis, inplace=True)
@@ -9327,7 +9596,7 @@ class NDFrame(PandasObject, SelectionMixin):
             """This method returns the maximum of the values in the object.
             If you want the *index* of the maximum, use ``idxmax``. This is
             the equivalent of the ``numpy.ndarray`` method ``argmax``.""",
-            nanops.nanmax)
+            nanops.nanmax, _max_examples)
         cls.min = _make_stat_function(
             cls, 'min', name, name2, axis_descr,
             """This method returns the minimum of the values in the object.
@@ -9401,7 +9670,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.ewm = ewm
 
-    @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
+    @Appender(_shared_docs['transform'] % dict(axis="", **_shared_doc_kwargs))
     def transform(self, func, *args, **kwargs):
         result = self.agg(func, *args, **kwargs)
         if is_scalar(result) or len(result) != len(self):
@@ -9473,83 +9742,116 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
                columns=None, header=True, index=True, index_label=None,
                mode='w', encoding=None, compression='infer', quoting=None,
-               quotechar='"', line_terminator='\n', chunksize=None,
+               quotechar='"', line_terminator=None, chunksize=None,
                tupleize_cols=None, date_format=None, doublequote=True,
                escapechar=None, decimal='.'):
-        r"""Write object to a comma-separated values (csv) file
-
-        Parameters
-        ----------
-        path_or_buf : string or file handle, default None
-            File path or object, if None is provided the result is returned as
-            a string.
-            .. versionchanged:: 0.24.0
-                Was previously named "path" for Series.
-        sep : character, default ','
-            Field delimiter for the output file.
-        na_rep : string, default ''
-            Missing data representation
-        float_format : string, default None
-            Format string for floating point numbers
-        columns : sequence, optional
-            Columns to write
-        header : boolean or list of string, default True
-            Write out the column names. If a list of strings is given it is
-            assumed to be aliases for the column names
-            .. versionchanged:: 0.24.0
-                Previously defaulted to False for Series.
-        index : boolean, default True
-            Write row names (index)
-        index_label : string or sequence, or False, default None
-            Column label for index column(s) if desired. If None is given, and
-            `header` and `index` are True, then the index names are used. A
-            sequence should be given if the object uses MultiIndex.  If
-            False do not print fields for index names. Use index_label=False
-            for easier importing in R
-        mode : str
-            Python write mode, default 'w'
-        encoding : string, optional
-            A string representing the encoding to use in the output file,
-            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
-        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None},
-                      default 'infer'
-            If 'infer' and `path_or_buf` is path-like, then detect compression
-            from the following extensions: '.gz', '.bz2', '.zip' or '.xz'
-            (otherwise no compression).
-
-            .. versionchanged:: 0.24.0
-               'infer' option added and set to default
-        line_terminator : string, default ``'\n'``
-            The newline character or character sequence to use in the output
-            file
-        quoting : optional constant from csv module
-            defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
-            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
-            will treat them as non-numeric
-        quotechar : string (length 1), default '\"'
-            character used to quote fields
-        doublequote : boolean, default True
-            Control quoting of `quotechar` inside a field
-        escapechar : string (length 1), default None
-            character used to escape `sep` and `quotechar` when appropriate
-        chunksize : int or None
-            rows to write at a time
-        tupleize_cols : boolean, default False
-            .. deprecated:: 0.21.0
-               This argument will be removed and will always write each row
-               of the multi-index as a separate row in the CSV file.
-
-            Write MultiIndex columns as a list of tuples (if True) or in
-            the new, expanded format, where each MultiIndex column is a row
-            in the CSV (if False).
-        date_format : string, default None
-            Format string for datetime objects
-        decimal: string, default '.'
-            Character recognized as decimal separator. E.g. use ',' for
-            European data
+        r"""
+        Write object to a comma-separated values (csv) file.
 
         .. versionchanged:: 0.24.0
             The order of arguments for Series was changed.
+
+        Parameters
+        ----------
+        path_or_buf : str or file handle, default None
+            File path or object, if None is provided the result is returned as
+            a string.
+
+            .. versionchanged:: 0.24.0
+
+               Was previously named "path" for Series.
+
+        sep : str, default ','
+            String of length 1. Field delimiter for the output file.
+        na_rep : str, default ''
+            Missing data representation.
+        float_format : str, default None
+            Format string for floating point numbers.
+        columns : sequence, optional
+            Columns to write.
+        header : bool or list of str, default True
+            Write out the column names. If a list of strings is given it is
+            assumed to be aliases for the column names.
+
+            .. versionchanged:: 0.24.0
+
+               Previously defaulted to False for Series.
+
+        index : bool, default True
+            Write row names (index).
+        index_label : str or sequence, or False, default None
+            Column label for index column(s) if desired. If None is given, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the object uses MultiIndex. If
+            False do not print fields for index names. Use index_label=False
+            for easier importing in R.
+        mode : str
+            Python write mode, default 'w'.
+        encoding : str, optional
+            A string representing the encoding to use in the output file,
+            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
+        compression : str, default 'infer'
+            Compression mode among the following possible values: {'infer',
+            'gzip', 'bz2', 'zip', 'xz', None}. If 'infer' and `path_or_buf`
+            is path-like, then detect compression from the following
+            extensions: '.gz', '.bz2', '.zip' or '.xz'. (otherwise no
+            compression).
+
+            .. versionchanged:: 0.24.0
+
+               'infer' option added and set to default.
+
+        quoting : optional constant from csv module
+            Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
+            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
+            will treat them as non-numeric.
+        quotechar : str, default '\"'
+            String of length 1. Character used to quote fields.
+        line_terminator : string, optional
+            The newline character or character sequence to use in the output
+            file. Defaults to `os.linesep`, which depends on the OS in which
+            this method is called ('\n' for linux, '\r\n' for Windows, i.e.).
+
+            .. versionchanged:: 0.24.0
+        chunksize : int or None
+            Rows to write at a time.
+        tupleize_cols : bool, default False
+            Write MultiIndex columns as a list of tuples (if True) or in
+            the new, expanded format, where each MultiIndex column is a row
+            in the CSV (if False).
+
+            .. deprecated:: 0.21.0
+               This argument will be removed and will always write each row
+               of the multi-index as a separate row in the CSV file.
+        date_format : str, default None
+            Format string for datetime objects.
+        doublequote : bool, default True
+            Control quoting of `quotechar` inside a field.
+        escapechar : str, default None
+            String of length 1. Character used to escape `sep` and `quotechar`
+            when appropriate.
+        decimal : str, default '.'
+            Character recognized as decimal separator. E.g. use ',' for
+            European data.
+
+        Returns
+        -------
+        None or str
+            If path_or_buf is None, returns the resulting csv format as a
+            string. Otherwise returns None.
+
+        See Also
+        --------
+        pandas.read_csv : Load a CSV file into a DataFrame.
+        pandas.to_excel : Load an Excel file into a DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
+        ...                    'mask': ['red', 'purple'],
+        ...                    'weapon': ['sai', 'bo staff']})
+        >>> df.to_csv(index=False)
+        'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
         """
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
@@ -9651,15 +9953,15 @@ axis : {0 or 'index', 1 or 'columns', None}, default 0
       original index.
     * None : reduce all axes, return a scalar.
 
+bool_only : boolean, default None
+    Include only boolean columns. If None, will attempt to use everything,
+    then use only boolean data. Not implemented for Series.
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a %(name1)s.
-bool_only : boolean, default None
-    Include only boolean columns. If None, will attempt to use everything,
-    then use only boolean data. Not implemented for Series.
 **kwargs : any, default None
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.
@@ -10098,6 +10400,40 @@ Series([], dtype: bool)
 _sum_examples = """\
 Examples
 --------
+``MultiIndex`` series example of monthly rainfall
+
+>>> index = pd.MultiIndex.from_product(
+...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
+...     names=['city', 'month'])
+>>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
+>>> s
+city      month
+London    Jun       47
+          Jul       35
+          Aug       54
+New York  Jun      112
+          Jul      117
+          Aug      113
+dtype: int64
+
+>>> s.sum()
+478
+
+Sum using level names, as well as indices
+
+>>> s.sum(level='city')
+city
+London      136
+New York    342
+dtype: int64
+
+>>> s.sum(level=1)
+month
+Jun    159
+Jul    152
+Aug    167
+dtype: int64
+
 By default, the sum of an empty or all-NA Series is ``0``.
 
 >>> pd.Series([]).sum()  # min_count=0 is the default
@@ -10142,6 +10478,44 @@ empty series identically.
 nan
 """
 
+_max_examples = """\
+Examples
+--------
+``MultiIndex`` series example of monthly rainfall
+
+>>> index = pd.MultiIndex.from_product(
+...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
+...     names=['city', 'month'])
+>>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
+>>> s
+city      month
+London    Jun       47
+          Jul       35
+          Aug       54
+New York  Jun      112
+          Jul      117
+          Aug      113
+dtype: int64
+
+>>> s.max()
+117
+
+Max using level names, as well as indices
+
+>>> s.max(level='city')
+city
+London       54
+New York    117
+dtype: int64
+
+>>> s.max(level=1)
+month
+Jun    112
+Jul    117
+Aug    113
+dtype: int64
+"""
+
 
 _min_count_stub = """\
 min_count : int, default 0
@@ -10179,9 +10553,10 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
     return set_function_name(stat_func, name, cls)
 
 
-def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
+def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f,
+                        examples=''):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, min_count='', examples='')
+                  axis_descr=axis_descr, min_count='', examples=examples)
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):

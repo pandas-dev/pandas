@@ -1179,11 +1179,11 @@ class TestToIterable(object):
             assert isinstance(res, Timedelta)
             assert res == exp
 
-        # period (object dtype, not boxed)
+        # period
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
         s = Series(vals)
-        assert s.dtype == 'object'
+        assert s.dtype == 'Period[M]'
         for res, exp in zip(s, vals):
             assert isinstance(res, pd.Period)
             assert res.freq == 'M'
@@ -1198,7 +1198,8 @@ class TestToIterable(object):
     (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), pd.DatetimeIndex,
      'datetime64[ns, US/Central]'),
     (pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]'),
-    (pd.PeriodIndex([2018, 2019], freq='A'), np.ndarray, 'object'),
+    (pd.PeriodIndex([2018, 2019], freq='A'), pd.core.arrays.PeriodArray,
+     pd.core.dtypes.dtypes.PeriodDtype("A-DEC")),
     (pd.IntervalIndex.from_breaks([0, 1, 2]), pd.core.arrays.IntervalArray,
      'interval'),
 ])
@@ -1214,6 +1215,8 @@ def test_values_consistent(array, expected_type, dtype):
         tm.assert_index_equal(l_values, r_values)
     elif pd.api.types.is_categorical(l_values):
         tm.assert_categorical_equal(l_values, r_values)
+    elif pd.api.types.is_period_dtype(l_values):
+        tm.assert_period_array_equal(l_values, r_values)
     elif pd.api.types.is_interval_dtype(l_values):
         tm.assert_interval_array_equal(l_values, r_values)
     else:
@@ -1232,12 +1235,8 @@ def test_values_consistent(array, expected_type, dtype):
     (pd.DatetimeIndex(['2017-01-01T00:00:00'], tz="US/Eastern"),
      np.array(['2017-01-01T05:00:00'], dtype='M8[ns]')),
     (pd.TimedeltaIndex([10**10]), np.array([10**10], dtype='m8[ns]')),
-    pytest.param(
-        pd.PeriodIndex(['2017', '2018'], freq='D'),
-        np.array([17167, 17532]),
-        marks=pytest.mark.xfail(reason="PeriodArray Not implemented",
-                                strict=True)
-    ),
+    (pd.PeriodIndex(['2017', '2018'], freq='D'),
+     np.array([17167, 17532], dtype=np.int64)),
 ])
 def test_ndarray_values(array, expected):
     l_values = pd.Series(array)._ndarray_values
