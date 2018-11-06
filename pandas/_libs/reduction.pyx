@@ -467,7 +467,7 @@ cdef class Slider:
         self.buf.strides[0] = self.stride
 
     cpdef advance(self, Py_ssize_t k):
-        self.buf.data = <char*> self.buf.data + self.stride * k
+        self.buf.data = <char*>self.buf.data + self.stride * k
 
     cdef move(self, int start, int end):
         """
@@ -572,7 +572,7 @@ cdef class BlockSlider:
         self.idx_slider = Slider(
             self.frame.index.values, self.dummy.index.values)
 
-        self.base_ptrs = <char**> malloc(sizeof(char*) * len(self.blocks))
+        self.base_ptrs = <char**>malloc(sizeof(char*) * len(self.blocks))
         for i, block in enumerate(self.blocks):
             self.base_ptrs[i] = (<ndarray>block).data
 

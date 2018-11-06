@@ -1611,17 +1611,17 @@ def roll_generic(object obj,
                 output[i] = NaN
 
         # remaining full-length windows
-        buf = <float64_t *> arr.data
+        buf = <float64_t *>arr.data
         bufarr = np.empty(win, dtype=float)
-        oldbuf = <float64_t *> bufarr.data
+        oldbuf = <float64_t *>bufarr.data
         for i from (win - offset) <= i < (N - offset):
             buf = buf + 1
-            bufarr.data = <char *> buf
+            bufarr.data = <char *>buf
             if counts[i] >= minp:
                 output[i] = func(bufarr, *args, **kwargs)
             else:
                 output[i] = NaN
-        bufarr.data = <char *> oldbuf
+        bufarr.data = <char *>oldbuf
 
         # truncated windows at the end
         for i from int_max(N - offset, 0) <= i < N:

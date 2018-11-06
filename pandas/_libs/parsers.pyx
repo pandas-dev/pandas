@@ -361,7 +361,7 @@ cdef class TextReader:
             if not isinstance(encoding, bytes):
                 encoding = encoding.encode('utf-8')
             encoding = encoding.lower()
-            self.c_encoding = <char*> encoding
+            self.c_encoding = <char*>encoding
         else:
             self.c_encoding = NULL
 
@@ -611,7 +611,7 @@ cdef class TextReader:
             for i in self.skiprows:
                 parser_add_skiprow(self.parser, i)
         else:
-            self.parser.skipfunc = <PyObject *> self.skiprows
+            self.parser.skipfunc = <PyObject *>self.skiprows
 
     cdef _setup_parser_source(self, source):
         cdef:
@@ -668,7 +668,7 @@ cdef class TextReader:
                 source = icom.UTF8Recoder(source,
                                           self.encoding.decode('utf-8'))
                 self.encoding = b'utf-8'
-                self.c_encoding = <char*> self.encoding
+                self.c_encoding = <char*>self.encoding
 
             self.handle = source
 
@@ -1444,7 +1444,7 @@ cdef _string_box_factorize(parser_t *parser, int64_t col,
             pyval = PyBytes_FromString(word)
 
             k = kh_put_strbox(table, word, &ret)
-            table.vals[k] = <PyObject*> pyval
+            table.vals[k] = <PyObject*>pyval
 
         result[i] = pyval
 
@@ -1498,7 +1498,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
             pyval = PyUnicode_FromString(word)
 
             k = kh_put_strbox(table, word, &ret)
-            table.vals[k] = <PyObject *> pyval
+            table.vals[k] = <PyObject *>pyval
 
         result[i] = pyval
 
@@ -1556,7 +1556,7 @@ cdef _string_box_decode(parser_t *parser, int64_t col,
             pyval = PyUnicode_Decode(word, size, encoding, errors)
 
             k = kh_put_strbox(table, word, &ret)
-            table.vals[k] = <PyObject *> pyval
+            table.vals[k] = <PyObject *>pyval
 
         result[i] = pyval
 
@@ -1648,7 +1648,7 @@ cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
         ndarray result
 
     result = np.empty(line_end - line_start, dtype='|S%d' % width)
-    data = <char*> result.data
+    data = <char*>result.data
 
     with nogil:
         _to_fw_string_nogil(parser, col, line_start, line_end, width, data)
@@ -1695,7 +1695,7 @@ cdef _try_double(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.float64)
-    data = <double *> result.data
+    data = <double *>result.data
     na_fset = kset_float64_from_list(na_flist)
     if parser.double_converter_nogil != NULL:  # if it can run without the GIL
         with nogil:
@@ -1803,7 +1803,7 @@ cdef _try_uint64(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.uint64)
-    data = <uint64_t *> result.data
+    data = <uint64_t *>result.data
 
     uint_state_init(&state)
     coliter_setup(&it, parser, col, line_start)
@@ -1879,7 +1879,7 @@ cdef _try_int64(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.int64)
-    data = <int64_t *> result.data
+    data = <int64_t *>result.data
     coliter_setup(&it, parser, col, line_start)
     with nogil:
         error = _try_int64_nogil(parser, col, line_start, line_end,
@@ -1951,7 +1951,7 @@ cdef _try_bool_flex(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.uint8)
-    data = <uint8_t *> result.data
+    data = <uint8_t *>result.data
     with nogil:
         error = _try_bool_flex_nogil(parser, col, line_start, line_end,
                                      na_filter, na_hashset, true_hashset,

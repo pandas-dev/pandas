@@ -590,13 +590,13 @@ cdef class StringHashTable(HashTable):
         cdef:
             Py_ssize_t i, n = len(values)
             ndarray[int64_t] labels = np.empty(n, dtype=np.int64)
-            int64_t *resbuf = <int64_t*> labels.data
+            int64_t *resbuf = <int64_t*>labels.data
             khiter_t k
             kh_str_t *table = self.table
             const char *v
             const char **vecs
 
-        vecs = <const char **> malloc(n * sizeof(char *))
+        vecs = <const char **>malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
             v = util.get_c_string(val)
@@ -639,7 +639,7 @@ cdef class StringHashTable(HashTable):
             const char *v
             const char **vecs
 
-        vecs = <const char **> malloc(n * sizeof(char *))
+        vecs = <const char **>malloc(n * sizeof(char *))
         uindexer = np.empty(n, dtype=np.int64)
         for i in range(n):
             val = values[i]
@@ -674,7 +674,7 @@ cdef class StringHashTable(HashTable):
             int64_t[:] locs = np.empty(n, dtype=np.int64)
 
         # these by-definition *must* be strings
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <char **>malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 
@@ -707,7 +707,7 @@ cdef class StringHashTable(HashTable):
             khiter_t k
 
         # these by-definition *must* be strings
-        vecs = <const char **> malloc(n * sizeof(char *))
+        vecs = <const char **>malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 
