@@ -2307,10 +2307,10 @@ bar2,12,13,14,15
 
         result = pd.concat([a, b, c], axis=1)
 
-        exp_idx = pd.CategoricalIndex([0, 1, 2, 9])
-        exp = pd.DataFrame({0: [1, np.nan, np.nan, 1],
-                            1: [2, 2, np.nan, np.nan],
-                            2: [np.nan, 3, 3, np.nan]},
+        exp_idx = pd.CategoricalIndex([9, 0, 1, 2], categories=categories)
+        exp = pd.DataFrame({0: [1, 1, np.nan, np.nan],
+                            1: [np.nan, 2, 2, np.nan],
+                            2: [np.nan, np.nan, 3, 3]},
                            columns=[0, 1, 2],
                            index=exp_idx)
         tm.assert_frame_equal(result, exp)
