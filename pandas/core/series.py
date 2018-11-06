@@ -2306,12 +2306,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         Series
-            A combined Series object.
+            The result of combining the Series with the other object.
 
         See Also
         --------
         Series.combine_first : Combine Series values, choosing the calling
-                               Series' values first
+                               Series' values first.
 
         Examples
         --------
