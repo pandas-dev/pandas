@@ -212,7 +212,7 @@ def _get_result_indexer(sorter, indexer):
     else:
         # length-0 case
         res = np.empty(len(indexer), dtype=np.int64)
-        res.fill(-1)
+        res[:] = -1
 
     return res
 

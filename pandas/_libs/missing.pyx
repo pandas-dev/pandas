@@ -278,14 +278,14 @@ def isnaobj2d_old(ndarray arr):
     return result.view(np.bool_)
 
 
-cpdef bint isposinf_scalar(object val):
+def isposinf_scalar(val: object) -> bool:
     if util.is_float_object(val) and val == INF:
         return True
     else:
         return False
 
 
-cpdef bint isneginf_scalar(object val):
+def isneginf_scalar(val: object) -> bool:
     if util.is_float_object(val) and val == NEGINF:
         return True
     else:

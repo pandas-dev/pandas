@@ -128,16 +128,16 @@ def max_len_string_array(pandas_string[:] arr) -> Py_ssize_t:
     """ return the maximum size of elements in a 1-dim string array """
     cdef:
         Py_ssize_t i, m = 0, l = 0, length = arr.shape[0]
-        pandas_string v
+        pandas_string val
 
     for i in range(length):
-        v = arr[i]
-        if isinstance(v, str):
-            l = PyString_GET_SIZE(v)
-        elif isinstance(v, bytes):
-            l = PyBytes_GET_SIZE(v)
-        elif isinstance(v, unicode):
-            l = PyUnicode_GET_SIZE(v)
+        val = arr[i]
+        if isinstance(val, str):
+            l = PyString_GET_SIZE(val)
+        elif isinstance(val, bytes):
+            l = PyBytes_GET_SIZE(val)
+        elif isinstance(val, unicode):
+            l = PyUnicode_GET_SIZE(val)
 
         if l > m:
             m = l
