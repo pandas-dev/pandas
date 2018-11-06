@@ -162,10 +162,11 @@ class TestStringMethods(object):
         with tm.assert_raises_regex(ValueError, message):
             s.str.cat('    ')
 
+    @pytest.mark.parametrize('sep', ['', None])
     @pytest.mark.parametrize('dtype_target', ['object', 'category'])
     @pytest.mark.parametrize('dtype_caller', ['object', 'category'])
     @pytest.mark.parametrize('box', [Series, Index])
-    def test_str_cat_categorical(self, box, dtype_caller, dtype_target):
+    def test_str_cat_categorical(self, box, dtype_caller, dtype_target, sep):
         s = Index(['a', 'a', 'b', 'a'], dtype=dtype_caller)
         s = s if box == Index else Series(s, index=s)
         t = Index(['b', 'a', 'b', 'c'], dtype=dtype_target)
@@ -176,23 +177,23 @@ class TestStringMethods(object):
         # Series/Index with unaligned Index
         with tm.assert_produces_warning(expected_warning=FutureWarning):
             # FutureWarning to switch to alignment by default
-            result = s.str.cat(t)
+            result = s.str.cat(t, sep=sep)
             assert_series_or_index_equal(result, expected)
 
         # Series/Index with Series having matching Index
         t = Series(t, index=s)
-        result = s.str.cat(t)
+        result = s.str.cat(t, sep=sep)
         assert_series_or_index_equal(result, expected)
 
         # Series/Index with Series.values
-        result = s.str.cat(t.values)
+        result = s.str.cat(t.values, sep=sep)
         assert_series_or_index_equal(result, expected)
 
         # Series/Index with Series having different Index
         t = Series(t.values, index=t)
         with tm.assert_produces_warning(expected_warning=FutureWarning):
             # FutureWarning to switch to alignment by default
-            result = s.str.cat(t)
+            result = s.str.cat(t, sep=sep)
             assert_series_or_index_equal(result, expected)
 
     @pytest.mark.parametrize('box', [Series, Index])
