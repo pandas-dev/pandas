@@ -21,6 +21,20 @@ the user to override the engine's default behavior to include or omit the
 dataframe's indexes from the resulting Parquet file. (:issue:`20768`)
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now accept a callable for generic calculation methods of correlation, e.g. histogram intersection (:issue:`22684`)
 
+.. _whatsnew_0240.values_api:
+
+:attr:`Series.array` and :attr:`Index.array` have been added for extracting the array backing a
+``Series`` or ``Index``. Historically, this would have been done with ``series.values``, but with
+``.values`` it was unclear whether the returned value would be the actual array, or some transformation
+of it.
+
+If you need a NumPy array, use :meth:`Series.to_numpy`
+
+.. ipython:: python
+
+   arr = period_array(['2000', '2001'], freq='A')
+   ser = pd.Series(arr)
+   ser.to_numpy()
 
 .. _whatsnew_0240.enhancements.extension_array_operators:
 
