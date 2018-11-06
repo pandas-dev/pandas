@@ -170,6 +170,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     # Constructors
 
     _attributes = ["freq", "tz"]
+    _tz = None
+    _freq = None
 
     @classmethod
     def _simple_new(cls, values, freq=None, tz=None, **kwargs):
@@ -177,16 +179,14 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
+        assert isinstance(values, np.ndarray), type(values)
+        if values.dtype == 'i8':
+            # for compat with datetime/timedelta/period shared methods,
+            #  we can sometimes get here with int64 values.  These represent
+            #  nanosecond UTC (or tz-naive) unix timestamps
+            values = values.view('M8[ns]')
 
-        if getattr(values, 'dtype', None) is None:
-            # empty, but with dtype compat
-            if values is None:
-                values = np.empty(0, dtype=_NS_DTYPE)
-                return cls(values, freq=freq, tz=tz, **kwargs)
-            values = np.array(values, copy=False)
-
-        if not is_datetime64_dtype(values):
-            values = ensure_int64(values).view(_NS_DTYPE)
+        assert values.dtype == 'M8[ns]', values.dtype
 
         result = object.__new__(cls)
         result._data = values
@@ -208,6 +208,16 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
+
+        if isinstance(values, DatetimeArrayMixin):
+            # extract nanosecond unix timestamps
+            values = values.asi8
+        if values.dtype == 'i8':
+            values = values.view('M8[ns]')
+
+        assert isinstance(values, np.ndarray), type(values)
+        assert is_datetime64_dtype(values)  # not yet assured nanosecond
+        values = conversion.ensure_datetime64ns(values, copy=False)
 
         result = cls._simple_new(values, freq=freq, tz=tz)
         if freq_infer:
@@ -271,7 +281,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             # TODO: consider re-implementing _cached_range; GH#17914
             index = _generate_regular_range(cls, start, end, periods, freq)
 
-            if tz is not None and getattr(index, 'tz', None) is None:
+            if tz is not None and index.tz is None:
                 arr = conversion.tz_localize_to_utc(
                     ensure_int64(index.values),
                     tz, ambiguous=ambiguous)
@@ -586,7 +596,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                             'tz_localize to localize')
 
         # No conversion since timestamps are all UTC to begin with
-        return self._shallow_copy(tz=tz)
+        return self._simple_new(self.asi8, tz=tz, freq=self.freq)
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
                     errors=None):
@@ -606,6 +616,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
+            When clocks moved backward due to DST, ambiguous times may arise.
+            For example in Central European Time (UTC+01), when going from
+            03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
+            00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
+            `ambiguous` parameter dictates how ambiguous times should be
+            handled.
 
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
@@ -677,6 +693,40 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
                       dtype='datetime64[ns]', freq='D')
+
+        Be careful with DST changes. When there is sequential data, pandas can
+        infer the DST time:
+        >>> s = pd.to_datetime(pd.Series([
+        ... '2018-10-28 01:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 03:00:00',
+        ... '2018-10-28 03:30:00']))
+        >>> s.dt.tz_localize('CET', ambiguous='infer')
+        2018-10-28 01:30:00+02:00    0
+        2018-10-28 02:00:00+02:00    1
+        2018-10-28 02:30:00+02:00    2
+        2018-10-28 02:00:00+01:00    3
+        2018-10-28 02:30:00+01:00    4
+        2018-10-28 03:00:00+01:00    5
+        2018-10-28 03:30:00+01:00    6
+        dtype: int64
+
+        In some cases, inferring the DST is impossible. In such cases, you can
+        pass an ndarray to the ambiguous parameter to set the DST explicitly
+
+        >>> s = pd.to_datetime(pd.Series([
+        ... '2018-10-28 01:20:00',
+        ... '2018-10-28 02:36:00',
+        ... '2018-10-28 03:46:00']))
+        >>> s.dt.tz_localize('CET', ambiguous=np.array([True, True, False]))
+        0   2018-10-28 01:20:00+02:00
+        1   2018-10-28 02:36:00+02:00
+        2   2018-10-28 03:46:00+01:00
+        dtype: datetime64[ns, CET]
+
         """
         if errors is not None:
             warnings.warn("The errors argument is deprecated and will be "
@@ -708,7 +758,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                 self.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent,
             )
         new_dates = new_dates.view(_NS_DTYPE)
-        return self._shallow_copy(new_dates, tz=tz)
+        return self._simple_new(new_dates, tz=tz, freq=self.freq)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
@@ -843,7 +893,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # TODO: consider privatizing (discussion in GH#23113)
         from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
         i8delta = self.asi8 - self.to_period(freq).to_timestamp().asi8
-        return TimedeltaArrayMixin(i8delta)
+        m8delta = i8delta.view('m8[ns]')
+        return TimedeltaArrayMixin(m8delta)
 
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods
@@ -1320,6 +1371,27 @@ DatetimeArrayMixin._add_datetimelike_methods()
 
 
 def _generate_regular_range(cls, start, end, periods, freq):
+    """
+    Generate a range of dates with the spans between dates described by
+    the given `freq` DateOffset.
+
+    Parameters
+    ----------
+    cls : class
+    start : Timestamp or None
+        first point of produced date range
+    end : Timestamp or None
+        last point of produced date range
+    periods : int
+        number of periods in produced date range
+    freq : DateOffset
+        describes space between dates in produced date range
+
+    Returns
+    -------
+    ndarray[np.int64] representing nanosecond unix timestamps
+
+    """
     if isinstance(freq, Tick):
         stride = freq.nanos
         if periods is None:
@@ -1342,22 +1414,22 @@ def _generate_regular_range(cls, start, end, periods, freq):
             raise ValueError("at least 'start' or 'end' should be specified "
                              "if a 'period' is given.")
 
-        data = np.arange(b, e, stride, dtype=np.int64)
-        data = cls._simple_new(data.view(_NS_DTYPE), None, tz=tz)
+        values = np.arange(b, e, stride, dtype=np.int64)
+
     else:
         tz = None
         # start and end should have the same timezone by this point
-        if isinstance(start, Timestamp):
+        if start is not None:
             tz = start.tz
-        elif isinstance(end, Timestamp):
+        elif end is not None:
             tz = end.tz
 
         xdr = generate_range(start=start, end=end,
                              periods=periods, offset=freq)
 
-        values = np.array([x.value for x in xdr])
-        data = cls._simple_new(values, freq=freq, tz=tz)
+        values = np.array([x.value for x in xdr], dtype=np.int64)
 
+    data = cls._simple_new(values, freq=freq, tz=tz)
     return data
 
 
