@@ -10428,6 +10428,7 @@ Examples
 ...     [['London', 'New York'], ['Jun', 'Jul', 'Aug']],
 ...     names=['city', 'month'])
 >>> s = pd.Series([47, 35, 54, 112, 117, 113], index=index)
+>>> s
 city      month
 London    Jun       47
           Jul       35
