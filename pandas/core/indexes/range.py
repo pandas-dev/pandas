@@ -5,8 +5,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex
-from pandas._libs import lib
+from pandas._libs import index as libindex, lib
 import pandas.compat as compat
 from pandas.compat import get_range_parameters, lrange, range
 from pandas.compat.numpy import function as nv
