@@ -1260,7 +1260,7 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
             fmt = fmt.replace(pat, repl)
             found_pat[i] = True
 
-    formatted = c_strftime(&dts, <char*> fmt)
+    formatted = c_strftime(&dts, <char*>fmt)
 
     result = util.char_to_string(formatted)
     free(formatted)

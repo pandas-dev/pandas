@@ -808,3 +808,26 @@ def test_any_all_np_func(func):
 
     res = df.groupby('key')['val'].transform(func)
     tm.assert_series_equal(res, exp)
+
+
+def test_groupby_transform_rename():
+    # https://github.com/pandas-dev/pandas/issues/23461
+    def demean_rename(x):
+        result = x - x.mean()
+
+        if isinstance(x, pd.Series):
+            return result
+
+        result = result.rename(
+            columns={c: '{}_demeaned'.format(c) for c in result.columns})
+
+        return result
+
+    df = pd.DataFrame({'group': list('ababa'),
+                       'value': [1, 1, 1, 2, 2]})
+    expected = pd.DataFrame({'value': [-1. / 3, -0.5, -1. / 3, 0.5, 2. / 3]})
+
+    result = df.groupby('group').transform(demean_rename)
+    tm.assert_frame_equal(result, expected)
+    result_single = df.groupby('group').value.transform(demean_rename)
+    tm.assert_series_equal(result_single, expected['value'])
