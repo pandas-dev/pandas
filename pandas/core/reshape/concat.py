@@ -500,9 +500,7 @@ class _Concatenator(object):
                 else:
                     return ibase.default_index(len(self.objs))
             else:
-                new_axis = ensure_index(self.keys)
-                new_axis.names = self.names
-                return new_axis
+                return ensure_index(self.keys).set_names(self.names)
         else:
             indexes = [x._data.axes[self.axis] for x in self.objs]
 
