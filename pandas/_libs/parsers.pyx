@@ -302,6 +302,7 @@ cdef class TextReader:
         object tupleize_cols
         object usecols
         list dtype_cast_order
+        set unnamed_cols
         set noconvert
 
     def __cinit__(self, source,
@@ -536,7 +537,7 @@ cdef class TextReader:
                 self.header = [ header ]
 
         self.names = names
-        self.header, self.table_width = self._get_header()
+        self.header, self.table_width, self.unnamed_cols = self._get_header()
 
         if not self.table_width:
             raise EmptyDataError("No columns to parse from file")
@@ -720,13 +721,15 @@ cdef class TextReader:
         cdef:
             Py_ssize_t i, start, field_count, passed_count, unnamed_count  # noqa
             char *word
-            object name
+            object name, old_name
             int status
             int64_t hr, data_line
             char *errors = "strict"
             cdef StringPath path = _string_path(self.c_encoding)
 
         header = []
+        unnamed_cols = set()
+
         if self.parser.header_start >= 0:
 
             # Header is in the file
@@ -759,6 +762,7 @@ cdef class TextReader:
 
                 counts = {}
                 unnamed_count = 0
+
                 for i in range(field_count):
                     word = self.parser.words[start + i]
 
@@ -769,6 +773,9 @@ cdef class TextReader:
                     elif path == ENCODED:
                         name = PyUnicode_Decode(word, strlen(word),
                                                 self.c_encoding, errors)
+
+                    # We use this later when collecting placeholder names.
+                    old_name = name
 
                     if name == '':
                         if self.has_mi_columns:
@@ -786,6 +793,9 @@ cdef class TextReader:
                             name = '%s.%d' % (name, count)
                             count = counts.get(name, 0)
 
+                    if old_name == '':
+                        unnamed_cols.add(name)
+
                     this_header.append(name)
                     counts[name] = count + 1
 
@@ -798,6 +808,7 @@ cdef class TextReader:
                         lc = len(this_header)
                         ic = (len(self.index_col) if self.index_col
                               is not None else 0)
+
                         if lc != unnamed_count and lc - ic > unnamed_count:
                             hr -= 1
                             self.parser_start -= 1
@@ -830,7 +841,7 @@ cdef class TextReader:
             if self.parser.lines < 1:
                 self._tokenize_rows(1)
 
-            return None, self.parser.line_fields[0]
+            return None, self.parser.line_fields[0], unnamed_cols
 
         # Corner case, not enough lines in the file
         if self.parser.lines < data_line + 1:
@@ -864,7 +875,7 @@ cdef class TextReader:
             elif self.allow_leading_cols and passed_count < field_count:
                 self.leading_cols = field_count - passed_count
 
-        return header, field_count
+        return header, field_count, unnamed_cols
 
     def read(self, rows=None):
         """
