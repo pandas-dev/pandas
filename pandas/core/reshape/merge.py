@@ -1207,9 +1207,9 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
         labels = idx.labels[name_idx]
         restore_labels = algos.take_nd(labels, indexer, fill_value=-1)
 
-        join_levels = join_levels.__add__([restore_levels])
-        join_labels = join_labels.__add__([restore_labels])
-        join_names = join_names.__add__([dropped_level_name])
+        join_levels = join_levels + [restore_levels]
+        join_labels = join_labels + [restore_labels]
+        join_names = join_names + [dropped_level_name]
 
     return join_levels, join_labels, join_names
 
