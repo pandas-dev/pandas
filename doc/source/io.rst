@@ -4671,9 +4671,12 @@ underlying engine's default behavior.
 Partitioning Parquet files
 ''''''''''''''''''''''''''
 
+.. versionadded:: 0.24.0
+
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
+   :suppress:
 
     df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
     df.to_parquet(fname='test', engine='pyarrow', partition_cols=['a'], compression=None)
@@ -4684,15 +4687,15 @@ Columns are partitioned in the order they are given. The partition splits are
 determined by the unique values in the partition columns.
 The above example creates a partitioned dataset that may look like:
 
-::
+.. code-block:: text
 
-    test/
-        a=0/
-           0bac803e32dc42ae83fddfd029cbdebc.parquet
-           ...
-        a=1/
-           e6ab24a4f45147b49b54a662f0c412a3.parquet
-           ...
+    test
+    ├── a=0
+    │   ├── 0bac803e32dc42ae83fddfd029cbdebc.parquet
+    │   └──  ...
+    └── a=1
+        ├── e6ab24a4f45147b49b54a662f0c412a3.parquet
+        └── ...
 
 
 .. _io.sql:

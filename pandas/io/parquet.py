@@ -222,6 +222,8 @@ def to_parquet(df, path, engine='auto', compression='snappy', index=None,
     path : str
         File path or Root Directory path. Will be used as Root Directory path
         while writing a partitioned dataset.
+
+        .. versionchanged:: 0.24.0
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
