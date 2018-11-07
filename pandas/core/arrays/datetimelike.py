@@ -161,7 +161,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             return self._box_func(val)
 
         if com.is_bool_indexer(key):
-            key = np.asarray(key)
+            key = np.asarray(key, dtype=bool)
             if key.all():
                 key = slice(0, None, None)
             else:
