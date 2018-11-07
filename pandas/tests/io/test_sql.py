@@ -1391,6 +1391,16 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             result['A'] = to_datetime(result['A'])
         tm.assert_frame_equal(result, expected)
 
+    def test_naive_datetimeindex_roundtrip(self):
+        # GH 23510
+        # Ensure that a naive DatetimeIndex isn't converted to UTC
+        dates = date_range('2018-01-01', periods=5, freq='6H')
+        expected = DataFrame({'nums': range(5)}, index=dates)
+        expected.to_sql('foo_table', self.conn, index_label='info_date')
+        result = sql.read_sql_table('foo_table', self.conn,
+                                    index_col='info_date')
+        tm.assert_frame_equal(result, expected)
+
     def test_date_parsing(self):
         # No Parsing
         df = sql.read_sql_table("types_test_data", self.conn)

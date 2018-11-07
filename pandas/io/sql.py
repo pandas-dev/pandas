@@ -852,8 +852,13 @@ class SQLTable(PandasObject):
         if col_type == 'datetime64' or col_type == 'datetime':
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
-            if col.dt.tz is not None:
-                return TIMESTAMP(timezone=True)
+            try:
+                if col.dt.tz is not None:
+                    return TIMESTAMP(timezone=True)
+            except AttributeError:
+                # The column is actually a DatetimeIndex
+                if col.tz is not None:
+                    return TIMESTAMP(timezone=True)
             return DateTime
         if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "
