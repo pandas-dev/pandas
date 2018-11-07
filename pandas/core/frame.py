@@ -6538,8 +6538,8 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        Options `on`, `lsuffix`, and `rsuffix` options are not supported
-        when passing a list of DataFrame objects.
+        Parameters `on`, `lsuffix`, and `rsuffix` are not supported when
+        passing a list of `DataFrame` objects.
 
         Support for specifying index levels as the `on` parameter was added
         in version 0.23.0.
@@ -6550,9 +6550,8 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-
         >>> df = pd.DataFrame({'key': ['K0', 'K1', 'K2', 'K3', 'K4', 'K5'],
-        ...                        'A': ['A0', 'A1', 'A2', 'A3', 'A4', 'A5']})
+        ...                    'A': ['A0', 'A1', 'A2', 'A3', 'A4', 'A5']})
 
         >>> df
           key   A
