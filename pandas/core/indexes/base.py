@@ -2078,7 +2078,7 @@ class Index(IndexOpsMixin, PandasObject):
             return promote(getitem(key))
 
         if com.is_bool_indexer(key):
-            key = np.asarray(key)
+            key = np.asarray(key, dtype=bool)
 
         key = com.values_from_object(key)
         result = getitem(key)
