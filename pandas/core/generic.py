@@ -8151,7 +8151,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # This is a single-dimensional object.
             if not is_bool_dtype(cond):
                 raise ValueError(msg.format(dtype=cond.dtype))
-        else:
+        elif not cond.empty:
             for dt in cond.dtypes:
                 if not is_bool_dtype(dt):
                     raise ValueError(msg.format(dtype=dt))
