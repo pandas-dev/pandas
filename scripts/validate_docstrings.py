@@ -531,12 +531,11 @@ def validate_one(func_name):
             if "return" in doc.method_source:
                 errs.append('No Returns section found')
         else:
-            returns_errs = []
             if len(doc.returns) == 1 and doc.returns[0][1]:
-                returns_errs.append('The first line of the Returns section '
-                                    'should contain only the type, unless '
-                                    'multiple values are being returned.')
-            missing_desc, missing_cap, missing_period = False, False, False
+                errs.append('The first line of the Returns section '
+                            'should contain only the type, unless '
+                            'multiple values are being returned.')
+            missing_desc = missing_cap = missing_period = False
             for name, type_, desc in doc.returns:
                 desc = ''.join(desc)
                 missing_desc = missing_desc or not desc
@@ -544,17 +543,12 @@ def validate_one(func_name):
                 missing_period = (missing_period
                                   or desc and not desc.endswith('.'))
             if missing_desc:
-                returns_errs.append('Return value has no description.')
+                errs.append('Return value has no description.')
             if missing_cap:
-                returns_errs.append('Return value description should start '
-                                    'with a capital letter.')
+                errs.append('Return value description should start '
+                            'with a capital letter.')
             if missing_period:
-                returns_errs.append('Return value description should finish '
-                                    'with ".".')
-            if returns_errs:
-                errs.append('Errors in Returns section')
-                for returns_err in returns_errs:
-                    errs.append('\t{}'.format(returns_err))
+                errs.append('Return value description should finish with ".".')
 
         if not doc.yields and "yield" in doc.method_source:
             errs.append('No Yields section found')
