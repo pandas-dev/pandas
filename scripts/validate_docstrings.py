@@ -57,7 +57,7 @@ ERROR_MSGS = {
             'quotes)',
     'GL03': 'Use only one blank line to separate sections or paragraphs',
     'GL04': 'Private classes ({mentioned_private_classes}) should not be '
-            'mentioned in public docstring',
+            'mentioned in public docstrings',
     'GL05': 'Tabs found at the start of line "{line_with_tabs}", please use '
             'whitespace only',
     'SS01': 'No summary found (a short summary in a single line should be '
@@ -562,7 +562,8 @@ def validate_one(func_name):
         errs.append(error('GL03'))
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:
-        errs.append(error('GL04'), mentioned_private_classes=mentioned_errs)
+        errs.append(error('GL04',
+                          mentioned_private_classes=', '.join(mentioned_errs)))
     for line in doc.raw_doc.splitlines():
         if re.match("^ *\t", line):
             errs.append(error('GL05', line_with_tabs=line.lstrip()))
