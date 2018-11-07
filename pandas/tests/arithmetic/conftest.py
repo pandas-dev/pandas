@@ -185,7 +185,7 @@ def box_with_period(request):
 
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, DatetimeArray],
                 ids=lambda x: x.__name__)
-def box_with_dtarray(request):
+def box_with_datetime(request):
     """
     Like `box`, but specific to datetime64 for also testing DatetimeArray
     """

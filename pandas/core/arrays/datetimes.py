@@ -117,7 +117,6 @@ def _dt_array_cmp(cls, op):
             return ops.invalid_comparison(self, other, op)
         else:
             if isinstance(other, list):
-                # FIXME: This can break for object-dtype with mixed types
                 try:
                     other = type(self)(other)
                 except ValueError:

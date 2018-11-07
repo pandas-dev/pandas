@@ -1037,10 +1037,10 @@ class TestDatetimeIndexArithmetic(object):
         with pytest.raises(TypeError):
             op(dti, other)
 
-    def test_dti_add_timestamp_raises(self, box_with_dtarray):
+    def test_dti_add_timestamp_raises(self, box_with_datetime):
         # GH#22163 ensure DataFrame doesn't cast Timestamp to i8
         idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
-        idx = tm.box_expected(idx, box_with_dtarray)
+        idx = tm.box_expected(idx, box_with_datetime)
         msg = "cannot add"
         with tm.assert_raises_regex(TypeError, msg):
             idx + Timestamp('2011-01-01')
@@ -1153,16 +1153,16 @@ class TestDatetimeIndexArithmetic(object):
     # Binary operations DatetimeIndex and timedelta-like
 
     def test_dti_add_timedeltalike(self, tz_naive_fixture, two_hours,
-                                   box_with_dtarray):
+                                   box_with_datetime):
         # GH#22005, GH#22163 check DataFrame doesn't raise TypeError
         tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
-        rng = tm.box_expected(rng, box_with_dtarray)
+        rng = tm.box_expected(rng, box_with_datetime)
 
         result = rng + two_hours
         expected = pd.date_range('2000-01-01 02:00',
                                  '2000-02-01 02:00', tz=tz)
-        expected = tm.box_expected(expected, box_with_dtarray)
+        expected = tm.box_expected(expected, box_with_datetime)
         tm.assert_equal(result, expected)
 
     def test_dti_iadd_timedeltalike(self, tz_naive_fixture, two_hours):
@@ -1432,13 +1432,13 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('freq', [None, 'D'])
-    def test_sub_period(self, freq, box_with_dtarray):
+    def test_sub_period(self, freq, box_with_datetime):
         # GH#13078
         # not supported, check TypeError
         p = pd.Period('2011-01-01', freq='D')
 
         idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=freq)
-        idx = tm.box_expected(idx, box_with_dtarray)
+        idx = tm.box_expected(idx, box_with_datetime)
 
         with pytest.raises(TypeError):
             idx - p
@@ -1780,7 +1780,7 @@ class TestDatetimeIndexArithmetic(object):
             res3 = dti - other
         tm.assert_series_equal(res3, expected_sub)
 
-    def test_dti_add_offset_tzaware(self, tz_aware_fixture, box_with_dtarray):
+    def test_dti_add_offset_tzaware(self, tz_aware_fixture, box_with_datetime):
         # GH#21610, GH#22163 ensure DataFrame doesn't return object-dtype
         timezone = tz_aware_fixture
         if timezone == 'US/Pacific':
@@ -1793,8 +1793,8 @@ class TestDatetimeIndexArithmetic(object):
         expected = DatetimeIndex(['2010-11-01 05:00', '2010-11-01 06:00',
                                   '2010-11-01 07:00'], freq='H', tz=timezone)
 
-        dates = tm.box_expected(dates, box_with_dtarray)
-        expected = tm.box_expected(expected, box_with_dtarray)
+        dates = tm.box_expected(dates, box_with_datetime)
+        expected = tm.box_expected(expected, box_with_datetime)
 
         # TODO: parametrize over the scalar being added?  radd?  sub?
         offset = dates + pd.offsets.Hour(5)
