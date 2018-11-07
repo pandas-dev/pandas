@@ -20,7 +20,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.datetimelike import (
     DatelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op
 )
-from pandas.core.tools.datetimes import parse_time_string
+from pandas.core.tools.datetimes import parse_time_string, DateParseError
 
 from pandas._libs import tslib, index as libindex
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
@@ -580,7 +580,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                 raise IncompatibleFrequency(msg)
             value = value.ordinal
         elif isinstance(value, compat.string_types):
-            value = Period(value, freq=self.freq).ordinal
+            try:
+                value = Period(value, freq=self.freq).ordinal
+            except DateParseError:
+                raise KeyError("Cannot interpret '{}' as period".format(value))
 
         return self._ndarray_values.searchsorted(value, side=side,
                                                  sorter=sorter)
@@ -711,6 +714,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                 key = asdt
             except TypeError:
                 pass
+            except DateParseError:
+                # A string with invalid format
+                raise KeyError("Cannot interpret '{}' as period".format(key))
 
             try:
                 key = Period(key, freq=self.freq)
