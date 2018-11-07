@@ -1399,7 +1399,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         expected.to_sql('foo_table', self.conn, index_label='info_date')
         result = sql.read_sql_table('foo_table', self.conn,
                                     index_col='info_date')
-        tm.assert_frame_equal(result, expected)
+        # result index with gain a name from a set_index operation; expected
+        tm.assert_frame_equal(result, expected, check_names=False)
 
     def test_date_parsing(self):
         # No Parsing
