@@ -169,6 +169,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         if unit is not None:
             data = to_timedelta(data, unit=unit, box=False)
 
+        # Unwrap whatever we have into a np.ndarray
         if not hasattr(data, 'dtype'):
             # e.g. list, tuple
             if np.ndim(data) == 0:
@@ -180,12 +181,12 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         elif isinstance(data, (cls, TimedeltaArrayMixin)):
             data = data._data
 
+        # Convert whatever we have into timedelta64[ns] dtype
         if is_object_dtype(data) or is_string_dtype(data):
             # no need to make a copy, need to convert if string-dtyped
             data = np.array(data, dtype=np.object_, copy=False)
             data = array_to_timedelta64(data).view(_TD_DTYPE)
             copy = False
-
         elif is_integer_dtype(data):
             # treat as nanoseconds
             # if something other than int64, convert
@@ -197,7 +198,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 copy = False
             else:
                 data = data.view(_TD_DTYPE)
-
         elif is_float_dtype(data):
             # We allow it if and only if it can be converted lossessly
             mask = np.isnan(data)
@@ -207,13 +207,13 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                                 "converted to {cls}".format(cls=cls.__name__))
             data = casted.view(_TD_DTYPE)
             data[mask] = iNaT
-
+            copy = False
         elif is_timedelta64_dtype(data):
             if data.dtype != _TD_DTYPE:
                 # non-nano unit
                 # TODO: watch out for overflows
                 data = data.astype(_TD_DTYPE)
-
+                copy = False
         else:
             raise TypeError("dtype {dtype} is invalid for constructing {cls}"
                             .format(dtype=data.dtype, cls=cls.__name__))
