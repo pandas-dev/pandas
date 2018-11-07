@@ -1,19 +1,26 @@
 # -*- coding: utf-8 -*-
 import numbers
+from operator import le, lt
 
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
                              PyObject_RichCompare)
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 import numpy as np
-from numpy cimport ndarray
+cimport numpy as cnp
+from numpy cimport (
+    int64_t, int32_t, float64_t, float32_t, uint64_t,
+    ndarray,
+    PyArray_ArgSort, NPY_QUICKSORT, PyArray_Take)
+cnp.import_array()
 
-from operator import le, lt
 
 cimport util
 util.import_array()
+
+from hashtable cimport Int64Vector, Int64VectorData
 
 from tslibs import Timestamp
 from tslibs.timezones cimport tz_compare

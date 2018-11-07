@@ -8,7 +8,6 @@ from libc.stdlib cimport malloc, free
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray,
-                    double_t,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t)
 cnp.import_array()
@@ -22,8 +21,8 @@ from algos import take_2d_axis1_float64_float64, groupsort_indexer, tiebreakers
 
 cdef int64_t iNaT = get_nat()
 
-cdef double NaN = <double>np.NaN
-cdef double nan = NaN
+cdef float64_t NaN = <float64_t>np.NaN
+cdef float64_t nan = NaN
 
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
@@ -73,7 +72,7 @@ cdef inline float64_t kth_smallest_c(float64_t* a,
                                      Py_ssize_t n) nogil:
     cdef:
         Py_ssize_t i, j, l, m
-        double_t x, t
+        float64_t x, t
 
     l = 0
     m = n - 1

@@ -45,7 +45,7 @@ cdef extern from "numpy/arrayobject.h":
 
 
 cdef extern from "src/parse_helper.h":
-    int floatify(object, double *result, int *maybe_int) except -1
+    int floatify(object, float64_t *result, int *maybe_int) except -1
 
 cimport util
 from util cimport (is_nan,
@@ -71,7 +71,7 @@ cdef int64_t NPY_NAT = util.get_nat()
 iNaT = util.get_nat()
 
 cdef bint PY2 = sys.version_info[0] == 2
-cdef double nan = <double>np.NaN
+cdef float64_t nan = <float64_t>np.NaN
 
 
 def values_from_object(obj: object):

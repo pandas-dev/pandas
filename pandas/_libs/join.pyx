@@ -11,8 +11,8 @@ from numpy cimport (ndarray,
 cnp.import_array()
 
 
-cdef double NaN = <double>np.NaN
-cdef double nan = NaN
+cdef float64_t NaN = <float64_t>np.NaN
+cdef float64_t nan = NaN
 
 from pandas._libs.algos import groupsort_indexer, ensure_platform_int
 from pandas.core.algorithms import take_nd
@@ -673,7 +673,7 @@ ctypedef fused asof_t:
     int32_t
     int64_t
     float
-    double
+    float64_t
 
 ctypedef fused by_t:
     object

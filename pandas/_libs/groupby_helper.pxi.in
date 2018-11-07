@@ -5,7 +5,7 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
 cdef extern from "numpy/npy_math.h":
-    double NAN "NPY_NAN"
+    float64_t NAN "NPY_NAN"
 _int64_max = np.iinfo(np.int64).max
 
 # ----------------------------------------------------------------------
