@@ -47,6 +47,83 @@ from pandas.io.formats.printing import pprint_thing
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
 DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
+ERROR_MSGS = {
+    'GL01': 'Docstring text (summary) should start in the line immediately '
+            'after the opening quotes (not in the same line, or leaving a '
+            'blank line in between)',
+    'GL02': 'Closing quotes should be placed in the line after the last text '
+            'in the docstring (do not close the quotes in the same line as '
+            'the text, or leave a blank line between the last text and the '
+            'quotes)',
+    'GL03': 'Use only one blank line to separate sections or paragraphs',
+    'GL04': 'Private classes ({mentioned_private_classes}) should not be '
+            'mentioned in public docstring',
+    'GL05': 'Tabs found at the start of line "{line_with_tabs}", please use '
+            'whitespace only',
+    'SS01': 'No summary found (a short summary in a single line should be '
+            'present at the beginning of the docstring)',
+    'SS02': 'Summary does not start with a capital letter',
+    'SS03': 'Summary does not end with a period',
+    'SS04': 'Summary contains heading whitespaces',
+    'SS05': 'Summary must start with infinitive verb, not third person '
+            '(e.g. use "Generate" instead of "Generates")',
+    'SS06': 'Summary should fit in a single line',
+    'ES01': 'No extended summary found',
+    'PR01': 'Parameters {missing_params} not documented',
+    'PR02': 'Unknown parameters {unknown_params}',
+    'PR03': 'Wrong parameters order. Actual: {actual_params}. '
+            'Documented: {documented_params}',
+    'PR04': 'Parameter "{param_name}" has no type',
+    'PR05': 'Parameter "{param_name}" type should not finish with "."',
+    'PR06': 'Parameter "{param_name}" type should use "{right_type}" instead '
+            'of "{wrong_type}"',
+    'PR07': 'Parameter "{param_name}" has no description',
+    'PR08': 'Parameter "{param_name}" description should start with a '
+            'capital letter',
+    'PR09': 'Parameter "{param_name}" description should finish with "."',
+    'RT01': 'No Returns section found',
+    'YD01': 'No Yields section found',
+    'SA01': 'See Also section not found',
+    'SA02': 'Missing period at end of description for See Also '
+            '"{reference_name}" reference',
+    'SA03': 'Description should be capitalized for See Also '
+            '"{reference_name}" reference',
+    'SA04': 'Missing description for See Also "{reference_name}" reference',
+    'SA05': '{reference_name} in `See Also` section does not need `pandas` '
+            'prefix, use {right_reference} instead.',
+    'EX01': 'No examples section found',
+    'EX02': 'Examples do not pass tests:\n{doctest_log}',
+    'EX03': 'flake8 error: {error_code} {error_message}{times_happening}',
+    'EX04': 'Do not import {imported_library}, as it is imported '
+            'automatically for the examples (numpy as np, pandas as pd)',
+}
+
+
+def error(code, **kwargs):
+    """
+    Return a tuple with the error code and the message with variables replaced.
+
+    This is syntactic sugar so instead of:
+    - `('EX02', ERROR_MSGS['EX02'].format(doctest_log=log))`
+
+    We can simply use:
+    - `error('EX02', doctest_log=log)`
+
+    Parameters
+    ----------
+    code : str
+        Error code.
+    **kwargs
+        Values for the variables in the error messages
+
+    Returns
+    -------
+    code : str
+        Error code.
+    message : str
+        Error message with varaibles replaced.
+    """
+    return (code, ERROR_MSGS[code].format(**kwargs))
 
 
 def get_api_items(api_doc_fd):
@@ -322,16 +399,15 @@ class Docstring(object):
         doc_params = tuple(self.doc_parameters)
         missing = set(signature_params) - set(doc_params)
         if missing:
-            errs.append(
-                'Parameters {} not documented'.format(pprint_thing(missing)))
+            errs.append(error('PR01', missing_params=pprint_thing(missing)))
         extra = set(doc_params) - set(signature_params)
         if extra:
-            errs.append('Unknown parameters {}'.format(pprint_thing(extra)))
+            errs.append(error('PR02', unknown_params=pprint_thing(extra)))
         if (not missing and not extra and signature_params != doc_params
                 and not (not signature_params and not doc_params)):
-            errs.append('Wrong parameters order. ' +
-                        'Actual: {!r}. '.format(signature_params) +
-                        'Documented: {!r}'.format(doc_params))
+            errs.append(error('PR03',
+                              actual_params=signature_params,
+                              documented_params=doc_params))
 
         return errs
 
@@ -415,6 +491,8 @@ class Docstring(object):
         if not self.examples:
             return
 
+        # F401 is needed to not generate flake8 errors in examples
+        # that do not user numpy or pandas
         content = ''.join(('import numpy as np  # noqa: F401\n',
                            'import pandas as pd  # noqa: F401\n',
                            *self.examples_source_code))
@@ -446,134 +524,135 @@ def validate_one(func_name):
     dict
         A dictionary containing all the information obtained from validating
         the docstring.
+
+    Notes
+    -----
+    The errors codes are defined as:
+    - First two characters: Section where the error happens:
+       * GL: Global (no section, like section ordering errors)
+       * SS: Short summary
+       * ES: Extended summary
+       * PR: Parameters
+       * RT: Returns
+       * YD: Yields
+       * RS: Raises
+       * WN: Warns
+       * SA: See Also
+       * NT: Notes
+       * RF: References
+       * EX: Examples
+    - Last two characters: Numeric error code inside the section
+
+    For example, EX02 is the second codified error in the Examples section
+    (which in this case is assigned to examples that do not pass the tests).
+
+    The error codes, their corresponding error messages, and the details on how
+    they are validated, are not documented more than in the source code of this
+    function.
     """
     doc = Docstring(func_name)
 
     errs = []
     wrns = []
     if doc.start_blank_lines != 1:
-        errs.append('Docstring text (summary) should start in the line '
-                    'immediately after the opening quotes (not in the same '
-                    'line, or leaving a blank line in between)')
+        errs.append(error('GL01'))
     if doc.end_blank_lines != 1:
-        errs.append('Closing quotes should be placed in the line after '
-                    'the last text in the docstring (do not close the '
-                    'quotes in the same line as the text, or leave a '
-                    'blank line between the last text and the quotes)')
+        errs.append(error('GL02'))
     if doc.double_blank_lines:
-        errs.append('Use only one blank line to separate sections or '
-                    'paragraphs')
+        errs.append(error('GL03'))
+    mentioned_errs = doc.mentioned_private_classes
+    if mentioned_errs:
+        errs.append(error('GL04'), mentioned_private_classes=mentioned_errs)
+    for line in doc.raw_doc.splitlines():
+        if re.match("^ *\t", line):
+            errs.append(error('GL05', line_with_tabs=line.lstrip()))
 
     if not doc.summary:
-        errs.append('No summary found (a short summary in a single line '
-                    'should be present at the beginning of the docstring)')
+        errs.append(error('SS01'))
     else:
         if not doc.summary[0].isupper():
-            errs.append('Summary does not start with a capital letter')
+            errs.append(error('SS02'))
         if doc.summary[-1] != '.':
-            errs.append('Summary does not end with a period')
+            errs.append(error('SS03'))
         if doc.summary != doc.summary.lstrip():
-            errs.append('Summary contains heading whitespaces.')
+            errs.append(error('SS04'))
         elif (doc.is_function_or_method
                 and doc.summary.split(' ')[0][-1] == 's'):
-            errs.append('Summary must start with infinitive verb, '
-                        'not third person (e.g. use "Generate" instead of '
-                        '"Generates")')
+            errs.append(error('SS05'))
         if doc.num_summary_lines > 1:
-            errs.append("Summary should fit in a single line.")
-    if not doc.extended_summary:
-        wrns.append('No extended summary found')
+            errs.append(error('SS06'))
 
-    param_errs = doc.parameter_mismatches
+    if not doc.extended_summary:
+        wrns.append(('ES01', 'No extended summary found'))
+
+    # PR01: Parameters not documented
+    # PR02: Unknown parameters
+    # PR03: Wrong parameters order
+    errs += doc.parameter_mismatches
+
     for param in doc.doc_parameters:
         if not param.startswith("*"):  # Check can ignore var / kwargs
             if not doc.parameter_type(param):
-                param_errs.append('Parameter "{}" has no type'.format(param))
+                errs.append(error('PR04', param_name=param))
             else:
                 if doc.parameter_type(param)[-1] == '.':
-                    param_errs.append('Parameter "{}" type should '
-                                      'not finish with "."'.format(param))
+                    errs.append(error('PR05', param_name=param))
                 common_type_errors = [('integer', 'int'),
                                       ('boolean', 'bool'),
                                       ('string', 'str')]
-                for incorrect_type, correct_type in common_type_errors:
-                    if incorrect_type in doc.parameter_type(param):
-                        param_errs.append('Parameter "{}" type should use '
-                                          '"{}" instead of "{}"'
-                                          .format(param,
-                                                  correct_type,
-                                                  incorrect_type))
+                for wrong_type, right_type in common_type_errors:
+                    if wrong_type in doc.parameter_type(param):
+                        errs.append(error('PR06',
+                                          param_name=param,
+                                          right_type=right_type,
+                                          wrong_type=wrong_type))
         if not doc.parameter_desc(param):
-            param_errs.append('Parameter "{}" '
-                              'has no description'.format(param))
+            errs.append(error('PR07', param_name=param))
         else:
             if not doc.parameter_desc(param)[0].isupper():
-                param_errs.append('Parameter "{}" description '
-                                  'should start with a '
-                                  'capital letter'.format(param))
+                errs.append(error('PR08', param_name=param))
             if doc.parameter_desc(param)[-1] != '.':
-                param_errs.append('Parameter "{}" description '
-                                  'should finish with "."'.format(param))
-    if param_errs:
-        errs.append('Errors in parameters section')
-        for param_err in param_errs:
-            errs.append('\t{}'.format(param_err))
-
-    pep8_errs = list(doc.validate_pep8())
-    if pep8_errs:
-        errs.append('Linting issues in doctests:')
-        for err in pep8_errs:
-            errs.append('\t{} {} {}'.format(err.count, err.error_code,
-                                            err.message))
+                errs.append(error('PR09', param_name=param))
 
     if doc.is_function_or_method:
-        if not doc.returns and "return" in doc.method_source:
-            errs.append('No Returns section found')
-        if not doc.yields and "yield" in doc.method_source:
-            errs.append('No Yields section found')
-
-    mentioned_errs = doc.mentioned_private_classes
-    if mentioned_errs:
-        errs.append('Private classes ({}) should not be mentioned in public '
-                    'docstring.'.format(mentioned_errs))
+        if not doc.returns and 'return' in doc.method_source:
+            errs.append(error('RT01'))
+        if not doc.yields and 'yield' in doc.method_source:
+            errs.append(error('YD01'))
 
     if not doc.see_also:
-        wrns.append('See Also section not found')
+        wrns.append(error('SA01'))
     else:
         for rel_name, rel_desc in doc.see_also.items():
             if rel_desc:
                 if not rel_desc.endswith('.'):
-                    errs.append('Missing period at end of description for '
-                                'See Also "{}" reference'.format(rel_name))
+                    errs.append(error('SA02', reference_name=rel_name))
                 if not rel_desc[0].isupper():
-                    errs.append('Description should be capitalized for '
-                                'See Also "{}" reference'.format(rel_name))
+                    errs.append(error('SA03', reference_name=rel_name))
             else:
-                errs.append('Missing description for '
-                            'See Also "{}" reference'.format(rel_name))
+                errs.append(error('SA04', reference_name=rel_name))
             if rel_name.startswith('pandas.'):
-                errs.append('{} in `See Also` section does not '
-                            'need `pandas` prefix, use {} instead.'
-                            .format(rel_name, rel_name[len('pandas.'):]))
-    for line in doc.raw_doc.splitlines():
-        if re.match("^ *\t", line):
-            errs.append('Tabs found at the start of line "{}", '
-                        'please use whitespace only'.format(line.lstrip()))
+                errs.append(error('SA05',
+                                  reference_name=rel_name,
+                                  right_reference=rel_name[len('pandas.'):]))
 
     examples_errs = ''
     if not doc.examples:
-        wrns.append('No examples section found')
+        wrns.append(error('EX01'))
     else:
         examples_errs = doc.examples_errors
         if examples_errs:
-            errs.append('Examples do not pass tests')
+            errs.append(error('EX02', doctest_log=examples_errs))
+        for err in doc.validate_pep8():
+            errs.append(error('EX03',
+                              error_code=err.error_code,
+                              error_message=err.message,
+                              times_happening=' ({} times)'.format(err.count)
+                                              if err.count > 1 else ''))
         examples_source_code = ''.join(doc.examples_source_code)
-        if 'import numpy' in examples_source_code:
-            errs.append("numpy does not need to be imported in the examples, "
-                        "as it's assumed to be already imported as np")
-        if 'import pandas' in examples_source_code:
-            errs.append("pandas does not need to be imported in the examples, "
-                        "as it's assumed to be already imported as pd")
+        for wrong_import in ('numpy', 'pandas'):
+            if 'import {}'.format(wrong_import) in examples_source_code:
+                errs.append(error('EX04', imported_library=wrong_import))
 
     return {'type': doc.type,
             'docstring': doc.clean_doc,
@@ -586,10 +665,16 @@ def validate_one(func_name):
             'examples_errors': examples_errs}
 
 
-def validate_all():
+def validate_all(prefix):
     """
     Execute the validation of all docstrings, and return a dict with the
     results.
+
+    Parameters
+    ----------
+    prefix : str or None
+        If provided, only the docstrings that start with this pattern will be
+        validated. If None, all docstrings will be validated.
 
     Returns
     -------
@@ -605,6 +690,8 @@ def validate_all():
     with open(api_doc_fname) as f:
         api_items = list(get_api_items(f))
     for func_name, func_obj, section, subsection in api_items:
+        if prefix and not func_name.startswith(prefix):
+            continue
         doc_info = validate_one(func_name)
         result[func_name] = doc_info
 
@@ -624,6 +711,8 @@ def validate_all():
             func_name = 'pandas.{}.{}'.format(class_.__name__, member[0])
             if (not member[0].startswith('_')
                     and func_name not in api_item_names):
+                if prefix and not func_name.startswith(prefix):
+                    continue
                 doc_info = validate_one(func_name)
                 result[func_name] = doc_info
                 result[func_name]['in_api'] = False
@@ -631,7 +720,7 @@ def validate_all():
     return result
 
 
-def main(func_name, fd):
+def main(func_name, prefix, errors, output_format):
     def header(title, width=80, char='#'):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
@@ -644,32 +733,76 @@ def main(func_name, fd):
             full_line=full_line, title_line=title_line)
 
     if func_name is None:
-        json_doc = validate_all()
-        fd.write(json.dumps(json_doc))
+        result = validate_all(prefix)
+
+        if output_format == 'json':
+            output = json.dumps(result)
+        else:
+            if output_format == 'default':
+                output_format = '{text}\n'
+            elif output_format == 'azure':
+                output_format = ('##vso[task.logissue type=error;'
+                                 'sourcepath={path};'
+                                 'linenumber={row};'
+                                 'code={code};'
+                                 ']{text}\n')
+            else:
+                raise ValueError('Unknown output_format "{}"'.format(
+                    output_format))
+
+            num_errors, output = 0, ''
+            for name, res in result.items():
+                for err_code, err_desc in res['errors']:
+                    # The script would be faster if instead of filtering the
+                    # errors after validating them, it didn't validate them
+                    # initially. But that would complicate the code too much
+                    if errors and err_code not in errors:
+                        continue
+                    num_errors += 1
+                    output += output_format.format(
+                        name=name,
+                        path=res['file'],
+                        row=res['file_line'],
+                        code=err_code,
+                        text='{}: {}'.format(name, err_desc))
+
+        sys.stderr.write(output)
+
     else:
-        doc_info = validate_one(func_name)
+        result = validate_one(func_name)
+        num_errors = len(result['errors'])
 
-        fd.write(header('Docstring ({})'.format(func_name)))
-        fd.write('{}\n'.format(doc_info['docstring']))
-        fd.write(header('Validation'))
-        if doc_info['errors']:
-            fd.write('{} Errors found:\n'.format(len(doc_info['errors'])))
-            for err in doc_info['errors']:
-                fd.write('\t{}\n'.format(err))
-        if doc_info['warnings']:
-            fd.write('{} Warnings found:\n'.format(len(doc_info['warnings'])))
-            for wrn in doc_info['warnings']:
-                fd.write('\t{}\n'.format(wrn))
+        sys.stderr.write(header('Docstring ({})'.format(func_name)))
+        sys.stderr.write('{}\n'.format(result['docstring']))
+        sys.stderr.write(header('Validation'))
+        if result['errors']:
+            sys.stderr.write('{} Errors found:\n'.format(
+                len(result['errors'])))
+            for err_code, err_desc in result['errors']:
+                # Failing examples are printed at the end
+                if err_code == 'EX02':
+                    sys.stderr.write('\tExamples do not pass tests\n')
+                    continue
+                sys.stderr.write('\t{}\n'.format(err_desc))
+        if result['warnings']:
+            sys.stderr.write('{} Warnings found:\n'.format(
+                len(result['warnings'])))
+            for wrn_code, wrn_desc in result['warnings']:
+                sys.stderr.write('\t{}\n'.format(wrn_desc))
 
-        if not doc_info['errors']:
-            fd.write('Docstring for "{}" correct. :)\n'.format(func_name))
+        if not result['errors']:
+            sys.stderr.write('Docstring for "{}" correct. :)\n'.format(
+                func_name))
 
-        if doc_info['examples_errors']:
-            fd.write(header('Doctests'))
-            fd.write(doc_info['examples_errors'])
+        if result['examples_errors']:
+            sys.stderr.write(header('Doctests'))
+            sys.stderr.write(result['examples_errors'])
+
+    return num_errors
 
 
 if __name__ == '__main__':
+    format_opts = 'default', 'json', 'azure'
     func_help = ('function or method to validate (e.g. pandas.DataFrame.head) '
                  'if not provided, all docstrings are validated and returned '
                  'as JSON')
@@ -679,5 +812,22 @@ if __name__ == '__main__':
                            nargs='?',
                            default=None,
                            help=func_help)
+    argparser.add_argument('--format', default='default', choices=format_opts,
+                           help='format of the output when validating '
+                           'multiple docstrings (ignored when validating one).'
+                           'It can be {}'.format(str(format_opts)[1:-1]))
+    argparser.add_argument('--prefix', default=None, help='pattern for the '
+                           'docstring names, in order to decide which ones '
+                           'will be validated. A prefix "pandas.Series.str.'
+                           'will make the script validate all the docstrings'
+                           'of methods starting by this pattern. It is '
+                           'ignored if parameter function is provided')
+    argparser.add_argument('--errors', default=None, help='comma separated '
+                           'list of error codes to validate. By default it '
+                           'validates all errors (ignored when validating '
+                           'a single docstring)')
+
     args = argparser.parse_args()
-    sys.exit(main(args.function, sys.stdout))
+    sys.exit(main(args.function, args.prefix,
+                  args.errors.split(',') if args.errors else None,
+                  args.format))
