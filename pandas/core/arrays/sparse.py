@@ -1030,7 +1030,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             result_type = taken.dtype
 
             if m0.any():
-                result_type = np.result_type(result_type, type(self.fill_value))
+                result_type = np.result_type(result_type,
+                                             type(self.fill_value))
                 taken = taken.astype(result_type)
                 taken[old_fill_indices] = self.fill_value
 

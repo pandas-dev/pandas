@@ -477,13 +477,15 @@ class TestSparseArray(object):
         pytest.param(
             SparseArray([0, 1]), 'datetime64[ns]',
             SparseArray(np.array([0, 1], dtype='datetime64[ns]'),
-                         dtype=SparseDtype('datetime64[ns]',
-                                           pd.Timestamp('1970'))),
+                        dtype=SparseDtype('datetime64[ns]',
+                                          pd.Timestamp('1970'))),
             marks=[pytest.mark.xfail(reason="NumPy-7619", strict=True)],
         ),
         (SparseArray([0, 1, 10]), str,
          SparseArray(['0', '1', '10'], dtype=SparseDtype(str, '0'))),
         (SparseArray(['10', '20']), float, SparseArray([10.0, 20.0])),
+        (SparseArray([0, 1, 0]), object,
+         SparseArray([0, 1, 0], dtype=SparseDtype(object, 0))),
     ])
     def test_astype_more(self, array, dtype, expected):
         result = array.astype(dtype)
