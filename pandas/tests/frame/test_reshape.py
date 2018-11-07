@@ -277,8 +277,6 @@ class TestDataFrameReshape(TestData):
                              index=['x', 'y', 'z'])
         assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(reason="GH-23077",
-                       strict=True)
     def test_unstack_fill_frame_period(self):
 
         # Test unstacking with period
@@ -305,7 +303,8 @@ class TestDataFrameReshape(TestData):
         # Test unstacking with categorical
         data = pd.Series(['a', 'b', 'c', 'a'], dtype='category')
         data.index = pd.MultiIndex.from_tuples(
-            [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')])
+            [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')],
+        )
 
         # By default missing values will be NaN
         result = data.unstack()
@@ -316,9 +315,10 @@ class TestDataFrameReshape(TestData):
                              index=list('xyz'))
         assert_frame_equal(result, expected)
 
-        # Fill with non-category results in NaN entries similar to above
-        result = data.unstack(fill_value='d')
-        assert_frame_equal(result, expected)
+        # Fill with non-category results in a TypeError
+        msg = r"'fill_value' \('d'\) is not in"
+        with tm.assert_raises_regex(TypeError, msg):
+            data.unstack(fill_value='d')
 
         # Fill with category value replaces missing values as expected
         result = data.unstack(fill_value='c')
@@ -873,6 +873,21 @@ class TestDataFrameReshape(TestData):
         expected = Series([10, 11, 12], index=midx)
 
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('level', [0, 1])
+    def test_unstack_mixed_extension_types(self, level):
+        index = pd.MultiIndex.from_tuples([('A', 0), ('A', 1), ('B', 1)],
+                                          names=['a', 'b'])
+        df = pd.DataFrame({"A": pd.core.arrays.integer_array([0, 1, None]),
+                           "B": pd.Categorical(['a', 'a', 'b'])}, index=index)
+
+        result = df.unstack(level=level)
+        expected = df.astype(object).unstack(level=level)
+
+        expected_dtypes = pd.Series([df.A.dtype] * 2 + [df.B.dtype] * 2,
+                                    index=result.columns)
+        tm.assert_series_equal(result.dtypes, expected_dtypes)
+        tm.assert_frame_equal(result.astype(object), expected)
 
     @pytest.mark.parametrize("level", [0, 'baz'])
     def test_unstack_swaplevel_sortlevel(self, level):

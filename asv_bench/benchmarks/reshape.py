@@ -49,21 +49,33 @@ class SimpleReshape(object):
 
 class Unstack(object):
 
-    def setup(self):
+    params = ['int', 'category']
+
+    def setup(self, dtype):
         m = 100
         n = 1000
 
         levels = np.arange(m)
         index = MultiIndex.from_product([levels] * 2)
         columns = np.arange(n)
-        values = np.arange(m * m * n).reshape(m * m, n)
+        if dtype == 'int':
+            values = np.arange(m * m * n).reshape(m * m, n)
+        else:
+            # the category branch is ~20x slower than int. So we
+            # cut down the size a bit. Now it's only ~3x slower.
+            n = 50
+            columns = columns[:n]
+            indices = np.random.randint(0, 52, size=(m * m, n))
+            values = np.take(list(string.ascii_letters), indices)
+            values = [pd.Categorical(v) for v in values.T]
+
         self.df = DataFrame(values, index, columns)
         self.df2 = self.df.iloc[:-1]
 
-    def time_full_product(self):
+    def time_full_product(self, dtype):
         self.df.unstack()
 
-    def time_without_last_row(self):
+    def time_without_last_row(self, dtype):
         self.df2.unstack()
 
 

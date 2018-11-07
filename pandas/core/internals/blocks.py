@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import functools
 import warnings
 import inspect
 import re
@@ -34,6 +35,7 @@ from pandas.core.dtypes.common import (
     is_numeric_v_string_like, is_extension_type,
     is_extension_array_dtype,
     is_list_like,
+    is_sparse,
     is_re,
     is_re_compilable,
     pandas_dtype)
@@ -632,7 +634,10 @@ class Block(PandasObject):
             return self
 
         if klass is None:
-            if dtype == np.object_:
+            if is_sparse(self.values):
+                # special case sparse, Series[Sparse].astype(object) is sparse
+                klass = ExtensionBlock
+            elif is_object_dtype(dtype):
                 klass = ObjectBlock
             elif is_extension_array_dtype(dtype):
                 klass = ExtensionBlock
@@ -1429,7 +1434,7 @@ class Block(PandasObject):
             return False
         return array_equivalent(self.values, other.values)
 
-    def _unstack(self, unstacker_func, new_columns):
+    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
         """Return a list of unstacked blocks of self
 
         Parameters
@@ -1438,6 +1443,10 @@ class Block(PandasObject):
             Partially applied unstacker.
         new_columns : Index
             All columns of the unstacked BlockManager.
+        n_rows : int
+            Only used in ExtensionBlock.unstack
+        fill_value : int
+            Only used in ExtensionBlock.unstack
 
         Returns
         -------
@@ -1731,7 +1740,7 @@ class NonConsolidatableMixIn(object):
     def _try_cast_result(self, result, dtype=None):
         return result
 
-    def _unstack(self, unstacker_func, new_columns):
+    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
         """Return a list of unstacked blocks of self
 
         Parameters
@@ -1740,6 +1749,10 @@ class NonConsolidatableMixIn(object):
             Partially applied unstacker.
         new_columns : Index
             All columns of the unstacked BlockManager.
+        n_rows : int
+            Only used in ExtensionBlock.unstack
+        fill_value : int
+            Only used in ExtensionBlock.unstack
 
         Returns
         -------
@@ -1751,17 +1764,49 @@ class NonConsolidatableMixIn(object):
         # NonConsolidatable blocks can have a single item only, so we return
         # one block per item
         unstacker = unstacker_func(self.values.T)
-        new_items = unstacker.get_new_columns()
-        new_placement = new_columns.get_indexer(new_items)
-        new_values, mask = unstacker.get_new_values()
 
-        mask = mask.any(0)
+        new_placement, new_values, mask = self._get_unstack_items(
+            unstacker, new_columns
+        )
+
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
         blocks = [self.make_block_same_class(vals, [place])
                   for vals, place in zip(new_values, new_placement)]
         return blocks, mask
+
+    def _get_unstack_items(self, unstacker, new_columns):
+        """
+        Get the placement, values, and mask for a Block unstack.
+
+        This is shared between ObjectBlock and ExtensionBlock. They
+        differ in that ObjectBlock passes the values, while ExtensionBlock
+        passes the dummy ndarray of positions to be used by a take
+        later.
+
+        Parameters
+        ----------
+        unstacker : pandas.core.reshape.reshape._Unstacker
+        new_columns : Index
+            All columns of the unstacked BlockManager.
+
+        Returns
+        -------
+        new_placement : ndarray[int]
+            The placement of the new columns in `new_columns`.
+        new_values : Union[ndarray, ExtensionArray]
+            The first return value from _Unstacker.get_new_values.
+        mask : ndarray[bool]
+            The second return value from _Unstacker.get_new_values.
+        """
+        # shared with ExtensionBlock
+        new_items = unstacker.get_new_columns()
+        new_placement = new_columns.get_indexer(new_items)
+        new_values, mask = unstacker.get_new_values()
+
+        mask = mask.any(0)
+        return new_placement, new_values, mask
 
 
 class ExtensionBlock(NonConsolidatableMixIn, Block):
@@ -1949,6 +1994,30 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     @property
     def _ftype(self):
         return getattr(self.values, '_pandas_ftype', Block._ftype)
+
+    def _unstack(self, unstacker_func, new_columns, n_rows, fill_value):
+        # ExtensionArray-safe unstack.
+        # We override ObjectBlock._unstack, which unstacks directly on the
+        # values of the array. For EA-backed blocks, this would require
+        # converting to a 2-D ndarray of objects.
+        # Instead, we unstack an ndarray of integer positions, followed by
+        # a `take` on the actual values.
+        dummy_arr = np.arange(n_rows)
+        dummy_unstacker = functools.partial(unstacker_func, fill_value=-1)
+        unstacker = dummy_unstacker(dummy_arr)
+
+        new_placement, new_values, mask = self._get_unstack_items(
+            unstacker, new_columns
+        )
+
+        blocks = [
+            self.make_block_same_class(
+                self.values.take(indices, allow_fill=True,
+                                 fill_value=fill_value),
+                [place])
+            for indices, place in zip(new_values.T, new_placement)
+        ]
+        return blocks, mask
 
 
 class NumericBlock(Block):
