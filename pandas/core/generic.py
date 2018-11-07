@@ -7383,7 +7383,7 @@ class NDFrame(PandasObject, SelectionMixin):
             .. deprecated:: 0.18.0
                The new syntax is ``.resample(...).mean()``, or
                ``.resample(...).apply(<func>)``
-        axis : int, optional, default 0
+        axis : {0 or 'index'}, default 0
             Which axis to use for up- or down-sampling. For ``Series`` this
             will default to 0, i.e. `along the rows`. Must be
             ``DatetimeIndex``, ``TimedeltaIndex`` or ``PeriodIndex``.
@@ -7543,6 +7543,9 @@ class NDFrame(PandasObject, SelectionMixin):
         For a Series with a PeriodIndex, the keyword `convention` can be
         used to control whether to use the start or end of `rule`.
 
+        Resample a year by quarter using 'start' `convention`. Values are
+        assigned to the first quarter of the period.
+
         >>> s = pd.Series([1, 2], index=pd.period_range('2012-01-01',
         ...                                             freq='A',
         ...                                             periods=2))
@@ -7550,35 +7553,40 @@ class NDFrame(PandasObject, SelectionMixin):
         2012    1
         2013    2
         Freq: A-DEC, dtype: int64
+        >>> s.resample('Q', convention='start').asfreq()
+        2012Q1    1.0
+        2012Q2    NaN
+        2012Q3    NaN
+        2012Q4    NaN
+        2013Q1    2.0
+        2013Q2    NaN
+        2013Q3    NaN
+        2013Q4    NaN
+        Freq: Q-DEC, dtype: float64
 
-        Resample by month using 'start' `convention`. Values are assigned to
-        the first month of the period.
+        Resample quarters by month using 'end' `convention`. Values are
+        assigned to the last month of the period.
 
-        >>> s.resample('M', convention='start').asfreq().head()
-        2012-01    1.0
-        2012-02    NaN
-        2012-03    NaN
-        2012-04    NaN
-        2012-05    NaN
-        Freq: M, dtype: float64
-
-        Resample by month using 'end' `convention`. Values are assigned to
-        the last month of the period.
-
-        >>> s.resample('M', convention='end').asfreq()
-        2012-12    1.0
-        2013-01    NaN
-        2013-02    NaN
-        2013-03    NaN
-        2013-04    NaN
-        2013-05    NaN
-        2013-06    NaN
-        2013-07    NaN
-        2013-08    NaN
-        2013-09    NaN
-        2013-10    NaN
-        2013-11    NaN
-        2013-12    2.0
+        >>> q = pd.Series([1, 2, 3, 4], index=pd.period_range('2018-01-01',
+        ...                                             freq='Q',
+        ...                                             periods=4))
+        >>> q
+        2018Q1    1
+        2018Q2    2
+        2018Q3    3
+        2018Q4    4
+        Freq: Q-DEC, dtype: int64
+        >>> q.resample('M', convention='end').asfreq()
+        2018-03    1.0
+        2018-04    NaN
+        2018-05    NaN
+        2018-06    2.0
+        2018-07    NaN
+        2018-08    NaN
+        2018-09    3.0
+        2018-10    NaN
+        2018-11    NaN
+        2018-12    4.0
         Freq: M, dtype: float64
 
         For DataFrame objects, the keyword ``on`` can be used to specify the
