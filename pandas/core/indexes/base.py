@@ -2762,11 +2762,8 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
-        if len(other) == 0 or self.equals(other):
+        if self.equals(other):
             return self._get_consensus_name(other)
-
-        if len(self) == 0:
-            return other._get_consensus_name(self)
 
         # TODO: is_dtype_union_equal is a hack around
         # 1. buggy set ops with duplicates (GH #13432)
@@ -2775,7 +2772,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_dtype_union_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
-            return this.union(other)
+            # force object dtype, for empty index cases
+            return this.union(other).astype('O')
 
         # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self) or is_datetime64tz_dtype(self):

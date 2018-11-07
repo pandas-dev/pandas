@@ -660,10 +660,9 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
     def _assert_can_do_setop(self, other):
         super(PeriodIndex, self)._assert_can_do_setop(other)
 
-        if not isinstance(other, PeriodIndex):
-            raise ValueError('can only call with other PeriodIndex-ed objects')
-
-        if self.freq != other.freq:
+        # *Can't* use PeriodIndexes of different freqs
+        # *Can* use PeriodIndex/DatetimeIndex
+        if isinstance(other, PeriodIndex) and self.freq != other.freq:
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
 

@@ -1030,7 +1030,14 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _setop(op_name):
         def func(self, other):
-            other = self._as_like_interval_index(other)
+            try:
+                other = self._as_like_interval_index(other)
+            except (TypeError, ValueError):
+                # Currently this will cause difference operations to return
+                # object dtype as opposed to IntervalIndex, unlike other Index
+                # objects that return the same type when using `difference` on
+                # mismatched types
+                return getattr(self.astype('O'), op_name)(other)
 
             # GH 19016: ensure set op will not return a prohibited dtype
             subtypes = [self.dtype.subtype, other.dtype.subtype]
