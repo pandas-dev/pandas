@@ -1189,6 +1189,25 @@ class TestDatetimeIndexArithmetic(object):
         rng -= two_hours
         tm.assert_index_equal(rng, expected)
 
+    def test_dt64arr_add_sub_td64_nat(self, box, tz_naive_fixture):
+        # GH#23320 special handling for timedelta64("NaT")
+        tz = tz_naive_fixture
+        dti = pd.date_range("1994-04-01", periods=9, tz=tz, freq="QS")
+        other = np.timedelta64("NaT")
+        expected = pd.DatetimeIndex(["NaT"] * 9, tz=tz)
+
+        obj = tm.box_expected(dti, box)
+        expected = tm.box_expected(expected, box)
+
+        result = obj + other
+        tm.assert_equal(result, expected)
+        result = other + obj
+        tm.assert_equal(result, expected)
+        result = obj - other
+        tm.assert_equal(result, expected)
+        with pytest.raises(TypeError):
+            other - obj
+
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and TimedeltaIndex/array
     def test_dti_add_tdi(self, tz_naive_fixture):

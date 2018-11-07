@@ -2,16 +2,16 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.generic import ABCIndexClass
+
 import pandas as pd
-import pandas.util.testing as tm
 from pandas.api.types import is_float, is_float_dtype, is_integer, is_scalar
 from pandas.core.arrays import IntegerArray, integer_array
 from pandas.core.arrays.integer import (
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype, UInt16Dtype,
-    UInt32Dtype, UInt64Dtype
-)
-from pandas.core.dtypes.generic import ABCIndexClass
+    UInt32Dtype, UInt64Dtype)
 from pandas.tests.extension.base import BaseOpsUtil
+import pandas.util.testing as tm
 
 
 def make_data():
@@ -650,9 +650,10 @@ def test_preserve_dtypes(op):
 
     # groupby
     result = getattr(df.groupby("A"), op)()
+
     expected = pd.DataFrame({
         "B": np.array([1.0, 3.0]),
-        "C": np.array([1, 3], dtype="int64")
+        "C": integer_array([1, 3], dtype="Int64")
     }, index=pd.Index(['a', 'b'], name='A'))
     tm.assert_frame_equal(result, expected)
 
@@ -673,9 +674,10 @@ def test_reduce_to_float(op):
 
     # groupby
     result = getattr(df.groupby("A"), op)()
+
     expected = pd.DataFrame({
         "B": np.array([1.0, 3.0]),
-        "C": np.array([1, 3], dtype="float64")
+        "C": integer_array([1, 3], dtype="Int64")
     }, index=pd.Index(['a', 'b'], name='A'))
     tm.assert_frame_equal(result, expected)
 

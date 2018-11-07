@@ -44,7 +44,7 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
         if na_count == n:
             return NaN
 
-        tmp = <float64_t*> malloc((n - na_count) * sizeof(float64_t))
+        tmp = <float64_t*>malloc((n - na_count) * sizeof(float64_t))
 
         j = 0
         for i in range(n):
@@ -121,7 +121,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     counts[:] = _counts[1:]
 
     data = np.empty((K, N), dtype=np.float64)
-    ptr = <float64_t*> cnp.PyArray_DATA(data)
+    ptr = <float64_t*>cnp.PyArray_DATA(data)
 
     take_2d_axis1_float64_float64(values.T, indexer, out=data)
 
@@ -370,7 +370,7 @@ def group_any_all(ndarray[uint8_t] out,
     else:
         raise ValueError("'bool_func' must be either 'any' or 'all'!")
 
-    out.fill(1 - flag_val)
+    out[:] = 1 - flag_val
 
     with nogil:
         for i in range(N):
