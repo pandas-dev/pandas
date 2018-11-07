@@ -794,6 +794,67 @@ class TestIndex(Base):
 
         assert len(result) == 0
 
+    @pytest.mark.parametrize(
+        'fname, sname, expected_name',
+        [
+            ('A', 'A', 'A'),
+            ('A', 'B', None),
+            ('A', None, None),
+            (None, 'B', None),
+            (None, None, None),
+        ])
+    def test_corner_union(self, indices, fname, sname, expected_name):
+        # GH 9943 9862
+        # Test unions with various name combinations
+        # Do not test MultiIndex or repeats
+
+        if isinstance(indices, MultiIndex) or not indices.is_unique:
+            pytest.skip("Not for MultiIndex or repeated indices")
+
+        # Test copy.union(copy)
+        first = indices.copy().set_names(fname)
+        second = indices.copy().set_names(sname)
+        union = first.union(second)
+        expected = indices.copy().set_names(expected_name)
+        tm.assert_index_equal(union, expected)
+
+        # Test copy.union(empty)
+        first = indices.copy().set_names(fname)
+        second = indices.drop(indices).set_names(sname)
+        union = first.union(second)
+        expected = indices.copy().set_names(expected_name)
+        tm.assert_index_equal(union, expected)
+
+        # Test empty.union(copy)
+        first = indices.drop(indices).set_names(fname)
+        second = indices.copy().set_names(sname)
+        union = first.union(second)
+        expected = indices.copy().set_names(expected_name)
+        tm.assert_index_equal(union, expected)
+
+        # Test empty.union(empty)
+        first = indices.drop(indices).set_names(fname)
+        second = indices.drop(indices).set_names(sname)
+        union = first.union(second)
+        expected = indices.drop(indices).set_names(expected_name)
+        tm.assert_index_equal(union, expected)
+
+    def test_chained_union(self):
+        # Chained unions handles names correctly
+        i1 = Index([1, 2], name='i1')
+        i2 = Index([3, 4], name='i2')
+        i3 = Index([5, 6], name='i3')
+        union = i1.union(i2.union(i3))
+        expected = i1.union(i2).union(i3)
+        tm.assert_index_equal(union, expected)
+
+        j1 = Index([1, 2], name='j1')
+        j2 = Index([], name='j2')
+        j3 = Index([], name='j3')
+        union = j1.union(j2.union(j3))
+        expected = j1.union(j2).union(j3)
+        tm.assert_index_equal(union, expected)
+
     def test_union(self):
         # TODO: Replace with fixturesult
         first = self.strIndex[5:20]
@@ -832,7 +893,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("first_list", [list('ab'), list()])
     @pytest.mark.parametrize("second_list", [list('ab'), list()])
     @pytest.mark.parametrize("first_name, second_name, expected_name", [
-        ('A', 'B', None), (None, 'B', 'B'), ('A', None, 'A')])
+        ('A', 'B', None), (None, 'B', None), ('A', None, None)])
     def test_union_name_preservation(self, first_list, second_list, first_name,
                                      second_name, expected_name):
         first = Index(first_list, name=first_name)

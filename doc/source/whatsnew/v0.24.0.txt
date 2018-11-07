@@ -1221,6 +1221,8 @@ Indexing
 - Bug in `scalar in Index` if scalar is a float while the ``Index`` is of integer dtype (:issue:`22085`)
 - Bug in `MultiIndex.set_levels` when levels value is not subscriptable (:issue:`23273`)
 - Bug where setting a timedelta column by ``Index`` causes it to be casted to double, and therefore lose precision (:issue:`23511`)
+- Bug in :func:`Index.union` and :func:`Index.intersection` where name of the ``Index`` of the result was not computed correctly for certain cases (:issue:`9943`, :issue:`9862`)
+
 
 Missing
 ^^^^^^^
@@ -1317,6 +1319,7 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in :func:`pandas.concat` when joining resampled DataFrames with timezone aware index (:issue:`13783`)
+- Bug in :func:`pandas.concat` when joining only `Series` the `names` argument of `concat` is no longer ignored (:issue:`23490`)
 - Bug in :meth:`Series.combine_first` with ``datetime64[ns, tz]`` dtype which would return tz-naive result (:issue:`21469`)
 - Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``datetime64[ns, tz]`` dtype (:issue:`21546`)
 - Bug in :meth:`DataFrame.where` with an empty DataFrame and empty ``cond`` having non-bool dtype (:issue:`21947`)
