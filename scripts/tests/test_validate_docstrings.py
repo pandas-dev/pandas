@@ -345,6 +345,11 @@ class BadGenericDocStrings(object):
         """
         pass
 
+    def private_classes(self):
+        """
+        This mentions NDFrame, which is not correct.
+        """
+
 
 class BadSummaries(object):
 
@@ -688,7 +693,8 @@ class TestValidator(object):
 
     @capture_stderr
     @pytest.mark.parametrize("func", [
-        'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method'])
+        'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method',
+        'private_classes'])
     def test_bad_generic_functions(self, func):
         errors = validate_one(self._import_path(  # noqa:F821
             klass='BadGenericDocStrings', func=func))['errors']
@@ -697,6 +703,9 @@ class TestValidator(object):
 
     @pytest.mark.parametrize("klass,func,msgs", [
         # See Also tests
+        ('BadGenericDocStrings', 'private_classes',
+         ("Private classes (NDFrame) should not be mentioned in public "
+          'docstrings',)),
         ('BadSeeAlso', 'desc_no_period',
          ('Missing period at end of description for See Also "Series.iloc"',)),
         ('BadSeeAlso', 'desc_first_letter_lowercase',
