@@ -82,6 +82,11 @@ class TestDatetimeArray(object):
         result = np.array(arr)
         tm.assert_numpy_array_equal(result, expected)
 
+        # check that we are not making copies when setting copy=False
+        result = np.array(arr, copy=False)
+        assert result.base is expected.base
+        assert result.base is not None
+
     def test_array_i8_dtype(self, tz_naive_fixture):
         # GH#23524
         tz = tz_naive_fixture
@@ -94,6 +99,11 @@ class TestDatetimeArray(object):
 
         result = np.array(arr, dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
+
+        # check that we are not making copies when setting copy=False
+        result = np.array(arr, dtype='i8', copy=False)
+        assert result.base is expected.base
+        assert result.base is not None
 
     def test_from_dti(self, tz_naive_fixture):
         tz = tz_naive_fixture
