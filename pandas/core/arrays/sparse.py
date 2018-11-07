@@ -1229,8 +1229,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # we rely on the assumption that "string fill_value" means strings
         # which is close enough to being true.
         if (is_object_dtype(dtype.subtype) and
-                isinstance(dtype.fill_value, compat.text_type)):
-            subtype = str
+                isinstance(dtype.fill_value, compat.string_types)):
+            subtype = compat.text_type
         else:
             subtype = dtype.subtype
 
