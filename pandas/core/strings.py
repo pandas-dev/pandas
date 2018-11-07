@@ -2074,9 +2074,10 @@ class StringMethods(NoNewAttributesMixin):
 
             If others is None, the method returns the concatenation of all
             strings in the calling Series/Index.
-        sep : string or None, default None
-            If None, concatenates without any separator.
-        na_rep : string or None, default None
+        sep : str, default ''
+            The separator between the different elements/columns. By default
+            the empty string `''` is used.
+        na_rep : str or None, default None
             Representation that is inserted for all missing values:
 
             - If `na_rep` is None, and `others` is None, missing values in the

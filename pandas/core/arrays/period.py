@@ -35,7 +35,7 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCPeriodIndex
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.missing import pad_1d, backfill_1d
 
 import pandas.core.common as com
@@ -149,6 +149,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     period_array : Create a new PeriodArray
     pandas.PeriodIndex : Immutable Index for period data
     """
+    # array priority higher than numpy scalars
+    __array_priority__ = 1000
     _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
 
@@ -165,7 +167,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     # --------------------------------------------------------------------
     # Constructors
-    def __init__(self, values, freq=None, copy=False):
+
+    def __init__(self, values, freq=None, dtype=None, copy=False):
+        freq = dtl.validate_dtype_freq(dtype, freq)
+
         if freq is not None:
             freq = Period._maybe_convert_freq(freq)
 
@@ -758,12 +763,15 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         assert isinstance(self.freq, Tick)  # checked by calling function
         assert isinstance(other, (timedelta, np.timedelta64, Tick))
 
-        delta = self._check_timedeltalike_freq_compat(other)
+        if notna(other):
+            # special handling for np.timedelta64("NaT"), avoid calling
+            #  _check_timedeltalike_freq_compat as that would raise TypeError
+            other = self._check_timedeltalike_freq_compat(other)
 
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here
         #  is an integer, delta_to_nanoseconds will return it unchanged.
-        ordinals = super(PeriodArray, self)._add_timedeltalike_scalar(delta)
+        ordinals = super(PeriodArray, self)._add_timedeltalike_scalar(other)
         return ordinals
 
     def _add_delta_tdi(self, other):

@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas._libs import tslibs
 from pandas._libs.tslibs import period as libperiod
 from pandas.compat import lrange
 
@@ -363,7 +362,9 @@ class TestIndexing(object):
         assert idx0.get_loc(p2) == expected_idx1_p2
         assert idx0.get_loc(str(p2)) == expected_idx1_p2
 
-        pytest.raises(tslibs.parsing.DateParseError, idx0.get_loc, 'foo')
+        tm.assert_raises_regex(KeyError,
+                               "Cannot interpret 'foo' as period",
+                               idx0.get_loc, 'foo')
         pytest.raises(KeyError, idx0.get_loc, 1.1)
         pytest.raises(TypeError, idx0.get_loc, idx0)
 
@@ -378,7 +379,9 @@ class TestIndexing(object):
         assert idx1.get_loc(p2) == expected_idx1_p2
         assert idx1.get_loc(str(p2)) == expected_idx1_p2
 
-        pytest.raises(tslibs.parsing.DateParseError, idx1.get_loc, 'foo')
+        tm.assert_raises_regex(KeyError,
+                               "Cannot interpret 'foo' as period",
+                               idx1.get_loc, 'foo')
         pytest.raises(KeyError, idx1.get_loc, 1.1)
         pytest.raises(TypeError, idx1.get_loc, idx1)
 
