@@ -2,19 +2,27 @@
 SparseArray data structure
 """
 from __future__ import division
-# pylint: disable=E1101,E1103,W0231
 
-import numpy as np
 import warnings
 
-import pandas as pd
-from pandas.core.base import PandasObject, IndexOpsMixin
+import numpy as np
 
+import pandas as pd
+import pandas._libs.lib as lib
+import pandas._libs.sparse as splib
+import pandas.core.algorithms as algos
+import pandas.core.ops as ops
+import pandas.io.formats.printing as printing
 from pandas import compat
+from pandas._libs import index as libindex
+from pandas._libs.sparse import SparseIndex, BlockIndex, IntIndex
 from pandas.compat import range, PYPY
 from pandas.compat.numpy import function as nv
-
-from pandas.core.dtypes.generic import ABCSparseSeries
+from pandas.core.base import PandasObject, IndexOpsMixin
+from pandas.core.dtypes.cast import (
+    maybe_convert_platform, maybe_promote,
+    astype_nansafe, find_common_type, infer_dtype_from_scalar,
+    construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_float, is_integer,
@@ -24,21 +32,12 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_string_dtype,
     is_scalar, is_dtype_equal)
-from pandas.core.dtypes.cast import (
-    maybe_convert_platform, maybe_promote,
-    astype_nansafe, find_common_type, infer_dtype_from_scalar,
-    construct_1d_arraylike_from_scalar)
+from pandas.core.dtypes.generic import ABCSparseSeries
 from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
-
-import pandas._libs.sparse as splib
-import pandas._libs.lib as lib
-from pandas._libs.sparse import SparseIndex, BlockIndex, IntIndex
-from pandas._libs import index as libindex
-import pandas.core.algorithms as algos
-import pandas.core.ops as ops
-import pandas.io.formats.printing as printing
-from pandas.util._decorators import Appender
 from pandas.core.indexes.base import _index_shared_docs
+from pandas.util._decorators import Appender
+
+# pylint: disable=E1101,E1103,W0231
 
 
 _sparray_doc_kwargs = dict(klass='SparseArray')
@@ -316,6 +315,7 @@ class SparseArray(PandasObject, np.ndarray):
 
     def disable(self, other):
         raise NotImplementedError('inplace binary ops not supported')
+
     # Inplace operators
     __iadd__ = disable
     __isub__ = disable
@@ -492,8 +492,8 @@ class SparseArray(PandasObject, np.ndarray):
             indexer = indexer[mask]
             new_values = self.sp_values.take(locs[mask])
         else:
-            indexer = np.empty(shape=(0, ), dtype=np.int32)
-            new_values = np.empty(shape=(0, ), dtype=self.sp_values.dtype)
+            indexer = np.empty(shape=(0,), dtype=np.int32)
+            new_values = np.empty(shape=(0,), dtype=self.sp_values.dtype)
 
         sp_index = _make_index(len(indices), indexer, kind=self.sp_index)
         return self._simple_new(new_values, sp_index, self.fill_value)
@@ -736,8 +736,13 @@ class SparseArray(PandasObject, np.ndarray):
         return result
 
     def nonzero(self):
-        nonzero_locations = super(SparseArray, self).nonzero()[0].astype(int32)
-        real_nonzero_locations = np.zeros(len(nonzero_locations), dtype=int32)
+        nonzero_locations = super(SparseArray, self) \
+            .nonzero()[0] \
+            .astype(np.int32)
+        real_nonzero_locations = np.zeros(
+            len(nonzero_locations),
+            dtype=np.int32
+        )
         real_location = 0
         for i_loc, location in enumerate(nonzero_locations):
             # TODO: One could vectorize the operation and/or implement binary
@@ -747,6 +752,7 @@ class SparseArray(PandasObject, np.ndarray):
             real_nonzero_locations[i_loc] = real_location
             real_location += 1
         return real_nonzero_locations.reshape(1, len(real_nonzero_locations))
+
 
 def _maybe_to_dense(obj):
     """ try to convert to dense """
@@ -842,7 +848,6 @@ def make_sparse(arr, kind='block', fill_value=None):
 
 
 def _make_index(length, indices, kind):
-
     if kind == 'block' or isinstance(kind, BlockIndex):
         locs, lens = splib.get_blocks(indices)
         index = BlockIndex(length, locs, lens)
