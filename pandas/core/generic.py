@@ -7443,6 +7443,10 @@ class NDFrame(PandasObject, SelectionMixin):
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
+        See Also
+        --------
+        groupby : Group by mapping, function, label, or list of labels.
+
         Examples
         --------
 
@@ -7540,10 +7544,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2000-01-01 00:06:00    26
         Freq: 3T, dtype: int64
 
-        For a Series with a PeriodIndex, the keyword `convention` can be
+        For a Series with a PeriodIndex, the keyword ``convention`` can be
         used to control whether to use the start or end of `rule`.
 
-        Resample a year by quarter using 'start' `convention`. Values are
+        Resample a year by quarter using 'start' ``convention``. Values are
         assigned to the first quarter of the period.
 
         >>> s = pd.Series([1, 2], index=pd.period_range('2012-01-01',
@@ -7564,12 +7568,12 @@ class NDFrame(PandasObject, SelectionMixin):
         2013Q4    NaN
         Freq: Q-DEC, dtype: float64
 
-        Resample quarters by month using 'end' `convention`. Values are
+        Resample quarters by month using 'end' ``convention``. Values are
         assigned to the last month of the period.
 
         >>> q = pd.Series([1, 2, 3, 4], index=pd.period_range('2018-01-01',
-        ...                                             freq='Q',
-        ...                                             periods=4))
+        ...                                                   freq='Q',
+        ...                                                   periods=4))
         >>> q
         2018Q1    1
         2018Q2    2
@@ -7589,7 +7593,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2018-12    4.0
         Freq: M, dtype: float64
 
-        For DataFrame objects, the keyword `on` can be used to specify the
+        For DataFrame objects, the keyword ``on`` can be used to specify the
         column instead of the index for resampling.
 
         >>> d = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
@@ -7615,21 +7619,33 @@ class NDFrame(PandasObject, SelectionMixin):
         2018-02-28     17.00    60.0
 
         For a DataFrame with MultiIndex, the keyword ``level`` can be used to
-        specify on level the resampling needs to take place.
+        specify on which level the resampling needs to take place.
 
-        >>> time = pd.date_range('1/1/2000', periods=5, freq='T')
-        >>> df2 = pd.DataFrame(data=10 * [range(4)],
-        ...                    columns=['a', 'b', 'c', 'd'],
-        ...                    index=pd.MultiIndex.from_product([time, [1, 2]])
-        ...                    )
-        >>> df2.resample('3T', level=0).sum()
-                             a  b   c   d
-        2000-01-01 00:00:00  0  6  12  18
-        2000-01-01 00:03:00  0  4   8  12
-
-        See also
-        --------
-        groupby : Group by mapping, function, label, or list of labels.
+        >>> days = pd.date_range('1/1/2000', periods=4, freq='D')
+        >>> d2 = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...           'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
+        >>> df2 = pd.DataFrame(
+        ...    d2,
+        ...    index=pd.MultiIndex.from_product(
+        ...        [days, ['morning', 'afternoon']]
+        ...    )
+        ... )
+        >>> df2
+                              price  volume
+        2000-01-01 morning       10      50
+                   afternoon     11      60
+        2000-01-02 morning        9      40
+                   afternoon     13     100
+        2000-01-03 morning       14      50
+                   afternoon     18     100
+        2000-01-04 morning       17      40
+                   afternoon     19      50
+        >>> df2.resample('D', level=0).sum()
+                    price  volume
+        2000-01-01     21     110
+        2000-01-02     22     140
+        2000-01-03     32     150
+        2000-01-04     36      90
         """
         from pandas.core.resample import (resample,
                                           _maybe_process_deprecations)
