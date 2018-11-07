@@ -137,9 +137,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         result = cls._simple_new(values, freq=freq)
         if freq_infer:
-            inferred = result.inferred_freq
-            if inferred:
-                result.freq = to_offset(inferred)
+            result.freq = to_offset(result.inferred_freq)
 
         return result
 

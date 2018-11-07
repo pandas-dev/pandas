@@ -54,8 +54,7 @@ class TestTimedeltaIndexOps(Ops):
             assert pd.isna(getattr(obj, op)())
 
     def test_numpy_minmax(self):
-        dr = pd.date_range(start='2016-01-15', end='2016-01-20')
-        td = TimedeltaIndex(np.asarray(dr))
+        td = timedelta_range('16815 days', '16820 days', freq='D')
 
         assert np.min(td) == Timedelta('16815 days')
         assert np.max(td) == Timedelta('16820 days')

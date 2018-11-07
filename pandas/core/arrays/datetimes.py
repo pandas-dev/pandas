@@ -221,9 +221,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         result = cls._simple_new(values, freq=freq, tz=tz)
         if freq_infer:
-            inferred = result.inferred_freq
-            if inferred:
-                result.freq = to_offset(inferred)
+            result.freq = to_offset(result.inferred_freq)
 
         # NB: Among other things not yet ported from the DatetimeIndex
         # constructor, this does not call _deepcopy_if_needed

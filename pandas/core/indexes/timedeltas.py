@@ -8,11 +8,16 @@ from pandas.core.dtypes.common import (
     is_float,
     is_list_like,
     is_scalar,
+    is_integer_dtype,
+    is_float_dtype,
+    is_object_dtype,
+    is_string_dtype,
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
     pandas_dtype,
     ensure_int64)
 from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays.timedeltas import (
     TimedeltaArrayMixin, _is_convertible_to_td, _to_m8)
@@ -35,7 +40,7 @@ from pandas.core.indexes.datetimelike import (
 from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas._libs import (lib, index as libindex,
-                          join as libjoin, Timedelta, NaT)
+                          join as libjoin, Timedelta, NaT, iNaT)
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
 
@@ -139,12 +144,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 periods=None, closed=None, dtype=None, copy=False,
                 name=None, verify_integrity=True):
 
-        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
-            if copy:
-                return data.copy()
-            else:
-                return data._shallow_copy()
-
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         if data is None:
@@ -154,32 +153,73 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             result.name = name
             return result
 
+        if is_scalar(data):
+            raise ValueError('{cls}() must be called with a '
+                             'collection of some kind, {data} was passed'
+                             .format(cls=cls.__name__, data=repr(data)))
+
+        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
+            if copy:
+                return data.copy()
+            else:
+                return data._shallow_copy()
+
+        # - Cases checked above all return/raise before reaching here - #
+
         if unit is not None:
             data = to_timedelta(data, unit=unit, box=False)
 
-        if is_scalar(data):
-            raise ValueError('TimedeltaIndex() must be called with a '
-                             'collection of some kind, {data} was passed'
-                             .format(data=repr(data)))
+        if not hasattr(data, 'dtype'):
+            # e.g. list, tuple
+            if np.ndim(data) == 0:
+                # i.e.g generator
+                data = list(data)
+            data = np.array(data, copy=False)
+        elif isinstance(data, ABCSeries):
+            data = data._values
+        elif isinstance(data, (cls, TimedeltaArrayMixin)):
+            data = data._data
 
-        # convert if not already
-        if getattr(data, 'dtype', None) != _TD_DTYPE:
-            data = to_timedelta(data, unit=unit, box=False)
-        elif copy:
-            data = np.array(data, copy=True)
+        if is_object_dtype(data) or is_string_dtype(data):
+            # no need to make a copy, need to convert if string-dtyped
+            data = np.array(data, dtype=np.object_, copy=False)
+            data = array_to_timedelta64(data).view(_TD_DTYPE)
+            copy = False
 
-        data = np.array(data, copy=False)
-        if data.dtype == np.object_:
-            data = array_to_timedelta64(data)
-        if data.dtype != _TD_DTYPE:
-            if is_timedelta64_dtype(data):
+        elif is_integer_dtype(data):
+            # treat as nanoseconds
+            # if something other than int64, convert
+            data = ensure_int64(data)
+            if copy:
+                # TODO: can we avoid branching here? `astype(data, copy=False)`
+                #  appears to be making a copy
+                data = data.astype(_TD_DTYPE)
+                copy = False
+            else:
+                data = data.view(_TD_DTYPE)
+
+        elif is_float_dtype(data):
+            # We allow it if and only if it can be converted lossessly
+            mask = np.isnan(data)
+            casted = data.astype(np.int64)
+            if not (casted[~mask] == data[~mask]).all():
+                raise TypeError("floating-dtype data cannot be losslessly "
+                                "converted to {cls}".format(cls=cls.__name__))
+            data = casted.view(_TD_DTYPE)
+            data[mask] = iNaT
+
+        elif is_timedelta64_dtype(data):
+            if data.dtype != _TD_DTYPE:
                 # non-nano unit
                 # TODO: watch out for overflows
                 data = data.astype(_TD_DTYPE)
-            else:
-                data = ensure_int64(data).view(_TD_DTYPE)
 
-        assert data.dtype == 'm8[ns]', data.dtype
+        else:
+            raise TypeError("dtype {dtype} is invalid for constructing {cls}"
+                            .format(dtype=data.dtype, cls=cls.__name__))
+
+        data = np.array(data, copy=copy)
+        assert data.dtype == 'm8[ns]', data
 
         subarr = cls._simple_new(data, name=name, freq=freq)
         # check that we are matching freqs
@@ -188,9 +228,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 cls._validate_frequency(subarr, freq)
 
         if freq_infer:
-            inferred = subarr.inferred_freq
-            if inferred:
-                subarr.freq = to_offset(inferred)
+            subarr.freq = to_offset(subarr.inferred_freq)
 
         return subarr
 
