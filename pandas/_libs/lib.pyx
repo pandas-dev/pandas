@@ -52,8 +52,8 @@ from util cimport (is_nan,
                    UINT8_MAX, UINT64_MAX, INT64_MAX, INT64_MIN)
 
 from tslib import array_to_datetime
-from tslibs.nattype import NaT
 from tslibs.conversion cimport convert_to_tsobject
+from tslibs.nattype cimport NAT, NPY_NAT
 from tslibs.timedeltas cimport convert_to_timedelta64
 from tslibs.timezones cimport get_timezone, tz_compare
 
@@ -66,9 +66,6 @@ from missing cimport (checknull, isnaobj,
 cdef object oINT64_MAX = <int64_t>INT64_MAX
 cdef object oINT64_MIN = <int64_t>INT64_MIN
 cdef object oUINT64_MAX = <uint64_t>UINT64_MAX
-
-cdef int64_t NPY_NAT = util.get_nat()
-iNaT = util.get_nat()
 
 cdef bint PY2 = sys.version_info[0] == 2
 cdef float64_t nan = <float64_t>np.NaN
@@ -104,7 +101,7 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 # ----------------------------------------------------------------------
 
 
-def is_scalar(val: object) -> bint:
+def is_scalar(val: object) -> bool:
     """
     Return True if given value is scalar.
 
@@ -628,7 +625,7 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
 
     nat_count = 0
     if hasnans:
-        mask = values == iNaT
+        mask = values == NPY_NAT
         nat_count = np.sum(mask)
         values = values[~mask]
 
@@ -1206,7 +1203,7 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
         # np.datetime64('nat') and np.timedelta64('nat')
         if val is None or util.is_nan(val):
             pass
-        elif val is NaT:
+        elif val is NAT:
             seen_pdnat = True
         else:
             seen_val = True
@@ -1335,7 +1332,7 @@ def infer_datetimelike_array(arr: object) -> object:
         elif v is None or util.is_nan(v):
             # nan or None
             pass
-        elif v is NaT:
+        elif v is NAT:
             seen_nat = 1
         elif PyDateTime_Check(v):
             # datetime
@@ -1647,12 +1644,12 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
 
     for i in range(n):
         base_val = values[i]
-        if base_val is not NaT:
+        if base_val is not NAT:
             base_tz = get_timezone(getattr(base_val, 'tzinfo', None))
 
             for j in range(i, n):
                 val = values[j]
-                if val is not NaT:
+                if val is not NAT:
                     tz = getattr(val, 'tzinfo', None)
                     if not tz_compare(base_tz, tz):
                         return False
@@ -1965,12 +1962,12 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         if val is None:
             seen.null_ = 1
             floats[i] = complexes[i] = fnan
-        elif val is NaT:
+        elif val is NAT:
             if convert_datetime:
-                idatetimes[i] = iNaT
+                idatetimes[i] = NPY_NAT
                 seen.datetime_ = 1
             if convert_timedelta:
-                itimedeltas[i] = iNaT
+                itimedeltas[i] = NPY_NAT
                 seen.timedelta_ = 1
             if not (convert_datetime or convert_timedelta):
                 seen.object_ = 1

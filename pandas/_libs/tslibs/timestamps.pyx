@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import enum
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
@@ -22,10 +23,8 @@ cimport ccalendar
 from conversion import tz_localize_to_utc, normalize_i8_timestamps
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
-import enum
 from fields import get_start_end_field, get_date_name_field
-from nattype import NaT
-from nattype cimport NPY_NAT
+from nattype cimport NPY_NAT, NAT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
                           npy_datetimestruct, dt64_to_dtstruct)
@@ -204,7 +203,7 @@ cdef class _Timestamp(datetime):
 
         if isinstance(other, _Timestamp):
             ots = other
-        elif other is NaT:
+        elif other is NAT:
             return op == Py_NE
         elif PyDateTime_Check(other):
             if self.nanosecond == 0:
@@ -339,9 +338,9 @@ cdef class _Timestamp(datetime):
         elif is_integer_object(other):
             maybe_integer_op_deprecated(self)
 
-            if self is NaT:
+            if self is NAT:
                 # to be compat with Period
-                return NaT
+                return NAT
             elif self.freq is None:
                 raise ValueError("Cannot add integral value to Timestamp "
                                  "without freq.")
@@ -383,8 +382,8 @@ cdef class _Timestamp(datetime):
         elif getattr(other, '_typ', None) == 'timedeltaindex':
             return (-other).__add__(self)
 
-        elif other is NaT:
-            return NaT
+        elif other is NAT:
+            return NAT
 
         # coerce if necessary if we are a Timestamp-like
         if (PyDateTime_Check(self)
@@ -730,7 +729,7 @@ class Timestamp(_Timestamp):
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
 
         if ts.value == NPY_NAT:
-            return NaT
+            return NAT
 
         if is_string_object(freq):
             freq = to_offset(freq)

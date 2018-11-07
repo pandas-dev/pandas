@@ -37,8 +37,9 @@ from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 get_datetime64_nanos,
                                 tz_convert_utc_to_tzlocal)
 
-from tslibs.nattype import NaT, nat_strings, iNaT
-from tslibs.nattype cimport checknull_with_nat, NPY_NAT
+# _many_ modules still look for NaT and iNaT here despite them not being needed
+from tslibs.nattype import nat_strings, NaT, iNaT  # noqa:F821
+from tslibs.nattype cimport checknull_with_nat, NPY_NAT, NAT
 
 from tslibs.offsets cimport to_offset
 
@@ -125,7 +126,7 @@ def ints_to_pydatetime(int64_t[:] arr, tz=None, freq=None, box="datetime"):
         for i in range(n):
             value = arr[i]
             if value == NPY_NAT:
-                result[i] = NaT
+                result[i] = NAT
             else:
                 dt64_to_dtstruct(value, &dts)
                 result[i] = func_create(value, dts, tz, freq)
@@ -133,7 +134,7 @@ def ints_to_pydatetime(int64_t[:] arr, tz=None, freq=None, box="datetime"):
         for i in range(n):
             value = arr[i]
             if value == NPY_NAT:
-                result[i] = NaT
+                result[i] = NAT
             else:
                 # Python datetime objects do not support nanosecond
                 # resolution (yet, PEP 564). Need to compute new value
@@ -150,7 +151,7 @@ def ints_to_pydatetime(int64_t[:] arr, tz=None, freq=None, box="datetime"):
             for i in range(n):
                 value = arr[i]
                 if value == NPY_NAT:
-                    result[i] = NaT
+                    result[i] = NAT
                 else:
                     # Adjust datetime64 timestamp, recompute datetimestruct
                     dt64_to_dtstruct(value + delta, &dts)
@@ -162,7 +163,7 @@ def ints_to_pydatetime(int64_t[:] arr, tz=None, freq=None, box="datetime"):
             for i in range(n):
                 value = arr[i]
                 if value == NPY_NAT:
-                    result[i] = NaT
+                    result[i] = NAT
                 else:
                     # Adjust datetime64 timestamp, recompute datetimestruct
                     pos = trans.searchsorted(value, side='right') - 1
@@ -173,7 +174,7 @@ def ints_to_pydatetime(int64_t[:] arr, tz=None, freq=None, box="datetime"):
             for i in range(n):
                 value = arr[i]
                 if value == NPY_NAT:
-                    result[i] = NaT
+                    result[i] = NAT
                 else:
                     # Adjust datetime64 timestamp, recompute datetimestruct
                     pos = trans.searchsorted(value, side='right') - 1
@@ -335,7 +336,7 @@ def array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         # then need to iterate
         try:
             iresult = values.astype('i8', casting='same_kind', copy=False)
-            mask = iresult == iNaT
+            mask = iresult == NPY_NAT
             iresult[mask] = 0
             fvalues = iresult.astype('f8') * m
             need_to_iterate = False
@@ -351,7 +352,7 @@ def array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                                           "'{unit}'".format(unit=unit))
             result = (iresult * m).astype('M8[ns]')
             iresult = result.view('i8')
-            iresult[mask] = iNaT
+            iresult[mask] = NPY_NAT
             return result
 
     result = np.empty(n, dtype='M8[ns]')
@@ -428,11 +429,11 @@ def array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         val = values[i]
 
         if checknull_with_nat(val):
-            oresult[i] = NaT
+            oresult[i] = NAT
         elif is_integer_object(val) or is_float_object(val):
 
             if val != val or val == NPY_NAT:
-                oresult[i] = NaT
+                oresult[i] = NAT
             else:
                 try:
                     oresult[i] = Timestamp(cast_from_unit(val, unit))
@@ -441,7 +442,7 @@ def array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
 
         elif is_string_object(val):
             if len(val) == 0 or val in nat_strings:
-                oresult[i] = NaT
+                oresult[i] = NAT
 
             else:
                 oresult[i] = val
@@ -739,10 +740,10 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 if isinstance(val, float):
                     oresult[i] = np.nan
                 else:
-                    oresult[i] = NaT
+                    oresult[i] = NAT
             elif is_datetime64_object(val):
                 if get_datetime64_value(val) == NPY_NAT:
-                    oresult[i] = NaT
+                    oresult[i] = NAT
                 else:
                     oresult[i] = val.item()
             else:

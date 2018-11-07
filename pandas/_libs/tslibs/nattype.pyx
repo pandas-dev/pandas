@@ -47,7 +47,7 @@ def _make_nan_func(func_name, doc):
 
 def _make_nat_func(func_name, doc):
     def f(*args, **kwargs):
-        return NaT
+        return NAT
     f.__name__ = func_name
     f.__doc__ = doc
     return f
@@ -67,10 +67,10 @@ def _make_error_func(func_name, cls):
 
 
 cdef _nat_divide_op(self, other):
-    if PyDelta_Check(other) or is_timedelta64_object(other) or other is NaT:
+    if PyDelta_Check(other) or is_timedelta64_object(other) or other is NAT:
         return np.nan
     if is_integer_object(other) or is_float_object(other):
-        return NaT
+        return NAT
     return NotImplemented
 
 
@@ -82,15 +82,16 @@ cdef _nat_rdivide_op(self, other):
 
 def __nat_unpickle(*args):
     # return constant defined in the module
-    return NaT
+    return NAT
 
 # ----------------------------------------------------------------------
 
 
 cdef class _NaT(datetime):
-    cdef readonly:
-        int64_t value
-        object freq
+    # Actual declarations are in the accompanying .pxd file
+    # cdef readonly:
+    #    int64_t value
+    #    object freq
 
     def __hash__(_NaT self):
         # py3k needs this defined here
@@ -116,26 +117,26 @@ cdef class _NaT(datetime):
 
     def __add__(self, other):
         if PyDateTime_Check(other):
-            return NaT
+            return NAT
 
         elif hasattr(other, 'delta'):
             # Timedelta, offsets.Tick, offsets.Week
-            return NaT
+            return NAT
         elif getattr(other, '_typ', None) in ['dateoffset', 'series',
                                               'period', 'datetimeindex',
                                               'timedeltaindex']:
             # Duplicate logic in _Timestamp.__add__ to avoid needing
             # to subclass; allows us to @final(_Timestamp.__add__)
             return NotImplemented
-        return NaT
+        return NAT
 
     def __sub__(self, other):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
         # to subclass; allows us to @final(_Timestamp.__sub__)
         if PyDateTime_Check(other):
-            return NaT
+            return NAT
         elif PyDelta_Check(other):
-            return NaT
+            return NAT
 
         elif getattr(other, '_typ', None) == 'datetimeindex':
             # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
@@ -154,13 +155,13 @@ cdef class _NaT(datetime):
                                               'periodindex', 'dateoffset']:
             return NotImplemented
 
-        return NaT
+        return NAT
 
     def __pos__(self):
-        return NaT
+        return NAT
 
     def __neg__(self):
-        return NaT
+        return NAT
 
     def __div__(self, other):
         return _nat_divide_op(self, other)
@@ -173,7 +174,7 @@ cdef class _NaT(datetime):
 
     def __mul__(self, other):
         if is_integer_object(other) or is_float_object(other):
-            return NaT
+            return NAT
         return NotImplemented
 
     @property
@@ -271,7 +272,7 @@ class NaTType(_NaT):
 
     def __rmul__(self, other):
         if is_integer_object(other) or is_float_object(other):
-            return NaT
+            return NAT
         return NotImplemented
 
     # ----------------------------------------------------------------------
@@ -660,13 +661,16 @@ class NaTType(_NaT):
 
 
 NaT = NaTType()
+# NAT is a C alias for NaT that can be checked for "if thing is NAT" without
+#  having to do a module-level lookup for NaT.
+cdef _NaT NAT = NaT
 
 
 # ----------------------------------------------------------------------
 
 cdef inline bint checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
-    return val is None or util.is_nan(val) or val is NaT
+    return val is None or util.is_nan(val) or val is NAT
 
 
 cdef inline bint is_null_datetimelike(object val):
@@ -683,7 +687,7 @@ cdef inline bint is_null_datetimelike(object val):
     """
     if val is None or util.is_nan(val):
         return True
-    elif val is NaT:
+    elif val is NAT:
         return True
     elif util.is_timedelta64_object(val):
         return val.view('int64') == NPY_NAT

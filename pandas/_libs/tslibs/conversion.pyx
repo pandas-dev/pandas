@@ -35,8 +35,8 @@ from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
                         get_timezone, maybe_get_tz, tz_compare)
 from parsing import parse_datetime_string
 
-from nattype import nat_strings, NaT
-from nattype cimport NPY_NAT, checknull_with_nat
+from nattype import nat_strings
+from nattype cimport NPY_NAT, checknull_with_nat, NAT
 
 # ----------------------------------------------------------------------
 # Constants
@@ -277,7 +277,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
     if is_string_object(ts):
         return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
-    if ts is None or ts is NaT:
+    if ts is None or ts is NAT:
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
         if ts.view('i8') == NPY_NAT:
@@ -425,7 +425,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
     assert is_string_object(ts)
 
     if len(ts) == 0 or ts in nat_strings:
-        ts = NaT
+        ts = NAT
     elif ts == 'now':
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns utc

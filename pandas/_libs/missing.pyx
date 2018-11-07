@@ -11,7 +11,7 @@ cnp.import_array()
 cimport util
 
 from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
-from tslibs.nattype import NaT
+from tslibs.nattype cimport NAT
 
 cdef float64_t INF = <float64_t>np.inf
 cdef float64_t NEGINF = -INF
@@ -25,7 +25,7 @@ cdef inline bint _check_all_nulls(object val):
 
     if isinstance(val, (float, complex)):
         res = val != val
-    elif val is NaT:
+    elif val is NAT:
         res = 1
     elif val is None:
         res = 1
@@ -65,7 +65,7 @@ cpdef bint checknull(object val):
         return val != val  # and val != INF and val != NEGINF
     elif util.is_datetime64_object(val):
         return get_datetime64_value(val) == NPY_NAT
-    elif val is NaT:
+    elif val is NAT:
         return True
     elif util.is_timedelta64_object(val):
         return get_timedelta64_value(val) == NPY_NAT
@@ -104,7 +104,7 @@ cpdef bint checknull_old(object val):
         return val != val or val == INF or val == NEGINF
     elif util.is_datetime64_object(val):
         return get_datetime64_value(val) == NPY_NAT
-    elif val is NaT:
+    elif val is NAT:
         return True
     elif util.is_timedelta64_object(val):
         return get_timedelta64_value(val) == NPY_NAT
@@ -188,7 +188,7 @@ def isnaobj_old(ndarray arr):
     result = np.zeros(n, dtype=np.uint8)
     for i in range(n):
         val = arr[i]
-        result[i] = val is NaT or _check_none_nan_inf_neginf(val)
+        result[i] = val is NAT or _check_none_nan_inf_neginf(val)
     return result.view(np.bool_)
 
 
@@ -297,7 +297,7 @@ cdef inline bint is_null_datetime64(v):
     # excluding np.timedelta64('nat')
     if v is None or util.is_nan(v):
         return True
-    elif v is NaT:
+    elif v is NAT:
         return True
     elif util.is_datetime64_object(v):
         return v.view('int64') == NPY_NAT
@@ -309,7 +309,7 @@ cdef inline bint is_null_timedelta64(v):
     # excluding np.datetime64('nat')
     if v is None or util.is_nan(v):
         return True
-    elif v is NaT:
+    elif v is NAT:
         return True
     elif util.is_timedelta64_object(v):
         return v.view('int64') == NPY_NAT
@@ -321,6 +321,6 @@ cdef inline bint is_null_period(v):
     # excluding np.datetime64('nat') and np.timedelta64('nat')
     if v is None or util.is_nan(v):
         return True
-    elif v is NaT:
+    elif v is NAT:
         return True
     return False

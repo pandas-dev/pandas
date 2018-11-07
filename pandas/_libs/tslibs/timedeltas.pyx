@@ -31,8 +31,8 @@ from util cimport (is_timedelta64_object, is_datetime64_object,
 from np_datetime cimport (cmp_scalar, reverse_ops, td64_to_tdstruct,
                           pandas_timedeltastruct)
 
-from nattype import nat_strings, NaT
-from nattype cimport checknull_with_nat, NPY_NAT
+from nattype import nat_strings
+from nattype cimport checknull_with_nat, NPY_NAT, NAT
 from offsets cimport to_offset
 
 # ----------------------------------------------------------------------
@@ -119,7 +119,7 @@ def ints_to_pytimedelta(int64_t[:] arr, box=False):
 
         value = arr[i]
         if value == NPY_NAT:
-            result[i] = NaT
+            result[i] = NAT
         else:
             if box:
                 result[i] = Timedelta(value)
@@ -568,8 +568,8 @@ def _binary_op_method_timedeltalike(op, name):
                 return op(self, other.delta)
             return NotImplemented
 
-        elif other is NaT:
-            return NaT
+        elif other is NAT:
+            return NAT
 
         elif is_timedelta64_object(other):
             # convert to Timedelta below; avoid catching this in
@@ -603,9 +603,9 @@ def _binary_op_method_timedeltalike(op, name):
             # failed to parse as timedelta
             return NotImplemented
 
-        if other is NaT:
+        if other is NAT:
             # e.g. if original other was timedelta64('NaT')
-            return NaT
+            return NAT
         return Timedelta(op(self.value, other.value), unit='ns')
 
     f.__name__ = name
@@ -1171,7 +1171,7 @@ class Timedelta(_Timedelta):
             unit = parse_timedelta_unit(unit)
             value = convert_to_timedelta64(value, unit)
         elif checknull_with_nat(value):
-            return NaT
+            return NAT
         else:
             raise ValueError(
                 "Value must be Timedelta, string, integer, "
@@ -1182,7 +1182,7 @@ class Timedelta(_Timedelta):
 
         # nat
         if value == NPY_NAT:
-            return NaT
+            return NAT
 
         # make timedelta happy
         td_base = _Timedelta.__new__(cls, microseconds=int(value) / 1000)
@@ -1270,13 +1270,13 @@ class Timedelta(_Timedelta):
             # i.e. np.nan, but also catch np.float64("NaN") which would
             #  otherwise get caught by the hasattr(other, "dtype") branch
             #  incorrectly return a np.timedelta64 object.
-            return NaT
+            return NAT
 
         elif hasattr(other, 'dtype'):
             # ndarray-like
             return other * self.to_timedelta64()
 
-        elif other is NaT:
+        elif other is NAT:
             raise TypeError('Cannot multiply Timedelta with NaT')
 
         elif not (is_integer_object(other) or is_float_object(other)):
@@ -1303,7 +1303,7 @@ class Timedelta(_Timedelta):
             # i.e. np.nan, but also catch np.float64("NaN") which would
             #  otherwise get caught by the hasattr(other, "dtype") branch
             #  incorrectly return a np.timedelta64 object.
-            return NaT
+            return NAT
 
         elif hasattr(other, 'dtype'):
             return self.to_timedelta64() / other
@@ -1316,7 +1316,7 @@ class Timedelta(_Timedelta):
             return NotImplemented
 
         other = Timedelta(other)
-        if other is NaT:
+        if other is NAT:
             return np.nan
         return self.value / float(other.value)
 
@@ -1339,8 +1339,8 @@ class Timedelta(_Timedelta):
             return NotImplemented
 
         other = Timedelta(other)
-        if other is NaT:
-            return NaT
+        if other is NAT:
+            return NAT
         return float(other.value) / self.value
 
     if not PY3:
@@ -1382,7 +1382,7 @@ class Timedelta(_Timedelta):
             return NotImplemented
 
         other = Timedelta(other)
-        if other is NaT:
+        if other is NAT:
             return np.nan
         return self.value // other.value
 
@@ -1428,7 +1428,7 @@ class Timedelta(_Timedelta):
             return NotImplemented
 
         other = Timedelta(other)
-        if other is NaT:
+        if other is NAT:
             return np.nan
         return other.value // self.value
 

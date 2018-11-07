@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 from libc.stdlib cimport malloc, free
 
@@ -108,7 +108,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     cdef:
         Py_ssize_t i, j, N, K, ngroups, size
         ndarray[int64_t] _counts
-        ndarray data
+        ndarray[float64_t, ndim=2] data
         float64_t* ptr
 
     assert min_count == -1, "'min_count' only used in add and prod"
@@ -138,8 +138,8 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cumprod_float64(float64_t[:, :] out,
-                          float64_t[:, :] values,
-                          int64_t[:] labels,
+                          const float64_t[:, :] values,
+                          const int64_t[:] labels,
                           bint is_datetimelike,
                           bint skipna=True):
     """
@@ -176,7 +176,7 @@ def group_cumprod_float64(float64_t[:, :] out,
 @cython.wraparound(False)
 def group_cumsum(numeric[:, :] out,
                  numeric[:, :] values,
-                 int64_t[:] labels,
+                 const int64_t[:] labels,
                  is_datetimelike,
                  bint skipna=True):
     """
@@ -216,7 +216,7 @@ def group_cumsum(numeric[:, :] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_shift_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
+def group_shift_indexer(int64_t[:] out, const int64_t[:] labels,
                         int ngroups, int periods):
     cdef:
         Py_ssize_t N, i, j, ii
@@ -290,7 +290,7 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
     """
     cdef:
         Py_ssize_t i, N
-        ndarray[int64_t] sorted_labels
+        int64_t[:] sorted_labels
         int64_t idx, curr_fill_idx=-1, filled_vals=0
 
     N = len(out)
@@ -326,10 +326,10 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_any_all(ndarray[uint8_t] out,
-                  ndarray[int64_t] labels,
-                  ndarray[uint8_t] values,
-                  ndarray[uint8_t] mask,
+def group_any_all(uint8_t[:] out,
+                  const int64_t[:] labels,
+                  const uint8_t[:] values,
+                  const uint8_t[:] mask,
                   object val_test,
                   bint skipna):
     """Aggregated boolean values to show truthfulness of group elements
