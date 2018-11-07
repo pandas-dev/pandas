@@ -419,7 +419,7 @@ class TestPeriodIndexArithmetic(object):
 
         with pytest.raises(period.IncompatibleFrequency):
             rng - tdarr
-        with pytest.raises(period.IncompatibleFrequency):
+        with pytest.raises(TypeError):
             tdarr - rng
 
     def test_pi_add_sub_td64_array_tick(self):
@@ -800,6 +800,24 @@ class TestPeriodIndexArithmetic(object):
             rng - other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng -= other
+
+    def test_parr_add_sub_td64_nat(self, box):
+        # GH#23320 special handling for timedelta64("NaT")
+        pi = pd.period_range("1994-04-01", periods=9, freq="19D")
+        other = np.timedelta64("NaT")
+        expected = pd.PeriodIndex(["NaT"] * 9, freq="19D")
+
+        obj = tm.box_expected(pi, box)
+        expected = tm.box_expected(expected, box)
+
+        result = obj + other
+        tm.assert_equal(result, expected)
+        result = other + obj
+        tm.assert_equal(result, expected)
+        result = obj - other
+        tm.assert_equal(result, expected)
+        with pytest.raises(TypeError):
+            other - obj
 
 
 class TestPeriodSeriesArithmetic(object):
