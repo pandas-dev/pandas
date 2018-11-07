@@ -10,6 +10,29 @@ from pandas import TimedeltaIndex, timedelta_range, to_timedelta
 
 class TestTimedeltaIndex(object):
 
+    def test_dt64_data_invalid(self):
+        dti = pd.date_range('2016-01-01', periods=3)
+        with pytest.raises(TypeError):
+            TimedeltaIndex(dti)
+
+        with pytest.raises(TypeError):
+            TimedeltaIndex(np.asarray(dti))
+
+    def test_float64_lossy_invalid(self):
+        # passing floats that would be truncated is unsupported
+        with pytest.raises(TypeError):
+            TimedeltaIndex([2.3, 9.0])
+
+        # but non-lossy floats are OK
+        tdi = TimedeltaIndex([2.0, 9.0])
+        expected = TimedeltaIndex([2, 9])
+        tm.assert_index_equal(tdi, expected)
+
+        # NaNs get converted to NaT
+        tdi = TimedeltaIndex([2.0, np.nan])
+        expected = TimedeltaIndex([pd.Timedelta(nanoseconds=2), pd.NaT])
+        tm.assert_index_equal(tdi, expected)
+
     def test_construction_base_constructor(self):
         arr = [pd.Timedelta('1 days'), pd.NaT, pd.Timedelta('3 days')]
         tm.assert_index_equal(pd.Index(arr), pd.TimedeltaIndex(arr))
