@@ -1614,7 +1614,7 @@ class MultiIndex(Index):
             return tuple(retval)
         else:
             if com.is_bool_indexer(key):
-                key = np.asarray(key)
+                key = np.asarray(key, dtype=bool)
                 sortorder = self.sortorder
             else:
                 # cannot be sure whether the result will be sorted
