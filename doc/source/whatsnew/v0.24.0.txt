@@ -462,7 +462,6 @@ that the dates have been converted to UTC
 
     pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
 
-
 .. _whatsnew_0240.api_breaking.calendarday:
 
 CalendarDay Offset
@@ -1245,6 +1244,7 @@ I/O
 ^^^
 
 - Bug in :meth:`to_sql` when writing timezone aware data (``datetime64[ns, tz]`` dtype) would raise a ``TypeError`` (:issue:`9086`)
+- Bug in :meth:`to_sql` where a naive DatetimeIndex would be written as ``TIMESTAMP WITH TIMEZONE`` type in supported databases, e.g. PostgreSQL (:issue:`23510`)
 
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
