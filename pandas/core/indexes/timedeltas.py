@@ -1,5 +1,6 @@
 """ implement the TimedeltaIndex """
 from datetime import datetime
+import warnings
 
 import numpy as np
 from pandas.core.dtypes.common import (
@@ -12,6 +13,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_object_dtype,
     is_string_dtype,
+    is_datetime64_dtype,
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
     pandas_dtype,
@@ -173,7 +175,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         if not hasattr(data, 'dtype'):
             # e.g. list, tuple
             if np.ndim(data) == 0:
-                # i.e.g generator
+                # i.e. generator
                 data = list(data)
             data = np.array(data, copy=False)
         elif isinstance(data, ABCSeries):
@@ -199,7 +201,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             else:
                 data = data.view(_TD_DTYPE)
         elif is_float_dtype(data):
-            # We allow it if and only if it can be converted lossessly
+            # We allow it if and only if it can be converted losslessly
             mask = np.isnan(data)
             casted = data.astype(np.int64)
             if not (casted[~mask] == data[~mask]).all():
@@ -214,6 +216,13 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 # TODO: watch out for overflows
                 data = data.astype(_TD_DTYPE)
                 copy = False
+        elif is_datetime64_dtype(data):
+            # GH#23539
+            warnings.warn("Passing datetime64-dtype data to {cls} is "
+                          "deprecated, will raise a TypeError in a future "
+                          "version".format(cls=cls.__name__),
+                          FutureWarning, stacklevel=2)
+            data = ensure_int64(data).view(_TD_DTYPE)
         else:
             raise TypeError("dtype {dtype} is invalid for constructing {cls}"
                             .format(dtype=data.dtype, cls=cls.__name__))

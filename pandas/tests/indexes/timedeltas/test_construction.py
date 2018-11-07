@@ -12,16 +12,22 @@ class TestTimedeltaIndex(object):
 
     def test_dt64_data_invalid(self):
         # GH#23539
+        # passing tz-aware DatetimeIndex raises, naive or ndarray[datetime64]
+        #  does not yet, but will in the future
         dti = pd.date_range('2016-01-01', periods=3)
-        with pytest.raises(TypeError):
+
+        with tm.assert_raises_regex(TypeError, "is invalid for constructing"):
+            TimedeltaIndex(dti.tz_localize('Europe/Brussels'))
+
+        with tm.assert_produces_warning(FutureWarning):
             TimedeltaIndex(dti)
 
-        with pytest.raises(TypeError):
+        with tm.assert_produces_warning(FutureWarning):
             TimedeltaIndex(np.asarray(dti))
 
     def test_float64_lossy_invalid(self):
         # GH#23539 passing floats that would be truncated is unsupported
-        with pytest.raises(TypeError):
+        with tm.assert_raises_regex(TypeError, "data cannot be losslessly"):
             TimedeltaIndex([2.3, 9.0])
 
         # but non-lossy floats are OK
