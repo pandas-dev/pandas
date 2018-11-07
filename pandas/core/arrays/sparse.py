@@ -614,7 +614,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     # Can't put pd.NaT in a datetime64[ns]
                     fill_value = np.datetime64('NaT')
             try:
-                dtype = np.result_type(self.sp_values.dtype, fill_value)
+                dtype = np.result_type(self.sp_values.dtype, type(fill_value))
             except TypeError:
                 dtype = object
 
@@ -996,7 +996,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if len(self) == 0:
             # Empty... Allow taking only if all empty
             if (indices == -1).all():
-                dtype = np.result_type(self.sp_values, fill_value)
+                dtype = np.result_type(self.sp_values, type(fill_value))
                 taken = np.empty_like(indices, dtype=dtype)
                 taken.fill(fill_value)
                 return taken
@@ -1009,7 +1009,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if self.sp_index.npoints == 0:
             # Avoid taking from the empty self.sp_values
             taken = np.full(sp_indexer.shape, fill_value=fill_value,
-                            dtype=np.result_type(fill_value))
+                            dtype=np.result_type(type(fill_value)))
         else:
             taken = self.sp_values.take(sp_indexer)
 
@@ -1030,12 +1030,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             result_type = taken.dtype
 
             if m0.any():
-                result_type = np.result_type(result_type, self.fill_value)
+                result_type = np.result_type(result_type, type(self.fill_value))
                 taken = taken.astype(result_type)
                 taken[old_fill_indices] = self.fill_value
 
             if m1.any():
-                result_type = np.result_type(result_type, fill_value)
+                result_type = np.result_type(result_type, type(fill_value))
                 taken = taken.astype(result_type)
                 taken[new_fill_indices] = fill_value
 
@@ -1061,7 +1061,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # edge case in take...
             # I think just return
             out = np.full(indices.shape, self.fill_value,
-                          dtype=np.result_type(self.fill_value))
+                          dtype=np.result_type(type(self.fill_value)))
             arr, sp_index, fill_value = make_sparse(out,
                                                     fill_value=self.fill_value)
             return type(self)(arr, sparse_index=sp_index,
@@ -1073,7 +1073,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         if fillable.any():
             # TODO: may need to coerce array to fill value
-            result_type = np.result_type(taken, self.fill_value)
+            result_type = np.result_type(taken, type(self.fill_value))
             taken = taken.astype(result_type)
             taken[fillable] = self.fill_value
 
@@ -1215,10 +1215,26 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         dtype = pandas_dtype(dtype)
 
         if not isinstance(dtype, SparseDtype):
-            dtype = SparseDtype(dtype, fill_value=self.fill_value)
+            fill_value = astype_nansafe(np.array(self.fill_value),
+                                        dtype).item()
+            dtype = SparseDtype(dtype, fill_value=fill_value)
+
+        # Typically we'll just astype the sp_values to dtype.subtype,
+        # but SparseDtype follows the pandas convention of storing strings
+        # as object dtype. So SparseDtype(str) immediately becomes
+        # SparseDtype(object), and at this point we don't know whether object
+        # means string or something else. We *cannot* just pass object to
+        # astype_nansafe below, since that won't convert to string. So
+        # we rely on the assumption that "string fill_value" means strings
+        # which is close enough to being true.
+        if (is_object_dtype(dtype.subtype) and
+                isinstance(dtype.fill_value, compat.text_type)):
+            subtype = str
+        else:
+            subtype = dtype.subtype
 
         sp_values = astype_nansafe(self.sp_values,
-                                   dtype.subtype,
+                                   subtype,
                                    copy=copy)
         if sp_values is self.sp_values and copy:
             sp_values = sp_values.copy()

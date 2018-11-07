@@ -468,6 +468,32 @@ class TestSparseArray(object):
         tm.assert_numpy_array_equal(np.asarray(res.values),
                                     vals.astype(typ))
 
+    @pytest.mark.parametrize('array, dtype, expected', [
+        (SparseArray([0, 1]), 'float',
+         SparseArray([0., 1.], dtype=SparseDtype(float, 0.0))),
+        (SparseArray([0, 1]), bool, SparseArray([False, True])),
+        (SparseArray([0, 1], fill_value=1), bool,
+         SparseArray([False, True], dtype=SparseDtype(bool, True))),
+        pytest.param(
+            SparseArray([0, 1]), 'datetime64[ns]',
+            SparseArray(np.array([0, 1], dtype='datetime64[ns]'),
+                         dtype=SparseDtype('datetime64[ns]',
+                                           pd.Timestamp('1970'))),
+            marks=[pytest.mark.xfail(reason="NumPy-7619", strict=True)],
+        ),
+        (SparseArray([0, 1, 10]), str,
+         SparseArray(['0', '1', '10'], dtype=SparseDtype(str, '0'))),
+        (SparseArray(['10', '20']), float, SparseArray([10.0, 20.0])),
+    ])
+    def test_astype_more(self, array, dtype, expected):
+        result = array.astype(dtype)
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_astype_nan_raises(self):
+        arr = SparseArray([1.0, np.nan])
+        with tm.assert_raises_regex(ValueError, 'Cannot convert non-finite'):
+            arr.astype(int)
+
     def test_set_fill_value(self):
         arr = SparseArray([1., np.nan, 2.], fill_value=np.nan)
         arr.fill_value = 2
