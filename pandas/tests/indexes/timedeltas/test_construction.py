@@ -11,6 +11,7 @@ from pandas import TimedeltaIndex, timedelta_range, to_timedelta
 class TestTimedeltaIndex(object):
 
     def test_dt64_data_invalid(self):
+        # GH#23539
         dti = pd.date_range('2016-01-01', periods=3)
         with pytest.raises(TypeError):
             TimedeltaIndex(dti)
@@ -19,7 +20,7 @@ class TestTimedeltaIndex(object):
             TimedeltaIndex(np.asarray(dti))
 
     def test_float64_lossy_invalid(self):
-        # passing floats that would be truncated is unsupported
+        # GH#23539 passing floats that would be truncated is unsupported
         with pytest.raises(TypeError):
             TimedeltaIndex([2.3, 9.0])
 
