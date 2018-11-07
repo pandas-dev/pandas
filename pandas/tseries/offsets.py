@@ -2250,6 +2250,8 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
             try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
                 other = to_offset(other)
             except ValueError:
                 # e.g. "infer"
@@ -2269,6 +2271,8 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
             try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
                 other = to_offset(other)
             except ValueError:
                 # e.g. "infer"
