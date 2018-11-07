@@ -5091,7 +5091,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1   b    2    2.0
         2   c    3    3.0
 
-        >>> df.get_ftype_counts()
+        >>> df.get_ftype_counts()  # doctest: +SKIP
         float64:dense    1
         int64:dense      1
         object:dense     1

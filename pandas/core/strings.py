@@ -2156,13 +2156,6 @@ class StringMethods(NoNewAttributesMixin):
         `join`-keyword works as in other methods.
 
         >>> t = pd.Series(['d', 'a', 'e', 'c'], index=[3, 0, 4, 2])
-        >>> s.str.cat(t, join=None, na_rep='-')
-        0    ad
-        1    ba
-        2    -e
-        3    dc
-        dtype: object
-        >>>
         >>> s.str.cat(t, join='left', na_rep='-')
         0    aa
         1    b-
