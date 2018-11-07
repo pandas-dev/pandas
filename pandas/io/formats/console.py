@@ -2,8 +2,9 @@
 Internal module for console introspection
 """
 
-import sys
 import locale
+import sys
+
 from pandas.io.formats.terminal import get_terminal_size
 
 # -----------------------------------------------------------------------------

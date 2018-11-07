@@ -2,12 +2,14 @@
 Support pre-0.12 series pickle compatibility.
 """
 
-import sys
-import pandas  # noqa
 import copy
 import pickle as pkl
-from pandas import compat, Index
-from pandas.compat import u, string_types  # noqa
+import sys
+
+from pandas.compat import string_types, u  # noqa
+
+import pandas  # noqa
+from pandas import Index, compat
 
 
 def load_reduce(self):

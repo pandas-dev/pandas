@@ -18,14 +18,14 @@ import struct
 
 import numpy as np
 
-from pandas import compat
 from pandas.errors import EmptyDataError
 
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
-import pandas.io.sas.sas_constants as const
-from pandas.io.sas._sas import Parser
-
 import pandas as pd
+from pandas import compat
+
+from pandas.io.common import BaseIterator, get_filepath_or_buffer
+from pandas.io.sas._sas import Parser
+import pandas.io.sas.sas_constants as const
 
 
 class _subheader_pointer(object):

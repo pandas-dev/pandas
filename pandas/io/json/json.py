@@ -1,23 +1,27 @@
 # pylint: disable-msg=E1101,W0613,W0603
 from itertools import islice
 import os
+
 import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas.compat import StringIO, long, u, to_str
-from pandas import compat, isna
-from pandas import Series, DataFrame, to_datetime, MultiIndex
-from pandas.io.common import (get_filepath_or_buffer, _get_handle,
-                              _infer_compression, _stringify_path,
-                              BaseIterator)
-from pandas.io.parsers import _validate_integer
+from pandas.compat import StringIO, long, to_str, u
+
+from pandas.core.dtypes.common import is_period_dtype
+
+from pandas import DataFrame, MultiIndex, Series, compat, isna, to_datetime
 import pandas.core.common as com
 from pandas.core.reshape.concat import concat
+
+from pandas.io.common import (
+    BaseIterator, _get_handle, _infer_compression, _stringify_path,
+    get_filepath_or_buffer)
 from pandas.io.formats.printing import pprint_thing
+from pandas.io.parsers import _validate_integer
+
 from .normalize import _convert_to_line_delimits
 from .table_schema import build_table_schema, parse_table_schema
-from pandas.core.dtypes.common import is_period_dtype
 
 loads = json.loads
 dumps = json.dumps

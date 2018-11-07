@@ -6,14 +6,15 @@ http://specs.frictionlessdata.io/json-table-schema/
 import warnings
 
 import pandas._libs.json as json
+
+from pandas.core.dtypes.common import (
+    is_bool_dtype, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_integer_dtype, is_numeric_dtype, is_period_dtype,
+    is_string_dtype, is_timedelta64_dtype)
+
 from pandas import DataFrame
 from pandas.api.types import CategoricalDtype
 import pandas.core.common as com
-from pandas.core.dtypes.common import (
-    is_integer_dtype, is_timedelta64_dtype, is_numeric_dtype,
-    is_bool_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
-    is_categorical_dtype, is_period_dtype, is_string_dtype
-)
 
 loads = json.loads
 

@@ -19,11 +19,13 @@ easier to adjust to future upstream changes in the analogous numpy signatures.
 """
 
 from numpy import ndarray
-from pandas.util._validators import (validate_args, validate_kwargs,
-                                     validate_args_and_kwargs)
-from pandas.errors import UnsupportedFunctionCall
-from pandas.core.dtypes.common import is_integer, is_bool
+
 from pandas.compat import OrderedDict
+from pandas.errors import UnsupportedFunctionCall
+from pandas.util._validators import (
+    validate_args, validate_args_and_kwargs, validate_kwargs)
+
+from pandas.core.dtypes.common import is_bool, is_integer
 
 
 class CompatValidator(object):

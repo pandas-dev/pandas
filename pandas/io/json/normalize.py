@@ -1,12 +1,14 @@
 # ---------------------------------------------------------------------
 # JSON normalization routines
 
-import copy
 from collections import defaultdict
+import copy
+
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas import compat, DataFrame
+
+from pandas import DataFrame, compat
 
 
 def _convert_to_line_delimits(s):
