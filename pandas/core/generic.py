@@ -7589,18 +7589,30 @@ class NDFrame(PandasObject, SelectionMixin):
         2018-12    4.0
         Freq: M, dtype: float64
 
-        For DataFrame objects, the keyword ``on`` can be used to specify the
+        For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.
 
-        >>> df = pd.DataFrame(data=9 * [range(4)],
-        ...                   columns=['a', 'b', 'c', 'd'])
-        >>> df['time'] = pd.date_range('1/1/2000', periods=9, freq='T')
-        >>> df.resample('3T', on='time').sum()
-                             a  b  c  d
-        time
-        2000-01-01 00:00:00  0  3  6  9
-        2000-01-01 00:03:00  0  3  6  9
-        2000-01-01 00:06:00  0  3  6  9
+        >>> d = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...           'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
+        >>> df = pd.DataFrame(d)
+        >>> df['week_starting'] = pd.date_range('01/01/2018',
+        ...                                     periods=8,
+        ...                                     freq='W')
+        >>> df
+           price  volume week_starting
+        0     10      50    2018-01-07
+        1     11      60    2018-01-14
+        2      9      40    2018-01-21
+        3     13     100    2018-01-28
+        4     14      50    2018-02-04
+        5     18     100    2018-02-11
+        6     17      40    2018-02-18
+        7     19      50    2018-02-25
+        >>> df.resample('M', on='week_starting').mean()
+                       price  volume
+        week_starting
+        2018-01-31     10.75    62.5
+        2018-02-28     17.00    60.0
 
         For a DataFrame with MultiIndex, the keyword ``level`` can be used to
         specify on level the resampling needs to take place.
