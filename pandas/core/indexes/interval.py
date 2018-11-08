@@ -1040,7 +1040,9 @@ class IntervalIndex(IntervalMixin, Index):
         def func(self, other):
             try:
                 other = self._as_like_interval_index(other)
-            except (TypeError, ValueError):
+            # allow ValueError from this method to raise to catch mixed closed
+            # except only Non-Interval index mismatches.
+            except TypeError:
                 # Currently this will cause difference operations to return
                 # object dtype as opposed to IntervalIndex, unlike other Index
                 # objects that return the same type when using `difference` on
@@ -1066,6 +1068,7 @@ class IntervalIndex(IntervalMixin, Index):
 
             return type(self).from_tuples(result, closed=self.closed,
                                           name=result_name)
+
         return func
 
     union = _setop('union')

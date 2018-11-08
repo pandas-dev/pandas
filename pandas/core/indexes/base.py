@@ -2783,6 +2783,15 @@ class Index(IndexOpsMixin, PandasObject):
         if self.equals(other):
             return self._get_reconciled_name_object(other)
 
+        # Don't allow empty index to move on. If `other` is not monotonic-incr
+        # ...will fail
+        if is_dtype_equal(self.dtype, other.dtype):
+            if len(self) == 0:
+                return other._get_reconciled_name_object(self)
+            elif len(other) == 0:
+                return self._get_reconciled_name_object(other)
+
+
         # TODO: is_dtype_union_equal is a hack around
         # 1. buggy set ops with duplicates (GH #13432)
         # 2. CategoricalIndex lacking setops (GH #10186)

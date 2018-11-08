@@ -835,6 +835,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         """
         self._assert_can_do_setop(other)
 
+        if not isinstance(other, PeriodIndex):
+            return self.astype('O').join(other, how=how, level=level,
+                                         return_indexers=return_indexers,
+                                         sort=sort)
+
         result = Int64Index.join(self, other, how=how, level=level,
                                  return_indexers=return_indexers,
                                  sort=sort)
