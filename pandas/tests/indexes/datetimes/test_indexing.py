@@ -1,13 +1,16 @@
-from datetime import datetime, timedelta, time
-import pytest
+from datetime import datetime, time, timedelta
 
-import pytz
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
+import pytest
+import pytz
+
 import pandas.compat as compat
-from pandas import notna, Index, DatetimeIndex, date_range, Timestamp
-from pandas.tseries.offsets import CDay, BDay
+
+import pandas as pd
+from pandas import DatetimeIndex, Index, Timestamp, date_range, notna
+import pandas.util.testing as tm
+
+from pandas.tseries.offsets import BDay, CDay
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 

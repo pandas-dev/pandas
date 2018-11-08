@@ -1,17 +1,20 @@
 from __future__ import division
 
-from itertools import permutations
-import pytest
-import numpy as np
 import re
-from pandas import (
-    Interval, IntervalIndex, Index, isna, notna, interval_range, Timestamp,
-    Timedelta, date_range, timedelta_range)
-from pandas.compat import lzip
-import pandas.core.common as com
-from pandas.tests.indexes.common import Base
-import pandas.util.testing as tm
+from itertools import permutations
+
+import numpy as np
+import pytest
+
 import pandas as pd
+import pandas.core.common as com
+import pandas.util.testing as tm
+from pandas import (
+    Index, Interval, IntervalIndex, Timedelta, Timestamp, date_range,
+    interval_range, isna, notna, timedelta_range
+)
+from pandas.compat import lzip
+from pandas.tests.indexes.common import Base
 
 
 @pytest.fixture(scope='class', params=[None, 'foo'])
@@ -93,7 +96,7 @@ class TestIntervalIndex(Base):
 
     def test_with_nans(self, closed):
         index = self.create_index(closed=closed)
-        assert not index.hasnans
+        assert index.hasnans is False
 
         result = index.isna()
         expected = np.repeat(False, len(index))
@@ -104,7 +107,7 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(result, expected)
 
         index = self.create_index_with_nan(closed=closed)
-        assert index.hasnans
+        assert index.hasnans is True
 
         result = index.isna()
         expected = np.array([False, True] + [False] * (len(index) - 2))
@@ -243,108 +246,108 @@ class TestIntervalIndex(Base):
         # unique non-overlapping
         idx = IntervalIndex.from_tuples(
             [(0, 1), (2, 3), (4, 5)], closed=closed)
-        assert idx.is_unique
+        assert idx.is_unique is True
 
         # unique overlapping - distinct endpoints
         idx = IntervalIndex.from_tuples([(0, 1), (0.5, 1.5)], closed=closed)
-        assert idx.is_unique
+        assert idx.is_unique is True
 
         # unique overlapping - shared endpoints
         idx = pd.IntervalIndex.from_tuples(
             [(1, 2), (1, 3), (2, 3)], closed=closed)
-        assert idx.is_unique
+        assert idx.is_unique is True
 
         # unique nested
         idx = IntervalIndex.from_tuples([(-1, 1), (-2, 2)], closed=closed)
-        assert idx.is_unique
+        assert idx.is_unique is True
 
         # duplicate
         idx = IntervalIndex.from_tuples(
             [(0, 1), (0, 1), (2, 3)], closed=closed)
-        assert not idx.is_unique
+        assert idx.is_unique is False
 
         # empty
         idx = IntervalIndex([], closed=closed)
-        assert idx.is_unique
+        assert idx.is_unique is True
 
     def test_monotonic(self, closed):
         # increasing non-overlapping
         idx = IntervalIndex.from_tuples(
             [(0, 1), (2, 3), (4, 5)], closed=closed)
-        assert idx.is_monotonic
-        assert idx._is_strictly_monotonic_increasing
-        assert not idx.is_monotonic_decreasing
-        assert not idx._is_strictly_monotonic_decreasing
+        assert idx.is_monotonic is True
+        assert idx._is_strictly_monotonic_increasing is True
+        assert idx.is_monotonic_decreasing is False
+        assert idx._is_strictly_monotonic_decreasing is False
 
         # decreasing non-overlapping
         idx = IntervalIndex.from_tuples(
             [(4, 5), (2, 3), (1, 2)], closed=closed)
-        assert not idx.is_monotonic
-        assert not idx._is_strictly_monotonic_increasing
-        assert idx.is_monotonic_decreasing
-        assert idx._is_strictly_monotonic_decreasing
+        assert idx.is_monotonic is False
+        assert idx._is_strictly_monotonic_increasing is False
+        assert idx.is_monotonic_decreasing is True
+        assert idx._is_strictly_monotonic_decreasing is True
 
         # unordered non-overlapping
         idx = IntervalIndex.from_tuples(
             [(0, 1), (4, 5), (2, 3)], closed=closed)
-        assert not idx.is_monotonic
-        assert not idx._is_strictly_monotonic_increasing
-        assert not idx.is_monotonic_decreasing
-        assert not idx._is_strictly_monotonic_decreasing
+        assert idx.is_monotonic is False
+        assert idx._is_strictly_monotonic_increasing is False
+        assert idx.is_monotonic_decreasing is False
+        assert idx._is_strictly_monotonic_decreasing is False
 
         # increasing overlapping
         idx = IntervalIndex.from_tuples(
             [(0, 2), (0.5, 2.5), (1, 3)], closed=closed)
-        assert idx.is_monotonic
-        assert idx._is_strictly_monotonic_increasing
-        assert not idx.is_monotonic_decreasing
-        assert not idx._is_strictly_monotonic_decreasing
+        assert idx.is_monotonic is True
+        assert idx._is_strictly_monotonic_increasing is True
+        assert idx.is_monotonic_decreasing is False
+        assert idx._is_strictly_monotonic_decreasing is False
 
         # decreasing overlapping
         idx = IntervalIndex.from_tuples(
             [(1, 3), (0.5, 2.5), (0, 2)], closed=closed)
-        assert not idx.is_monotonic
-        assert not idx._is_strictly_monotonic_increasing
-        assert idx.is_monotonic_decreasing
-        assert idx._is_strictly_monotonic_decreasing
+        assert idx.is_monotonic is False
+        assert idx._is_strictly_monotonic_increasing is False
+        assert idx.is_monotonic_decreasing is True
+        assert idx._is_strictly_monotonic_decreasing is True
 
         # unordered overlapping
         idx = IntervalIndex.from_tuples(
             [(0.5, 2.5), (0, 2), (1, 3)], closed=closed)
-        assert not idx.is_monotonic
-        assert not idx._is_strictly_monotonic_increasing
-        assert not idx.is_monotonic_decreasing
-        assert not idx._is_strictly_monotonic_decreasing
+        assert idx.is_monotonic is False
+        assert idx._is_strictly_monotonic_increasing is False
+        assert idx.is_monotonic_decreasing is False
+        assert idx._is_strictly_monotonic_decreasing is False
 
         # increasing overlapping shared endpoints
         idx = pd.IntervalIndex.from_tuples(
             [(1, 2), (1, 3), (2, 3)], closed=closed)
-        assert idx.is_monotonic
-        assert idx._is_strictly_monotonic_increasing
-        assert not idx.is_monotonic_decreasing
-        assert not idx._is_strictly_monotonic_decreasing
+        assert idx.is_monotonic is True
+        assert idx._is_strictly_monotonic_increasing is True
+        assert idx.is_monotonic_decreasing is False
+        assert idx._is_strictly_monotonic_decreasing is False
 
         # decreasing overlapping shared endpoints
         idx = pd.IntervalIndex.from_tuples(
             [(2, 3), (1, 3), (1, 2)], closed=closed)
-        assert not idx.is_monotonic
-        assert not idx._is_strictly_monotonic_increasing
-        assert idx.is_monotonic_decreasing
-        assert idx._is_strictly_monotonic_decreasing
+        assert idx.is_monotonic is False
+        assert idx._is_strictly_monotonic_increasing is False
+        assert idx.is_monotonic_decreasing is True
+        assert idx._is_strictly_monotonic_decreasing is True
 
         # stationary
         idx = IntervalIndex.from_tuples([(0, 1), (0, 1)], closed=closed)
-        assert idx.is_monotonic
-        assert not idx._is_strictly_monotonic_increasing
-        assert idx.is_monotonic_decreasing
-        assert not idx._is_strictly_monotonic_decreasing
+        assert idx.is_monotonic is True
+        assert idx._is_strictly_monotonic_increasing is False
+        assert idx.is_monotonic_decreasing is True
+        assert idx._is_strictly_monotonic_decreasing is False
 
         # empty
         idx = IntervalIndex([], closed=closed)
-        assert idx.is_monotonic
-        assert idx._is_strictly_monotonic_increasing
-        assert idx.is_monotonic_decreasing
-        assert idx._is_strictly_monotonic_decreasing
+        assert idx.is_monotonic is True
+        assert idx._is_strictly_monotonic_increasing is True
+        assert idx.is_monotonic_decreasing is True
+        assert idx._is_strictly_monotonic_decreasing is True
 
     @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr(self):

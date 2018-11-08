@@ -36,8 +36,8 @@ cdef inline bint is_tzlocal(object tz):
 
 
 cdef inline bint treat_tz_as_pytz(object tz):
-    return hasattr(tz, '_utc_transition_times') and hasattr(
-        tz, '_transition_info')
+    return (hasattr(tz, '_utc_transition_times') and
+            hasattr(tz, '_transition_info'))
 
 
 cdef inline bint treat_tz_as_dateutil(object tz):
@@ -322,7 +322,7 @@ cpdef bint tz_compare(object start, object end):
     return get_timezone(start) == get_timezone(end)
 
 
-cpdef tz_standardize(object tz):
+def tz_standardize(tz: object):
     """
     If the passed tz is a pytz timezone object, "normalize" it to the a
     consistent version

@@ -2,19 +2,19 @@
 # pylint: disable-msg=E1101,W0612
 
 from datetime import datetime, timedelta
-
 import sys
 
 import numpy as np
-import pandas as pd
 
-from pandas import (Index, Series, DataFrame, date_range, option_context,
-                    Categorical, period_range, timedelta_range)
-from pandas.core.index import MultiIndex
-from pandas.core.base import StringMixin
-
+import pandas.compat as compat
 from pandas.compat import lrange, range, u
-from pandas import compat
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, Series, date_range, option_context,
+    period_range, timedelta_range)
+from pandas.core.base import StringMixin
+from pandas.core.index import MultiIndex
 import pandas.util.testing as tm
 
 from .common import TestData

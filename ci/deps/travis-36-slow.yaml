@@ -5,16 +5,13 @@ channels:
 dependencies:
   - beautifulsoup4
   - cython>=0.28.2
-  - gcsfs
   - html5lib
-  - ipython
-  - jinja2
   - lxml
   - matplotlib
-  - nomkl
   - numexpr
   - numpy
-  - openpyxl=2.5.5
+  - openpyxl
+  - patsy
   - psycopg2
   - pymysql
   - pytables
@@ -24,7 +21,6 @@ dependencies:
   - s3fs
   - scipy
   - sqlalchemy
-  - xarray
   - xlrd
   - xlsxwriter
   - xlwt
@@ -32,5 +28,4 @@ dependencies:
   - pytest
   - pytest-xdist
   - moto
-  - pip:
-    - hypothesis>=3.58.0
+  - hypothesis>=3.58.0

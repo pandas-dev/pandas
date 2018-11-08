@@ -1,29 +1,32 @@
 """ test to_datetime """
 
-import pytz
-import pytest
-import locale
 import calendar
-import dateutil
-import numpy as np
-from dateutil.parser import parse
-from dateutil.tz.tz import tzoffset
 from datetime import datetime, time
 from distutils.version import LooseVersion
+import locale
+
+import dateutil
+from dateutil.parser import parse
+from dateutil.tz.tz import tzoffset
+import numpy as np
+import pytest
+import pytz
+
+from pandas._libs import tslib
+from pandas._libs.tslibs import iNaT, parsing
+from pandas.compat import PY3, lmap
+from pandas.errors import OutOfBoundsDatetime
+import pandas.util._test_decorators as td
+
+from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
 import pandas as pd
-from pandas._libs import tslib
-from pandas._libs.tslibs import parsing
+from pandas import (
+    DataFrame, DatetimeIndex, Index, NaT, Series, Timestamp, compat,
+    date_range, isna, to_datetime)
 from pandas.core.tools import datetimes as tools
-
-from pandas.errors import OutOfBoundsDatetime
-from pandas.compat import lmap, PY3
-from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
-import pandas.util._test_decorators as td
 from pandas.util.testing import assert_series_equal
-from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
-                    Index, DatetimeIndex, NaT, date_range, compat)
 
 
 class TestTimeConversionFormats(object):
@@ -649,7 +652,7 @@ class TestToDatetimeUnit(object):
         with pytest.raises(ValueError):
             to_datetime([1], unit='D', format='%Y%m%d', cache=cache)
 
-        values = [11111111, 1, 1.0, tslib.iNaT, NaT, np.nan,
+        values = [11111111, 1, 1.0, iNaT, NaT, np.nan,
                   'NaT', '']
         result = to_datetime(values, unit='D', errors='ignore', cache=cache)
         expected = Index([11111111, Timestamp('1970-01-02'),
@@ -666,7 +669,7 @@ class TestToDatetimeUnit(object):
         with pytest.raises(tslib.OutOfBoundsDatetime):
             to_datetime(values, unit='D', errors='raise', cache=cache)
 
-        values = [1420043460000, tslib.iNaT, NaT, np.nan, 'NaT']
+        values = [1420043460000, iNaT, NaT, np.nan, 'NaT']
 
         result = to_datetime(values, errors='ignore', unit='s', cache=cache)
         expected = Index([1420043460000, NaT, NaT,
@@ -1101,7 +1104,7 @@ class TestToDatetimeMisc(object):
         expected = np.empty(4, dtype='M8[ns]')
         for i, val in enumerate(strings):
             if isna(val):
-                expected[i] = tslib.iNaT
+                expected[i] = iNaT
             else:
                 expected[i] = parse_date(val)
 
@@ -1142,7 +1145,7 @@ class TestToDatetimeMisc(object):
         for i in range(5):
             x = series[i]
             if isna(x):
-                expected[i] = tslib.iNaT
+                expected[i] = iNaT
             else:
                 expected[i] = to_datetime(x, cache=cache)
 
@@ -1417,10 +1420,10 @@ class TestDatetimeParsingWrappers(object):
         result2 = to_datetime('NaT')
         result3 = Timestamp('NaT')
         result4 = DatetimeIndex(['NaT'])[0]
-        assert result1 is tslib.NaT
-        assert result2 is tslib.NaT
-        assert result3 is tslib.NaT
-        assert result4 is tslib.NaT
+        assert result1 is NaT
+        assert result2 is NaT
+        assert result3 is NaT
+        assert result4 is NaT
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_parsers_dayfirst_yearfirst(self, cache):

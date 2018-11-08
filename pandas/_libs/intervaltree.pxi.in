@@ -72,6 +72,12 @@ cdef class IntervalTree(IntervalMixin):
 
         self.closed = closed
 
+        # GH 23352: ensure no nan in nodes
+        mask = ~np.isnan(self.left)
+        self.left = self.left[mask]
+        self.right = self.right[mask]
+        indices = indices[mask]
+
         node_cls = NODE_CLASSES[str(self.dtype), closed]
         self.root = node_cls(self.left, self.right, indices, leaf_size)
 
@@ -99,7 +105,7 @@ cdef class IntervalTree(IntervalMixin):
         self.root.query(result, key)
         if not result.data.n:
             raise KeyError(key)
-        return result.to_array()
+        return result.to_array().astype('intp')
 
     def _get_partial_overlap(self, key_left, key_right, side):
         """Return all positions corresponding to intervals with the given side
@@ -149,7 +155,7 @@ cdef class IntervalTree(IntervalMixin):
                 raise KeyError(
                     'indexer does not intersect a unique set of intervals')
             old_len = result.data.n
-        return result.to_array()
+        return result.to_array().astype('intp')
 
     def get_indexer_non_unique(self, scalar_t[:] target):
         """Return the positions corresponding to intervals that overlap with
@@ -169,7 +175,8 @@ cdef class IntervalTree(IntervalMixin):
                 result.append(-1)
                 missing.append(i)
             old_len = result.data.n
-        return result.to_array(), missing.to_array()
+        return (result.to_array().astype('intp'),
+                missing.to_array().astype('intp'))
 
     def __repr__(self):
         return ('<IntervalTree[{dtype},{closed}]: '

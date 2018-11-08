@@ -1,6 +1,8 @@
 import numpy as np
-import pandas as pd
+
 from pandas.compat import reduce
+
+import pandas as pd
 
 
 def _ensure_decoded(s):

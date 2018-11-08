@@ -93,7 +93,7 @@ class TestConcatAppendCommon(ConcatenateBase):
                 assert obj.dtype == label
         elif isinstance(obj, pd.Series):
             if label.startswith('period'):
-                assert obj.dtype == 'object'
+                assert obj.dtype == 'Period[M]'
             else:
                 assert obj.dtype == label
         else:
@@ -1553,12 +1553,11 @@ class TestConcatenate(ConcatenateBase):
         panel1 = make_panel()
         panel2 = make_panel()
 
-        panel2 = panel2.rename_axis({x: "%s_1" % x
-                                     for x in panel2.major_axis},
-                                    axis=1)
+        panel2 = panel2.rename(major_axis={x: "%s_1" % x
+                                           for x in panel2.major_axis})
 
-        panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)
-        panel3 = panel3.rename_axis(lambda x: '%s_1' % x, axis=2)
+        panel3 = panel2.rename(major_axis=lambda x: '%s_1' % x)
+        panel3 = panel3.rename(minor_axis=lambda x: '%s_1' % x)
 
         # it works!
         concat([panel1, panel3], axis=1, verify_integrity=True, sort=sort)
@@ -1617,6 +1616,23 @@ class TestConcatenate(ConcatenateBase):
         s2 = Series(randn(4), index=['d', 'a', 'b', 'c'], name='B')
         result = concat([s, s2], axis=1, sort=sort)
         expected = DataFrame({'A': s, 'B': s2})
+        assert_frame_equal(result, expected)
+
+    def test_concat_series_axis1_names_applied(self):
+        # ensure names argument is not ignored on axis=1, #23490
+        s = Series([1, 2, 3])
+        s2 = Series([4, 5, 6])
+        result = concat([s, s2], axis=1, keys=['a', 'b'], names=['A'])
+        expected = DataFrame([[1, 4], [2, 5], [3, 6]],
+                             columns=pd.Index(['a', 'b'], name='A'))
+        assert_frame_equal(result, expected)
+
+        result = concat([s, s2], axis=1, keys=[('a', 1), ('b', 2)],
+                        names=['A', 'B'])
+        expected = DataFrame([[1, 4], [2, 5], [3, 6]],
+                             columns=MultiIndex.from_tuples([('a', 1),
+                                                             ('b', 2)],
+                                                            names=['A', 'B']))
         assert_frame_equal(result, expected)
 
     def test_concat_single_with_key(self):
@@ -1995,12 +2011,11 @@ bar2,12,13,14,15
     def test_concat_period_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='D'))
-        expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
+        expected = Series([x[0], x[1], y[0], y[1]], dtype='Period[D]')
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
-        assert result.dtype == 'object'
 
-        # different freq
+    def test_concat_period_multiple_freq_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='M'))
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
@@ -2008,6 +2023,7 @@ bar2,12,13,14,15
         tm.assert_series_equal(result, expected)
         assert result.dtype == 'object'
 
+    def test_concat_period_other_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='M'))
         expected = Series([x[0], x[1], y[0], y[1]], dtype='object')
@@ -2291,10 +2307,10 @@ bar2,12,13,14,15
 
         result = pd.concat([a, b, c], axis=1)
 
-        exp_idx = pd.CategoricalIndex([0, 1, 2, 9])
-        exp = pd.DataFrame({0: [1, np.nan, np.nan, 1],
-                            1: [2, 2, np.nan, np.nan],
-                            2: [np.nan, 3, 3, np.nan]},
+        exp_idx = pd.CategoricalIndex([9, 0, 1, 2], categories=categories)
+        exp = pd.DataFrame({0: [1, 1, np.nan, np.nan],
+                            1: [np.nan, 2, 2, np.nan],
+                            2: [np.nan, np.nan, 3, 3]},
                            columns=[0, 1, 2],
                            index=exp_idx)
         tm.assert_frame_equal(result, exp)

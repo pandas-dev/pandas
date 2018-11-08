@@ -3,13 +3,16 @@
 import re
 
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import pytest
-from pandas import Index, MultiIndex, date_range
+
 from pandas._libs.tslib import Timestamp
 from pandas.compat import lrange, range
+
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+
+import pandas as pd
+from pandas import Index, MultiIndex, date_range
+import pandas.util.testing as tm
 
 
 def test_constructor_single_level():

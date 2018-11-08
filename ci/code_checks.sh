@@ -44,6 +44,14 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     flake8 pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
+    # it doesn't make a difference, but we want to be internally consistent.
+    # Note: this grep pattern is (intended to be) equivalent to the python
+    # regex r'(?<![ ->])> '
+    MSG='Linting .pyx code for spacing conventions in casting' ; echo $MSG
+    ! grep -r -E --include '*.pyx' --include '*.pxi.in' '[a-zA-Z0-9*]> ' pandas/_libs
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # readability/casting: Warnings about C casting instead of C++ casting
     # runtime/int: Warnings about using C number types instead of C++ ones
     # build/include_subdir: Warnings about prefacing included header files with directory
@@ -123,7 +131,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/frame.py \
-        -k"-axes -combine -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_stata"
+        -k"-axes -combine -itertuples -join -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_stata"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
@@ -143,6 +151,13 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         pandas/core/reshape/reshape.py \
         pandas/core/reshape/tile.py \
         -k"-crosstab -pivot_table -cut"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests interval classes' ; echo $MSG
+    pytest --doctest-modules -v \
+        pandas/core/indexes/interval.py \
+        pandas/core/arrays/interval.py \
+        -k"-from_arrays -from_breaks -from_intervals -from_tuples -get_loc -set_closed -to_tuples -interval_range"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

@@ -2,22 +2,24 @@
 test date_range, bdate_range construction from the convenience range functions
 """
 
-import pytest
+from datetime import datetime, time, timedelta
 
 import numpy as np
+import pytest
 import pytz
 from pytz import timezone
-from datetime import datetime, timedelta, time
+
+import pandas.compat as compat
+from pandas.errors import OutOfBoundsDatetime
+import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas import compat
-from pandas import date_range, bdate_range, offsets, DatetimeIndex, Timestamp
-from pandas.tseries.offsets import (generate_range, CDay, BDay, DateOffset,
-                                    MonthEnd, prefix_mapping)
-
+from pandas import DatetimeIndex, Timestamp, bdate_range, date_range, offsets
 from pandas.tests.series.common import TestData
+import pandas.util.testing as tm
+
+from pandas.tseries.offsets import (
+    BDay, CDay, DateOffset, MonthEnd, generate_range, prefix_mapping)
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -78,6 +80,12 @@ class TestTimestampEquivDateRange(object):
 
 
 class TestDateRanges(TestData):
+    def test_date_range_out_of_bounds(self):
+        # GH#14187
+        with pytest.raises(OutOfBoundsDatetime):
+            date_range('2016-01-01', periods=100000, freq='D')
+        with pytest.raises(OutOfBoundsDatetime):
+            date_range(end='1763-10-12', periods=100000, freq='D')
 
     def test_date_range_gen_error(self):
         rng = date_range('1/1/2000 00:00', '1/1/2000 00:18', freq='5min')

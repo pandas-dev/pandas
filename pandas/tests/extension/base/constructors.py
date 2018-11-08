@@ -1,8 +1,8 @@
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas.core.internals import ExtensionBlock
+import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 

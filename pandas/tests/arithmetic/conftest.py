@@ -70,7 +70,8 @@ def scalar_td(request):
                         pd.Timedelta(days=3).to_pytimedelta(),
                         pd.Timedelta('72:00:00'),
                         np.timedelta64(3, 'D'),
-                        np.timedelta64(72, 'h')])
+                        np.timedelta64(72, 'h')],
+                ids=lambda x: type(x).__name__)
 def three_days(request):
     """
     Several timedelta-like and DateOffset objects that each represent
@@ -84,7 +85,8 @@ def three_days(request):
                         pd.Timedelta(hours=2).to_pytimedelta(),
                         pd.Timedelta(seconds=2 * 3600),
                         np.timedelta64(2, 'h'),
-                        np.timedelta64(120, 'm')])
+                        np.timedelta64(120, 'm')],
+                ids=lambda x: type(x).__name__)
 def two_hours(request):
     """
     Several timedelta-like and DateOffset objects that each represent
