@@ -330,6 +330,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def end_time(self):
         return self.to_timestamp(how='end')
 
+    # --------------------------------------------------------------------
+    # Array-like / EA-Interface Methods
+
     def __repr__(self):
         return '<{}>\n{}\nLength: {}, dtype: {}'.format(
             self.__class__.__name__,
@@ -458,6 +461,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         index = PeriodIndex(cls(result.index, freq=self.freq),
                             name=result.index.name)
         return Series(result.values, index=index, name=result.name)
+
+    # --------------------------------------------------------------------
 
     def shift(self, periods=1):
         """
@@ -613,6 +618,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     # ------------------------------------------------------------------
     # Formatting
+
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         """ actually format my specific types """
         # TODO(DatetimeArray): remove
