@@ -4806,6 +4806,36 @@ default ``Text`` type for string columns:
     Because of this, reading the database table back in does **not** generate
     a categorical.
 
+.. _io.sql_datetime_data:
+
+Datetime data types
+'''''''''''''''''''
+
+Using SQLAlchemy, :func:`~pandas.DataFrame.to_sql` is capable of writing
+datetime data that is timezone naive or timezone aware. However, the resulting
+data stored in the database ultimately depends on the supported data type
+for datetime data of the database system being used.
+
+The following table lists supported data types for datetime data for some
+common databases. Other database dialects may have different data types for
+datetime data.
+
+===========   =============================================  ===================
+Database      SQL Datetime Types                             Timezone Support
+===========   =============================================  ===================
+SQLite        ``TEXT``                                       No
+MySQL         ``TIMESTAMP`` or ``DATETIME``                  No
+PostgreSQL    ``TIMESTAMP`` or ``TIMESTAMP WITH TIME ZONE``  Yes
+===========   =============================================  ===================
+
+When writing timezone aware data to databases that do not support timezones,
+the data will be written as timezone naive timestamps that are in local time
+with respect to the timezone.
+
+:func:`~pandas.read_sql_table` is also capable of reading datetime data that is
+timezone aware or naive. When reading ``TIMESTAMP WITH TIME ZONE`` types, pandas
+will convert the data to UTC.
+
 Reading Tables
 ''''''''''''''
 
