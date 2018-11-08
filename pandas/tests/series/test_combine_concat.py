@@ -119,6 +119,31 @@ class TestSeriesCombine():
         # this will fail as long as series is a sub-class of ndarray
         # df['c'].update(Series(['foo'],index=[0])) #####
 
+    def test_update_nooverwrite(self):
+        s = Series([0, 1, 2, np.nan, np.nan, 5, 6, np.nan])
+        other = Series([1, 3, np.nan, 7, 9], index=[1, 3, 5, 7, 9])
+
+        s.update(other, overwrite=False)
+
+        expected = Series([0, 1, 2, 3, np.nan, 5, 6, 7])
+        assert_series_equal(s, expected)
+
+    def test_update_filtered(self):
+        s = Series(np.arange(8), dtype='int64')
+        other = Series(np.arange(8), dtype='int64') + 10
+
+        s.update(other, filter_func=lambda x: x % 2 == 1)
+
+        expected = Series([0, 11, 2, 13, 4, 15, 6, 17])
+        assert_series_equal(s, expected)
+
+    def test_update_raise(self):
+        s = Series([0, 1, 2, np.nan, np.nan, 5, 6, np.nan])
+        other = Series([1, 3, np.nan, 7, 9], index=[1, 3, 5, 7, 9])
+
+        with tm.assert_raises_regex(ValueError, "Data overlaps"):
+            s.update(other, errors='raise')
+
     def test_concat_empty_series_dtypes_roundtrips(self):
 
         # round-tripping with self & like self
