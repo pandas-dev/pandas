@@ -22,9 +22,6 @@ _np_version_under1p11 = LooseVersion(_np_version) < LooseVersion('1.11')
 cdef float64_t NaN = <float64_t>np.NaN
 cdef float64_t INF = <float64_t>np.inf
 
-cdef inline int int_max(int a, int b): return a if a >= b else b
-cdef inline int int_min(int a, int b): return a if a <= b else b
-
 # -----------------------------------------------------------------------------
 
 
