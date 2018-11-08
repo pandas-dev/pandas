@@ -35,9 +35,9 @@ from pandas.core.dtypes.common import (
     is_numeric_v_string_like, is_extension_type,
     is_extension_array_dtype,
     is_list_like,
-    is_sparse,
     is_re,
     is_re_compilable,
+    is_sparse,
     pandas_dtype)
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
