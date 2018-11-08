@@ -854,7 +854,8 @@ def _parser_dispatch(flavor):
 
 
 def _print_as_set(s):
-    return '{{arg}}'.format(arg=', '.join(pprint_thing(el) for el in s))
+    return ('{' + '{arg}'.format(arg=', '.join(
+        pprint_thing(el) for el in s)) + '}')
 
 
 def _validate_flavor(flavor):
