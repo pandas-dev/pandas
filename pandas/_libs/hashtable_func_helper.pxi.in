@@ -45,11 +45,11 @@ cdef build_count_table_{{dtype}}({{dtype}}_t[:] values,
         val = values[i]
 
         if not checknull(val) or not dropna:
-            k = kh_get_{{ttype}}(table, <PyObject*> val)
+            k = kh_get_{{ttype}}(table, <PyObject*>val)
             if k != table.n_buckets:
                 table.vals[k] += 1
             else:
-                k = kh_put_{{ttype}}(table, <PyObject*> val, &ret)
+                k = kh_put_{{ttype}}(table, <PyObject*>val, &ret)
                 table.vals[k] = 1
     {{else}}
     with nogil:
@@ -103,7 +103,7 @@ cpdef value_count_{{dtype}}({{scalar}}[:] values, bint dropna):
     {{if dtype == 'object'}}
     for k in range(table.n_buckets):
         if kh_exist_{{ttype}}(table, k):
-            result_keys[i] = <{{dtype}}> table.keys[k]
+            result_keys[i] = <{{dtype}}>table.keys[k]
             result_counts[i] = table.vals[k]
             i += 1
     {{else}}
@@ -152,7 +152,7 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
     if keep == 'last':
         {{if dtype == 'object'}}
         for i from n > i >= 0:
-            kh_put_{{ttype}}(table, <PyObject*> values[i], &ret)
+            kh_put_{{ttype}}(table, <PyObject*>values[i], &ret)
             out[i] = ret == 0
         {{else}}
         with nogil:
@@ -163,7 +163,7 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
     elif keep == 'first':
         {{if dtype == 'object'}}
         for i in range(n):
-            kh_put_{{ttype}}(table, <PyObject*> values[i], &ret)
+            kh_put_{{ttype}}(table, <PyObject*>values[i], &ret)
             out[i] = ret == 0
         {{else}}
         with nogil:
@@ -175,13 +175,13 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
         {{if dtype == 'object'}}
         for i in range(n):
             value = values[i]
-            k = kh_get_{{ttype}}(table, <PyObject*> value)
+            k = kh_get_{{ttype}}(table, <PyObject*>value)
             if k != table.n_buckets:
                 out[table.vals[k]] = 1
                 out[i] = 1
             else:
-                k = kh_put_{{ttype}}(table, <PyObject*> value, &ret)
-                table.keys[k] = <PyObject*> value
+                k = kh_put_{{ttype}}(table, <PyObject*>value, &ret)
+                table.keys[k] = <PyObject*>value
                 table.vals[k] = i
                 out[i] = 0
         {{else}}
@@ -245,7 +245,7 @@ def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values):
 
     {{if dtype == 'object'}}
     for i in range(n):
-        kh_put_{{ttype}}(table, <PyObject*> values[i], &ret)
+        kh_put_{{ttype}}(table, <PyObject*>values[i], &ret)
     {{else}}
     with nogil:
         for i in range(n):
@@ -259,7 +259,7 @@ def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values):
     {{if dtype == 'object'}}
     for i in range(n):
         val = arr[i]
-        k = kh_get_{{ttype}}(table, <PyObject*> val)
+        k = kh_get_{{ttype}}(table, <PyObject*>val)
         result[i] = (k != table.n_buckets)
     {{else}}
     with nogil:
@@ -342,7 +342,7 @@ def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
             else:
                 continue
 
-            modes[j] = <object> table.keys[k]
+            modes[j] = <object>table.keys[k]
     {{endif}}
 
     kh_destroy_{{table_type}}(table)

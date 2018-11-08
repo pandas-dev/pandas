@@ -12,7 +12,7 @@ from pandas.util._decorators import Appender
 from pandas import compat
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, ensure_int64, is_timedelta64_dtype, is_list_like)
+    _TD_DTYPE, is_list_like)
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -112,16 +112,16 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     _attributes = ["freq"]
 
     @classmethod
-    def _simple_new(cls, values, freq=None, **kwargs):
-        values = np.array(values, copy=False)
-        if values.dtype == np.object_:
-            values = array_to_timedelta64(values)
-        if values.dtype != _TD_DTYPE:
-            if is_timedelta64_dtype(values):
-                # non-nano unit
-                values = values.astype(_TD_DTYPE)
-            else:
-                values = ensure_int64(values).view(_TD_DTYPE)
+    def _simple_new(cls, values, freq=None, dtype=_TD_DTYPE):
+        # `dtype` is passed by _shallow_copy in corner cases, should always
+        #  be timedelta64[ns] if present
+        assert dtype == _TD_DTYPE
+        assert isinstance(values, np.ndarray), type(values)
+
+        if values.dtype == 'i8':
+            values = values.view('m8[ns]')
+
+        assert values.dtype == 'm8[ns]'
 
         result = object.__new__(cls)
         result._data = values
@@ -131,6 +131,10 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     def __new__(cls, values, freq=None):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
+
+        values = np.array(values, copy=False)
+        if values.dtype == np.object_:
+            values = array_to_timedelta64(values)
 
         result = cls._simple_new(values, freq=freq)
         if freq_infer:
@@ -167,17 +171,15 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         if freq is not None:
             index = _generate_regular_range(start, end, periods, freq)
-            index = cls._simple_new(index, freq=freq)
         else:
             index = np.linspace(start.value, end.value, periods).astype('i8')
-            index = cls._simple_new(index, freq=freq)
 
         if not left_closed:
             index = index[1:]
         if not right_closed:
             index = index[:-1]
 
-        return index
+        return cls._simple_new(index, freq=freq)
 
     # ----------------------------------------------------------------
     # ExtensionArray Interface

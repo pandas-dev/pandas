@@ -25,6 +25,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.indexes.base import (
     Index, ensure_index,
     default_pprint, _index_shared_docs)
+from pandas.core.ops import get_op_result_name
 
 from pandas._libs import Timestamp, Timedelta
 from pandas._libs.interval import (
@@ -1048,7 +1049,7 @@ class IntervalIndex(IntervalMixin, Index):
                 raise TypeError(msg.format(op=op_name))
 
             result = getattr(self._multiindex, op_name)(other._multiindex)
-            result_name = self.name if self.name == other.name else None
+            result_name = get_op_result_name(self, other)
 
             # GH 19101: ensure empty results have correct dtype
             if result.empty:
