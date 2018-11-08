@@ -997,8 +997,8 @@ is only interesting over one column (here ``colname``), it may be filtered
     from decimal import Decimal
     df_dec = pd.DataFrame(
         {'id': [1, 2, 1, 2],
-        'int_column': [1, 2, 3, 4],
-        'dec_column': [Decimal('0.50'), Decimal('0.15'), Decimal('0.25'), Decimal('0.40')]
+         'int_column': [1, 2, 3, 4],
+         'dec_column': [Decimal('0.50'), Decimal('0.15'), Decimal('0.25'), Decimal('0.40')]
         }
     )
 
@@ -1006,7 +1006,7 @@ is only interesting over one column (here ``colname``), it may be filtered
     df_dec.groupby(['id'])[['dec_column']].sum()
 
     # ...but cannot be combined with standard data types or they will be excluded
-    df_dec.groupby(['id'])[['int_column','dec_column']].sum()
+    df_dec.groupby(['id'])[['int_column', 'dec_column']].sum()
 
     # Use .agg function to aggregate over standard and "nuisance" data types at the same time
     df_dec.groupby(['id']).agg({'int_column': 'sum', 'dec_column': 'sum'})
