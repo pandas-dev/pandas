@@ -13,7 +13,7 @@ import pytest
 import pytz
 
 from pandas._libs import tslib
-from pandas._libs.tslibs import parsing
+from pandas._libs.tslibs import iNaT, parsing
 from pandas.compat import PY3, lmap
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
@@ -652,7 +652,7 @@ class TestToDatetimeUnit(object):
         with pytest.raises(ValueError):
             to_datetime([1], unit='D', format='%Y%m%d', cache=cache)
 
-        values = [11111111, 1, 1.0, tslib.iNaT, NaT, np.nan,
+        values = [11111111, 1, 1.0, iNaT, NaT, np.nan,
                   'NaT', '']
         result = to_datetime(values, unit='D', errors='ignore', cache=cache)
         expected = Index([11111111, Timestamp('1970-01-02'),
@@ -669,7 +669,7 @@ class TestToDatetimeUnit(object):
         with pytest.raises(tslib.OutOfBoundsDatetime):
             to_datetime(values, unit='D', errors='raise', cache=cache)
 
-        values = [1420043460000, tslib.iNaT, NaT, np.nan, 'NaT']
+        values = [1420043460000, iNaT, NaT, np.nan, 'NaT']
 
         result = to_datetime(values, errors='ignore', unit='s', cache=cache)
         expected = Index([1420043460000, NaT, NaT,
@@ -1104,7 +1104,7 @@ class TestToDatetimeMisc(object):
         expected = np.empty(4, dtype='M8[ns]')
         for i, val in enumerate(strings):
             if isna(val):
-                expected[i] = tslib.iNaT
+                expected[i] = iNaT
             else:
                 expected[i] = parse_date(val)
 
@@ -1145,7 +1145,7 @@ class TestToDatetimeMisc(object):
         for i in range(5):
             x = series[i]
             if isna(x):
-                expected[i] = tslib.iNaT
+                expected[i] = iNaT
             else:
                 expected[i] = to_datetime(x, cache=cache)
 
@@ -1420,10 +1420,10 @@ class TestDatetimeParsingWrappers(object):
         result2 = to_datetime('NaT')
         result3 = Timestamp('NaT')
         result4 = DatetimeIndex(['NaT'])[0]
-        assert result1 is tslib.NaT
-        assert result2 is tslib.NaT
-        assert result3 is tslib.NaT
-        assert result4 is tslib.NaT
+        assert result1 is NaT
+        assert result2 is NaT
+        assert result3 is NaT
+        assert result4 is NaT
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_parsers_dayfirst_yearfirst(self, cache):

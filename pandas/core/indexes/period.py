@@ -22,11 +22,11 @@ from pandas.core.indexes.datetimelike import (
 )
 from pandas.core.tools.datetimes import parse_time_string, DateParseError
 
-from pandas._libs import tslib, index as libindex
+from pandas._libs import index as libindex
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
                                         DIFFERENT_FREQ_INDEX)
 
-from pandas._libs.tslibs import resolution
+from pandas._libs.tslibs import resolution, NaT, iNaT
 
 from pandas.core.algorithms import unique1d
 import pandas.core.arrays.datetimelike as dtl
@@ -336,7 +336,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         # places outside of indexes/period.py are calling this _box_func,
         # but passing data that's already boxed.
         def func(x):
-            if isinstance(x, Period) or x is tslib.NaT:
+            if isinstance(x, Period) or x is NaT:
                 return x
             else:
                 return Period._from_ordinal(ordinal=x, freq=self.freq)
@@ -726,7 +726,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                 raise KeyError(key)
 
             try:
-                ordinal = tslib.iNaT if key is tslib.NaT else key.ordinal
+                ordinal = iNaT if key is NaT else key.ordinal
                 if tolerance is not None:
                     tolerance = self._convert_tolerance(tolerance,
                                                         np.asarray(key))

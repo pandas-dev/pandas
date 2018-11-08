@@ -6,7 +6,7 @@ import pytest
 import pytz
 from dateutil.tz.tz import tzoffset
 
-from pandas._libs import tslib
+from pandas._libs import iNaT, tslib
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util.testing as tm
 
@@ -130,13 +130,13 @@ class TestArrayToDatetime(object):
             tslib.array_to_datetime(arr, errors='raise')
 
         result, _ = tslib.array_to_datetime(arr, errors='coerce')
-        expected = np.array([tslib.iNaT], dtype='M8[ns]')
+        expected = np.array([iNaT], dtype='M8[ns]')
         tm.assert_numpy_array_equal(result, expected)
 
     def test_coerce_outside_ns_bounds_one_valid(self):
         arr = np.array(['1/1/1000', '1/1/2000'], dtype=object)
         result, _ = tslib.array_to_datetime(arr, errors='coerce')
-        expected = [tslib.iNaT,
+        expected = [iNaT,
                     '2000-01-01T00:00:00.000000000-0000']
         tm.assert_numpy_array_equal(
             result,
@@ -153,8 +153,8 @@ class TestArrayToDatetime(object):
         # With coercing, the invalid dates becomes iNaT
         result, _ = tslib.array_to_datetime(arr, errors='coerce')
         expected = ['2013-01-01T00:00:00.000000000-0000',
-                    tslib.iNaT,
-                    tslib.iNaT]
+                    iNaT,
+                    iNaT]
 
         tm.assert_numpy_array_equal(
             result,
