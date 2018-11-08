@@ -40,20 +40,20 @@ class TestCut(object):
 
     def test_str_bins(self):
         data = np.array([0.1, 0.1, 0.2, 0.5, 0.5, 0.9, 1.0])
-        result, bins_cut = cut(data, bins="auto", 
-                                     retbins=True)
-        
+        result, bins_cut = cut(data, bins="auto",
+                               retbins=True)
+
         bins_np = np.histogram_bin_edges(data, "auto")
         adj = (bins_np[-1] - bins_np[0]) * 0.001
         bins_np[0] -= adj
         tm.assert_almost_equal(bins_cut, bins_np)
-        tm.assert_almost_equal(np.round(bins_cut, 4), 
+        tm.assert_almost_equal(np.round(bins_cut, 4),
                                np.array([0.0991, 0.325, 0.55, 0.775, 1.0]))
-        
-        intervals = IntervalIndex.from_breaks(np.round(bins_np, 4), 
+
+        intervals = IntervalIndex.from_breaks(np.round(bins_np, 4),
                                               closed="right")
-        expected  = Categorical(intervals, ordered=True)
-        tm.assert_index_equal(result.categories, 
+        expected = Categorical(intervals, ordered=True)
+        tm.assert_index_equal(result.categories,
                               expected.categories)
 
     def test_right(self):

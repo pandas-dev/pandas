@@ -189,9 +189,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     >>> pd.cut(array([0.1, 0.1, 0.2, 0.5, 0.5, 0.9, 1.0]),
     ...        bins="auto")
     ... # doctest: +ELLIPSIS`
-    [(0.0991, 0.325], (0.0991, 0.325], (0.0991, 0.325], (0.325, 0.55], 
+    [(0.0991, 0.325], (0.0991, 0.325], (0.0991, 0.325], (0.325, 0.55],
     (0.325, 0.55], (0.775, 1.0], (0.775, 1.0]]
-    Categories (4, interval[float64]): [(0.0991, 0.325] < (0.325, 0.55] < 
+    Categories (4, interval[float64]): [(0.0991, 0.325] < (0.325, 0.55] <
                                         (0.55, 0.775] < (0.775, 1.0]]
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
@@ -207,7 +207,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         if adj:
             adj *= 0.001  # 0.1% of the range
         else:
-            adj  = 0.001
+            adj = 0.001
         if right:
             bins[0] -= adj
         else:
