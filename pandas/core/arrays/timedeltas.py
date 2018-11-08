@@ -181,6 +181,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         return cls._simple_new(index, freq=freq)
 
     # ----------------------------------------------------------------
+    # Array-Like / EA-Interface Methods
+
+    # ----------------------------------------------------------------
     # Arithmetic Methods
 
     _create_comparison_method = classmethod(_td_array_cmp)

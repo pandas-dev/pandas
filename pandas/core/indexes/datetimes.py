@@ -170,8 +170,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     pandas.to_datetime : Convert argument to datetime
 
     """
-    _resolution = cache_readonly(DatetimeArray._resolution.fget)
-
     _typ = 'datetimeindex'
     _join_precedence = 10
 
@@ -215,8 +213,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
     _is_numeric_dtype = False
     _infer_as_myclass = True
-    _timezone = cache_readonly(DatetimeArray._timezone.fget)
-    is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
 
     # --------------------------------------------------------------------
     # Constructors
@@ -1111,6 +1107,13 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
+
+    # override DatetimeLikeArrayMixin.__repr__
+    __repr__ = Index.__repr__
+
+    _timezone = cache_readonly(DatetimeArray._timezone.fget)
+    is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
+    _resolution = cache_readonly(DatetimeArray._resolution.fget)
 
     year = wrap_field_accessor(DatetimeArray.year)
     month = wrap_field_accessor(DatetimeArray.month)

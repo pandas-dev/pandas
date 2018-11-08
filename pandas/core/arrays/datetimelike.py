@@ -127,10 +127,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     @property
     def asi8(self):
         # do not cache or you'll create a memory leak
-        return self.values.view('i8')
+        return self._data.view('i8')
 
-    # ------------------------------------------------------------------
-    # Array-like Methods
+    # ----------------------------------------------------------------
+    # Array-Like / EA-Interface Methods
+
+    @property
+    def nbytes(self):
+        return self._data.nbytes
 
     @property
     def shape(self):
@@ -196,6 +200,27 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if is_object_dtype(dtype):
             return self._box_values(self.asi8)
         return super(DatetimeLikeArrayMixin, self).astype(dtype, copy)
+
+    # ------------------------------------------------------------------
+    # Formatting
+
+    def __repr__(self):
+        if len(self) <= 6:
+            # TODO: 6 is an arbitrary cutoff; make configurable?
+            items = [str(s) for s in self]
+        else:
+            items = ([str(s) for s in self[:3]] +
+                     ['...'] +
+                     [str(s) for s in self[-3:]])
+
+        result = '<{cls}>\n{items}\nLength: {length}, dtype: {dtype}'.format(
+            cls=type(self).__name__, items=items,
+            length=len(self), dtype=self.dtype)
+
+        if not is_period_dtype(self):
+            result += ', freq: {freqstr}'.format(freqstr=self.freqstr)
+
+        return result
 
     # ------------------------------------------------------------------
     # Null Handling

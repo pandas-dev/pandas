@@ -190,8 +190,28 @@ def test_setitem_raises_type():
 # ----------------------------------------------------------------------------
 # Ops
 
-def tet_sub_period():
+def test_sub_period():
     arr = period_array(['2000', '2001'], freq='D')
     other = pd.Period("2000", freq="M")
     with tm.assert_raises_regex(IncompatibleFrequency, "freq"):
         arr - other
+
+
+# ----------------------------------------------------------------------------
+# Unsorted
+
+def test_repr():
+    arr = period_array(['2000', '2001'], freq='D')
+
+    expected = ("<PeriodArray>\n"
+                "['2000-01-01', '2001-01-01']\n"
+                "Length: 2, dtype: period[D]")
+    assert repr(arr) == expected
+
+    # long array shows ends
+    pi = pd.period_range('2001', periods=1000, freq='Y')
+    arr = period_array(pi)
+
+    expected = ("<PeriodArray>\n"
+                "['2001', '2002', '2003', '...', '2998', '2999', '3000']\n"
+                "Length: 1000, dtype: period[A-DEC]")
