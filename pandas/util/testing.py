@@ -1059,9 +1059,6 @@ def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
     assert_attr_equal('freq', left, right, obj=obj)
     assert_attr_equal('tz', left, right, obj=obj)
 
-    # Check that == works as expected
-    assert ((left == right) | (left._isnan & right._isnan)).all()
-
 
 def raise_assert_detail(obj, message, left, right, diff=None):
     __tracebackhide__ = True
