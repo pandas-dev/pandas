@@ -44,7 +44,7 @@ users upgrade to this version.
 
 .. warning::
 
-   The refactorings in :class:`~pandas.Categorical` changed the two argument constructor from
+   The refactoring in :class:`~pandas.Categorical` changed the two argument constructor from
    "codes/labels and levels" to "values and levels (now called 'categories')". This can lead to subtle bugs. If you use
    :class:`~pandas.Categorical` directly, please audit your code before updating to this pandas
    version and change it to use the :meth:`~pandas.Categorical.from_codes` constructor. See more on ``Categorical`` :ref:`here <whatsnew_0150.cat>`
@@ -139,7 +139,7 @@ This type is very similar to how ``Timestamp`` works for ``datetimes``. It is a 
 
        The arguments to ``pd.to_timedelta`` are now ``(arg,unit='ns',box=True,coerce=False)``, previously were ``(arg,box=True,unit='ns')`` as these are more logical.
 
-Consruct a scalar
+Construct a scalar
 
 .. ipython:: python
 
@@ -711,7 +711,7 @@ Other notable API changes:
      2      7    NaN
      3     11    NaN
 
-  Furthermore, ``.loc`` will raise If no values are found in a multi-index with a list-like indexer:
+  Furthermore, ``.loc`` will raise If no values are found in a MultiIndex with a list-like indexer:
 
   .. ipython:: python
      :okexcept:
@@ -794,7 +794,7 @@ Other notable API changes:
 .. _whatsnew_0150.blanklines:
 
 - Made both the C-based and Python engines for `read_csv` and `read_table` ignore empty lines in input as well as
-  whitespace-filled lines, as long as ``sep`` is not whitespace. This is an API change
+  white space-filled lines, as long as ``sep`` is not white space. This is an API change
   that can be controlled by the keyword parameter ``skip_blank_lines``.  See :ref:`the docs <io.skiplines>` (:issue:`4466`)
 
 - A timeseries/index localized to UTC when inserted into a Series/DataFrame will preserve the UTC timezone
@@ -940,7 +940,7 @@ Enhancements
 
 Enhancements in the importing/exporting of Stata files:
 
-- Added support for bool, uint8, uint16 and uint32 datatypes in ``to_stata`` (:issue:`7097`, :issue:`7365`)
+- Added support for bool, uint8, uint16 and uint32 data types in ``to_stata`` (:issue:`7097`, :issue:`7365`)
 - Added conversion option when importing Stata files (:issue:`8527`)
 - ``DataFrame.to_stata`` and ``StataWriter`` check string length for
   compatibility with limitations imposed in dta files where fixed-width
@@ -988,7 +988,7 @@ Other:
 - Added ``split`` as an option to the ``orient`` argument in ``pd.DataFrame.to_dict``. (:issue:`7840`)
 
 - The ``get_dummies`` method can now be used on DataFrames. By default only
-  catagorical columns are encoded as 0's and 1's, while other columns are
+  categorical columns are encoded as 0's and 1's, while other columns are
   left untouched.
 
   .. ipython:: python
@@ -1008,7 +1008,7 @@ Other:
     business_dates = date_range(start='4/1/2014', end='6/30/2014', freq='B')
     df = DataFrame(1, index=business_dates, columns=['a', 'b'])
     # get the first, 4th, and last date index for each month
-    df.groupby((df.index.year, df.index.month)).nth([0, 3, -1])
+    df.groupby([df.index.year, df.index.month]).nth([0, 3, -1])
 
 - ``Period`` and ``PeriodIndex`` supports addition/subtraction with ``timedelta``-likes (:issue:`7966`)
 
@@ -1070,7 +1070,7 @@ Other:
      idx.duplicated()
      idx.drop_duplicates()
 
-- add ``copy=True`` argument to ``pd.concat`` to enable pass thru of complete blocks (:issue:`8252`)
+- add ``copy=True`` argument to ``pd.concat`` to enable pass through of complete blocks (:issue:`8252`)
 
 - Added support for numpy 1.8+ data types (``bool_``, ``int_``, ``float_``, ``string_``) for conversion to R dataframe  (:issue:`8400`)
 
@@ -1114,9 +1114,9 @@ Bug Fixes
 - Bug in ``DatetimeIndex`` and ``PeriodIndex`` in-place addition and subtraction cause different result from normal one (:issue:`6527`)
 - Bug in adding and subtracting ``PeriodIndex`` with ``PeriodIndex`` raise ``TypeError`` (:issue:`7741`)
 - Bug in ``combine_first`` with ``PeriodIndex`` data raises ``TypeError`` (:issue:`3367`)
-- Bug in multi-index slicing with missing indexers (:issue:`7866`)
-- Bug in multi-index slicing with various edge cases (:issue:`8132`)
-- Regression in multi-index indexing with a non-scalar type object (:issue:`7914`)
+- Bug in MultiIndex slicing with missing indexers (:issue:`7866`)
+- Bug in MultiIndex slicing with various edge cases (:issue:`8132`)
+- Regression in MultiIndex indexing with a non-scalar type object (:issue:`7914`)
 - Bug in ``Timestamp`` comparisons with ``==`` and ``int64`` dtype (:issue:`8058`)
 - Bug in pickles contains ``DateOffset`` may raise ``AttributeError`` when ``normalize`` attribute is referred internally (:issue:`7748`)
 - Bug in ``Panel`` when using ``major_xs`` and ``copy=False`` is passed (deprecation warning fails because of missing ``warnings``) (:issue:`8152`).
@@ -1130,7 +1130,7 @@ Bug Fixes
 - Bug in ``get`` where an ``IndexError`` would not cause the default value to be returned (:issue:`7725`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may reset nanosecond (:issue:`7697`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may raise ``AttributeError`` if ``Timestamp`` has ``dateutil`` tzinfo (:issue:`7697`)
-- Bug in sorting a multi-index frame with a ``Float64Index`` (:issue:`8017`)
+- Bug in sorting a MultiIndex frame with a ``Float64Index`` (:issue:`8017`)
 - Bug in inconsistent panel setitem with a rhs of a ``DataFrame`` for alignment (:issue:`7763`)
 - Bug in ``is_superperiod`` and ``is_subperiod`` cannot handle higher frequencies than ``S`` (:issue:`7760`, :issue:`7772`, :issue:`7803`)
 - Bug in 32-bit platforms with ``Series.shift`` (:issue:`8129`)
@@ -1212,7 +1212,7 @@ Bug Fixes
 - Bug in ``NDFrame.loc`` indexing when row/column names were lost when target was a list/ndarray (:issue:`6552`)
 - Regression in ``NDFrame.loc`` indexing when rows/columns were converted to Float64Index if target was an empty list/ndarray (:issue:`7774`)
 - Bug in ``Series`` that allows it to be indexed by a ``DataFrame`` which has unexpected results.  Such indexing is no longer permitted (:issue:`8444`)
-- Bug in item assignment of a ``DataFrame`` with multi-index columns where right-hand-side columns were not aligned (:issue:`7655`)
+- Bug in item assignment of a ``DataFrame`` with MultiIndex columns where right-hand-side columns were not aligned (:issue:`7655`)
 - Suppress FutureWarning generated by NumPy when comparing object arrays containing NaN for equality (:issue:`7065`)
 - Bug in ``DataFrame.eval()`` where the dtype of the ``not`` operator (``~``)
   was not correctly inferred as ``bool``.

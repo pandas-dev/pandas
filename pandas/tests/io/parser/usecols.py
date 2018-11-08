@@ -5,14 +5,14 @@ Tests the usecols functionality during parsing
 for all of the parsers defined in parsers.py
 """
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas.util.testing as tm
-
-from pandas import DataFrame, Index
 from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO
+
+from pandas import DataFrame, Index
+import pandas.util.testing as tm
 
 
 class UsecolsTests(object):
@@ -413,7 +413,7 @@ a,b,c
         # should not raise
         data = 'a,b,c\n1,2,3\n4,5,6'
         expected = DataFrame()
-        result = self.read_csv(StringIO(data), usecols=set([]))
+        result = self.read_csv(StringIO(data), usecols=set())
         tm.assert_frame_equal(result, expected)
 
     def test_np_array_usecols(self):

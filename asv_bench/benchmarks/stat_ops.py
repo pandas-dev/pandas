@@ -1,8 +1,6 @@
 import numpy as np
 import pandas as pd
 
-from .pandas_vb_common import setup  # noqa
-
 
 ops = ['mean', 'sum', 'median', 'std', 'skew', 'kurt', 'mad', 'prod', 'sem',
        'var']
@@ -10,7 +8,6 @@ ops = ['mean', 'sum', 'median', 'std', 'skew', 'kurt', 'mad', 'prod', 'sem',
 
 class FrameOps(object):
 
-    goal_time = 0.2
     params = [ops, ['float', 'int'], [0, 1], [True, False]]
     param_names = ['op', 'dtype', 'axis', 'use_bottleneck']
 
@@ -18,7 +15,7 @@ class FrameOps(object):
         df = pd.DataFrame(np.random.randn(100000, 4)).astype(dtype)
         try:
             pd.options.compute.use_bottleneck = use_bottleneck
-        except:
+        except TypeError:
             from pandas.core import nanops
             nanops._USE_BOTTLENECK = use_bottleneck
         self.df_func = getattr(df, op)
@@ -29,7 +26,6 @@ class FrameOps(object):
 
 class FrameMultiIndexOps(object):
 
-    goal_time = 0.2
     params = ([0, 1, [0, 1]], ops)
     param_names = ['level', 'op']
 
@@ -48,7 +44,6 @@ class FrameMultiIndexOps(object):
 
 class SeriesOps(object):
 
-    goal_time = 0.2
     params = [ops, ['float', 'int'], [True, False]]
     param_names = ['op', 'dtype', 'use_bottleneck']
 
@@ -56,7 +51,7 @@ class SeriesOps(object):
         s = pd.Series(np.random.randn(100000)).astype(dtype)
         try:
             pd.options.compute.use_bottleneck = use_bottleneck
-        except:
+        except TypeError:
             from pandas.core import nanops
             nanops._USE_BOTTLENECK = use_bottleneck
         self.s_func = getattr(s, op)
@@ -67,7 +62,6 @@ class SeriesOps(object):
 
 class SeriesMultiIndexOps(object):
 
-    goal_time = 0.2
     params = ([0, 1, [0, 1]], ops)
     param_names = ['level', 'op']
 
@@ -86,7 +80,6 @@ class SeriesMultiIndexOps(object):
 
 class Rank(object):
 
-    goal_time = 0.2
     params = [['DataFrame', 'Series'], [True, False]]
     param_names = ['constructor', 'pct']
 
@@ -103,7 +96,6 @@ class Rank(object):
 
 class Correlation(object):
 
-    goal_time = 0.2
     params = ['spearman', 'kendall', 'pearson']
     param_names = ['method']
 
@@ -112,3 +104,6 @@ class Correlation(object):
 
     def time_corr(self, method):
         self.df.corr(method=method)
+
+
+from .pandas_vb_common import setup  # noqa: F401

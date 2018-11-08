@@ -11,7 +11,7 @@ The full license is in the LICENSE file, distributed with this software.
 #define PANDAS__LIBS_SRC_COMPAT_HELPER_H_
 
 #include "Python.h"
-#include "numpy_helper.h"
+#include "inline_helper.h"
 
 /*
 PySlice_GetIndicesEx changes signature in PY3

@@ -7,14 +7,14 @@ import numpy as np
 from pandas.core.algorithms import factorize, unique, value_counts
 from pandas.core.dtypes.missing import isna, isnull, notna, notnull
 from pandas.core.arrays import Categorical
-from pandas.core.groupby.groupby import Grouper
+from pandas.core.groupby import Grouper
 from pandas.io.formats.format import set_eng_float_format
 from pandas.core.index import (Index, CategoricalIndex, Int64Index,
                                UInt64Index, RangeIndex, Float64Index,
                                MultiIndex, IntervalIndex,
                                TimedeltaIndex, DatetimeIndex,
                                PeriodIndex, NaT)
-from pandas.core.indexes.period import Period, period_range, pnow
+from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import Timedelta, timedelta_range
 from pandas.core.indexes.datetimes import Timestamp, date_range, bdate_range
 from pandas.core.indexes.interval import Interval, interval_range
@@ -32,40 +32,8 @@ from pandas.tseries.offsets import DateOffset
 from pandas.core.tools.datetimes import to_datetime
 from pandas.core.tools.timedeltas import to_timedelta
 
-# see gh-14094.
-from pandas.util._depr_module import _DeprecatedModule
-
-_removals = ['day', 'bday', 'businessDay', 'cday', 'customBusinessDay',
-             'customBusinessMonthEnd', 'customBusinessMonthBegin',
-             'monthEnd', 'yearEnd', 'yearBegin', 'bmonthEnd', 'bmonthBegin',
-             'cbmonthEnd', 'cbmonthBegin', 'bquarterEnd', 'quarterEnd',
-             'byearEnd', 'week']
-datetools = _DeprecatedModule(deprmod='pandas.core.datetools',
-                              removals=_removals)
-
 from pandas.core.config import (get_option, set_option, reset_option,
                                 describe_option, option_context, options)
-
-
-# deprecation, xref #13790
-def match(*args, **kwargs):
-
-    import warnings
-    warnings.warn("pd.match() is deprecated and will be removed "
-                  "in a future version",
-                  FutureWarning, stacklevel=2)
-    from pandas.core.algorithms import match
-    return match(*args, **kwargs)
-
-
-def groupby(*args, **kwargs):
-    import warnings
-
-    warnings.warn("pd.groupby() is deprecated and will be removed; "
-                  "Please use the Series.groupby() or "
-                  "DataFrame.groupby() methods",
-                  FutureWarning, stacklevel=2)
-    return args[0].groupby(*args[1:], **kwargs)
 
 
 # Deprecation: xref gh-16747

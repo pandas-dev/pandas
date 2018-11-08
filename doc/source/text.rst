@@ -55,8 +55,8 @@ Since ``df.columns`` is an Index object, we can use the ``.str`` accessor
    df.columns.str.lower()
 
 These string methods can then be used to clean up the columns as needed.
-Here we are removing leading and trailing whitespaces, lowercasing all names,
-and replacing any remaining whitespaces with underscores:
+Here we are removing leading and trailing white spaces, lower casing all names,
+and replacing any remaining white spaces with underscores:
 
 .. ipython:: python
 
@@ -270,12 +270,13 @@ For concatenation with a ``Series`` or ``DataFrame``, it is possible to align th
 the ``join``-keyword.
 
 .. ipython:: python
+   :okwarning:
 
-    u = pd.Series(['b', 'd', 'a', 'c'], index=[1, 3, 0, 2])
-    s
-    u
-    s.str.cat(u)
-    s.str.cat(u, join='left')
+   u = pd.Series(['b', 'd', 'a', 'c'], index=[1, 3, 0, 2])
+   s
+   u
+   s.str.cat(u)
+   s.str.cat(u, join='left')
 
 .. warning::
 
@@ -296,7 +297,7 @@ In particular, alignment also means that the different lengths do not need to co
 The same alignment can be used when ``others`` is a ``DataFrame``:
 
 .. ipython:: python
-    
+
     f = d.loc[[3, 2, 1, 0], :]
     s
     f
@@ -305,20 +306,21 @@ The same alignment can be used when ``others`` is a ``DataFrame``:
 Concatenating a Series and many objects into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-All one-dimensional list-likes can be arbitrarily combined in a list-like container (including iterators, ``dict``-views, etc.):
+All one-dimensional list-likes can be combined in a list-like container (including iterators, ``dict``-views, etc.):
 
 .. ipython:: python
 
     s
     u
-    s.str.cat([u, pd.Index(u.values), ['A', 'B', 'C', 'D'], map(str, u.index)], na_rep='-')
+    s.str.cat([u.values,
+               u.index.astype(str).values], na_rep='-')
 
 All elements must match in length to the calling ``Series`` (or ``Index``), except those having an index if ``join`` is not None:
 
 .. ipython:: python
 
     v
-    s.str.cat([u, v, ['A', 'B', 'C', 'D']], join='outer', na_rep='-')
+    s.str.cat([u, v], join='outer', na_rep='-')
 
 If using ``join='right'`` on a list of ``others`` that contains different indexes,
 the union of these indexes will be used as the basis for the final concatenation:

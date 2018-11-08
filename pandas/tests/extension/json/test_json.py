@@ -1,12 +1,13 @@
-import operator
 import collections
+import operator
 
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
 from pandas.compat import PY2, PY36
+
+import pandas as pd
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
 
@@ -130,11 +131,19 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
-    pass
+
+    @pytest.mark.skip(reason="not implemented constructor from dtype")
+    def test_from_dtype(self, data):
+        # construct from our dtype & string dtype
+        pass
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
-    pass
+    @pytest.mark.xfail(reason="dict for NA", strict=True)
+    def test_unstack(self, data, index):
+        # The base test has NaN for the expected NA value.
+        # this matches otherwise
+        return super().test_unstack(data, index)
 
 
 class TestGetitem(BaseJSON, base.BaseGetitemTests):
@@ -142,11 +151,11 @@ class TestGetitem(BaseJSON, base.BaseGetitemTests):
 
 
 class TestMissing(BaseJSON, base.BaseMissingTests):
-    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    @pytest.mark.skip(reason="Setting a dict as a scalar")
     def test_fillna_series(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
 
-    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    @pytest.mark.skip(reason="Setting a dict as a scalar")
     def test_fillna_frame(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
 
@@ -154,6 +163,10 @@ class TestMissing(BaseJSON, base.BaseMissingTests):
 unhashable = pytest.mark.skip(reason="Unhashable")
 unstable = pytest.mark.skipif(not PY36,  # 3.6 or higher
                               reason="Dictionary order unstable")
+
+
+class TestReduce(base.BaseNoReduceTests):
+    pass
 
 
 class TestMethods(BaseJSON, base.BaseMethodsTests):
@@ -187,9 +200,21 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         super(TestMethods, self).test_sort_values_missing(
             data_missing_for_sorting, ascending)
 
+    @pytest.mark.skip(reason="combine for JSONArray not supported")
+    def test_combine_le(self, data_repeated):
+        pass
+
+    @pytest.mark.skip(reason="combine for JSONArray not supported")
+    def test_combine_add(self, data_repeated):
+        pass
+
+    @unhashable
+    def test_hash_pandas_object_works(self, data, kind):
+        super().test_hash_pandas_object_works(data, kind)
+
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
-    @pytest.mark.xfail
+    @pytest.mark.skip(reason="failing on np.array(self, dtype=str)")
     def test_astype_str(self):
         """This currently fails in NumPy on np.array(self, dtype=str) with
 
@@ -230,3 +255,22 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         super(TestGroupby, self).test_groupby_extension_agg(
             as_index, data_for_grouping
         )
+
+
+class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
+    def test_error(self, data, all_arithmetic_operators):
+        pass
+
+    def test_add_series_with_extension_array(self, data):
+        ser = pd.Series(data)
+        with tm.assert_raises_regex(TypeError, "unsupported"):
+            ser + data
+
+    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
+        return super(TestArithmeticOps, self)._check_divmod_op(
+            s, op, other, exc=TypeError
+        )
+
+
+class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
+    pass

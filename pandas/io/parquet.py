@@ -1,10 +1,13 @@
 """ parquet compat """
 
-from warnings import catch_warnings
 from distutils.version import LooseVersion
-from pandas import DataFrame, RangeIndex, Int64Index, get_option
+from warnings import catch_warnings
+
 from pandas.compat import string_types
+
+from pandas import DataFrame, get_option
 import pandas.core.common as com
+
 from pandas.io.common import get_filepath_or_buffer, is_s3_url
 
 
@@ -86,49 +89,38 @@ class PyArrowImpl(BaseImpl):
                 "\nor via pip\n"
                 "pip install -U pyarrow\n"
             )
-        if LooseVersion(pyarrow.__version__) < '0.4.1':
+        if LooseVersion(pyarrow.__version__) < '0.7.0':
             raise ImportError(
-                "pyarrow >= 0.4.1 is required for parquet support\n\n"
+                "pyarrow >= 0.7.0 is required for parquet support\n\n"
                 "you can install via conda\n"
                 "conda install pyarrow -c conda-forge\n"
                 "\nor via pip\n"
                 "pip install -U pyarrow\n"
             )
 
-        self._pyarrow_lt_060 = (
-            LooseVersion(pyarrow.__version__) < LooseVersion('0.6.0'))
-        self._pyarrow_lt_070 = (
-            LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'))
-
         self.api = pyarrow
 
     def write(self, df, path, compression='snappy',
-              coerce_timestamps='ms', **kwargs):
+              coerce_timestamps='ms', index=None, **kwargs):
         self.validate_dataframe(df)
-        if self._pyarrow_lt_070:
-            self._validate_write_lt_070(df)
         path, _, _, _ = get_filepath_or_buffer(path, mode='wb')
 
-        if self._pyarrow_lt_060:
-            table = self.api.Table.from_pandas(df, timestamps_to_ms=True)
-            self.api.parquet.write_table(
-                table, path, compression=compression, **kwargs)
-
+        if index is None:
+            from_pandas_kwargs = {}
         else:
-            table = self.api.Table.from_pandas(df)
-            self.api.parquet.write_table(
-                table, path, compression=compression,
-                coerce_timestamps=coerce_timestamps, **kwargs)
+            from_pandas_kwargs = {'preserve_index': index}
+
+        table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
+        self.api.parquet.write_table(
+            table, path, compression=compression,
+            coerce_timestamps=coerce_timestamps, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
         path, _, _, should_close = get_filepath_or_buffer(path)
-        if self._pyarrow_lt_070:
-            result = self.api.parquet.read_pandas(path, columns=columns,
-                                                  **kwargs).to_pandas()
-        else:
-            kwargs['use_pandas_metadata'] = True
-            result = self.api.parquet.read_table(path, columns=columns,
-                                                 **kwargs).to_pandas()
+
+        kwargs['use_pandas_metadata'] = True
+        result = self.api.parquet.read_table(path, columns=columns,
+                                             **kwargs).to_pandas()
         if should_close:
             try:
                 path.close()
@@ -136,39 +128,6 @@ class PyArrowImpl(BaseImpl):
                 pass
 
         return result
-
-    def _validate_write_lt_070(self, df):
-        # Compatibility shim for pyarrow < 0.7.0
-        # TODO: Remove in pandas 0.23.0
-        from pandas.core.indexes.multi import MultiIndex
-        if isinstance(df.index, MultiIndex):
-            msg = (
-                "Multi-index DataFrames are only supported "
-                "with pyarrow >= 0.7.0"
-            )
-            raise ValueError(msg)
-        # Validate index
-        if not isinstance(df.index, Int64Index):
-            msg = (
-                "pyarrow < 0.7.0 does not support serializing {} for the "
-                "index; you can .reset_index() to make the index into "
-                "column(s), or install the latest version of pyarrow or "
-                "fastparquet."
-            )
-            raise ValueError(msg.format(type(df.index)))
-        if not df.index.equals(RangeIndex(len(df))):
-            raise ValueError(
-                "pyarrow < 0.7.0 does not support serializing a non-default "
-                "index; you can .reset_index() to make the index into "
-                "column(s), or install the latest version of pyarrow or "
-                "fastparquet."
-            )
-        if df.index.name is not None:
-            raise ValueError(
-                "pyarrow < 0.7.0 does not serialize indexes with a name; you "
-                "can set the index.name to None or install the latest version "
-                "of pyarrow or fastparquet."
-            )
 
 
 class FastParquetImpl(BaseImpl):
@@ -186,9 +145,9 @@ class FastParquetImpl(BaseImpl):
                 "\nor via pip\n"
                 "pip install -U fastparquet"
             )
-        if LooseVersion(fastparquet.__version__) < '0.1.0':
+        if LooseVersion(fastparquet.__version__) < '0.1.2':
             raise ImportError(
-                "fastparquet >= 0.1.0 is required for parquet "
+                "fastparquet >= 0.1.2 is required for parquet "
                 "support\n\n"
                 "you can install via conda\n"
                 "conda install fastparquet -c conda-forge\n"
@@ -197,7 +156,7 @@ class FastParquetImpl(BaseImpl):
             )
         self.api = fastparquet
 
-    def write(self, df, path, compression='snappy', **kwargs):
+    def write(self, df, path, compression='snappy', index=None, **kwargs):
         self.validate_dataframe(df)
         # thriftpy/protocol/compact.py:339:
         # DeprecationWarning: tostring() is deprecated.
@@ -214,8 +173,8 @@ class FastParquetImpl(BaseImpl):
             path, _, _, _ = get_filepath_or_buffer(path)
 
         with catch_warnings(record=True):
-            self.api.write(path, df,
-                           compression=compression, **kwargs)
+            self.api.write(path, df, compression=compression,
+                           write_index=index, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
         if is_s3_url(path):
@@ -234,7 +193,8 @@ class FastParquetImpl(BaseImpl):
         return parquet_file.to_pandas(columns=columns, **kwargs)
 
 
-def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
+def to_parquet(df, path, engine='auto', compression='snappy', index=None,
+               **kwargs):
     """
     Write a DataFrame to the parquet format.
 
@@ -250,11 +210,17 @@ def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
         'pyarrow' is unavailable.
     compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
         Name of the compression to use. Use ``None`` for no compression.
+    index : bool, default None
+        If ``True``, include the dataframe's index(es) in the file output. If
+        ``False``, they will not be written to the file. If ``None``, the
+        engine's default behavior will be used.
+
+        .. versionadded 0.24.0
     kwargs
         Additional keyword arguments passed to the engine
     """
     impl = get_engine(engine)
-    return impl.write(df, path, compression=compression, **kwargs)
+    return impl.write(df, path, compression=compression, index=index, **kwargs)
 
 
 def read_parquet(path, engine='auto', columns=None, **kwargs):

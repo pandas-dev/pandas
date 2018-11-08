@@ -178,19 +178,20 @@ class Ops(object):
         self.unicode_index = tm.makeUnicodeIndex(10, name='a')
 
         arr = np.random.randn(10)
+        self.bool_series = Series(arr, index=self.bool_index, name='a')
         self.int_series = Series(arr, index=self.int_index, name='a')
         self.float_series = Series(arr, index=self.float_index, name='a')
         self.dt_series = Series(arr, index=self.dt_index, name='a')
         self.dt_tz_series = self.dt_tz_index.to_series(keep_tz=True)
         self.period_series = Series(arr, index=self.period_index, name='a')
         self.string_series = Series(arr, index=self.string_index, name='a')
+        self.unicode_series = Series(arr, index=self.unicode_index, name='a')
 
         types = ['bool', 'int', 'float', 'dt', 'dt_tz', 'period', 'string',
                  'unicode']
-        fmts = ["{0}_{1}".format(t, f)
-                for t in types for f in ['index', 'series']]
-        self.objs = [getattr(self, f)
-                     for f in fmts if getattr(self, f, None) is not None]
+        self.indexes = [getattr(self, '{}_index'.format(t)) for t in types]
+        self.series = [getattr(self, '{}_series'.format(t)) for t in types]
+        self.objs = self.indexes + self.series
 
     def check_ops_properties(self, props, filter=None, ignore_failures=False):
         for op in props:
@@ -668,16 +669,15 @@ class TestIndexOps(Ops):
 
         s = klass(df['dt'].copy())
         s.name = None
-
-        idx = pd.to_datetime(['2010-01-01 00:00:00Z',
-                              '2008-09-09 00:00:00Z',
-                              '2009-01-01 00:00:00Z'])
+        idx = pd.to_datetime(['2010-01-01 00:00:00',
+                              '2008-09-09 00:00:00',
+                              '2009-01-01 00:00:00'])
         expected_s = Series([3, 2, 1], index=idx)
         tm.assert_series_equal(s.value_counts(), expected_s)
 
-        expected = np_array_datetime64_compat(['2010-01-01 00:00:00Z',
-                                               '2009-01-01 00:00:00Z',
-                                               '2008-09-09 00:00:00Z'],
+        expected = np_array_datetime64_compat(['2010-01-01 00:00:00',
+                                               '2009-01-01 00:00:00',
+                                               '2008-09-09 00:00:00'],
                                               dtype='datetime64[ns]')
         if isinstance(s, Index):
             tm.assert_index_equal(s.unique(), DatetimeIndex(expected))
@@ -998,6 +998,31 @@ class TestIndexOps(Ops):
             with pytest.raises(ValueError):
                 self.int_series.drop_duplicates(inplace=value)
 
+    def test_getitem(self):
+        for i in self.indexes:
+            s = pd.Series(i)
+
+            assert i[0] == s.iloc[0]
+            assert i[5] == s.iloc[5]
+            assert i[-1] == s.iloc[-1]
+
+            assert i[-1] == i[9]
+
+            pytest.raises(IndexError, i.__getitem__, 20)
+            pytest.raises(IndexError, s.iloc.__getitem__, 20)
+
+    @pytest.mark.parametrize('indexer_klass', [list, pd.Index])
+    @pytest.mark.parametrize('indexer', [[True] * 10, [False] * 10,
+                                         [True, False, True, True, False,
+                                          False, True, True, False, True]])
+    def test_bool_indexing(self, indexer_klass, indexer):
+        # GH 22533
+        for idx in self.indexes:
+            exp_idx = [i for i in range(len(indexer)) if indexer[i]]
+            tm.assert_index_equal(idx[indexer_klass(indexer)], idx[exp_idx])
+            s = pd.Series(idx)
+            tm.assert_series_equal(s[indexer_klass(indexer)], s.iloc[exp_idx])
+
 
 class TestTranspose(Ops):
     errmsg = "the 'axes' parameter is not supported"
@@ -1180,11 +1205,11 @@ class TestToIterable(object):
             assert isinstance(res, Timedelta)
             assert res == exp
 
-        # period (object dtype, not boxed)
+        # period
         vals = [pd.Period('2011-01-01', freq='M'),
                 pd.Period('2011-01-02', freq='M')]
         s = Series(vals)
-        assert s.dtype == 'object'
+        assert s.dtype == 'Period[M]'
         for res, exp in zip(s, vals):
             assert isinstance(res, pd.Period)
             assert res.freq == 'M'
@@ -1199,8 +1224,10 @@ class TestToIterable(object):
     (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), pd.DatetimeIndex,
      'datetime64[ns, US/Central]'),
     (pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]'),
-    (pd.PeriodIndex([2018, 2019], freq='A'), np.ndarray, 'object'),
-    (pd.IntervalIndex.from_breaks([0, 1, 2]), np.ndarray, 'object'),
+    (pd.PeriodIndex([2018, 2019], freq='A'), pd.core.arrays.PeriodArray,
+     pd.core.dtypes.dtypes.PeriodDtype("A-DEC")),
+    (pd.IntervalIndex.from_breaks([0, 1, 2]), pd.core.arrays.IntervalArray,
+     'interval'),
 ])
 def test_values_consistent(array, expected_type, dtype):
     l_values = pd.Series(array)._values
@@ -1214,6 +1241,10 @@ def test_values_consistent(array, expected_type, dtype):
         tm.assert_index_equal(l_values, r_values)
     elif pd.api.types.is_categorical(l_values):
         tm.assert_categorical_equal(l_values, r_values)
+    elif pd.api.types.is_period_dtype(l_values):
+        tm.assert_period_array_equal(l_values, r_values)
+    elif pd.api.types.is_interval_dtype(l_values):
+        tm.assert_interval_array_equal(l_values, r_values)
     else:
         raise TypeError("Unexpected type {}".format(type(l_values)))
 
@@ -1230,11 +1261,8 @@ def test_values_consistent(array, expected_type, dtype):
     (pd.DatetimeIndex(['2017-01-01T00:00:00'], tz="US/Eastern"),
      np.array(['2017-01-01T05:00:00'], dtype='M8[ns]')),
     (pd.TimedeltaIndex([10**10]), np.array([10**10], dtype='m8[ns]')),
-    pytest.param(
-        pd.PeriodIndex(['2017', '2018'], freq='D'),
-        np.array([17167, 17532]),
-        marks=pytest.mark.xfail(reason="PeriodArray Not implemented")
-    ),
+    (pd.PeriodIndex(['2017', '2018'], freq='D'),
+     np.array([17167, 17532], dtype=np.int64)),
 ])
 def test_ndarray_values(array, expected):
     l_values = pd.Series(array)._ndarray_values

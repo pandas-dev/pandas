@@ -16,9 +16,11 @@ import os
 import re
 import inspect
 import importlib
-from sphinx.ext.autosummary import _import_by_name
+import logging
 import warnings
+from sphinx.ext.autosummary import _import_by_name
 
+logger = logging.getLogger(__name__)
 
 try:
     raw_input          # Python 2
@@ -75,7 +77,18 @@ extensions = ['sphinx.ext.autodoc',
               'nbsphinx',
               ]
 
+try:
+    import sphinxcontrib.spelling  # noqa
+except ImportError as err:
+    logger.warn(('sphinxcontrib.spelling failed to import with error "{}". '
+                '`spellcheck` command is not available.'.format(err)))
+else:
+    extensions.append('sphinxcontrib.spelling')
+
 exclude_patterns = ['**.ipynb_checkpoints']
+
+spelling_word_list_filename = ['spelling_wordlist.txt', 'names_wordlist.txt']
+spelling_ignore_pypi_package_names = True
 
 with open("index.rst") as f:
     index_rst_lines = f.readlines()
@@ -86,7 +99,7 @@ with open("index.rst") as f:
 # JP: added from sphinxdocs
 autosummary_generate = False
 
-if any(re.match("\s*api\s*", l) for l in index_rst_lines):
+if any(re.match(r"\s*api\s*", l) for l in index_rst_lines):
     autosummary_generate = True
 
 # numpydoc
@@ -200,15 +213,15 @@ html_theme_path = ['themes']
 # of the sidebar.
 # html_logo = None
 
-# The name of an image file (within the static path) to use as favicon of the
-# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
-# pixels large.
-# html_favicon = None
-
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# The name of an image file (within the static path) to use as favicon of the
+# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
+# pixels large.
+html_favicon = os.path.join(html_static_path[0], 'favicon.ico')
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -328,8 +341,8 @@ nbsphinx_allow_errors = True
 # file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
     ('index', 'pandas.tex',
-     u'pandas: powerful Python data analysis toolkit',
-     u'Wes McKinney\n\& PyData Development Team', 'manual'),
+     'pandas: powerful Python data analysis toolkit',
+     r'Wes McKinney\n\& PyData Development Team', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -556,7 +569,11 @@ def linkcode_resolve(domain, info):
             return None
 
     try:
-        fn = inspect.getsourcefile(obj)
+        # inspect.unwrap() was added in Python version 3.4
+        if sys.version_info >= (3, 5):
+            fn = inspect.getsourcefile(inspect.unwrap(obj))
+        else:
+            fn = inspect.getsourcefile(obj)
     except:
         fn = None
     if not fn:

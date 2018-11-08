@@ -1,24 +1,23 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
-from pandas import compat
+from pandas._libs.tslib import iNaT
+import pandas.compat as compat
 from pandas.compat import PY3
 
-import numpy as np
-
-from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
-                    RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, IntervalIndex, isna)
-from pandas.core.indexes.base import InvalidIndexError
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas._libs.tslib import iNaT
-
-import pandas.util.testing as tm
 
 import pandas as pd
+from pandas import (
+    CategoricalIndex, DatetimeIndex, Float64Index, Index, Int64Index,
+    IntervalIndex, MultiIndex, PeriodIndex, RangeIndex, Series, TimedeltaIndex,
+    UInt64Index, isna)
+from pandas.core.indexes.base import InvalidIndexError
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+import pandas.util.testing as tm
 
 
 class Base(object):
@@ -35,10 +34,6 @@ class Base(object):
         assert indices.equals(unpickled)
 
     def test_pickle_compat_construction(self):
-        # this is testing for pickle compat
-        if self._holder is None:
-            return
-
         # need an object to create with
         pytest.raises(TypeError, self._holder)
 
@@ -70,19 +65,24 @@ class Base(object):
         assert s.index is not idx
         assert s.name != idx.name
 
-    def test_to_frame(self):
-        # see gh-15230
+    @pytest.mark.parametrize("name", [None, "new_name"])
+    def test_to_frame(self, name):
+        # see GH-15230, GH-22580
         idx = self.create_index()
-        name = idx.name or 0
 
-        df = idx.to_frame()
+        if name:
+            idx_name = name
+        else:
+            idx_name = idx.name or 0
+
+        df = idx.to_frame(name=idx_name)
 
         assert df.index is idx
         assert len(df.columns) == 1
-        assert df.columns[0] == name
-        assert df[name].values is not idx.values
+        assert df.columns[0] == idx_name
+        assert df[idx_name].values is not idx.values
 
-        df = idx.to_frame(index=False)
+        df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
 
     def test_shift(self):
@@ -236,7 +236,7 @@ class Base(object):
 
         # don't tests a MultiIndex here (as its tested separated)
         if isinstance(indices, MultiIndex):
-            return
+            pytest.skip('Skip check for MultiIndex')
         original_name = indices.name
         new_ind = indices.set_names([new_name])
         assert new_ind.name == new_name
@@ -308,7 +308,8 @@ class Base(object):
             index_type = index.__class__
             result = index_type(index.values, copy=True, **init_kwargs)
             tm.assert_index_equal(index, result)
-            tm.assert_numpy_array_equal(index.values, result.values,
+            tm.assert_numpy_array_equal(index._ndarray_values,
+                                        result._ndarray_values,
                                         check_same='copy')
 
             if isinstance(index, PeriodIndex):
@@ -333,7 +334,8 @@ class Base(object):
         from copy import copy, deepcopy
 
         if isinstance(indices, MultiIndex):
-            return
+            pytest.skip('Skip check for MultiIndex')
+
         for func in (copy, deepcopy):
             idx_copy = func(indices)
             assert idx_copy is not indices
@@ -342,20 +344,50 @@ class Base(object):
         new_copy = indices.copy(deep=True, name="banana")
         assert new_copy.name == "banana"
 
-    def test_duplicates(self, indices):
+    def test_has_duplicates(self, indices):
         if type(indices) is not self._holder:
-            return
+            pytest.skip('Can only check if we have the correct type')
         if not len(indices) or isinstance(indices, MultiIndex):
-            return
+            # MultiIndex tested separately in:
+            # tests/indexes/multi/test_unique_and_duplicates
+            pytest.skip('Skip check for empty Index and MultiIndex')
+
         idx = self._holder([indices[0]] * 5)
-        assert not idx.is_unique
-        assert idx.has_duplicates
+        assert idx.is_unique is False
+        assert idx.has_duplicates is True
+
+    @pytest.mark.parametrize('keep', ['first', 'last', False])
+    def test_duplicated(self, indices, keep):
+        if type(indices) is not self._holder:
+            pytest.skip('Can only check if we know the index type')
+        if not len(indices) or isinstance(indices, (MultiIndex, RangeIndex)):
+            # MultiIndex tested separately in:
+            # tests/indexes/multi/test_unique_and_duplicates
+            pytest.skip('Skip check for empty Index, MultiIndex, RangeIndex')
+
+        idx = self._holder(indices)
+        if idx.has_duplicates:
+            # We are testing the duplicated-method here, so we need to know
+            # exactly which indices are duplicate and how (for the result).
+            # This is not possible if "idx" has duplicates already, which we
+            # therefore remove. This is seemingly circular, as drop_duplicates
+            # invokes duplicated, but in the end, it all works out because we
+            # cross-check with Series.duplicated, which is tested separately.
+            idx = idx.drop_duplicates()
+
+        n, k = len(idx), 10
+        duplicated_selection = np.random.choice(n, k * n)
+        expected = pd.Series(duplicated_selection).duplicated(keep=keep).values
+        idx = self._holder(idx.values[duplicated_selection])
+
+        result = idx.duplicated(keep=keep)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_unique(self, indices):
         # don't test a MultiIndex here (as its tested separated)
         # don't test a CategoricalIndex because categories change (GH 18291)
         if isinstance(indices, (MultiIndex, CategoricalIndex)):
-            return
+            pytest.skip('Skip check for MultiIndex/CategoricalIndex')
 
         # GH 17896
         expected = indices.drop_duplicates()
@@ -375,16 +407,16 @@ class Base(object):
     def test_get_unique_index(self, indices):
         # MultiIndex tested separately
         if not len(indices) or isinstance(indices, MultiIndex):
-            return
+            pytest.skip('Skip check for empty Index and MultiIndex')
 
         idx = indices[[0] * 5]
         idx_unique = indices[[0]]
 
         # We test against `idx_unique`, so first we make sure it's unique
         # and doesn't contain nans.
-        assert idx_unique.is_unique
+        assert idx_unique.is_unique is True
         try:
-            assert not idx_unique.hasnans
+            assert idx_unique.hasnans is False
         except NotImplementedError:
             pass
 
@@ -394,7 +426,7 @@ class Base(object):
 
         # nans:
         if not indices._can_hold_na:
-            return
+            pytest.skip('Skip na-check if index cannot hold na')
 
         if needs_i8_conversion(indices):
             vals = indices.asi8[[0] * 5]
@@ -406,7 +438,7 @@ class Base(object):
         vals_unique = vals[:2]
         idx_nan = indices._shallow_copy(vals)
         idx_unique_nan = indices._shallow_copy(vals_unique)
-        assert idx_unique_nan.is_unique
+        assert idx_unique_nan.is_unique is True
 
         assert idx_nan.dtype == indices.dtype
         assert idx_unique_nan.dtype == indices.dtype
@@ -423,7 +455,7 @@ class Base(object):
 
     def test_mutability(self, indices):
         if not len(indices):
-            return
+            pytest.skip('Skip check for empty Index')
         pytest.raises(TypeError, indices.__setitem__, 0, indices[0])
 
     def test_view(self, indices):
@@ -761,7 +793,7 @@ class Base(object):
         # GH9947, GH10637
         index_a = self.create_index()
         if isinstance(index_a, PeriodIndex):
-            return
+            pytest.skip('Skip check for PeriodIndex')
 
         n = len(index_a)
         index_b = index_a[0:-1]
@@ -883,10 +915,10 @@ class Base(object):
                 # cases in indices doesn't include NaN
                 expected = np.array([False] * len(idx), dtype=bool)
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                assert not idx.hasnans
+                assert idx.hasnans is False
 
                 idx = index.copy()
-                values = idx.values
+                values = np.asarray(idx.values)
 
                 if len(index) == 0:
                     continue
@@ -905,7 +937,7 @@ class Base(object):
                 expected = np.array([False] * len(idx), dtype=bool)
                 expected[1] = True
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                assert idx.hasnans
+                assert idx.hasnans is True
 
     def test_fillna(self):
         # GH 11343
@@ -928,7 +960,7 @@ class Base(object):
                     idx.fillna([idx[0]])
 
                 idx = index.copy()
-                values = idx.values
+                values = np.asarray(idx.values)
 
                 if isinstance(index, DatetimeIndexOpsMixin):
                     values[1] = iNaT
@@ -945,7 +977,7 @@ class Base(object):
                 expected = np.array([False] * len(idx), dtype=bool)
                 expected[1] = True
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                assert idx.hasnans
+                assert idx.hasnans is True
 
     def test_nulls(self):
         # this is really a smoke test for the methods
@@ -989,11 +1021,11 @@ class Base(object):
         # not implemented for tuple searches in MultiIndex
         # or Intervals searches in IntervalIndex
         if isinstance(indices, (MultiIndex, IntervalIndex)):
-            return
+            pytest.skip('Skip check for MultiIndex/IntervalIndex')
 
         # nothing to test if the index is empty
         if indices.empty:
-            return
+            pytest.skip('Skip check for empty Index')
         value = indices[0]
 
         # determine the expected results (handle dupes for 'right')

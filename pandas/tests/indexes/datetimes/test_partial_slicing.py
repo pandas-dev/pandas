@@ -1,14 +1,15 @@
 """ test partial slicing on Series/Frame """
 
-import pytest
-
 from datetime import datetime
-import numpy as np
-import pandas as pd
 import operator as op
 
-from pandas import (DatetimeIndex, Series, DataFrame,
-                    date_range, Index, Timedelta, Timestamp)
+import numpy as np
+import pytest
+
+import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Index, Series, Timedelta, Timestamp, date_range)
+from pandas.core.indexing import IndexingError
 from pandas.util import testing as tm
 
 
@@ -313,12 +314,12 @@ class TestSlicing(object):
         result = df_multi.loc[('2013-06-19 09:30:00', 'ACCT1', 'ABC')]
         tm.assert_series_equal(result, expected)
 
-        # this is a KeyError as we don't do partial string selection on
-        # multi-levels
+        # this is an IndexingError as we don't do partial string selection on
+        # multi-levels.
         def f():
             df_multi.loc[('2013-06-19', 'ACCT1', 'ABC')]
 
-        pytest.raises(KeyError, f)
+        pytest.raises(IndexingError, f)
 
         # GH 4294
         # partial slice on a series mi

@@ -52,7 +52,7 @@ Idioms
 These are some neat pandas ``idioms``
 
 `if-then/if-then-else on one column, and assignment to another one or more columns:
-<http://stackoverflow.com/questions/17128302/python-pandas-idiom-for-if-then-else>`__
+<https://stackoverflow.com/questions/17128302/python-pandas-idiom-for-if-then-else>`__
 
 .. ipython:: python
 
@@ -88,7 +88,7 @@ Or use pandas where after you've set up a mask
    df.where(df_mask,-1000)
 
 `if-then-else using numpy's where()
-<http://stackoverflow.com/questions/19913659/pandas-conditional-creation-of-a-series-dataframe-column>`__
+<https://stackoverflow.com/questions/19913659/pandas-conditional-creation-of-a-series-dataframe-column>`__
 
 .. ipython:: python
 
@@ -101,7 +101,7 @@ Splitting
 *********
 
 `Split a frame with a boolean criterion
-<http://stackoverflow.com/questions/14957116/how-to-split-a-dataframe-according-to-a-boolean-criterion>`__
+<https://stackoverflow.com/questions/14957116/how-to-split-a-dataframe-according-to-a-boolean-criterion>`__
 
 .. ipython:: python
 
@@ -115,7 +115,7 @@ Building Criteria
 *****************
 
 `Select with multi-column criteria
-<http://stackoverflow.com/questions/15315452/selecting-with-complex-criteria-from-pandas-dataframe>`__
+<https://stackoverflow.com/questions/15315452/selecting-with-complex-criteria-from-pandas-dataframe>`__
 
 .. ipython:: python
 
@@ -132,7 +132,7 @@ Building Criteria
 
 .. ipython:: python
 
-   newseries = df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']; newseries;
+   newseries = df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']; newseries
 
 ...or (with assignment modifies the DataFrame.)
 
@@ -141,7 +141,7 @@ Building Criteria
    df.loc[(df['BBB'] > 25) | (df['CCC'] >= 75), 'AAA'] = 0.1; df
 
 `Select rows with data closest to certain value using argsort
-<http://stackoverflow.com/questions/17758023/return-rows-in-a-dataframe-closest-to-a-user-defined-number>`__
+<https://stackoverflow.com/questions/17758023/return-rows-in-a-dataframe-closest-to-a-user-defined-number>`__
 
 .. ipython:: python
 
@@ -152,7 +152,7 @@ Building Criteria
    df.loc[(df.CCC-aValue).abs().argsort()]
 
 `Dynamically reduce a list of criteria using a binary operators
-<http://stackoverflow.com/questions/21058254/pandas-boolean-operation-in-a-python-list/21058331>`__
+<https://stackoverflow.com/questions/21058254/pandas-boolean-operation-in-a-python-list/21058331>`__
 
 .. ipython:: python
 
@@ -189,7 +189,7 @@ DataFrames
 The :ref:`indexing <indexing>` docs.
 
 `Using both row labels and value conditionals
-<http://stackoverflow.com/questions/14725068/pandas-using-row-labels-in-boolean-indexing>`__
+<https://stackoverflow.com/questions/14725068/pandas-using-row-labels-in-boolean-indexing>`__
 
 .. ipython:: python
 
@@ -232,7 +232,7 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
    df2.loc[1:3] #Label-oriented
 
 `Using inverse operator (~) to take the complement of a mask
-<http://stackoverflow.com/questions/14986510/picking-out-elements-based-on-complement-of-indices-in-python-pandas>`__
+<https://stackoverflow.com/questions/14986510/picking-out-elements-based-on-complement-of-indices-in-python-pandas>`__
 
 .. ipython:: python
 
@@ -259,13 +259,13 @@ Panels
    pf.loc[:,:,'F'] = pd.DataFrame(data, rng, cols);pf
 
 `Mask a panel by using np.where and then reconstructing the panel with the new masked values
-<http://stackoverflow.com/questions/14650341/boolean-mask-in-pandas-panel>`__
+<https://stackoverflow.com/questions/14650341/boolean-mask-in-pandas-panel>`__
 
 New Columns
 ***********
 
 `Efficiently and dynamically creating new columns using applymap
-<http://stackoverflow.com/questions/16575868/efficiently-creating-additional-columns-in-a-pandas-dataframe-using-map>`__
+<https://stackoverflow.com/questions/16575868/efficiently-creating-additional-columns-in-a-pandas-dataframe-using-map>`__
 
 .. ipython:: python
 
@@ -279,14 +279,14 @@ New Columns
    df[new_cols] = df[source_cols].applymap(categories.get);df
 
 `Keep other columns when using min() with groupby
-<http://stackoverflow.com/questions/23394476/keep-other-columns-when-using-min-with-groupby>`__
+<https://stackoverflow.com/questions/23394476/keep-other-columns-when-using-min-with-groupby>`__
 
 .. ipython:: python
 
    df = pd.DataFrame(
         {'AAA' : [1,1,1,2,2,2,3,3], 'BBB' : [2,1,3,4,5,1,2,3]}); df
 
-Method 1 : idxmin() to get the index of the mins
+Method 1 : idxmin() to get the index of the minimums
 
 .. ipython:: python
 
@@ -307,8 +307,8 @@ MultiIndexing
 
 The :ref:`multindexing <advanced.hierarchical>` docs.
 
-`Creating a multi-index from a labeled frame
-<http://stackoverflow.com/questions/14916358/reshaping-dataframes-in-pandas-based-on-column-labels>`__
+`Creating a MultiIndex from a labeled frame
+<https://stackoverflow.com/questions/14916358/reshaping-dataframes-in-pandas-based-on-column-labels>`__
 
 .. ipython:: python
 
@@ -330,8 +330,8 @@ The :ref:`multindexing <advanced.hierarchical>` docs.
 Arithmetic
 **********
 
-`Performing arithmetic with a multi-index that needs broadcasting
-<http://stackoverflow.com/questions/19501510/divide-entire-pandas-multiindex-dataframe-by-dataframe-variable/19502176#19502176>`__
+`Performing arithmetic with a MultiIndex that needs broadcasting
+<https://stackoverflow.com/questions/19501510/divide-entire-pandas-multiindex-dataframe-by-dataframe-variable/19502176#19502176>`__
 
 .. ipython:: python
 
@@ -342,8 +342,8 @@ Arithmetic
 Slicing
 *******
 
-`Slicing a multi-index with xs
-<http://stackoverflow.com/questions/12590131/how-to-slice-multindex-columns-in-pandas-dataframes>`__
+`Slicing a MultiIndex with xs
+<https://stackoverflow.com/questions/12590131/how-to-slice-multindex-columns-in-pandas-dataframes>`__
 
 .. ipython:: python
 
@@ -363,8 +363,8 @@ To take the cross section of the 1st level and 1st axis the index:
 
    df.xs('six',level=1,axis=0)
 
-`Slicing a multi-index with xs, method #2
-<http://stackoverflow.com/questions/14964493/multiindex-based-indexing-in-pandas>`__
+`Slicing a MultiIndex with xs, method #2
+<https://stackoverflow.com/questions/14964493/multiindex-based-indexing-in-pandas>`__
 
 .. ipython:: python
 
@@ -386,14 +386,14 @@ To take the cross section of the 1st level and 1st axis the index:
    df.loc[(All,'Math'),('Exams')]
    df.loc[(All,'Math'),(All,'II')]
 
-`Setting portions of a multi-index with xs
-<http://stackoverflow.com/questions/19319432/pandas-selecting-a-lower-level-in-a-dataframe-to-do-a-ffill>`__
+`Setting portions of a MultiIndex with xs
+<https://stackoverflow.com/questions/19319432/pandas-selecting-a-lower-level-in-a-dataframe-to-do-a-ffill>`__
 
 Sorting
 *******
 
-`Sort by specific column or an ordered list of columns, with a multi-index
-<http://stackoverflow.com/questions/14733871/mutli-index-sorting-in-pandas>`__
+`Sort by specific column or an ordered list of columns, with a MultiIndex
+<https://stackoverflow.com/questions/14733871/mutli-index-sorting-in-pandas>`__
 
 .. ipython:: python
 
@@ -505,13 +505,11 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 .. ipython:: python
 
    df = pd.DataFrame({'A' : [1, 1, 2, 2], 'B' : [1, -1, 1, 2]})
-
    gb = df.groupby('A')
 
    def replace(g):
-      mask = g < 0
-      g.loc[mask] = g[~mask].mean()
-      return g
+       mask = g < 0
+       return g.where(mask, g[~mask].mean())
 
    gb.transform(replace)
 
@@ -664,7 +662,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 `Plot pandas DataFrame with year over year data
 <http://stackoverflow.com/questions/30379789/plot-pandas-data-frame-with-year-over-year-data>`__
 
-To create year and month crosstabulation:
+To create year and month cross tabulation:
 
 .. ipython:: python
 
@@ -677,7 +675,7 @@ To create year and month crosstabulation:
 Apply
 *****
 
-`Rolling Apply to Organize - Turning embedded lists into a multi-index frame
+`Rolling Apply to Organize - Turning embedded lists into a MultiIndex frame
 <http://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__
 
 .. ipython:: python
@@ -1029,8 +1027,8 @@ Skip row between header and data
     01.01.1990 05:00;21;11;12;13
     """
 
-Option 1: pass rows explicitly to skiprows
-""""""""""""""""""""""""""""""""""""""""""
+Option 1: pass rows explicitly to skip rows
+"""""""""""""""""""""""""""""""""""""""""""
 
 .. ipython:: python
 
@@ -1224,6 +1222,57 @@ Computation
 
 `Numerical integration (sample-based) of a time series
 <http://nbviewer.ipython.org/5720498>`__
+
+Correlation
+***********
+
+Often it's useful to obtain the lower (or upper) triangular form of a correlation matrix calculated from :func:`DataFrame.corr`.  This can be achieved by passing a boolean mask to ``where`` as follows:
+
+.. ipython:: python
+
+    df = pd.DataFrame(np.random.random(size=(100, 5)))
+
+    corr_mat = df.corr()
+    mask = np.tril(np.ones_like(corr_mat, dtype=np.bool), k=-1)
+
+    corr_mat.where(mask)
+
+The `method` argument within `DataFrame.corr` can accept a callable in addition to the named correlation types.  Here we compute the `distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>`__ matrix for a `DataFrame` object.
+
+.. code-block:: python
+
+    >>> def distcorr(x, y):
+    ...     n = len(x)
+    ...     a = np.zeros(shape=(n, n))
+    ...     b = np.zeros(shape=(n, n))
+    ...
+    ...     for i in range(n):
+    ...         for j in range(i + 1, n):
+    ...             a[i, j] = abs(x[i] - x[j])
+    ...             b[i, j] = abs(y[i] - y[j])
+    ...
+    ...     a += a.T
+    ...     b += b.T
+    ...
+    ...     a_bar = np.vstack([np.nanmean(a, axis=0)] * n)
+    ...     b_bar = np.vstack([np.nanmean(b, axis=0)] * n)
+    ...
+    ...     A = a - a_bar - a_bar.T + np.full(shape=(n, n), fill_value=a_bar.mean())
+    ...     B = b - b_bar - b_bar.T + np.full(shape=(n, n), fill_value=b_bar.mean())
+    ...
+    ...     cov_ab = np.sqrt(np.nansum(A * B)) / n
+    ...     std_a = np.sqrt(np.sqrt(np.nansum(A**2)) / n)
+    ...     std_b = np.sqrt(np.sqrt(np.nansum(B**2)) / n)
+    ...
+    ...     return cov_ab / std_a / std_b
+    ...
+    >>> df = pd.DataFrame(np.random.normal(size=(100, 3)))
+    ...
+    >>> df.corr(method=distcorr)
+              0         1         2
+    0  1.000000  0.171368  0.145302
+    1  0.171368  1.000000  0.189919
+    2  0.145302  0.189919  1.000000
 
 Timedeltas
 ----------

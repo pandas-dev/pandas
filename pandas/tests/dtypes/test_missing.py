@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 import numpy as np
 from datetime import datetime
 from pandas.util import testing as tm
@@ -94,6 +94,7 @@ class TestIsNA(object):
 
         # panel
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             for p in [tm.makePanel(), tm.makePeriodPanel(),
                       tm.add_nans(tm.makePanel())]:
                 result = isna_f(p)

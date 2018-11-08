@@ -1,5 +1,7 @@
-import pytest
+import itertools
+
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas.core.internals import ExtensionBlock
@@ -46,8 +48,7 @@ class BaseReshapingTests(BaseExtensionTests):
         df1 = pd.DataFrame({'A': data[:3]})
         df2 = pd.DataFrame({"A": [1, 2, 3]})
         df3 = pd.DataFrame({"A": ['a', 'b', 'c']}).astype('category')
-        df4 = pd.DataFrame({"A": pd.SparseArray([1, 2, 3])})
-        dfs = [df1, df2, df3, df4]
+        dfs = [df1, df2, df3]
 
         # dataframes
         result = pd.concat(dfs)
@@ -82,8 +83,10 @@ class BaseReshapingTests(BaseExtensionTests):
         # non-aligned
         df2 = pd.DataFrame({'B': [1, 2, 3]}, index=[1, 2, 3])
         expected = pd.DataFrame({
-            'A': data._from_sequence(list(data[:3]) + [na_value]),
+            'A': data._from_sequence(list(data[:3]) + [na_value],
+                                     dtype=data.dtype),
             'B': [np.nan, 1, 2, 3]})
+
         result = pd.concat([df1, df2], axis=1)
         self.assert_frame_equal(result, expected)
         result = pd.concat([df1['A'], df2['B']], axis=1)
@@ -95,8 +98,10 @@ class BaseReshapingTests(BaseExtensionTests):
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
 
         # Assumes that the ctor can take a list of scalars of the type
-        e1 = pd.Series(data._from_sequence(list(a) + [na_value]))
-        e2 = pd.Series(data._from_sequence([na_value] + list(b)))
+        e1 = pd.Series(data._from_sequence(list(a) + [na_value],
+                                           dtype=data.dtype))
+        e2 = pd.Series(data._from_sequence([na_value] + list(b),
+                                           dtype=data.dtype))
         self.assert_series_equal(r1, e1)
         self.assert_series_equal(r2, e2)
 
@@ -108,8 +113,10 @@ class BaseReshapingTests(BaseExtensionTests):
         )
 
         # Assumes that the ctor can take a list of scalars of the type
-        e1 = pd.DataFrame({'A': data._from_sequence(list(a) + [na_value])})
-        e2 = pd.DataFrame({'A': data._from_sequence([na_value] + list(b))})
+        e1 = pd.DataFrame({'A': data._from_sequence(list(a) + [na_value],
+                                                    dtype=data.dtype)})
+        e2 = pd.DataFrame({'A': data._from_sequence([na_value] + list(b),
+                                                    dtype=data.dtype)})
         self.assert_frame_equal(r1, e1)
         self.assert_frame_equal(r2, e2)
 
@@ -119,7 +126,8 @@ class BaseReshapingTests(BaseExtensionTests):
         df = pd.DataFrame({"col": np.arange(len(ser) + 1)})
         r1, r2 = ser.align(df)
 
-        e1 = pd.Series(data._from_sequence(list(data) + [na_value]),
+        e1 = pd.Series(data._from_sequence(list(data) + [na_value],
+                                           dtype=data.dtype),
                        name=ser.name)
 
         self.assert_series_equal(r1, e1)
@@ -152,7 +160,8 @@ class BaseReshapingTests(BaseExtensionTests):
         res = pd.merge(df1, df2)
         exp = pd.DataFrame(
             {'int1': [1, 1, 2], 'int2': [1, 2, 3], 'key': [0, 0, 1],
-             'ext': data._from_sequence([data[0], data[0], data[1]])})
+             'ext': data._from_sequence([data[0], data[0], data[1]],
+                                        dtype=data.dtype)})
         self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
 
         res = pd.merge(df1, df2, how='outer')
@@ -160,5 +169,49 @@ class BaseReshapingTests(BaseExtensionTests):
             {'int1': [1, 1, 2, 3, np.nan], 'int2': [1, 2, 3, np.nan, 4],
              'key': [0, 0, 1, 2, 3],
              'ext': data._from_sequence(
-                 [data[0], data[0], data[1], data[2], na_value])})
+                 [data[0], data[0], data[1], data[2], na_value],
+                 dtype=data.dtype)})
         self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
+
+    @pytest.mark.parametrize("index", [
+        # Two levels, uniform.
+        pd.MultiIndex.from_product(([['A', 'B'], ['a', 'b']]),
+                                   names=['a', 'b']),
+
+        # non-uniform
+        pd.MultiIndex.from_tuples([('A', 'a'), ('A', 'b'), ('B', 'b')]),
+
+        # three levels, non-uniform
+        pd.MultiIndex.from_product([('A', 'B'), ('a', 'b', 'c'), (0, 1, 2)]),
+        pd.MultiIndex.from_tuples([
+            ('A', 'a', 1),
+            ('A', 'b', 0),
+            ('A', 'a', 0),
+            ('B', 'a', 0),
+            ('B', 'c', 1),
+        ]),
+    ])
+    @pytest.mark.parametrize("obj", ["series", "frame"])
+    def test_unstack(self, data, index, obj):
+        data = data[:len(index)]
+        if obj == "series":
+            ser = pd.Series(data, index=index)
+        else:
+            ser = pd.DataFrame({"A": data, "B": data}, index=index)
+
+        n = index.nlevels
+        levels = list(range(n))
+        # [0, 1, 2]
+        # [(0,), (1,), (2,), (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)]
+        combinations = itertools.chain.from_iterable(
+            itertools.permutations(levels, i) for i in range(1, n)
+        )
+
+        for level in combinations:
+            result = ser.unstack(level=level)
+            assert all(isinstance(result[col].values, type(data))
+                       for col in result.columns)
+            expected = ser.astype(object).unstack(level=level)
+            result = result.astype(object)
+
+            self.assert_frame_equal(result, expected)
