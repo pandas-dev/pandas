@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype)
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame, ABCIndexClass
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
@@ -160,7 +161,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             return self._box_func(val)
 
         if com.is_bool_indexer(key):
-            key = np.asarray(key)
+            key = np.asarray(key, dtype=bool)
             if key.all():
                 key = slice(0, None, None)
             else:
@@ -370,6 +371,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         Add a delta of a timedeltalike
         return the i8 result view
         """
+        if isna(other):
+            # i.e np.timedelta64("NaT"), not recognized by delta_to_nanoseconds
+            new_values = np.empty(len(self), dtype='i8')
+            new_values[:] = iNaT
+            return new_values
+
         inc = delta_to_nanoseconds(other)
         new_values = checked_add_with_arr(self.asi8, inc,
                                           arr_mask=self._isnan).view('i8')
@@ -442,7 +449,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             Array of DateOffset objects; nulls represented by NaT
         """
         if not is_period_dtype(self):
-            raise TypeError("cannot subtract {dtype}-dtype to {cls}"
+            raise TypeError("cannot subtract {dtype}-dtype from {cls}"
                             .format(dtype=other.dtype,
                                     cls=type(self).__name__))
 
@@ -741,6 +748,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 raise TypeError("cannot subtract {cls} from {typ}"
                                 .format(cls=type(self).__name__,
                                         typ=type(other).__name__))
+            elif is_period_dtype(self) and is_timedelta64_dtype(other):
+                # TODO: Can we simplify/generalize these cases at all?
+                raise TypeError("cannot subtract {cls} from {dtype}"
+                                .format(cls=type(self).__name__,
+                                        dtype=other.dtype))
             return -(self - other)
         cls.__rsub__ = __rsub__
 

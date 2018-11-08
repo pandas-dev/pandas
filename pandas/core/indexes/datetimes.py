@@ -34,6 +34,7 @@ from pandas.core.arrays import datetimelike as dtl
 
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
+from pandas.core.ops import get_op_result_name
 import pandas.compat as compat
 from pandas.tseries.frequencies import to_offset, Resolution
 from pandas.core.indexes.datetimelike import (
@@ -592,6 +593,10 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         y : Index or DatetimeIndex
         """
         self._assert_can_do_setop(other)
+
+        if len(other) == 0 or self.equals(other) or len(self) == 0:
+            return super(DatetimeIndex, self).union(other)
+
         if not isinstance(other, DatetimeIndex):
             try:
                 other = DatetimeIndex(other)
@@ -674,7 +679,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         return this, other
 
     def _wrap_joined_index(self, joined, other):
-        name = self.name if self.name == other.name else None
+        name = get_op_result_name(self, other)
         if (isinstance(other, DatetimeIndex) and
                 self.freq == other.freq and
                 self._can_fast_union(other)):
@@ -745,11 +750,11 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         else:
             return left
 
-    def _wrap_union_result(self, other, result):
-        name = self.name if self.name == other.name else None
+    def _wrap_setop_result(self, other, result):
+        name = get_op_result_name(self, other)
         if not timezones.tz_compare(self.tz, other.tz):
             raise ValueError('Passed item and index have different timezone')
-        return self._simple_new(result, name=name, freq=None, tz=self.tz)
+        return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
 
     def intersection(self, other):
         """
@@ -765,6 +770,10 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         y : Index or DatetimeIndex
         """
         self._assert_can_do_setop(other)
+
+        if self.equals(other):
+            return self._get_reconciled_name_object(other)
+
         if not isinstance(other, DatetimeIndex):
             try:
                 other = DatetimeIndex(other)

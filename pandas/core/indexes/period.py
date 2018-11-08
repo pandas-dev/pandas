@@ -12,15 +12,15 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_datetime64_any_dtype,
     is_bool_dtype,
-    pandas_dtype,
+    pandas_dtype
 )
-
+from pandas.core.ops import get_op_result_name
 from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.datetimelike import (
     DatelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op
 )
-from pandas.core.tools.datetimes import parse_time_string
+from pandas.core.tools.datetimes import parse_time_string, DateParseError
 
 from pandas._libs import tslib, index as libindex
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
@@ -580,7 +580,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                 raise IncompatibleFrequency(msg)
             value = value.ordinal
         elif isinstance(value, compat.string_types):
-            value = Period(value, freq=self.freq).ordinal
+            try:
+                value = Period(value, freq=self.freq).ordinal
+            except DateParseError:
+                raise KeyError("Cannot interpret '{}' as period".format(value))
 
         return self._ndarray_values.searchsorted(value, side=side,
                                                  sorter=sorter)
@@ -711,6 +714,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                 key = asdt
             except TypeError:
                 pass
+            except DateParseError:
+                # A string with invalid format
+                raise KeyError("Cannot interpret '{}' as period".format(key))
 
             try:
                 key = Period(key, freq=self.freq)
@@ -848,8 +854,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
 
-    def _wrap_union_result(self, other, result):
-        name = self.name if self.name == other.name else None
+    def _wrap_setop_result(self, other, result):
+        name = get_op_result_name(self, other)
         result = self._apply_meta(result)
         result.name = name
         return result
