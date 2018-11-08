@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import cython
 from cython import Py_ssize_t
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
@@ -72,6 +73,8 @@ cdef inline object create_time_from_ts(
     return time(dts.hour, dts.min, dts.sec, dts.us, tz)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def ints_to_pydatetime(int64_t[:] arr, tz=None, freq=None, box="datetime"):
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
@@ -214,6 +217,8 @@ def _test_parse_iso8601(object ts):
         return Timestamp(obj.value)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
                                object format=None, object na_rep=None):
     """
@@ -450,6 +455,8 @@ def array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
     return oresult
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         dayfirst=False, yearfirst=False,
                         format=None, utc=None,
@@ -753,6 +760,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         return array_to_datetime_object(values, is_raise, dayfirst, yearfirst)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
                               dayfirst=False, yearfirst=False):
     """
