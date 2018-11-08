@@ -867,7 +867,7 @@ class TestSeriesInterpolateData():
 
         # interpolate at new_index
         new_index = ser.index.union(Index([49.25, 49.5, 49.75, 50.25, 50.5,
-                                           50.75]))
+                                           50.75])).astype(float)
         interp_s = ser.reindex(new_index).interpolate(method='pchip')
         # does not blow up, GH5977
         interp_s[49:51]
@@ -883,7 +883,9 @@ class TestSeriesInterpolateData():
                           index=Index([1.0, 1.25, 1.5, 1.75,
                                        2.0, 2.25, 2.5, 2.75, 3.0]))
         # interpolate at new_index
-        new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75]))
+        new_index = ser.index.union(
+            Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])
+        ).astype(float)
         interp_s = ser.reindex(new_index).interpolate(method='akima')
         assert_series_equal(interp_s[1:3], expected)
 
@@ -896,7 +898,9 @@ class TestSeriesInterpolateData():
                           index=Index([1.0, 1.25, 1.5, 1.75,
                                        2.0, 2.25, 2.5, 2.75, 3.0]))
         # interpolate at new_index
-        new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75]))
+        new_index = ser.index.union(
+            Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])
+        ).astype(float)
         interp_s = ser.reindex(new_index).interpolate(
             method='piecewise_polynomial')
         assert_series_equal(interp_s[1:3], expected)
@@ -910,7 +914,9 @@ class TestSeriesInterpolateData():
                           index=Index([1.0, 1.25, 1.5, 1.75,
                                        2.0, 2.25, 2.5, 2.75, 3.0]))
         # interpolate at new_index
-        new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75]))
+        new_index = ser.index.union(
+            Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])
+        ).astype(float)
         interp_s = ser.reindex(new_index).interpolate(
             method='from_derivatives')
         assert_series_equal(interp_s[1:3], expected)

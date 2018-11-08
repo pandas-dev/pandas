@@ -256,11 +256,11 @@ class TestDatetimeIndexSetOps(object):
         empty = Index([])
 
         result = dti.union(empty)
-        assert isinstance(result, DatetimeIndex)
-        assert result is result
+        tm.assert_index_equal(result, dti.astype('O'))
 
         result = dti.join(empty)
         assert isinstance(result, DatetimeIndex)
+        tm.assert_index_equal(result, dti)
 
     def test_join_nonunique(self):
         idx1 = to_datetime(['2012-11-06 16:00:11.477563',

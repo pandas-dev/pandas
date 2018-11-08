@@ -2051,7 +2051,8 @@ bar2,12,13,14,15
         s1 = pd.Series([1, 2, 3], name='x')
         s2 = pd.Series(name='y')
         res = pd.concat([s1, s2], axis=1)
-        exp = pd.DataFrame({'x': [1, 2, 3], 'y': [np.nan, np.nan, np.nan]})
+        exp = pd.DataFrame({'x': [1, 2, 3], 'y': [np.nan, np.nan, np.nan]},
+                           index=pd.Index([0, 1, 2], dtype='O'))
         tm.assert_frame_equal(res, exp)
 
         s1 = pd.Series([1, 2, 3], name='x')
@@ -2066,7 +2067,8 @@ bar2,12,13,14,15
         s2 = pd.Series(name=None)
         res = pd.concat([s1, s2], axis=1)
         exp = pd.DataFrame({'x': [1, 2, 3], 0: [np.nan, np.nan, np.nan]},
-                           columns=['x', 0])
+                           columns=['x', 0],
+                           index=pd.Index([0, 1, 2], dtype='O'))
         tm.assert_frame_equal(res, exp)
 
     @pytest.mark.parametrize('tz', [None, 'UTC'])

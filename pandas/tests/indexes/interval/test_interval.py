@@ -835,15 +835,16 @@ class TestIntervalIndex(Base):
 
     @pytest.mark.parametrize('op_name', [
         'union', 'intersection', 'difference', 'symmetric_difference'])
-    def test_set_operation_errors(self, closed, op_name):
+    def test_set_incompatible_types(self, closed, op_name):
         index = self.create_index(closed=closed)
         set_op = getattr(index, op_name)
 
         # non-IntervalIndex
-        msg = ('the other index needs to be an IntervalIndex too, but '
-               'was type Int64Index')
-        with tm.assert_raises_regex(TypeError, msg):
-            set_op(Index([1, 2, 3]))
+        expected = getattr(index.astype('O'), op_name)(Index([1, 2, 3]))
+        result = set_op(Index([1, 2, 3]))
+        tm.assert_index_equal(result, expected)
+
+        # Come back to mixed interval types
 
         # mixed closed
         msg = ('can only do set operations between two IntervalIndex objects '

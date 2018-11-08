@@ -626,11 +626,7 @@ class Base(object):
             cases = [klass(second.values)
                      for klass in [np.array, Series, list]]
             for case in cases:
-                if isinstance(idx, PeriodIndex):
-                    msg = "can only call with other PeriodIndex-ed objects"
-                    with tm.assert_raises_regex(ValueError, msg):
-                        result = first.intersection(case)
-                elif isinstance(idx, CategoricalIndex):
+                if isinstance(idx, CategoricalIndex):
                     pass
                 else:
                     result = first.intersection(case)
@@ -653,11 +649,7 @@ class Base(object):
             cases = [klass(second.values)
                      for klass in [np.array, Series, list]]
             for case in cases:
-                if isinstance(idx, PeriodIndex):
-                    msg = "can only call with other PeriodIndex-ed objects"
-                    with tm.assert_raises_regex(ValueError, msg):
-                        result = first.union(case)
-                elif isinstance(idx, CategoricalIndex):
+                if isinstance(idx, CategoricalIndex):
                     pass
                 else:
                     result = first.union(case)
@@ -684,11 +676,7 @@ class Base(object):
             cases = [klass(second.values)
                      for klass in [np.array, Series, list]]
             for case in cases:
-                if isinstance(idx, PeriodIndex):
-                    msg = "can only call with other PeriodIndex-ed objects"
-                    with tm.assert_raises_regex(ValueError, msg):
-                        result = first.difference(case)
-                elif isinstance(idx, CategoricalIndex):
+                if isinstance(idx, CategoricalIndex):
                     pass
                 elif isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
                     assert result.__class__ == answer.__class__
@@ -718,11 +706,7 @@ class Base(object):
             cases = [klass(second.values)
                      for klass in [np.array, Series, list]]
             for case in cases:
-                if isinstance(idx, PeriodIndex):
-                    msg = "can only call with other PeriodIndex-ed objects"
-                    with tm.assert_raises_regex(ValueError, msg):
-                        result = first.symmetric_difference(case)
-                elif isinstance(idx, CategoricalIndex):
+                if isinstance(idx, CategoricalIndex):
                     pass
                 else:
                     result = first.symmetric_difference(case)

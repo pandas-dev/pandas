@@ -303,10 +303,9 @@ class TestDatetimeIndex(object):
             c_idx_type='p', r_idx_type='dt')
         s = df.iloc[:5, 0]
 
-        with tm.assert_raises_regex(ValueError,
-                                    'can only call with other '
-                                    'PeriodIndex-ed objects'):
-            df.columns.join(s.index, how=join_type)
+        expected = df.columns.astype('O').join(s.index, how=join_type)
+        result = df.columns.join(s.index, how=join_type)
+        tm.assert_index_equal(expected, result)
 
     def test_factorize(self):
         idx1 = DatetimeIndex(['2014-01', '2014-01', '2014-02', '2014-02',

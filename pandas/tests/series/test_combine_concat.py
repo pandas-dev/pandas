@@ -102,6 +102,7 @@ class TestSeriesCombine():
         # corner case
         s = Series([1., 2, 3], index=[0, 1, 2])
         result = s.combine_first(Series([], index=[]))
+        s.index = s.index.astype('O')
         assert_series_equal(s, result)
 
     def test_update(self):
