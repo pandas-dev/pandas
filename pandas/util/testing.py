@@ -21,7 +21,7 @@ from pandas._libs import testing as _testing
 import pandas.compat as compat
 from pandas.compat import (
     PY2, PY3, Counter, StringIO, callable, filter, httplib, lmap, lrange, lzip,
-    map, raise_with_traceback, range, string_types, u, unichr, zip)
+    map, range, string_types, u, unichr, zip)
 
 from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetimelike_v_numeric,
@@ -2530,130 +2530,6 @@ def network(t, url="http://www.google.com",
 
 
 with_connectivity_check = network
-
-
-def assert_raises_regex(_exception, _regexp, _callable=None,
-                        *args, **kwargs):
-    r"""
-    Check that the specified Exception is raised and that the error message
-    matches a given regular expression pattern. This may be a regular
-    expression object or a string containing a regular expression suitable
-    for use by `re.search()`. This is a port of the `assertRaisesRegexp`
-    function from unittest in Python 2.7.
-
-    Examples
-    --------
-    >>> assert_raises_regex(ValueError, 'invalid literal for.*XYZ', int, 'XYZ')
-    >>> import re
-    >>> assert_raises_regex(ValueError, re.compile('literal'), int, 'XYZ')
-
-    If an exception of a different type is raised, it bubbles up.
-
-    >>> assert_raises_regex(TypeError, 'literal', int, 'XYZ')
-    Traceback (most recent call last):
-        ...
-    ValueError: invalid literal for int() with base 10: 'XYZ'
-    >>> dct = dict()
-    >>> assert_raises_regex(KeyError, 'pear', dct.__getitem__, 'apple')
-    Traceback (most recent call last):
-        ...
-    AssertionError: "pear" does not match "'apple'"
-
-    You can also use this in a with statement.
-
-    >>> with assert_raises_regex(TypeError, r'unsupported operand type\(s\)'):
-    ...     1 + {}
-    >>> with assert_raises_regex(TypeError, 'banana'):
-    ...     'apple'[0] = 'b'
-    Traceback (most recent call last):
-        ...
-    AssertionError: "banana" does not match "'str' object does not support \
-item assignment"
-    """
-    manager = _AssertRaisesContextmanager(exception=_exception, regexp=_regexp)
-    if _callable is not None:
-        with manager:
-            _callable(*args, **kwargs)
-    else:
-        return manager
-
-
-class _AssertRaisesContextmanager(object):
-    """
-    Context manager behind `assert_raises_regex`.
-    """
-
-    def __init__(self, exception, regexp=None):
-        """
-        Initialize an _AssertRaisesContextManager instance.
-
-        Parameters
-        ----------
-        exception : class
-            The expected Exception class.
-        regexp : str, default None
-            The regex to compare against the Exception message.
-        """
-
-        self.exception = exception
-
-        if regexp is not None and not hasattr(regexp, "search"):
-            regexp = re.compile(regexp, re.DOTALL)
-
-        self.regexp = regexp
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, trace_back):
-        expected = self.exception
-
-        if not exc_type:
-            exp_name = getattr(expected, "__name__", str(expected))
-            raise AssertionError("{name} not raised.".format(name=exp_name))
-
-        return self.exception_matches(exc_type, exc_value, trace_back)
-
-    def exception_matches(self, exc_type, exc_value, trace_back):
-        """
-        Check that the Exception raised matches the expected Exception
-        and expected error message regular expression.
-
-        Parameters
-        ----------
-        exc_type : class
-            The type of Exception raised.
-        exc_value : Exception
-            The instance of `exc_type` raised.
-        trace_back : stack trace object
-            The traceback object associated with `exc_value`.
-
-        Returns
-        -------
-        is_matched : bool
-            Whether or not the Exception raised matches the expected
-            Exception class and expected error message regular expression.
-
-        Raises
-        ------
-        AssertionError : The error message provided does not match
-                         the expected error message regular expression.
-        """
-
-        if issubclass(exc_type, self.exception):
-            if self.regexp is not None:
-                val = str(exc_value)
-
-                if not self.regexp.search(val):
-                    msg = '"{pat}" does not match "{val}"'.format(
-                        pat=self.regexp.pattern, val=val)
-                    e = AssertionError(msg)
-                    raise_with_traceback(e, trace_back)
-
-            return True
-        else:
-            # Failed, so allow Exception to bubble up.
-            return False
 
 
 @contextmanager

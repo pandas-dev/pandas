@@ -29,7 +29,7 @@ class TestDataFrameAlterAxes():
 
         df.index = idx
         tm.assert_index_equal(df.index, idx)
-        with tm.assert_raises_regex(ValueError, 'Length mismatch'):
+        with pytest.raises(ValueError, match='Length mismatch'):
             df.index = idx[::2]
 
     def test_set_index(self, float_string_frame):
@@ -38,7 +38,7 @@ class TestDataFrameAlterAxes():
 
         df = df.set_index(idx)
         tm.assert_index_equal(df.index, idx)
-        with tm.assert_raises_regex(ValueError, 'Length mismatch'):
+        with pytest.raises(ValueError, match='Length mismatch'):
             df.set_index(idx[::2])
 
     def test_set_index_cast(self):
@@ -134,7 +134,7 @@ class TestDataFrameAlterAxes():
         if box == list:
             # list of strings gets interpreted as list of keys
             msg = "['one', 'two', 'three', 'one', 'two']"
-            with tm.assert_raises_regex(KeyError, msg):
+            with pytest.raises(KeyError, match=msg):
                 df.set_index(key, drop=drop, append=append)
         else:
             # np.array/tuple/iter/list-of-list "forget" the name of B
@@ -232,12 +232,10 @@ class TestDataFrameAlterAxes():
     def test_set_index_verify_integrity(self, frame_of_index_cols):
         df = frame_of_index_cols
 
-        with tm.assert_raises_regex(ValueError,
-                                    'Index has duplicate keys'):
+        with pytest.raises(ValueError, match='Index has duplicate keys'):
             df.set_index('A', verify_integrity=True)
         # with MultiIndex
-        with tm.assert_raises_regex(ValueError,
-                                    'Index has duplicate keys'):
+        with pytest.raises(ValueError, match='Index has duplicate keys'):
             df.set_index([df['A'], df['A']], verify_integrity=True)
 
     @pytest.mark.parametrize('append', [True, False])
@@ -245,21 +243,21 @@ class TestDataFrameAlterAxes():
     def test_set_index_raise(self, frame_of_index_cols, drop, append):
         df = frame_of_index_cols
 
-        with tm.assert_raises_regex(KeyError, "['foo', 'bar', 'baz']"):
+        with pytest.raises(KeyError, match="['foo', 'bar', 'baz']"):
             # column names are A-E, as well as one tuple
             df.set_index(['foo', 'bar', 'baz'], drop=drop, append=append)
 
         # non-existent key in list with arrays
-        with tm.assert_raises_regex(KeyError, 'X'):
+        with pytest.raises(KeyError, match='X'):
             df.set_index([df['A'], df['B'], 'X'], drop=drop, append=append)
 
         msg = 'The parameter "keys" may only contain a combination of.*'
         # forbidden type, e.g. set
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             df.set_index(set(df['A']), drop=drop, append=append)
 
         # forbidden type in list, e.g. set
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             df.set_index(['A', df['A'], set(df['A'])],
                          drop=drop, append=append)
 
@@ -427,7 +425,7 @@ class TestDataFrameAlterAxes():
     def test_set_columns(self, float_string_frame):
         cols = Index(np.arange(len(float_string_frame.columns)))
         float_string_frame.columns = cols
-        with tm.assert_raises_regex(ValueError, 'Length mismatch'):
+        with pytest.raises(ValueError, match='Length mismatch'):
             float_string_frame.columns = cols[::2]
 
     def test_dti_set_index_reindex(self):
@@ -575,13 +573,13 @@ class TestDataFrameAlterAxes():
         assert result.columns.name == 'meh'
 
         # Test different error cases
-        with tm.assert_raises_regex(TypeError, 'Must pass'):
+        with pytest.raises(TypeError, match='Must pass'):
             df.rename_axis(index='wrong')
 
-        with tm.assert_raises_regex(ValueError, 'Length of names'):
+        with pytest.raises(ValueError, match='Length of names'):
             df.rename_axis(index=['wrong'])
 
-        with tm.assert_raises_regex(TypeError, 'bogus'):
+        with pytest.raises(TypeError, match='bogus'):
             df.rename_axis(bogus=None)
 
     def test_rename_multiindex(self):
@@ -858,9 +856,9 @@ class TestDataFrameAlterAxes():
 
         # Missing levels - for both MultiIndex and single-level Index:
         for idx_lev in ['A', 'B'], ['A']:
-            with tm.assert_raises_regex(KeyError, 'Level E '):
+            with pytest.raises(KeyError, match='Level E '):
                 df.set_index(idx_lev).reset_index(level=['A', 'E'])
-            with tm.assert_raises_regex(IndexError, 'Too many levels'):
+            with pytest.raises(IndexError, match='Too many levels'):
                 df.set_index(idx_lev).reset_index(level=[0, 1, 2])
 
     def test_reset_index_right_dtype(self):
@@ -1058,31 +1056,31 @@ class TestDataFrameAlterAxes():
         df = DataFrame({"A": [1, 2], "B": [1, 2]}, index=['0', '1'])
 
         # Named target and axis
-        with tm.assert_raises_regex(TypeError, None):
+        with pytest.raises(TypeError, match=None):
             df.rename(index=str.lower, axis=1)
 
-        with tm.assert_raises_regex(TypeError, None):
+        with pytest.raises(TypeError, match=None):
             df.rename(index=str.lower, axis='columns')
 
-        with tm.assert_raises_regex(TypeError, None):
+        with pytest.raises(TypeError, match=None):
             df.rename(index=str.lower, axis='columns')
 
-        with tm.assert_raises_regex(TypeError, None):
+        with pytest.raises(TypeError, match=None):
             df.rename(columns=str.lower, axis='columns')
 
-        with tm.assert_raises_regex(TypeError, None):
+        with pytest.raises(TypeError, match=None):
             df.rename(index=str.lower, axis=0)
 
         # Multiple targets and axis
-        with tm.assert_raises_regex(TypeError, None):
+        with pytest.raises(TypeError, match=None):
             df.rename(str.lower, str.lower, axis='columns')
 
         # Too many targets
-        with tm.assert_raises_regex(TypeError, None):
+        with pytest.raises(TypeError, match=None):
             df.rename(str.lower, str.lower, str.lower)
 
         # Duplicates
-        with tm.assert_raises_regex(TypeError, "multiple values"):
+        with pytest.raises(TypeError, match="multiple values"):
             df.rename(id, mapper=id)
 
     def test_reindex_api_equivalence(self):
@@ -1279,7 +1277,7 @@ class TestIntervalIndex(object):
 
         # wrong values for the "axis" parameter
         for axis in 3, 'foo':
-            with tm.assert_raises_regex(ValueError, 'No axis named'):
+            with pytest.raises(ValueError, match='No axis named'):
                 df.set_axis(list('abc'), axis=axis, inplace=False)
 
     def test_set_axis_prior_to_deprecation_signature(self):
