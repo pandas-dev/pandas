@@ -1311,22 +1311,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             self.__dict__.update(state)
 
     def nonzero(self):
-        nonzero_locations = super(SparseArray, self) \
-            .nonzero()[0] \
-            .astype(np.int32)
-        real_nonzero_locations = np.zeros(
-            len(nonzero_locations),
-            dtype=np.int32
-        )
-        real_location = 0
-        for i_loc, location in enumerate(nonzero_locations):
-            # TODO: One could vectorize the operation and/or implement binary
-            # search.
-            while self.sp_index.lookup(real_location) != location:
-                real_location += 1
-            real_nonzero_locations[i_loc] = real_location
-            real_location += 1
-        return real_nonzero_locations.reshape(1, len(real_nonzero_locations))
+        if self.fill_value == 0:
+            return self.sp_index.to_int_index().indices,
+        else:
+            return self.sp_index.to_int_index().indices[self.sp_values != 0],
 
     # ------------------------------------------------------------------------
     # Reductions

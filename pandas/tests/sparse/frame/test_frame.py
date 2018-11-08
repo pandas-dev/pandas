@@ -2,25 +2,24 @@
 
 import operator
 
+import numpy as np
 import pytest
 from numpy import nan
-import numpy as np
+
 import pandas as pd
-
 from pandas import Series, DataFrame, bdate_range, Panel
-from pandas.errors import PerformanceWarning
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.tseries.offsets import BDay
-from pandas.util import testing as tm
-from pandas.compat import lrange
 from pandas import compat
-from pandas.core.sparse import frame as spf
-
 from pandas._libs.sparse import BlockIndex, IntIndex
+from pandas.compat import lrange
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.sparse import frame as spf
 from pandas.core.sparse.api import (
     SparseSeries, SparseDataFrame, SparseArray, SparseDtype
 )
+from pandas.errors import PerformanceWarning
 from pandas.tests.frame.test_api import SharedWithSparse
+from pandas.tseries.offsets import BDay
+from pandas.util import testing as tm
 
 
 class TestSparseDataFrame(SharedWithSparse):
@@ -218,6 +217,7 @@ class TestSparseDataFrame(SharedWithSparse):
         # GH 19393
         class Unknown(object):
             pass
+
         with pytest.raises(TypeError,
                            message='SparseDataFrame called with unknown type '
                                    '"Unknown" for data argument'):
@@ -1350,3 +1350,11 @@ class TestSparseDataFrameAnalytics(object):
 
         for column in res.columns:
             assert type(res[column]) is SparseSeries
+
+    def test_dropna(self):
+        tm.assert_sp_frame_equal(
+            pd.SparseDataFrame({"F2": [0, 1]}),
+            pd.SparseDataFrame(
+                {"F1": [float('nan'), float('nan')], "F2": [0, 1]}
+            ).dropna(axis=1, inplace=False, how='all')
+        )
