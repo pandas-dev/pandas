@@ -733,11 +733,11 @@ class Timestamp(_Timestamp):
         if ts.value == NPY_NAT:
             return NaT
 
-        if is_string_object(freq):
-            freq = to_offset(freq)
-        elif not is_offset_object(freq):
+        if freq is None:
             # GH 22311: Try to extract the frequency of a given Timestamp input
             freq = getattr(ts_input, 'freq', None)
+        elif not is_offset_object(freq):
+            freq = to_offset(freq)
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
 
