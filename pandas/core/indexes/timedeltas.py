@@ -2,6 +2,9 @@
 from datetime import datetime
 
 import numpy as np
+
+import pandas.compat as compat
+
 from pandas.core.dtypes.common import (
     _TD_DTYPE,
     is_integer,
@@ -12,22 +15,22 @@ from pandas.core.dtypes.common import (
     is_timedelta64_ns_dtype,
     pandas_dtype,
     ensure_int64)
+import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.timedeltas import (
-    TimedeltaArrayMixin, _is_convertible_to_td, _to_m8)
+    TimedeltaArrayMixin as TimedeltaArray,
+    _is_convertible_to_td, _to_m8)
 from pandas.core.arrays import datetimelike as dtl
 
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
-import pandas.compat as compat
 
 from pandas.tseries.frequencies import to_offset
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs
 import pandas.core.common as com
 from pandas.core.ops import get_op_result_name
-import pandas.core.dtypes.concat as _concat
 from pandas.util._decorators import Appender, Substitution
 from pandas.core.indexes.datetimelike import (
     TimelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op,
@@ -39,7 +42,7 @@ from pandas._libs import (lib, index as libindex,
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
 
-class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
+class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
                      TimelikeOps, Int64Index):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
@@ -232,8 +235,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         return attrs
 
     def _evaluate_with_timedelta_like(self, other, op):
-        result = TimedeltaArrayMixin._evaluate_with_timedelta_like(self, other,
-                                                                   op)
+        result = TimedeltaArray._evaluate_with_timedelta_like(self, other, op)
         return wrap_arithmetic_op(self, other, result)
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
@@ -245,12 +247,12 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
-    days = wrap_field_accessor(TimedeltaArrayMixin.days)
-    seconds = wrap_field_accessor(TimedeltaArrayMixin.seconds)
-    microseconds = wrap_field_accessor(TimedeltaArrayMixin.microseconds)
-    nanoseconds = wrap_field_accessor(TimedeltaArrayMixin.nanoseconds)
+    days = wrap_field_accessor(TimedeltaArray.days)
+    seconds = wrap_field_accessor(TimedeltaArray.seconds)
+    microseconds = wrap_field_accessor(TimedeltaArray.microseconds)
+    nanoseconds = wrap_field_accessor(TimedeltaArray.nanoseconds)
 
-    total_seconds = wrap_array_method(TimedeltaArrayMixin.total_seconds, True)
+    total_seconds = wrap_array_method(TimedeltaArray.total_seconds, True)
 
     # -------------------------------------------------------------------
 

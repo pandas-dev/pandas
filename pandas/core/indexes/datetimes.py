@@ -29,7 +29,9 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.dtypes.concat as _concat
-from pandas.core.arrays.datetimes import DatetimeArrayMixin, _to_m8
+from pandas.core.arrays.datetimes import (
+    DatetimeArrayMixin as DatetimeArray,
+    _to_m8)
 from pandas.core.arrays import datetimelike as dtl
 
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -68,7 +70,7 @@ def _new_DatetimeIndex(cls, d):
     return result
 
 
-class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
+class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                     DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
@@ -182,7 +184,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     pandas.to_datetime : Convert argument to datetime
 
     """
-    _resolution = cache_readonly(DatetimeArrayMixin._resolution.fget)
+    _resolution = cache_readonly(DatetimeArray._resolution.fget)
 
     _typ = 'datetimeindex'
     _join_precedence = 10
@@ -227,8 +229,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
     _is_numeric_dtype = False
     _infer_as_myclass = True
-    _timezone = cache_readonly(DatetimeArrayMixin._timezone.fget)
-    is_normalized = cache_readonly(DatetimeArrayMixin.is_normalized.fget)
+    _timezone = cache_readonly(DatetimeArray._timezone.fget)
+    is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
 
     # --------------------------------------------------------------------
     # Constructors
@@ -262,7 +264,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             return result
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries,
-                                 DatetimeArrayMixin)):
+                                 DatetimeArray)):
             if is_scalar(data):
                 raise ValueError('DatetimeIndex() must be called with a '
                                  'collection of some kind, %s was passed'
@@ -280,7 +282,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             data = tools.to_datetime(data, dayfirst=dayfirst,
                                      yearfirst=yearfirst)
 
-        if isinstance(data, DatetimeArrayMixin):
+        if isinstance(data, DatetimeArray):
             if tz is None:
                 tz = data.tz
             elif data.tz is None:
@@ -1124,43 +1126,43 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
 
-    year = wrap_field_accessor(DatetimeArrayMixin.year)
-    month = wrap_field_accessor(DatetimeArrayMixin.month)
-    day = wrap_field_accessor(DatetimeArrayMixin.day)
-    hour = wrap_field_accessor(DatetimeArrayMixin.hour)
-    minute = wrap_field_accessor(DatetimeArrayMixin.minute)
-    second = wrap_field_accessor(DatetimeArrayMixin.second)
-    microsecond = wrap_field_accessor(DatetimeArrayMixin.microsecond)
-    nanosecond = wrap_field_accessor(DatetimeArrayMixin.nanosecond)
-    weekofyear = wrap_field_accessor(DatetimeArrayMixin.weekofyear)
+    year = wrap_field_accessor(DatetimeArray.year)
+    month = wrap_field_accessor(DatetimeArray.month)
+    day = wrap_field_accessor(DatetimeArray.day)
+    hour = wrap_field_accessor(DatetimeArray.hour)
+    minute = wrap_field_accessor(DatetimeArray.minute)
+    second = wrap_field_accessor(DatetimeArray.second)
+    microsecond = wrap_field_accessor(DatetimeArray.microsecond)
+    nanosecond = wrap_field_accessor(DatetimeArray.nanosecond)
+    weekofyear = wrap_field_accessor(DatetimeArray.weekofyear)
     week = weekofyear
-    dayofweek = wrap_field_accessor(DatetimeArrayMixin.dayofweek)
+    dayofweek = wrap_field_accessor(DatetimeArray.dayofweek)
     weekday = dayofweek
 
-    weekday_name = wrap_field_accessor(DatetimeArrayMixin.weekday_name)
+    weekday_name = wrap_field_accessor(DatetimeArray.weekday_name)
 
-    dayofyear = wrap_field_accessor(DatetimeArrayMixin.dayofyear)
-    quarter = wrap_field_accessor(DatetimeArrayMixin.quarter)
-    days_in_month = wrap_field_accessor(DatetimeArrayMixin.days_in_month)
+    dayofyear = wrap_field_accessor(DatetimeArray.dayofyear)
+    quarter = wrap_field_accessor(DatetimeArray.quarter)
+    days_in_month = wrap_field_accessor(DatetimeArray.days_in_month)
     daysinmonth = days_in_month
-    is_month_start = wrap_field_accessor(DatetimeArrayMixin.is_month_start)
-    is_month_end = wrap_field_accessor(DatetimeArrayMixin.is_month_end)
-    is_quarter_start = wrap_field_accessor(DatetimeArrayMixin.is_quarter_start)
-    is_quarter_end = wrap_field_accessor(DatetimeArrayMixin.is_quarter_end)
-    is_year_start = wrap_field_accessor(DatetimeArrayMixin.is_year_start)
-    is_year_end = wrap_field_accessor(DatetimeArrayMixin.is_year_end)
-    is_leap_year = wrap_field_accessor(DatetimeArrayMixin.is_leap_year)
+    is_month_start = wrap_field_accessor(DatetimeArray.is_month_start)
+    is_month_end = wrap_field_accessor(DatetimeArray.is_month_end)
+    is_quarter_start = wrap_field_accessor(DatetimeArray.is_quarter_start)
+    is_quarter_end = wrap_field_accessor(DatetimeArray.is_quarter_end)
+    is_year_start = wrap_field_accessor(DatetimeArray.is_year_start)
+    is_year_end = wrap_field_accessor(DatetimeArray.is_year_end)
+    is_leap_year = wrap_field_accessor(DatetimeArray.is_leap_year)
 
-    tz_localize = wrap_array_method(DatetimeArrayMixin.tz_localize, True)
-    tz_convert = wrap_array_method(DatetimeArrayMixin.tz_convert, True)
-    to_perioddelta = wrap_array_method(DatetimeArrayMixin.to_perioddelta,
+    tz_localize = wrap_array_method(DatetimeArray.tz_localize, True)
+    tz_convert = wrap_array_method(DatetimeArray.tz_convert, True)
+    to_perioddelta = wrap_array_method(DatetimeArray.to_perioddelta,
                                        False)
-    to_period = wrap_array_method(DatetimeArrayMixin.to_period, True)
-    normalize = wrap_array_method(DatetimeArrayMixin.normalize, True)
-    to_julian_date = wrap_array_method(DatetimeArrayMixin.to_julian_date,
+    to_period = wrap_array_method(DatetimeArray.to_period, True)
+    normalize = wrap_array_method(DatetimeArray.normalize, True)
+    to_julian_date = wrap_array_method(DatetimeArray.to_julian_date,
                                        False)
-    month_name = wrap_array_method(DatetimeArrayMixin.month_name, True)
-    day_name = wrap_array_method(DatetimeArrayMixin.day_name, True)
+    month_name = wrap_array_method(DatetimeArray.month_name, True)
+    day_name = wrap_array_method(DatetimeArray.day_name, True)
 
     # --------------------------------------------------------------------
 
