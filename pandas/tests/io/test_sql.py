@@ -18,6 +18,7 @@ The SQL tests are broken down in different classes:
 """
 
 from __future__ import print_function
+import pymysql
 import pytest
 import sqlite3
 import csv
@@ -1787,8 +1788,6 @@ class _TestMySQLAlchemy(object):
 
         connection = self.conn.connect()
         trans = connection.begin()
-        
-        import pymysql
         try:
             r1 = connection.execute(proc)  # noqa
             trans.commit()
