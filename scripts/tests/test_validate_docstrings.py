@@ -785,10 +785,10 @@ class TestValidator(object):
             assert msg in ' '.join(err[1] for err in result['errors'])
 
 
-class ApiItems(object):
+class TestApiItems(object):
     @property
     def api_doc(self):
-        return textwrap.dedent(io.StringIO('''
+        return io.StringIO(textwrap.dedent('''
             .. currentmodule:: itertools
 
             Itertools
@@ -861,93 +861,90 @@ class ApiItems(object):
         assert result[idx][3] == subsection
 
 
-class MainFunction(object):
-    def test_num_errors_for_validate_one(self, monkeypatch):
+class TestMainFunction(object):
+    def test_exit_status_for_validate_one(self, monkeypatch):
         monkeypatch.setattr(
-            validate_docstrings, 'validate_one',
-            lambda func_name: {'docstring': 'docstring1',
-                               'errors': [('ER01', 'err desc'),
-                                          ('ER02', 'err desc')
+            validate_docstrings, 'validate_one', lambda func_name: {
+                'docstring': 'docstring1',
+                'errors': [('ER01', 'err desc'),
+                           ('ER02', 'err desc'),
+                           ('ER03', 'err desc')],
+                'warnings': [],
+                'examples_errors': ''})
+        exit_status = validate_docstrings.main(func_name='docstring1',
+                                               prefix=None,
+                                               errors=[],
+                                               output_format='default')
+        assert exit_status == 0
+
+    def test_exit_status_errors_for_validate_all(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_all', lambda prefix: {
+                'docstring1': {'errors': [('ER01', 'err desc'),
+                                          ('ER02', 'err desc'),
                                           ('ER03', 'err desc')],
-                               'warnings': [],
-                               'examples_errors': ''})
-        num_errors = validate_docstrings.main(func_name='docstring1',
-                                              prefix=None,
-                                              errors=[],
-                                              output_format='default')
-        assert num_errors == 3
+                               'file': 'module1.py',
+                               'file_line': 23},
+                'docstring2': {'errors': [('ER04', 'err desc'),
+                                          ('ER05', 'err desc')],
+                               'file': 'module2.py',
+                               'file_line': 925}})
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=[],
+                                               output_format='default')
+        assert exit_status == 5
 
-    def test_no_num_errors_for_validate_one(self, monkeypatch):
+    def test_no_exit_status_noerrors_for_validate_all(self, monkeypatch):
         monkeypatch.setattr(
-            validate_docstrings, 'validate_one',
-            lambda func_name: {'docstring': 'docstring1',
-                               'errors': [],
-                               'warnings': [('WN01', 'warn desc')],
-                               'examples_errors': ''})
-        num_errors = validate_docstrings.main(func_name='docstring1',
-                                              prefix=None,
-                                              errors=[],
-                                              output_format='default')
-        assert num_errors == 0
+            validate_docstrings, 'validate_all', lambda prefix: {
+                'docstring1': {'errors': [],
+                               'warnings': [('WN01', 'warn desc')]},
+                'docstring2': {'errors': []}})
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=[],
+                                               output_format='default')
+        assert exit_status == 0
 
-    def test_num_errors_for_validate_all(self, monkeypatch):
+    def test_exit_status_for_validate_all_json(self, monkeypatch):
+        print('EXECUTED')
         monkeypatch.setattr(
-            validate_docstrings, 'validate_all',
-            lambda: {'docstring1': {'errors': [('ER01', 'err desc'),
-                                               ('ER02', 'err desc'),
-                                               ('ER03', 'err desc')]},
-                     'docstring2': {'errors': [('ER04', 'err desc'),
-                                               ('ER05', 'err desc')]}})
-        num_errors = validate_docstrings.main(func_name=None,
-                                              prefix=None,
-                                              errors=[],
-                                              output_format='default')
-        assert num_errors == 5
-
-    def test_no_num_errors_for_validate_all(self, monkeypatch):
-        monkeypatch.setattr(
-            validate_docstrings, 'validate_all',
-            lambda: {'docstring1': {'errors': [],
-                                    'warnings': [('WN01', 'warn desc')]},
-                     'docstring2': {'errors': []}})
-        num_errors = validate_docstrings.main(func_name=None,
-                                              prefix=None,
-                                              errors=[],
-                                              output_format='default')
-        assert num_errors == 0
-
-    def test_prefix_param_filters_docstrings(self, monkeypatch):
-        monkeypatch.setattr(
-            validate_docstrings, 'validate_all',
-            lambda: {'Series.foo': {'errors': [('ER01', 'err desc'),
-                                               ('ER02', 'err desc'),
-                                               ('ER03', 'err desc')]},
-                     'DataFrame.bar': {'errors': [('ER04', 'err desc'),
-                                                  ('ER05', 'err desc')]},
-                     'Series.foobar': {'errors': [('ER06', 'err desc')]}})
-        num_errors = validate_docstrings.main(func_name=None,
-                                              prefix='Series.',
-                                              errors=[],
-                                              output_format='default')
-        assert num_errors == 4
+            validate_docstrings, 'validate_all', lambda prefix: {
+                'docstring1': {'errors': [('ER01', 'err desc'),
+                                          ('ER02', 'err desc'),
+                                          ('ER03', 'err desc')]},
+                'docstring2': {'errors': [('ER04', 'err desc'),
+                                          ('ER05', 'err desc')]}})
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=[],
+                                               output_format='json')
+        assert exit_status == 0
 
     def test_errors_param_filters_errors(self, monkeypatch):
         monkeypatch.setattr(
-            validate_docstrings, 'validate_all',
-            lambda: {'Series.foo': {'errors': [('ER01', 'err desc'),
-                                               ('ER02', 'err desc'),
-                                               ('ER03', 'err desc')]},
-                     'DataFrame.bar': {'errors': [('ER01', 'err desc'),
-                                                  ('ER02', 'err desc')]},
-                     'Series.foobar': {'errors': [('ER01', 'err desc')]}})
-        num_errors = validate_docstrings.main(func_name=None,
-                                              prefix=None,
-                                              errors=['E01'],
-                                              output_format='default')
-        assert num_errors == 3
+            validate_docstrings, 'validate_all', lambda prefix: {
+                'Series.foo': {'errors': [('ER01', 'err desc'),
+                                          ('ER02', 'err desc'),
+                                          ('ER03', 'err desc')],
+                               'file': 'series.py',
+                               'file_line': 142},
+                'DataFrame.bar': {'errors': [('ER01', 'err desc'),
+                                             ('ER02', 'err desc')],
+                                  'file': 'frame.py',
+                                  'file_line': 598},
+                'Series.foobar': {'errors': [('ER01', 'err desc')],
+                                  'file': 'series.py',
+                                  'file_line': 279}})
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=['ER01'],
+                                               output_format='default')
+        assert exit_status == 3
 
-        num_errors = validate_docstrings.main(func_name=None,
-                                              prefix=None,
-                                              errors=['E03'],
-                                              output_format='default')
-        assert num_errors == 1
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=['ER03'],
+                                               output_format='default')
+        assert exit_status == 1
