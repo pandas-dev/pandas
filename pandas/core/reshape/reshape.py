@@ -130,9 +130,12 @@ class _Unstacker(object):
         num_rows = np.max([index_level.size for index_level
                            in self.new_index_levels])
         num_columns = self.removed_level.size
-        if num_rows * num_columns > (2 ** 31 - 1):
-            raise ValueError('Unstacked DataFrame is too big, '
-                             'causing int32 overflow')
+        with np.errstate(all='raise'):
+            try:
+                num_columns * num_rows
+            except FloatingPointError:
+                raise ValueError('Unstacked DataFrame is too big, '
+                                 'causing int32 overflow')
 
         self._make_sorted_values_labels()
         self._make_selectors()

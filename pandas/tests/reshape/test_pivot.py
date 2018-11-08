@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime, date, timedelta
+import sys
 
 import pytest
 
@@ -1279,12 +1280,14 @@ class TestPivotTable(object):
     @pytest.mark.slow
     def test_pivot_number_of_levels_larger_than_int32(self):
         # GH 20601
-        df = DataFrame({'ind1': np.arange(2 ** 16),
-                        'ind2': np.arange(2 ** 16),
-                        'count': np.arange(2 ** 16)})
-        with tm.assert_raises_regex(ValueError, 'int32 overflow'):
-            df.pivot_table(index='ind1', columns='ind2',
-                           values='count', aggfunc='count')
+        if sys.platform == 'win32':
+            df = DataFrame({'ind1': np.arange(2 ** 16),
+                            'ind2': np.arange(2 ** 16),
+                            'count': 0})
+
+            with tm.assert_raises_regex(ValueError, 'int32 overflow'):
+                df.pivot_table(index='ind1', columns='ind2',
+                               values='count', aggfunc='count')
 
 
 class TestCrosstab(object):
