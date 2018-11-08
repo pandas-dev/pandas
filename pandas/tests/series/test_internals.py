@@ -4,14 +4,10 @@
 from datetime import datetime
 
 import numpy as np
-from numpy import nan
 import pytest
 
-import pandas._libs.lib as lib
-
 import pandas as pd
-from pandas import Series
-from pandas.core.indexes.datetimes import Timestamp
+from pandas import Series, Timestamp, NaT
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
 
@@ -87,7 +83,7 @@ class TestSeriesInternals(object):
 
         expected = Series([Timestamp('20010101'), Timestamp('20010102'),
                            Timestamp('20010103'),
-                           lib.NaT, lib.NaT, lib.NaT, Timestamp('20010104'),
+                           NaT, NaT, NaT, Timestamp('20010104'),
                            Timestamp('20010105')], dtype='M8[ns]')
         with tm.assert_produces_warning(FutureWarning):
             result = s2.convert_objects(convert_dates='coerce',
@@ -103,7 +99,7 @@ class TestSeriesInternals(object):
         with tm.assert_produces_warning(FutureWarning):
             result = s.convert_objects(convert_dates='coerce',
                                        convert_numeric=False)
-        expected = Series([lib.NaT] * 2 + [Timestamp(1)] * 2)
+        expected = Series([NaT] * 2 + [Timestamp(1)] * 2)
         assert_series_equal(result, expected)
 
         # preserver if non-object
@@ -149,14 +145,14 @@ class TestSeriesInternals(object):
         # Test coercion returns correct type
         s = Series(['a', 'b', 'c'])
         results = s._convert(datetime=True, coerce=True)
-        expected = Series([lib.NaT] * 3)
+        expected = Series([NaT] * 3)
         assert_series_equal(results, expected)
 
         results = s._convert(numeric=True, coerce=True)
         expected = Series([np.nan] * 3)
         assert_series_equal(results, expected)
 
-        expected = Series([lib.NaT] * 3, dtype=np.dtype('m8[ns]'))
+        expected = Series([NaT] * 3, dtype=np.dtype('m8[ns]'))
         results = s._convert(timedelta=True, coerce=True)
         assert_series_equal(results, expected)
 
@@ -166,15 +162,15 @@ class TestSeriesInternals(object):
         # Test coercion with mixed types
         s = Series(['a', '3.1415', dt, td])
         results = s._convert(datetime=True, coerce=True)
-        expected = Series([lib.NaT, lib.NaT, dt, lib.NaT])
+        expected = Series([NaT, NaT, dt, NaT])
         assert_series_equal(results, expected)
 
         results = s._convert(numeric=True, coerce=True)
-        expected = Series([nan, 3.1415, nan, nan])
+        expected = Series([np.nan, 3.1415, np.nan, np.nan])
         assert_series_equal(results, expected)
 
         results = s._convert(timedelta=True, coerce=True)
-        expected = Series([lib.NaT, lib.NaT, lib.NaT, td],
+        expected = Series([NaT, NaT, NaT, td],
                           dtype=np.dtype('m8[ns]'))
         assert_series_equal(results, expected)
 
@@ -182,7 +178,7 @@ class TestSeriesInternals(object):
         results = s._convert(datetime=True)
         assert_series_equal(results, s)
         results = s._convert(numeric=True)
-        expected = Series([nan, 3.1415, nan, nan])
+        expected = Series([np.nan, 3.1415, np.nan, np.nan])
         assert_series_equal(results, expected)
         results = s._convert(timedelta=True)
         assert_series_equal(results, s)
@@ -231,13 +227,13 @@ class TestSeriesInternals(object):
         r['a'] = 'garbled'
         result = r._convert(numeric=True)
         expected = s.copy()
-        expected['a'] = nan
+        expected['a'] = np.nan
         assert_series_equal(result, expected)
 
         # GH 4119, not converting a mixed type (e.g.floats and object)
         s = Series([1, 'na', 3, 4])
         result = s._convert(datetime=True, numeric=True)
-        expected = Series([1, nan, 3, 4])
+        expected = Series([1, np.nan, 3, 4])
         assert_series_equal(result, expected)
 
         s = Series([1, '', 3, 4])
@@ -260,7 +256,7 @@ class TestSeriesInternals(object):
         assert_series_equal(result, expected)
 
         expected = Series([Timestamp('20010101'), Timestamp('20010102'),
-                           Timestamp('20010103'), lib.NaT, lib.NaT, lib.NaT,
+                           Timestamp('20010103'), NaT, NaT, NaT,
                            Timestamp('20010104'), Timestamp('20010105')],
                           dtype='M8[ns]')
         result = s2._convert(datetime=True, numeric=False, timedelta=False,
@@ -271,7 +267,7 @@ class TestSeriesInternals(object):
 
         s = Series(['foo', 'bar', 1, 1.0], dtype='O')
         result = s._convert(datetime=True, coerce=True)
-        expected = Series([lib.NaT] * 2 + [Timestamp(1)] * 2)
+        expected = Series([NaT] * 2 + [Timestamp(1)] * 2)
         assert_series_equal(result, expected)
 
         # preserver if non-object
@@ -285,7 +281,7 @@ class TestSeriesInternals(object):
         # assert result.dtype == 'M8[ns]'
 
         # dateutil parses some single letters into today's value as a date
-        expected = Series([lib.NaT])
+        expected = Series([NaT])
         for x in 'abcdefghijklmnopqrstuvwxyz':
             s = Series([x])
             result = s._convert(datetime=True, coerce=True)
@@ -321,4 +317,4 @@ def test_hasnans_unchached_for_series():
     assert not hasattr(ser, '_cache')
     ser.iloc[-1] = np.nan
     assert ser.hasnans is True
-    assert pd.Series.hasnans.__doc__ == pd.Index.hasnans.__doc__
+    assert Series.hasnans.__doc__ == pd.Index.hasnans.__doc__
