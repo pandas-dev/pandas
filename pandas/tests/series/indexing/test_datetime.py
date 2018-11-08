@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas._libs import tslib
+from pandas._libs import iNaT
 import pandas._libs.index as _index
 from pandas.compat import lrange, range
 
@@ -459,7 +459,7 @@ def test_index_unique(dups):
     tm.assert_index_equal(result, expected)
 
     # NaT, note this is excluded
-    arr = [1370745748 + t for t in range(20)] + [tslib.iNaT]
+    arr = [1370745748 + t for t in range(20)] + [iNaT]
     idx = DatetimeIndex(arr * 3)
     tm.assert_index_equal(idx.unique(), DatetimeIndex(arr))
     assert idx.nunique() == 20

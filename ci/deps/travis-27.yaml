@@ -7,7 +7,6 @@ dependencies:
   - bottleneck
   - cython=0.28.2
   - fastparquet
-  - feather-format
   - gcsfs
   - html5lib
   - ipython
@@ -23,7 +22,7 @@ dependencies:
   - patsy
   - psycopg2
   - py
-  - pyarrow=0.4.1
+  - pyarrow=0.7.0
   - PyCrypto
   - pymysql=0.6.3
   - pytables
