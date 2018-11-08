@@ -32,6 +32,15 @@ try:
     from io import StringIO
 except ImportError:
     from cStringIO import StringIO
+
+# Template backend makes matplotlib to not plot anything. This is useful
+# to avoid that plot windows are open from the doctests while running the
+# script. Setting here before matplotlib is loaded.
+# We don't warn for the number of open plots, as none is actually being opened
+os.environ['MPLBACKEND'] = 'Template'
+import matplotlib
+matplotlib.rc('figure', max_open_warning=10000)
+
 import numpy
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -505,6 +514,9 @@ class Docstring(object):
             file.flush()
             application.run_checks([file.name])
 
+        # We need this to avoid flake8 printing the names of the files to
+        # the standard output
+        application.formatter.write = lambda line, source: None
         application.report()
 
         yield from application.guide.stats.statistics_for('')
@@ -733,6 +745,7 @@ def main(func_name, prefix, errors, output_format):
         return '\n{full_line}\n{title_line}\n{full_line}\n\n'.format(
             full_line=full_line, title_line=title_line)
 
+    exit_status = 0
     if func_name is None:
         result = validate_all(prefix)
 
@@ -751,7 +764,7 @@ def main(func_name, prefix, errors, output_format):
                 raise ValueError('Unknown output_format "{}"'.format(
                     output_format))
 
-            num_errors, output = 0, ''
+            output = ''
             for name, res in result.items():
                 for err_code, err_desc in res['errors']:
                     # The script would be faster if instead of filtering the
@@ -759,7 +772,7 @@ def main(func_name, prefix, errors, output_format):
                     # initially. But that would complicate the code too much
                     if errors and err_code not in errors:
                         continue
-                    num_errors += 1
+                    exit_status += 1
                     output += output_format.format(
                         name=name,
                         path=res['file'],
@@ -767,12 +780,10 @@ def main(func_name, prefix, errors, output_format):
                         code=err_code,
                         text='{}: {}'.format(name, err_desc))
 
-        sys.stderr.write(output)
+        sys.stdout.write(output)
 
     else:
         result = validate_one(func_name)
-        num_errors = len(result['errors'])
-
         sys.stderr.write(header('Docstring ({})'.format(func_name)))
         sys.stderr.write('{}\n'.format(result['docstring']))
         sys.stderr.write(header('Validation'))
@@ -799,7 +810,7 @@ def main(func_name, prefix, errors, output_format):
             sys.stderr.write(header('Doctests'))
             sys.stderr.write(result['examples_errors'])
 
-    return num_errors
+    return exit_status
 
 
 if __name__ == '__main__':
