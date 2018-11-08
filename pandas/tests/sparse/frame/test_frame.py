@@ -736,6 +736,16 @@ class TestSparseDataFrame(SharedWithSparse):
         assert res['A'].dtype == SparseDtype(np.bool)
         assert res['B'].dtype == SparseDtype(np.bool)
 
+    def test_astype_object(self):
+        # This may change in GH-23125
+        df = pd.DataFrame({"A": SparseArray([0, 1]),
+                           "B": SparseArray([0, 1])})
+        result = df.astype(object)
+        dtype = SparseDtype(object, 0)
+        expected = pd.DataFrame({"A": SparseArray([0, 1], dtype=dtype),
+                                 "B": SparseArray([0, 1], dtype=dtype)})
+        tm.assert_frame_equal(result, expected)
+
     def test_fillna(self, float_frame_fill0, float_frame_fill0_dense):
         df = float_frame_fill0.reindex(lrange(5))
         dense = float_frame_fill0_dense.reindex(lrange(5))
