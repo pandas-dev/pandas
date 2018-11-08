@@ -169,13 +169,12 @@ class FastParquetImpl(BaseImpl):
         # DeprecationWarning: tostring() is deprecated.
         # Use tobytes() instead.
 
-        if 'partition_on' in kwargs:
-            if partition_cols is None:
-                partition_cols = kwargs.pop('partition_on')
-            else:
-                raise ValueError("Cannot use both partition_on and "
-                                 "partition_cols. Use partition_cols for "
-                                 "partitioning data")
+        if 'partition_on' in kwargs and partition_cols is not None:
+            raise ValueError("Cannot use both partition_on and "
+                             "partition_cols. Use partition_cols for "
+                             "partitioning data")
+        elif 'partition_on' in kwargs:
+            partition_cols = kwargs.pop('partition_on')
 
         if partition_cols is not None:
             kwargs['file_scheme'] = 'hive'
