@@ -49,44 +49,64 @@ def tree(request, leaf_size):
 class TestIntervalTree(object):
 
     def test_get_loc(self, tree):
-        tm.assert_numpy_array_equal(tree.get_loc(1),
-                                    np.array([0], dtype='int64'))
-        tm.assert_numpy_array_equal(np.sort(tree.get_loc(2)),
-                                    np.array([0, 1], dtype='int64'))
+        result = tree.get_loc(1)
+        expected = np.array([0], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.sort(tree.get_loc(2))
+        expected = np.array([0, 1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
         with pytest.raises(KeyError):
             tree.get_loc(-1)
 
     def test_get_indexer(self, tree):
-        tm.assert_numpy_array_equal(
-            tree.get_indexer(np.array([1.0, 5.5, 6.5])),
-            np.array([0, 4, -1], dtype='int64'))
+        result = tree.get_indexer(np.array([1.0, 5.5, 6.5]))
+        expected = np.array([0, 4, -1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
         with pytest.raises(KeyError):
             tree.get_indexer(np.array([3.0]))
 
     def test_get_indexer_non_unique(self, tree):
         indexer, missing = tree.get_indexer_non_unique(
             np.array([1.0, 2.0, 6.5]))
-        tm.assert_numpy_array_equal(indexer[:1],
-                                    np.array([0], dtype='int64'))
-        tm.assert_numpy_array_equal(np.sort(indexer[1:3]),
-                                    np.array([0, 1], dtype='int64'))
-        tm.assert_numpy_array_equal(np.sort(indexer[3:]),
-                                    np.array([-1], dtype='int64'))
-        tm.assert_numpy_array_equal(missing, np.array([2], dtype='int64'))
+
+        result = indexer[:1]
+        expected = np.array([0], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.sort(indexer[1:3])
+        expected = np.array([0, 1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.sort(indexer[3:])
+        expected = np.array([-1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = missing
+        expected = np.array([2], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_duplicates(self, dtype):
         left = np.array([0, 0, 0], dtype=dtype)
         tree = IntervalTree(left, left + 1)
-        tm.assert_numpy_array_equal(np.sort(tree.get_loc(0.5)),
-                                    np.array([0, 1, 2], dtype='int64'))
+
+        result = np.sort(tree.get_loc(0.5))
+        expected = np.array([0, 1, 2], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
 
         with pytest.raises(KeyError):
             tree.get_indexer(np.array([0.5]))
 
         indexer, missing = tree.get_indexer_non_unique(np.array([0.5]))
-        tm.assert_numpy_array_equal(np.sort(indexer),
-                                    np.array([0, 1, 2], dtype='int64'))
-        tm.assert_numpy_array_equal(missing, np.array([], dtype='int64'))
+        result = np.sort(indexer)
+        expected = np.array([0, 1, 2], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = missing
+        expected = np.array([], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_get_loc_closed(self, closed):
         tree = IntervalTree([0], [1], closed=closed)
@@ -96,8 +116,9 @@ class TestIntervalTree(object):
                 with pytest.raises(KeyError):
                     tree.get_loc(p)
             else:
-                tm.assert_numpy_array_equal(tree.get_loc(p),
-                                            np.array([0], dtype='int64'))
+                result = tree.get_loc(p)
+                expected = np.array([0], dtype='intp')
+                tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize('leaf_size', [
         skipif_32bit(1), skipif_32bit(10), skipif_32bit(100), 10000])
