@@ -15,7 +15,7 @@ import pytz
 import pytest
 
 import pandas as pd
-from pandas._libs import tslib, lib, missing as libmissing
+from pandas._libs import lib, iNaT, missing as libmissing
 from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
                     Panel, Period, Categorical, isna, Interval,
@@ -1263,7 +1263,7 @@ def test_nan_to_nat_conversions():
     }))
     df.iloc[3:6, :] = np.nan
     result = df.loc[4, 'B'].value
-    assert (result == tslib.iNaT)
+    assert (result == iNaT)
 
     s = df['B'].copy()
     s._data = s._data.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)
