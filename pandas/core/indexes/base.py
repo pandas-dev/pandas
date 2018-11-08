@@ -1875,12 +1875,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Works on different Index of types.
 
-        >>> pd.Index([1, 2, 2, 3, 3, 3, 4]).get_duplicates()
+        >>> pd.Index([1, 2, 2, 3, 3, 3, 4]).get_duplicates()  # doctest: +SKIP
         [2, 3]
-        >>> pd.Index([1., 2., 2., 3., 3., 3., 4.]).get_duplicates()
-        [2.0, 3.0]
-        >>> pd.Index(['a', 'b', 'b', 'c', 'c', 'c', 'd']).get_duplicates()
-        ['b', 'c']
 
         Note that for a DatetimeIndex, it does not return a list but a new
         DatetimeIndex:
@@ -1888,22 +1884,22 @@ class Index(IndexOpsMixin, PandasObject):
         >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03',
         ...                         '2018-01-03', '2018-01-04', '2018-01-04'],
         ...                        format='%Y-%m-%d')
-        >>> pd.Index(dates).get_duplicates()
+        >>> pd.Index(dates).get_duplicates()  # doctest: +SKIP
         DatetimeIndex(['2018-01-03', '2018-01-04'],
                       dtype='datetime64[ns]', freq=None)
 
         Sorts duplicated elements even when indexes are unordered.
 
-        >>> pd.Index([1, 2, 3, 2, 3, 4, 3]).get_duplicates()
+        >>> pd.Index([1, 2, 3, 2, 3, 4, 3]).get_duplicates()  # doctest: +SKIP
         [2, 3]
 
         Return empty array-like structure when all elements are unique.
 
-        >>> pd.Index([1, 2, 3, 4]).get_duplicates()
+        >>> pd.Index([1, 2, 3, 4]).get_duplicates()  # doctest: +SKIP
         []
         >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03'],
         ...                        format='%Y-%m-%d')
-        >>> pd.Index(dates).get_duplicates()
+        >>> pd.Index(dates).get_duplicates()  # doctest: +SKIP
         DatetimeIndex([], dtype='datetime64[ns]', freq=None)
         """
         warnings.warn("'get_duplicates' is deprecated and will be removed in "

@@ -133,7 +133,7 @@ class ParserWarning(Warning):
     >>> csv = u'''a;b;c
     ...           1;1,8
     ...           1;2,1'''
-    >>> df = pd.read_csv(io.StringIO(csv), sep='[;,]')
+    >>> df = pd.read_csv(io.StringIO(csv), sep='[;,]')  # doctest: +SKIP
     ... # ParserWarning: Falling back to the 'python' engine...
 
     Adding `engine='python'` to `pd.read_csv` removes the Warning:
