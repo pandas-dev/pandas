@@ -18,30 +18,29 @@ The SQL tests are broken down in different classes:
 """
 
 from __future__ import print_function
-
-import csv
-from datetime import date, datetime, time
-import sqlite3
-import warnings
-
-import numpy as np
+import pymysql
 import pytest
+import sqlite3
+import csv
 
-import pandas.compat as compat
-from pandas.compat import PY36, lrange, range, string_types
+import warnings
+import numpy as np
+import pandas as pd
+
+from datetime import datetime, date, time
 
 from pandas.core.dtypes.common import (
-    is_datetime64_dtype, is_datetime64tz_dtype, is_object_dtype)
-
-import pandas as pd
-from pandas import (
-    DataFrame, Index, MultiIndex, Series, Timestamp, concat, date_range, isna,
-    to_datetime, to_timedelta)
-import pandas.util.testing as tm
-import pymysql
+    is_object_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype)
+from pandas import DataFrame, Series, Index, MultiIndex, isna, concat
+from pandas import date_range, to_datetime, to_timedelta, Timestamp
+import pandas.compat as compat
+from pandas.compat import range, lrange, string_types, PY36
 
 import pandas.io.sql as sql
-from pandas.io.sql import read_sql_query, read_sql_table
+from pandas.io.sql import read_sql_table, read_sql_query
+import pandas.util.testing as tm
+
 
 try:
     import sqlalchemy

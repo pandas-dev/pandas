@@ -1,14 +1,14 @@
 import importlib
 import os
 
+import hypothesis
+from hypothesis import strategies as st
 import numpy as np
 import pytest
 
 from pandas.compat import PY3
 import pandas.util._test_decorators as td
 
-import hypothesis
-from hypothesis import strategies as st
 import pandas as pd
 
 hypothesis.settings.register_profile(
