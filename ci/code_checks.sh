@@ -16,7 +16,7 @@
 
 echo "inside $0"
 [[ $LINT ]] || { echo "NOT Linting. To lint use: LINT=true $0 $1"; exit 0; }
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" ]] || { echo "Unknown command $1. Usage: $0 [lint|patterns|doctests]"; exit 9999; }
+[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "docstrings" ]] || { echo "Unknown command $1. Usage: $0 [lint|patterns|docstrings]"; exit 9999; }
 
 source activate pandas
 RET=0
@@ -126,8 +126,10 @@ if mods:
 
 fi
 
-### DOCTESTS ###
+### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
+
+    # Doctests
 
     MSG='Doctests frame.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/frame.py \
@@ -158,6 +160,11 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         pandas/core/indexes/interval.py \
         pandas/core/arrays/interval.py \
         -k"-from_arrays -from_breaks -from_intervals -from_tuples -get_loc -set_closed -to_tuples -interval_range"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # Validate docstrings
+    MSG='Validate docstrings (SS04, EX04)' ; echo $MSG
+    scripts/validate_docstrings.py --errors=SS04,EX04
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
