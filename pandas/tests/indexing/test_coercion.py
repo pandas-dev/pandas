@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import itertools
-import pytest
+
 import numpy as np
+import pytest
+
+import pandas.compat as compat
 
 import pandas as pd
 import pandas.util.testing as tm
-import pandas.compat as compat
-
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import pandas as pd
 import pytest
+
+import pandas as pd
 from pandas import Index, IntervalIndex, MultiIndex
 
 

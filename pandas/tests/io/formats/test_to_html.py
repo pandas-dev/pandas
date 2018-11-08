@@ -1088,14 +1088,10 @@ class TestToHTML(object):
         df.pivot_table(index=[u('clé1')], columns=[u('clé2')])._repr_html_()
 
     def test_to_html_truncate(self):
-        pytest.skip("unreliable on travis")
         index = pd.DatetimeIndex(start='20010101', freq='D', periods=20)
         df = DataFrame(index=index, columns=range(20))
-        fmt.set_option('display.max_rows', 8)
-        fmt.set_option('display.max_columns', 4)
-        result = df._repr_html_()
+        result = df.to_html(max_rows=8, max_cols=4)
         expected = '''\
-<div{0}>
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -1181,23 +1177,15 @@ class TestToHTML(object):
       <td>NaN</td>
     </tr>
   </tbody>
-</table>
-<p>20 rows × 20 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
+</table>'''
         assert result == expected
 
     def test_to_html_truncate_multi_index(self):
-        pytest.skip("unreliable on travis")
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         df = DataFrame(index=arrays, columns=arrays)
-        fmt.set_option('display.max_rows', 7)
-        fmt.set_option('display.max_columns', 7)
-        result = df._repr_html_()
+        result = df.to_html(max_rows=7, max_cols=7)
         expected = '''\
-<div{0}>
 <table border="1" class="dataframe">
   <thead>
     <tr>
@@ -1298,24 +1286,16 @@ class TestToHTML(object):
       <td>NaN</td>
     </tr>
   </tbody>
-</table>
-<p>8 rows × 8 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
+</table>'''
         assert result == expected
 
+    @pytest.mark.xfail(reason='GH22887 TypeError', strict=True)
     def test_to_html_truncate_multi_index_sparse_off(self):
-        pytest.skip("unreliable on travis")
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         df = DataFrame(index=arrays, columns=arrays)
-        fmt.set_option('display.max_rows', 7)
-        fmt.set_option('display.max_columns', 7)
-        fmt.set_option('display.multi_sparse', False)
-        result = df._repr_html_()
+        result = df.to_html(max_rows=7, max_cols=7, sparsify=False)
         expected = '''\
-<div{0}>
 <table border="1" class="dataframe">
   <thead>
     <tr>
@@ -1409,11 +1389,7 @@ class TestToHTML(object):
       <td>NaN</td>
     </tr>
   </tbody>
-</table>
-<p>8 rows × 8 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
+</table>'''
         assert result == expected
 
     def test_to_html_border(self):

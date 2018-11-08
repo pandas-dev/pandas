@@ -1,9 +1,10 @@
-import pytest
 import numpy as np
+import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
+from pandas import timedelta_range, to_timedelta
 from pandas.tseries.offsets import Day, Second
-from pandas import to_timedelta, timedelta_range
 
 
 class TestTimedeltas(object):
