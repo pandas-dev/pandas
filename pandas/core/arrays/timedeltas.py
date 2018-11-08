@@ -450,21 +450,19 @@ def sequence_to_td64ns(data, copy=False, unit='ns', errors='raise'):
         copy = False
 
     elif is_integer_dtype(data):
-        # treat as nanoseconds
+        # treat as multiples of the given unit
         data, copy_made = ints_to_td64ns(data, unit=unit)
         copy = copy and not copy_made
 
     elif is_float_dtype(data):
-        # We allow it if and only if it can be converted losslessly
+        # treat as multiples of the given unit.  If after converting to nanos,
+        #  there are fractional components left, these are truncated
+        #  (i.e. NOT rounded)
         mask = np.isnan(data)
-        casted = data.astype(np.int64)
-        if not (casted[~mask] == data[~mask]).all():
-            raise TypeError("floating-dtype data cannot be losslessly "
-                            "converted to timedelta64[ns]")
-        copy = False
-        data, copy_made = ints_to_td64ns(data, unit=unit)
-        copy = copy and not copy_made
+        coeff = np.timedelta64(1, unit) / np.timedelta64(1, 'ns')
+        data = (coeff * data).astype(np.int64).view('timedelta64[ns]')
         data[mask] = iNaT
+        copy = False
 
     elif is_timedelta64_dtype(data):
         if data.dtype != _TD_DTYPE:

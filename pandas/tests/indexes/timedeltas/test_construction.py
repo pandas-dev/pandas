@@ -5,7 +5,7 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import TimedeltaIndex, timedelta_range, to_timedelta
+from pandas import TimedeltaIndex, timedelta_range, to_timedelta, Timedelta
 
 
 class TestTimedeltaIndex(object):
@@ -50,12 +50,14 @@ class TestTimedeltaIndex(object):
         with tm.assert_produces_warning(FutureWarning):
             TimedeltaIndex(np.asarray(dti))
 
-    def test_float64_lossy_invalid(self):
-        # GH#23539 passing floats that would be truncated is unsupported
-        with tm.assert_raises_regex(TypeError, "data cannot be losslessly"):
-            TimedeltaIndex([2.3, 9.0])
+    def test_float64_ns_rounded(self):
+        # GH#23539 without specifying a unit, floats are regarded as nanos,
+        #  and fractional portions are truncated
+        tdi = TimedeltaIndex([2.3, 9.7])
+        expected = TimedeltaIndex([2, 9])
+        tm.assert_index_equal(tdi, expected)
 
-        # but non-lossy floats are OK
+        # integral floats are non-lossy
         tdi = TimedeltaIndex([2.0, 9.0])
         expected = TimedeltaIndex([2, 9])
         tm.assert_index_equal(tdi, expected)
@@ -63,6 +65,12 @@ class TestTimedeltaIndex(object):
         # NaNs get converted to NaT
         tdi = TimedeltaIndex([2.0, np.nan])
         expected = TimedeltaIndex([pd.Timedelta(nanoseconds=2), pd.NaT])
+        tm.assert_index_equal(tdi, expected)
+
+    def test_float64_unit_conversion(self):
+        # GH#23539
+        tdi = TimedeltaIndex([1.5, 2.25], unit='D')
+        expected = TimedeltaIndex([Timedelta(days=1.5), Timedelta(days=2.25)])
         tm.assert_index_equal(tdi, expected)
 
     def test_construction_base_constructor(self):
