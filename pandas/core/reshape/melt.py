@@ -34,10 +34,9 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         else:
             # Check that `id_vars` are in frame
             id_vars = list(id_vars)
-            not_in_frame = [i not in frame.columns for i in id_vars]
-            if any(not_in_frame):
-                missing = ', '.join(not_in_frame)
-                raise ValueError(f'{missing} are not in dataframe')
+            missing = [v for v in id_vars if v not in frame.columns]
+            if missing:
+                raise ValueError(f'Columns {missing} are not in dataframe')
     else:
         id_vars = []
 
@@ -51,10 +50,10 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         else:
             value_vars = list(value_vars)
             # Check that `value_vars` are in frame
-            not_in_frame = [i not in frame.columns for i in value_vars]
-            if any(not_in_frame):
-                missing = ', '.join(not_in_frame)
-                raise ValueError(f'{missing} are not in dataframe')
+            missing = [v for v in value_vars if v not in frame.columns]
+            if missing:
+                # missing_vars = str(missing)
+                raise ValueError(f'Columns {missing} are not in dataframe')
         frame = frame.loc[:, id_vars + value_vars]
     else:
         frame = frame.copy()
