@@ -81,7 +81,9 @@ Methods
 from_arrays
 from_tuples
 from_breaks
+overlaps
 set_closed
+to_tuples
 %(extra_methods)s\
 
 %(examples)s\

@@ -101,6 +101,18 @@ Reduction and groupby operations such as 'sum' work.
 
    The Integer NA support currently uses the captilized dtype version, e.g. ``Int8`` as compared to the traditional ``int8``. This may be changed at a future date.
 
+.. _whatsnew_0240.enhancements.array:
+
+A new top-level method :func:`array` has been added for creating arrays (:issue:`22860`).
+This can be used to create NumPy arrays, or any :ref:`extension array <extending.extension-types>`, including
+extension arrays registered by :ref:`3rd party libraries <ecosystem.extensions>`.
+
+.. ipython:: python
+
+   pd.array([1, 2, np.nan], dtype='Int64')
+   pd.array(['a', 'b', 'c'], dtype='category')
+   pd.array([1, 2])
+
 .. _whatsnew_0240.enhancements.read_html:
 
 ``read_html`` Enhancements
