@@ -6,7 +6,6 @@ import os
 import csv
 import pytest
 
-from numpy import nan
 import numpy as np
 
 from pandas.compat import (lmap, range, lrange, StringIO, u)
@@ -52,7 +51,7 @@ class TestDataFrameToCSV(TestData):
     def test_to_csv_from_csv1(self):
 
         with ensure_clean('__tmp_to_csv_from_csv1__') as path:
-            self.frame['A'][:5] = nan
+            self.frame['A'][:5] = np.nan
 
             self.frame.to_csv(path)
             self.frame.to_csv(path, columns=['A', 'B'])
