@@ -985,29 +985,31 @@ is only interesting over one column (here ``colname``), it may be filtered
 *before* applying the aggregation function.
 
 .. note::
-   Decimal and object columns are also "nuisance" columns. They are excluded from aggregate functions automatically in groupby.
+   Any object column, also if it contains numerical values such as ``Decimal``
+   objects, is considered as a "nuisance" columns. They are excluded from
+   aggregate functions automatically in groupby.
 
-   If you do wish to include decimal or object columns in an aggregation with other non-nuisance data types, you must do so explicitly.
+   If you do wish to include decimal or object columns in an aggregation with
+   other non-nuisance data types, you must do so explicitly.
 
 .. ipython:: python
 
     from decimal import Decimal
-    dec = pd.DataFrame(
-        {'id': [123, 456, 123, 456],
+    df_dec = pd.DataFrame(
+        {'id': [1, 2, 1, 2],
         'int_column': [1, 2, 3, 4],
-        'dec_column1': [Decimal('0.50'), Decimal('0.15'), Decimal('0.25'), Decimal('0.40')]
-        },
-        columns=['id','int_column','dec_column']
+        'dec_column': [Decimal('0.50'), Decimal('0.15'), Decimal('0.25'), Decimal('0.40')]
+        }
     )
 
     # Decimal columns can be sum'd explicitly by themselves...
-    dec.groupby(['id'], as_index=False)['dec_column'].sum()
+    df_dec.groupby(['id'])[['dec_column']].sum()
 
     # ...but cannot be combined with standard data types or they will be excluded
-    dec.groupby(['id'], as_index=False)['int_column','dec_column'].sum()
+    df_dec.groupby(['id'])[['int_column','dec_column']].sum()
 
     # Use .agg function to aggregate over standard and "nuisance" data types at the same time
-    dec.groupby(['id'], as_index=False).agg({'int_column': 'sum', 'dec_column': 'sum'})
+    df_dec.groupby(['id']).agg({'int_column': 'sum', 'dec_column': 'sum'})
 
 .. _groupby.observed:
 
