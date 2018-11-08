@@ -1,6 +1,5 @@
 """ implement the TimedeltaIndex """
 from datetime import datetime
-import warnings
 
 import numpy as np
 from pandas.core.dtypes.common import (
@@ -9,20 +8,15 @@ from pandas.core.dtypes.common import (
     is_float,
     is_list_like,
     is_scalar,
-    is_integer_dtype,
-    is_float_dtype,
-    is_object_dtype,
-    is_string_dtype,
-    is_datetime64_dtype,
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
     pandas_dtype,
     ensure_int64)
 from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays.timedeltas import (
-    TimedeltaArrayMixin, _is_convertible_to_td, _to_m8)
+    TimedeltaArrayMixin, _is_convertible_to_td, _to_m8,
+    sequence_to_td64ns)
 from pandas.core.arrays import datetimelike as dtl
 
 from pandas.core.indexes.base import Index
@@ -40,10 +34,9 @@ from pandas.core.indexes.datetimelike import (
     TimelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op,
     wrap_array_method, wrap_field_accessor)
 from pandas.core.tools.timedeltas import (
-    to_timedelta, _coerce_scalar_to_timedelta_type)
+    _coerce_scalar_to_timedelta_type)
 from pandas._libs import (lib, index as libindex,
-                          join as libjoin, Timedelta, NaT, iNaT)
-from pandas._libs.tslibs.timedeltas import array_to_timedelta64
+                          join as libjoin, Timedelta, NaT)
 
 
 class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
@@ -168,67 +161,18 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
 
         # - Cases checked above all return/raise before reaching here - #
 
-        if unit is not None:
-            data = to_timedelta(data, unit=unit, box=False)
-
-        # Unwrap whatever we have into a np.ndarray
-        if not hasattr(data, 'dtype'):
-            # e.g. list, tuple
-            if np.ndim(data) == 0:
-                # i.e. generator
-                data = list(data)
-            data = np.array(data, copy=False)
-        elif isinstance(data, ABCSeries):
-            data = data._values
-        elif isinstance(data, (cls, TimedeltaArrayMixin)):
-            data = data._data
-
-        # Convert whatever we have into timedelta64[ns] dtype
-        if is_object_dtype(data) or is_string_dtype(data):
-            # no need to make a copy, need to convert if string-dtyped
-            data = np.array(data, dtype=np.object_, copy=False)
-            data = array_to_timedelta64(data).view(_TD_DTYPE)
-            copy = False
-        elif is_integer_dtype(data):
-            # treat as nanoseconds
-            # if something other than int64, convert
-            data = ensure_int64(data)
-            if copy:
-                # TODO: can we avoid branching here? `astype(data, copy=False)`
-                #  appears to be making a copy
-                data = data.astype(_TD_DTYPE)
-                copy = False
-            else:
-                data = data.view(_TD_DTYPE)
-        elif is_float_dtype(data):
-            # We allow it if and only if it can be converted losslessly
-            mask = np.isnan(data)
-            casted = data.astype(np.int64)
-            if not (casted[~mask] == data[~mask]).all():
-                raise TypeError("floating-dtype data cannot be losslessly "
-                                "converted to {cls}".format(cls=cls.__name__))
-            data = casted.view(_TD_DTYPE)
-            data[mask] = iNaT
-            copy = False
-        elif is_timedelta64_dtype(data):
-            if data.dtype != _TD_DTYPE:
-                # non-nano unit
-                # TODO: watch out for overflows
-                data = data.astype(_TD_DTYPE)
-                copy = False
-        elif is_datetime64_dtype(data):
-            # GH#23539
-            warnings.warn("Passing datetime64-dtype data to {cls} is "
-                          "deprecated, will raise a TypeError in a future "
-                          "version".format(cls=cls.__name__),
-                          FutureWarning, stacklevel=2)
-            data = ensure_int64(data).view(_TD_DTYPE)
-        else:
-            raise TypeError("dtype {dtype} is invalid for constructing {cls}"
-                            .format(dtype=data.dtype, cls=cls.__name__))
-
-        data = np.array(data, copy=copy)
-        assert data.dtype == 'm8[ns]', data
+        data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
+        if inferred_freq is not None:
+            if freq is not None and freq != inferred_freq:
+                raise ValueError('Inferred frequency {inferred} from passed '
+                                 'values does not conform to passed frequency '
+                                 '{passed}'
+                                 .format(inferred=inferred_freq,
+                                         passed=freq.freqstr))
+            elif freq_infer:
+                freq = inferred_freq
+                freq_infer = False
+            verify_integrity = False
 
         subarr = cls._simple_new(data, name=name, freq=freq)
         # check that we are matching freqs

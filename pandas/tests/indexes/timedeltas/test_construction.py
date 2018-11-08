@@ -10,13 +10,38 @@ from pandas import TimedeltaIndex, timedelta_range, to_timedelta
 
 class TestTimedeltaIndex(object):
 
+    def test_infer_from_tdi(self):
+        # GH#23539
+        # fast-path for inferring a frequency if the passed data already
+        #  has one
+        tdi = pd.timedelta_range('1 second', periods=10**7, freq='1s')
+
+        result = pd.TimedeltaIndex(tdi, freq='infer')
+        assert result.freq == tdi.freq
+
+        # check that inferred_freq was not called by checking that the
+        #  value has not been cached
+        assert "inferred_freq" not in getattr(result, "_cache", {})
+
+    def test_infer_from_tdi_mismatch(self):
+        # GH#23539
+        # fast-path for invalidating a frequency if the passed data already
+        #  has one and it does not match the `freq` input
+        tdi = pd.timedelta_range('1 second', periods=100, freq='1s')
+
+        msg = ("Inferred frequency .* from passed values does "
+               "not conform to passed frequency")
+        with tm.assert_raises_regex(ValueError, msg):
+            TimedeltaIndex(tdi, freq='D')
+
     def test_dt64_data_invalid(self):
         # GH#23539
         # passing tz-aware DatetimeIndex raises, naive or ndarray[datetime64]
         #  does not yet, but will in the future
         dti = pd.date_range('2016-01-01', periods=3)
 
-        with tm.assert_raises_regex(TypeError, "is invalid for constructing"):
+        msg = "cannot be converted to timedelta64"
+        with tm.assert_raises_regex(TypeError, msg):
             TimedeltaIndex(dti.tz_localize('Europe/Brussels'))
 
         with tm.assert_produces_warning(FutureWarning):
