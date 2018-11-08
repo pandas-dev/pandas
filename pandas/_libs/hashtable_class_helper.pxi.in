@@ -251,7 +251,7 @@ cdef class HashTable:
 {{py:
 
 # name, dtype, float_group, default_na_value
-dtypes = [('Float64', 'float64', True, 'nan'),
+dtypes = [('Float64', 'float64', True, 'np.nan'),
           ('UInt64', 'uint64', False, 0),
           ('Int64', 'int64', False, 'iNaT')]
 

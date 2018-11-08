@@ -10,10 +10,6 @@ from numpy cimport (ndarray,
                     uint32_t, uint64_t, float32_t, float64_t)
 cnp.import_array()
 
-
-cdef float64_t NaN = <float64_t>np.NaN
-cdef float64_t nan = NaN
-
 from pandas._libs.algos import groupsort_indexer, ensure_platform_int
 from pandas.core.algorithms import take_nd
 

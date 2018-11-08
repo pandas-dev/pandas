@@ -32,7 +32,6 @@ import missing
 cdef float64_t FP_ERR = 1e-13
 
 cdef float64_t NaN = <float64_t>np.NaN
-cdef float64_t nan = NaN
 
 cdef int64_t iNaT = get_nat()
 

@@ -149,7 +149,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
             {{if dtype != 'uint64'}}
             isnan = sorted_mask[i]
             if isnan and keep_na:
-                ranks[argsorted[i]] = nan
+                ranks[argsorted[i]] = NaN
                 continue
             {{endif}}
 
@@ -317,7 +317,7 @@ def rank_2d_{{dtype}}(object in_arr, axis=0, ties_method='average',
             {{else}}
             if (val == nan_value) and keep_na:
             {{endif}}
-                ranks[i, argsorted[i, j]] = nan
+                ranks[i, argsorted[i, j]] = NaN
 
                 {{if dtype == 'object'}}
                 infs += 1

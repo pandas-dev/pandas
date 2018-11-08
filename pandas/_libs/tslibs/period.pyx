@@ -46,8 +46,8 @@ from frequencies cimport (get_freq_code, get_base_alias,
                           get_rule_month)
 from parsing import parse_time_string
 from resolution import Resolution
-from nattype import nat_strings
-from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike, NAT
+from nattype import nat_strings, NaT
+from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
 from offsets cimport to_offset
 from offsets import _Tick
 
@@ -1194,7 +1194,7 @@ def period_format(int64_t value, int freq, object fmt=None):
         int freq_group
 
     if value == NPY_NAT:
-        return repr(NAT)
+        return repr(NaT)
 
     if fmt is None:
         freq_group = get_freq_group(freq)
@@ -1459,7 +1459,7 @@ def extract_ordinals(object[:] values, freq):
 
             except AttributeError:
                 p = Period(p, freq=freq)
-                if p is NAT:
+                if p is NaT:
                     # input may contain NaT-like string
                     ordinals[i] = NPY_NAT
                 else:
@@ -1587,7 +1587,7 @@ cdef class _Period(object):
         Fast creation from an ordinal and freq that are already validated!
         """
         if ordinal == NPY_NAT:
-            return NAT
+            return NaT
         else:
             freq = cls._maybe_convert_freq(freq)
             self = _Period.__new__(cls, ordinal, freq)
@@ -1599,7 +1599,7 @@ cdef class _Period(object):
                 msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
-        elif other is NAT:
+        elif other is NaT:
             return _nat_scalar_rules[op]
         # index/series like
         elif hasattr(other, '_typ'):
@@ -1647,8 +1647,8 @@ cdef class _Period(object):
             if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
                     util.is_offset_object(other)):
                 return self._add_delta(other)
-            elif other is NAT:
-                return NAT
+            elif other is NaT:
+                return NaT
             elif util.is_integer_object(other):
                 maybe_integer_op_deprecated(self)
 
@@ -1695,8 +1695,8 @@ cdef class _Period(object):
             else:  # pragma: no cover
                 return NotImplemented
         elif is_period_object(other):
-            if self is NAT:
-                return NAT
+            if self is NaT:
+                return NaT
             return NotImplemented
         else:
             return NotImplemented
@@ -2458,7 +2458,7 @@ class Period(_Period):
                 value = str(value)
             value = value.upper()
             dt, _, reso = parse_time_string(value, freq)
-            if dt is NAT:
+            if dt is NaT:
                 ordinal = NPY_NAT
 
             if freq is None:

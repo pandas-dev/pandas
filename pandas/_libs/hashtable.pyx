@@ -42,8 +42,6 @@ cimport util
 from missing cimport checknull
 
 
-nan = np.nan
-
 cdef int64_t iNaT = util.get_nat()
 _SIZE_HINT_LIMIT = (1 << 20) + 7
 

@@ -22,7 +22,6 @@ from algos import take_2d_axis1_float64_float64, groupsort_indexer, tiebreakers
 cdef int64_t iNaT = get_nat()
 
 cdef float64_t NaN = <float64_t>np.NaN
-cdef float64_t nan = NaN
 
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:

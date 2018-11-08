@@ -52,8 +52,9 @@ from util cimport (is_nan,
                    UINT8_MAX, UINT64_MAX, INT64_MAX, INT64_MIN)
 
 from tslib import array_to_datetime
+from tslibs.nattype cimport NPY_NAT
+from tslibs.nattype import NaT
 from tslibs.conversion cimport convert_to_tsobject
-from tslibs.nattype cimport NAT, NPY_NAT
 from tslibs.timedeltas cimport convert_to_timedelta64
 from tslibs.timezones cimport get_timezone, tz_compare
 
@@ -68,7 +69,7 @@ cdef object oINT64_MIN = <int64_t>INT64_MIN
 cdef object oUINT64_MAX = <uint64_t>UINT64_MAX
 
 cdef bint PY2 = sys.version_info[0] == 2
-cdef float64_t nan = <float64_t>np.NaN
+cdef float64_t NaN = <float64_t>np.NaN
 
 
 def values_from_object(obj: object):
@@ -1203,7 +1204,7 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
         # np.datetime64('nat') and np.timedelta64('nat')
         if val is None or util.is_nan(val):
             pass
-        elif val is NAT:
+        elif val is NaT:
             seen_pdnat = True
         else:
             seen_val = True
@@ -1332,7 +1333,7 @@ def infer_datetimelike_array(arr: object) -> object:
         elif v is None or util.is_nan(v):
             # nan or None
             pass
-        elif v is NAT:
+        elif v is NaT:
             seen_nat = 1
         elif PyDateTime_Check(v):
             # datetime
@@ -1644,12 +1645,12 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
 
     for i in range(n):
         base_val = values[i]
-        if base_val is not NAT:
+        if base_val is not NaT:
             base_tz = get_timezone(getattr(base_val, 'tzinfo', None))
 
             for j in range(i, n):
                 val = values[j]
-                if val is not NAT:
+                if val is not NaT:
                     tz = getattr(val, 'tzinfo', None)
                     if not tz_compare(base_tz, tz):
                         return False
@@ -1813,7 +1814,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 
         if val.__hash__ is not None and val in na_values:
             seen.saw_null()
-            floats[i] = complexes[i] = nan
+            floats[i] = complexes[i] = NaN
         elif util.is_float_object(val):
             fval = val
             if fval != fval:
@@ -1844,11 +1845,11 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             seen.bool_ = True
         elif val is None:
             seen.saw_null()
-            floats[i] = complexes[i] = nan
+            floats[i] = complexes[i] = NaN
         elif hasattr(val, '__len__') and len(val) == 0:
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
-                floats[i] = complexes[i] = nan
+                floats[i] = complexes[i] = NaN
             else:
                 raise ValueError('Empty string encountered')
         elif util.is_complex_object(val):
@@ -1863,7 +1864,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 
                 if fval in na_values:
                     seen.saw_null()
-                    floats[i] = complexes[i] = nan
+                    floats[i] = complexes[i] = NaN
                 else:
                     if fval != fval:
                         seen.null_ = True
@@ -1896,7 +1897,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                 elif "uint64" in str(e):  # Exception from check functions.
                     raise
                 seen.saw_null()
-                floats[i] = nan
+                floats[i] = NaN
 
     if seen.check_uint64_conflict():
         return values
@@ -1962,7 +1963,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         if val is None:
             seen.null_ = 1
             floats[i] = complexes[i] = fnan
-        elif val is NAT:
+        elif val is NaT:
             if convert_datetime:
                 idatetimes[i] = NPY_NAT
                 seen.datetime_ = 1

@@ -527,7 +527,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                 # to the result where appropriate
                 if keep_na and mask[_as[i]]:
                     for j in range(i - dups + 1, i + 1):
-                        out[_as[j], 0] = nan
+                        out[_as[j], 0] = NaN
                         grp_na_count = dups
                 elif tiebreak == TIEBREAK_AVERAGE:
                     for j in range(i - dups + 1, i + 1):
