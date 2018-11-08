@@ -2,7 +2,6 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
-import warnings
 
 from pandas.compat import range
 from pandas import compat
@@ -2230,12 +2229,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
 
     def __add__(self, other):
         if isinstance(other, Tick):
-            # TODO: Remove when _Day replaces Day
-            if self._prefix == 'D':
-                warnings.warn(
-                    "Arithmetic between {} and Day is deprecated. Day "
-                    "will become a non-fixed offset".format(type(self))
-                )
             if type(self) == type(other):
                 return type(self)(self.n + other.n)
             else:
@@ -2283,11 +2276,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
 
     @property
     def nanos(self):
-        # TODO: Remove when _Day replaces Day
-        # This is what Timedelta like operations call when 'D' is passed
-        if self._prefix == 'D':
-            warnings.warn("'D' will refer to calendar day in a future release."
-                          " Use '24H' instead.")
         return delta_to_nanoseconds(self.delta)
 
     # TODO: Should Tick have its own apply_index?
@@ -2303,19 +2291,11 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
             result = other.__add__(self)
             if result == NotImplemented:
                 raise OverflowError
-            # TODO: Remove when _Day replaces Day
-            if other.tz is not None and self._prefix == 'D':
-                warnings.warn("Day arithmetic will respect calendar day in a"
-                              " future release")
             return result
         elif isinstance(other, (datetime, np.datetime64, date)):
             return as_timestamp(other) + self
 
         if isinstance(other, timedelta):
-            # TODO: Remove when _Day replaces Day
-            if self._prefix == 'D':
-                warnings.warn("Day arithmetic with timedelta is deprecated. "
-                              "Use Hour(24) instead.")
             return other + self.delta
         elif isinstance(other, type(self)):
             return type(self)(self.n + other.n)
