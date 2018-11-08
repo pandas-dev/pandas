@@ -2076,9 +2076,9 @@ class TestDataFrameIndexing(TestData):
         # a named argument
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6],
                         "c": [7, 8, 9]}).set_index(["a", "b"])
-        l = list(df.index)
-        l[0] = ["a", "b"]
-        df.index = l
+        index = list(df.index)
+        index[0] = ["a", "b"]
+        df.index = index
 
         try:
             repr(df)
@@ -2876,6 +2876,14 @@ class TestDataFrameIndexing(TestData):
         with tm.assert_raises_regex(TypeError, 'boolean setting '
                                     'on mixed-type'):
             df.where(~isna(df), None, inplace=True)
+
+    def test_where_empty_df_and_empty_cond_having_non_bool_dtypes(self):
+        # see gh-21947
+        df = pd.DataFrame(columns=["a"])
+        cond = df.applymap(lambda x: x > 0)
+
+        result = df.where(cond)
+        tm.assert_frame_equal(result, df)
 
     def test_where_align(self):
 

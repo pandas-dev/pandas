@@ -6,7 +6,6 @@ from pandas import Panel
 
 class PanelMethods(object):
 
-    goal_time = 0.2
     params = ['items', 'major', 'minor']
     param_names = ['axis']
 

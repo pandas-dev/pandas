@@ -424,38 +424,35 @@ class TestSparseSeriesIndexing(object):
         expected = pd.Series([0, np.nan, np.nan, 2], target).to_sparse()
         tm.assert_sp_series_equal(expected, actual)
 
-    def tests_indexing_with_sparse(self):
-        # GH 13985
+    @pytest.mark.parametrize("kind", ["integer", "block"])
+    @pytest.mark.parametrize("fill", [True, False, np.nan])
+    def tests_indexing_with_sparse(self, kind, fill):
+        # see gh-13985
+        arr = pd.SparseArray([1, 2, 3], kind=kind)
+        indexer = pd.SparseArray([True, False, True],
+                                 fill_value=fill,
+                                 dtype=bool)
 
-        for kind in ['integer', 'block']:
-            for fill in [True, False, np.nan]:
-                arr = pd.SparseArray([1, 2, 3], kind=kind)
-                indexer = pd.SparseArray([True, False, True], fill_value=fill,
-                                         dtype=bool)
+        expected = arr[indexer]
+        result = pd.SparseArray([1, 3], kind=kind)
+        tm.assert_sp_array_equal(result, expected)
 
-                tm.assert_sp_array_equal(pd.SparseArray([1, 3], kind=kind),
-                                         arr[indexer],)
+        s = pd.SparseSeries(arr, index=["a", "b", "c"], dtype=np.float64)
+        expected = pd.SparseSeries([1, 3], index=["a", "c"], kind=kind,
+                                   dtype=SparseDtype(np.float64, s.fill_value))
 
-                s = pd.SparseSeries(arr, index=['a', 'b', 'c'],
-                                    dtype=np.float64)
+        tm.assert_sp_series_equal(s[indexer], expected)
+        tm.assert_sp_series_equal(s.loc[indexer], expected)
+        tm.assert_sp_series_equal(s.iloc[indexer], expected)
 
-                exp = pd.SparseSeries(
-                    [1, 3], index=['a', 'c'],
-                    dtype=SparseDtype(np.float64, s.fill_value),
-                    kind=kind
-                )
-                tm.assert_sp_series_equal(s[indexer], exp)
-                tm.assert_sp_series_equal(s.loc[indexer], exp)
-                tm.assert_sp_series_equal(s.iloc[indexer], exp)
+        indexer = pd.SparseSeries(indexer, index=["a", "b", "c"])
+        tm.assert_sp_series_equal(s[indexer], expected)
+        tm.assert_sp_series_equal(s.loc[indexer], expected)
 
-                indexer = pd.SparseSeries(indexer, index=['a', 'b', 'c'])
-                tm.assert_sp_series_equal(s[indexer], exp)
-                tm.assert_sp_series_equal(s.loc[indexer], exp)
-
-                msg = ("iLocation based boolean indexing cannot use an "
-                       "indexable as a mask")
-                with tm.assert_raises_regex(ValueError, msg):
-                    s.iloc[indexer]
+        msg = ("iLocation based boolean indexing cannot "
+               "use an indexable as a mask")
+        with tm.assert_raises_regex(ValueError, msg):
+            s.iloc[indexer]
 
 
 class TestSparseSeriesMultiIndexing(TestSparseSeriesIndexing):

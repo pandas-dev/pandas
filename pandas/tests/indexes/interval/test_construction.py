@@ -1,18 +1,20 @@
 from __future__ import division
 
-import pytest
-import numpy as np
 from functools import partial
 
+import numpy as np
+import pytest
+
+import pandas.core.common as com
+import pandas.util.testing as tm
 from pandas import (
-    Interval, IntervalIndex, Index, Int64Index, Float64Index, Categorical,
-    CategoricalIndex, date_range, timedelta_range, period_range, notna)
+    Categorical, CategoricalIndex, Float64Index, Index, Int64Index, Interval,
+    IntervalIndex, date_range, notna, period_range, timedelta_range
+)
 from pandas.compat import lzip
 from pandas.core.arrays import IntervalArray
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
-import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[None, 'foo'])
