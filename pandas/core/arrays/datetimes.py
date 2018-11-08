@@ -208,7 +208,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
 
-        if isinstance(values, DatetimeArrayMixin):
+        if isinstance(values, DatetimeArray):
             # extract nanosecond unix timestamps
             values = values.asi8
         if values.dtype == 'i8':

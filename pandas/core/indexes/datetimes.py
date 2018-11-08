@@ -278,7 +278,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                            'set specified tz: {1}')
                     raise TypeError(msg.format(data.tz, tz))
 
-            subarr = data.asi8
+            subarr = data.asi8.view(_NS_DTYPE)
 
             if freq is None:
                 freq = data.freq
