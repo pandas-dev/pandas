@@ -3,43 +3,33 @@ from datetime import datetime
 
 import numpy as np
 
+from pandas._libs import (
+    NaT, Timedelta, index as libindex, join as libjoin, lib)
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 import pandas.compat as compat
+from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE,
-    is_integer,
-    is_float,
-    is_list_like,
-    is_scalar,
-    is_timedelta64_dtype,
-    is_timedelta64_ns_dtype,
-    pandas_dtype,
-    ensure_int64)
+    _TD_DTYPE, ensure_int64, is_float, is_integer, is_list_like, is_scalar,
+    is_timedelta64_dtype, is_timedelta64_ns_dtype, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays.timedeltas import (
-    TimedeltaArrayMixin as TimedeltaArray,
-    _is_convertible_to_td, _to_m8)
 from pandas.core.arrays import datetimelike as dtl
-
-from pandas.core.indexes.base import Index
+from pandas.core.arrays.timedeltas import (
+    TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td, _to_m8)
+from pandas.core.base import _shared_docs
+import pandas.core.common as com
+from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.datetimelike import (
+    DatetimeIndexOpsMixin, TimelikeOps, wrap_arithmetic_op, wrap_array_method,
+    wrap_field_accessor)
 from pandas.core.indexes.numeric import Int64Index
+from pandas.core.ops import get_op_result_name
+from pandas.core.tools.timedeltas import (
+    _coerce_scalar_to_timedelta_type, to_timedelta)
 
 from pandas.tseries.frequencies import to_offset
-from pandas.core.base import _shared_docs
-from pandas.core.indexes.base import _index_shared_docs
-import pandas.core.common as com
-from pandas.core.ops import get_op_result_name
-from pandas.util._decorators import Appender, Substitution
-from pandas.core.indexes.datetimelike import (
-    TimelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op,
-    wrap_array_method, wrap_field_accessor)
-from pandas.core.tools.timedeltas import (
-    to_timedelta, _coerce_scalar_to_timedelta_type)
-from pandas._libs import (lib, index as libindex,
-                          join as libjoin, Timedelta, NaT)
-from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
 
 class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,

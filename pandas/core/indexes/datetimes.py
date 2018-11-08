@@ -1,59 +1,45 @@
 # pylint: disable=E1101
 from __future__ import division
+
+from datetime import datetime, time, timedelta
 import operator
 import warnings
-from datetime import time, datetime, timedelta
 
 import numpy as np
 from pytz import utc
 
-from pandas.core.base import _shared_docs
+from pandas._libs import (
+    Timestamp, index as libindex, join as libjoin, lib, tslib as libts)
+from pandas._libs.tslibs import (
+    ccalendar, conversion, fields, parsing, timezones)
+import pandas.compat as compat
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
-    _INT64_DTYPE,
-    _NS_DTYPE,
-    is_datetime64_dtype,
-    is_datetimetz,
-    is_dtype_equal,
-    is_integer,
-    is_float,
-    is_integer_dtype,
-    is_datetime64_ns_dtype,
-    is_period_dtype,
-    is_string_like,
-    is_list_like,
-    is_scalar,
-    pandas_dtype,
-    ensure_int64)
+    _INT64_DTYPE, _NS_DTYPE, ensure_int64, is_datetime64_dtype,
+    is_datetime64_ns_dtype, is_datetimetz, is_dtype_equal, is_float,
+    is_integer, is_integer_dtype, is_list_like, is_period_dtype, is_scalar,
+    is_string_like, pandas_dtype)
+import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.dtypes.concat as _concat
-from pandas.core.arrays.datetimes import (
-    DatetimeArrayMixin as DatetimeArray,
-    _to_m8)
 from pandas.core.arrays import datetimelike as dtl
-
+from pandas.core.arrays.datetimes import (
+    DatetimeArrayMixin as DatetimeArray, _to_m8)
+from pandas.core.base import _shared_docs
+import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.datetimelike import (
+    DatelikeOps, DatetimeIndexOpsMixin, TimelikeOps, wrap_array_method,
+    wrap_field_accessor)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-import pandas.compat as compat
-from pandas.tseries.frequencies import to_offset, Resolution
-from pandas.core.indexes.datetimelike import (
-    DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
-    wrap_field_accessor, wrap_array_method)
-from pandas.tseries.offsets import (
-    CDay, prefix_mapping)
-
-from pandas.util._decorators import Appender, cache_readonly, Substitution
-import pandas.core.common as com
-import pandas.tseries.offsets as offsets
 import pandas.core.tools.datetimes as tools
 
-from pandas._libs import (lib, index as libindex, tslib as libts,
-                          join as libjoin, Timestamp)
-from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
-                                 ccalendar)
+from pandas.tseries import offsets
+from pandas.tseries.frequencies import Resolution, to_offset
+from pandas.tseries.offsets import CDay, prefix_mapping
 
 
 def _new_DatetimeIndex(cls, d):
