@@ -575,6 +575,11 @@ class TestTimestampConstructors(object):
         expected = offsets.Day()
         assert result == expected
 
+    def test_constructor_invalid_frequency(self):
+        # GH 22311
+        with tm.assert_raises_regex(ValueError, "Invalid frequency:"):
+            Timestamp('2012-01-01', freq=[])
+
 
 class TestTimestamp(object):
 

@@ -222,6 +222,7 @@ Other Enhancements
 - :class:`IntervalIndex` has gained the :meth:`~IntervalIndex.set_closed` method to change the existing ``closed`` value (:issue:`21670`)
 - :func:`~DataFrame.to_csv`, :func:`~Series.to_csv`, :func:`~DataFrame.to_json`, and :func:`~Series.to_json` now support ``compression='infer'`` to infer compression based on filename extension (:issue:`15008`).
   The default compression for ``to_csv``, ``to_json``, and ``to_pickle`` methods has been updated to ``'infer'`` (:issue:`22004`).
+- :meth:`DataFrame.to_sql` now supports writing ``TIMESTAMP WITH TIME ZONE`` types for supported databases. For databases that don't support timezones, datetime data will be stored as timezone unaware local timestamps. See the :ref:`io.sql_datetime_data` for implications (:issue:`9086`).
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
@@ -853,6 +854,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - Updated the ``.type`` attribute for ``PeriodDtype``, ``DatetimeTZDtype``, and ``IntervalDtype`` to be instances of the dtype (``Period``, ``Timestamp``, and ``Interval`` respectively) (:issue:`22938`)
 - :func:`ExtensionArray.isna` is allowed to return an ``ExtensionArray`` (:issue:`22325`).
 - Support for reduction operations such as ``sum``, ``mean`` via opt-in base class method override (:issue:`22762`)
+- :meth:`DataFrame.stack` no longer converts to object dtype for DataFrames where each column has the same extension dtype. The output Series will have the same dtype as the columns (:issue:`23077`).
 - :meth:`Series.unstack` and :meth:`DataFrame.unstack` no longer convert extension arrays to object-dtype ndarrays. Each column in the output ``DataFrame`` will now have the same dtype as the input (:issue:`23077`).
 - Bug when grouping :meth:`Dataframe.groupby()` and aggregating on ``ExtensionArray`` it was not returning the actual ``ExtensionArray`` dtype (:issue:`23227`).
 
@@ -1245,6 +1247,9 @@ MultiIndex
 I/O
 ^^^
 
+- Bug in :meth:`to_sql` when writing timezone aware data (``datetime64[ns, tz]`` dtype) would raise a ``TypeError`` (:issue:`9086`)
+- Bug in :meth:`to_sql` where a naive DatetimeIndex would be written as ``TIMESTAMP WITH TIMEZONE`` type in supported databases, e.g. PostgreSQL (:issue:`23510`)
+
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
 Proper handling of `np.NaN` in a string data-typed column with the Python engine
@@ -1292,6 +1297,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :func:`DataFrame.to_csv` where a single level MultiIndex incorrectly wrote a tuple. Now just the value of the index is written (:issue:`19589`).
 - Bug in :meth:`HDFStore.append` when appending a :class:`DataFrame` with an empty string column and ``min_itemsize`` < 8 (:issue:`12242`)
 - Bug in :meth:`read_csv()` in which :class:`MultiIndex` index names were being improperly handled in the cases when they were not provided (:issue:`23484`)
+- Bug in :meth:`read_html()` in which the error message was not displaying the valid flavors when an invalid one was provided (:issue:`23549`)
 
 Plotting
 ^^^^^^^^
