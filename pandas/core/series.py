@@ -1916,6 +1916,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             3, 2,  4,  3])
         >>> len(b)
         21
+
+        .. versionadded:: 0.24.0
         """
         return np.histogram(self, *args, **kwargs)
 
