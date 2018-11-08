@@ -627,19 +627,15 @@ def validate_one(func_name):
         else:
             if len(doc.returns) == 1 and doc.returns[0][1]:
                 errs.append(error('RT02'))
-            missing_desc = missing_cap = missing_period = False
             for name, type_, desc in doc.returns:
-                desc = ''.join(desc)
-                missing_desc = missing_desc or not desc
-                missing_cap = missing_cap or desc and not desc[0].isupper()
-                missing_period = (missing_period
-                                  or desc and not desc.endswith('.'))
-            if missing_desc:
-                errs.append(error('RT03'))
-            if missing_cap:
-                errs.append(error('RT04'))
-            if missing_period:
-                errs.append(error('RT05'))
+                if not desc:
+                    errs.append(error('RT03'))
+                else:
+                    desc = ' '.join(desc)
+                    if not desc[0].isupper():
+                        errs.append(error('RT04'))
+                    if not desc.endswith('.'):
+                        errs.append(error('RT05'))
 
         if not doc.yields and 'yield' in doc.method_source:
             errs.append(error('YD01'))
