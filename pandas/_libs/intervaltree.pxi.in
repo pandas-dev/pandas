@@ -175,7 +175,8 @@ cdef class IntervalTree(IntervalMixin):
                 result.append(-1)
                 missing.append(i)
             old_len = result.data.n
-        return result.to_array().astype('intp'), missing.to_array().astype('intp')
+        return (result.to_array().astype('intp'),
+                missing.to_array().astype('intp'))
 
     def __repr__(self):
         return ('<IntervalTree[{dtype},{closed}]: '
