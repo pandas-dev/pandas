@@ -1888,6 +1888,37 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # scalar
             return result
 
+    def histogram(self, *args, **kwargs):
+        """
+        Compute the histogram of a Series.
+
+        (convenience wrapper for `np.histogram`)
+
+        Parameters
+        ----------
+            see `numpy.histogram`
+        Returns
+        -------
+        hist : array
+            The values of the histogram. See *density* and *weights* for a
+            description of the possible semantics.
+        bin_edges : array of dtype float
+            Return the bin edges `(length(hist)+1)`.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> np.random.seed(3)
+        >>> s = pd.Series(np.random.normal(0, 1, 100))
+        >>> h, b = s.histogram(20)
+        >>> h
+        array([ 1,  1,  1,  1,  3,  3,  4, 10,  7, 11, 11,  7,  7,  5,  9,  7,
+            3, 2,  4,  3])
+        >>> len(b)
+        21
+        """
+        return np.histogram(self, *args, **kwargs)
+
     def corr(self, other, method='pearson', min_periods=None):
         """
         Compute correlation with `other` Series, excluding missing values
