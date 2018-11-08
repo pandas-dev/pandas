@@ -1293,6 +1293,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :func:`DataFrame.to_csv` where a single level MultiIndex incorrectly wrote a tuple. Now just the value of the index is written (:issue:`19589`).
 - Bug in :meth:`HDFStore.append` when appending a :class:`DataFrame` with an empty string column and ``min_itemsize`` < 8 (:issue:`12242`)
 - Bug in :meth:`read_csv()` in which :class:`MultiIndex` index names were being improperly handled in the cases when they were not provided (:issue:`23484`)
+- Bug in :meth:`read_html()` in which the error message was not displaying the valid flavors when an invalid one was provided (:issue:`23549`)
 
 Plotting
 ^^^^^^^^
