@@ -709,7 +709,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def _values(self):
-        # type: () -> Union[ExtensionArray, Index]
+        # type: () -> Union[ExtensionArray, Index, np.ndarray]
         # TODO(EA): remove index types as they become extension arrays
         """The best array representation.
 
@@ -721,18 +721,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         It may differ from the public '.values' method.
 
-        index             | values          | _values     | _ndarray_values |
-        ----------------- | -------------- -| ----------- | --------------- |
-        CategoricalIndex  | Categorical     | Categorical | codes           |
-        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]     | ndarray[M8ns]   |
-
-        For the following, the ``._values`` is currently ``ndarray[object]``,
-        but will soon be an ``ExtensionArray``
-
-        index             | values          | _values      | _ndarray_values |
-        ----------------- | --------------- | ------------ | --------------- |
-        PeriodIndex       | ndarray[object] | ndarray[obj] | ndarray[int]    |
-        IntervalIndex     | ndarray[object] | ndarray[obj] | ndarray[object] |
+        index             | values          | _values       | _ndarray_values |
+        ----------------- | --------------- | ------------- | --------------- |
+        Index             | ndarray         | ndarray       | ndarray         |
+        CategoricalIndex  | Categorical     | Categorical   | ndarray[int]    |
+        DatetimeIndex     | ndarray[M8ns]   | ndarray[M8ns] | ndarray[M8ns]   |
+        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]       | ndarray[M8ns]   |
+        PeriodIndex       | ndarray[object] | PeriodArray   | ndarray[int]    |
+        IntervalIndex     | IntervalArray   | IntervalArray | ndarray[object] |
 
         See Also
         --------
