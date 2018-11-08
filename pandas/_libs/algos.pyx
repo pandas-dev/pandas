@@ -195,9 +195,10 @@ def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
     return result, counts
 
 
+# TODO: redundant with groupby.kth_smallest_c
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k) nogil:
+def kth_smallest(numeric[:] a, Py_ssize_t k) -> numeric:
     cdef:
         Py_ssize_t i, j, l, m, n = a.shape[0]
         numeric x
