@@ -277,7 +277,7 @@ def group_ohlc_{{name}}(ndarray[{{c_type}}, ndim=2] out,
 # name, c_type, nan_val
 dtypes = [('float64', 'float64_t', 'NAN'),
           ('float32', 'float32_t', 'NAN'),
-          ('int64', 'int64_t', 'iNaT'),
+          ('int64', 'int64_t', 'NPY_NAT'),
           ('object', 'object', 'NAN')]
 
 def get_dispatch(dtypes):
@@ -630,7 +630,7 @@ def group_max(ndarray[groupby_t, ndim=2] out,
     if groupby_t is int64_t:
         # Note: evaluated at compile-time
         maxx[:] = -_int64_max
-        nan_val = iNaT
+        nan_val = NPY_NAT
     else:
         maxx[:] = -np.inf
         nan_val = NAN
@@ -692,7 +692,7 @@ def group_min(ndarray[groupby_t, ndim=2] out,
     minx = np.empty_like(out)
     if groupby_t is int64_t:
         minx[:] = _int64_max
-        nan_val = iNaT
+        nan_val = NPY_NAT
     else:
         minx[:] = np.inf
         nan_val = NAN
@@ -762,8 +762,8 @@ def group_cummin(ndarray[groupby_t, ndim=2] out,
 
                 # val = nan
                 if groupby_t is int64_t:
-                    if is_datetimelike and val == iNaT:
-                        out[i, j] = iNaT
+                    if is_datetimelike and val == NPY_NAT:
+                        out[i, j] = NPY_NAT
                     else:
                         mval = accum[lab, j]
                         if val < mval:
@@ -809,8 +809,8 @@ def group_cummax(ndarray[groupby_t, ndim=2] out,
                 val = values[i, j]
 
                 if groupby_t is int64_t:
-                    if is_datetimelike and val == iNaT:
-                        out[i, j] = iNaT
+                    if is_datetimelike and val == NPY_NAT:
+                        out[i, j] = NPY_NAT
                     else:
                         mval = accum[lab, j]
                         if val > mval:

@@ -33,7 +33,7 @@ cdef float64_t FP_ERR = 1e-13
 
 cdef float64_t NaN = <float64_t>np.NaN
 
-cdef int64_t iNaT = get_nat()
+cdef int64_t NPY_NAT = get_nat()
 
 tiebreakers = {
     'average': TIEBREAK_AVERAGE,
@@ -810,7 +810,7 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     n = len(arr)
 
     if n == 1:
-        if arr[0] != arr[0] or (timelike and <int64_t>arr[0] == iNaT):
+        if arr[0] != arr[0] or (timelike and <int64_t>arr[0] == NPY_NAT):
             # single value is NaN
             return False, False, True
         else:
@@ -818,7 +818,7 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     elif n < 2:
         return True, True, True
 
-    if timelike and <int64_t>arr[0] == iNaT:
+    if timelike and <int64_t>arr[0] == NPY_NAT:
         return False, False, True
 
     if algos_t is not object:
@@ -826,7 +826,7 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
             prev = arr[0]
             for i in range(1, n):
                 cur = arr[i]
-                if timelike and <int64_t>cur == iNaT:
+                if timelike and <int64_t>cur == NPY_NAT:
                     is_monotonic_inc = 0
                     is_monotonic_dec = 0
                     break
@@ -851,7 +851,7 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
         prev = arr[0]
         for i in range(1, n):
             cur = arr[i]
-            if timelike and <int64_t>cur == iNaT:
+            if timelike and <int64_t>cur == NPY_NAT:
                 is_monotonic_inc = 0
                 is_monotonic_dec = 0
                 break

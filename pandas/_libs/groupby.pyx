@@ -19,7 +19,7 @@ from algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE, TIEBREAK_MIN,
                     TIEBREAK_MAX, TIEBREAK_FIRST, TIEBREAK_DENSE)
 from algos import take_2d_axis1_float64_float64, groupsort_indexer, tiebreakers
 
-cdef int64_t iNaT = get_nat()
+cdef int64_t NPY_NAT = get_nat()
 
 cdef float64_t NaN = <float64_t>np.NaN
 

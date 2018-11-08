@@ -74,9 +74,9 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
     {{elif dtype == 'float64'}}
     mask = np.isnan(values)
     {{elif dtype == 'int64'}}
-    mask = values == iNaT
+    mask = values == NPY_NAT
 
-    # create copy in case of iNaT
+    # create copy in case of NPY_NAT
     # values are mutated inplace
     if mask.any():
         values = values.copy()
@@ -257,7 +257,7 @@ def rank_2d_{{dtype}}(object in_arr, axis=0, ties_method='average',
     {{elif dtype == 'float64'}}
     mask = np.isnan(values)
     {{elif dtype == 'int64'}}
-    mask = values == iNaT
+    mask = values == NPY_NAT
     {{endif}}
 
     np.putmask(values, mask, nan_value)
