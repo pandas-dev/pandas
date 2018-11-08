@@ -307,8 +307,10 @@ class Index(IndexOpsMixin, PandasObject):
                 #  will raise in the where `data` is already tz-aware.  So
                 #  we leave it out of this step and cast to object-dtype after
                 #  the DatetimeIndex construction.
-                result = DatetimeIndex(data, copy=copy, name=name, **kwargs)
-                return Index(list(result), dtype=_o_dtype)
+                # Note we can pass copy=False because the .astype below
+                #  will always make a copy
+                result = DatetimeIndex(data, copy=False, name=name, **kwargs)
+                return result.astype(object)
             else:
                 result = DatetimeIndex(data, copy=copy, name=name,
                                        dtype=dtype, **kwargs)
