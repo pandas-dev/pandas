@@ -7369,9 +7369,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Resample time-series data.
 
         Convenience method for frequency conversion and resampling of time
-        series. Object must have a datetime-like index (``DatetimeIndex``,
-        ``PeriodIndex``, or ``TimedeltaIndex``), or pass datetime-like values
-        to the ``on`` or ``level`` keyword.
+        series. Object must have a datetime-like index (`DatetimeIndex`,
+        `PeriodIndex`, or `TimedeltaIndex`), or pass datetime-like values
+        to the `on` or `level` keyword.
 
         Parameters
         ----------
@@ -7383,10 +7383,10 @@ class NDFrame(PandasObject, SelectionMixin):
             .. deprecated:: 0.18.0
                The new syntax is ``.resample(...).mean()``, or
                ``.resample(...).apply(<func>)``
-        axis : {0 or 'index'}, default 0
-            Which axis to use for up- or down-sampling. For ``Series`` this
-            will default to 0, i.e. `along the rows`. Must be
-            ``DatetimeIndex``, ``TimedeltaIndex`` or ``PeriodIndex``.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            Which axis to use for up- or down-sampling. For `Series` this
+            will default to 0, i.e. along the rows. Must be
+            `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`.
         fill_method : str, default None
             Filling method for upsampling.
 
@@ -7402,16 +7402,16 @@ class NDFrame(PandasObject, SelectionMixin):
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {'start', 'end', 's', 'e'}, default 'start'
-            For ``PeriodIndex`` only, controls whether to use the start or
-            end of ``rule``.
+            For `PeriodIndex` only, controls whether to use the start or
+            end of `rule`.
         kind : {'timestamp', 'period'}, optional, default None
             Pass 'timestamp' to convert the resulting index to a
-            ``DateTimeIndex`` or 'period' to convert it to a ``PeriodIndex``.
+            `DateTimeIndex` or 'period' to convert it to a `PeriodIndex`.
             By default the input representation is retained.
         loffset : timedelta, default None
             Adjust the resampled time labels.
         limit : int, default None
-            Maximum size gap when reindexing with ``fill_method``.
+            Maximum size gap when reindexing with `fill_method`.
 
             .. deprecated:: 0.18.0
         base : int, default 0
@@ -7426,7 +7426,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
-            resampling. ``level`` must be datetime-like.
+            resampling. `level` must be datetime-like.
 
             .. versionadded:: 0.19.0
 
@@ -7446,6 +7446,8 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         groupby : Group by mapping, function, label, or list of labels.
+        Series.resample : Resample a Series.
+        DataFrame.resample: Resample a DataFrame.
 
         Examples
         --------
@@ -7544,10 +7546,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2000-01-01 00:06:00    26
         Freq: 3T, dtype: int64
 
-        For a Series with a PeriodIndex, the keyword ``convention`` can be
+        For a Series with a PeriodIndex, the keyword `convention` can be
         used to control whether to use the start or end of `rule`.
 
-        Resample a year by quarter using 'start' ``convention``. Values are
+        Resample a year by quarter using 'start' `convention`. Values are
         assigned to the first quarter of the period.
 
         >>> s = pd.Series([1, 2], index=pd.period_range('2012-01-01',
@@ -7568,7 +7570,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2013Q4    NaN
         Freq: Q-DEC, dtype: float64
 
-        Resample quarters by month using 'end' ``convention``. Values are
+        Resample quarters by month using 'end' `convention`. Values are
         assigned to the last month of the period.
 
         >>> q = pd.Series([1, 2, 3, 4], index=pd.period_range('2018-01-01',
@@ -7593,7 +7595,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2018-12    4.0
         Freq: M, dtype: float64
 
-        For DataFrame objects, the keyword ``on`` can be used to specify the
+        For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.
 
         >>> d = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
@@ -7618,7 +7620,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2018-01-31     10.75    62.5
         2018-02-28     17.00    60.0
 
-        For a DataFrame with MultiIndex, the keyword ``level`` can be used to
+        For a DataFrame with MultiIndex, the keyword `level` can be used to
         specify on which level the resampling needs to take place.
 
         >>> days = pd.date_range('1/1/2000', periods=4, freq='D')
