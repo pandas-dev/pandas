@@ -318,13 +318,13 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 
    .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....), :]
+      df.loc[(slice('A1', 'A3'), ...), :]             # noqa: E999
 
    You should **not** do this:
  
    .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....)]
+      df.loc[(slice('A1', 'A3'), ...)]                # noqa: E999
 
 .. ipython:: python
 
@@ -532,7 +532,7 @@ used to move the values from the ``MultiIndex`` to a column.
 .. ipython:: python
 
    df.rename_axis(index=['abc', 'def'])
-   
+
 Note that the columns of a ``DataFrame`` are an index, so that using
 ``rename_axis`` with the ``columns`` argument will change the name of that
 index.
@@ -779,7 +779,7 @@ values **not** in the categories, similarly to how you can reindex **any** panda
    Reshaping and Comparison operations on a ``CategoricalIndex`` must have the same categories
    or a ``TypeError`` will be raised.
 
-   .. code-block:: python
+   .. code-block:: ipython
 
       In [9]: df3 = pd.DataFrame({'A' : np.arange(6),
                                   'B' : pd.Series(list('aabbca')).astype('category')})
@@ -1071,7 +1071,7 @@ On the other hand, if the index is not monotonic, then both slice bounds must be
     # OK because 2 and 4 are in the index
     df.loc[2:4, :]
 
-.. code-block:: python
+.. code-block:: ipython
 
     # 0 is not in the index
     In [9]: df.loc[0:4, :]
