@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from pandas.compat import long
+from pandas.core.arrays import PeriodArray, DatetimeArrayMixin as DatetimeArray
 
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
@@ -169,5 +170,23 @@ def box_df_broadcast_failure(request):
     """
     Fixture equivalent to `box` but with the common failing case where
     the DataFrame operation tries to broadcast incorrectly.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, PeriodArray],
+                ids=lambda x: x.__name__)
+def box_with_period(request):
+    """
+    Like `box`, but specific to PeriodDtype for also testing PeriodArray
+    """
+    return request.param
+
+
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, DatetimeArray],
+                ids=lambda x: x.__name__)
+def box_with_datetime(request):
+    """
+    Like `box`, but specific to datetime64 for also testing DatetimeArray
     """
     return request.param
