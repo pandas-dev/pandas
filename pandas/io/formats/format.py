@@ -1129,7 +1129,14 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
             values = values._values
 
         formatter = values._formatter(self)
-        fmt_values = format_array(np.asarray(values),
+
+        if is_categorical_dtype(values.dtype):
+            # Categorical is special for now, so that we can preserve tzinfo
+            array = values.get_values()
+        else:
+            array = np.asarray(values)
+
+        fmt_values = format_array(array,
                                   formatter,
                                   float_format=self.float_format,
                                   na_rep=self.na_rep, digits=self.digits,
