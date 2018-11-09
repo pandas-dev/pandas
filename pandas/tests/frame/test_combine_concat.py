@@ -279,6 +279,25 @@ class TestDataFrameConcatCommon(TestData):
                              columns=['A', 'B', 'bool1', 'bool2'])
         assert_frame_equal(df, expected)
 
+        df = DataFrame([[10, 100], [11, 101], [12, 102]], columns=['A', 'B'])
+        other = DataFrame([[61, 601], [63, 603]], columns=['A', 'B'],
+                          index=[1, 3])
+        df.update(other)
+
+        expected = DataFrame([[10, 100], [61, 601], [12, 102]],
+                             columns=['A', 'B'])
+        assert_frame_equal(df, expected)
+
+        # we always try to keep original dtype, even if other has different one
+        df.update(other.astype(float))
+        assert_frame_equal(df, expected)
+
+        # if keeping the dtype is not possible, we allow upcasting
+        df.update(other + 0.1)
+        expected = DataFrame([[10., 100.], [61.1, 601.1], [12., 102.]],
+                             columns=['A', 'B'])
+        assert_frame_equal(df, expected)
+
     def test_update_nooverwrite(self):
         df = DataFrame([[1.5, nan, 3.],
                         [1.5, nan, 3.],

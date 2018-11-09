@@ -10,7 +10,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, compat, date_range
 import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 
 class TestSeriesCombine():
@@ -105,8 +105,8 @@ class TestSeriesCombine():
         assert_series_equal(s, result)
 
     def test_update(self):
-        s = Series([1.5, nan, 3., 4., nan])
-        s2 = Series([nan, 3.5, nan, 5.])
+        s = Series([1.5, np.nan, 3., 4., np.nan])
+        s2 = Series([np.nan, 3.5, np.nan, 5.])
         s.update(s2)
 
         expected = Series([1.5, 3.5, 3., 5., np.nan])
@@ -116,8 +116,35 @@ class TestSeriesCombine():
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
         df['c'] = np.nan
 
-        # this will fail as long as series is a sub-class of ndarray
-        # df['c'].update(Series(['foo'],index=[0])) #####
+        df['c'].update(Series(['foo'], index=[0]))
+        expected = DataFrame([[1, np.nan, 'foo'], [3, 2., np.nan]],
+                             columns=['a', 'b', 'c'])
+        assert_frame_equal(df, expected)
+
+    def test_update_dtypes(self):
+        s = Series([1., 2., False, True])
+
+        other = Series([45])
+        s.update(other)
+
+        expected = Series([45., 2., False, True])
+        assert_series_equal(s, expected)
+
+        s = Series([10, 11, 12])
+        other = Series([61, 63], index=[1, 3])
+        s.update(other)
+
+        expected = Series([10, 61, 12])
+        assert_series_equal(s, expected)
+
+        # we always try to keep original dtype, even if other has different one
+        s.update(other.astype(float))
+        assert_series_equal(s, expected)
+
+        # if keeping the dtype is not possible, we allow upcasting
+        s.update(other + 0.1)
+        expected = Series([10., 61.1, 12.])
+        assert_series_equal(s, expected)
 
     def test_update_nooverwrite(self):
         s = Series([0, 1, 2, np.nan, np.nan, 5, 6, np.nan])
@@ -129,6 +156,8 @@ class TestSeriesCombine():
         assert_series_equal(s, expected)
 
     def test_update_filtered(self):
+        # for small values, np.arange defaults to int32,
+        # but pandas default (e.g. for "expected" below) is int64
         s = Series(np.arange(8), dtype='int64')
         other = Series(np.arange(8), dtype='int64') + 10
 

@@ -2390,7 +2390,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Modify Series in place using non-NA values from passed Series.
 
-        Aligns on index.
+        Series will be aligned on indexes, and whenever possible, the dtype of
+        the caller will be preserved.
+
+        There is no return value.
 
         Parameters
         ----------
@@ -2411,7 +2414,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
               the original DataFrame.
 
             .. versionadded:: 0.24.0
-        filter_func : callable(1d-array) -> boolean 1d-array, optional
+        filter_func : callable(1d-array) -> bool 1d-array, optional
             Can choose to replace values other than NA. Return True for values
             that should be updated.
 
@@ -2422,10 +2425,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             .. versionadded:: 0.24.0
 
+        Raises
+        ------
+        ValueError
+            When `errors='ignore'` and there's overlapping non-NA data.
+
+        Returns
+        -------
+        Nothing, the Series is modified inplace.
+
         See Also
         --------
         DataFrame.update : Similar method for `DataFrame`.
-        dict.update : Similar method for `dict`
+        dict.update : Similar method for `dict`.
 
         Examples
         --------
@@ -2459,10 +2471,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s = pd.Series([1, 2, 3])
         >>> s.update(pd.Series([4, np.nan, 6]))
         >>> s
-        0    4.0
-        1    2.0
-        2    6.0
-        dtype: float64
+        0    4
+        1    2
+        2    6
+        dtype: int64
         """
         super(Series, self).update(other, join=join, overwrite=overwrite,
                                    filter_func=filter_func,

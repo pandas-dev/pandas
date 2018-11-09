@@ -106,14 +106,24 @@ def update_array(this, that, overwrite=True, filter_func=None,
 
     Returns
     -------
-    updated : np.ndarray (one-dimensional) or None
-        The updated array. Return None if `this` remains unchanged
+    updated : np.ndarray (one-dimensional)
+        The updated array.
 
     See Also
     --------
     Series.update : Similar method for `Series`.
     DataFrame.update : Similar method for `DataFrame`.
     dict.update : Similar method for `dict`.
+    """
+    updated = _update_array(this, that, overwrite=overwrite,
+                           filter_func=filter_func, errors=errors)
+    return this if updated is None else updated
+
+
+def _update_array(this, that, overwrite=True, filter_func=None,
+                  errors='ignore'):
+    """
+    Same as update_array, except we return None if `this` is not updated.
     """
     import pandas.core.computation.expressions as expressions
 

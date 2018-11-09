@@ -4178,7 +4178,10 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Modify in place using non-NA values from another DataFrame.
 
-        Aligns on indices. There is no return value.
+        Series/DataFrame will be aligned on indexes, and whenever possible,
+        the dtype of the individual Series of the caller will be preserved.
+
+        There is no return value.
 
         Parameters
         ----------
@@ -4198,7 +4201,7 @@ class NDFrame(PandasObject, SelectionMixin):
             * False: only update values that are NA in
               the original DataFrame.
 
-        filter_func : callable(1d-array) -> boolean 1d-array, optional
+        filter_func : callable(1d-array) -> bool 1d-array, optional
             Can choose to replace values other than NA. Return True for values
             that should be updated.
         errors : {'raise', 'ignore'}, default 'ignore'
@@ -4208,7 +4211,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Raises
         ------
         ValueError
-            When `raise_conflict` is True and there's overlapping non-NA data.
+            When `errors='ignore'` and there's overlapping non-NA data.
 
         Returns
         -------
@@ -4275,10 +4278,10 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> new_df = pd.DataFrame({'B': [4, np.nan, 6]})
         >>> df.update(new_df)
         >>> df
-           A      B
-        0  1    4.0
-        1  2  500.0
-        2  3    6.0
+           A    B
+        0  1    4
+        1  2  500
+        2  3    6
         """
         from pandas import Series, DataFrame
         # TODO: Support other joins
@@ -4292,14 +4295,20 @@ class NDFrame(PandasObject, SelectionMixin):
             this = self.values
             that = other.values
 
-            # missing.update_array returns an np.ndarray
-            updated_values = missing.update_array(this, that,
+            # will return None if "this" remains unchanged
+            updated_array = missing._update_array(this, that,
                                                   overwrite=overwrite,
                                                   filter_func=filter_func,
                                                   errors=errors)
             # don't overwrite unnecessarily
-            if updated_values is not None:
-                self._update_inplace(Series(updated_values, index=self.index))
+            if updated_array is not None:
+                # avoid unnecessary upcasting (introduced by alignment)
+                try:
+                    updated = Series(updated_array, index=self.index,
+                                     dtype=this.dtype)
+                except ValueError:
+                    updated = Series(updated_array, index=self.index)
+                self._update_inplace(updated)
         else:  # DataFrame
             if not isinstance(other, ABCDataFrame):
                 other = DataFrame(other)
@@ -4310,11 +4319,23 @@ class NDFrame(PandasObject, SelectionMixin):
                 this = self[col].values
                 that = other[col].values
 
-                updated = missing.update_array(this, that, overwrite=overwrite,
-                                           filter_func=filter_func,
-                                           errors=errors)
+                # will return None if "this" remains unchanged
+                updated_array = missing._update_array(this, that,
+                                                      overwrite=overwrite,
+                                                      filter_func=filter_func,
+                                                      errors=errors)
                 # don't overwrite unnecessarily
-                if updated is not None:
+                if updated_array is not None:
+                    # no problem to set DataFrame column with array
+                    updated = updated_array
+
+                    if updated_array.dtype != this.dtype:
+                        # avoid unnecessary upcasting (introduced by alignment)
+                        try:
+                            updated = Series(updated_array, index=self.index,
+                                             dtype=this.dtype)
+                        except ValueError:
+                            pass
                     self[col] = updated
 
     def filter(self, items=None, like=None, regex=None, axis=None):
