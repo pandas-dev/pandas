@@ -202,7 +202,8 @@ class TestSetitem(BaseDecimal, base.BaseSetitemTests):
 
 
 class TestPrinting(BaseDecimal, base.BasePrintingTests):
-    pass
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 # TODO(extension)
@@ -384,3 +385,14 @@ def test_divmod_array(reverse, expected_div, expected_mod):
 
     tm.assert_extension_array_equal(div, expected_div)
     tm.assert_extension_array_equal(mod, expected_mod)
+
+
+def test_formatting_values_deprecated():
+    class DecimalArray2(DecimalArray):
+        def _formatting_values(self):
+            return np.array(self)
+
+    ser = pd.Series(DecimalArray2([decimal.Decimal('1.0')]))
+
+    with tm.assert_produces_warning(FutureWarning):
+        repr(ser)
