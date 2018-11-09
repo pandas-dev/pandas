@@ -49,6 +49,13 @@ class ExtensionArray(object):
 
     * _formatting_values
 
+    A default repr displaying the type, (truncated) data, length,
+    and dtype is provided. It can be customized or replaced by
+    by overriding:
+
+    * _formatter
+    * __repr__
+
     Some methods require casting the ExtensionArray to an ndarray of Python
     objects with ``self.astype(object)``, which may be expensive. When
     performance is a concern, we highly recommend overriding the following
@@ -653,14 +660,45 @@ class ExtensionArray(object):
         raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
-    # Block-related methods
+    # Printing
     # ------------------------------------------------------------------------
+    def __repr__(self):
+        from pandas.io.formats.printing import format_object_summary
+
+        template = (
+            '<{class_name}>\n'
+            '{data}\n'
+            'Length: {length}, dtype: {dtype}'
+        )
+        # the short repr has no trailing newline, while the truncated
+        # repr does. So we include a newline in our template, and strip
+        # any trailing newlines from format_object_summary
+        data = format_object_summary(self, self._formatter, name=False,
+                                     trailing_comma=False).rstrip('\n')
+        name = self.__class__.__name__
+        return template.format(class_name=name, data=data,
+                               length=len(self),
+                               dtype=self.dtype)
+
+    @property
+    def _formatter(self):
+        # type: () -> Callable[Any]
+        """Formatting function for scalar values.
+
+        This is used in the default '__repr__'. The formatting function
+        receives instances of your scalar type.
+        """
+        return str
 
     def _formatting_values(self):
         # type: () -> np.ndarray
         # At the moment, this has to be an array since we use result.dtype
         """An array of values to be printed in, e.g. the Series repr"""
         return np.array(self)
+
+    # ------------------------------------------------------------------------
+    # Reshaping
+    # ------------------------------------------------------------------------
 
     @classmethod
     def _concat_same_type(cls, to_concat):

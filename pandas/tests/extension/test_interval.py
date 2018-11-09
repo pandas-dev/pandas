@@ -14,7 +14,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
 import numpy as np
-import pytest
 
 from pandas.core.dtypes.dtypes import IntervalDtype
 
@@ -22,6 +21,7 @@ from pandas import Interval
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
 import pandas.util.testing as tm
+import pytest
 
 
 def make_data():
@@ -146,4 +146,8 @@ class TestReshaping(BaseInterval, base.BaseReshapingTests):
 
 
 class TestSetitem(BaseInterval, base.BaseSetitemTests):
+    pass
+
+
+class TestPrinting(BaseInterval, base.BasePrintingTests):
     pass

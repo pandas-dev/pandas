@@ -1986,6 +1986,8 @@ class Categorical(ExtensionArray, PandasObject):
 
         return result
 
+    __repr__ = __unicode__
+
     def _maybe_coerce_indexer(self, indexer):
         """ return an indexer coerced to the codes dtype """
         if isinstance(indexer, np.ndarray) and indexer.dtype.kind == 'i':

@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from pandas._libs.tslib import iNaT
 
@@ -9,6 +8,7 @@ import pandas as pd
 from pandas.core.arrays import PeriodArray
 from pandas.tests.extension import base
 import pandas.util.testing as tm
+import pytest
 
 
 @pytest.fixture
@@ -154,4 +154,8 @@ class TestSetitem(BasePeriodTests, base.BaseSetitemTests):
 
 
 class TestGroupby(BasePeriodTests, base.BaseGroupbyTests):
+    pass
+
+
+class TestPrinting(BasePeriodTests, base.BasePrintingTests):
     pass

@@ -3,12 +3,12 @@ import math
 import operator
 
 import numpy as np
-import pytest
 
 import pandas as pd
 from pandas import compat
 from pandas.tests.extension import base
 import pandas.util.testing as tm
+import pytest
 
 from .array import DecimalArray, DecimalDtype, make_data, to_decimal
 
@@ -197,6 +197,10 @@ class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
 
 
 class TestSetitem(BaseDecimal, base.BaseSetitemTests):
+    pass
+
+
+class TestPrinting(BaseDecimal, base.BasePrintingTests):
     pass
 
 

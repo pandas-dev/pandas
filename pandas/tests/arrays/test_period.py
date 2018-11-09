@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
@@ -10,6 +9,7 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 import pandas as pd
 from pandas.core.arrays import PeriodArray, period_array
 import pandas.util.testing as tm
+import pytest
 
 # ----------------------------------------------------------------------------
 # Constructors
@@ -195,3 +195,34 @@ def tet_sub_period():
     other = pd.Period("2000", freq="M")
     with tm.assert_raises_regex(IncompatibleFrequency, "freq"):
         arr - other
+
+
+# ----------------------------------------------------------------------------
+# Printing
+
+def test_repr_small():
+    arr = period_array(['2000', '2001'], freq='D')
+    result = str(arr)
+    expected = (
+        '<PeriodArray>\n'
+        '[2000-01-01, 2001-01-01]\n'
+        'Length: 2, dtype: period[D]'
+    )
+    assert result == expected
+
+
+def test_repr_large():
+    arr = period_array(['2000', '2001'] * 500, freq='D')
+    result = str(arr)
+    expected = (
+        '<PeriodArray>\n'
+        '[2000-01-01, 2001-01-01, 2000-01-01, 2001-01-01, 2000-01-01, '
+        '2001-01-01,\n'  # continuation
+        ' 2000-01-01, 2001-01-01, 2000-01-01, 2001-01-01,\n'
+        ' ...\n'
+        ' 2000-01-01, 2001-01-01, 2000-01-01, 2001-01-01, 2000-01-01, '
+        '2001-01-01,\n'  # continuation
+        ' 2000-01-01, 2001-01-01, 2000-01-01, 2001-01-01]\n'
+        'Length: 1000, dtype: period[D]'
+    )
+    assert result == expected

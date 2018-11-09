@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import pytest
 
 from pandas.core.dtypes.generic import ABCIndexClass
 
@@ -12,6 +11,7 @@ from pandas.core.arrays.integer import (
     UInt32Dtype, UInt64Dtype)
 from pandas.tests.extension.base import BaseOpsUtil
 import pandas.util.testing as tm
+import pytest
 
 
 def make_data():
@@ -57,24 +57,23 @@ def test_dtypes(dtype):
     assert dtype.name is not None
 
 
-class TestInterface(object):
+def test_repr_array(data):
+    result = repr(data)
+    assert '<IntegerArray>' in result
 
-    def test_repr_array(self, data):
+    # not long
+    assert '...' not in result
+    assert 'Length: ' in result
+    assert 'dtype: ' in result
+
+
+def test_repr_array_long(data):
+    # some arrays may be able to assert a ... in the repr
+    with pd.option_context('display.max_seq_items', 1):
         result = repr(data)
 
-        # not long
-        assert '...' not in result
-
-        assert 'dtype=' in result
-        assert 'IntegerArray' in result
-
-    def test_repr_array_long(self, data):
-        # some arrays may be able to assert a ... in the repr
-        with pd.option_context('display.max_seq_items', 1):
-            result = repr(data)
-
-            assert '...' in result
-            assert 'length' in result
+        assert '...' in result
+        assert 'Length' in result
 
 
 class TestConstructors(object):

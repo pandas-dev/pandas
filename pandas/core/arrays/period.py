@@ -330,14 +330,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def end_time(self):
         return self.to_timestamp(how='end')
 
-    def __repr__(self):
-        return '<{}>\n{}\nLength: {}, dtype: {}'.format(
-            self.__class__.__name__,
-            [str(s) for s in self],
-            len(self),
-            self.dtype
-        )
-
     def __setitem__(
             self,
             key,   # type: Union[int, Sequence[int], Sequence[bool]]
