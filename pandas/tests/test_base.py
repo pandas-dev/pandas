@@ -178,19 +178,20 @@ class Ops(object):
         self.unicode_index = tm.makeUnicodeIndex(10, name='a')
 
         arr = np.random.randn(10)
+        self.bool_series = Series(arr, index=self.bool_index, name='a')
         self.int_series = Series(arr, index=self.int_index, name='a')
         self.float_series = Series(arr, index=self.float_index, name='a')
         self.dt_series = Series(arr, index=self.dt_index, name='a')
         self.dt_tz_series = self.dt_tz_index.to_series(keep_tz=True)
         self.period_series = Series(arr, index=self.period_index, name='a')
         self.string_series = Series(arr, index=self.string_index, name='a')
+        self.unicode_series = Series(arr, index=self.unicode_index, name='a')
 
         types = ['bool', 'int', 'float', 'dt', 'dt_tz', 'period', 'string',
                  'unicode']
-        fmts = ["{0}_{1}".format(t, f)
-                for t in types for f in ['index', 'series']]
-        self.objs = [getattr(self, f)
-                     for f in fmts if getattr(self, f, None) is not None]
+        self.indexes = [getattr(self, '{}_index'.format(t)) for t in types]
+        self.series = [getattr(self, '{}_series'.format(t)) for t in types]
+        self.objs = self.indexes + self.series
 
     def check_ops_properties(self, props, filter=None, ignore_failures=False):
         for op in props:
@@ -996,6 +997,31 @@ class TestIndexOps(Ops):
         for value in invalid_values:
             with pytest.raises(ValueError):
                 self.int_series.drop_duplicates(inplace=value)
+
+    def test_getitem(self):
+        for i in self.indexes:
+            s = pd.Series(i)
+
+            assert i[0] == s.iloc[0]
+            assert i[5] == s.iloc[5]
+            assert i[-1] == s.iloc[-1]
+
+            assert i[-1] == i[9]
+
+            pytest.raises(IndexError, i.__getitem__, 20)
+            pytest.raises(IndexError, s.iloc.__getitem__, 20)
+
+    @pytest.mark.parametrize('indexer_klass', [list, pd.Index])
+    @pytest.mark.parametrize('indexer', [[True] * 10, [False] * 10,
+                                         [True, False, True, True, False,
+                                          False, True, True, False, True]])
+    def test_bool_indexing(self, indexer_klass, indexer):
+        # GH 22533
+        for idx in self.indexes:
+            exp_idx = [i for i in range(len(indexer)) if indexer[i]]
+            tm.assert_index_equal(idx[indexer_klass(indexer)], idx[exp_idx])
+            s = pd.Series(idx)
+            tm.assert_series_equal(s[indexer_klass(indexer)], s.iloc[exp_idx])
 
 
 class TestTranspose(Ops):

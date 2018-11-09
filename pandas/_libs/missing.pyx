@@ -124,7 +124,7 @@ cdef inline bint _check_none_nan_inf_neginf(object val):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnaobj(ndarray arr):
+cpdef ndarray[uint8_t] isnaobj(ndarray arr):
     """
     Return boolean mask denoting which elements of a 1-D array are na-like,
     according to the criteria defined in `_check_all_nulls`:
@@ -278,14 +278,14 @@ def isnaobj2d_old(ndarray arr):
     return result.view(np.bool_)
 
 
-cpdef bint isposinf_scalar(object val):
+def isposinf_scalar(val: object) -> bool:
     if util.is_float_object(val) and val == INF:
         return True
     else:
         return False
 
 
-cpdef bint isneginf_scalar(object val):
+def isneginf_scalar(val: object) -> bool:
     if util.is_float_object(val) and val == NEGINF:
         return True
     else:

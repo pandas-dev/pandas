@@ -57,7 +57,7 @@ from tslibs.conversion cimport convert_to_tsobject
 from tslibs.timedeltas cimport convert_to_timedelta64
 from tslibs.timezones cimport get_timezone, tz_compare
 
-from missing cimport (checknull,
+from missing cimport (checknull, isnaobj,
                       is_null_datetime64, is_null_timedelta64, is_null_period)
 
 
@@ -347,7 +347,7 @@ def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
         int64_t idx
 
     rev_indexer = np.empty(length, dtype=np.int64)
-    rev_indexer.fill(-1)
+    rev_indexer[:] = -1
     for i in range(n):
         idx = indexer[i]
         if idx != -1:
@@ -1181,6 +1181,9 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
         values = construct_1d_object_array_from_listlike(value)
 
     values = getattr(values, 'values', values)
+    if skipna:
+        values = values[~isnaobj(values)]
+
     val = _try_infer_map(values)
     if val is not None:
         return val
@@ -1667,7 +1670,7 @@ cdef class TimedeltaValidator(TemporalValidator):
 
 
 # TODO: Not used outside of tests; remove?
-def is_timedelta_array(values: ndarray) -> bint:
+def is_timedelta_array(values: ndarray) -> bool:
     cdef:
         TimedeltaValidator validator = TimedeltaValidator(len(values),
                                                           skipna=True)
@@ -1680,7 +1683,7 @@ cdef class Timedelta64Validator(TimedeltaValidator):
 
 
 # TODO: Not used outside of tests; remove?
-def is_timedelta64_array(values: ndarray) -> bint:
+def is_timedelta64_array(values: ndarray) -> bool:
     cdef:
         Timedelta64Validator validator = Timedelta64Validator(len(values),
                                                               skipna=True)

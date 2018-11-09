@@ -2074,9 +2074,10 @@ class StringMethods(NoNewAttributesMixin):
 
             If others is None, the method returns the concatenation of all
             strings in the calling Series/Index.
-        sep : string or None, default None
-            If None, concatenates without any separator.
-        na_rep : string or None, default None
+        sep : str, default ''
+            The separator between the different elements/columns. By default
+            the empty string `''` is used.
+        na_rep : str or None, default None
             Representation that is inserted for all missing values:
 
             - If `na_rep` is None, and `others` is None, missing values in the
@@ -2155,13 +2156,6 @@ class StringMethods(NoNewAttributesMixin):
         `join`-keyword works as in other methods.
 
         >>> t = pd.Series(['d', 'a', 'e', 'c'], index=[3, 0, 4, 2])
-        >>> s.str.cat(t, join=None, na_rep='-')
-        0    ad
-        1    ba
-        2    -e
-        3    dc
-        dtype: object
-        >>>
         >>> s.str.cat(t, join='left', na_rep='-')
         0    aa
         1    b-

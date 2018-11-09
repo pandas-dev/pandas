@@ -65,12 +65,19 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     flake8 --format="$FLAKE8_FORMAT" pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    echo "flake8-rst --version"
+    flake8-rst --version
+
+    MSG='Linting code-blocks in .rst documentation' ; echo $MSG
+    flake8-rst doc/source --filename=*.rst
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
     # it doesn't make a difference, but we want to be internally consistent.
     # Note: this grep pattern is (intended to be) equivalent to the python
     # regex r'(?<![ ->])> '
     MSG='Linting .pyx code for spacing conventions in casting' ; echo $MSG
-    invgrep -r -E --include '*.pyx' --include '*.pxi.in' '[\w*]> ' pandas/_libs  # TODO this will conflict with #23486 and we'll wait for it to be merged, so we know the exact pattern to use
+    invgrep -r -E --include '*.pyx' --include '*.pxi.in' '[a-zA-Z0-9*]> ' pandas/_libs
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # readability/casting: Warnings about C casting instead of C++ casting
@@ -84,6 +91,9 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     MSG='Linting .c and .h' ; echo $MSG
     cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime
     RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    echo "isort --version-number"
+    isort --version-number
 
     # Imports - Check formatting using isort see setup.cfg for settings
     MSG='Check import format using isort ' ; echo $MSG
@@ -152,7 +162,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests frame.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/frame.py \
-        -k"-axes -combine -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_stata"
+        -k"-axes -combine -itertuples -join -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_stata"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests series.py' ; echo $MSG
