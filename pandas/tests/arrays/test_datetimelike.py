@@ -126,6 +126,24 @@ class TestDatetimeArray(object):
 
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_array(self, datetime_index):
+        arr = DatetimeArrayMixin(datetime_index)
+
+        result = np.asarray(arr)
+        expected = arr._data
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.asarray(arr, dtype=object)
+        expected = np.array(list(arr), dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.asarray(arr, dtype='int64')
+        assert result is not arr.asi8
+        assert not np.may_share_memory(arr, result)
+        expected = arr.asi8.copy()
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestTimedeltaArray(object):
     def test_from_tdi(self):
@@ -172,6 +190,24 @@ class TestTimedeltaArray(object):
         result = getattr(arr, propname)
         expected = np.array(getattr(tdi, propname), dtype=result.dtype)
 
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_array(self, timedelta_index):
+        arr = TimedeltaArrayMixin(timedelta_index)
+
+        result = np.asarray(arr)
+        expected = arr._data
+        assert result is expected
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.asarray(arr, dtype=object)
+        expected = np.array(list(arr), dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.asarray(arr, dtype='int64')
+        assert result is not arr.asi8
+        assert not np.may_share_memory(arr, result)
+        expected = arr.asi8.copy()
         tm.assert_numpy_array_equal(result, expected)
 
 
@@ -228,3 +264,16 @@ class TestPeriodArray(object):
         expected = np.array(getattr(pi, propname))
 
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_array(self, period_index):
+        arr = PeriodArray(period_index)
+
+        result = np.asarray(arr)
+        expected = np.array(list(arr), dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.asarray(arr, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            np.asarray(arr, dtype='int64')
