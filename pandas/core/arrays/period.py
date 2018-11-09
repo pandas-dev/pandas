@@ -400,9 +400,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
         return type(self)(new_values, self.freq)
 
-    def isna(self):
-        return self._data == iNaT
-
     def fillna(self, value=None, method=None, limit=None):
         # TODO(#20300)
         # To avoid converting to object, we re-implement here with the changes
