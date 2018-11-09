@@ -49,7 +49,7 @@ from resolution import Resolution
 from nattype import nat_strings, NaT
 from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
 from offsets cimport to_offset
-from offsets import _Tick, _BaseOffset
+from offsets import _Tick
 
 cdef bint PY2 = str == bytes
 cdef enum:
@@ -1571,9 +1571,6 @@ cdef class _Period(object):
         if isinstance(freq, (int, tuple)):
             code, stride = get_freq_code(freq)
             freq = get_freq_str(code, stride)
-
-        if not isinstance(freq, _BaseOffset):
-            freq = to_offset(freq)
 
         if freq.n <= 0:
             raise ValueError('Frequency must be positive, because it'
