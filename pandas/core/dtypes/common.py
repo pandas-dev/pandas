@@ -1,25 +1,24 @@
 """ common type operations """
 import numpy as np
-from pandas.compat import (string_types, text_type, binary_type,
-                           PY3, PY36)
+
 from pandas._libs import algos, lib
-from pandas._libs.tslibs import conversion, Period, Timestamp
 from pandas._libs.interval import Interval
+from pandas._libs.tslibs import Period, Timestamp, conversion
+from pandas.compat import PY3, PY36, binary_type, string_types, text_type
 
 from pandas.core.dtypes.dtypes import (
-    registry, CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype,
-    PeriodDtype, IntervalDtype,
-    PandasExtensionDtype, ExtensionDtype,
-    _pandas_registry)
+    CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype, ExtensionDtype,
+    IntervalDtype, PandasExtensionDtype, PeriodDtype, _pandas_registry,
+    registry)
 from pandas.core.dtypes.generic import (
-    ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
-    ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
-    ABCDateOffset)
+    ABCCategorical, ABCCategoricalIndex, ABCDateOffset, ABCDatetimeIndex,
+    ABCIndexClass, ABCPeriodArray, ABCPeriodIndex, ABCSeries, ABCSparseArray,
+    ABCSparseSeries)
 from pandas.core.dtypes.inference import (  # noqa:F401
-    is_bool, is_integer, is_hashable, is_iterator, is_float,
-    is_dict_like, is_scalar, is_string_like, is_list_like, is_number,
-    is_file_like, is_re, is_re_compilable, is_sequence, is_nested_list_like,
-    is_named_tuple, is_array_like, is_decimal, is_complex, is_interval)
+    is_array_like, is_bool, is_complex, is_decimal, is_dict_like, is_file_like,
+    is_float, is_hashable, is_integer, is_interval, is_iterator, is_list_like,
+    is_named_tuple, is_nested_list_like, is_number, is_re, is_re_compilable,
+    is_scalar, is_sequence, is_string_like)
 
 _POSSIBLY_CAST_DTYPES = {np.dtype(t).name
                          for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
@@ -638,10 +637,10 @@ def is_period_arraylike(arr):
     True
     """
 
-    if isinstance(arr, ABCPeriodIndex):
+    if isinstance(arr, (ABCPeriodIndex, ABCPeriodArray)):
         return True
     elif isinstance(arr, (np.ndarray, ABCSeries)):
-        return arr.dtype == object and lib.infer_dtype(arr) == 'period'
+        return is_period_dtype(arr.dtype)
     return getattr(arr, 'inferred_type', None) == 'period'
 
 
@@ -796,10 +795,10 @@ def is_dtype_union_equal(source, target):
 def is_any_int_dtype(arr_or_dtype):
     """Check whether the provided array or dtype is of an integer dtype.
 
-    .. deprecated:: 0.20.0
-
     In this function, timedelta64 instances are also considered "any-integer"
     type objects and will return True.
+
+    This function is internal and should not be exposed in the public API.
 
     Parameters
     ----------
@@ -1559,6 +1558,8 @@ def is_string_like_dtype(arr_or_dtype):
 def is_float_dtype(arr_or_dtype):
     """
     Check whether the provided array or dtype is of a float dtype.
+
+    This function is internal and should not be exposed in the public API.
 
     Parameters
     ----------

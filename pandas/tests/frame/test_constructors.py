@@ -582,14 +582,14 @@ class TestDataFrameConstructors(TestData):
         a = pd.PeriodIndex(['2012-01', 'NaT', '2012-04'], freq='M')
         b = pd.PeriodIndex(['2012-02-01', '2012-03-01', 'NaT'], freq='D')
         df = pd.DataFrame({'a': a, 'b': b})
-        assert df['a'].dtype == 'object'
-        assert df['b'].dtype == 'object'
+        assert df['a'].dtype == a.dtype
+        assert df['b'].dtype == b.dtype
 
         # list of periods
         df = pd.DataFrame({'a': a.astype(object).tolist(),
                            'b': b.astype(object).tolist()})
-        assert df['a'].dtype == 'object'
-        assert df['b'].dtype == 'object'
+        assert df['a'].dtype == a.dtype
+        assert df['b'].dtype == b.dtype
 
     def test_nested_dict_frame_constructor(self):
         rng = pd.period_range('1/1/2000', periods=5)
@@ -711,7 +711,7 @@ class TestDataFrameConstructors(TestData):
         assert 1 == frame['A'][1]
         assert 2 == frame['C'][2]
 
-        # masked np.datetime64 stays (use lib.NaT as null)
+        # masked np.datetime64 stays (use NaT as null)
         mat = ma.masked_all((2, 3), dtype='M8[ns]')
         # 2-D input
         frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])

@@ -68,17 +68,6 @@ def consensus_name_attr(objs):
     return name
 
 
-# TODO: only used once in frame.py; belongs elsewhere?
-def get_info_slice(obj, indexer):
-    """Slice the info axis of `obj` with `indexer`."""
-    if not hasattr(obj, '_info_axis_number'):
-        msg = 'object of type {typ!r} has no info axis'
-        raise TypeError(msg.format(typ=type(obj).__name__))
-    slices = [slice(None)] * obj.ndim
-    slices[obj._info_axis_number] = indexer
-    return tuple(slices)
-
-
 def maybe_box(indexer, values, obj, key):
 
     # if we have multiples coming back, box em
@@ -432,21 +421,6 @@ def random_state(state=None):
                          "RandomState, or None")
 
 
-# TODO: only used once in indexes.api; belongs elsewhere?
-def get_distinct_objs(objs):
-    """
-    Return a list with distinct elements of "objs" (different ids).
-    Preserves order.
-    """
-    ids = set()
-    res = []
-    for obj in objs:
-        if not id(obj) in ids:
-            ids.add(id(obj))
-            res.append(obj)
-    return res
-
-
 def _pipe(obj, func, *args, **kwargs):
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
@@ -480,3 +454,21 @@ def _pipe(obj, func, *args, **kwargs):
         return func(*args, **kwargs)
     else:
         return func(obj, *args, **kwargs)
+
+
+def _get_rename_function(mapper):
+    """
+    Returns a function that will map names/labels, dependent if mapper
+    is a dict, Series or just a function.
+    """
+    if isinstance(mapper, (compat.Mapping, ABCSeries)):
+
+        def f(x):
+            if x in mapper:
+                return mapper[x]
+            else:
+                return x
+    else:
+        f = mapper
+
+    return f

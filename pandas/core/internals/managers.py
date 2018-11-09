@@ -373,9 +373,6 @@ class BlockManager(PandasObject):
                 align_keys = ['new', 'mask']
             else:
                 align_keys = ['mask']
-        elif f == 'eval':
-            align_copy = False
-            align_keys = ['other']
         elif f == 'fillna':
             # fillna internally does putmask, maybe it's better to do this
             # at mgr, not block level?
@@ -405,7 +402,6 @@ class BlockManager(PandasObject):
                     kwargs[k] = obj.reindex(b_items, axis=axis,
                                             copy=align_copy)
 
-            kwargs['mgr'] = self
             applied = getattr(b, f)(**kwargs)
             result_blocks = _extend_blocks(applied, result_blocks)
 
@@ -443,8 +439,7 @@ class BlockManager(PandasObject):
 
         axes, blocks = [], []
         for b in self.blocks:
-            kwargs['mgr'] = self
-            axe, block = getattr(b, f)(axis=axis, **kwargs)
+            axe, block = getattr(b, f)(axis=axis, axes=self.axes, **kwargs)
 
             axes.append(axe)
             blocks.append(block)
@@ -511,9 +506,6 @@ class BlockManager(PandasObject):
     def where(self, **kwargs):
         return self.apply('where', **kwargs)
 
-    def eval(self, **kwargs):
-        return self.apply('eval', **kwargs)
-
     def quantile(self, **kwargs):
         return self.reduction('quantile', **kwargs)
 
@@ -547,14 +539,10 @@ class BlockManager(PandasObject):
     def replace(self, **kwargs):
         return self.apply('replace', **kwargs)
 
-    def replace_list(self, src_list, dest_list, inplace=False, regex=False,
-                     mgr=None):
+    def replace_list(self, src_list, dest_list, inplace=False, regex=False):
         """ do a list replace """
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
-
-        if mgr is None:
-            mgr = self
 
         # figure out our mask a-priori to avoid repeated replacements
         values = self.as_array()
@@ -587,8 +575,7 @@ class BlockManager(PandasObject):
                     convert = i == src_len
                     result = b._replace_coerce(mask=m, to_replace=s, value=d,
                                                inplace=inplace,
-                                               convert=convert, regex=regex,
-                                               mgr=mgr)
+                                               convert=convert, regex=regex)
                     if m.any():
                         new_rb = _extend_blocks(result, new_rb)
                     else:
@@ -723,7 +710,7 @@ class BlockManager(PandasObject):
     def nblocks(self):
         return len(self.blocks)
 
-    def copy(self, deep=True, mgr=None):
+    def copy(self, deep=True):
         """
         Make deep or shallow copy of BlockManager
 
@@ -1418,18 +1405,21 @@ class BlockManager(PandasObject):
         return all(block.equals(oblock)
                    for block, oblock in zip(self_blocks, other_blocks))
 
-    def unstack(self, unstacker_func):
+    def unstack(self, unstacker_func, fill_value):
         """Return a blockmanager with all blocks unstacked.
 
         Parameters
         ----------
         unstacker_func : callable
             A (partially-applied) ``pd.core.reshape._Unstacker`` class.
+        fill_value : Any
+            fill_value for newly introduced missing values.
 
         Returns
         -------
         unstacked : BlockManager
         """
+        n_rows = self.shape[-1]
         dummy = unstacker_func(np.empty((0, 0)), value_columns=self.items)
         new_columns = dummy.get_new_columns()
         new_index = dummy.get_new_index()
@@ -1440,7 +1430,10 @@ class BlockManager(PandasObject):
             blocks, mask = blk._unstack(
                 partial(unstacker_func,
                         value_columns=self.items[blk.mgr_locs.indexer]),
-                new_columns)
+                new_columns,
+                n_rows,
+                fill_value
+            )
 
             new_blocks.extend(blocks)
             columns_mask.extend(mask)
@@ -1636,8 +1629,7 @@ class SingleBlockManager(BlockManager):
         # check if all series are of the same block type:
         if len(non_empties) > 0:
             blocks = [obj.blocks[0] for obj in non_empties]
-
-            if all(type(b) is type(blocks[0]) for b in blocks[1:]):  # noqa
+            if len({b.dtype for b in blocks}) == 1:
                 new_block = blocks[0].concat_same_type(blocks)
             else:
                 values = [x.values for x in blocks]

@@ -3,17 +3,19 @@ concat routines
 """
 
 import numpy as np
-from pandas import compat, DataFrame, Series, Index, MultiIndex
-from pandas.core.index import (_get_objs_combined_axis,
-                               ensure_index, _get_consensus_names,
-                               _all_indexes_same)
-from pandas.core.arrays.categorical import (_factorize_from_iterable,
-                                            _factorize_from_iterables)
-from pandas.core.internals import concatenate_block_managers
-from pandas.core import common as com
-import pandas.core.indexes.base as ibase
-from pandas.core.generic import NDFrame
+
 import pandas.core.dtypes.concat as _concat
+
+from pandas import DataFrame, Index, MultiIndex, Series, compat
+from pandas.core import common as com
+from pandas.core.arrays.categorical import (
+    _factorize_from_iterable, _factorize_from_iterables)
+from pandas.core.generic import NDFrame
+from pandas.core.index import (
+    _all_indexes_same, _get_consensus_names, _get_objs_combined_axis,
+    ensure_index)
+import pandas.core.indexes.base as ibase
+from pandas.core.internals import concatenate_block_managers
 
 # ---------------------------------------------------------------------
 # Concatenate DataFrame objects
@@ -175,12 +177,12 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
       letter  number animal
     0      c       3    cat
     1      d       4    dog
-    >>> pd.concat([df1, df3])
-      animal letter  number
-    0    NaN      a       1
-    1    NaN      b       2
-    0    cat      c       3
-    1    dog      d       4
+    >>> pd.concat([df1, df3], sort=False)
+      letter  number animal
+    0      a       1    NaN
+    1      b       2    NaN
+    0      c       3    cat
+    1      d       4    dog
 
     Combine ``DataFrame`` objects with overlapping columns
     and return only those that are shared by passing ``inner`` to
@@ -320,7 +322,7 @@ class _Concatenator(object):
 
         # Standardize axis parameter to int
         if isinstance(sample, Series):
-            axis = DataFrame()._get_axis_number(axis)
+            axis = DataFrame._get_axis_number(axis)
         else:
             axis = sample._get_axis_number(axis)
 
@@ -446,7 +448,7 @@ class _Concatenator(object):
                 new_axes[i] = self._get_comb_axis(i)
         else:
             if len(self.join_axes) != ndim - 1:
-                raise AssertionError("length of join_axes must not be equal "
+                raise AssertionError("length of join_axes must be equal "
                                      "to {length}".format(length=ndim - 1))
 
             # ufff...
@@ -500,7 +502,7 @@ class _Concatenator(object):
                 else:
                     return ibase.default_index(len(self.objs))
             else:
-                return ensure_index(self.keys)
+                return ensure_index(self.keys).set_names(self.names)
         else:
             indexes = [x._data.axes[self.axis] for x in self.objs]
 

@@ -2,12 +2,27 @@
 Module for applying conditional formatting to
 DataFrames and Series.
 """
+from collections import MutableMapping, defaultdict
+from contextlib import contextmanager
+import copy
 from functools import partial
 from itertools import product
-from contextlib import contextmanager
 from uuid import uuid1
-import copy
-from collections import defaultdict, MutableMapping
+
+import numpy as np
+
+from pandas.compat import range
+from pandas.util._decorators import Appender
+
+from pandas.core.dtypes.common import is_float, is_string_like
+from pandas.core.dtypes.generic import ABCSeries
+
+import pandas as pd
+from pandas.api.types import is_list_like
+import pandas.core.common as com
+from pandas.core.config import get_option
+from pandas.core.generic import _shared_docs
+from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 
 try:
     from jinja2 import (
@@ -18,18 +33,6 @@ except ImportError:
                       "Please install with `conda install Jinja2`\n"
                       "or `pip install Jinja2`")
 
-from pandas.core.dtypes.common import is_float, is_string_like
-
-import numpy as np
-import pandas as pd
-from pandas.api.types import is_list_like
-from pandas.compat import range
-from pandas.core.config import get_option
-from pandas.core.generic import _shared_docs
-import pandas.core.common as com
-from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
-from pandas.util._decorators import Appender
-from pandas.core.dtypes.generic import ABCSeries
 
 try:
     import matplotlib.pyplot as plt

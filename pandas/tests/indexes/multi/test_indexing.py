@@ -6,12 +6,14 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import (Categorical, CategoricalIndex, Index, IntervalIndex,
-                    MultiIndex, date_range)
 from pandas.compat import lrange
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, Index, IntervalIndex, MultiIndex,
+    date_range)
 from pandas.core.indexes.base import InvalidIndexError
+import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 
@@ -222,6 +224,33 @@ def test_get_indexer_consistency(idx):
     indexer, _ = idx.get_indexer_non_unique(idx[0:2])
     assert isinstance(indexer, np.ndarray)
     assert indexer.dtype == np.intp
+
+
+@pytest.mark.parametrize('ind1', [[True] * 5, pd.Index([True] * 5)])
+@pytest.mark.parametrize('ind2', [[True, False, True, False, False],
+                                  pd.Index([True, False, True, False,
+                                            False])])
+def test_getitem_bool_index_all(ind1, ind2):
+    # GH#22533
+    idx = MultiIndex.from_tuples([(10, 1), (20, 2), (30, 3),
+                                  (40, 4), (50, 5)])
+    tm.assert_index_equal(idx[ind1], idx)
+
+    expected = MultiIndex.from_tuples([(10, 1), (30, 3)])
+    tm.assert_index_equal(idx[ind2], expected)
+
+
+@pytest.mark.parametrize('ind1', [[True], pd.Index([True])])
+@pytest.mark.parametrize('ind2', [[False], pd.Index([False])])
+def test_getitem_bool_index_single(ind1, ind2):
+    # GH#22533
+    idx = MultiIndex.from_tuples([(10, 1)])
+    tm.assert_index_equal(idx[ind1], idx)
+
+    expected = pd.MultiIndex(levels=[np.array([], dtype=np.int64),
+                                     np.array([], dtype=np.int64)],
+                             labels=[[], []])
+    tm.assert_index_equal(idx[ind2], expected)
 
 
 def test_get_loc(idx):

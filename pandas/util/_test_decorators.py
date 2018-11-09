@@ -23,15 +23,17 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
-import pytest
-import locale
 from distutils.version import LooseVersion
+import locale
 
-from pandas.compat import (is_platform_windows, is_platform_32bit, PY3,
-                           import_lzma)
+import pytest
+
+from pandas.compat import (
+    PY3, import_lzma, is_platform_32bit, is_platform_windows)
 from pandas.compat.numpy import _np_version_under1p15
-from pandas.core.computation.expressions import (_USE_NUMEXPR,
-                                                 _NUMEXPR_INSTALLED)
+
+from pandas.core.computation.expressions import (
+    _NUMEXPR_INSTALLED, _USE_NUMEXPR)
 
 
 def safe_import(mod_name, min_version=None):
@@ -102,8 +104,10 @@ def _skip_if_not_us_locale():
 
 
 def _skip_if_no_scipy():
-    return not (safe_import('scipy.stats') and safe_import('scipy.sparse') and
-                safe_import('scipy.interpolate'))
+    return not (safe_import('scipy.stats') and
+                safe_import('scipy.sparse') and
+                safe_import('scipy.interpolate') and
+                safe_import('scipy.signal'))
 
 
 def _skip_if_no_lzma():

@@ -1,6 +1,7 @@
+import warnings
+
 import numpy as np
-from pandas._libs import (index as libindex,
-                          join as libjoin)
+from pandas._libs import index as libindex
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     pandas_dtype,
@@ -20,7 +21,7 @@ from pandas.core.indexes.base import (
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
 import pandas.core.indexes.base as ibase
-
+from pandas.core.ops import get_op_result_name
 
 _num_index_shared_docs = dict()
 
@@ -35,10 +36,14 @@ class NumericIndex(Index):
     _is_numeric_dtype = True
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
-                fastpath=False):
+                fastpath=None):
 
-        if fastpath:
-            return cls._simple_new(data, name=name)
+        if fastpath is not None:
+            warnings.warn("The 'fastpath' keyword is deprecated, and will be "
+                          "removed in a future version.",
+                          FutureWarning, stacklevel=2)
+            if fastpath:
+                return cls._simple_new(data, name=name)
 
         # is_scalar, generators handled in coerce_to_ndarray
         data = cls._coerce_to_ndarray(data)
@@ -185,10 +190,6 @@ class Int64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _int64_descr_args
 
     _typ = 'int64index'
-    _left_indexer_unique = libjoin.left_join_indexer_unique_int64
-    _left_indexer = libjoin.left_join_indexer_int64
-    _inner_indexer = libjoin.inner_join_indexer_int64
-    _outer_indexer = libjoin.outer_join_indexer_int64
     _can_hold_na = False
     _engine_type = libindex.Int64Engine
     _default_dtype = np.int64
@@ -214,7 +215,7 @@ class Int64Index(IntegerIndex):
                 ._convert_scalar_indexer(key, kind=kind))
 
     def _wrap_joined_index(self, joined, other):
-        name = self.name if self.name == other.name else None
+        name = get_op_result_name(self, other)
         return Int64Index(joined, name=name)
 
     @classmethod
@@ -243,10 +244,6 @@ class UInt64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _uint64_descr_args
 
     _typ = 'uint64index'
-    _left_indexer_unique = libjoin.left_join_indexer_unique_uint64
-    _left_indexer = libjoin.left_join_indexer_uint64
-    _inner_indexer = libjoin.inner_join_indexer_uint64
-    _outer_indexer = libjoin.outer_join_indexer_uint64
     _can_hold_na = False
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.uint64
@@ -291,7 +288,7 @@ class UInt64Index(IntegerIndex):
         return keyarr
 
     def _wrap_joined_index(self, joined, other):
-        name = self.name if self.name == other.name else None
+        name = get_op_result_name(self, other)
         return UInt64Index(joined, name=name)
 
     @classmethod
@@ -321,11 +318,6 @@ class Float64Index(NumericIndex):
 
     _typ = 'float64index'
     _engine_type = libindex.Float64Engine
-    _left_indexer_unique = libjoin.left_join_indexer_unique_float64
-    _left_indexer = libjoin.left_join_indexer_float64
-    _inner_indexer = libjoin.inner_join_indexer_float64
-    _outer_indexer = libjoin.outer_join_indexer_float64
-
     _default_dtype = np.float64
 
     @property

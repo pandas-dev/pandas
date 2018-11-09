@@ -6,42 +6,33 @@ operations, primarily in cython. These classes (BaseGrouper and BinGrouper)
 are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
-import copy
 import collections
+import copy
+
 import numpy as np
 
-from pandas._libs import lib, reduction, NaT, iNaT, groupby as libgroupby
+from pandas._libs import NaT, groupby as libgroupby, iNaT, lib, reduction
+from pandas.compat import lzip, range, zip
 from pandas.util._decorators import cache_readonly
 
-from pandas.compat import zip, range, lzip
-
-from pandas.core.base import SelectionMixin
-from pandas.core.dtypes.missing import isna, _maybe_fill
-from pandas.core.index import (
-    Index, MultiIndex, ensure_index)
 from pandas.core.dtypes.common import (
-    ensure_float64,
-    ensure_platform_int,
-    ensure_int64,
-    ensure_int64_or_float64,
-    ensure_object,
-    needs_i8_conversion,
-    is_integer_dtype,
-    is_complex_dtype,
-    is_bool_dtype,
-    is_numeric_dtype,
-    is_timedelta64_dtype,
-    is_datetime64_any_dtype,
-    is_categorical_dtype)
-from pandas.core.series import Series
+    ensure_float64, ensure_int64, ensure_int64_or_float64, ensure_object,
+    ensure_platform_int, is_bool_dtype, is_categorical_dtype, is_complex_dtype,
+    is_datetime64_any_dtype, is_integer_dtype, is_numeric_dtype,
+    is_timedelta64_dtype, needs_i8_conversion)
+from pandas.core.dtypes.missing import _maybe_fill, isna
+
+import pandas.core.algorithms as algorithms
+from pandas.core.base import SelectionMixin
+import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-import pandas.core.common as com
 from pandas.core.groupby import base
-from pandas.core.sorting import (get_group_index_sorter, get_group_index,
-                                 compress_group_index, get_flattened_iterator,
-                                 decons_obs_group_ids, get_indexer_dict)
-import pandas.core.algorithms as algorithms
+from pandas.core.index import Index, MultiIndex, ensure_index
+from pandas.core.series import Series
+from pandas.core.sorting import (
+    compress_group_index, decons_obs_group_ids, get_flattened_iterator,
+    get_group_index, get_group_index_sorter, get_indexer_dict)
 
 
 def generate_bins_generic(values, binner, closed):

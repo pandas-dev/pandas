@@ -1,24 +1,20 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
 from datetime import datetime, timedelta
 
 import numpy as np
-import pandas as pd
+import pytest
 
-from pandas import (Series, DataFrame,
-                    date_range, Timestamp, DatetimeIndex, NaT)
-
-from pandas.compat import lrange, range
-from pandas.util.testing import (assert_series_equal,
-                                 assert_frame_equal, assert_almost_equal)
-
-import pandas.util.testing as tm
-
+from pandas._libs import iNaT
 import pandas._libs.index as _index
-from pandas._libs import tslib
+from pandas.compat import lrange, range
+
+import pandas as pd
+from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 
 """
@@ -463,7 +459,7 @@ def test_index_unique(dups):
     tm.assert_index_equal(result, expected)
 
     # NaT, note this is excluded
-    arr = [1370745748 + t for t in range(20)] + [tslib.iNaT]
+    arr = [1370745748 + t for t in range(20)] + [iNaT]
     idx = DatetimeIndex(arr * 3)
     tm.assert_index_equal(idx.unique(), DatetimeIndex(arr))
     assert idx.nunique() == 20

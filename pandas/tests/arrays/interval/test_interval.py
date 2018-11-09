@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import pytest
 import numpy as np
+import pytest
 
 from pandas import Index, IntervalIndex, date_range, timedelta_range
 from pandas.core.arrays import IntervalArray

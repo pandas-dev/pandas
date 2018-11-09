@@ -3,25 +3,19 @@ Utility functions related to concat
 """
 
 import numpy as np
+
 from pandas._libs import tslib, tslibs
-from pandas import compat
+
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_sparse,
-    is_extension_array_dtype,
-    is_datetimetz,
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-    is_period_dtype,
-    is_object_dtype,
-    is_bool_dtype,
-    is_interval_dtype,
-    is_dtype_equal,
-    _NS_DTYPE,
-    _TD_DTYPE)
+    _NS_DTYPE, _TD_DTYPE, is_bool_dtype, is_categorical_dtype,
+    is_datetime64_dtype, is_datetimetz, is_dtype_equal,
+    is_extension_array_dtype, is_interval_dtype, is_object_dtype,
+    is_period_dtype, is_sparse, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex, ABCTimedeltaIndex,
-    ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame)
+    ABCDatetimeIndex, ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame,
+    ABCTimedeltaIndex)
+
+from pandas import compat
 
 
 def get_dtype_kinds(l):
@@ -470,10 +464,10 @@ def _concat_datetime(to_concat, axis=0, typs=None):
                                axis=axis).view(_TD_DTYPE)
 
     elif any(typ.startswith('period') for typ in typs):
-        # PeriodIndex must be handled by PeriodIndex,
-        # Thus can't meet this condition ATM
-        # Must be changed when we adding PeriodDtype
-        raise NotImplementedError("unable to concat PeriodDtype")
+        assert len(typs) == 1
+        cls = to_concat[0]
+        new_values = cls._concat_same_type(to_concat)
+        return new_values
 
 
 def _convert_datetimelike_to_object(x):
@@ -560,11 +554,6 @@ def _concat_sparse(to_concat, axis=0, typs=None):
 
     fill_values = [x.fill_value for x in to_concat
                    if isinstance(x, SparseArray)]
-
-    if len(set(fill_values)) > 1:
-        raise ValueError("Cannot concatenate SparseArrays with different "
-                         "fill values")
-
     fill_value = fill_values[0]
 
     # TODO: Fix join unit generation so we aren't passed this.
