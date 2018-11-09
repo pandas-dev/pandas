@@ -330,8 +330,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     def end_time(self):
         return self.to_timestamp(how='end')
 
-    def _formatter(self, boxed=False):
-        if boxed:
+    def _formatter(self, formatter=None):
+        if formatter:
             return str
         return "'{}'".format
 

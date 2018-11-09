@@ -681,7 +681,7 @@ class ExtensionArray(object):
                                dtype=self.dtype)
 
     def _formatter(self, formatter=None):
-        # type: (ExtensionArrayFormatter) -> Callable[Any]
+        # type: (Optional[ExtensionArrayFormatter]) -> Callable[[Any], str]
         """Formatting function for scalar values.
 
         This is used in the default '__repr__'. The formatting function
@@ -689,9 +689,17 @@ class ExtensionArray(object):
 
         Parameters
         ----------
-        boxed: bool, default False
-            Whether the formatter is to be used by pandas inside a Series
-            or DataFrame repr.
+        formatter: GenericArrayFormatter, optional
+            The formatter this array is being rendered with. The formatter
+            may have a `.formatter` method already defined. By default, this
+            will be used if a `formatter` is passed, otherwise the formatter
+            is ``str``.
+
+        Returns
+        -------
+        Callable[[Any], str]
+            A callable that gets instances of the scalar type and
+            returns a string.
         """
         return getattr(formatter, 'formatter', None) or str
 

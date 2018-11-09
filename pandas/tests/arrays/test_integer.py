@@ -67,6 +67,11 @@ def test_repr_array(data):
     assert 'dtype: ' in result
 
 
+def test_na_repr(data):
+    result = repr(integer_array([1, None]))
+    assert 'NaN' in result
+
+
 def test_repr_array_long(data):
     # some arrays may be able to assert a ... in the repr
     with pd.option_context('display.max_seq_items', 1):
