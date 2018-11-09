@@ -4,6 +4,7 @@ Cython>=0.28.2
 NumPy
 flake8
 flake8-comprehensions
+flake8-rst
 hypothesis>=3.58.0
 isort
 moto
