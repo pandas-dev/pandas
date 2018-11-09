@@ -57,7 +57,7 @@ from tslibs.conversion cimport convert_to_tsobject
 from tslibs.timedeltas cimport convert_to_timedelta64
 from tslibs.timezones cimport get_timezone, tz_compare
 
-from missing cimport (checknull,
+from missing cimport (checknull, isnaobj,
                       is_null_datetime64, is_null_timedelta64, is_null_period)
 
 
@@ -1181,6 +1181,9 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
         values = construct_1d_object_array_from_listlike(value)
 
     values = getattr(values, 'values', values)
+    if skipna:
+        values = values[~isnaobj(values)]
+
     val = _try_infer_map(values)
     if val is not None:
         return val
