@@ -43,7 +43,9 @@ jobs:
     displayName: 'Set up environment'
 
   - script: |
-      PATH=$HOME/miniconda3/bin:$PATH ci/incremental/build.sh
+      export PATH=$HOME/miniconda3/bin:$PATH
+      export CONDA_ENV=pandas
+      ci/incremental/build.sh
     displayName: 'Build'
     condition: true
 
