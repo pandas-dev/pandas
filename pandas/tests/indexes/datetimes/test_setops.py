@@ -29,10 +29,11 @@ class TestDatetimeIndexSetOps(object):
         assert tm.equalContents(union, everything)
 
         # GH 10149
+        expected = first.astype('O').union(pd.Index(second.values, dtype='O')).astype('O')
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
             result = first.union(case)
-            assert tm.equalContents(result, everything)
+            assert tm.equalContents(result, expected)
 
     @pytest.mark.parametrize("tz", tz)
     def test_union(self, tz):
