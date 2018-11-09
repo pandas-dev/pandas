@@ -4,9 +4,9 @@ from pandas.compat import StringIO
 
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
-import pandas.util.testing as tm
 
 import pandas as pd
+import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
