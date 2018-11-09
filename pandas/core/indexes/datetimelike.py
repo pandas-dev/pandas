@@ -234,6 +234,10 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
+    def __array__(self, dtype=None):
+        # TODO properly dispatch to EA
+        return Index.__array__(self)
+
     def equals(self, other):
         """
         Determines if two Index objects contain the same elements.
