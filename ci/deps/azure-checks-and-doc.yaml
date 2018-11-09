@@ -16,5 +16,5 @@ dependencies:
   - python-dateutil
   - pytz
   - sphinx
- - pip:
-   - cpplint
+  - pip:
+    - cpplint
