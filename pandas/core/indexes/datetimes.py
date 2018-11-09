@@ -292,7 +292,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                            'set specified tz: {1}')
                     raise TypeError(msg.format(data.tz, tz))
 
-            subarr = data.values
+            subarr = data._data
 
             if freq is None:
                 freq = data.freq

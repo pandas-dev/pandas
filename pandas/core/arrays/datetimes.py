@@ -886,7 +886,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
             freq = get_period_alias(freq)
 
-        return PeriodArray._from_datetime64(self.values, freq, tz=self.tz)
+        return PeriodArray._from_datetime64(self._data, freq, tz=self.tz)
 
     def to_perioddelta(self, freq):
         """

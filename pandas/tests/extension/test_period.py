@@ -75,9 +75,7 @@ class TestMethods(BasePeriodTests, base.BaseMethodsTests):
 
 class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
 
-    def test_no_values_attribute(self, data):
-        # We have a values attribute.
-        pass
+    pass
 
 
 class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
