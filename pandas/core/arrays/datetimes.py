@@ -383,8 +383,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         elif is_int64_dtype(dtype):
             return self.asi8
 
-        # TODO: warn that dtype is not used?
-        #  warn that conversion may be lossy?
+        # TODO: warn that conversion may be lossy?
         return self._data.view(np.ndarray)  # follow Index.__array__
 
     def __iter__(self):
