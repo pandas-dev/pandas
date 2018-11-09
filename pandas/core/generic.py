@@ -7369,7 +7369,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Resample time-series data.
 
         Convenience method for frequency conversion and resampling of time
-        series.  Object must have a datetime-like index (``DatetimeIndex``,
+        series. Object must have a datetime-like index (``DatetimeIndex``,
         ``PeriodIndex``, or ``TimedeltaIndex``), or pass datetime-like values
         to the ``on`` or ``level`` keyword.
 
