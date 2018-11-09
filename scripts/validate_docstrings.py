@@ -622,7 +622,7 @@ def validate_one(func_name):
 
     if doc.is_function_or_method:
         if not doc.returns:
-            if "return" in doc.method_source:
+            if 'return' in doc.method_source:
                 errs.append(error('RT01'))
         else:
             if len(doc.returns) == 1 and doc.returns[0][1]:
