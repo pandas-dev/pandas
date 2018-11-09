@@ -264,6 +264,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def _from_factorized(cls, values, original):
         return integer_array(values, dtype=original.dtype)
 
+    def _formatter(self, boxed=False):
+        def fmt(x):
+            if isna(x):
+                return 'NaN'
+            return str(x)
+        return fmt
+
     def __getitem__(self, item):
         if is_integer(item):
             if self._mask[item]:
