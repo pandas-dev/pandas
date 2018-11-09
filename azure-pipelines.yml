@@ -24,7 +24,7 @@ jobs:
     name: WindowsPy27
     vmImage: vs2017-win2016
 
-- job: 'Code_checks'
+- job: 'Checks_and_doc'
   pool:
     vmImage: ubuntu-16.04
   steps:
@@ -32,11 +32,16 @@ jobs:
     inputs:
       versionSpec: '3.7'
       architecture: 'x64'
-  - script: python -m pip install flake8
-    displayName: 'Installing flake8'
 
-  - script: python -m pip install cpplint
-    displayName: 'Installing cpplint'
+  - script: |
+      sudo apt-get install -y libc6-dev-i386
+      ci/incremental/install_miniconda.sh
+      PATH=$HOME/miniconda3/bin:$PATH ci/incremental/setup_conda_environment.sh
+    displayName: 'Set up environment'
+
+  - script: |
+      PATH=$HOME/miniconda3/bin:$PATH ci/incremental/build.sh
+    displayName: 'Build'
     condition: true
 
   - script: AZURE=true ci/code_checks.sh lint
@@ -49,4 +54,8 @@ jobs:
 
   - script: ci/code_checks.sh doctests
     displayName: 'Running doctests'
+    condition: true
+
+  - script: DOC=true ci/run_build_docs.sh
+    displayName: 'Building docs'
     condition: true
