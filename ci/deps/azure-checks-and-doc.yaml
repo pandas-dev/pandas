@@ -1,0 +1,20 @@
+name: pandas
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - cython>=0.28.2
+  - flake8>=3.5
+  - flake8-comprehensions
+  - flake8-rst
+  - ipython
+  - matplotlib
+  - numpy
+  - pytest
+  - pytest-xdist
+  - pytest-cov
+  - python-dateutil
+  - pytz
+  - sphinx
+  - pip:
+    - cpplint

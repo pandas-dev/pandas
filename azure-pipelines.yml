@@ -36,7 +36,9 @@ jobs:
   - script: |
       sudo apt-get install -y libc6-dev-i386
       ci/incremental/install_miniconda.sh
-      PATH=$HOME/miniconda3/bin:$PATH ci/incremental/setup_conda_environment.sh
+      export PATH=$HOME/miniconda3/bin:$PATH
+      export ENV_FILE=ci/deps/azure-checks-and-doc.yaml
+      ci/incremental/setup_conda_environment.sh
     displayName: 'Set up environment'
 
   - script: |
