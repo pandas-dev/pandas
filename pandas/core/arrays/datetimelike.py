@@ -225,6 +225,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # ------------------------------------------------------------------
     # Null Handling
 
+    def isna(self):
+        return self._isnan
+
     @property  # NB: override with cache_readonly in immutable subclasses
     def _isnan(self):
         """ return if each value is nan"""
