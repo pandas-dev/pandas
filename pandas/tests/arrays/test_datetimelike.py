@@ -4,8 +4,7 @@ import pytest
 
 import pandas as pd
 from pandas.core.arrays import (
-    DatetimeArrayMixin as DatetimeArray,
-    PeriodArray,
+    DatetimeArrayMixin as DatetimeArray, PeriodArray,
     TimedeltaArrayMixin as TimedeltaArray)
 import pandas.util.testing as tm
 
