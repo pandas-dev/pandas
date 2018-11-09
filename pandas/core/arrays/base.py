@@ -662,6 +662,7 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
+
     def __repr__(self):
         from pandas.io.formats.printing import format_object_summary
 
