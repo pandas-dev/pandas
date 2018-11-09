@@ -857,7 +857,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - :meth:`DataFrame.stack` no longer converts to object dtype for DataFrames where each column has the same extension dtype. The output Series will have the same dtype as the columns (:issue:`23077`).
 - :meth:`Series.unstack` and :meth:`DataFrame.unstack` no longer convert extension arrays to object-dtype ndarrays. Each column in the output ``DataFrame`` will now have the same dtype as the input (:issue:`23077`).
 - Bug when grouping :meth:`Dataframe.groupby()` and aggregating on ``ExtensionArray`` it was not returning the actual ``ExtensionArray`` dtype (:issue:`23227`).
-- A default repr is now provided.
+- A default repr for ExtensionArrays is now provided (:issue:`23601`).
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -967,6 +967,7 @@ Deprecations
 - The class ``FrozenNDArray`` has been deprecated. When unpickling, ``FrozenNDArray`` will be unpickled to ``np.ndarray`` once this class is removed (:issue:`9031`)
 - Deprecated the `nthreads` keyword of :func:`pandas.read_feather` in favor of
   `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
+- :meth:`ExtensionArray._formatting_values` is deprecated. Use `ExtensionArray._formatter` instead. (:issue:`23601`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 

@@ -341,19 +341,19 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
             return 0
 
     if trailing_comma:
-        close = ', '
+        close = u', '
     else:
-        close = ''
+        close = u''
 
     if n == 0:
-        summary = '[]{}'.format(close)
+        summary = u'[]{}'.format(close)
     elif n == 1:
         first = formatter(obj[0])
-        summary = '[{}]{}'.format(first, close)
+        summary = u'[{}]{}'.format(first, close)
     elif n == 2:
         first = formatter(obj[0])
         last = formatter(obj[-1])
-        summary = '[{}, {}]{}'.format(first, last, close)
+        summary = u'[{}, {}]{}'.format(first, last, close)
     else:
 
         if n > max_seq_items:

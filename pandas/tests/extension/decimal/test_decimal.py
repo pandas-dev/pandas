@@ -188,7 +188,8 @@ class TestMethods(BaseDecimal, base.BaseMethodsTests):
 
 
 class TestCasting(BaseDecimal, base.BaseCastingTests):
-    pass
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):

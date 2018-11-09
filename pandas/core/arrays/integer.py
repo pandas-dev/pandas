@@ -297,10 +297,6 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             else:
                 yield self._data[i]
 
-    def _formatting_values(self):
-        # type: () -> np.ndarray
-        return self._coerce_to_ndarray()
-
     def take(self, indexer, allow_fill=False, fill_value=None):
         from pandas.api.extensions import take
 

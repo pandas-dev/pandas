@@ -673,20 +673,25 @@ class ExtensionArray(object):
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
-        data = format_object_summary(self, self._formatter, name=False,
+        data = format_object_summary(self, self._formatter(), name=False,
                                      trailing_comma=False).rstrip('\n')
         name = self.__class__.__name__
         return template.format(class_name=name, data=data,
                                length=len(self),
                                dtype=self.dtype)
 
-    @property
-    def _formatter(self):
-        # type: () -> Callable[Any]
+    def _formatter(self, boxed=False):
+        # type: (bool) -> Callable[Any]
         """Formatting function for scalar values.
 
         This is used in the default '__repr__'. The formatting function
         receives instances of your scalar type.
+
+        Parameters
+        ----------
+        boxed: bool, default False
+            Whether the formatter is to be used by pandas inside a Series
+            or DataFrame repr.
         """
         return str
 

@@ -2344,9 +2344,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         return _concat_categorical(to_concat)
 
-    def _formatting_values(self):
-        return self
-
     def isin(self, values):
         """
         Check whether `values` are contained in Categorical.
