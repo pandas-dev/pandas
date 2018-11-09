@@ -2379,10 +2379,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Combine Series values, choosing the calling Series's values first.
 
-        Notes
-        -----
-        Result index will be the union of the two indexes.
-
         Parameters
         ----------
         other : Series
@@ -2404,7 +2400,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.combine : Perform elementwise operation on two Series
-            using a given function.
+            using a given function
+
+        Notes
+        -----
+        Result index will be the union of the two indexes.
+
         """
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
