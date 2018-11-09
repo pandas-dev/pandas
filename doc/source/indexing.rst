@@ -537,10 +537,10 @@ A list of indexers where any element is out of bounds will raise an
 
 .. code-block:: python
 
-   dfl.iloc[[4, 5, 6]]
+   >>> dfl.iloc[[4, 5, 6]]
    IndexError: positional indexers are out-of-bounds
 
-   dfl.iloc[:, 4]
+   >>> dfl.iloc[:, 4]
    IndexError: single positional indexer is out-of-bounds
 
 .. _indexing.callable:
@@ -1794,7 +1794,7 @@ interpreter executes this code:
 
 .. code-block:: python
 
-   dfmi.loc[:,('one','second')] = value
+   dfmi.loc[:, ('one', 'second')] = value
    # becomes
    dfmi.loc.__setitem__((slice(None), ('one', 'second')), value)
 
@@ -1827,10 +1827,10 @@ that you've done this:
 .. code-block:: python
 
    def do_something(df):
-      foo = df[['bar', 'baz']]  # Is foo a view? A copy? Nobody knows!
-      # ... many lines here ...
-      foo['quux'] = value       # We don't know whether this will modify df or not!
-      return foo
+       foo = df[['bar', 'baz']]  # Is foo a view? A copy? Nobody knows!
+       # ... many lines here ...
+       foo['quux'] = value  # We don't know whether this will modify df or not!
+       return foo
 
 Yikes!
 

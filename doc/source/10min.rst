@@ -45,7 +45,7 @@ a default integer index:
 
 .. ipython:: python
 
-   s = pd.Series([1,3,5,np.nan,6,8])
+   s = pd.Series([1, 3, 5, np.nan, 6, 8])
    s
 
 Creating a :class:`DataFrame` by passing a NumPy array, with a datetime index
@@ -62,12 +62,12 @@ Creating a ``DataFrame`` by passing a dict of objects that can be converted to s
 
 .. ipython:: python
 
-   df2 = pd.DataFrame({ 'A' : 1.,
-                        'B' : pd.Timestamp('20130102'),
-                        'C' : pd.Series(1,index=list(range(4)),dtype='float32'),
-                        'D' : np.array([3] * 4,dtype='int32'),
-                        'E' : pd.Categorical(["test","train","test","train"]),
-                        'F' : 'foo' })
+   df2 = pd.DataFrame({'A': 1.,
+                       'B': pd.Timestamp('20130102'),
+                       'C': pd.Series(1, index=list(range(4)),dtype='float32'),
+                       'D': np.array([3] * 4, dtype='int32'),
+                       'E': pd.Categorical(["test", "train", "test", "train"]),
+                       'F': 'foo'})
    df2
 
 The columns of the resulting ``DataFrame`` have different 
@@ -283,9 +283,9 @@ Using the :func:`~Series.isin` method for filtering:
 .. ipython:: python
 
    df2 = df.copy()
-   df2['E'] = ['one', 'one','two','three','four','three']
+   df2['E'] = ['one', 'one', 'two', 'three', 'four', 'three']
    df2
-   df2[df2['E'].isin(['two','four'])]
+   df2[df2['E'].isin(['two', 'four'])]
 
 Setting
 ~~~~~~~
@@ -295,7 +295,7 @@ by the indexes.
 
 .. ipython:: python
 
-   s1 = pd.Series([1,2,3,4,5,6], index=pd.date_range('20130102', periods=6))
+   s1 = pd.Series([1, 2, 3, 4, 5, 6], index=pd.date_range('20130102', periods=6))
    s1
    df['F'] = s1
 
@@ -394,7 +394,7 @@ In addition, pandas automatically broadcasts along the specified dimension.
 
 .. ipython:: python
 
-   s = pd.Series([1,3,5,np.nan,6,8], index=dates).shift(2)
+   s = pd.Series([1, 3, 5, np.nan, 6, 8], index=dates).shift(2)
    s
    df.sub(s, axis='index')
 
@@ -492,7 +492,7 @@ section.
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(8, 4), columns=['A','B','C','D'])
+   df = pd.DataFrame(np.random.randn(8, 4), columns=['A', 'B', 'C', 'D'])
    df
    s = df.iloc[3]
    df.append(s, ignore_index=True)
@@ -512,12 +512,12 @@ See the :ref:`Grouping section <groupby>`.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-                             'foo', 'bar', 'foo', 'foo'],
-                      'B' : ['one', 'one', 'two', 'three',
-                             'two', 'two', 'one', 'three'],
-                      'C' : np.random.randn(8),
-                      'D' : np.random.randn(8)})
+   df = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                            'foo', 'bar', 'foo', 'foo'],
+                      'B': ['one', 'one', 'two', 'three',
+                            'two', 'two', 'one', 'three'],
+                      'C': np.random.randn(8),
+                      'D': np.random.randn(8)})
    df
 
 Grouping and then applying the :meth:`~DataFrame.sum` function to the resulting 
@@ -532,7 +532,7 @@ apply the ``sum`` function.
 
 .. ipython:: python
 
-   df.groupby(['A','B']).sum()
+   df.groupby(['A', 'B']).sum()
 
 Reshaping
 ---------
@@ -578,11 +578,11 @@ See the section on :ref:`Pivot Tables <reshaping.pivot>`.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A' : ['one', 'one', 'two', 'three'] * 3,
-                      'B' : ['A', 'B', 'C'] * 4,
-                      'C' : ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 2,
-                      'D' : np.random.randn(12),
-                      'E' : np.random.randn(12)})
+   df = pd.DataFrame({'A': ['one', 'one', 'two', 'three'] * 3,
+                      'B': ['A', 'B', 'C'] * 4,
+                      'C': ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 2,
+                      'D': np.random.randn(12),
+                      'E': np.random.randn(12)})
    df
 
 We can produce pivot tables from this data very easily:
@@ -653,7 +653,7 @@ pandas can include categorical data in a ``DataFrame``. For full docs, see the
 
 .. ipython:: python
 
-    df = pd.DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
+    df = pd.DataFrame({"id":[1, 2, 3, 4, 5, 6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
 
 Convert the raw grades to a categorical data type.
 
@@ -753,13 +753,13 @@ Writing to a HDF5 Store.
 
 .. ipython:: python
 
-   df.to_hdf('foo.h5','df')
+   df.to_hdf('foo.h5', 'df')
 
 Reading from a HDF5 Store.
 
 .. ipython:: python
 
-   pd.read_hdf('foo.h5','df')
+   pd.read_hdf('foo.h5', 'df')
 
 .. ipython:: python
    :suppress:
@@ -796,7 +796,7 @@ If you are attempting to perform an operation you might see an exception like:
 .. code-block:: python
 
     >>> if pd.Series([False, True, False]):
-        print("I was true")
+    ...     print("I was true")
     Traceback
         ...
     ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().

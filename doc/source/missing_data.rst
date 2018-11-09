@@ -696,9 +696,8 @@ You can also operate on the DataFrame in place:
 
    .. code-block:: python
 
-      s = pd.Series([True, False, True])
-      s.replace({'a string': 'new value', True: False})  # raises
-
+      >>> s = pd.Series([True, False, True])
+      >>> s.replace({'a string': 'new value', True: False})  # raises
       TypeError: Cannot compare types 'ndarray(dtype=bool)' and 'str'
 
    will raise a ``TypeError`` because one of the ``dict`` keys is not of the
@@ -728,7 +727,7 @@ rules introduced in the table below.
     :header: "data type", "Cast to"
     :widths: 40, 40
 
-	integer, float
+    integer, float
     boolean, object
     float, no cast
     object, no cast
