@@ -9,33 +9,39 @@ import numpy as np
 import pandas as pd
 from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 import pandas.util.testing as tm
+import pytest
 
 
 class TestDatetimeArray(object):
+
+    @pytest.mark.xfail(resaon='DatetimeArray', strict=True)
     def test_repr(self):
-        dti = pd.date_range('1994-07-01', periods=9, freq='W', tz='US/Central')
+        dti = pd.date_range('1994-07-01', periods=2, freq='W', tz='US/Central')
         arr = DatetimeArray(dti)
 
         # non-truncated
         expected = (
-            "<DatetimeArrayMixin>\n"
+            "<DatetimeArray>\n"
             "['1994-07-03 00:00:00-05:00', '1994-07-10 00:00:00-05:00']\n"
             "Length: 2, dtype: datetime64[ns, US/Central], freq: W-SUN")
-        result = repr(arr[:2])
+        result = repr(arr)
         assert result == expected
 
+    @pytest.mark.xfail(resaon='DatetimeArray', strict=True)
+    def test_repr_truncates(self):
         # truncated
+        dti = pd.date_range('1994-07-01', periods=1000, freq='W',
+                            tz='US/Central')
+        arr = DatetimeArray(dti)
         expected = (
-            "<DatetimeArrayMixin>\n"
-            "["
-            "'1994-07-03 00:00:00-05:00', "
-            "'1994-07-10 00:00:00-05:00', "
-            "'1994-07-17 00:00:00-05:00', "
-            "'...', "
-            "'1994-08-14 00:00:00-05:00', "
-            "'1994-08-21 00:00:00-05:00', "
-            "'1994-08-28 00:00:00-05:00'"
-            "]\n"
+            "<DatetimeArray>\n"
+            "['1994-07-03 00:00:00-05:00', "
+            " '1994-07-10 00:00:00-05:00', "
+            " '1994-07-17 00:00:00-05:00', "
+            " '...', "
+            " '1994-08-14 00:00:00-05:00', "
+            " '1994-08-21 00:00:00-05:00', "
+            " '1994-08-28 00:00:00-05:00']\n"
             "Length: 9, dtype: datetime64[ns, US/Central], freq: W-SUN")
         result = repr(arr)
         assert result == expected

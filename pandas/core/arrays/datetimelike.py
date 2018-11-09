@@ -202,27 +202,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return super(DatetimeLikeArrayMixin, self).astype(dtype, copy)
 
     # ------------------------------------------------------------------
-    # Formatting
-
-    def __repr__(self):
-        if len(self) <= 6:
-            # TODO: 6 is an arbitrary cutoff; make configurable?
-            items = [str(s) for s in self]
-        else:
-            items = ([str(s) for s in self[:3]] +
-                     ['...'] +
-                     [str(s) for s in self[-3:]])
-
-        result = '<{cls}>\n{items}\nLength: {length}, dtype: {dtype}'.format(
-            cls=type(self).__name__, items=items,
-            length=len(self), dtype=self.dtype)
-
-        if not is_period_dtype(self):
-            result += ', freq: {freqstr}'.format(freqstr=self.freqstr)
-
-        return result
-
-    # ------------------------------------------------------------------
     # Null Handling
 
     def isna(self):

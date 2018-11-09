@@ -1108,9 +1108,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
 
-    # override DatetimeLikeArrayMixin.__repr__
-    __repr__ = Index.__repr__
-
     _timezone = cache_readonly(DatetimeArray._timezone.fget)
     is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
     _resolution = cache_readonly(DatetimeArray._resolution.fget)

@@ -237,9 +237,6 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
-    # override DatetimeLikeArrayMixin.__repr__
-    __repr__ = Index.__repr__
-
     days = wrap_field_accessor(TimedeltaArray.days)
     seconds = wrap_field_accessor(TimedeltaArray.seconds)
     microseconds = wrap_field_accessor(TimedeltaArray.microseconds)
