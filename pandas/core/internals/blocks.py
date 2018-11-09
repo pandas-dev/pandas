@@ -1963,9 +1963,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             warnings.warn(msg, FutureWarning, stacklevel=10)
             return self.values._formatting_values()
 
-        # the future implementation (and current, if not overrode)
-        formatter = self.values._formatter(boxed=True)
-        return np.array([formatter(x) for x in self.values], dtype=object)
+        return self.values
 
     def concat_same_type(self, to_concat, placement=None):
         """
