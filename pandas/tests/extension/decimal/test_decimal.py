@@ -393,6 +393,9 @@ def test_formatting_values_deprecated():
             return np.array(self)
 
     ser = pd.Series(DecimalArray2([decimal.Decimal('1.0')]))
+    # different levels for 2 vs. 3
+    check_stacklevel = compat.PY3
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=check_stacklevel):
         repr(ser)
