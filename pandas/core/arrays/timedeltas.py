@@ -98,6 +98,8 @@ def _td_array_cmp(cls, op):
 
 
 class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
+    _typ = "timedeltaarray"
+
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit='ns')
