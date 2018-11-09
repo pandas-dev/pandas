@@ -18,10 +18,10 @@ from pandas.compat import StringIO, lzip, map, u, zip
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_datetime64_dtype, is_datetimetz,
     is_extension_array_dtype, is_float, is_float_dtype, is_integer,
-    is_integer_dtype, is_list_like, is_numeric_dtype, is_period_arraylike,
-    is_scalar, is_timedelta64_dtype)
+    is_integer_dtype, is_list_like, is_numeric_dtype, is_scalar,
+    is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCIndex, ABCMultiIndex, ABCSeries, ABCSparseArray)
+    ABCIndexClass, ABCMultiIndex, ABCSeries, ABCSparseArray)
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas import compat
@@ -30,7 +30,6 @@ import pandas.core.common as com
 from pandas.core.config import get_option, set_option
 from pandas.core.index import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
 
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
@@ -850,9 +849,7 @@ class DataFrameFormatter(TableFormatter):
 def format_array(values, formatter, float_format=None, na_rep='NaN',
                  digits=None, space=None, justify='right', decimal='.'):
 
-    if is_period_arraylike(values):
-        fmt_klass = PeriodArrayFormatter
-    elif is_datetime64_dtype(values.dtype):
+    if is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
     elif is_timedelta64_dtype(values.dtype):
         fmt_klass = Timedelta64Formatter
@@ -1128,30 +1125,15 @@ class Datetime64Formatter(GenericArrayFormatter):
 class ExtensionArrayFormatter(GenericArrayFormatter):
     def _format_strings(self):
         values = self.values
-        if isinstance(values, (ABCIndex, ABCSeries)):
+        if isinstance(values, (ABCIndexClass, ABCSeries)):
             values = values._values
 
-        formatter = self.values._formatter(self)
-        fmt_values = format_array(np.asarray(self.values),
+        formatter = values._formatter(self)
+        fmt_values = format_array(np.asarray(values),
                                   formatter,
                                   float_format=self.float_format,
                                   na_rep=self.na_rep, digits=self.digits,
                                   space=self.space, justify=self.justify)
-        return fmt_values
-
-
-class PeriodArrayFormatter(IntArrayFormatter):
-
-    def _format_strings(self):
-        from pandas.core.indexes.period import IncompatibleFrequency
-        try:
-            values = PeriodIndex(self.values).to_native_types()
-        except IncompatibleFrequency:
-            # periods may contains different freq
-            values = Index(self.values, dtype='object').to_native_types()
-
-        formatter = self.formatter or (lambda x: '{x}'.format(x=x))
-        fmt_values = [formatter(x) for x in values]
         return fmt_values
 
 

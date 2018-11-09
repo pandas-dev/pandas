@@ -499,6 +499,10 @@ class Categorical(ExtensionArray, PandasObject):
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return Categorical(scalars, dtype=dtype)
 
+    def _formatter(self, formatter):
+        # backwards compat with old printing.
+        return None
+
     def copy(self):
         """ Copy constructor. """
         return self._constructor(values=self._codes.copy(),

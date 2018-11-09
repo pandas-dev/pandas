@@ -680,7 +680,7 @@ class ExtensionArray(object):
                                length=len(self),
                                dtype=self.dtype)
 
-    def _formatter(self, formatter):
+    def _formatter(self, formatter=None):
         # type: (ExtensionArrayFormatter) -> Callable[Any]
         """Formatting function for scalar values.
 
@@ -693,7 +693,7 @@ class ExtensionArray(object):
             Whether the formatter is to be used by pandas inside a Series
             or DataFrame repr.
         """
-        return formatter.formatter or str
+        return getattr(formatter, 'formatter', None) or str
 
     def _formatting_values(self):
         # type: () -> np.ndarray
