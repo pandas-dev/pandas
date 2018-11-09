@@ -1,7 +1,7 @@
 import numpy as np
 
-from pandas.core.dtypes.dtypes import registry
 from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.dtypes import registry
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
 
@@ -32,12 +32,29 @@ def array(data, dtype=None, copy=False):
 
     Examples
     --------
+    If a dtype is not specified, `data` is passed through to
+    :meth:`numpy.array`, and an ndarray is returned.
+
     >>> pd.array([1, 2])
     array([1, 2])
+
+    Or the NumPy dtype can be specified
+
+    >>> pd.array([1, 2], dtype=np.int32)
+    array([1, 2], dtype=int32)
+
+    You can use the string alias for `dtype`
 
     >>> pd.array(['a', 'b', 'a'], dtype='category')
     [a, b, a]
     Categories (2, object): [a, b]
+
+    Or specify the actual dtype
+
+    >>> pd.array(['a', 'b', 'a'],
+    ...          dtype=pd.CategoricalDtype(['a', 'b', 'c'], ordered=True))
+    [a, b, a]
+    Categories (3, object): [a < b < c]
     """
     if isinstance(data, (ABCSeries, ABCIndexClass)):
         data = data._values
