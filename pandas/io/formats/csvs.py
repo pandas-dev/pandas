@@ -30,7 +30,7 @@ class CSVFormatter(object):
     def __init__(self, obj, path_or_buf=None, sep=",", na_rep='',
                  float_format=None, cols=None, header=True, index=True,
                  index_label=None, mode='w', nanRep=None, encoding=None,
-                 compression='infer', quoting=None, line_terminator='\n',
+                 compression='infer', quoting=None, line_terminator=None,
                  chunksize=None, tupleize_cols=False, quotechar='"',
                  date_format=None, doublequote=True, escapechar=None,
                  decimal='.'):
