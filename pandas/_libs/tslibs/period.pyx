@@ -1567,10 +1567,11 @@ cdef class _Period(object):
 
     @classmethod
     def _maybe_convert_freq(cls, object freq):
-
         if isinstance(freq, (int, tuple)):
             code, stride = get_freq_code(freq)
             freq = get_freq_str(code, stride)
+
+        freq = to_offset(freq)
 
         if freq.n <= 0:
             raise ValueError('Frequency must be positive, because it'
