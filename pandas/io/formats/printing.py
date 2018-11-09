@@ -272,8 +272,7 @@ default_pprint = lambda x, max_seq_items=None: \
 
 
 def format_object_summary(obj, formatter, is_justify=True, name=None,
-                          trailing_comma=True,
-                          truncated_trailing_newline=True):
+                          trailing_comma=True):
     """
     Return the formatted obj as a unicode string
 
