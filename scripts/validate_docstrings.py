@@ -56,8 +56,9 @@ from pandas.io.formats.printing import pprint_thing
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
 DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
-ALLOWED_SECTIONS = ['Parameters', 'Returns', 'Yields', 'Raises', 'Warns',
-                    'See Also', 'Notes', 'References', 'Examples']
+ALLOWED_SECTIONS = ['Parameters', 'Attributes', 'Methods', 'Returns', 'Yields',
+                    'Other Parameters', 'Raises', 'Warns', 'See Also', 'Notes',
+                    'References', 'Examples']
 ERROR_MSGS = {
     'GL01': 'Docstring text (summary) should start in the line immediately '
             'after the opening quotes (not in the same line, or leaving a '
