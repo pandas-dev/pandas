@@ -84,6 +84,8 @@ cdef to_offset(object obj):
     Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
     imports
     """
+    if isinstance(obj, _BaseOffset):
+        return obj
     from pandas.tseries.frequencies import to_offset
     return to_offset(obj)
 
