@@ -872,6 +872,14 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             return res
         return CategoricalIndex(res, name=self.name)
 
+    def _is_inconsistent(self, other):
+        if type(self) is not type(other):
+            return True
+        elif type(self.dtype) is not type(other.dtype):
+            return True
+        else:
+            return False
+
 
 CategoricalIndex._add_numeric_methods_add_sub_disabled()
 CategoricalIndex._add_numeric_methods_disabled()

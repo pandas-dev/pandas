@@ -228,6 +228,17 @@ class Int64Index(IntegerIndex):
                 raise TypeError('Unsafe NumPy casting, you must '
                                 'explicitly cast')
 
+    def _is_inconsistent(self, other):
+        from pandas.core.indexes.range import RangeIndex
+        is_inconsistent = super(Int64Index, self)._is_inconsistent(other)
+        if is_inconsistent:
+            if type(self) is Int64Index and isinstance(other, RangeIndex):
+                return False
+            else:
+                return True
+        else:
+            return is_inconsistent
+
 
 Int64Index._add_numeric_methods()
 Int64Index._add_logical_methods()

@@ -283,6 +283,9 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         """
         self._assert_can_do_setop(other)
 
+        if self._is_inconsistent(other):
+            return self._union_inconsistent_dtypes(other)
+
         if len(other) == 0 or self.equals(other) or len(self) == 0:
             return super(TimedeltaIndex, self).union(other)
 

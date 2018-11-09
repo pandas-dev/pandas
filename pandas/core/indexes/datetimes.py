@@ -578,6 +578,17 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         result = super(DatetimeIndex, naive).unique(level=level)
         return self._shallow_copy(result.values)
 
+    def _is_inconsistent(self, other):
+        is_inconsistent = super(DatetimeIndex, self)._is_inconsistent(other)
+        if is_inconsistent:
+            if hasattr(other, 'dtype'):
+                # If same base, consider consistent, let UTC logic takeover
+                return self.dtype.base != other.dtype.base
+            else:
+                return True
+        else:
+            return is_inconsistent
+
     def union(self, other):
         """
         Specialized union for DatetimeIndex objects. If combine
@@ -593,6 +604,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         y : Index or DatetimeIndex
         """
         self._assert_can_do_setop(other)
+
+        if self._is_inconsistent(other):
+            return self._union_inconsistent_dtypes(other)
 
         if len(other) == 0 or self.equals(other) or len(self) == 0:
             return super(DatetimeIndex, self).union(other)

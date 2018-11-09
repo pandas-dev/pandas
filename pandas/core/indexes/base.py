@@ -2756,6 +2756,15 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(name=name)
         return self
 
+    def _union_inconsistent_dtypes(self, other):
+        this = self.astype('O')
+        other = Index(other).astype('O')
+        return Index.union(this, other).astype('O')
+
+    def _is_inconsistent(self, other):
+        return (type(self) is not type(other)
+                or not is_dtype_equal(self.dtype, other.dtype))
+
     def union(self, other):
         """
         Form the union of two Index objects and sorts if possible.
@@ -2780,27 +2789,30 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
-        if self.equals(other):
+        if self._is_inconsistent(other):
+            return self._union_inconsistent_dtypes(other)
+
+        # if is_dtype_equal(self.dtype, other.dtype):
+        if len(self) == 0:
+            return other._get_reconciled_name_object(self)
+        elif len(other) == 0:
             return self._get_reconciled_name_object(other)
 
-        # Don't allow empty index to move on. If `other` is not monotonic-incr
-        # ...will fail
-        if is_dtype_equal(self.dtype, other.dtype):
-            if len(self) == 0:
-                return other._get_reconciled_name_object(self)
-            elif len(other) == 0:
-                return self._get_reconciled_name_object(other)
+        if self.equals(other):
+            return self._get_reconciled_name_object(other)
 
 
         # TODO: is_dtype_union_equal is a hack around
         # 1. buggy set ops with duplicates (GH #13432)
         # 2. CategoricalIndex lacking setops (GH #10186)
         # Once those are fixed, this workaround can be removed
-        if not is_dtype_union_equal(self.dtype, other.dtype):
-            this = self.astype('O')
-            other = other.astype('O')
-            # force object dtype, for empty index cases
-            return this.union(other).astype('O')
+
+        # remove? this might be too lenient
+        # if not is_dtype_union_equal(self.dtype, other.dtype):
+        #     this = self.astype('O')
+        #     other = other.astype('O')
+        #     # force object dtype, for empty index cases
+        #     return this.union(other).astype('O')
 
         # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self) or is_datetime64tz_dtype(self):
