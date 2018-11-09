@@ -16,6 +16,7 @@ conda remove --all -q -y -n $CONDA_ENV
 
 echo
 echo "[create env]"
+echo $ENV_FILE
 time conda env create -q -n "${CONDA_ENV}" --file="${ENV_FILE}" || exit 1
 
 # Activate first
