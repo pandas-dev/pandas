@@ -31,7 +31,7 @@ import pandas.io.formats.printing as printing
 
 from pandas.tseries.offsets import index_offsets_equal
 import pandas.tseries.frequencies as frequencies
-
+import pandas.core.indexes.api as _api
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -635,7 +635,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         self._assert_can_do_setop(other)
 
         if self.equals(other):
-            return self._get_consensus_name(other)
+            name = _api._get_consensus_names((self, other))[0]
+            return self._shallow_copy(self, name=name)
 
         lengths = len(self), len(other)
         if lengths[0] == 0:
@@ -648,7 +649,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
                 not other._is_strictly_monotonic)):
             result = Index.intersection(self, other)
             result = self._shallow_copy(result._values, name=result.name,
-                                        tz=getattr(self, 'tz', None),
                                         freq=None
                                         )
             if result.freq is None:
@@ -657,9 +657,9 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         # Conditions met!
         intersected_slice = self._fast_intersection(other)
-        intersected = self._shallow_copy(intersected_slice)
-        return intersected._get_consensus_name(other)
-
+        name = _api._get_consensus_names((self, other))[0]
+        intersected = self._shallow_copy(intersected_slice, name=name)
+        return intersected
 
 def wrap_arithmetic_op(self, other, result):
     if result is NotImplemented:
