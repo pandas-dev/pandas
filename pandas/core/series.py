@@ -2308,11 +2308,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series
             The result of combining the Series with the other object.
 
-        See Also
-        --------
-        Series.combine_first : Combine Series values, choosing the calling
-                               Series' values first.
-
         Examples
         --------
         >>> s1 = pd.Series([1, 2])
@@ -2335,6 +2330,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         1      3
         2    787
         dtype: int64
+
+        See Also
+        --------
+        Series.combine_first : Combine Series values, choosing the calling
+                               Series' values first.
 
         """
         if fill_value is None:
