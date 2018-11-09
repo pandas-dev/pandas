@@ -711,7 +711,7 @@ class TestDataFrameConstructors(TestData):
         assert 1 == frame['A'][1]
         assert 2 == frame['C'][2]
 
-        # masked np.datetime64 stays (use lib.NaT as null)
+        # masked np.datetime64 stays (use NaT as null)
         mat = ma.masked_all((2, 3), dtype='M8[ns]')
         # 2-D input
         frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])

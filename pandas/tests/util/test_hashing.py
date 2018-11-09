@@ -4,10 +4,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.util.hashing import _hash_scalar, hash_tuple, hash_tuples
 from pandas.util import hash_array, hash_pandas_object
+import pandas.util.testing as tm
 
 
 class TestHashing(object):
