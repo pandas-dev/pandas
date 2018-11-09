@@ -7378,7 +7378,7 @@ class NDFrame(PandasObject, SelectionMixin):
         rule : str
             The offset string or object representing target conversion.
         how : str
-            Method for down/re-sampling, default to ‘mean’ for downsampling.
+            Method for down/re-sampling, default to 'mean' for downsampling.
 
             .. deprecated:: 0.18.0
                The new syntax is ``.resample(...).mean()``, or
