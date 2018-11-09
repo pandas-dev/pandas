@@ -332,7 +332,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     def _formatter(self, formatter=None):
         if formatter:
-            return str
+            return formatter.formatter or str
         return "'{}'".format
 
     def __setitem__(
