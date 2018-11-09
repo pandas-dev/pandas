@@ -1,5 +1,7 @@
 import numpy as np
 
+from pandas._libs import lib, tslibs
+
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import registry
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -56,6 +58,8 @@ def array(data, dtype=None, copy=False):
     [a, b, a]
     Categories (3, object): [a < b < c]
     """
+    from pandas.core.arrays import period_array
+
     if isinstance(data, (ABCSeries, ABCIndexClass)):
         data = data._values
 
@@ -65,5 +69,16 @@ def array(data, dtype=None, copy=False):
     if is_extension_array_dtype(dtype):
         cls = dtype.construct_array_type()
         return cls._from_sequence(data, dtype=dtype, copy=copy)
+
+    if dtype is None:
+        inferred_dtype = lib.infer_dtype(data)
+        if inferred_dtype == 'period':
+            try:
+                return period_array(data)
+            except tslibs.IncompatibleFrequency:
+                pass  # we return an array below.
+
+        # TODO(DatetimeArray): handle this type
+        # TODO(BooleanArray): handle this type
 
     return np.array(data, dtype=dtype, copy=copy)

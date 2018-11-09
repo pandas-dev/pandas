@@ -1,16 +1,16 @@
 import decimal
 
 import numpy as np
-import pytest
+
+from pandas.core.dtypes.dtypes import registry
 
 import pandas as pd
-import pandas.util.testing as tm
-from pandas.core.dtypes.dtypes import registry
 from pandas.api.extensions import register_extension_dtype
-from pandas.core.arrays import period_array, integer_array
+from pandas.core.arrays import integer_array, period_array
 from pandas.tests.extension.decimal import (
-    to_decimal, DecimalArray, DecimalDtype
-)
+    DecimalArray, DecimalDtype, to_decimal)
+import pandas.util.testing as tm
+import pytest
 
 
 @pytest.mark.parametrize("data, dtype, expected", [
@@ -36,6 +36,22 @@ from pandas.tests.extension.decimal import (
 def test_array(data, dtype, expected):
     result = pd.array(data, dtype=dtype)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize('data, expected', [
+    ([pd.Period("2000", "D"), pd.Period("2001", "D")],
+     period_array(["2000", "2001"], freq="D")),
+])
+def test_array_inference(data, expected):
+    result = pd.array(data)
+    tm.assert_equal(result, expected)
+
+
+def test_array_inference_period_fails():
+    data = [pd.Period("2000", "D"), pd.Period("2001", "A")]
+    result = pd.array(data)
+    expected = np.array(data, dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
 
 
 # ---------------------------------------------------------------------------
