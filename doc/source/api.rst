@@ -830,34 +830,21 @@ left, right, or both, or neither sides.
 
 .. autosummary::
    :toctree: generated/
-   :template: autosummary/class_without_autosummary.rst
 
    IntervalArray
 
-.. autosummary::
-   :toctree: generated/
-
-   IntervalArray.from_arrays
-   IntervalArray.from_tuples
-   IntervalArray.from_breaks
-   IntervalArray.contains
-   IntervalArray.left
-   IntervalArray.right
-   IntervalArray.mid
-   IntervalArray.closed
-   IntervalArray.length
-   IntervalArray.values
-   IntervalArray.is_non_overlapping_monotonic
-   IntervalArray.set_closed
-   IntervalArray.overlaps
-   IntervalArray.to_tuples
-
 .. _api.arrays.period:
+
+Period
+~~~~~~
 
 .. autosummary::
    :toctree: generated/
 
    PeriodArray
+
+Sparse
+~~~~~~
 
 .. _api.arrays.sparse:
 
@@ -1981,6 +1968,8 @@ Methods
     PeriodIndex.asfreq
     PeriodIndex.strftime
     PeriodIndex.to_timestamp
+
+.. api.scalars:
 
 Scalars
 -------
