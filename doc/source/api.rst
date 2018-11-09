@@ -803,7 +803,20 @@ following usable methods and properties:
    Series.cat.as_ordered
    Series.cat.as_unordered
 
-.. _api.interval:
+.. _api.arrays.integerna:
+
+Integer-NA
+~~~~~~~~~~
+
+:class:`arrays.IntegerArray` can hold integer data, potentially with missing
+values.
+
+.. autosummary::
+   :toctree: generated/
+
+   IntegerArray
+
+.. _api.arrays.interval:
 
 Interval
 ~~~~~~~~
@@ -838,6 +851,20 @@ left, right, or both, or neither sides.
    IntervalArray.set_closed
    IntervalArray.overlaps
    IntervalArray.to_tuples
+
+.. _api.arrays.period:
+
+.. autosummary::
+   :toctree: generated/
+
+   PeriodArray
+
+.. _api.arrays.sparse:
+
+.. autosummary::
+   :toctree: generated/
+
+   SparseArray
 
 Plotting
 ~~~~~~~~
