@@ -7759,7 +7759,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> days = pd.date_range('1/1/2000', periods=4, freq='D')
         >>> d2 = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
-        ...           'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
+        ...            'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
         >>> df2 = pd.DataFrame(
         ...    d2,
         ...    index=pd.MultiIndex.from_product(
