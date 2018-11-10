@@ -150,4 +150,6 @@ class TestSetitem(BaseInterval, base.BaseSetitemTests):
 
 
 class TestPrinting(BaseInterval, base.BasePrintingTests):
-    pass
+    @pytest.mark.skip(reason="custom repr")
+    def test_array_repr(self, data, size):
+        pass
