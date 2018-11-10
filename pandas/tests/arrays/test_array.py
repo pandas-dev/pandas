@@ -27,7 +27,7 @@ import pytest
      pd.Categorical(['a', 'b'], ordered=True)),
     ([pd.Interval(1, 2), pd.Interval(3, 4)], 'interval',
      pd.IntervalArray.from_tuples([(1, 2), (3, 4)])),
-    ([0, 1], 'Sparse[int]', pd.SparseArray([0, 1])),
+    ([0, 1], 'Sparse[int64]', pd.SparseArray([0, 1], dtype='int64')),
     ([1, None], 'Int16', integer_array([1, None], dtype='Int16')),
 
     # "3rd party" EAs work
