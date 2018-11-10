@@ -320,7 +320,8 @@ class TestDatetimeIndex(object):
         pytest.raises(ValueError, DatetimeIndex, start='1/1/2000',
                       end='1/10/2000')
 
-        pytest.raises(ValueError, DatetimeIndex, '1/1/2000')
+        with pytest.raises(TypeError):
+            DatetimeIndex('1/1/2000')
 
         # generator expression
         gen = (datetime(2000, 1, 1) + timedelta(i) for i in range(10))
