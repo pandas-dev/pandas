@@ -198,7 +198,7 @@ def test_squeeze_single_level():
     mi = pd.MultiIndex.from_tuples([('a',), ('a',), ('b',), ('b',)],
                                    names=['L1'])
     expected = pd.Index(['a', 'a', 'b', 'b'], name='L1')
-    result = mi.squeeze()
+    result = mi._squeeze()
     tm.assert_index_equal(expected, result)
 
 
@@ -207,5 +207,5 @@ def test_squeeze_multi_level():
                                    ('b', 'b')],
                                    names=['L1', 'L2'])
     expected = mi.copy()
-    result = mi.squeeze()
+    result = mi._squeeze()
     tm.assert_index_equal(expected, result)

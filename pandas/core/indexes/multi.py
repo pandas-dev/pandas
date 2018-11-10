@@ -1516,8 +1516,10 @@ class MultiIndex(Index):
                             "names, or a callable.")
 
         # This way will preserve dtype of columns
-        mi = cls.from_arrays([df[x] for x in df], sortorder=sortorder, names=names)
-        return mi.squeeze() if squeeze else mi
+        mi = cls.from_arrays([df[x] for x in df],
+                             sortorder=sortorder,
+                             names=names)
+        return mi._squeeze() if squeeze else mi
 
     def _sort_levels_monotonic(self):
         """
@@ -1581,7 +1583,7 @@ class MultiIndex(Index):
                           names=self.names, sortorder=self.sortorder,
                           verify_integrity=False)
 
-    def squeeze(self):
+    def _squeeze(self):
         """
         Squeeze a single level MultiIndex to be a regular Index instance.
 
@@ -1599,7 +1601,7 @@ class MultiIndex(Index):
         >>> mi
         MultiIndex(levels=[['a', 'b', 'c']],
                    labels=[[0, 1, 2]])
-        >>> mi.squeeze()
+        >>> mi._squeeze()
         Index(['a', 'b', 'c'], dtype='object')
         """
         if len(self.levels) == 1:
