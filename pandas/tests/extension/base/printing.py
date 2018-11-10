@@ -1,6 +1,7 @@
 import io
 
 import pandas as pd
+from pandas import compat
 import pytest
 
 from .base import BaseExtensionTests
@@ -22,6 +23,17 @@ class BasePrintingTests(BaseExtensionTests):
         assert str(data.dtype) in result
         if size == 'big':
             assert '...' in result
+
+    def test_array_repr_bytes(self, data):
+        result = bytes(data)
+        if compat.PY2:
+            assert isinstance(result, str)
+        else:
+            assert isinstance(result, bytes)
+
+    def test_array_repr_unicode(self, data):
+        result = compat.u(data)
+        assert isinstance(result, compat.text_type)
 
     def test_series_repr(self, data):
         ser = pd.Series(data)

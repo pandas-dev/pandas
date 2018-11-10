@@ -9,6 +9,8 @@ import numpy as np
 
 import operator
 
+from pandas import compat
+from pandas.core.config import get_option
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.errors import AbstractMethodError
 from pandas.compat.numpy import function as nv
@@ -662,6 +664,19 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
+    def __unicode__(self):
+        result = str(self)
+        if compat.PY2:
+            encoding = get_option("display.encoding")
+            result = result.decode(encoding)
+        return result
+
+    def __bytes__(self):
+        result = str(self)
+        if compat.PY3:
+            encoding = get_option("display.encoding")
+            result = result.encode(encoding)
+        return result
 
     def __repr__(self):
         from pandas.io.formats.printing import format_object_summary
