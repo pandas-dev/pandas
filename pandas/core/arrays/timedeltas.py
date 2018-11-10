@@ -405,7 +405,7 @@ TimedeltaArrayMixin._add_datetimelike_methods()
 # ---------------------------------------------------------------------
 # Constructor Helpers
 
-def sequence_to_td64ns(data, copy=False, unit='ns', errors='raise'):
+def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
     """
     Parameters
     ----------
