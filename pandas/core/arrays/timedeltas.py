@@ -91,7 +91,7 @@ def _td_array_cmp(cls, op):
             raise TypeError(msg.format(cls=type(self).__name__,
                                        typ=type(other).__name__))
         else:
-            other = type(self)(other).values
+            other = type(self)(other)._data
             result = meth(self, other)
             result = com.values_from_object(result)
 
@@ -108,6 +108,8 @@ def _td_array_cmp(cls, op):
 
 
 class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
+    _typ = "timedeltaarray"
+
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit='ns')
