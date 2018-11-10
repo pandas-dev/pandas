@@ -735,6 +735,24 @@ class TestTimedeltaArraylikeAddSubOps(object):
         else:
             assert result.dtypes[0] == 'timedelta64[ns]'
 
+    def test_td64arr_add_sub_td64_nat(self, box):
+        # GH#23320 special handling for timedelta64("NaT")
+        tdi = pd.TimedeltaIndex([NaT, Timedelta('1s')])
+        other = np.timedelta64("NaT")
+        expected = pd.TimedeltaIndex(["NaT"] * 2)
+
+        obj = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        result = obj + other
+        tm.assert_equal(result, expected)
+        result = other + obj
+        tm.assert_equal(result, expected)
+        result = obj - other
+        tm.assert_equal(result, expected)
+        result = other - obj
+        tm.assert_equal(result, expected)
+
     def test_td64arr_sub_NaT(self, box):
         # GH#18808
         ser = Series([NaT, Timedelta('1s')])

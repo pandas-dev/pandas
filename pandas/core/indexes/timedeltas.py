@@ -26,6 +26,7 @@ from pandas.tseries.frequencies import to_offset
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs
 import pandas.core.common as com
+from pandas.core.ops import get_op_result_name
 import pandas.core.dtypes.concat as _concat
 from pandas.util._decorators import Appender, Substitution
 from pandas.core.indexes.datetimelike import (
@@ -209,8 +210,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         result._reset_identity()
         return result
 
-    _shallow_copy = Index._shallow_copy
-
     @property
     def _formatter_func(self):
         from pandas.io.formats.format import _get_format_timedelta64
@@ -243,12 +242,17 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                                     nat_rep=na_rep,
                                     justify='all').get_result()
 
+    # -------------------------------------------------------------------
+    # Wrapping TimedeltaArray
+
     days = wrap_field_accessor(TimedeltaArrayMixin.days)
     seconds = wrap_field_accessor(TimedeltaArrayMixin.seconds)
     microseconds = wrap_field_accessor(TimedeltaArrayMixin.microseconds)
     nanoseconds = wrap_field_accessor(TimedeltaArrayMixin.nanoseconds)
 
     total_seconds = wrap_array_method(TimedeltaArrayMixin.total_seconds, True)
+
+    # -------------------------------------------------------------------
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
@@ -278,6 +282,10 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         y : Index or TimedeltaIndex
         """
         self._assert_can_do_setop(other)
+
+        if len(other) == 0 or self.equals(other) or len(self) == 0:
+            return super(TimedeltaIndex, self).union(other)
+
         if not isinstance(other, TimedeltaIndex):
             try:
                 other = TimedeltaIndex(other)
@@ -310,7 +318,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                           sort=sort)
 
     def _wrap_joined_index(self, joined, other):
-        name = self.name if self.name == other.name else None
+        name = get_op_result_name(self, other)
         if (isinstance(other, TimedeltaIndex) and self.freq == other.freq and
                 self._can_fast_union(other)):
             joined = self._shallow_copy(joined, name=name)
@@ -370,10 +378,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         else:
             return left
 
-    def _wrap_union_result(self, other, result):
-        name = self.name if self.name == other.name else None
-        return self._simple_new(result, name=name, freq=None)
-
     def intersection(self, other):
         """
         Specialized intersection for TimedeltaIndex objects. May be much faster
@@ -388,6 +392,10 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         y : Index or TimedeltaIndex
         """
         self._assert_can_do_setop(other)
+
+        if self.equals(other):
+            return self._get_reconciled_name_object(other)
+
         if not isinstance(other, TimedeltaIndex):
             try:
                 other = TimedeltaIndex(other)
