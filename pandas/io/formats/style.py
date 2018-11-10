@@ -1231,19 +1231,15 @@ class Styler(object):
         Parameters
         ----------
         func : function
-            Function to apply to the Styler.
-            ``*args``, and ``**kwargs`` are passed into ``func``.
-            Alternatively a ``(callable, data_keyword)`` tuple where
-            ``data_keyword`` is a string indicating the keyword of
-            ``callable`` that expects the Styler.
-        *args : iterable, optional
-            Positional arguments passed into ``func``.
-        **kwargs : dict, optional
-            Dictionary of keyword arguments passed into ``func``.
+            Function to apply to the Styler.  Alternatively, a
+            ``(callable, keyword)`` tuple where ``keyword`` is a string
+            indicating the keyword of ``callable`` that expects the Styler.
+        *args, **kwargs :
+            Arguments passed to `func`.
 
         Returns
         -------
-        result : object
+        object :
             The value returned by ``func``.
 
         See Also
