@@ -299,7 +299,7 @@ memory_map : bool, default False
     If a filepath is provided for `filepath_or_buffer`, map the file object
     directly onto memory and access the data directly from there. Using this
     option can improve performance because there is no longer any I/O overhead.
-float_precision : str, default None
+float_precision : str, optional
     Specifies which converter the C engine should use for floating-point
     values. The options are `None` for the ordinary converter,
     `high` for the high-precision converter, and `round_trip` for the
@@ -307,7 +307,15 @@ float_precision : str, default None
 
 Returns
 -------
-result : DataFrame or TextParser"""
+DataFrame or TextParser
+
+See Also
+--------
+%s
+
+Examples
+--------
+%s # doctest: +SKI"""
 
 # engine is not used in read_fwf() so is factored out of the shared docstring
 _engine_doc = """engine : {'c', 'python'}, optional
@@ -323,14 +331,20 @@ _sep_doc = r"""sep : str, default {default}
     will also force the use of the Python parsing engine. Note that regex
     delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``.
 delimiter : str, default ``None``
-    Alternative argument name for sep.
+    Alias for sep.
     """
+
+_see_also = ("to_csv : Write DataFrame to "
+             "a comma-separated values (csv) file.")
+
+_example_doc = "pd.{_api}('/tmp/data.csv')"
 
 _read_csv_doc = """
 Read CSV (comma-separated) file into DataFrame.
 
 %s
-""" % (_parser_params % (_sep_doc.format(default="','"), _engine_doc))
+""" % (_parser_params % (_sep_doc.format(default="','"), _engine_doc,
+                         _see_also, _example_doc.format(_api='read_csv')))
 
 _read_table_doc = """
 Read general delimited file into DataFrame.
@@ -340,7 +354,8 @@ Read general delimited file into DataFrame.
 
 %s
 """ % (_parser_params % (_sep_doc.format(default="\\t (tab-stop)"),
-                         _engine_doc))
+                         _engine_doc, _see_also,
+                         _example_doc.format(_api='read_table')))
 
 _fwf_widths = """\
 colspecs : list of pairs (int, int) or 'infer'. optional
@@ -362,7 +377,8 @@ _read_fwf_doc = """
 Read a table of fixed-width formatted lines into DataFrame.
 
 %s
-""" % (_parser_params % (_fwf_widths, ''))
+""" % (_parser_params % (_fwf_widths, '', _see_also,
+                         _example_doc.format(_api='read_fwf')))
 
 
 def _validate_integer(name, val, min_val=0):
