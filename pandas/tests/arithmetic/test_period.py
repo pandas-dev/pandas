@@ -70,9 +70,8 @@ class TestPeriodIndexComparisons(object):
         tm.assert_equal(per >= base, exp)
 
     @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
-    def test_parr_cmp_pi(self, freq, box_df_fail):
+    def test_parr_cmp_pi(self, freq, box):
         # GH#13200
-        box = box_df_fail
         xbox = np.ndarray if box is pd.Index else box
 
         base = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
@@ -108,11 +107,9 @@ class TestPeriodIndexComparisons(object):
         tm.assert_equal(base <= idx, exp)
 
     @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
-    def test_parr_cmp_pi_mismatched_freq_raises(self, freq, box_df_fail):
+    def test_parr_cmp_pi_mismatched_freq_raises(self, freq, box):
         # GH#13200
         # different base freq
-        box = box_df_fail
-
         base = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                            freq=freq)
         base = tm.box_expected(base, box)
@@ -302,9 +299,7 @@ class TestPeriodIndexArithmetic(object):
     # PeriodIndex - other is defined for integers, timedelta-like others,
     #   and PeriodIndex (with matching freq)
 
-    def test_parr_add_iadd_parr_raises(self, box_df_broadcast_failure):
-        box = box_df_broadcast_failure
-
+    def test_parr_add_iadd_parr_raises(self, box):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
         # TODO: parametrize over boxes for other?
@@ -346,9 +341,7 @@ class TestPeriodIndexArithmetic(object):
         expected = pd.Index([pd.NaT, 0 * off, 0 * off, 0 * off, 0 * off])
         tm.assert_index_equal(result, expected)
 
-    def test_parr_sub_pi_mismatched_freq(self, box_df_broadcast_failure):
-        box = box_df_broadcast_failure
-
+    def test_parr_sub_pi_mismatched_freq(self, box):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='H', periods=5)
         # TODO: parametrize over boxes for other?
@@ -364,9 +357,6 @@ class TestPeriodIndexArithmetic(object):
     @pytest.mark.parametrize('op', [operator.add, ops.radd,
                                     operator.sub, ops.rsub])
     def test_pi_add_sub_float(self, op, other, box):
-        if box is pd.DataFrame and isinstance(other, np.ndarray):
-            pytest.xfail(reason="Tries to broadcast incorrectly")
-
         dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
         pi = dti.to_period('D')
         pi = tm.box_expected(pi, box)
@@ -570,8 +560,10 @@ class TestPeriodIndexArithmetic(object):
         pi = pd.PeriodIndex([per])
 
         expected = pd.PeriodIndex(['2016-03'], freq='2M')
-        pi = tm.box_expected(pi, box)
-        expected = tm.box_expected(expected, box)
+
+        # FIXME: with transpose these tests fail
+        pi = tm.box_expected(pi, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
 
         result = pi + per.freq
         tm.assert_equal(result, expected)
@@ -582,12 +574,14 @@ class TestPeriodIndexArithmetic(object):
     def test_pi_add_offset_n_gt1_not_divisible(self, box_with_period):
         # GH#23215
         # PeriodIndex with freq.n > 1 add offset with offset.n % freq.n != 0
+        box = box_with_period
 
         pi = pd.PeriodIndex(['2016-01'], freq='2M')
-        pi = tm.box_expected(pi, box_with_period)
-
         expected = pd.PeriodIndex(['2016-04'], freq='2M')
-        expected = tm.box_expected(expected, box_with_period)
+
+        # FIXME: with transposing these tests fail
+        pi = tm.box_expected(pi, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
 
         result = pi + to_offset('3M')
         tm.assert_equal(result, expected)
@@ -807,8 +801,9 @@ class TestPeriodIndexArithmetic(object):
         other = np.timedelta64("NaT")
         expected = pd.PeriodIndex(["NaT"] * 9, freq="19D")
 
-        obj = tm.box_expected(pi, box)
-        expected = tm.box_expected(expected, box)
+        # FIXME: with transposing these tests fail
+        obj = tm.box_expected(pi, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
 
         result = obj + other
         tm.assert_equal(result, expected)
