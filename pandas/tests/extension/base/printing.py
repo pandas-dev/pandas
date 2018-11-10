@@ -1,8 +1,9 @@
 import io
 
+import pytest
+
 import pandas as pd
 from pandas import compat
-import pytest
 
 from .base import BaseExtensionTests
 
