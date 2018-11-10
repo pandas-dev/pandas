@@ -71,7 +71,7 @@ jobs:
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
-      export TRAVIS_BUILD_DIR=$HOME
+      export TRAVIS_BUILD_DIR=`pwd`
       export DOC=true
       ci/run_build_docs.sh
     displayName: 'Building docs'
