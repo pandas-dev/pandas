@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import pytest
 
-from pandas import Index, date_range, option_context, timedelta_range
+from pandas import Index, IntervalIndex, date_range, timedelta_range
 from pandas.core.arrays import IntervalArray
 import pandas.util.testing as tm
-import pytest
 
 
 @pytest.fixture(params=[
@@ -65,26 +65,8 @@ class TestSetitem(object):
         tm.assert_extension_array_equal(result, expected)
 
 
-def test_repr_small():
-    arr = IntervalArray.from_breaks([1, 2, 3])
-    result = repr(arr)
-    expected = (
-        '<IntervalArray>\n'
-        '[(1, 2], (2, 3]]\n'
-        'Length: 2, dtype: interval[int64]'
-    )
-    assert result == expected
-
-
-def test_repr_large():
-    arr = IntervalArray.from_breaks([1, 2, 3, 4, 5, 6])
-    with option_context('display.max_seq_items', 2):
-        result = repr(arr)
-    expected = (
-        '<IntervalArray>\n'
-        '[(1, 2],\n'
-        ' ...\n'
-        ' (5, 6]] \n'
-        'Length: 5, dtype: interval[int64]'
-    )
-    assert result == expected
+def test_repr_matches():
+    idx = IntervalIndex.from_breaks([1, 2, 3])
+    a = repr(idx)
+    b = repr(idx.values)
+    assert a.replace("Index", "Array") == b
