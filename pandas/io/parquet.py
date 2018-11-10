@@ -223,6 +223,7 @@ def to_parquet(df, path, engine='auto', compression='snappy', index=None,
         while writing a partitioned dataset.
 
         .. versionchanged:: 0.24.0
+
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -236,11 +237,13 @@ def to_parquet(df, path, engine='auto', compression='snappy', index=None,
         engine's default behavior will be used.
 
         .. versionadded 0.24.0
+
     partition_cols : list, optional, default None
         Column names by which to partition the dataset
         Columns are partitioned in the order they are given
 
         .. versionadded:: 0.24.0
+
     kwargs
         Additional keyword arguments passed to the engine
     """
