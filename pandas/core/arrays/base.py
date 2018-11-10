@@ -55,7 +55,7 @@ class ExtensionArray(StringMixin):
     by overriding:
 
     * _formatter
-    * __repr__
+    * __unicode__
 
     Some methods require casting the ExtensionArray to an ndarray of Python
     objects with ``self.astype(object)``, which may be expensive. When
