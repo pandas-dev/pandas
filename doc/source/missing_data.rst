@@ -29,76 +29,26 @@ pandas.
 
 See the :ref:`cookbook<cookbook.missing_data>` for some advanced strategies.
 
-Missing data basics
--------------------
+Integer Dtypes and Missing Data
+-------------------------------
 
-When / why does data become missing?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Some might quibble over our usage of *missing*. By "missing" we simply mean
-**NA** ("not available") or "not present for whatever reason". Many data sets simply arrive with
-missing data, either because it exists and was not collected or it never
-existed. For example, in a collection of financial time series, some of the time
-series might start on different dates. Thus, values prior to the start date
-would generally be marked as missing.
-
-In pandas, one of the most common ways that missing data is **introduced** into
-a data set is by reindexing. For example:
+Because ``NaN`` is a float, a column of integers with even one missing values
+is cast to floating-point dtype (see :ref:`gotchas.intna` for more). Pandas
+provides a nullable integer array, which can be used by explicitly requesting
+the dtype:
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(5, 3), index=['a', 'c', 'e', 'f', 'h'],
-                     columns=['one', 'two', 'three'])
-   df['four'] = 'bar'
-   df['five'] = df['one'] > 0
-   df
-   df2 = df.reindex(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'])
-   df2
+   pd.Series([1, 2, np.nan, 4], dtype=pd.Int64Dtype())
 
-Values considered "missing"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-As data comes in many shapes and forms, pandas aims to be flexible with regard
-to handling missing data. While ``NaN`` is the default missing value marker for
-reasons of computational speed and convenience, we need to be able to easily
-detect this value with data of different types: floating point, integer,
-boolean, and general object. In many cases, however, the Python ``None`` will
-arise and we wish to also consider that "missing" or "not available" or "NA".
-
-.. note::
-
-   If you want to consider ``inf`` and ``-inf`` to be "NA" in computations,
-   you can set ``pandas.options.mode.use_inf_as_na = True``.
-
-.. _missing.isna:
-
-To make detecting missing values easier (and across different array dtypes),
-pandas provides the :func:`isna` and
-:func:`notna` functions, which are also methods on
-Series and DataFrame objects:
+Alternatively, the string alias ``'Int64'`` (note the capital ``"I"``) can be
+used:
 
 .. ipython:: python
 
-   df2['one']
-   pd.isna(df2['one'])
-   df2['four'].notna()
-   df2.isna()
+   pd.Series([1, 2, np.nan, 4], dtype="Int64")
 
-.. warning::
-
-   One has to be mindful that in Python (and NumPy), the ``nan's`` don't compare equal, but ``None's`` **do**.
-   Note that pandas/NumPy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
-
-   .. ipython:: python
-
-      None == None
-      np.nan == np.nan
-
-   So as compared to above, a scalar equality comparison versus a ``None/np.nan`` doesn't provide useful information.
-
-   .. ipython:: python
-
-      df2['one'] == np.nan
+See :ref:`integer_na` for more.
 
 Datetimes
 ---------
