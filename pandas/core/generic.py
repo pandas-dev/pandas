@@ -10,7 +10,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from pandas._libs import tslib, properties
+from pandas._libs import properties, Timestamp, iNaT
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
@@ -2396,6 +2396,15 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         pandas.read_sql : read a DataFrame from a table
+
+        Notes
+        -----
+        Timezone aware datetime columns will be written as
+        ``Timestamp with timezone`` type with SQLAlchemy if supported by the
+        database. Otherwise, the datetimes will be stored as timezone unaware
+        timestamps local to the original timezone.
+
+        .. versionadded:: 0.24.0
 
         References
         ----------
@@ -5091,7 +5100,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1   b    2    2.0
         2   c    3    3.0
 
-        >>> df.get_ftype_counts()
+        >>> df.get_ftype_counts()  # doctest: +SKIP
         float64:dense    1
         int64:dense      1
         object:dense     1
@@ -8142,7 +8151,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # This is a single-dimensional object.
             if not is_bool_dtype(cond):
                 raise ValueError(msg.format(dtype=cond.dtype))
-        else:
+        elif not cond.empty:
             for dt in cond.dtypes:
                 if not is_bool_dtype(dt):
                     raise ValueError(msg.format(dtype=dt))
@@ -9273,9 +9282,9 @@ class NDFrame(PandasObject, SelectionMixin):
                     tz = data.dt.tz
                     asint = data.dropna().values.view('i8')
                     names += ['top', 'freq', 'first', 'last']
-                    result += [tslib.Timestamp(top, tz=tz), freq,
-                               tslib.Timestamp(asint.min(), tz=tz),
-                               tslib.Timestamp(asint.max(), tz=tz)]
+                    result += [Timestamp(top, tz=tz), freq,
+                               Timestamp(asint.min(), tz=tz),
+                               Timestamp(asint.max(), tz=tz)]
                 else:
                     names += ['top', 'freq']
                     result += [top, freq]
@@ -10613,7 +10622,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
                 issubclass(y.dtype.type, (np.datetime64, np.timedelta64))):
             result = accum_func(y, axis)
             mask = isna(self)
-            np.putmask(result, mask, tslib.iNaT)
+            np.putmask(result, mask, iNaT)
         elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
             mask = isna(self)
             np.putmask(y, mask, mask_a)

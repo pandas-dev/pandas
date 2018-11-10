@@ -4,22 +4,21 @@ Module for formatting output data in HTML.
 """
 
 from __future__ import print_function
-from distutils.version import LooseVersion
 
+from distutils.version import LooseVersion
 from textwrap import dedent
 
-from pandas import compat
-from pandas.compat import (lzip, range, map, zip, u,
-                           OrderedDict, unichr)
+from pandas.compat import OrderedDict, lzip, map, range, u, unichr, zip
 
-import pandas.core.common as com
 from pandas.core.dtypes.generic import ABCMultiIndex
+
+from pandas import compat
+import pandas.core.common as com
 from pandas.core.config import get_option
 
+from pandas.io.formats.format import (
+    TableFormatter, buffer_put_lines, get_level_lengths)
 from pandas.io.formats.printing import pprint_thing
-from pandas.io.formats.format import (get_level_lengths,
-                                      buffer_put_lines)
-from pandas.io.formats.format import TableFormatter
 
 
 class HTMLFormatter(TableFormatter):

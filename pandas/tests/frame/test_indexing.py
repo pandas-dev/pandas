@@ -2877,6 +2877,14 @@ class TestDataFrameIndexing(TestData):
                                     'on mixed-type'):
             df.where(~isna(df), None, inplace=True)
 
+    def test_where_empty_df_and_empty_cond_having_non_bool_dtypes(self):
+        # see gh-21947
+        df = pd.DataFrame(columns=["a"])
+        cond = df.applymap(lambda x: x > 0)
+
+        result = df.where(cond)
+        tm.assert_frame_equal(result, df)
+
     def test_where_align(self):
 
         def create():
