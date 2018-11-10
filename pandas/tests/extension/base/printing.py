@@ -33,10 +33,7 @@ class BasePrintingTests(BaseExtensionTests):
             assert isinstance(result, bytes)
 
     def test_array_repr_unicode(self, data):
-        if compat.PY2:
-            result = compat.u(data)
-        else:
-            result = str(data)
+        result = compat.text_type(data)
         assert isinstance(result, compat.text_type)
 
     def test_series_repr(self, data):
