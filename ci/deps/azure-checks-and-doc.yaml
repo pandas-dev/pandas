@@ -1,20 +1,57 @@
 name: pandas
+
 channels:
   - defaults
   - conda-forge
+
 dependencies:
+  # required
   - cython>=0.28.2
+  - numpy
+  - python=3.7*
+  - python-dateutil
+  - pytz
+
+  # docs
+  - beautifulsoup4
+  - bottleneck
+  - fastparquet
+  - html5lib
+  - hypothesis>=3.58.0
+  - ipykernel
+  - ipython==6.5.0
+  - ipywidgets
+  - lxml
+  - matplotlib
+  - nbconvert
+  - nbformat
+  - nbsphinx
+  - notebook
+  - numexpr
+  - openpyxl
+  - pandoc
+  - pyarrow
+  - pyqt
+  - pytables
+  - python-snappy
+  - r
+  - rpy2
+  - scipy
+  - seaborn
+  - sphinx
+  - sqlalchemy
+  - statsmodels
+  - tzlocal
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
+
+  # checks
   - flake8>=3.5
   - flake8-comprehensions
   - flake8-rst
-  - ipython
-  - matplotlib
-  - numpy
+  - isort
   - pytest
-  - pytest-xdist
-  - pytest-cov
-  - python-dateutil
-  - pytz
-  - sphinx
   - pip:
     - cpplint

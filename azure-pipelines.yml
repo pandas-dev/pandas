@@ -49,18 +49,30 @@ jobs:
     displayName: 'Build'
     condition: true
 
-  - script: AZURE=true ci/code_checks.sh lint
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      export AZURE=true
+      ci/code_checks.sh lint
     displayName: 'Linting'
     condition: true
 
-  - script: AZURE=true ci/code_checks.sh patterns
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      export AZURE=true
+      ci/code_checks.sh patterns
     displayName: 'Looking for unwanted patterns'
     condition: true
 
-  - script: ci/code_checks.sh doctests
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      ci/code_checks.sh doctests
     displayName: 'Running doctests'
     condition: true
 
-  - script: DOC=true ci/run_build_docs.sh
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      TRAVIS_BUILD_DIR=$HOME
+      DOC=true
+      ci/run_build_docs.sh
     displayName: 'Building docs'
     condition: true
