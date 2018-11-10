@@ -2114,29 +2114,25 @@ class TestStringMethods(object):
         # If fillchar is not a charatter, normal str raises TypeError
         # 'aaa'.ljust(5, 'XY')
         # TypeError: must be char, not str
-        msg = "fillchar must be a character, not str"
-        with pytest.raises(TypeError, match=msg):
-            result = values.str.center(5, fillchar='XY')
+        template = "fillchar must be a character, not {dtype}"
 
-        msg = "fillchar must be a character, not str"
-        with pytest.raises(TypeError, match=msg):
-            result = values.str.ljust(5, fillchar='XY')
+        with pytest.raises(TypeError, match=template.format(dtype="str")):
+            values.str.center(5, fillchar='XY')
 
-        msg = "fillchar must be a character, not str"
-        with pytest.raises(TypeError, match=msg):
-            result = values.str.rjust(5, fillchar='XY')
+        with pytest.raises(TypeError, match=template.format(dtype="str")):
+            values.str.ljust(5, fillchar='XY')
 
-        msg = "fillchar must be a character, not int"
-        with pytest.raises(TypeError, match=msg):
-            result = values.str.center(5, fillchar=1)
+        with pytest.raises(TypeError, match=template.format(dtype="str")):
+            values.str.rjust(5, fillchar='XY')
 
-        msg = "fillchar must be a character, not int"
-        with pytest.raises(TypeError, match=msg):
-            result = values.str.ljust(5, fillchar=1)
+        with pytest.raises(TypeError, match=template.format(dtype="int")):
+            values.str.center(5, fillchar=1)
 
-        msg = "fillchar must be a character, not int"
-        with pytest.raises(TypeError, match=msg):
-            result = values.str.rjust(5, fillchar=1)
+        with pytest.raises(TypeError, match=template.format(dtype="int")):
+            values.str.ljust(5, fillchar=1)
+
+        with pytest.raises(TypeError, match=template.format(dtype="int")):
+            values.str.rjust(5, fillchar=1)
 
     def test_zfill(self):
         values = Series(['1', '22', 'aaa', '333', '45678'])

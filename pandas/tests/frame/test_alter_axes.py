@@ -1052,31 +1052,31 @@ class TestDataFrameAlterAxes():
         tm.assert_frame_equal(result, expected)
 
     def test_rename_axis_style_raises(self):
-        # https://github.com/pandas-dev/pandas/issues/12392
-        df = DataFrame({"A": [1, 2], "B": [1, 2]}, index=['0', '1'])
+        # see gh-12392
+        df = DataFrame({"A": [1, 2], "B": [1, 2]}, index=["0", "1"])
 
         # Named target and axis
-        with pytest.raises(TypeError, match=None):
+        over_spec_msg = ("Cannot specify both 'axis' and "
+                         "any of 'index' or 'columns'")
+        with pytest.raises(TypeError, match=over_spec_msg):
             df.rename(index=str.lower, axis=1)
 
-        with pytest.raises(TypeError, match=None):
-            df.rename(index=str.lower, axis='columns')
+        with pytest.raises(TypeError, match=over_spec_msg):
+            df.rename(index=str.lower, axis="columns")
 
-        with pytest.raises(TypeError, match=None):
-            df.rename(index=str.lower, axis='columns')
+        with pytest.raises(TypeError, match=over_spec_msg):
+            df.rename(columns=str.lower, axis="columns")
 
-        with pytest.raises(TypeError, match=None):
-            df.rename(columns=str.lower, axis='columns')
-
-        with pytest.raises(TypeError, match=None):
+        with pytest.raises(TypeError, match=over_spec_msg):
             df.rename(index=str.lower, axis=0)
 
         # Multiple targets and axis
-        with pytest.raises(TypeError, match=None):
-            df.rename(str.lower, str.lower, axis='columns')
+        with pytest.raises(TypeError, match=over_spec_msg):
+            df.rename(str.lower, str.lower, axis="columns")
 
         # Too many targets
-        with pytest.raises(TypeError, match=None):
+        over_spec_msg = "Cannot specify all of 'mapper', 'index', 'columns'."
+        with pytest.raises(TypeError, match=over_spec_msg):
             df.rename(str.lower, str.lower, str.lower)
 
         # Duplicates
