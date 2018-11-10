@@ -10,6 +10,13 @@ from pandas import TimedeltaIndex, timedelta_range, to_timedelta, Timedelta
 
 class TestTimedeltaIndex(object):
 
+    def test_int64_nocopy(self):
+        # GH#23539 check that a copy isn't made when we pass int64 data
+        #  and copy=False
+        arr = np.arange(10, dtype=np.int64)
+        tdi = TimedeltaIndex(arr, copy=False)
+        assert tdi._data.base is arr
+
     def test_infer_from_tdi(self):
         # GH#23539
         # fast-path for inferring a frequency if the passed data already
