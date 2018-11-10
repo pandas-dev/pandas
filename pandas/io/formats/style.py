@@ -1284,7 +1284,7 @@ class Styler(object):
 
         >>> df = pd.DataFrame({'trial': list(range(5)), 'conversion': [0.75, 0.85, np.nan, 0.70, 0.725]})
         >>> (df.style
-        ...    .highlight_min(color='yellow')
+        ...    .highlight_min(subset=['conversion'], color='yellow')
         ...    .pipe(format_conversion)
         ...    .set_caption("Experiment results, with minimum conversion highlighted."))
         """
