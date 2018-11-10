@@ -214,18 +214,30 @@ def test_td_constructor_value_error():
 ])
 @pytest.mark.parametrize("str_unit, unit, expectation", [
     # Expected case
-    ("", "s", tm.do_not_raise),
+    ("",
+     "s",
+     tm.do_not_raise),
 
     # Units doubly defined
-    ("s", "d", pytest.raises(ValueError,
-                             message="units were doubly specified, both as an argument (d) and inside string (s)")),
+    ("s",
+     "d",
+     pytest.raises(ValueError,
+                   message="units were doubly specified, "
+                           "both as an argument (d) and inside string (s)")
+     ),
 
     # Units doubly defined (same)
-    ("s", "s", pytest.raises(ValueError,
-                             message="units were doubly specified, both as an argument (s) and inside string (s)")),
+    ("s",
+     "s",
+     pytest.raises(ValueError,
+                   message="units were doubly specified, "
+                           "both as an argument (s) and inside string (s)")),
 
     # No units
-    ("", None, pytest.raises(ValueError, message="number string without units")),
+    ("",
+     None,
+     pytest.raises(ValueError,
+                   message="number string without units")),
 ])
 def test_string_with_unit(value, str_unit, unit, expectation):
     with expectation:
