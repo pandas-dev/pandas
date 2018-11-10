@@ -158,22 +158,6 @@ def box_df_fail(request):
     return request.param
 
 
-@pytest.fixture(params=[
-    pd.Index,
-    pd.Series,
-    pytest.param(pd.DataFrame,
-                 marks=pytest.mark.xfail(reason="Tries to broadcast "
-                                                "incorrectly",
-                                         strict=True, raises=ValueError))
-], ids=lambda x: x.__name__)
-def box_df_broadcast_failure(request):
-    """
-    Fixture equivalent to `box` but with the common failing case where
-    the DataFrame operation tries to broadcast incorrectly.
-    """
-    return request.param
-
-
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, PeriodArray],
                 ids=lambda x: x.__name__)
 def box_with_period(request):
