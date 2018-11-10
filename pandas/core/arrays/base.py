@@ -665,26 +665,12 @@ class ExtensionArray(object):
     # Printing
     # ------------------------------------------------------------------------
     def __unicode__(self):
-        result = str(self)
-        if compat.PY2:
-            encoding = get_option("display.encoding")
-            result = result.decode(encoding)
-        return result
-
-    def __bytes__(self):
-        result = str(self)
-        if compat.PY3:
-            encoding = get_option("display.encoding")
-            result = result.encode(encoding)
-        return result
-
-    def __repr__(self):
         from pandas.io.formats.printing import format_object_summary
 
         template = (
-            '<{class_name}>\n'
-            '{data}\n'
-            'Length: {length}, dtype: {dtype}'
+            u'<{class_name}>\n'
+            u'{data}\n'
+            u'Length: {length}, dtype: {dtype}'
         )
         # the short repr has no trailing newline, while the truncated
         # repr does. So we include a newline in our template, and strip
@@ -695,6 +681,18 @@ class ExtensionArray(object):
         return template.format(class_name=name, data=data,
                                length=len(self),
                                dtype=self.dtype)
+
+    def __str__(self):
+        if compat.PY3:
+            return self.__unicode__()
+        return self.__bytes__()
+
+    def __bytes__(self):
+        encoding = get_option("display.encoding")
+        return self.__unicode__().encode(encoding, 'replace')
+
+    def __repr__(self):
+        return str(self)
 
     def _formatter(self, formatter=None):
         # type: (Optional[ExtensionArrayFormatter]) -> Callable[[Any], str]
