@@ -412,9 +412,9 @@ class TestIntervalIndex(Base):
         assert idx.get_loc(0.5) == 0
         assert idx.get_loc(1) == 0
         tm.assert_numpy_array_equal(idx.get_loc(1.5),
-                                    np.array([0, 1], dtype='int64'))
+                                    np.array([0, 1], dtype='intp'))
         tm.assert_numpy_array_equal(np.sort(idx.get_loc(2)),
-                                    np.array([0, 1], dtype='int64'))
+                                    np.array([0, 1], dtype='intp'))
         assert idx.get_loc(3) == 1
         pytest.raises(KeyError, idx.get_loc, 3.5)
 
@@ -537,12 +537,12 @@ class TestIntervalIndex(Base):
 
         value = index[0].mid + Timedelta('12 hours')
         result = np.sort(index.get_loc(value))
-        expected = np.array([0, 1], dtype='int64')
+        expected = np.array([0, 1], dtype='intp')
         assert tm.assert_numpy_array_equal(result, expected)
 
         interval = Interval(index[0].left, index[1].right)
         result = np.sort(index.get_loc(interval))
-        expected = np.array([0, 1, 2], dtype='int64')
+        expected = np.array([0, 1, 2], dtype='intp')
         assert tm.assert_numpy_array_equal(result, expected)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
@@ -617,7 +617,7 @@ class TestIntervalIndex(Base):
         target = IntervalIndex.from_tuples(tuples)
 
         result = index._get_reindexer(target)
-        expected = np.array([0, 3], dtype='int64')
+        expected = np.array([0, 3], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize('breaks', [
