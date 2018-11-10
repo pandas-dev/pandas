@@ -1164,11 +1164,8 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
         if isinstance(index, MultiIndex):
             return index
         else:
-            levels = [index.values]
-            labels = [list(range(index.size))]
-            names = [index.name]
-            return MultiIndex(levels=levels, labels=labels, names=names,
-                              verify_integrity=False)
+            return MultiIndex.from_arrays([index.values],
+                                          names=[index.name])
 
     # For multi-multi joins with one overlapping level,
     # the returned index if of type Index

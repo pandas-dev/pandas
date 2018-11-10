@@ -40,6 +40,44 @@ def right():
                      columns=['j_one', 'j_two', 'j_three'])
 
 
+@pytest.fixture
+def left_multi():
+    return (
+        DataFrame(
+            dict(Origin=['A', 'A', 'B', 'B', 'C'],
+                 Destination=['A', 'B', 'A', 'C', 'A'],
+                 Period=['AM', 'AM', 'IP', 'AM', 'OP'],
+                 TripPurp=['hbw', 'nhb', 'hbo', 'nhb', 'hbw'],
+                 Trips=[1987, 3647, 2470, 4296, 4444]),
+            columns=['Origin', 'Destination', 'Period',
+                     'TripPurp', 'Trips'])
+        .set_index(['Origin', 'Destination', 'Period', 'TripPurp']))
+
+
+@pytest.fixture
+def right_multi():
+    return (
+        DataFrame(
+            dict(Origin=['A', 'A', 'B', 'B', 'C', 'C', 'E'],
+                 Destination=['A', 'B', 'A', 'B', 'A', 'B', 'F'],
+                 Period=['AM', 'AM', 'IP', 'AM', 'OP', 'IP', 'AM'],
+                 LinkType=['a', 'b', 'c', 'b', 'a', 'b', 'a'],
+                 Distance=[100, 80, 90, 80, 75, 35, 55]),
+            columns=['Origin', 'Destination', 'Period',
+                     'LinkType', 'Distance'])
+        .set_index(['Origin', 'Destination', 'Period', 'LinkType']))
+
+
+@pytest.fixture
+def on_cols_multi():
+    return ['Origin', 'Destination', 'Period']
+
+
+@pytest.fixture
+def idx_cols_multi():
+    return ['Origin', 'Destination', 'Period', 'TripPurp', 'LinkType']
+
+
 class TestMergeMulti(object):
 
     def setup_method(self):
@@ -549,66 +587,28 @@ class TestMergeMulti(object):
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture
-def left_multi():
-    return (
-        DataFrame(
-            dict(Origin=['A', 'A', 'B', 'B', 'C'],
-                 Destination=['A', 'B', 'A', 'C', 'A'],
-                 Period=['AM', 'AM', 'IP', 'AM', 'OP'],
-                 TripPurp=['hbw', 'nhb', 'hbo', 'nhb', 'hbw'],
-                 Trips=[1987, 3647, 2470, 4296, 4444]),
-            columns=['Origin', 'Destination', 'Period',
-                     'TripPurp', 'Trips'])
-        .set_index(['Origin', 'Destination', 'Period', 'TripPurp']))
-
-
-@pytest.fixture
-def right_multi():
-    return (
-        DataFrame(
-            dict(Origin=['A', 'A', 'B', 'B', 'C', 'C', 'E'],
-                 Destination=['A', 'B', 'A', 'B', 'A', 'B', 'F'],
-                 Period=['AM', 'AM', 'IP', 'AM', 'OP', 'IP', 'AM'],
-                 LinkType=['a', 'b', 'c', 'b', 'a', 'b', 'a'],
-                 Distance=[100, 80, 90, 80, 75, 35, 55]),
-            columns=['Origin', 'Destination', 'Period',
-                     'LinkType', 'Distance'])
-        .set_index(['Origin', 'Destination', 'Period', 'LinkType']))
-
-
-@pytest.fixture
-def on_cols():
-    return ['Origin', 'Destination', 'Period']
-
-
-@pytest.fixture
-def idx_cols():
-    return ['Origin', 'Destination', 'Period', 'TripPurp', 'LinkType']
-
-
 class TestJoinMultiMulti(object):
 
     def test_join_multi_multi(self, left_multi, right_multi, join_type,
-                              on_cols, idx_cols):
+                              on_cols_multi, idx_cols_multi):
         # Multi-index join tests
         expected = (pd.merge(left_multi.reset_index(),
                              right_multi.reset_index(),
-                             how=join_type, on=on_cols).set_index(idx_cols)
+                             how=join_type, on=on_cols_multi).set_index(idx_cols_multi)
                     .sort_index())
 
         result = left_multi.join(right_multi, how=join_type).sort_index()
         tm.assert_frame_equal(result, expected)
 
     def test_join_multi_empty_frames(self, left_multi, right_multi, join_type,
-                                     on_cols, idx_cols):
+                                     on_cols_multi, idx_cols_multi):
 
         left_multi = left_multi.drop(columns=left_multi.columns)
         right_multi = right_multi.drop(columns=right_multi.columns)
 
         expected = (pd.merge(left_multi.reset_index(),
                              right_multi.reset_index(),
-                             how=join_type, on=on_cols).set_index(idx_cols)
+                             how=join_type, on=on_cols_multi).set_index(idx_cols_multi)
                     .sort_index())
 
         result = left_multi.join(right_multi, how=join_type).sort_index()
