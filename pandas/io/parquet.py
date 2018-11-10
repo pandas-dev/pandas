@@ -101,7 +101,8 @@ class PyArrowImpl(BaseImpl):
         self.api = pyarrow
 
     def write(self, df, path, compression='snappy',
-              coerce_timestamps='ms', index=None, **kwargs):
+              coerce_timestamps='ms', index=None, partition_cols=None,
+              **kwargs):
         self.validate_dataframe(df)
         path, _, _, _ = get_filepath_or_buffer(path, mode='wb')
 
@@ -109,11 +110,16 @@ class PyArrowImpl(BaseImpl):
             from_pandas_kwargs = {}
         else:
             from_pandas_kwargs = {'preserve_index': index}
-
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
-        self.api.parquet.write_table(
-            table, path, compression=compression,
-            coerce_timestamps=coerce_timestamps, **kwargs)
+        if partition_cols is not None:
+            self.api.parquet.write_to_dataset(
+                table, path, compression=compression,
+                coerce_timestamps=coerce_timestamps,
+                partition_cols=partition_cols, **kwargs)
+        else:
+            self.api.parquet.write_table(
+                table, path, compression=compression,
+                coerce_timestamps=coerce_timestamps, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
         path, _, _, should_close = get_filepath_or_buffer(path)
@@ -156,11 +162,22 @@ class FastParquetImpl(BaseImpl):
             )
         self.api = fastparquet
 
-    def write(self, df, path, compression='snappy', index=None, **kwargs):
+    def write(self, df, path, compression='snappy', index=None,
+              partition_cols=None, **kwargs):
         self.validate_dataframe(df)
         # thriftpy/protocol/compact.py:339:
         # DeprecationWarning: tostring() is deprecated.
         # Use tobytes() instead.
+
+        if 'partition_on' in kwargs and partition_cols is not None:
+            raise ValueError("Cannot use both partition_on and "
+                             "partition_cols. Use partition_cols for "
+                             "partitioning data")
+        elif 'partition_on' in kwargs:
+            partition_cols = kwargs.pop('partition_on')
+
+        if partition_cols is not None:
+            kwargs['file_scheme'] = 'hive'
 
         if is_s3_url(path):
             # path is s3:// so we need to open the s3file in 'wb' mode.
@@ -174,7 +191,8 @@ class FastParquetImpl(BaseImpl):
 
         with catch_warnings(record=True):
             self.api.write(path, df, compression=compression,
-                           write_index=index, **kwargs)
+                           write_index=index, partition_on=partition_cols,
+                           **kwargs)
 
     def read(self, path, columns=None, **kwargs):
         if is_s3_url(path):
@@ -194,15 +212,18 @@ class FastParquetImpl(BaseImpl):
 
 
 def to_parquet(df, path, engine='auto', compression='snappy', index=None,
-               **kwargs):
+               partition_cols=None, **kwargs):
     """
     Write a DataFrame to the parquet format.
 
     Parameters
     ----------
-    df : DataFrame
-    path : string
-        File path
+    path : str
+        File path or Root Directory path. Will be used as Root Directory path
+        while writing a partitioned dataset.
+
+        .. versionchanged:: 0.24.0
+
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -216,11 +237,19 @@ def to_parquet(df, path, engine='auto', compression='snappy', index=None,
         engine's default behavior will be used.
 
         .. versionadded 0.24.0
+
+    partition_cols : list, optional, default None
+        Column names by which to partition the dataset
+        Columns are partitioned in the order they are given
+
+        .. versionadded:: 0.24.0
+
     kwargs
         Additional keyword arguments passed to the engine
     """
     impl = get_engine(engine)
-    return impl.write(df, path, compression=compression, index=index, **kwargs)
+    return impl.write(df, path, compression=compression, index=index,
+                      partition_cols=partition_cols, **kwargs)
 
 
 def read_parquet(path, engine='auto', columns=None, **kwargs):

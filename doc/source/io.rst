@@ -4673,6 +4673,43 @@ Passing ``index=True`` will *always* write the index, even if that's not the
 underlying engine's default behavior.
 
 
+Partitioning Parquet files
+''''''''''''''''''''''''''
+
+.. versionadded:: 0.24.0
+
+Parquet supports partitioning of data based on the values of one or more columns.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
+    df.to_parquet(fname='test', engine='pyarrow', partition_cols=['a'], compression=None)
+
+The `fname` specifies the parent directory to which data will be saved.
+The `partition_cols` are the column names by which the dataset will be partitioned.
+Columns are partitioned in the order they are given. The partition splits are
+determined by the unique values in the partition columns.
+The above example creates a partitioned dataset that may look like:
+
+.. code-block:: text
+
+    test
+    ├── a=0
+    │   ├── 0bac803e32dc42ae83fddfd029cbdebc.parquet
+    │   └──  ...
+    └── a=1
+        ├── e6ab24a4f45147b49b54a662f0c412a3.parquet
+        └── ...
+
+.. ipython:: python
+   :suppress:
+
+   from shutil import rmtree
+   try:
+       rmtree('test')
+   except Exception:
+       pass
+
 .. _io.sql:
 
 SQL Queries
