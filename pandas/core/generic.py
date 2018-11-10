@@ -7639,7 +7639,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Upsample the series into 30 second bins.
 
-        >>> series.resample('30S').asfreq()[0:5] #select first 5 rows
+        >>> series.resample('30S').asfreq()[0:5]   # Select first 5 rows
         2000-01-01 00:00:00   0.0
         2000-01-01 00:00:30   NaN
         2000-01-01 00:01:00   1.0
@@ -7673,7 +7673,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> def custom_resampler(array_like):
         ...     return np.sum(array_like) + 5
-
+        ...
         >>> series.resample('3T').apply(custom_resampler)
         2000-01-01 00:00:00     8
         2000-01-01 00:03:00    17
@@ -7760,12 +7760,11 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> days = pd.date_range('1/1/2000', periods=4, freq='D')
         >>> d2 = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
         ...            'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
-        >>> df2 = pd.DataFrame(
-        ...    d2,
-        ...    index=pd.MultiIndex.from_product(
-        ...        [days, ['morning', 'afternoon']]
-        ...    )
-        ... )
+        >>> df2 = pd.DataFrame(d2,
+        ...                    index=pd.MultiIndex.from_product([days,
+        ...                                                     ['morning',
+        ...                                                      'afternoon']]
+        ...                                                     ))
         >>> df2
                               price  volume
         2000-01-01 morning       10      50
@@ -7783,6 +7782,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2000-01-03     32     150
         2000-01-04     36      90
         """
+
         from pandas.core.resample import (resample,
                                           _maybe_process_deprecations)
         axis = self._get_axis_number(axis)
