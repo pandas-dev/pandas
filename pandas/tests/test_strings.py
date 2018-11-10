@@ -2493,7 +2493,7 @@ class TestStringMethods(object):
                       ('f g', ' ', 'h')])
         tm.assert_series_equal(result, exp)
 
-        # Not splited
+        # Not split
         values = Series(['abc', 'cde', NA, 'fgh'])
         result = values.str.partition('_', expand=False)
         exp = Series([('abc', '', ''), ('cde', '', ''), NA, ('fgh', '', '')])
@@ -2524,28 +2524,30 @@ class TestStringMethods(object):
         assert result == [v.rpartition('_') for v in values]
 
     def test_partition_index(self):
-        values = Index(['a_b_c', 'c_d_e', 'f_g_h'])
+        values = Index(['a_b_c', 'c_d_e', 'f_g_h', np.nan])
 
         result = values.str.partition('_', expand=False)
-        exp = Index(np.array([('a', '_', 'b_c'), ('c', '_', 'd_e'), ('f', '_',
-                                                                     'g_h')]))
+        exp = Index(np.array([('a', '_', 'b_c'), ('c', '_', 'd_e'),
+                              ('f', '_', 'g_h'), np.nan]))
         tm.assert_index_equal(result, exp)
         assert result.nlevels == 1
 
         result = values.str.rpartition('_', expand=False)
-        exp = Index(np.array([('a_b', '_', 'c'), ('c_d', '_', 'e'), (
-            'f_g', '_', 'h')]))
+        exp = Index(np.array([('a_b', '_', 'c'), ('c_d', '_', 'e'),
+                              ('f_g', '_', 'h'), np.nan]))
         tm.assert_index_equal(result, exp)
         assert result.nlevels == 1
 
         result = values.str.partition('_')
-        exp = Index([('a', '_', 'b_c'), ('c', '_', 'd_e'), ('f', '_', 'g_h')])
+        exp = Index([('a', '_', 'b_c'), ('c', '_', 'd_e'),
+                     ('f', '_', 'g_h'), (np.nan, np.nan, np.nan)])
         tm.assert_index_equal(result, exp)
         assert isinstance(result, MultiIndex)
         assert result.nlevels == 3
 
         result = values.str.rpartition('_')
-        exp = Index([('a_b', '_', 'c'), ('c_d', '_', 'e'), ('f_g', '_', 'h')])
+        exp = Index([('a_b', '_', 'c'), ('c_d', '_', 'e'),
+                     ('f_g', '_', 'h'), (np.nan, np.nan, np.nan)])
         tm.assert_index_equal(result, exp)
         assert isinstance(result, MultiIndex)
         assert result.nlevels == 3
