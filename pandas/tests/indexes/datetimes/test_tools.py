@@ -586,7 +586,7 @@ class TestToDatetime(object):
         # GH16774
 
         msg = "Cannot use '%W' or '%U' without day and year"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             pd.to_datetime(date, format=format)
 
     def test_iso_8601_strings_with_same_offset(self):
@@ -865,7 +865,7 @@ class TestToDatetimeUnit(object):
 
         msg = ("cannot assemble the datetimes: time data .+ does not "
                r"match format '%Y%m%d' \(match\)")
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             to_datetime(df2, cache=cache)
         result = to_datetime(df2, errors='coerce', cache=cache)
         expected = Series([Timestamp('20150204 00:00:00'),
@@ -875,7 +875,7 @@ class TestToDatetimeUnit(object):
         # extra columns
         msg = ("extra keys have been passed to the datetime assemblage: "
                r"\[foo\]")
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df2 = df.copy()
             df2['foo'] = 1
             to_datetime(df2, cache=cache)
@@ -888,7 +888,7 @@ class TestToDatetimeUnit(object):
                   ['year', 'month', 'second'],
                   ['month', 'day'],
                   ['year', 'day', 'second']]:
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 to_datetime(df[c], cache=cache)
 
         # duplicates
@@ -897,7 +897,7 @@ class TestToDatetimeUnit(object):
                          'month': [2, 20],
                          'day': [4, 5]})
         df2.columns = ['year', 'year', 'day']
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             to_datetime(df2, cache=cache)
 
         df2 = DataFrame({'year': [2015, 2016],
@@ -905,7 +905,7 @@ class TestToDatetimeUnit(object):
                          'day': [4, 5],
                          'hour': [4, 5]})
         df2.columns = ['year', 'month', 'day', 'day']
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             to_datetime(df2, cache=cache)
 
     @pytest.mark.parametrize('cache', [True, False])

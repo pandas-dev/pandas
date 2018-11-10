@@ -213,7 +213,7 @@ class TestPrinting(BaseDecimal, base.BasePrintingTests):
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")
-    with tm.assert_raises_regex(ValueError, xpr):
+    with pytest.raises(ValueError, match=xpr):
         pd.Series([0, 1, 2], dtype=DecimalDtype())
 
 

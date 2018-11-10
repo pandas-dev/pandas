@@ -214,13 +214,13 @@ class TestIntervalIndex(Base):
 
         # invalid type
         msg = 'can only insert Interval objects and NA into an IntervalIndex'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             data.insert(1, 'foo')
 
         # invalid closed
         msg = 'inserted item must be closed on the same side as the index'
         for closed in {'left', 'right', 'both', 'neither'} - {item.closed}:
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 bad_item = Interval(item.left, item.right, closed=closed)
                 data.insert(1, bad_item)
 
@@ -412,9 +412,9 @@ class TestIntervalIndex(Base):
         assert idx.get_loc(0.5) == 0
         assert idx.get_loc(1) == 0
         tm.assert_numpy_array_equal(idx.get_loc(1.5),
-                                    np.array([0, 1], dtype='int64'))
+                                    np.array([0, 1], dtype='intp'))
         tm.assert_numpy_array_equal(np.sort(idx.get_loc(2)),
-                                    np.array([0, 1], dtype='int64'))
+                                    np.array([0, 1], dtype='intp'))
         assert idx.get_loc(3) == 1
         pytest.raises(KeyError, idx.get_loc, 3.5)
 
@@ -537,12 +537,12 @@ class TestIntervalIndex(Base):
 
         value = index[0].mid + Timedelta('12 hours')
         result = np.sort(index.get_loc(value))
-        expected = np.array([0, 1], dtype='int64')
+        expected = np.array([0, 1], dtype='intp')
         assert tm.assert_numpy_array_equal(result, expected)
 
         interval = Interval(index[0].left, index[1].right)
         result = np.sort(index.get_loc(interval))
-        expected = np.array([0, 1, 2], dtype='int64')
+        expected = np.array([0, 1, 2], dtype='intp')
         assert tm.assert_numpy_array_equal(result, expected)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
@@ -617,7 +617,7 @@ class TestIntervalIndex(Base):
         target = IntervalIndex.from_tuples(tuples)
 
         result = index._get_reindexer(target)
-        expected = np.array([0, 3], dtype='int64')
+        expected = np.array([0, 3], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize('breaks', [
@@ -690,7 +690,7 @@ class TestIntervalIndex(Base):
         msg = ('Cannot index an IntervalIndex of subtype {dtype1} with '
                'values of dtype {dtype2}')
         msg = re.escape(msg.format(dtype1=breaks1.dtype, dtype2=breaks2.dtype))
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             index._maybe_convert_i8(key)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
@@ -842,7 +842,7 @@ class TestIntervalIndex(Base):
         # non-IntervalIndex
         msg = ('the other index needs to be an IntervalIndex too, but '
                'was type Int64Index')
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             set_op(Index([1, 2, 3]))
 
         # mixed closed
@@ -850,14 +850,14 @@ class TestIntervalIndex(Base):
                'that are closed on the same side')
         for other_closed in {'right', 'left', 'both', 'neither'} - {closed}:
             other = self.create_index(closed=other_closed)
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 set_op(other)
 
         # GH 19016: incompatible dtypes
         other = interval_range(Timestamp('20180101'), periods=9, closed=closed)
         msg = ('can only do {op} between two IntervalIndex objects that have '
                'compatible dtypes').format(op=op_name)
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             set_op(other)
 
     def test_isin(self, closed):
@@ -934,9 +934,9 @@ class TestIntervalIndex(Base):
         actual = self.index == self.index.left
         tm.assert_numpy_array_equal(actual, np.array([False, False]))
 
-        with tm.assert_raises_regex(TypeError, 'unorderable types'):
+        with pytest.raises(TypeError, match='unorderable types'):
             self.index > 0
-        with tm.assert_raises_regex(TypeError, 'unorderable types'):
+        with pytest.raises(TypeError, match='unorderable types'):
             self.index <= 0
         with pytest.raises(TypeError):
             self.index > np.arange(2)
@@ -1039,7 +1039,7 @@ class TestIntervalIndex(Base):
         for other_closed in {'left', 'right', 'both', 'neither'} - {closed}:
             index_other_closed = IntervalIndex.from_arrays(
                 [0, 1], [1, 2], closed=other_closed)
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 index1.append(index_other_closed)
 
     def test_is_non_overlapping_monotonic(self, closed):
@@ -1148,7 +1148,7 @@ class TestIntervalIndex(Base):
         # GH 21670
         index = interval_range(0, 5)
         msg = "invalid option for 'closed': {closed}".format(closed=bad_closed)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             index.set_closed(bad_closed)
 
     def test_is_all_dates(self):

@@ -68,7 +68,7 @@ class TestSeriesDtypes(object):
         msg = 'Cannot convert non-finite values \\(NA or inf\\) to integer'
         s = Series([value])
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s.astype(dtype)
 
     @pytest.mark.parametrize("dtype", [int, np.int8, np.int64])
@@ -404,7 +404,7 @@ class TestSeriesDtypes(object):
         s = Series(data)
 
         msg = "dtype has no unit. Please pass in"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s.astype(dtype)
 
     @pytest.mark.parametrize("dtype", np.typecodes['All'])

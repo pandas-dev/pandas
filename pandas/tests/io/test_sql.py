@@ -993,7 +993,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
             pass
 
         db_uri = "postgresql+pg8000://user:pass@host/dbname"
-        with tm.assert_raises_regex(ImportError, "pg8000"):
+        with pytest.raises(ImportError, match="pg8000"):
             sql.read_sql("select * from table", db_uri)
 
     def _make_iris_table_metadata(self):
