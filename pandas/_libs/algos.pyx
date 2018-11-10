@@ -10,7 +10,8 @@ from libc.math cimport fabs, sqrt
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray,
-                    NPY_INT64, NPY_UINT64, NPY_INT32, NPY_INT16, NPY_INT8,
+                    NPY_INT64, NPY_INT32, NPY_INT16, NPY_INT8,
+                    NPY_UINT64, NPY_UINT32, NPY_UINT16, NPY_UINT8,
                     NPY_FLOAT32, NPY_FLOAT64,
                     NPY_OBJECT,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
@@ -31,7 +32,7 @@ import missing
 
 cdef float64_t FP_ERR = 1e-13
 
-cdef double NaN = <double> np.NaN
+cdef double NaN = <double>np.NaN
 cdef double nan = NaN
 
 cdef int64_t iNaT = get_nat()
@@ -76,6 +77,8 @@ class NegInfinity(object):
     __ge__ = lambda self, other: isinstance(other, NegInfinity)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
     """
     Efficiently find the unique first-differences of the given array.
@@ -239,7 +242,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
         int64_t nobs = 0
         float64_t vx, vy, sumx, sumy, sumxx, sumyy, meanx, meany, divisor
 
-    N, K = (<object> mat).shape
+    N, K = (<object>mat).shape
 
     if minp is None:
         minpv = 1
@@ -304,7 +307,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
         int64_t nobs = 0
         float64_t vx, vy, sumx, sumxx, sumyy, mean, divisor
 
-    N, K = (<object> mat).shape
+    N, K = (<object>mat).shape
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
@@ -359,9 +362,13 @@ ctypedef fused algos_t:
     float64_t
     float32_t
     object
-    int32_t
     int64_t
+    int32_t
+    int16_t
+    int8_t
     uint64_t
+    uint32_t
+    uint16_t
     uint8_t
 
 
@@ -459,7 +466,12 @@ pad_float32 = pad["float32_t"]
 pad_object = pad["object"]
 pad_int64 = pad["int64_t"]
 pad_int32 = pad["int32_t"]
+pad_int16 = pad["int16_t"]
+pad_int8 = pad["int8_t"]
 pad_uint64 = pad["uint64_t"]
+pad_uint32 = pad["uint32_t"]
+pad_uint16 = pad["uint16_t"]
+pad_uint8 = pad["uint8_t"]
 pad_bool = pad["uint8_t"]
 
 
@@ -519,7 +531,7 @@ def pad_2d_inplace(ndarray[algos_t, ndim=2] values,
         algos_t val
         int lim, fill_count = 0
 
-    K, N = (<object> values).shape
+    K, N = (<object>values).shape
 
     # GH#2778
     if N == 0:
@@ -653,7 +665,12 @@ backfill_float32 = backfill["float32_t"]
 backfill_object = backfill["object"]
 backfill_int64 = backfill["int64_t"]
 backfill_int32 = backfill["int32_t"]
+backfill_int16 = backfill["int16_t"]
+backfill_int8 = backfill["int8_t"]
 backfill_uint64 = backfill["uint64_t"]
+backfill_uint32 = backfill["uint32_t"]
+backfill_uint16 = backfill["uint16_t"]
+backfill_uint8 = backfill["uint8_t"]
 backfill_bool = backfill["uint8_t"]
 
 
@@ -713,7 +730,7 @@ def backfill_2d_inplace(ndarray[algos_t, ndim=2] values,
         algos_t val
         int lim, fill_count = 0
 
-    K, N = (<object> values).shape
+    K, N = (<object>values).shape
 
     # GH#2778
     if N == 0:
@@ -778,7 +795,7 @@ arrmap_bool = arrmap["uint8_t"]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def is_monotonic(ndarray[algos_t] arr, bint timelike):
+def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     """
     Returns
     -------
@@ -866,7 +883,12 @@ is_monotonic_float32 = is_monotonic["float32_t"]
 is_monotonic_object = is_monotonic["object"]
 is_monotonic_int64 = is_monotonic["int64_t"]
 is_monotonic_int32 = is_monotonic["int32_t"]
+is_monotonic_int16 = is_monotonic["int16_t"]
+is_monotonic_int8 = is_monotonic["int8_t"]
 is_monotonic_uint64 = is_monotonic["uint64_t"]
+is_monotonic_uint32 = is_monotonic["uint32_t"]
+is_monotonic_uint16 = is_monotonic["uint16_t"]
+is_monotonic_uint8 = is_monotonic["uint8_t"]
 is_monotonic_bool = is_monotonic["uint8_t"]
 
 

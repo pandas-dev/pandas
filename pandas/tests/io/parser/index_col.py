@@ -8,10 +8,10 @@ the parsers defined in parsers.py
 
 import pytest
 
-import pandas.util.testing as tm
+from pandas.compat import StringIO
 
 from pandas import DataFrame, Index, MultiIndex
-from pandas.compat import StringIO
+import pandas.util.testing as tm
 
 
 class IndexColTests(object):

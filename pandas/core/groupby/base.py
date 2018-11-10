@@ -5,8 +5,10 @@ SeriesGroupBy and the DataFrameGroupBy objects.
 """
 
 import types
+
 from pandas.util._decorators import make_signature
-from pandas.core.dtypes.common import is_scalar, is_list_like
+
+from pandas.core.dtypes.common import is_list_like, is_scalar
 
 
 class GroupByMixin(object):
