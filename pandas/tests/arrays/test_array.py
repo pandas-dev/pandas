@@ -1,6 +1,7 @@
 import decimal
 
 import numpy as np
+import pytest
 
 from pandas.core.dtypes.dtypes import registry
 
@@ -10,7 +11,6 @@ from pandas.core.arrays import integer_array, period_array
 from pandas.tests.extension.decimal import (
     DecimalArray, DecimalDtype, to_decimal)
 import pandas.util.testing as tm
-import pytest
 
 
 @pytest.mark.parametrize("data, dtype, expected", [

@@ -11,6 +11,8 @@ def array(data, dtype=None, copy=False):
     """
     Create an array.
 
+    .. versionadded:: 0.24.0
+
     Parameters
     ----------
     data : Sequence[object]
