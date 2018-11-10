@@ -9,8 +9,7 @@ import numpy as np
 
 import operator
 
-from pandas import compat
-from pandas.core.config import get_option
+from pandas.core.base import StringMixin
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.errors import AbstractMethodError
 from pandas.compat.numpy import function as nv
@@ -21,7 +20,7 @@ from pandas.core.dtypes.common import is_list_like
 _not_implemented_message = "{} does not implement {}."
 
 
-class ExtensionArray(object):
+class ExtensionArray(StringMixin):
     """Abstract base class for custom 1-D array types.
 
     pandas will recognize instances of this class as proper arrays
@@ -681,18 +680,6 @@ class ExtensionArray(object):
         return template.format(class_name=name, data=data,
                                length=len(self),
                                dtype=self.dtype)
-
-    def __str__(self):
-        if compat.PY3:
-            return self.__unicode__()
-        return self.__bytes__()
-
-    def __bytes__(self):
-        encoding = get_option("display.encoding")
-        return self.__unicode__().encode(encoding, 'replace')
-
-    def __repr__(self):
-        return str(self)
 
     def _formatter(self, formatter=None):
         # type: (Optional[ExtensionArrayFormatter]) -> Callable[[Any], str]
