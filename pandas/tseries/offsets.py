@@ -814,7 +814,7 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
     holidays : list
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
-    calendar : pd.HolidayCalendar or np.
+    calendar : pd.HolidayCalendar or np.busdaycalendar
     offset : timedelta, default timedelta(0)
     """
     _prefix = 'C'
