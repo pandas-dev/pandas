@@ -110,8 +110,8 @@ class TestTimedeltas(object):
 
         # bad value for errors parameter
         msg = "errors must be one of"
-        tm.assert_raises_regex(ValueError, msg, to_timedelta,
-                               ['foo'], errors='never')
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(['foo'], errors='never')
 
         # these will error
         pytest.raises(ValueError, lambda: to_timedelta([1, 2], unit='foo'))

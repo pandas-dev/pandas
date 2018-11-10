@@ -9,7 +9,6 @@ from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
 from pandas.core.sparse.api import SparseDtype
 
 import pandas.core.dtypes.common as com
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
 
@@ -19,7 +18,7 @@ class TestPandasDtype(object):
     # Per issue GH15520
     @pytest.mark.parametrize('box', [pd.Timestamp, 'pd.Timestamp', list])
     def test_invalid_dtype_error(self, box):
-        with tm.assert_raises_regex(TypeError, 'not understood'):
+        with pytest.raises(TypeError, match='not understood'):
             com.pandas_dtype(box)
 
     @pytest.mark.parametrize('dtype', [

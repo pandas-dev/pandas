@@ -658,11 +658,11 @@ def test_transform_with_non_scalar_group():
     df = pd.DataFrame(np.random.randint(1, 10, (4, 12)),
                       columns=cols,
                       index=['A', 'C', 'G', 'T'])
-    tm.assert_raises_regex(ValueError, 'transform must return '
-                           'a scalar value for each '
-                           'group.*',
-                           df.groupby(axis=1, level=1).transform,
-                           lambda z: z.div(z.sum(axis=1), axis=0))
+
+    msg = 'transform must return a scalar value for each group.*'
+    with pytest.raises(ValueError, match=msg):
+        df.groupby(axis=1, level=1).transform(
+            lambda z: z.div(z.sum(axis=1), axis=0))
 
 
 @pytest.mark.parametrize('cols,exp,comp_func', [

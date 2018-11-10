@@ -95,8 +95,8 @@ class TestCategoricalDtype(Base):
             TypeError, lambda: CategoricalDtype.construct_from_string('foo'))
 
     def test_constructor_invalid(self):
-        with tm.assert_raises_regex(TypeError,
-                                    "CategoricalIndex.* must be called"):
+        msg = "CategoricalIndex.* must be called"
+        with pytest.raises(TypeError, match=msg):
             CategoricalDtype("category")
 
     def test_is_dtype(self):
@@ -455,12 +455,12 @@ class TestIntervalDtype(Base):
         # GH 19016
         msg = ('category, object, and string subtypes are not supported '
                'for IntervalDtype')
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)
 
     def test_construction_errors(self):
         msg = 'could not construct IntervalDtype'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             IntervalDtype('xx')
 
     def test_construction_from_string(self):
@@ -475,7 +475,7 @@ class TestIntervalDtype(Base):
         # these are invalid entirely
         msg = 'a string needs to be passed, got type'
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             IntervalDtype.construct_from_string(string)
 
     @pytest.mark.parametrize('string', [
@@ -484,7 +484,7 @@ class TestIntervalDtype(Base):
         # this is an invalid subtype
         msg = 'could not construct IntervalDtype'
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             IntervalDtype.construct_from_string(string)
 
     def test_subclass(self):
@@ -698,10 +698,10 @@ class TestCategoricalDtypeParametrized(object):
         assert result is expected
 
     def test_invalid_raises(self):
-        with tm.assert_raises_regex(TypeError, 'ordered'):
+        with pytest.raises(TypeError, match='ordered'):
             CategoricalDtype(['a', 'b'], ordered='foo')
 
-        with tm.assert_raises_regex(TypeError, 'collection'):
+        with pytest.raises(TypeError, match='collection'):
             CategoricalDtype('category')
 
     def test_mixed(self):
@@ -782,7 +782,7 @@ class TestCategoricalDtypeParametrized(object):
     def test_update_dtype_errors(self, bad_dtype):
         dtype = CategoricalDtype(list('abc'), False)
         msg = 'a CategoricalDtype must be passed to perform an update, '
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             dtype.update_dtype(bad_dtype)
 
 

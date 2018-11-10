@@ -54,7 +54,7 @@ class TestToCSV(object):
             # Python 3 is uft-8.
             if pd.compat.PY2:
                 # the encoding argument parameter should be utf-8
-                with tm.assert_raises_regex(UnicodeEncodeError, 'ascii'):
+                with pytest.raises(UnicodeEncodeError, match='ascii'):
                     df.to_csv(path)
             else:
                 df.to_csv(path)
@@ -85,7 +85,7 @@ $1$,$2$
                 assert f.read() == expected
 
         with tm.ensure_clean('test.csv') as path:
-            with tm.assert_raises_regex(TypeError, 'quotechar'):
+            with pytest.raises(TypeError, match='quotechar'):
                 df.to_csv(path, quoting=1, quotechar=None)
 
     def test_to_csv_doublequote(self):
@@ -103,7 +103,7 @@ $1$,$2$
 
         from _csv import Error
         with tm.ensure_clean('test.csv') as path:
-            with tm.assert_raises_regex(Error, 'escapechar'):
+            with pytest.raises(Error, match='escapechar'):
                 df.to_csv(path, doublequote=False)  # no escapechar set
 
     def test_to_csv_escapechar(self):

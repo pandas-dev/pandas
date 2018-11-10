@@ -82,12 +82,12 @@ def test_cython_agg_nothing_to_agg():
                        'b': ['foo', 'bar'] * 25})
     msg = "No numeric types to aggregate"
 
-    with tm.assert_raises_regex(DataError, msg):
+    with pytest.raises(DataError, match=msg):
         frame.groupby('a')['b'].mean()
 
     frame = DataFrame({'a': np.random.randint(0, 5, 50),
                        'b': ['foo', 'bar'] * 25})
-    with tm.assert_raises_regex(DataError, msg):
+    with pytest.raises(DataError, match=msg):
         frame[['b']].groupby(frame['a']).mean()
 
 
@@ -96,7 +96,7 @@ def test_cython_agg_nothing_to_agg_with_dates():
                        'b': ['foo', 'bar'] * 25,
                        'dates': pd.date_range('now', periods=50, freq='T')})
     msg = "No numeric types to aggregate"
-    with tm.assert_raises_regex(DataError, msg):
+    with pytest.raises(DataError, match=msg):
         frame.groupby('b').dates.mean()
 
 

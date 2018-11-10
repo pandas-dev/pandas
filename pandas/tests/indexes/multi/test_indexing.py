@@ -54,19 +54,17 @@ def test_slice_locs_with_type_mismatch():
     df = tm.makeTimeDataFrame()
     stacked = df.stack()
     idx = stacked.index
-    tm.assert_raises_regex(TypeError, '^Level type mismatch',
-                           idx.slice_locs, (1, 3))
-    tm.assert_raises_regex(TypeError, '^Level type mismatch',
-                           idx.slice_locs,
-                           df.index[5] + timedelta(
-                               seconds=30), (5, 2))
+    with pytest.raises(TypeError, match='^Level type mismatch'):
+        idx.slice_locs((1, 3))
+    with pytest.raises(TypeError, match='^Level type mismatch'):
+        idx.slice_locs(df.index[5] + timedelta(seconds=30), (5, 2))
     df = tm.makeCustomDataframe(5, 5)
     stacked = df.stack()
     idx = stacked.index
-    with tm.assert_raises_regex(TypeError, '^Level type mismatch'):
+    with pytest.raises(TypeError, match='^Level type mismatch'):
         idx.slice_locs(timedelta(seconds=30))
     # TODO: Try creating a UnicodeDecodeError in exception message
-    with tm.assert_raises_regex(TypeError, '^Level type mismatch'):
+    with pytest.raises(TypeError, match='^Level type mismatch'):
         idx.slice_locs(df.index[1], (16, "a"))
 
 
@@ -75,9 +73,9 @@ def test_slice_locs_not_sorted():
         lrange(4))], labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
             [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
 
-    tm.assert_raises_regex(KeyError, "[Kk]ey length.*greater than "
-                           "MultiIndex lexsort depth",
-                           index.slice_locs, (1, 0, 1), (2, 1, 0))
+    msg = "[Kk]ey length.*greater than MultiIndex lexsort depth"
+    with pytest.raises(KeyError, match=msg):
+        index.slice_locs((1, 0, 1), (2, 1, 0))
 
     # works
     sorted_index, _ = index.sortlevel(0)
@@ -172,7 +170,7 @@ def test_get_indexer():
     idx2 = Index(lrange(20))
 
     msg = "Reindexing only valid with uniquely valued Index objects"
-    with tm.assert_raises_regex(InvalidIndexError, msg):
+    with pytest.raises(InvalidIndexError, match=msg):
         idx1.get_indexer(idx2)
 
 
@@ -218,8 +216,8 @@ def test_get_indexer_consistency(idx):
         assert indexer.dtype == np.intp
     else:
         e = "Reindexing only valid with uniquely valued Index objects"
-        with tm.assert_raises_regex(InvalidIndexError, e):
-            indexer = idx.get_indexer(idx[0:2])
+        with pytest.raises(InvalidIndexError, match=e):
+            idx.get_indexer(idx[0:2])
 
     indexer, _ = idx.get_indexer_non_unique(idx[0:2])
     assert isinstance(indexer, np.ndarray)

@@ -687,7 +687,7 @@ class TestTimestampSeriesArithmetic(object):
             # with 'operate' (from core/ops.py) for the ops that are not
             # defined
             op = getattr(get_ser, op_str, None)
-            with tm.assert_raises_regex(TypeError, 'operate|cannot'):
+            with pytest.raises(TypeError, match='operate|cannot'):
                 op(test_ser)
 
         # ## timedelta64 ###
@@ -1042,9 +1042,9 @@ class TestDatetimeIndexArithmetic(object):
         idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
         idx = tm.box_expected(idx, box_with_datetime)
         msg = "cannot add"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             idx + Timestamp('2011-01-01')
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             Timestamp('2011-01-01') + idx
 
     # -------------------------------------------------------------
@@ -1268,7 +1268,7 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(result, expected)
 
         msg = 'cannot subtract .*TimedeltaIndex'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             tdi - dti
 
         # sub with timedelta64 array
@@ -1276,7 +1276,7 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(result, expected)
 
         msg = 'cannot subtract DatetimeIndex from'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             tdi.values - dti
 
     def test_dti_isub_tdi(self, tz_naive_fixture):
@@ -1292,7 +1292,7 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(result, expected)
 
         msg = 'cannot subtract .*TimedeltaIndex'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             tdi -= dti
 
         # isub with timedelta64 array
@@ -1303,7 +1303,7 @@ class TestDatetimeIndexArithmetic(object):
         msg = '|'.join(['cannot perform __neg__ with this index type:',
                         'ufunc subtract cannot use operands with types',
                         'cannot subtract DatetimeIndex from'])
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             tdi.values -= dti
 
     # -------------------------------------------------------------
@@ -1323,9 +1323,9 @@ class TestDatetimeIndexArithmetic(object):
         # GH#9631
         dti = DatetimeIndex(['2011-01-01', '2011-01-02']).tz_localize(tz)
         msg = 'cannot add DatetimeIndex and {0}'.format(type(addend).__name__)
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             dti + addend
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             addend + dti
 
     # -------------------------------------------------------------

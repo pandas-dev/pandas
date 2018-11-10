@@ -82,7 +82,7 @@ class TestSeriesArithmetic(object):
         tm.assert_series_equal(result, expected)
 
         msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
-        with tm.assert_raises_regex(IncompatibleFrequency, msg):
+        with pytest.raises(IncompatibleFrequency, match=msg):
             ts + ts.asfreq('D', how="end")
 
     def test_operators_datetimelike(self):
@@ -139,7 +139,7 @@ class TestSeriesFlexComparison(object):
         #
         msg = 'No axis named 1 for object type'
         for op in ['eq', 'ne', 'le', 'le', 'gt', 'ge']:
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 getattr(left, op)(right, axis=1)
 
 

@@ -61,17 +61,19 @@ class TestTimedeltaIndexOps(Ops):
         assert np.max(td) == Timedelta('16820 days')
 
         errmsg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, errmsg, np.min, td, out=0)
-        tm.assert_raises_regex(ValueError, errmsg, np.max, td, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(td, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(td, out=0)
 
         assert np.argmin(td) == 0
         assert np.argmax(td) == 5
 
         errmsg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(
-            ValueError, errmsg, np.argmin, td, out=0)
-        tm.assert_raises_regex(
-            ValueError, errmsg, np.argmax, td, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmin(td, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmax(td, out=0)
 
     def test_value_counts_unique(self):
         # GH 7735
@@ -317,16 +319,16 @@ class TestTimedeltaIndexOps(Ops):
         # setting with an incompatible freq
         msg = ('Inferred frequency 2D from passed values does not conform to '
                'passed frequency 5D')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.freq = '5D'
 
         # setting with a non-fixed frequency
         msg = r'<2 \* BusinessDays> is a non-fixed frequency'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.freq = '2B'
 
         # setting with non-freq string
-        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+        with pytest.raises(ValueError, match='Invalid frequency'):
             idx.freq = 'foo'
 
 

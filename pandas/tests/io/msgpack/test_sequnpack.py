@@ -5,7 +5,6 @@ from pandas.io.msgpack import Unpacker, BufferFull
 from pandas.io.msgpack import OutOfData
 
 import pytest
-import pandas.util.testing as tm
 
 
 class TestPack(object):
@@ -16,7 +15,7 @@ class TestPack(object):
 
         for data in [b"\xa5", b"h", b"a", b"l", b"l"]:
             unpacker.feed(data)
-            with tm.assert_raises_regex(StopIteration, msg):
+            with pytest.raises(StopIteration, match=msg):
                 next(iter(unpacker))
 
         unpacker.feed(b"o")

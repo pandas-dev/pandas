@@ -249,7 +249,7 @@ def test_rank_object_raises(ties_method, ascending, na_option,
                             pct, vals):
     df = DataFrame({'key': ['foo'] * 5, 'val': vals})
 
-    with tm.assert_raises_regex(TypeError, "not callable"):
+    with pytest.raises(TypeError, match="not callable"):
         df.groupby('key').rank(method=ties_method,
                                ascending=ascending,
                                na_option=na_option, pct=pct)
@@ -269,7 +269,7 @@ def test_rank_naoption_raises(ties_method, ascending, na_option, pct, vals):
     df = DataFrame({'key': ['foo'] * 5, 'val': vals})
     msg = "na_option must be one of 'keep', 'top', or 'bottom'"
 
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         df.groupby('key').rank(method=ties_method,
                                ascending=ascending,
                                na_option=na_option, pct=pct)

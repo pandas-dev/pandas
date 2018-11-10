@@ -2541,6 +2541,9 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     for use by `re.search()`. This is a port of the `assertRaisesRegexp`
     function from unittest in Python 2.7.
 
+    .. deprecated:: 0.24.0
+        Use `pytest.raises` instead.
+
     Examples
     --------
     >>> assert_raises_regex(ValueError, 'invalid literal for.*XYZ', int, 'XYZ')
@@ -2570,6 +2573,10 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     AssertionError: "banana" does not match "'str' object does not support \
 item assignment"
     """
+    warnings.warn(("assert_raises_regex has been deprecated and will "
+                   "be removed in the next release. Please use "
+                   "`pytest.raises` instead."), FutureWarning, stacklevel=2)
+
     manager = _AssertRaisesContextmanager(exception=_exception, regexp=_regexp)
     if _callable is not None:
         with manager:

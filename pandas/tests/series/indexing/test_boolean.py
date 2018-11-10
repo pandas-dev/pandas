@@ -322,11 +322,11 @@ def test_where_invalid_input(cond):
     s = Series([1, 2, 3])
     msg = "Boolean array expected for the condition"
 
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         s.where(cond)
 
     msg = "Array conditional must be same shape as self"
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         s.where([True])
 
 
@@ -335,7 +335,7 @@ def test_where_ndframe_align():
     s = Series([1, 2, 3])
 
     cond = [True]
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         s.where(cond)
 
     expected = Series([1, np.nan, np.nan])
@@ -344,7 +344,7 @@ def test_where_ndframe_align():
     tm.assert_series_equal(out, expected)
 
     cond = np.array([False, True, False, True])
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         s.where(cond)
 
     expected = Series([np.nan, 2, np.nan])

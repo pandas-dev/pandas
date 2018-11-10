@@ -65,17 +65,19 @@ class TestPeriodIndexOps(Ops):
         assert np.max(pr) == Period('2016-01-20', freq='D')
 
         errmsg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, errmsg, np.min, pr, out=0)
-        tm.assert_raises_regex(ValueError, errmsg, np.max, pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(pr, out=0)
 
         assert np.argmin(pr) == 0
         assert np.argmax(pr) == 5
 
         errmsg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(
-            ValueError, errmsg, np.argmin, pr, out=0)
-        tm.assert_raises_regex(
-            ValueError, errmsg, np.argmax, pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmin(pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmax(pr, out=0)
 
     def test_resolution(self):
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H',

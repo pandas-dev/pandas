@@ -22,7 +22,6 @@ import pandas as pd
 from pandas import Categorical
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():
@@ -213,7 +212,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     def test_add_series_with_extension_array(self, data):
         ser = pd.Series(data)
-        with tm.assert_raises_regex(TypeError, "cannot perform"):
+        with pytest.raises(TypeError, match="cannot perform"):
             ser + data
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):

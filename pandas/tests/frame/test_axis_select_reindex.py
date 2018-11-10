@@ -476,36 +476,36 @@ class TestDataFrameSelectReindex(TestData):
     def test_reindex_axis_style_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
         df = pd.DataFrame({"A": [1, 2, 3], 'B': [4, 5, 6]})
-        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
+        with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex([0, 1], ['A'], axis=1)
 
-        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
+        with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex([0, 1], ['A'], axis='index')
 
-        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
+        with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis='index')
 
-        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
+        with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis='columns')
 
-        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
+        with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex(columns=[0, 1], axis='columns')
 
-        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
+        with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], columns=[0, 1], axis='columns')
 
-        with tm.assert_raises_regex(TypeError, 'Cannot specify all'):
+        with pytest.raises(TypeError, match='Cannot specify all'):
             df.reindex([0, 1], [0], ['A'])
 
         # Mixing styles
-        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
+        with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis='index')
 
-        with tm.assert_raises_regex(TypeError, "Cannot specify both 'axis'"):
+        with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis='columns')
 
         # Duplicates
-        with tm.assert_raises_regex(TypeError, "multiple values"):
+        with pytest.raises(TypeError, match="multiple values"):
             df.reindex([0, 1], labels=[0, 1])
 
     def test_reindex_single_named_indexer(self):
@@ -820,23 +820,23 @@ class TestDataFrameSelectReindex(TestData):
         tm.assert_frame_equal(filtered, expected)
 
         # pass in None
-        with tm.assert_raises_regex(TypeError, 'Must pass'):
+        with pytest.raises(TypeError, match='Must pass'):
             self.frame.filter()
-        with tm.assert_raises_regex(TypeError, 'Must pass'):
+        with pytest.raises(TypeError, match='Must pass'):
             self.frame.filter(items=None)
-        with tm.assert_raises_regex(TypeError, 'Must pass'):
+        with pytest.raises(TypeError, match='Must pass'):
             self.frame.filter(axis=1)
 
         # test mutually exclusive arguments
-        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
+        with pytest.raises(TypeError, match='mutually exclusive'):
             self.frame.filter(items=['one', 'three'], regex='e$', like='bbi')
-        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
+        with pytest.raises(TypeError, match='mutually exclusive'):
             self.frame.filter(items=['one', 'three'], regex='e$', axis=1)
-        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
+        with pytest.raises(TypeError, match='mutually exclusive'):
             self.frame.filter(items=['one', 'three'], regex='e$')
-        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
+        with pytest.raises(TypeError, match='mutually exclusive'):
             self.frame.filter(items=['one', 'three'], like='bbi', axis=0)
-        with tm.assert_raises_regex(TypeError, 'mutually exclusive'):
+        with pytest.raises(TypeError, match='mutually exclusive'):
             self.frame.filter(items=['one', 'three'], like='bbi')
 
         # objects
@@ -1160,5 +1160,5 @@ class TestDataFrameSelectReindex(TestData):
     @pytest.mark.parametrize('drop_labels', [[1, 4], [4, 5]])
     def test_drop_non_empty_list(self, index, drop_labels):
         # GH 21494
-        with tm.assert_raises_regex(KeyError, 'not found in axis'):
+        with pytest.raises(KeyError, match='not found in axis'):
             pd.DataFrame(index=index).drop(drop_labels)

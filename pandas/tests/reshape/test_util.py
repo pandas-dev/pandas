@@ -1,4 +1,4 @@
-
+import pytest
 import numpy as np
 from pandas import date_range, Index
 import pandas.util.testing as tm
@@ -41,9 +41,12 @@ class TestCartesianProduct(object):
         expected = []
         assert result == expected
 
-    def test_invalid_input(self):
-        invalid_inputs = [1, [1], [1, 2], [[1], 2],
-                          'a', ['a'], ['a', 'b'], [['a'], 'b']]
+    @pytest.mark.parametrize("X", [
+        1, [1], [1, 2], [[1], 2],
+        'a', ['a'], ['a', 'b'], [['a'], 'b']
+    ])
+    def test_invalid_input(self, X):
         msg = "Input must be a list-like of list-likes"
-        for X in invalid_inputs:
-            tm.assert_raises_regex(TypeError, msg, cartesian_product, X=X)
+
+        with pytest.raises(TypeError, match=msg):
+            cartesian_product(X=X)

@@ -127,13 +127,13 @@ class TestDataFrameConcatCommon(TestData):
                        columns=['foo', 'bar', 'baz', 'qux'])
 
         series = df.loc[4]
-        with tm.assert_raises_regex(ValueError,
-                                    'Indexes have overlapping values'):
+        msg = 'Indexes have overlapping values'
+        with pytest.raises(ValueError, match=msg):
             df.append(series, verify_integrity=True)
+
         series.name = None
-        with tm.assert_raises_regex(TypeError,
-                                    'Can only append a Series if '
-                                    'ignore_index=True'):
+        msg = 'Can only append a Series if ignore_index=True'
+        with pytest.raises(TypeError, match=msg):
             df.append(series, verify_integrity=True)
 
         result = df.append(series[::-1], ignore_index=True)
@@ -321,7 +321,7 @@ class TestDataFrameConcatCommon(TestData):
 
         other = DataFrame([[2., nan],
                            [nan, 7]], index=[1, 3], columns=[1, 2])
-        with tm.assert_raises_regex(ValueError, "Data overlaps"):
+        with pytest.raises(ValueError, match="Data overlaps"):
             df.update(other, raise_conflict=True)
 
     def test_update_from_non_df(self):
@@ -470,7 +470,7 @@ class TestDataFrameConcatCommon(TestData):
         assert_frame_equal(concatted_1_series, expected_columns_series)
 
         # Testing ValueError
-        with tm.assert_raises_regex(ValueError, 'No axis named'):
+        with pytest.raises(ValueError, match='No axis named'):
             pd.concat([series1, series2], axis='something')
 
     def test_concat_numerical_names(self):

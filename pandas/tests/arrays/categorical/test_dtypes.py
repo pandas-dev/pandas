@@ -120,7 +120,7 @@ class TestCategoricalDtypes(object):
         tm.assert_numpy_array_equal(result, expected)
 
         msg = 'could not convert string to float'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             cat.astype(float)
 
         # numeric

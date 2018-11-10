@@ -694,12 +694,12 @@ class TestEvalNumexprPandas(object):
         # GH 18221
         df = pd.DataFrame([[0, 0, 0]], columns=['foo', 'bar', 'class'])
         msg = "Python keyword not valid identifier in numexpr query"
-        with tm.assert_raises_regex(SyntaxError, msg):
+        with pytest.raises(SyntaxError, match=msg):
             df.query('class == 0')
 
         df = pd.DataFrame()
         df.index.name = 'lambda'
-        with tm.assert_raises_regex(SyntaxError, msg):
+        with pytest.raises(SyntaxError, match=msg):
             df.query('lambda == 0')
 
 
@@ -1392,11 +1392,11 @@ class TestOperationsNumExprPandas(object):
         msg = "Cannot assign expression output to target"
         expression = "a = 1 + 2"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.eval(expression, target=invalid_target, inplace=True)
 
         if hasattr(invalid_target, "copy"):
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 self.eval(expression, target=invalid_target, inplace=False)
 
     @pytest.mark.parametrize("invalid_target", [1, "cat", (1, 3)])
@@ -1404,7 +1404,7 @@ class TestOperationsNumExprPandas(object):
         msg = "Cannot return a copy of the target"
         expression = "a = 1 + 2"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.eval(expression, target=invalid_target, inplace=False)
 
     @pytest.mark.parametrize("target", [1, "cat", [1, 2],
@@ -1415,7 +1415,7 @@ class TestOperationsNumExprPandas(object):
         assert self.eval(expression, target=target, inplace=False) == 3
 
         msg = "Cannot operate inplace if there is no assignment"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.eval(expression, target=target, inplace=True)
 
     def test_basic_period_index_boolean_expression(self):
@@ -1692,17 +1692,18 @@ class TestMathPythonPython(object):
 
     def test_undefined_func(self):
         df = DataFrame({'a': np.random.randn(10)})
-        with tm.assert_raises_regex(
-                ValueError, "\"mysin\" is not a supported function"):
+        msg = "\"mysin\" is not a supported function"
+
+        with pytest.raises(ValueError, match=msg):
             df.eval("mysin(a)",
                     engine=self.engine,
                     parser=self.parser)
 
     def test_keyword_arg(self):
         df = DataFrame({'a': np.random.randn(10)})
-        with tm.assert_raises_regex(TypeError,
-                                    "Function \"sin\" does not support "
-                                    "keyword arguments"):
+        msg = "Function \"sin\" does not support keyword arguments"
+
+        with pytest.raises(TypeError, match=msg):
             df.eval("sin(x=a)",
                     engine=self.engine,
                     parser=self.parser)
@@ -1763,16 +1764,16 @@ class TestScope(object):
 
 @td.skip_if_no_ne
 def test_invalid_engine():
-    tm.assert_raises_regex(KeyError, 'Invalid engine \'asdf\' passed',
-                           pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
-                           engine='asdf')
+    msg = 'Invalid engine \'asdf\' passed'
+    with pytest.raises(KeyError, match=msg):
+        pd.eval('x + y', local_dict={'x': 1, 'y': 2}, engine='asdf')
 
 
 @td.skip_if_no_ne
 def test_invalid_parser():
-    tm.assert_raises_regex(KeyError, 'Invalid parser \'asdf\' passed',
-                           pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
-                           parser='asdf')
+    msg = 'Invalid parser \'asdf\' passed'
+    with pytest.raises(KeyError, match=msg):
+        pd.eval('x + y', local_dict={'x': 1, 'y': 2}, parser='asdf')
 
 
 _parsers = {'python': PythonExprVisitor, 'pytables': pytables.ExprVisitor,
@@ -1809,20 +1810,18 @@ def test_invalid_local_variable_reference(engine, parser):
 
     for _expr in exprs:
         if parser != 'pandas':
-            with tm.assert_raises_regex(SyntaxError,
-                                        "The '@' prefix is only"):
+            with pytest.raises(SyntaxError, match="The '@' prefix is only"):
                 pd.eval(_expr, engine=engine, parser=parser)
         else:
-            with tm.assert_raises_regex(SyntaxError,
-                                        "The '@' prefix is not"):
+            with pytest.raises(SyntaxError, match="The '@' prefix is not"):
                 pd.eval(_expr, engine=engine, parser=parser)
 
 
 def test_numexpr_builtin_raises(engine, parser):
     sin, dotted_line = 1, 2
     if engine == 'numexpr':
-        with tm.assert_raises_regex(NumExprClobberingError,
-                                    'Variables in expression .+'):
+        msg = 'Variables in expression .+'
+        with pytest.raises(NumExprClobberingError, match=msg):
             pd.eval('sin + dotted_line', engine=engine, parser=parser)
     else:
         res = pd.eval('sin + dotted_line', engine=engine, parser=parser)
@@ -1831,21 +1830,20 @@ def test_numexpr_builtin_raises(engine, parser):
 
 def test_bad_resolver_raises(engine, parser):
     cannot_resolve = 42, 3.0
-    with tm.assert_raises_regex(TypeError, 'Resolver of type .+'):
+    with pytest.raises(TypeError, match='Resolver of type .+'):
         pd.eval('1 + 2', resolvers=cannot_resolve, engine=engine,
                 parser=parser)
 
 
 def test_empty_string_raises(engine, parser):
     # GH 13139
-    with tm.assert_raises_regex(ValueError,
-                                'expr cannot be an empty string'):
+    with pytest.raises(ValueError, match="expr cannot be an empty string"):
         pd.eval('', engine=engine, parser=parser)
 
 
 def test_more_than_one_expression_raises(engine, parser):
-    with tm.assert_raises_regex(SyntaxError,
-                                'only a single expression is allowed'):
+    with pytest.raises(SyntaxError, match=("only a single expression "
+                                           "is allowed")):
         pd.eval('1 + 1; 2 + 2', engine=engine, parser=parser)
 
 

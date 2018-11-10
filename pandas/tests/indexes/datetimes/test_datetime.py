@@ -95,8 +95,8 @@ class TestDatetimeIndex(object):
 
     def test_hash_error(self):
         index = date_range('20010101', periods=10)
-        with tm.assert_raises_regex(TypeError, "unhashable type: %r" %
-                                    type(index).__name__):
+        with pytest.raises(TypeError, match=("unhashable type: %r" %
+                                             type(index).__name__)):
             hash(index)
 
     def test_stringified_slice_with_tz(self):
@@ -303,9 +303,8 @@ class TestDatetimeIndex(object):
             c_idx_type='p', r_idx_type='dt')
         s = df.iloc[:5, 0]
 
-        with tm.assert_raises_regex(ValueError,
-                                    'can only call with other '
-                                    'PeriodIndex-ed objects'):
+        msg = 'can only call with other PeriodIndex-ed objects'
+        with pytest.raises(ValueError, match=msg):
             df.columns.join(s.index, how=join_type)
 
     def test_factorize(self):

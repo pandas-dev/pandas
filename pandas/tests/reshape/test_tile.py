@@ -205,8 +205,8 @@ class TestCut(object):
         tm.assert_categorical_equal(factor, expected)
 
     def test_qcut_all_bins_same(self):
-        tm.assert_raises_regex(ValueError, "edges.*unique", qcut,
-                               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 3)
+        with pytest.raises(ValueError, match="edges.*unique"):
+            qcut([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 3)
 
     def test_cut_out_of_bounds(self):
         arr = np.random.randn(100)

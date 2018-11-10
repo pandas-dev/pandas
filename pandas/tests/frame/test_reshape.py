@@ -66,7 +66,7 @@ class TestDataFrameReshape(TestData):
         data = DataFrame({'a': ['bar', 'bar', 'foo', 'foo', 'foo'],
                           'b': ['one', 'two', 'one', 'one', 'two'],
                           'c': [1., 2., 3., 3., 4.]})
-        with tm.assert_raises_regex(ValueError, 'duplicate entries'):
+        with pytest.raises(ValueError, match='duplicate entries'):
             data.pivot('a', 'b', 'c')
 
     def test_pivot_empty(self):
@@ -317,7 +317,7 @@ class TestDataFrameReshape(TestData):
 
         # Fill with non-category results in a TypeError
         msg = r"'fill_value' \('d'\) is not in"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             data.unstack(fill_value='d')
 
         # Fill with category value replaces missing values as expected

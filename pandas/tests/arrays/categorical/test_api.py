@@ -50,9 +50,9 @@ class TestCategoricalAPI(object):
 
         # removed in 0.19.0
         msg = "can\'t set attribute"
-        with tm.assert_raises_regex(AttributeError, msg):
+        with pytest.raises(AttributeError, match=msg):
             cat.ordered = True
-        with tm.assert_raises_regex(AttributeError, msg):
+        with pytest.raises(AttributeError, match=msg):
             cat.ordered = False
 
     def test_rename_categories(self):

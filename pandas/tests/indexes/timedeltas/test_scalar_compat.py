@@ -3,6 +3,7 @@
 Tests for TimedeltaIndex methods behaving like their Timedelta counterparts
 """
 
+import pytest
 import numpy as np
 
 import pandas as pd
@@ -51,13 +52,13 @@ class TestVectorizedTimedelta(object):
         assert elt.round(freq='H') == expected_elt
 
         msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             td.round(freq='foo')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             elt.round(freq='foo')
 
         msg = "<MonthEnd> is a non-fixed frequency"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             td.round(freq='M')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             elt.round(freq='M')

@@ -92,8 +92,8 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_hash_error(self):
         index = period_range('20010101', periods=10)
-        with tm.assert_raises_regex(TypeError, "unhashable type: %r" %
-                                    type(index).__name__):
+        with pytest.raises(TypeError, match=("unhashable type: %r" %
+                                             type(index).__name__)):
             hash(index)
 
     def test_make_time_series(self):
@@ -452,8 +452,8 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_index_equal(np.repeat(index, 2), expected)
 
         msg = "the 'axis' parameter is not supported"
-        tm.assert_raises_regex(
-            ValueError, msg, np.repeat, index, 2, axis=1)
+        with pytest.raises(ValueError, match=msg):
+            np.repeat(index, 2, axis=1)
 
     def test_pindex_multiples(self):
         pi = PeriodIndex(start='1/1/11', end='12/31/11', freq='2M')
@@ -568,5 +568,5 @@ def test_maybe_convert_timedelta():
     assert pi._maybe_convert_timedelta(2) == 2
 
     offset = offsets.BusinessDay()
-    with tm.assert_raises_regex(ValueError, 'freq'):
+    with pytest.raises(ValueError, match='freq'):
         pi._maybe_convert_timedelta(offset)

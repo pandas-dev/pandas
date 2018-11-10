@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import pandas.util.testing as tm
+import pytest
 
 from pandas.tseries import offsets
 from pandas._libs.tslibs.frequencies import (get_rule_month,
@@ -14,7 +14,7 @@ def assert_aliases_deprecated(freq, expected, aliases):
     assert (_period_str_to_code(freq) == expected)
 
     for alias in aliases:
-        with tm.assert_raises_regex(ValueError, INVALID_FREQ_ERR_MSG):
+        with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             _period_str_to_code(alias)
 
 

@@ -305,7 +305,8 @@ class TestCategoricalAnalytics(object):
         tm.assert_categorical_equal(np.repeat(cat, 2), exp)
 
         msg = "the 'axis' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.repeat, cat, 2, axis=1)
+        with pytest.raises(ValueError, match=msg):
+            np.repeat(cat, 2, axis=1)
 
     def test_isna(self):
         exp = np.array([False, False, True])

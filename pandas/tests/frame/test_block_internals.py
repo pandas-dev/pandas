@@ -474,7 +474,7 @@ starting,ending,measure
 
         # via astype, but errors
         converted = float_string_frame.copy()
-        with tm.assert_raises_regex(ValueError, 'invalid literal'):
+        with pytest.raises(ValueError, match='invalid literal'):
             converted['H'].astype('int32')
 
         # mixed in a single column

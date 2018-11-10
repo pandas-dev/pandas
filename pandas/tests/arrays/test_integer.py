@@ -453,17 +453,17 @@ class TestCasting(object):
 
         msg = "cannot safely"
         arr = [1.2, 2.3, 3.7]
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             integer_array(arr, dtype=dtype)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             pd.Series(arr).astype(dtype)
 
         arr = [1.2, 2.3, 3.7, np.nan]
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             integer_array(arr, dtype=dtype)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             pd.Series(arr).astype(dtype)
 
 
@@ -683,11 +683,11 @@ def test_reduce_to_float(op):
 
 
 def test_astype_nansafe():
-    # https://github.com/pandas-dev/pandas/pull/22343
+    # see gh-22343
     arr = integer_array([np.nan, 1, 2], dtype="Int8")
+    msg = "cannot convert float NaN to integer"
 
-    with tm.assert_raises_regex(
-            ValueError, 'cannot convert float NaN to integer'):
+    with pytest.raises(ValueError, match=msg):
         arr.astype('uint32')
 
 

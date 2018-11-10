@@ -41,12 +41,12 @@ class TestPeriodIndex(object):
     def test_slice_with_zero_step_raises(self):
         ts = Series(np.arange(20),
                     period_range('2014-01', periods=20, freq='M'))
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: ts[::0])
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: ts.loc[::0])
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: ts.loc[::0])
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            ts[::0]
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            ts.loc[::0]
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            ts.loc[::0]
 
     def test_slice_keep_name(self):
         idx = period_range('20010101', periods=10, freq='D', name='bob')

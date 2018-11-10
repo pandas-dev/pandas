@@ -54,7 +54,7 @@ class TestToNumeric(object):
     def test_error(self):
         s = pd.Series([1, -3.14, 'apple'])
         msg = 'Unable to parse string "apple" at position 2'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             to_numeric(s, errors='raise')
 
         res = to_numeric(s, errors='ignore')
@@ -67,13 +67,13 @@ class TestToNumeric(object):
 
         s = pd.Series(['orange', 1, -3.14, 'apple'])
         msg = 'Unable to parse string "orange" at position 0'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             to_numeric(s, errors='raise')
 
     def test_error_seen_bool(self):
         s = pd.Series([True, False, 'apple'])
         msg = 'Unable to parse string "apple" at position 2'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             to_numeric(s, errors='raise')
 
         res = to_numeric(s, errors='ignore')
@@ -166,7 +166,7 @@ class TestToNumeric(object):
         # see gh-11776
         df = pd.DataFrame({"a": [1, -3.14, 7], "b": ["4", "5", "6"]})
         kwargs = dict(errors=errors) if errors is not None else dict()
-        error_ctx = tm.assert_raises_regex(TypeError, "1-d array")
+        error_ctx = pytest.raises(TypeError, match="1-d array")
 
         with error_ctx:
             to_numeric(df, **kwargs)
@@ -269,7 +269,7 @@ class TestToNumeric(object):
         res = pd.to_numeric(s, errors='ignore')
         tm.assert_series_equal(res, pd.Series([[10.0, 2], 1.0, 'apple']))
 
-        with tm.assert_raises_regex(TypeError, "Invalid object type"):
+        with pytest.raises(TypeError, match="Invalid object type"):
             pd.to_numeric(s)
 
     @pytest.mark.parametrize("data", [
@@ -283,7 +283,7 @@ class TestToNumeric(object):
         invalid_downcast = "unsigned-integer"
         msg = "invalid downcasting method provided"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             pd.to_numeric(data, downcast=invalid_downcast)
 
         expected = np.array([1, 2, 3], dtype=np.int64)
@@ -436,5 +436,5 @@ class TestToNumeric(object):
         tm.assert_series_equal(result, s)
 
         msg = "Unable to parse string"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             to_numeric(s, errors="raise")
