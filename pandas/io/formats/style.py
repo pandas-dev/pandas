@@ -1275,18 +1275,18 @@ class Styler(object):
 
         Examples
         --------
-        >>> def set_standard_formatting(styler):
+        >>> def format_conversion(styler):
         ...     return (styler.set_properties(**{'text-align': 'right'})
-        ...                   .format({'X': '{:.1%}'}))
+        ...                   .format({'conversion': '{:.1%}'}))
 
-        The user-defined highlight function above can be called within a
+        The user-defined `format_conversion` function above can be called within a
         sequence of other style modifications:
 
-        >>> df = pd.DataFrame({'A': list(range(-1, 4)), 'X': np.arange(0.2, 1.2, 0.2)})
+        >>> df = pd.DataFrame({'trial': list(range(5)), 'conversion': [0.75, 0.85, np.nan, 0.70, 0.725]})
         >>> (df.style
-        ...    .set_properties(subset=['X'], **{'background-color': 'yellow'})
-        ...    .pipe(set_standard_formatting)
-        ...    .set_caption("Results with column 'X' highlighted."))
+        ...    .highlight_min(color='yellow')
+        ...    .pipe(format_conversion)
+        ...    .set_caption("Experiment results, with minimum conversion highlighted."))
         """
         return com._pipe(self, func, *args, **kwargs)
 
