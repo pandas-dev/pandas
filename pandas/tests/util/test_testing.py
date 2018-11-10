@@ -884,3 +884,13 @@ def test_create_temp_directory():
         assert os.path.exists(path)
         assert os.path.isdir(path)
     assert not os.path.exists(path)
+
+
+def test_assert_raises_regex_deprecated():
+    # see gh-23592
+
+    with tm.assert_produces_warning(FutureWarning):
+        msg = "Not equal!"
+
+        with tm.assert_raises_regex(AssertionError, msg):
+            assert 1 == 2, msg
