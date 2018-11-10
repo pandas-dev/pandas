@@ -807,7 +807,6 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
     Parameters
     ----------
     n : int, default 1
-    offset : timedelta, default timedelta(0)
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
@@ -815,7 +814,8 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
     holidays : list
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
-    calendar : pd.HolidayCalendar or np.busdaycalendar
+    calendar : pd.HolidayCalendar or np.
+    offset : timedelta, default timedelta(0)
     """
     _prefix = 'C'
     _attributes = frozenset(['n', 'normalize',
@@ -958,7 +958,6 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
     Parameters
     ----------
     n : int, default 1
-    offset : timedelta, default timedelta(0)
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
@@ -967,6 +966,7 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
+    offset : timedelta, default timedelta(0)
     """
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])

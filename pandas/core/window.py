@@ -472,6 +472,7 @@ class Window(_Window):
     on : string, optional
         For a DataFrame, column on which to calculate
         the rolling window, rather than the index
+    axis : int or string, default 0
     closed : string, default None
         Make the interval closed on the 'right', 'left', 'both' or
         'neither' endpoints.
@@ -480,8 +481,6 @@ class Window(_Window):
         for fixed windows.
 
         .. versionadded:: 0.20.0
-
-    axis : int or string, default 0
 
     Returns
     -------
