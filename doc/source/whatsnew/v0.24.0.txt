@@ -99,7 +99,9 @@ Reduction and groupby operations such as 'sum' work.
 
 .. warning::
 
-   The Integer NA support currently uses the captilized dtype version, e.g. ``Int8`` as compared to the traditional ``int8``. This may be changed at a future date.
+   The Integer NA support currently uses the capitalized dtype version, e.g. ``Int8`` as compared to the traditional ``int8``. This may be changed at a future date.
+
+See :ref:`integer_na` for more.
 
 .. _whatsnew_0240.enhancements.read_html:
 

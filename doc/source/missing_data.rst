@@ -760,3 +760,19 @@ However, these can be filled in using :meth:`~DataFrame.fillna` and it will work
 
    reindexed[crit.fillna(False)]
    reindexed[crit.fillna(True)]
+
+Pandas provides a nullable integer dtype, but you must explicitly request it
+when creating the series or column. Notice that we use a capital "I" in
+the ``dtype="Int64"``.
+
+.. ipython:: python
+
+   s = pd.Series(np.random.randn(5), index=[0, 2, 4, 6, 7],
+                 dtype="Int64")
+   s > 0
+   (s > 0).dtype
+   crit = (s > 0).reindex(list(range(8)))
+   crit
+   crit.dtype
+
+See :ref:`integer_na` for more.

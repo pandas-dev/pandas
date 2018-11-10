@@ -228,8 +228,17 @@ arrays. For example:
    s2.dtype
 
 This trade-off is made largely for memory and performance reasons, and also so
-that the resulting ``Series`` continues to be "numeric". One possibility is to 
-use ``dtype=object`` arrays instead.
+that the resulting ``Series`` continues to be "numeric".
+
+If you need to represent integers with possibly missing values, use one of
+the ``"Int"`` dtypes provided by pandas
+
+* :class:`Int8Dtype`
+* :class:`Int16Dtype`
+* :class:`Int32Dtype`
+* :class:`Int64Dtype`
+
+See :ref:`integer_na` for more.
 
 ``NA`` type promotions
 ~~~~~~~~~~~~~~~~~~~~~~
