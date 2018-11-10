@@ -1013,21 +1013,21 @@ class Panel(NDFrame):
 
         Returns a Panel with the square root of each element
 
-        >>> p = pd.Panel(np.random.rand(4,3,2))
+        >>> p = pd.Panel(np.random.rand(4, 3, 2))  # doctest: +SKIP
         >>> p.apply(np.sqrt)
 
         Equivalent to p.sum(1), returning a DataFrame
 
-        >>> p.apply(lambda x: x.sum(), axis=1)
+        >>> p.apply(lambda x: x.sum(), axis=1)  # doctest: +SKIP
 
         Equivalent to previous:
 
-        >>> p.apply(lambda x: x.sum(), axis='major')
+        >>> p.apply(lambda x: x.sum(), axis='major')  # doctest: +SKIP
 
         Return the shapes of each DataFrame over axis 2 (i.e the shapes of
         items x major), as a Series
 
-        >>> p.apply(lambda x: x.shape, axis=(0,1))
+        >>> p.apply(lambda x: x.shape, axis=(0,1))  # doctest: +SKIP
 
         Returns
         -------

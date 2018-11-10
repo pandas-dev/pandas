@@ -1567,7 +1567,6 @@ cdef class _Period(object):
 
     @classmethod
     def _maybe_convert_freq(cls, object freq):
-
         if isinstance(freq, (int, tuple)):
             code, stride = get_freq_code(freq)
             freq = get_freq_str(code, stride)
