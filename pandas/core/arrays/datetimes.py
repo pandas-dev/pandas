@@ -254,9 +254,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')
         freq = to_offset(freq)
-        # TODO: Remove when _Day replaces Day
-        if isinstance(freq, Day):
-            freq = _Day(freq.n)
 
         if start is not None:
             start = Timestamp(start)
@@ -293,6 +290,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                 end, end.tz, start.tz, freq, tz
             )
         if freq is not None:
+            # TODO: Remove when _Day replaces Day
+            if isinstance(freq, Day) and tz is not None:
+                freq = _Day(freq.n)
             # TODO: consider re-implementing _cached_range; GH#17914
             index = _generate_regular_range(cls, start, end, periods, freq)
 
