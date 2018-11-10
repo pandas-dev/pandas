@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import pytest
 
 from pandas.core.dtypes.generic import ABCIndexClass
 
@@ -11,7 +12,6 @@ from pandas.core.arrays.integer import (
     UInt32Dtype, UInt64Dtype)
 from pandas.tests.extension.base import BaseOpsUtil
 import pandas.util.testing as tm
-import pytest
 
 
 def make_data():

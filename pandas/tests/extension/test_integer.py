@@ -14,6 +14,7 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
 import numpy as np
+import pytest
 
 from pandas.core.dtypes.common import is_extension_array_dtype
 
@@ -23,7 +24,6 @@ from pandas.core.arrays.integer import (
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype, UInt16Dtype,
     UInt32Dtype, UInt64Dtype)
 from pandas.tests.extension import base
-import pytest
 
 
 def make_data():

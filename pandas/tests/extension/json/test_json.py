@@ -1,12 +1,13 @@
 import collections
 import operator
 
+import pytest
+
 from pandas.compat import PY2, PY36
 
 import pandas as pd
 from pandas.tests.extension import base
 import pandas.util.testing as tm
-import pytest
 
 from .array import JSONArray, JSONDtype, make_data
 
