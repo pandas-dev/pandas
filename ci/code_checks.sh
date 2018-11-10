@@ -5,16 +5,18 @@
 # This script is intended for both the CI and to check locally that code standards are
 # respected. We are currently linting (PEP-8 and similar), looking for patterns of
 # common mistakes (sphinx directives with missing blank lines, old style classes,
-# unwanted imports...), and we also run doctests here (currently some files only).
-# In the future we may want to add the validation of docstrings and other checks here.
+# unwanted imports...), we run doctests here (currently some files only), and we
+# validate formatting error in docstrings.
 #
 # Usage:
 #   $ ./ci/code_checks.sh             # run all checks
 #   $ ./ci/code_checks.sh lint        # run linting only
 #   $ ./ci/code_checks.sh patterns    # check for patterns that should not exist
 #   $ ./ci/code_checks.sh doctests    # run doctests
+#   $ ./ci/code_checks.sh docstrings  # validate docstring errors
 
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" ]] || { echo "Unknown command $1. Usage: $0 [lint|patterns|doctests]"; exit 9999; }
+[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" || "$1" == "docstrings" ]] || \
+    { echo "Unknown command $1. Usage: $0 [lint|patterns|doctests|docstrings]"; exit 9999; }
 
 source activate pandas
 RET=0
@@ -189,6 +191,15 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         pandas/core/indexes/interval.py \
         pandas/core/arrays/interval.py \
         -k"-from_arrays -from_breaks -from_intervals -from_tuples -get_loc -set_closed -to_tuples -interval_range"
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+fi
+
+### DOCSTRINGS ###
+if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
+
+    MSG='Validate docstrings (SS04, EX04)' ; echo $MSG
+    scripts/validate_docstrings.py --format=azure --errors=SS04,EX04
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
