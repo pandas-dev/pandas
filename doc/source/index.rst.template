@@ -139,6 +139,7 @@ See the package overview for more detail about what's in the library.
     timeseries
     timedeltas
     categorical
+    integer_na
     visualization
     style
     io
