@@ -183,6 +183,16 @@ class TimeConverter(units.ConversionInterface):
 
 
 # time formatter
+
+# example
+
+# import time
+# t = (2009, 2, 17, 17, 3, 38, 1, 48, 0)
+# t = time.mktime(t)
+# print time.strftime("%b %d %Y %H:%M:%S", time.gmtime(t))
+
+# output: Feb 18 2009 00:03:38
+
 class TimeFormatter(Formatter):
 
     def __init__(self, locs):
