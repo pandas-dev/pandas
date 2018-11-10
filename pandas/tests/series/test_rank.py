@@ -185,11 +185,11 @@ class TestSeriesRank(TestData):
         # Test invalid values for na_option
         msg = "na_option must be one of 'keep', 'top', or 'bottom'"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             na_ser.rank(na_option='bad', ascending=False)
 
         # invalid type
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             na_ser.rank(na_option=True, ascending=False)
 
         # Test with pct=True

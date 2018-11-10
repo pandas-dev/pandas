@@ -238,15 +238,17 @@ class TestCategoricalOps(object):
     def test_unordered_different_categories_raises(self):
         c1 = Categorical(['a', 'b'], categories=['a', 'b'], ordered=False)
         c2 = Categorical(['a', 'c'], categories=['c', 'a'], ordered=False)
-        with tm.assert_raises_regex(TypeError,
-                                    "Categoricals can only be compared"):
+
+        with pytest.raises(TypeError, match=("Categoricals can "
+                                             "only be compared")):
             c1 == c2
 
     def test_compare_different_lengths(self):
         c1 = Categorical([], categories=['a', 'b'])
         c2 = Categorical([], categories=['a'])
+
         msg = "Categories are different lengths"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             c1 == c2
 
     def test_compare_unordered_different_order(self):
