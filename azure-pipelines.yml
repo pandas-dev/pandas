@@ -71,8 +71,24 @@ jobs:
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
-      export TRAVIS_BUILD_DIR=`pwd`
-      export DOC=true
-      ci/run_build_docs.sh
+      source activate pandas
+      doc/make.py html
     displayName: 'Building docs'
+    condition: true
+
+  - script: |
+      export REPO_DIR="/tmp/pandas-docs-travis"
+      git config --global user.email "pandas-docs-bot@localhost"
+      git config --global user.name "pandas-docs-bot"
+      # TODO PANDAS_GH_TOKEN needs to be added as a secret variable
+      git clone "https://${PANDAS_GH_TOKEN}@github.com/pandas-dev/pandas-docs-travis.git" $REPO_DIR
+      git branch gh-pages --track origin/gh-pages
+      # TODO if this is the build from master, and not from a PR, the build should
+      # be in the root replacing the old build, and not in a new directory
+      cp -r doc/build/html $REPO_DIR/$(System.PullRequest.PullRequestId)
+      cp LICENSE $REPO_DIR/$(System.PullRequest.PullRequestId)
+      git add --all .
+      git commit -m "Added pandas documentation of pull request $(System.PullRequest.PullRequestId)"
+      git push
+    displayName: 'Uploading docs'
     condition: true
