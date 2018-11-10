@@ -893,7 +893,7 @@ MultiIndex
 - Removed compatibility for :class:`MultiIndex` pickles prior to version 0.8.0; compatibility with :class:`MultiIndex` pickles from version 0.13 forward is maintained (:issue:`21654`)
 - :meth:`MultiIndex.get_loc_level` (and as a consequence, ``.loc`` on a :class:`MultiIndex`ed object) will now raise a ``KeyError``, rather than returning an empty ``slice``, if asked a label which is present in the ``levels`` but is unused (:issue:`22221`)
 - :meth:`MultiIndex.from_frame` added. Allows constructing a `MultiIndex` object from a `DataFrame` (:issue:`22420`)
-- :meth:`MultiIndex.squeeze` added. Allows a `MultiIndex` with only a single level to be converted to an `Index` object (:issue:`22420`)
+- :meth:`MultiIndex._squeeze` added. Allows a `MultiIndex` with only a single level to be converted to an `Index` object (:issue:`22420`)
 - :meth:`MultiIndex.to_frame` will now guarantee the preservation of the sort order of the level names in the resulting `DataFrame` (:issue:`22420`)
 - Fix ``TypeError`` in Python 3 when creating :class:`MultiIndex` in which some levels have mixed types, e.g. when some labels are tuples (:issue:`15457`)
 
