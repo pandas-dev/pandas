@@ -435,7 +435,10 @@ cpdef inline parse_timedelta_string(object ts, specified_unit=None):
             unit = [specified_unit]
     else:
         if specified_unit:
-            raise ValueError("units were doubly specified, both as an argument ({}) and inside string ({}).".format(specified_unit, unit))
+            raise ValueError(
+                "units were doubly specified, both as an argument ({})"
+                " and inside string ({})".format(specified_unit, unit)
+                )
 
     # we had a dot, but we have a fractional
     # value since we have an unit
