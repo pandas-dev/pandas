@@ -2032,8 +2032,7 @@ class DataFrame(NDFrame):
     @Substitution(header='Write out the column names. If a list of strings '
                          'is given, it is assumed to be aliases for the '
                          'column names')
-    @Substitution(shared_params1=fmt.common_docstring[:-320],
-                  shared_params2=fmt.common_docstring[-315:-5],
+    @Substitution(shared_params=fmt.common_docstring,
                   returns=fmt.return_docstring)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -2042,11 +2041,13 @@ class DataFrame(NDFrame):
                   show_dimensions=False):
         """
         Render a DataFrame to a console-friendly tabular output.
-        %(shared_params1)s
+
+        %(shared_params)s
         line_width : int, optional
             Width to wrap a line in characters.
-        %(shared_params2)s
+
         %(returns)s
+
         See Also
         --------
         to_html : Convert DataFrame to HTML.
@@ -2080,8 +2081,7 @@ class DataFrame(NDFrame):
             return result
 
     @Substitution(header='whether to print column labels, default True')
-    @Substitution(shared_params1=fmt.common_docstring[:-320],
-                  shared_params2=fmt.common_docstring[-315:-5],
+    @Substitution(shared_params=fmt.common_docstring,
                   returns=fmt.return_docstring)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
                 index=True, na_rep='NaN', formatters=None, float_format=None,
@@ -2091,14 +2091,14 @@ class DataFrame(NDFrame):
                 border=None, table_id=None):
         """
         Render a DataFrame as an HTML table.
-        %(shared_params1)s
+
+        %(shared_params)s
         bold_rows : boolean, default True
             Make the row labels bold in the output
         classes : str or list or tuple, default None
             CSS class(es) to apply to the resulting html table
         escape : boolean, default True
             Convert the characters <, >, and & to HTML-safe sequences.
-        %(shared_params2)s
         notebook : {True, False}, default False
             Whether the generated HTML is for IPython Notebook.
         decimal : string, default '.'
@@ -2116,7 +2116,9 @@ class DataFrame(NDFrame):
             A css id is included in the opening `<table>` tag if specified.
 
             .. versionadded:: 0.23.0
+
         %(returns)s
+
         See Also
         --------
         to_string : Convert DataFrame to a string.
