@@ -149,9 +149,9 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             return result
 
         if is_scalar(data):
-            raise ValueError('{cls}() must be called with a '
-                             'collection of some kind, {data} was passed'
-                             .format(cls=cls.__name__, data=repr(data)))
+            raise TypeError('{cls}() must be called with a '
+                            'collection of some kind, {data} was passed'
+                            .format(cls=cls.__name__, data=repr(data)))
 
         if isinstance(data, TimedeltaIndex) and freq is None and name is None:
             if copy:

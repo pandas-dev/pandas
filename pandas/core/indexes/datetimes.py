@@ -248,9 +248,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             return result
 
         if is_scalar(data):
-            raise ValueError("{cls}() must be called with a "
-                             "collection of some kind, {data} was passed"
-                             .format(cls=cls.__name__, data=repr(data)))
+            raise TypeError("{cls}() must be called with a "
+                            "collection of some kind, {data} was passed"
+                            .format(cls=cls.__name__, data=repr(data)))
 
         # - Cases checked above all return/raise before reaching here - #
 
