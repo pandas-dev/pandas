@@ -77,7 +77,7 @@ class TestSeriesReplace(TestData):
 
         # make sure that we aren't just masking a TypeError because bools don't
         # implement indexing
-        with tm.assert_raises_regex(TypeError, 'Cannot compare types .+'):
+        with pytest.raises(TypeError, match='Cannot compare types .+'):
             ser.replace([1, 2], [np.nan, 0])
 
         ser = pd.Series([0, 1, 2, 3, 4])
@@ -137,9 +137,9 @@ class TestSeriesReplace(TestData):
         tm.assert_series_equal(result, expected)
 
         # GH 19266
-        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
+        with pytest.raises(ValueError, match="cannot assign mismatch"):
             s.replace({np.nan: []})
-        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
+        with pytest.raises(ValueError, match="cannot assign mismatch"):
             s.replace({np.nan: ['dummy', 'alt']})
 
     def test_replace_mixed_types(self):
@@ -205,7 +205,7 @@ class TestSeriesReplace(TestData):
 
     def test_replace_with_dict_with_bool_keys(self):
         s = pd.Series([True, False, True])
-        with tm.assert_raises_regex(TypeError, 'Cannot compare types .+'):
+        with pytest.raises(TypeError, match='Cannot compare types .+'):
             s.replace({'asdf': 'asdb', True: 'yes'})
 
     def test_replace2(self):

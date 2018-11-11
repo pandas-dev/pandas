@@ -496,8 +496,7 @@ class TestDataFrameOperators(TestData):
             tm.assert_numpy_array_equal(result.values,
                                         func(df1.values, df2.values))
 
-            with tm.assert_raises_regex(ValueError,
-                                        'dim must be <= 2'):
+            with pytest.raises(ValueError, match='dim must be <= 2'):
                 func(df1, ndim_5)
 
             result2 = func(self.simple, row)
@@ -508,9 +507,8 @@ class TestDataFrameOperators(TestData):
             tm.assert_numpy_array_equal(result3.values,
                                         func(self.frame.values, 0))
 
-            with tm.assert_raises_regex(ValueError,
-                                        'Can only compare identically'
-                                        '-labeled DataFrame'):
+            msg = 'Can only compare identically-labeled DataFrame'
+            with pytest.raises(ValueError, match=msg):
                 func(self.simple, self.simple[:2])
 
         test_comp(operator.eq)
@@ -551,11 +549,11 @@ class TestDataFrameOperators(TestData):
         msg1d = 'Unable to coerce to Series, length must be 2: given 3'
         msg2d = 'Unable to coerce to DataFrame, shape must be'
         msg2db = 'operands could not be broadcast together with shapes'
-        with tm.assert_raises_regex(ValueError, msg1d):
+        with pytest.raises(ValueError, match=msg1d):
             # wrong shape
             df > lst
 
-        with tm.assert_raises_regex(ValueError, msg1d):
+        with pytest.raises(ValueError, match=msg1d):
             # wrong shape
             result = df > tup
 
@@ -566,10 +564,10 @@ class TestDataFrameOperators(TestData):
         result = df.values > b_r
         assert_numpy_array_equal(result, expected.values)
 
-        with tm.assert_raises_regex(ValueError, msg2d):
+        with pytest.raises(ValueError, match=msg2d):
             df > b_c
 
-        with tm.assert_raises_regex(ValueError, msg2db):
+        with pytest.raises(ValueError, match=msg2db):
             df.values > b_c
 
         # ==
@@ -577,10 +575,10 @@ class TestDataFrameOperators(TestData):
         result = df == b
         assert_frame_equal(result, expected)
 
-        with tm.assert_raises_regex(ValueError, msg1d):
+        with pytest.raises(ValueError, match=msg1d):
             result = df == lst
 
-        with tm.assert_raises_regex(ValueError, msg1d):
+        with pytest.raises(ValueError, match=msg1d):
             result = df == tup
 
         # broadcasts like ndarray (GH#23000)
@@ -590,7 +588,7 @@ class TestDataFrameOperators(TestData):
         result = df.values == b_r
         assert_numpy_array_equal(result, expected.values)
 
-        with tm.assert_raises_regex(ValueError, msg2d):
+        with pytest.raises(ValueError, match=msg2d):
             df == b_c
 
         assert df.values.shape != b_c.shape
@@ -601,10 +599,10 @@ class TestDataFrameOperators(TestData):
         expected.index = df.index
         expected.columns = df.columns
 
-        with tm.assert_raises_regex(ValueError, msg1d):
+        with pytest.raises(ValueError, match=msg1d):
             result = df == lst
 
-        with tm.assert_raises_regex(ValueError, msg1d):
+        with pytest.raises(ValueError, match=msg1d):
             result = df == tup
 
     def test_combine_generic(self):
@@ -774,10 +772,10 @@ class TestDataFrameOperators(TestData):
         msg = 'Unable to coerce to Series, length must be 3: given 2'
         for val in [[1, 2], (1, 2), np.array([1, 2]), range(1, 3)]:
 
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 align(df, val, 'index')
 
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 align(df, val, 'columns')
 
         val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
@@ -791,10 +789,10 @@ class TestDataFrameOperators(TestData):
         # shape mismatch
         msg = 'Unable to coerce to DataFrame, shape must be'
         val = np.array([[1, 2, 3], [4, 5, 6]])
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             align(df, val, 'index')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             align(df, val, 'columns')
 
         val = np.zeros((3, 3, 3))

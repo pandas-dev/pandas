@@ -142,11 +142,11 @@ class TestPeriodProperties(object):
 
         msg = ('Frequency must be positive, because it'
                ' represents span: -3M')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period('2011-01', freq='-3M')
 
         msg = ('Frequency must be positive, because it' ' represents span: 0M')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period('2011-01', freq='0M')
 
     def test_period_cons_combined(self):
@@ -196,28 +196,28 @@ class TestPeriodProperties(object):
 
         msg = ('Frequency must be positive, because it'
                ' represents span: -25H')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period('2011-01', freq='-1D1H')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period('2011-01', freq='-1H1D')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period(ordinal=1, freq='-1D1H')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period(ordinal=1, freq='-1H1D')
 
         msg = ('Frequency must be positive, because it'
                ' represents span: 0D')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period('2011-01', freq='0D0H')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period(ordinal=1, freq='0D0H')
 
         # You can only combine together day and intraday offsets
         msg = ('Invalid frequency: 1W1D')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period('2011-01', freq='1W1D')
         msg = ('Invalid frequency: 1D1W')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period('2011-01', freq='1D1W')
 
     @pytest.mark.parametrize('tzstr', ['Europe/Brussels',
@@ -528,9 +528,9 @@ class TestPeriodProperties(object):
         msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
         for exp, freqs in iteritems(cases):
             for freq in freqs:
-                with tm.assert_raises_regex(ValueError, msg):
+                with pytest.raises(ValueError, match=msg):
                     Period('2016-03-01 09:00', freq=freq)
-                with tm.assert_raises_regex(ValueError, msg):
+                with pytest.raises(ValueError, match=msg):
                     Period(ordinal=1, freq=freq)
 
             # check supported freq-aliases still works
@@ -774,7 +774,7 @@ class TestPeriodProperties(object):
         assert exp.days_in_month == 29
 
         msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period(freq='WK', year=2007, month=1, day=7)
 
     def test_properties_daily(self):
@@ -1036,14 +1036,14 @@ class TestMethods(object):
         dt1 = Period(freq='D', year=2008, month=1, day=1)
         dt2 = Period(freq='D', year=2008, month=1, day=2)
         msg = r"unsupported operand type\(s\)"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             dt1 + "str"
 
         msg = r"unsupported operand type\(s\)"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             "str" + dt1
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             dt1 + dt2
 
     boxes = [lambda x: x, lambda x: pd.Series([x]), lambda x: pd.Index([x])]
@@ -1061,13 +1061,13 @@ class TestMethods(object):
         msg = (r"cannot add|unsupported operand|"
                r"can only operate on a|incompatible type|"
                r"ufunc add cannot use operands")
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             lbox(ts) + rbox(per)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             lbox(per) + rbox(ts)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             lbox(per) + rbox(per)
 
     def test_sub(self):
@@ -1079,7 +1079,7 @@ class TestMethods(object):
         assert dt2 - dt1 == 14 * off
 
         msg = r"Input has different freq=M from Period\(freq=D\)"
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             dt1 - Period('2011-02', freq='M')
 
     def test_add_offset(self):
@@ -1435,10 +1435,10 @@ class TestMethods(object):
         assert result == exp
 
         msg = r"Input cannot be converted to Period\(freq=D\)"
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             p + offsets.Hour(2)
 
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             p - offsets.Hour(2)
 
 
