@@ -1,5 +1,3 @@
-import pandas as pd
-import numpy as np
 import operator
 
 import pytest
@@ -110,9 +108,3 @@ def data_for_grouping():
 def box_in_series(request):
     """Whether to box the data in a Series"""
     return request.param
-
-
-@pytest.fixture
-def df_merge_on_int_array():
-    return pd.DataFrame({'A': pd.Series([1, 2, np.nan], dtype='Int64'),
-                         'B': 1})

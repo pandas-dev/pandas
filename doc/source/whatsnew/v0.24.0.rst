@@ -1041,6 +1041,7 @@ update the ``ExtensionDtype._metadata`` tuple to match the signature of your
 - :meth:`Series.unstack` and :meth:`DataFrame.unstack` no longer convert extension arrays to object-dtype ndarrays. Each column in the output ``DataFrame`` will now have the same dtype as the input (:issue:`23077`).
 - Bug when grouping :meth:`Dataframe.groupby()` and aggregating on ``ExtensionArray`` it was not returning the actual ``ExtensionArray`` dtype (:issue:`23227`).
 - A default repr for :class:`ExtensionArray` is now provided (:issue:`23601`).
+- Bug in :func:`pandas.merge` when merging on an Integer extension array (:issue:`23020`)
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -1634,12 +1635,6 @@ Sparse
 - Bug in :meth:`SparseArary.unique` not returning the unique values (:issue:`19595`)
 - Bug in :meth:`SparseArray.nonzero` and :meth:`SparseDataFrame.dropna` returning shifted/incorrect results (:issue:`21172`)
 - Bug in :meth:`DataFrame.apply` where dtypes would lose sparseness (:issue:`23744`)
-
-IntegerArray
-^^^^^^^^^^^^
-
-- Bug in :func:`pandas.merge` when merging on an Integer extension array (:issue:`23020`)
-
 
 Build Changes
 ^^^^^^^^^^^^^

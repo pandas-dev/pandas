@@ -173,6 +173,20 @@ class BaseReshapingTests(BaseExtensionTests):
                  dtype=data.dtype)})
         self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
 
+        # GH  23020
+        df1 = pd.DataFrame({'ext': data[:3],
+                            'key': pd.Series([1, 2, np.nan], dtype='Int64')})
+
+        res = pd.merge(df1, df1, on='key')
+
+        exp = pd.DataFrame(
+            {'key': pd.Series([1, 2, np.nan], dtype='Int64'),
+             'ext_x': data._from_sequence(data[:3], dtype=data.dtype),
+             'ext_y': data._from_sequence(data[:3], dtype=data.dtype)})
+
+        self.assert_frame_equal(res, exp[['ext_x', 'key', 'ext_y']],
+                                check_dtype=True)
+
     @pytest.mark.parametrize("columns", [
         ["A", "B"],
         pd.MultiIndex.from_tuples([('A', 'a'), ('A', 'b')],
@@ -237,11 +251,3 @@ class BaseReshapingTests(BaseExtensionTests):
             result = result.astype(object)
 
             self.assert_frame_equal(result, expected)
-
-    def test_merge_on_int_array(self, df_merge_on_int_array):
-        # GH  23020
-        result = pd.merge(df_merge_on_int_array, df_merge_on_int_array, on='A')
-        expected = pd.DataFrame({'A': pd.Series([1, 2, np.nan], dtype='Int64'),
-                                 'B_x': 1,
-                                 'B_y': 1})
-        self.assert_frame_equal(result, expected, check_dtype=True)
