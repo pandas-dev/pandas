@@ -1295,7 +1295,7 @@ def test_array(array, attr, box):
 
 def test_array_multiindex_raises():
     idx = pd.MultiIndex.from_product([['A'], ['a', 'b']])
-    with tm.assert_raises_regex(ValueError, 'MultiIndex'):
+    with pytest.raises(ValueError, match='MultiIndex'):
         idx.array
 
 
