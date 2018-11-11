@@ -36,7 +36,7 @@ from pandas import (
     TimedeltaIndex, bdate_range)
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
-    DatetimeArrayMixin as DatetimeArray, ExtensionArray, IntervalArray,
+    DatetimeArray, ExtensionArray, IntervalArray,
     PeriodArray, period_array)
 import pandas.core.common as com
 

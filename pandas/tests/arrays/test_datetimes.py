@@ -6,7 +6,7 @@ import operator
 import numpy as np
 
 import pandas as pd
-from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
+from pandas.core.arrays import DatetimeArray
 import pandas.util.testing as tm
 
 

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from pandas.compat import long
-from pandas.core.arrays import PeriodArray, DatetimeArrayMixin as DatetimeArray
+from pandas.core.arrays import PeriodArray, DatetimeArray
 
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
