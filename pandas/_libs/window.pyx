@@ -9,15 +9,15 @@ from libc.stdlib cimport malloc, free
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, double_t, int64_t, float64_t, float32_t
+from numpy cimport ndarray, int64_t, float64_t, float32_t
 cnp.import_array()
 
 
 cdef extern from "src/headers/cmath" namespace "std":
-    bint isnan(double) nogil
-    bint notnan(double) nogil
-    int signbit(double) nogil
-    double sqrt(double x) nogil
+    bint isnan(float64_t) nogil
+    bint notnan(float64_t) nogil
+    int signbit(float64_t) nogil
+    float64_t sqrt(float64_t x) nogil
 
 cimport util
 from util cimport numeric
@@ -32,7 +32,7 @@ cdef float64_t MINfloat64 = np.NINF
 cdef float32_t MAXfloat32 = np.inf
 cdef float64_t MAXfloat64 = np.inf
 
-cdef double NaN = <double>np.NaN
+cdef float64_t NaN = <float64_t>np.NaN
 
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
@@ -79,6 +79,7 @@ def _check_minp(win, minp, N, floor=None):
         floor = 1
 
     return max(minp, floor)
+
 
 # original C implementation by N. Devillard.
 # This code in public domain.
@@ -352,19 +353,20 @@ def get_window_indexer(values, win, minp, index, closed,
                                      right_closed, index, floor)
     return indexer.get_data()
 
+
 # ----------------------------------------------------------------------
 # Rolling count
 # this is only an impl for index not None, IOW, freq aware
 
 
-def roll_count(ndarray[double_t] values, int64_t win, int64_t minp,
+def roll_count(ndarray[float64_t] values, int64_t win, int64_t minp,
                object index, object closed):
     cdef:
-        double val, count_x = 0.0
+        float64_t val, count_x = 0.0
         int64_t s, e, nobs, N
         Py_ssize_t i, j
         ndarray[int64_t] start, end
-        ndarray[double_t] output
+        ndarray[float64_t] output
 
     start, end, N, win, minp, _ = get_window_indexer(values, win,
                                                      minp, index, closed)
@@ -406,12 +408,15 @@ def roll_count(ndarray[double_t] values, int64_t win, int64_t minp,
 
     return output
 
+
 # ----------------------------------------------------------------------
 # Rolling sum
 
 
-cdef inline double calc_sum(int64_t minp, int64_t nobs, double sum_x) nogil:
-    cdef double result
+cdef inline float64_t calc_sum(int64_t minp, int64_t nobs,
+                               float64_t sum_x) nogil:
+    cdef:
+        float64_t result
 
     if nobs >= minp:
         result = sum_x
@@ -421,7 +426,7 @@ cdef inline double calc_sum(int64_t minp, int64_t nobs, double sum_x) nogil:
     return result
 
 
-cdef inline void add_sum(double val, int64_t *nobs, double *sum_x) nogil:
+cdef inline void add_sum(float64_t val, int64_t *nobs, float64_t *sum_x) nogil:
     """ add a value from the sum calc """
 
     # Not NaN
@@ -430,7 +435,8 @@ cdef inline void add_sum(double val, int64_t *nobs, double *sum_x) nogil:
         sum_x[0] = sum_x[0] + val
 
 
-cdef inline void remove_sum(double val, int64_t *nobs, double *sum_x) nogil:
+cdef inline void remove_sum(float64_t val,
+                            int64_t *nobs, float64_t *sum_x) nogil:
     """ remove a value from the sum calc """
 
     if notnan(val):
@@ -438,15 +444,15 @@ cdef inline void remove_sum(double val, int64_t *nobs, double *sum_x) nogil:
         sum_x[0] = sum_x[0] - val
 
 
-def roll_sum(ndarray[double_t] values, int64_t win, int64_t minp,
+def roll_sum(ndarray[float64_t] values, int64_t win, int64_t minp,
              object index, object closed):
     cdef:
-        double val, prev_x, sum_x = 0
+        float64_t val, prev_x, sum_x = 0
         int64_t s, e, range_endpoint
         int64_t nobs = 0, i, j, N
         bint is_variable
         ndarray[int64_t] start, end
-        ndarray[double_t] output
+        ndarray[float64_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(values, win,
                                                                minp, index,
@@ -511,16 +517,18 @@ def roll_sum(ndarray[double_t] values, int64_t win, int64_t minp,
 
     return output
 
+
 # ----------------------------------------------------------------------
 # Rolling mean
 
 
-cdef inline double calc_mean(int64_t minp, Py_ssize_t nobs,
-                             Py_ssize_t neg_ct, double sum_x) nogil:
-    cdef double result
+cdef inline float64_t calc_mean(int64_t minp, Py_ssize_t nobs,
+                                Py_ssize_t neg_ct, float64_t sum_x) nogil:
+    cdef:
+        float64_t result
 
     if nobs >= minp:
-        result = sum_x / <double>nobs
+        result = sum_x / <float64_t>nobs
         if neg_ct == 0 and result < 0:
             # all positive
             result = 0
@@ -534,7 +542,7 @@ cdef inline double calc_mean(int64_t minp, Py_ssize_t nobs,
     return result
 
 
-cdef inline void add_mean(double val, Py_ssize_t *nobs, double *sum_x,
+cdef inline void add_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
                           Py_ssize_t *neg_ct) nogil:
     """ add a value from the mean calc """
 
@@ -546,7 +554,7 @@ cdef inline void add_mean(double val, Py_ssize_t *nobs, double *sum_x,
             neg_ct[0] = neg_ct[0] + 1
 
 
-cdef inline void remove_mean(double val, Py_ssize_t *nobs, double *sum_x,
+cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
                              Py_ssize_t *neg_ct) nogil:
     """ remove a value from the mean calc """
 
@@ -557,15 +565,15 @@ cdef inline void remove_mean(double val, Py_ssize_t *nobs, double *sum_x,
             neg_ct[0] = neg_ct[0] - 1
 
 
-def roll_mean(ndarray[double_t] values, int64_t win, int64_t minp,
+def roll_mean(ndarray[float64_t] values, int64_t win, int64_t minp,
               object index, object closed):
     cdef:
-        double val, prev_x, result, sum_x = 0
+        float64_t val, prev_x, result, sum_x = 0
         int64_t s, e
         bint is_variable
         Py_ssize_t nobs = 0, i, j, neg_ct = 0, N
         ndarray[int64_t] start, end
-        ndarray[double_t] output
+        ndarray[float64_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(values, win,
                                                                minp, index,
@@ -627,13 +635,15 @@ def roll_mean(ndarray[double_t] values, int64_t win, int64_t minp,
 
     return output
 
+
 # ----------------------------------------------------------------------
 # Rolling variance
 
 
-cdef inline double calc_var(int64_t minp, int ddof, double nobs,
-                            double ssqdm_x) nogil:
-    cdef double result
+cdef inline float64_t calc_var(int64_t minp, int ddof, float64_t nobs,
+                               float64_t ssqdm_x) nogil:
+    cdef:
+        float64_t result
 
     # Variance is unchanged if no observation is added or removed
     if (nobs >= minp) and (nobs > ddof):
@@ -642,7 +652,7 @@ cdef inline double calc_var(int64_t minp, int ddof, double nobs,
         if nobs == 1:
             result = 0
         else:
-            result = ssqdm_x / (nobs - <double>ddof)
+            result = ssqdm_x / (nobs - <float64_t>ddof)
             if result < 0:
                 result = 0
     else:
@@ -651,10 +661,12 @@ cdef inline double calc_var(int64_t minp, int ddof, double nobs,
     return result
 
 
-cdef inline void add_var(double val, double *nobs, double *mean_x,
-                         double *ssqdm_x) nogil:
+cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
+                         float64_t *ssqdm_x) nogil:
     """ add a value from the var calc """
-    cdef double delta
+    cdef:
+        float64_t delta
+
     # `isnan` instead of equality as fix for GH-21813, msvc 2017 bug
     if isnan(val):
         return
@@ -667,10 +679,11 @@ cdef inline void add_var(double val, double *nobs, double *mean_x,
     ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
 
 
-cdef inline void remove_var(double val, double *nobs, double *mean_x,
-                            double *ssqdm_x) nogil:
+cdef inline void remove_var(float64_t val, float64_t *nobs, float64_t *mean_x,
+                            float64_t *ssqdm_x) nogil:
     """ remove a value from the var calc """
-    cdef double delta
+    cdef:
+        float64_t delta
 
     if notnan(val):
         nobs[0] = nobs[0] - 1
@@ -685,18 +698,19 @@ cdef inline void remove_var(double val, double *nobs, double *mean_x,
             ssqdm_x[0] = 0
 
 
-def roll_var(ndarray[double_t] values, int64_t win, int64_t minp,
+def roll_var(ndarray[float64_t] values, int64_t win, int64_t minp,
              object index, object closed, int ddof=1):
     """
     Numerically stable implementation using Welford's method.
     """
     cdef:
-        double val, prev, mean_x = 0, ssqdm_x = 0, nobs = 0, delta, mean_x_old
+        float64_t mean_x = 0, ssqdm_x = 0, nobs = 0,
+        float64_t val, prev, delta, mean_x_old
         int64_t s, e
         bint is_variable
         Py_ssize_t i, j, N
         ndarray[int64_t] start, end
-        ndarray[double_t] output
+        ndarray[float64_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(values, win,
                                                                minp, index,
@@ -785,13 +799,15 @@ def roll_var(ndarray[double_t] values, int64_t win, int64_t minp,
 # ----------------------------------------------------------------------
 # Rolling skewness
 
-cdef inline double calc_skew(int64_t minp, int64_t nobs, double x, double xx,
-                             double xxx) nogil:
-    cdef double result, dnobs
-    cdef double A, B, C, R
+cdef inline float64_t calc_skew(int64_t minp, int64_t nobs,
+                                float64_t x, float64_t xx,
+                                float64_t xxx) nogil:
+    cdef:
+        float64_t result, dnobs
+        float64_t A, B, C, R
 
     if nobs >= minp:
-        dnobs = <double>nobs
+        dnobs = <float64_t>nobs
         A = x / dnobs
         B = xx / dnobs - A * A
         C = xxx / dnobs - A * A * A - 3 * A * B
@@ -817,8 +833,9 @@ cdef inline double calc_skew(int64_t minp, int64_t nobs, double x, double xx,
     return result
 
 
-cdef inline void add_skew(double val, int64_t *nobs, double *x, double *xx,
-                          double *xxx) nogil:
+cdef inline void add_skew(float64_t val, int64_t *nobs,
+                          float64_t *x, float64_t *xx,
+                          float64_t *xxx) nogil:
     """ add a value from the skew calc """
 
     # Not NaN
@@ -831,8 +848,9 @@ cdef inline void add_skew(double val, int64_t *nobs, double *x, double *xx,
         xxx[0] = xxx[0] + val * val * val
 
 
-cdef inline void remove_skew(double val, int64_t *nobs, double *x, double *xx,
-                             double *xxx) nogil:
+cdef inline void remove_skew(float64_t val, int64_t *nobs,
+                             float64_t *x, float64_t *xx,
+                             float64_t *xxx) nogil:
     """ remove a value from the skew calc """
 
     # Not NaN
@@ -845,16 +863,16 @@ cdef inline void remove_skew(double val, int64_t *nobs, double *x, double *xx,
         xxx[0] = xxx[0] - val * val * val
 
 
-def roll_skew(ndarray[double_t] values, int64_t win, int64_t minp,
+def roll_skew(ndarray[float64_t] values, int64_t win, int64_t minp,
               object index, object closed):
     cdef:
-        double val, prev
-        double x = 0, xx = 0, xxx = 0
+        float64_t val, prev
+        float64_t x = 0, xx = 0, xxx = 0
         int64_t nobs = 0, i, j, N
         int64_t s, e
         bint is_variable
         ndarray[int64_t] start, end
-        ndarray[double_t] output
+        ndarray[float64_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(values, win,
                                                                minp, index,
@@ -915,17 +933,20 @@ def roll_skew(ndarray[double_t] values, int64_t win, int64_t minp,
 
     return output
 
+
 # ----------------------------------------------------------------------
 # Rolling kurtosis
 
 
-cdef inline double calc_kurt(int64_t minp, int64_t nobs, double x, double xx,
-                             double xxx, double xxxx) nogil:
-    cdef double result, dnobs
-    cdef double A, B, C, D, R, K
+cdef inline float64_t calc_kurt(int64_t minp, int64_t nobs,
+                                float64_t x, float64_t xx,
+                                float64_t xxx, float64_t xxxx) nogil:
+    cdef:
+        float64_t result, dnobs
+        float64_t A, B, C, D, R, K
 
     if nobs >= minp:
-        dnobs = <double>nobs
+        dnobs = <float64_t>nobs
         A = x / dnobs
         R = A * A
         B = xx / dnobs - R
@@ -954,8 +975,9 @@ cdef inline double calc_kurt(int64_t minp, int64_t nobs, double x, double xx,
     return result
 
 
-cdef inline void add_kurt(double val, int64_t *nobs, double *x, double *xx,
-                          double *xxx, double *xxxx) nogil:
+cdef inline void add_kurt(float64_t val, int64_t *nobs,
+                          float64_t *x, float64_t *xx,
+                          float64_t *xxx, float64_t *xxxx) nogil:
     """ add a value from the kurotic calc """
 
     # Not NaN
@@ -969,8 +991,9 @@ cdef inline void add_kurt(double val, int64_t *nobs, double *x, double *xx,
         xxxx[0] = xxxx[0] + val * val * val * val
 
 
-cdef inline void remove_kurt(double val, int64_t *nobs, double *x, double *xx,
-                             double *xxx, double *xxxx) nogil:
+cdef inline void remove_kurt(float64_t val, int64_t *nobs,
+                             float64_t *x, float64_t *xx,
+                             float64_t *xxx, float64_t *xxxx) nogil:
     """ remove a value from the kurotic calc """
 
     # Not NaN
@@ -984,16 +1007,16 @@ cdef inline void remove_kurt(double val, int64_t *nobs, double *x, double *xx,
         xxxx[0] = xxxx[0] - val * val * val * val
 
 
-def roll_kurt(ndarray[double_t] values, int64_t win, int64_t minp,
+def roll_kurt(ndarray[float64_t] values, int64_t win, int64_t minp,
               object index, object closed):
     cdef:
-        double val, prev
-        double x = 0, xx = 0, xxx = 0, xxxx = 0
+        float64_t val, prev
+        float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
         int64_t nobs = 0, i, j, N
         int64_t s, e
         bint is_variable
         ndarray[int64_t] start, end
-        ndarray[double_t] output
+        ndarray[float64_t] output
 
     start, end, N, win, minp, is_variable = get_window_indexer(values, win,
                                                                minp, index,
@@ -1050,6 +1073,7 @@ def roll_kurt(ndarray[double_t] values, int64_t win, int64_t minp,
 
     return output
 
+
 # ----------------------------------------------------------------------
 # Rolling median, min, max
 
@@ -1057,7 +1081,7 @@ def roll_kurt(ndarray[double_t] values, int64_t win, int64_t minp,
 def roll_median_c(ndarray[float64_t] values, int64_t win, int64_t minp,
                   object index, object closed):
     cdef:
-        double val, res, prev
+        float64_t val, res, prev
         bint err = 0, is_variable
         int ret = 0
         skiplist_t *sl
@@ -1065,7 +1089,7 @@ def roll_median_c(ndarray[float64_t] values, int64_t win, int64_t minp,
         int64_t nobs = 0, N, s, e
         int midpoint
         ndarray[int64_t] start, end
-        ndarray[double_t] output
+        ndarray[float64_t] output
 
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
@@ -1130,6 +1154,7 @@ def roll_median_c(ndarray[float64_t] values, int64_t win, int64_t minp,
         raise MemoryError("skiplist_insert failed")
     return output
 
+
 # ----------------------------------------------------------------------
 
 # Moving maximum / minimum code taken from Bottleneck under the terms
@@ -1167,7 +1192,8 @@ cdef inline void remove_mm(numeric aold, Py_ssize_t *nobs) nogil:
 
 cdef inline numeric calc_mm(int64_t minp, Py_ssize_t nobs,
                             numeric value) nogil:
-    cdef numeric result
+    cdef:
+        numeric result
 
     if numeric in cython.floating:
         if nobs >= minp:
@@ -1252,7 +1278,7 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
         Py_ssize_t nobs = 0
         deque Q[int64_t]  # min/max always the front
         deque W[int64_t]  # track the whole window for nobs compute
-        ndarray[double_t, ndim=1] output
+        ndarray[float64_t, ndim=1] output
 
     output = np.empty(N, dtype=float)
     Q = deque[int64_t]()
@@ -1335,7 +1361,7 @@ cdef _roll_min_max_fixed(ndarray[numeric] values,
         numeric* minvalue
         numeric* end
         numeric* last
-        ndarray[double_t, ndim=1] output
+        ndarray[float64_t, ndim=1] output
 
     output = np.empty(N, dtype=float)
     # setup the rings of death!
@@ -1427,19 +1453,19 @@ interpolation_types = {
 
 def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
                   int64_t minp, object index, object closed,
-                  double quantile, str interpolation):
+                  float64_t quantile, str interpolation):
     """
     O(N log(window)) implementation using skip list
     """
     cdef:
-        double val, prev, midpoint, idx_with_fraction
+        float64_t val, prev, midpoint, idx_with_fraction
         skiplist_t *skiplist
         int64_t nobs = 0, i, j, s, e, N
         Py_ssize_t idx
         bint is_variable
         ndarray[int64_t] start, end
-        ndarray[double_t] output
-        double vlow, vhigh
+        ndarray[float64_t] output
+        float64_t vlow, vhigh
         InterpolationType interpolation_type
         int ret = 0
 
@@ -1529,7 +1555,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, int64_t win,
                     elif interpolation_type == MIDPOINT:
                         vlow = skiplist_get(skiplist, idx, &ret)
                         vhigh = skiplist_get(skiplist, idx + 1, &ret)
-                        output[i] = <double>(vlow + vhigh) / 2
+                        output[i] = <float64_t>(vlow + vhigh) / 2
             else:
                 output[i] = NaN
 
@@ -1543,7 +1569,7 @@ def roll_generic(object obj,
                  int offset, object func, bint raw,
                  object args, object kwargs):
     cdef:
-        ndarray[double_t] output, counts, bufarr
+        ndarray[float64_t] output, counts, bufarr
         ndarray[float64_t, cast=True] arr
         float64_t *buf
         float64_t *oldbuf
@@ -1642,7 +1668,7 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] values,
     Assume len(weights) << len(values)
     """
     cdef:
-        ndarray[double_t] output, tot_wgt, counts
+        ndarray[float64_t] output, tot_wgt, counts
         Py_ssize_t in_i, win_i, win_n, win_k, in_n, in_k
         float64_t val_in, val_win, c, w
 
@@ -1703,7 +1729,8 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] values,
 # Exponentially weighted moving average
 
 
-def ewma(double_t[:] vals, double_t com, int adjust, int ignore_na, int minp):
+def ewma(float64_t[:] vals, float64_t com,
+         int adjust, int ignore_na, int minp):
     """
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -1722,8 +1749,8 @@ def ewma(double_t[:] vals, double_t com, int adjust, int ignore_na, int minp):
 
     cdef:
         Py_ssize_t N = len(vals)
-        ndarray[double_t] output = np.empty(N, dtype=float)
-        double alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
+        ndarray[float64_t] output = np.empty(N, dtype=float)
+        float64_t alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
         Py_ssize_t i, nobs
 
     if N == 0:
@@ -1767,12 +1794,13 @@ def ewma(double_t[:] vals, double_t com, int adjust, int ignore_na, int minp):
 
     return output
 
+
 # ----------------------------------------------------------------------
 # Exponentially weighted moving covariance
 
 
-def ewmcov(double_t[:] input_x, double_t[:] input_y,
-           double_t com, int adjust, int ignore_na, int minp, int bias):
+def ewmcov(float64_t[:] input_x, float64_t[:] input_y,
+           float64_t com, int adjust, int ignore_na, int minp, int bias):
     """
     Compute exponentially-weighted moving variance using center-of-mass.
 
@@ -1793,10 +1821,10 @@ def ewmcov(double_t[:] input_x, double_t[:] input_y,
 
     cdef:
         Py_ssize_t N = len(input_x)
-        double alpha, old_wt_factor, new_wt, mean_x, mean_y, cov
-        double sum_wt, sum_wt2, old_wt, cur_x, cur_y, old_mean_x, old_mean_y
+        float64_t alpha, old_wt_factor, new_wt, mean_x, mean_y, cov
+        float64_t sum_wt, sum_wt2, old_wt, cur_x, cur_y, old_mean_x, old_mean_y
         Py_ssize_t i, nobs
-        ndarray[double_t] output
+        ndarray[float64_t] output
 
     if len(input_y) != N:
         raise ValueError("arrays are of different lengths "
