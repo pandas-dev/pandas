@@ -830,12 +830,12 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning
-        err = PerformanceWarning if box is not pd.DataFrame else None
-        with tm.assert_produces_warning(err):
+        warn = PerformanceWarning if box is not pd.DataFrame else None
+        with tm.assert_produces_warning(warn):
             res = tdi + other
         tm.assert_equal(res, expected)
 
-        with tm.assert_produces_warning(err):
+        with tm.assert_produces_warning(warn):
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
@@ -854,12 +854,12 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning
-        err = PerformanceWarning if box is not pd.DataFrame else None
-        with tm.assert_produces_warning(err):
+        warn = PerformanceWarning if box is not pd.DataFrame else None
+        with tm.assert_produces_warning(warn):
             res = tdi + other
         tm.assert_equal(res, expected)
 
-        with tm.assert_produces_warning(err):
+        with tm.assert_produces_warning(warn):
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
@@ -885,8 +885,8 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning
-        err = PerformanceWarning if box is not pd.DataFrame else None
-        with tm.assert_produces_warning(err):
+        warn = PerformanceWarning if box is not pd.DataFrame else None
+        with tm.assert_produces_warning(warn):
             res = tdi - other
         tm.assert_equal(res, expected)
 
@@ -903,8 +903,8 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning
-        err = PerformanceWarning if box is not pd.DataFrame else None
-        with tm.assert_produces_warning(err):
+        warn = PerformanceWarning if box is not pd.DataFrame else None
+        with tm.assert_produces_warning(warn):
             res = tdi - other
         tm.assert_equal(res, expected)
 
