@@ -2861,7 +2861,13 @@ to be parsed.
 
    read_excel('path_to_file.xls', 'Sheet1', usecols=2)
 
-If `usecols` is a list of integers, then it is assumed to be the file column
+You can also specify a comma-delimited set of Excel columns and ranges as a string:
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', 'Sheet1', usecols='A,C:E')
+
+If ``usecols`` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
 
 .. code-block:: python
@@ -2869,6 +2875,27 @@ indices to be parsed.
    read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
 
 Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
+
+.. versionadded:: 0.24
+
+If ``usecols`` is a list of strings, it is assumed that each string corresponds
+to a column name provided either by the user in ``names`` or inferred from the
+document header row(s). Those strings define which columns will be parsed:
+
+.. code-block:: python
+
+    read_excel('path_to_file.xls', 'Sheet1', usecols=['foo', 'bar'])
+
+Element order is ignored, so ``usecols=['baz', 'joe']`` is the same as ``['joe', 'baz']``.
+
+.. versionadded:: 0.24
+
+If ``usecols`` is callable, the callable function will be evaluated against
+the column names, returning names where the callable function evaluates to ``True``.
+
+.. code-block:: python
+
+    read_excel('path_to_file.xls', 'Sheet1', usecols=lambda x: x.isalpha())
 
 Parsing Dates
 +++++++++++++
