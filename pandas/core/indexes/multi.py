@@ -192,6 +192,7 @@ class MultiIndex(Index):
     from_arrays
     from_tuples
     from_product
+    from_frame
     set_levels
     set_labels
     to_frame
@@ -1190,9 +1191,10 @@ class MultiIndex(Index):
         else:
             idx_names = self.names
 
+        # Guarantee resulting column order
         result = DataFrame(
             OrderedDict([
-                ((name or level), self._get_level_values(level))
+                ((level if name is None else name), self._get_level_values(level))
                 for name, level in zip(idx_names, range(len(self.levels)))
             ]),
             copy=False
@@ -1434,11 +1436,10 @@ class MultiIndex(Index):
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
             level).
-        names : list-like / callable, optonal
-            If no names provided, use column names, or tuple of column names if
-            the columns is a MultiIndex. If sequence, overwrite names with the
-            given sequence. If callable, pass each column name or tuples of
-            names to the callable.
+        names : list-like, optonal
+            If no names are provided, use the column names, or tuple of column
+            names if the columns is a MultiIndex. If a sequence, overwrite
+            names with the given sequence.
         squeeze : bool, default True
             If df is a single column, squeeze MultiIndex to be a regular Index.
 
@@ -1465,6 +1466,7 @@ class MultiIndex(Index):
         MultiIndex(levels=[[0, 1, 2], ['happy', 'jolly', 'joy']],
                    labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 2, 2]],
                    names=['number', 'mood'])
+
         >>> df = pd.DataFrame([[0], [1]], columns=['number'])
         >>> df
            number
@@ -1476,19 +1478,6 @@ class MultiIndex(Index):
         MultiIndex(levels=[[0, 1]],
                    labels=[[0, 1]],
                    names=['number'])
-        >>> df = pd.DataFrame([['a', 'b'], ['c', 'd'], ['e', 'f']],
-        ...                   columns=pd.MultiIndex.from_tuples([('L1', 'x'),
-        ...                                                      ('L2', 'y')]))
-        >>> df
-          L1 L2
-           x  y
-        0  a  b
-        1  c  d
-        2  e  f
-        >>> pd.MultiIndex.from_frame(df, names=lambda x: '_'.join(x))
-        MultiIndex(levels=[['a', 'c', 'e'], ['b', 'd', 'f']],
-                   labels=[[0, 1, 2], [0, 1, 2]],
-                   names=['L1_x', 'L2_y'])
 
         See Also
         --------
@@ -1497,29 +1486,30 @@ class MultiIndex(Index):
         MultiIndex.from_product : Make a MultiIndex from cartesian product
                                   of iterables
         """
-        from pandas import DataFrame
-        if not isinstance(df, DataFrame):
+        from pandas.core.dtypes.generic import ABCDataFrame
+        if not isinstance(df, ABCDataFrame):
             raise TypeError("Input must be a DataFrame")
 
         # Get MultiIndex names
         if names is None:
-            names = list(df)
-        elif callable(names):
-            names = [names(x) for x in list(df)]
+            names = df.columns
         elif is_list_like(names):
-            if len(names) != len(list(df)):
+            if len(names) != len(df.columns):
                     raise ValueError("'names' should have same length as "
                                      "number of columns in df.")
-            # else: use the passed in sequence
         else:
             raise TypeError("'names' must be a list / sequence of column "
-                            "names, or a callable.")
+                            "names.")
 
         # This way will preserve dtype of columns
-        mi = cls.from_arrays([df[x] for x in df],
+        mi = cls.from_arrays([df.iloc[:, x] for x in range(len(df.columns))],
                              sortorder=sortorder,
                              names=names)
-        return mi._squeeze() if squeeze else mi
+
+        if squeeze and len(mi.levels) == 1:
+            return mi.get_level_values(0)
+        else:
+            return mi
 
     def _sort_levels_monotonic(self):
         """
@@ -1582,32 +1572,6 @@ class MultiIndex(Index):
         return MultiIndex(new_levels, new_labels,
                           names=self.names, sortorder=self.sortorder,
                           verify_integrity=False)
-
-    def _squeeze(self):
-        """
-        Squeeze a single level MultiIndex to be a regular Index instance.
-
-        .. versionadded:: 0.24.0
-
-        Returns
-        -------
-        Index or MultiIndex
-            Returns Index equivalent of single level MultiIndex. Returns
-            copy of MultiIndex if multilevel.
-
-        Examples
-        --------
-        >>> mi = pd.MultiIndex.from_tuples([('a',), ('b',), ('c',)])
-        >>> mi
-        MultiIndex(levels=[['a', 'b', 'c']],
-                   labels=[[0, 1, 2]])
-        >>> mi._squeeze()
-        Index(['a', 'b', 'c'], dtype='object')
-        """
-        if len(self.levels) == 1:
-            return self.levels[0][self.labels[0]]
-        else:
-            return self.copy()
 
     def remove_unused_levels(self):
         """
