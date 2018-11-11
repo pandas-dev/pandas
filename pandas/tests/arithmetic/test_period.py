@@ -115,27 +115,27 @@ class TestPeriodIndexComparisons(object):
         base = tm.box_expected(base, box)
 
         msg = "Input has different freq=A-DEC from "
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             base <= Period('2011', freq='A')
 
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             Period('2011', freq='A') >= base
 
         # TODO: Could parametrize over boxes for idx?
         idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='A')
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             base <= idx
 
         # Different frequency
         msg = "Input has different freq=4M from "
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             base <= Period('2011', freq='4M')
 
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             Period('2011', freq='4M') >= base
 
         idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='4M')
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             base <= idx
 
     @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
@@ -187,10 +187,10 @@ class TestPeriodIndexComparisons(object):
 
         diff = PeriodIndex(['2011-02', '2011-01', '2011-04', 'NaT'], freq='4M')
         msg = "Input has different freq=4M from PeriodIndex"
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             idx1 > diff
 
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             idx1 == diff
 
     # TODO: De-duplicate with test_pi_cmp_nat
@@ -702,13 +702,13 @@ class TestPeriodIndexArithmetic(object):
         other = not_daily
         rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
         msg = 'Input has different freq(=.+)? from Period.*?\\(freq=D\\)'
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng + other
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng += other
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng - other
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng -= other
 
     def test_pi_add_iadd_timedeltalike_hourly(self, two_hours):
@@ -728,10 +728,10 @@ class TestPeriodIndexArithmetic(object):
         rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00', freq='H')
         msg = 'Input has different freq(=.+)? from Period.*?\\(freq=H\\)'
 
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng + other
 
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng += other
 
     def test_pi_sub_isub_timedeltalike_hourly(self, two_hours):
@@ -762,13 +762,13 @@ class TestPeriodIndexArithmetic(object):
         rng = pd.period_range('2014', '2024', freq='A')
         msg = ('Input has different freq(=.+)? '
                'from Period.*?\\(freq=A-DEC\\)')
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng + other
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng += other
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng - other
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng -= other
 
     def test_pi_add_iadd_timedeltalike_M(self):
@@ -786,13 +786,13 @@ class TestPeriodIndexArithmetic(object):
         other = mismatched_freq
         rng = pd.period_range('2014-01', '2016-12', freq='M')
         msg = 'Input has different freq(=.+)? from Period.*?\\(freq=M\\)'
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng + other
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng += other
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng - other
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng -= other
 
     def test_parr_add_sub_td64_nat(self, box):
@@ -902,14 +902,14 @@ class TestPeriodIndexSeriesMethods(object):
         obj = tm.box_expected(idx, box_with_period)
 
         msg = r"unsupported operand type\(s\)"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             obj + ng
 
         with pytest.raises(TypeError):
             # error message differs between PY2 and 3
             ng + obj
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             obj - ng
 
         with pytest.raises(TypeError):
@@ -1004,13 +1004,13 @@ class TestPeriodIndexSeriesMethods(object):
         # from Period
         msg = r"Input has different freq from Period.*?\(freq=D\)"
         for obj in [idx, ser]:
-            with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+            with pytest.raises(period.IncompatibleFrequency, match=msg):
                 obj + pd.offsets.Hour(2)
 
-            with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+            with pytest.raises(period.IncompatibleFrequency, match=msg):
                 pd.offsets.Hour(2) + obj
 
-            with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+            with pytest.raises(period.IncompatibleFrequency, match=msg):
                 obj - pd.offsets.Hour(2)
 
     def test_pi_sub_period(self):

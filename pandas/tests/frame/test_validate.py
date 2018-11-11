@@ -1,7 +1,6 @@
 from pandas.core.frame import DataFrame
 
 import pytest
-import pandas.util.testing as tm
 
 
 @pytest.fixture
@@ -29,5 +28,5 @@ class TestDataFrameValidate(object):
         elif func == "sort_values":
             kwargs["by"] = ["a"]
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             getattr(dataframe, func)(**kwargs)

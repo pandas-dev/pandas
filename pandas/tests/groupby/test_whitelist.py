@@ -263,7 +263,7 @@ def test_groupby_blacklist(df_letters):
         for obj in (df, s):
             gb = obj.groupby(df.letters)
             msg = fmt.format(bl, type(gb).__name__)
-            with tm.assert_raises_regex(AttributeError, msg):
+            with pytest.raises(AttributeError, match=msg):
                 getattr(gb, bl)
 
 
