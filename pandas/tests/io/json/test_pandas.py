@@ -344,8 +344,7 @@ class TestPandasContainer(object):
         json = StringIO('{"badkey":["A","B"],'
                         '"index":["2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
-        with tm.assert_raises_regex(ValueError,
-                                    r"unexpected key\(s\): badkey"):
+        with pytest.raises(ValueError, match=r"unexpected key\(s\): badkey"):
             read_json(json, orient="split")
 
     def test_frame_from_json_nones(self):
@@ -839,7 +838,7 @@ class TestPandasContainer(object):
 DataFrame\\.index values are different \\(100\\.0 %\\)
 \\[left\\]:  Index\\(\\[u?'a', u?'b'\\], dtype='object'\\)
 \\[right\\]: RangeIndex\\(start=0, stop=2, step=1\\)"""
-        with tm.assert_raises_regex(AssertionError, error_msg):
+        with pytest.raises(AssertionError, match=error_msg):
             assert_frame_equal(result, expected, check_index_type=False)
 
         result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]')
@@ -1122,9 +1121,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
     def test_latin_encoding(self):
         if compat.PY2:
-            tm.assert_raises_regex(
-                TypeError, r'\[unicode\] is not implemented as a table column')
-            return
+            pytest.skip("[unicode] is not implemented as a table column")
 
         # GH 13774
         pytest.skip("encoding not implemented in .to_json(), "
@@ -1229,7 +1226,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         df = pd.DataFrame([[1, 2], [4, 5]], columns=['a', 'b'])
 
-        with tm.assert_raises_regex(ValueError, "'index=False' is only "
-                                                "valid when 'orient' is "
-                                                "'split' or 'table'"):
+        msg = ("'index=False' is only valid when "
+               "'orient' is 'split' or 'table'")
+        with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient, index=False)
