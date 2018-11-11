@@ -1920,7 +1920,7 @@ class DataFrame(NDFrame):
         --------
         pandas.read_stata : Import Stata data files.
         pandas.io.stata.StataWriter : Low-level writer for Stata data files.
-        pandas.io.stata.StataWriter117 : Low-level writer for version 117 
+        pandas.io.stata.StataWriter117 : Low-level writer for version 117
             files.
 
         Examples
