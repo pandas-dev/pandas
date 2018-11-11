@@ -553,17 +553,18 @@ class TestPeriodIndexArithmetic(object):
         rng -= pd.offsets.MonthEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_offset_n_gt1(self, box):
+    def test_pi_add_offset_n_gt1(self, box_transpose_fail):
         # GH#23215
         # add offset to PeriodIndex with freq.n > 1
+        box, transpose = box_transpose_fail
+
         per = pd.Period('2016-01', freq='2M')
         pi = pd.PeriodIndex([per])
 
         expected = pd.PeriodIndex(['2016-03'], freq='2M')
 
-        # FIXME: with transpose these tests fail
-        pi = tm.box_expected(pi, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        pi = tm.box_expected(pi, box, transpose=transpose)
+        expected = tm.box_expected(expected, box, transpose=transpose)
 
         result = pi + per.freq
         tm.assert_equal(result, expected)
@@ -795,15 +796,16 @@ class TestPeriodIndexArithmetic(object):
         with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng -= other
 
-    def test_parr_add_sub_td64_nat(self, box):
+    def test_parr_add_sub_td64_nat(self, box_transpose_fail):
         # GH#23320 special handling for timedelta64("NaT")
+        box, transpose = box_transpose_fail
+
         pi = pd.period_range("1994-04-01", periods=9, freq="19D")
         other = np.timedelta64("NaT")
         expected = pd.PeriodIndex(["NaT"] * 9, freq="19D")
 
-        # FIXME: with transposing these tests fail
-        obj = tm.box_expected(pi, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        obj = tm.box_expected(pi, box, transpose=transpose)
+        expected = tm.box_expected(expected, box, transpose=transpose)
 
         result = obj + other
         tm.assert_equal(result, expected)

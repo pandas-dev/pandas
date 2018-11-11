@@ -422,8 +422,9 @@ class TestTimedeltaArraylikeAddSubOps(object):
         idx = TimedeltaIndex(['1 day', '2 day'])
         expected = DatetimeIndex(['2011-01-02', '2011-01-03'], tz=tz)
 
+        # FIXME: fails with transpose=True because of tz-aware DataFrame
+        #  transpose bug
         idx = tm.box_expected(idx, box, transpose=False)
-        # FIXME: calling box_expected with transpose=True raises ValueError
         expected = tm.box_expected(expected, box, transpose=False)
 
         result = idx + other
@@ -679,7 +680,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
         # GH#17250 make sure result dtype is correct
         # GH#19043 make sure names are propagated correctly
         if box is pd.DataFrame and names[1] == 'Venkman':
-            pytest.skip("Name propogation for DataFrame does not behave like "
+            pytest.skip("Name propagation for DataFrame does not behave like "
                         "it does for Index/Series")
 
         tdi = TimedeltaIndex(['0 days', '1 day'], name=names[0])
@@ -815,7 +816,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
     def test_td64arr_add_offset_index(self, names, box):
         # GH#18849, GH#19744
         if box is pd.DataFrame and names[1] == 'bar':
-            pytest.skip("Name propogation for DataFrame does not behave like "
+            pytest.skip("Name propagation for DataFrame does not behave like "
                         "it does for Index/Series")
 
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
@@ -869,7 +870,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
     def test_td64arr_sub_offset_index(self, names, box):
         # GH#18824, GH#19744
         if box is pd.DataFrame and names[1] == 'bar':
-            pytest.skip("Name propogation for DataFrame does not behave like "
+            pytest.skip("Name propagation for DataFrame does not behave like "
                         "it does for Index/Series")
 
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],

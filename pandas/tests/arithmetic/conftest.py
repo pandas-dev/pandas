@@ -158,6 +158,22 @@ def box_df_fail(request):
     return request.param
 
 
+
+@pytest.fixture(params=[(pd.Index, False),
+                        (pd.Series, False),
+                        (pd.DataFrame, False),
+                        pytest.param((pd.DataFrame, True),
+                                     marks=pytest.mark.xfail(strict=True))],
+                ids=lambda x: x[0].__name__+'-'+str(x[1]))
+def box_transpose_fail(request):
+    """
+    Fixture similar to `box` but testing both transpose cases for DataFrame,
+    with the tranpose=True case xfailed.
+    """
+    # GH#23620
+    return request.param
+
+
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, PeriodArray],
                 ids=lambda x: x.__name__)
 def box_with_period(request):

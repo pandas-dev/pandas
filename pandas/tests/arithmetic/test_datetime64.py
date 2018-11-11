@@ -1196,11 +1196,13 @@ class TestDatetimeIndexArithmetic(object):
     def test_dt64arr_add_sub_td64_nat(self, box, tz_naive_fixture):
         # GH#23320 special handling for timedelta64("NaT")
         tz = tz_naive_fixture
+
         dti = pd.date_range("1994-04-01", periods=9, tz=tz, freq="QS")
         other = np.timedelta64("NaT")
         expected = pd.DatetimeIndex(["NaT"] * 9, tz=tz)
 
-        # FIXME: calling with transpose=True raises ValueError
+        # FIXME: fails with transpose=True due to tz-aware DataFrame
+        #  transpose bug
         obj = tm.box_expected(dti, box, transpose=False)
         expected = tm.box_expected(expected, box, transpose=False)
 
