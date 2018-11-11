@@ -38,7 +38,7 @@ class TestTimedeltaIndex(object):
 
         msg = ("Inferred frequency .* from passed values does "
                "not conform to passed frequency")
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             TimedeltaIndex(tdi, freq='D')
 
     def test_dt64_data_invalid(self):
@@ -48,7 +48,7 @@ class TestTimedeltaIndex(object):
         dti = pd.date_range('2016-01-01', periods=3)
 
         msg = "cannot be converted to timedelta64"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             TimedeltaIndex(dti.tz_localize('Europe/Brussels'))
 
         with tm.assert_produces_warning(FutureWarning):
