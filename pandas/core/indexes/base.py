@@ -522,6 +522,10 @@ class Index(IndexOpsMixin, PandasObject):
                     values = cls(values, name=name, dtype=dtype,
                                  **kwargs)._ndarray_values
 
+        if isinstance(values, (ABCSeries, cls)):
+            values = np.asarray(values._values)
+
+        assert isinstance(values, np.ndarray)
         result = object.__new__(cls)
         result._data = values
         result.name = name
