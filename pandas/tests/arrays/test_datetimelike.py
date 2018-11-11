@@ -62,7 +62,7 @@ class TestDatetimeArray(object):
         # GH#23524
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
-        arr = DatetimeArrayMixin(dti)
+        arr = DatetimeArray(dti)
 
         expected = np.array(list(dti))
 
@@ -77,7 +77,7 @@ class TestDatetimeArray(object):
         # GH#23524
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
-        arr = DatetimeArrayMixin(dti)
+        arr = DatetimeArray(dti)
 
         expected = dti.asi8.view('M8[ns]')
         result = np.array(arr)
@@ -92,7 +92,7 @@ class TestDatetimeArray(object):
         # GH#23524
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
-        arr = DatetimeArrayMixin(dti)
+        arr = DatetimeArray(dti)
 
         expected = dti.asi8
         result = np.array(arr, dtype='i8')
