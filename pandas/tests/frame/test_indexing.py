@@ -2277,19 +2277,34 @@ class TestDataFrameIndexing(TestData):
         expect = df.iloc[[1, -1], 0]
         assert_series_equal(df.loc[0.2, 'a'], expect)
 
+    def test_getitem_sparse_column(self):
+        # https://github.com/pandas-dev/pandas/issues/23559
+        data = pd.SparseArray([0, 1])
+        df = pd.DataFrame({"A": data})
+        expected = pd.Series(data, name="A")
+        result = df['A']
+        tm.assert_series_equal(result, expected)
+
+        result = df.iloc[:, 0]
+        tm.assert_series_equal(result, expected)
+
+        result = df.loc[:, 'A']
+        tm.assert_series_equal(result, expected)
+
     def test_setitem_with_sparse_value(self):
         # GH8131
         df = pd.DataFrame({'c_1': ['a', 'b', 'c'], 'n_1': [1., 2., 3.]})
-        sp_series = pd.Series([0, 0, 1]).to_sparse(fill_value=0)
-        df['new_column'] = sp_series
-        assert_series_equal(df['new_column'], sp_series, check_names=False)
+        sp_array = pd.SparseArray([0, 0, 1])
+        df['new_column'] = sp_array
+        assert_series_equal(df['new_column'],
+                            pd.Series(sp_array, name='new_column'),
+                            check_names=False)
 
     def test_setitem_with_unaligned_sparse_value(self):
         df = pd.DataFrame({'c_1': ['a', 'b', 'c'], 'n_1': [1., 2., 3.]})
-        sp_series = (pd.Series([0, 0, 1], index=[2, 1, 0])
-                     .to_sparse(fill_value=0))
+        sp_series = pd.Series(pd.SparseArray([0, 0, 1]), index=[2, 1, 0])
         df['new_column'] = sp_series
-        exp = pd.SparseSeries([1, 0, 0], name='new_column')
+        exp = pd.Series(pd.SparseArray([1, 0, 0]), name='new_column')
         assert_series_equal(df['new_column'], exp)
 
     def test_setitem_with_unaligned_tz_aware_datetime_column(self):

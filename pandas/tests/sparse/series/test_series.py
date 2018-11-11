@@ -160,11 +160,6 @@ class TestSparseSeries(SharedWithSparse):
         df.dtypes
         str(df)
 
-        tm.assert_sp_series_equal(df['col'], self.bseries, check_names=False)
-
-        result = df.iloc[:, 0]
-        tm.assert_sp_series_equal(result, self.bseries, check_names=False)
-
         # blocking
         expected = Series({'col': 'float64:sparse'})
         result = df.ftypes
