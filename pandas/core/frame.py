@@ -72,7 +72,6 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_sequence,
     is_named_tuple)
-from pandas.core.dtypes.concat import _get_sliced_frame_result_type
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCMultiIndex
 from pandas.core.dtypes.missing import isna, notna
 
@@ -3241,7 +3240,7 @@ class DataFrame(NDFrame):
 
     def _box_col_values(self, values, items):
         """ provide boxed values for a column """
-        klass = _get_sliced_frame_result_type(values, self)
+        klass = self._constructor_sliced
         return klass(values, index=self.index, name=items, fastpath=True)
 
     def __setitem__(self, key, value):
