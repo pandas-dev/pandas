@@ -719,7 +719,7 @@ class Timestamp(_Timestamp):
             # microsecond[, nanosecond[, tzinfo]]]]]])
             return Timestamp(datetime(ts_input, freq, tz, unit or 0,
                                       year or 0, month or 0, day or 0,
-                                      minute), nanosecond=hour, tz=minute)
+                                      minute), nanosecond=hour)
 
         if tzinfo is not None:
             # User passed tzinfo instead of tz; avoid silently ignoring
