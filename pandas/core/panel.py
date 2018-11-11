@@ -106,14 +106,14 @@ def panel_index(time, panels, names=None):
 
 class Panel(NDFrame):
     """
-    Represents wide format panel data, stored as 3-dimensional array
+    Represents wide format panel data, stored as 3-dimensional array.
 
-   .. deprecated:: 0.20.0
-       The recommended way to represent 3-D data are with a MultiIndex on a
-       DataFrame via the :attr:`~Panel.to_frame()` method or with the
-       `xarray package <http://xarray.pydata.org/en/stable/>`__.
-       Pandas provides a :attr:`~Panel.to_xarray()` method to automate this
-       conversion.
+    .. deprecated:: 0.20.0
+        The recommended way to represent 3-D data are with a MultiIndex on a
+        DataFrame via the :attr:`~Panel.to_frame()` method or with the
+        `xarray package <http://xarray.pydata.org/en/stable/>`__.
+        Pandas provides a :attr:`~Panel.to_xarray()` method to automate this
+        conversion.
 
     Parameters
     ----------
