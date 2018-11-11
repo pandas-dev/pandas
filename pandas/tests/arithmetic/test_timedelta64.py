@@ -1054,11 +1054,11 @@ class TestTimedeltaArraylikeMulDivOps(object):
         idx = tm.box_expected(idx, box)
 
         rng5f = np.arange(5, dtype='float64')
-        expected = TimedeltaIndex(rng5f * (rng5f + 0.1))
+        expected = TimedeltaIndex(rng5f * (rng5f + 1.0))
         box2 = pd.Series if box is pd.Index else box
         expected = tm.box_expected(expected, box2)
 
-        result = idx * Series(rng5f + 0.1)
+        result = idx * Series(rng5f + 1.0)
         tm.assert_equal(result, expected)
 
     # TODO: Put Series/DataFrame in others?

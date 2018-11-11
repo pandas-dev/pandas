@@ -506,6 +506,9 @@ class TestTimedeltaMultiplicationDivision(object):
             # TODO: GH-19761. Change to TypeError.
             ser // td
 
+    # ----------------------------------------------------------------
+    # Timedelta.__mod__, __rmod__
+
     def test_mod_timedeltalike(self):
         # GH#19365
         td = Timedelta(hours=37)
@@ -544,9 +547,6 @@ class TestTimedeltaMultiplicationDivision(object):
         result = td % pd.offsets.Hour(5)
         assert isinstance(result, Timedelta)
         assert result == Timedelta(hours=2)
-
-    # ----------------------------------------------------------------
-    # Timedelta.__mod__, __rmod__
 
     def test_mod_numeric(self):
         # GH#19365
