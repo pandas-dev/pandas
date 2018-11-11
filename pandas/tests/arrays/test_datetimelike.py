@@ -57,6 +57,54 @@ def timedelta_index(request):
 
 class TestDatetimeArray(object):
 
+    def test_array_object_dtype(self, tz_naive_fixture):
+        # GH#23524
+        tz = tz_naive_fixture
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        arr = DatetimeArrayMixin(dti)
+
+        expected = np.array(list(dti))
+
+        result = np.array(arr, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # also test the DatetimeIndex method while we're at it
+        result = np.array(dti, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_array(self, tz_naive_fixture):
+        # GH#23524
+        tz = tz_naive_fixture
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        arr = DatetimeArrayMixin(dti)
+
+        expected = dti.asi8.view('M8[ns]')
+        result = np.array(arr)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # check that we are not making copies when setting copy=False
+        result = np.array(arr, copy=False)
+        assert result.base is expected.base
+        assert result.base is not None
+
+    def test_array_i8_dtype(self, tz_naive_fixture):
+        # GH#23524
+        tz = tz_naive_fixture
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        arr = DatetimeArrayMixin(dti)
+
+        expected = dti.asi8
+        result = np.array(arr, dtype='i8')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = np.array(arr, dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # check that we are not making copies when setting copy=False
+        result = np.array(arr, dtype='i8', copy=False)
+        assert result.base is expected.base
+        assert result.base is not None
+
     def test_from_dti(self, tz_naive_fixture):
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
