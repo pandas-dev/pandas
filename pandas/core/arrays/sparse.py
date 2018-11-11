@@ -284,7 +284,7 @@ class SparseDtype(ExtensionDtype):
             return True
         return isinstance(dtype, np.dtype) or dtype == 'Sparse'
 
-    def astype(self, dtype):
+    def update_dtype(self, dtype):
         """Convert the SparseDtype to a new dtype.
 
         This takes care of converting the ``fill_value``.
@@ -315,10 +315,10 @@ class SparseDtype(ExtensionDtype):
 
         Examples
         --------
-        >>> SparseDtype(int, 0).astype(float)
+        >>> SparseDtype(int, 0).update_dtype(float)
         Sparse[float64, 0.0]
 
-        >>> SparseDtype(int, 1).astype(SparseDtype(float, np.nan))
+        >>> SparseDtype(int, 1).update_dtype(SparseDtype(float, np.nan))
         Sparse[float64, nan]
         """
         cls = type(self)
@@ -1290,7 +1290,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
-        dtype = self.dtype.astype(dtype)
+        dtype = self.dtype.update_dtype(dtype)
         subtype = dtype._subtype_with_str
         sp_values = astype_nansafe(self.sp_values,
                                    subtype,

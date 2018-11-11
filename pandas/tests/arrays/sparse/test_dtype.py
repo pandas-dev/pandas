@@ -147,8 +147,8 @@ def test_construct_from_string_fill_value_raises(string):
     (SparseDtype(int, 1), str, SparseDtype(object, '1')),
     (SparseDtype(float, 1.5), int, SparseDtype(int, 1)),
 ])
-def test_astype(original, dtype, expected):
-    result = original.astype(dtype)
+def test_update_dtype(original, dtype, expected):
+    result = original.update_dtype(dtype)
     assert result == expected
 
 
@@ -156,6 +156,6 @@ def test_astype(original, dtype, expected):
     (SparseDtype(float, np.nan), int),
     (SparseDtype(str, 'abc'), int),
 ])
-def test_astype_raises(original, dtype):
+def test_update_dtype_raises(original, dtype):
     with pytest.raises(ValueError):
-        original.astype(dtype)
+        original.update_dtype(dtype)
