@@ -137,22 +137,19 @@ class TestSeriesConstructors():
     def test_constructor_no_data_string_type(self):
         # GH 22477
         result = pd.Series(index=[1], dtype=str)
-        assert result.isna().all()
+        assert np.isnan(result.iloc[0])
 
-    def test_constructor_single_element_string_type(self):
+    @pytest.mark.parametrize('item', ['13'])
+    def test_constructor_single_element_string_type(self, item):
         # GH 22477
-        result = pd.Series(13, index=[1], dtype=str)
-        assert result.values.tolist() == ['13']
+        result = pd.Series(int(item), index=[1], dtype=str)
+        assert result.iloc[0] == item
 
-    def test_constructor_string_element_string_type(self):
+    @pytest.mark.parametrize('item', ['entry', 'ѐ'])
+    def test_constructor_string_element_string_type(self, item):
         # GH 22477
-        result = pd.Series('entry', index=[1], dtype=str)
-        assert result.values.tolist() == ['entry']
-
-    def test_constructor_unicode_element_string_type(self):
-        # GH 22477
-        result = pd.Series('ѐ', index=[1], dtype=str)
-        assert result.values.tolist() == ['ѐ']
+        result = pd.Series(item, index=[1], dtype=str)
+        assert result.iloc[0] == item
 
     def test_constructor_dtype_str_na_values(self, string_dtype):
         # https://github.com/pandas-dev/pandas/issues/21083
