@@ -1242,18 +1242,18 @@ def assert_series_equal(left, right, check_dtype=True,
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
-    check_exact : bool, default False
-        Whether to compare number exactly.
+        If int, then specify the digits to compare.
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
+    check_exact : bool, default False
+        Whether to compare number exactly.
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
-        assertion message
+        assertion message.
     """
     __tracebackhide__ = True
 

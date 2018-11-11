@@ -6,7 +6,6 @@ from datetime import datetime, time
 
 import pytest
 
-from numpy import nan
 from numpy.random import randn
 import numpy as np
 
@@ -516,8 +515,8 @@ class TestDataFrameTimeSeriesMethods(TestData):
                               expected_first, expected_last):
         N = len(self.frame.index)
         mat = randn(N)
-        mat[:5] = nan
-        mat[-5:] = nan
+        mat[:5] = np.nan
+        mat[-5:] = np.nan
 
         frame = DataFrame({'foo': mat}, index=self.frame.index)
         index = frame.first_valid_index()
@@ -533,7 +532,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert empty.first_valid_index() is None
 
         # GH17400: no valid entries
-        frame[:] = nan
+        frame[:] = np.nan
         assert frame.last_valid_index() is None
         assert frame.first_valid_index() is None
 

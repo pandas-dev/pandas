@@ -19,6 +19,7 @@ from pandas import compat
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     is_object_dtype,
+    is_int64_dtype,
     is_datetime64tz_dtype,
     is_datetime64_dtype,
     ensure_int64)
@@ -387,6 +388,15 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
+
+    def __array__(self, dtype=None):
+        if is_object_dtype(dtype):
+            return np.array(list(self), dtype=object)
+        elif is_int64_dtype(dtype):
+            return self.asi8
+
+        # TODO: warn that conversion may be lossy?
+        return self._data.view(np.ndarray)  # follow Index.__array__
 
     def __iter__(self):
         """
