@@ -15,8 +15,8 @@ from __future__ import print_function
 
 import os
 import shutil
-from pandas.compat import PY3
 
+from pandas.compat import PY3
 
 __all__ = ['get_terminal_size', 'is_terminal']
 

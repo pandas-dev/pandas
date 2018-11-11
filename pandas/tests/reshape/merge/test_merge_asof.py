@@ -6,7 +6,6 @@ import pandas as pd
 from pandas import (merge_asof, read_csv,
                     to_datetime, Timedelta)
 from pandas.core.reshape.merge import MergeError
-from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal
 
 
@@ -1005,7 +1004,7 @@ class TestAsOfMerge(object):
         right = pd.DataFrame({'right_val': [1, 2, 3, 6, 7],
                               'a': [1, 2, 3, 6, 7]})
 
-        with tm.assert_raises_regex(MergeError, msg):
+        with pytest.raises(MergeError, match=msg):
             merge_asof(left, right, on='a')
 
     @pytest.mark.parametrize('func', [lambda x: x, lambda x: to_datetime(x)],
@@ -1019,7 +1018,7 @@ class TestAsOfMerge(object):
         df_null = pd.DataFrame({'a': nulls, 'left_val': ['a', 'b', 'c']})
         df = pd.DataFrame({'a': non_nulls, 'right_val': [1, 6, 11]})
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             if side == 'left':
                 merge_asof(df_null, df, on='a')
             else:

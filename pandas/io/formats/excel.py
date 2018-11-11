@@ -1,23 +1,24 @@
 """Utilities for conversion to writer-agnostic Excel representation
 """
 
+import itertools
 import re
 import warnings
-import itertools
 
 import numpy as np
 
 from pandas.compat import reduce
+
+from pandas.core.dtypes import missing
+from pandas.core.dtypes.common import is_float, is_scalar
+from pandas.core.dtypes.generic import ABCMultiIndex, ABCPeriodIndex
+
+from pandas import Index
 import pandas.core.common as com
 
-from pandas.core.dtypes.common import is_float, is_scalar
-from pandas.core.dtypes import missing
-from pandas.core.dtypes.generic import ABCMultiIndex, ABCPeriodIndex
-from pandas import Index
-
 from pandas.io.formats.css import CSSResolver, CSSWarning
-from pandas.io.formats.printing import pprint_thing
 from pandas.io.formats.format import get_level_lengths
+from pandas.io.formats.printing import pprint_thing
 
 
 class ExcelCell(object):

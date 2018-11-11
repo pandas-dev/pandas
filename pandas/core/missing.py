@@ -760,9 +760,10 @@ def _interp_limit(invalid, fw_limit, bw_limit):
 
     .. code-block:: python
 
-       for x in np.where(invalid)[0]:
-           if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
-               yield x
+        def _interp_limit(invalid, fw_limit, bw_limit):
+            for x in np.where(invalid)[0]:
+                if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
+                    yield x
     """
     # handle forward first; the backward direction is the same except
     # 1. operate on the reversed array

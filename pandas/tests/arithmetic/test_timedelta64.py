@@ -161,22 +161,22 @@ class TestAddSubNaTMasking(object):
     def test_tdi_add_overflow(self):
         # See GH#14068
         msg = "too (big|large) to convert"
-        with tm.assert_raises_regex(OverflowError, msg):
+        with pytest.raises(OverflowError, match=msg):
             pd.to_timedelta(106580, 'D') + Timestamp('2000')
-        with tm.assert_raises_regex(OverflowError, msg):
+        with pytest.raises(OverflowError, match=msg):
             Timestamp('2000') + pd.to_timedelta(106580, 'D')
 
         _NaT = int(pd.NaT) + 1
         msg = "Overflow in int64 addition"
-        with tm.assert_raises_regex(OverflowError, msg):
+        with pytest.raises(OverflowError, match=msg):
             pd.to_timedelta([106580], 'D') + Timestamp('2000')
-        with tm.assert_raises_regex(OverflowError, msg):
+        with pytest.raises(OverflowError, match=msg):
             Timestamp('2000') + pd.to_timedelta([106580], 'D')
-        with tm.assert_raises_regex(OverflowError, msg):
+        with pytest.raises(OverflowError, match=msg):
             pd.to_timedelta([_NaT]) - Timedelta('1 days')
-        with tm.assert_raises_regex(OverflowError, msg):
+        with pytest.raises(OverflowError, match=msg):
             pd.to_timedelta(['5 days', _NaT]) - Timedelta('1 days')
-        with tm.assert_raises_regex(OverflowError, msg):
+        with pytest.raises(OverflowError, match=msg):
             (pd.to_timedelta([_NaT, '5 days', '1 hours']) -
              pd.to_timedelta(['7 seconds', _NaT, '4 hours']))
 
@@ -415,7 +415,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
         msg = ("cannot subtract a datelike from|"
                "Could not operate|"
                "cannot perform operation")
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             idx - Timestamp('2011-01-01')
 
     def test_td64arr_add_timestamp(self, box, tz_naive_fixture):
@@ -734,6 +734,24 @@ class TestTimedeltaArraylikeAddSubOps(object):
             assert result.dtype == 'timedelta64[ns]'
         else:
             assert result.dtypes[0] == 'timedelta64[ns]'
+
+    def test_td64arr_add_sub_td64_nat(self, box):
+        # GH#23320 special handling for timedelta64("NaT")
+        tdi = pd.TimedeltaIndex([NaT, Timedelta('1s')])
+        other = np.timedelta64("NaT")
+        expected = pd.TimedeltaIndex(["NaT"] * 2)
+
+        obj = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        result = obj + other
+        tm.assert_equal(result, expected)
+        result = other + obj
+        tm.assert_equal(result, expected)
+        result = obj - other
+        tm.assert_equal(result, expected)
+        result = other - obj
+        tm.assert_equal(result, expected)
 
     def test_td64arr_sub_NaT(self, box):
         # GH#18808
@@ -1199,9 +1217,9 @@ class TestTimedeltaArraylikeMulDivOps(object):
         # with 'operate' (from core/ops.py) for the ops that are not
         # defined
         pattern = 'operate|unsupported|cannot|not supported'
-        with tm.assert_raises_regex(TypeError, pattern):
+        with pytest.raises(TypeError, match=pattern):
             td1 * scalar_td
-        with tm.assert_raises_regex(TypeError, pattern):
+        with pytest.raises(TypeError, match=pattern):
             scalar_td * td1
 
     def test_td64arr_mul_too_short_raises(self, box):
@@ -1381,8 +1399,8 @@ class TestTimedeltaArraylikeInvalidArithmeticOps(object):
         # with 'operate' (from core/ops.py) for the ops that are not
         # defined
         pattern = 'operate|unsupported|cannot|not supported'
-        with tm.assert_raises_regex(TypeError, pattern):
+        with pytest.raises(TypeError, match=pattern):
             scalar_td ** td1
 
-        with tm.assert_raises_regex(TypeError, pattern):
+        with pytest.raises(TypeError, match=pattern):
             td1 ** scalar_td

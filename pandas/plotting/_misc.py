@@ -206,7 +206,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
         ...                      'versicolor', 'setosa', 'virginica',
         ...                      'setosa']
         ...     })
-        >>> rad_viz = pd.plotting.radviz(df, 'Category')
+        >>> rad_viz = pd.plotting.radviz(df, 'Category')  # doctest: +SKIP
     """
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
@@ -407,7 +407,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
             :context: close-figs
 
             >>> s = pd.Series(np.random.uniform(size=100))
-            >>> fig = pd.plotting.bootstrap_plot(s)
+            >>> fig = pd.plotting.bootstrap_plot(s)  # doctest: +SKIP
     """
     import random
     import matplotlib.pyplot as plt
