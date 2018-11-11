@@ -90,6 +90,7 @@ jobs:
       # TODO PANDAS_GH_TOKEN needs to be added as a secret variable
       git clone "https://${PANDAS_GH_TOKEN}@github.com/pandas-dev/pandas-docs-travis.git" $REPO_DIR
       git branch gh-pages --track origin/gh-pages
+      git checkout gh-pages
       # TODO if this is the build from master, and not from a PR, the build should
       # be in the root replacing the old build, and not in a new directory
       cp -r doc/build/html $REPO_DIR/$(System.PullRequest.PullRequestId)
