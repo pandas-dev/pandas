@@ -10,11 +10,10 @@ import zipfile
 import pandas.compat as compat
 from pandas.compat import BytesIO, StringIO, string_types, text_type
 from pandas.errors import (  # noqa
+    AbstractMethodError,
     DtypeWarning, EmptyDataError, ParserError, ParserWarning)
 
 from pandas.core.dtypes.common import is_file_like, is_number
-
-import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -67,7 +66,7 @@ class BaseIterator(object):
         return self
 
     def __next__(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
 
 if not compat.PY3:

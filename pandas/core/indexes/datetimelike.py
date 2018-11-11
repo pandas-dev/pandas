@@ -13,6 +13,8 @@ import numpy as np
 from pandas._libs import lib, iNaT, NaT
 from pandas._libs.tslibs.timestamps import round_nsint64, RoundTo
 
+from pandas.errors import AbstractMethodError
+
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_dtype_equal,
@@ -31,7 +33,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCIndex, ABCSeries, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
-from pandas.core import common as com, algorithms, ops
+from pandas.core import algorithms, ops
 
 import pandas.io.formats.printing as printing
 
@@ -543,7 +545,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     @property
     def _formatter_func(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _format_attrs(self):
         """
