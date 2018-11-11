@@ -553,12 +553,12 @@ class TestSparseSeries(SharedWithSparse):
                                np.take(sp.to_dense(), indices, axis=0))
 
         msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.take,
-                               sp, indices, out=np.empty(sp.shape))
+        with pytest.raises(ValueError, match=msg):
+            np.take(sp, indices, out=np.empty(sp.shape))
 
         msg = "the 'mode' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.take,
-                               sp, indices, out=None, mode='clip')
+        with pytest.raises(ValueError, match=msg):
+            np.take(sp, indices, out=None, mode='clip')
 
     def test_setitem(self):
         self.bseries[5] = 7.
@@ -776,9 +776,9 @@ class TestSparseSeries(SharedWithSparse):
         first_series = SparseSeries(values1,
                                     sparse_index=IntIndex(length, index1),
                                     fill_value=nan)
-        with tm.assert_raises_regex(TypeError,
-                                    'new index must be a SparseIndex'):
-            reindexed = first_series.sparse_reindex(0)  # noqa
+        with pytest.raises(TypeError,
+                           match='new index must be a SparseIndex'):
+            first_series.sparse_reindex(0)
 
     def test_repr(self):
         # TODO: These aren't used
@@ -870,7 +870,7 @@ class TestSparseSeries(SharedWithSparse):
         # must have NaN fill value
         data = {'a': SparseSeries(np.arange(7), sparse_index=expected2,
                                   fill_value=0)}
-        with tm.assert_raises_regex(TypeError, "NaN fill value"):
+        with pytest.raises(TypeError, match="NaN fill value"):
             spf.homogenize(data)
 
     def test_fill_value_corner(self):
@@ -1444,7 +1444,7 @@ class TestSparseSeriesAnalytics(object):
 
         axis = 1  # Series is 1-D, so only axis = 0 is valid.
         msg = "No axis named {axis}".format(axis=axis)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.bseries.cumsum(axis=axis)
 
     def test_numpy_cumsum(self):
@@ -1457,12 +1457,12 @@ class TestSparseSeriesAnalytics(object):
         tm.assert_series_equal(result, expected)
 
         msg = "the 'dtype' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.cumsum,
-                               self.bseries, dtype=np.int64)
+        with pytest.raises(ValueError, match=msg):
+            np.cumsum(self.bseries, dtype=np.int64)
 
         msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.cumsum,
-                               self.zbseries, out=result)
+        with pytest.raises(ValueError, match=msg):
+            np.cumsum(self.zbseries, out=result)
 
     def test_numpy_func_call(self):
         # no exception should be raised even though
@@ -1520,7 +1520,7 @@ def test_to_sparse():
 
 def test_constructor_mismatched_raises():
     msg = "Length of passed values is 2, index implies 3"
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         SparseSeries([1, 2], index=[1, 2, 3])
 
 
