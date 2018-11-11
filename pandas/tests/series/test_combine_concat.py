@@ -10,7 +10,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, compat, date_range
 import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal, assert_frame_equal
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestSeriesCombine(object):
