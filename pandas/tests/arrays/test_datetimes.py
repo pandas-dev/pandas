@@ -14,7 +14,7 @@ import pandas.util.testing as tm
 
 class TestDatetimeArray(object):
 
-    @pytest.mark.xfail(resaon='DatetimeArray', strict=True)
+    @pytest.mark.xfail(reason='DatetimeArray', strict=True)
     def test_repr(self):
         dti = pd.date_range('1994-07-01', periods=2, freq='W', tz='US/Central')
         arr = DatetimeArray(dti)
@@ -27,7 +27,7 @@ class TestDatetimeArray(object):
         result = repr(arr)
         assert result == expected
 
-    @pytest.mark.xfail(resaon='DatetimeArray', strict=True)
+    @pytest.mark.xfail(reason='DatetimeArray', strict=True)
     def test_repr_truncates(self):
         # truncated
         dti = pd.date_range('1994-07-01', periods=1000, freq='W',

@@ -324,7 +324,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     def to_timestamp(self, freq=None, how='start'):
         """
-        Cast to DatetimeArray/Index
+        Cast to DatetimeArray/Index.
 
         Parameters
         ----------
