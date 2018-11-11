@@ -157,7 +157,7 @@ _num_index_shared_docs['class_descr'] = """
 
     See also
     --------
-    Index : The base pandas Index type
+    Index : The base pandas Index type.
 """
 
 _int64_descr_args = dict(

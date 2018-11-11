@@ -58,7 +58,7 @@ class DatelikeOps(object):
 
     See Also
     --------
-    pandas.to_datetime : Convert the given argument to datetime
+    pandas.to_datetime : Convert the given argument to datetime.
     DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
     DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
     DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
@@ -434,7 +434,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         Return the minimum value of the Index or minimum along
         an axis.
 
-        See also
+        See Also
         --------
         numpy.ndarray.min
         """
@@ -463,7 +463,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         See `numpy.ndarray.argmin` for more information on the
         `axis` parameter.
 
-        See also
+        See Also
         --------
         numpy.ndarray.argmin
         """
@@ -484,7 +484,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         Return the maximum value of the Index or maximum along
         an axis.
 
-        See also
+        See Also
         --------
         numpy.ndarray.max
         """
@@ -513,7 +513,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         See `numpy.ndarray.argmax` for more information on the
         `axis` parameter.
 
-        See also
+        See Also
         --------
         numpy.ndarray.argmax
         """

@@ -90,7 +90,7 @@ _apply_docs = dict(
     --------
     {examples}
 
-    See also
+    See Also
     --------
     pipe : Apply function to the full GroupBy object instead of to each
         group.
@@ -215,8 +215,8 @@ Examples
 
 See Also
 --------
-pandas.Series.pipe : Apply a function with arguments to a series
-pandas.DataFrame.pipe: Apply a function with arguments to a dataframe
+pandas.Series.pipe : Apply a function with arguments to a series.
+pandas.DataFrame.pipe: Apply a function with arguments to a dataframe.
 apply : Apply function to each group instead of to the
     full %(klass)s object.
 """

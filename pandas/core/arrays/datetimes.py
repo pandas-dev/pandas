@@ -566,7 +566,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         See Also
         --------
-        DatetimeIndex.tz : A timezone that has a variable offset from UTC
+        DatetimeIndex.tz : A timezone that has a variable offset from UTC.
         DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
             given time zone, or remove timezone from a tz-aware DatetimeIndex.
 
@@ -876,8 +876,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         See also
         --------
-        pandas.PeriodIndex: Immutable ndarray holding ordinal values
-        pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
+        pandas.PeriodIndex: Immutable ndarray holding ordinal values.
+        pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object.
         """
         from pandas.core.arrays import PeriodArray
 

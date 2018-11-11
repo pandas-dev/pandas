@@ -1065,7 +1065,7 @@ class SQLDatabase(PandasSQL):
 
         See also
         --------
-        read_sql_table : Read SQL database table into a DataFrame
+        read_sql_table : Read SQL database table into a DataFrame.
         read_sql
 
         """

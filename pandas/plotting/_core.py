@@ -3491,7 +3491,7 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        matplotlib.pyplot.scatter : scatter plot using multiple input data
+        matplotlib.pyplot.scatter : Scatter plot using multiple input data
             formats.
 
         Examples
@@ -3567,7 +3567,7 @@ class FramePlotMethods(BasePlotMethods):
         See Also
         --------
         DataFrame.plot : Make plots of a DataFrame.
-        matplotlib.pyplot.hexbin : hexagonal binning plot using matplotlib,
+        matplotlib.pyplot.hexbin : Hexagonal binning plot using matplotlib,
             the matplotlib function that is used under the hood.
 
         Examples
