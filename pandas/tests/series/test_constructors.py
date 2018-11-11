@@ -985,6 +985,7 @@ class TestSeriesConstructors():
         expected = src.copy(deep=True)
         prod = Series(src)
         prod[::3] = NaT
+        assert expected[0] is not NaT
         tm.assert_index_equal(src, expected)
 
     # https://github.com/pandas-dev/pandas/issues/22698
