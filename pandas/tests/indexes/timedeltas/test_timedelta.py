@@ -199,8 +199,8 @@ class TestTimedeltaIndex(DatetimeLike):
 
     def test_hash_error(self):
         index = timedelta_range('1 days', periods=10)
-        with tm.assert_raises_regex(TypeError, "unhashable type: %r" %
-                                    type(index).__name__):
+        with pytest.raises(TypeError, match=("unhashable type: %r" %
+                                             type(index).__name__)):
             hash(index)
 
     def test_append_join_nondatetimeindex(self):
