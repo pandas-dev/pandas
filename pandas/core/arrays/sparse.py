@@ -284,6 +284,83 @@ class SparseDtype(ExtensionDtype):
             return True
         return isinstance(dtype, np.dtype) or dtype == 'Sparse'
 
+    def astype(self, dtype):
+        """Convert the SparseDtype to a new dtype.
+
+        This takes care of converting the ``fill_value``.
+
+        Parameters
+        ----------
+        dtype : Union[str, numpy.dtype, SparseDtype]
+            The new dtype to use.
+
+            * For a SparseDtype, it is simply returned
+            * For a NumPy dtype (or str), the current fill value
+              is converted to the new dtype, and a SparseDtype
+              with `dtype` and the new fill value is returned.
+
+        Returns
+        -------
+        SparseDtype
+            A new SparseDtype with the corret `dtype` and fill value
+            for that `dtype`.
+
+        Raises
+        ------
+        ValueError
+            When the current fill value cannot be converted to the
+            new `dtype` (e.g. trying to convert ``np.nan`` to an
+            integer dtype.
+
+
+        Examples
+        --------
+        >>> SparseDtype(int, 0).astype(float)
+        Sparse[float64, 0.0]
+
+        >>> SparseDtype(int, 1).astype(SparseDtype(float, np.nan))
+        Sparse[float64, nan]
+        """
+        cls = type(self)
+        dtype = pandas_dtype(dtype)
+
+        if not isinstance(dtype, cls):
+            fill_value = astype_nansafe(np.array(self.fill_value),
+                                        dtype).item()
+            dtype = cls(dtype, fill_value=fill_value)
+
+        return dtype
+
+    @property
+    def _subtype_with_str(self):
+        """
+        Whether the SparseDtype's subtype should be considered ``str``.
+
+        Typically, pandas will store string data in an object-dtype array.
+        When converting values to a dtype, e.g. in ``.astype``, we need to
+        be more specific, we need the actual underlying type.
+
+        Returns
+        -------
+
+        >>> SparseDtype(int, 1)._subtype_with_str
+        dtype('int64')
+
+        >>> SparseDtype(object, 1)._subtype_with_str
+        dtype('O')
+
+        >>> dtype = SparseDtype(str, '')
+        >>> dtype.subtype
+        dtype('O')
+
+        >>> dtype._subtype_with_str
+        str
+        """
+        if isinstance(self.fill_value, compat.string_types):
+            return type(self.fill_value)
+        return self.subtype
+
+
 # ----------------------------------------------------------------------------
 # Array
 
@@ -1213,27 +1290,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
-        dtype = pandas_dtype(dtype)
-
-        if not isinstance(dtype, SparseDtype):
-            fill_value = astype_nansafe(np.array(self.fill_value),
-                                        dtype).item()
-            dtype = SparseDtype(dtype, fill_value=fill_value)
-
-        # Typically we'll just astype the sp_values to dtype.subtype,
-        # but SparseDtype follows the pandas convention of storing strings
-        # as object dtype. So SparseDtype(str) immediately becomes
-        # SparseDtype(object), and at this point we don't know whether object
-        # means string or something else. We *cannot* just pass object to
-        # astype_nansafe below, since that won't convert to string. So
-        # we rely on the assumption that "string fill_value" means strings
-        # which is close enough to being true.
-        if (is_object_dtype(dtype.subtype) and
-                isinstance(dtype.fill_value, compat.string_types)):
-            subtype = compat.text_type
-        else:
-            subtype = dtype.subtype
-
+        dtype = self.dtype.astype(dtype)
+        subtype = dtype._subtype_with_str
         sp_values = astype_nansafe(self.sp_values,
                                    subtype,
                                    copy=copy)

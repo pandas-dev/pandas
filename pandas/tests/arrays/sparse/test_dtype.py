@@ -139,3 +139,23 @@ def test_parse_subtype(string, expected):
 def test_construct_from_string_fill_value_raises(string):
     with pytest.raises(TypeError, match='fill_value in the string is not'):
         SparseDtype.construct_from_string(string)
+
+
+@pytest.mark.parametrize('original, dtype, expected', [
+    (SparseDtype(int, 0), float, SparseDtype(float, 0.0)),
+    (SparseDtype(int, 1), float, SparseDtype(float, 1.0)),
+    (SparseDtype(int, 1), str, SparseDtype(object, '1')),
+    (SparseDtype(float, 1.5), int, SparseDtype(int, 1)),
+])
+def test_astype(original, dtype, expected):
+    result = original.astype(dtype)
+    assert result == expected
+
+
+@pytest.mark.parametrize("original, dtype", [
+    (SparseDtype(float, np.nan), int),
+    (SparseDtype(str, 'abc'), int),
+])
+def test_astype_raises(original, dtype):
+    with pytest.raises(ValueError):
+        original.astype(dtype)
