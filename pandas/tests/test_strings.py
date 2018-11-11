@@ -2457,50 +2457,52 @@ class TestStringMethods(object):
         tm.assert_index_equal(res, exp)
 
     def test_partition_series(self):
-        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h', None])
 
         result = values.str.partition('_', expand=False)
         exp = Series([('a', '_', 'b_c'), ('c', '_', 'd_e'), NA,
-                      ('f', '_', 'g_h')])
+                      ('f', '_', 'g_h'), None])
         tm.assert_series_equal(result, exp)
 
         result = values.str.rpartition('_', expand=False)
         exp = Series([('a_b', '_', 'c'), ('c_d', '_', 'e'), NA,
-                      ('f_g', '_', 'h')])
+                      ('f_g', '_', 'h'), None])
         tm.assert_series_equal(result, exp)
 
         # more than one char
-        values = Series(['a__b__c', 'c__d__e', NA, 'f__g__h'])
+        values = Series(['a__b__c', 'c__d__e', NA, 'f__g__h', None])
         result = values.str.partition('__', expand=False)
         exp = Series([('a', '__', 'b__c'), ('c', '__', 'd__e'), NA,
-                      ('f', '__', 'g__h')])
+                      ('f', '__', 'g__h'), None])
         tm.assert_series_equal(result, exp)
 
         result = values.str.rpartition('__', expand=False)
         exp = Series([('a__b', '__', 'c'), ('c__d', '__', 'e'), NA,
-                      ('f__g', '__', 'h')])
+                      ('f__g', '__', 'h'), None])
         tm.assert_series_equal(result, exp)
 
         # None
-        values = Series(['a b c', 'c d e', NA, 'f g h'])
+        values = Series(['a b c', 'c d e', NA, 'f g h', None])
         result = values.str.partition(expand=False)
         exp = Series([('a', ' ', 'b c'), ('c', ' ', 'd e'), NA,
-                      ('f', ' ', 'g h')])
+                      ('f', ' ', 'g h'), None])
         tm.assert_series_equal(result, exp)
 
         result = values.str.rpartition(expand=False)
         exp = Series([('a b', ' ', 'c'), ('c d', ' ', 'e'), NA,
-                      ('f g', ' ', 'h')])
+                      ('f g', ' ', 'h'), None])
         tm.assert_series_equal(result, exp)
 
         # Not split
-        values = Series(['abc', 'cde', NA, 'fgh'])
+        values = Series(['abc', 'cde', NA, 'fgh', None])
         result = values.str.partition('_', expand=False)
-        exp = Series([('abc', '', ''), ('cde', '', ''), NA, ('fgh', '', '')])
+        exp = Series([('abc', '', ''), ('cde', '', ''), NA, 
+                      ('fgh', '', ''), None])
         tm.assert_series_equal(result, exp)
 
         result = values.str.rpartition('_', expand=False)
-        exp = Series([('', '', 'abc'), ('', '', 'cde'), NA, ('', '', 'fgh')])
+        exp = Series([('', '', 'abc'), ('', '', 'cde'), NA, 
+                      ('', '', 'fgh'), None])
         tm.assert_series_equal(result, exp)
 
         # unicode
@@ -2524,59 +2526,61 @@ class TestStringMethods(object):
         assert result == [v.rpartition('_') for v in values]
 
     def test_partition_index(self):
-        values = Index(['a_b_c', 'c_d_e', 'f_g_h', np.nan])
+        values = Index(['a_b_c', 'c_d_e', 'f_g_h', np.nan, None])
 
         result = values.str.partition('_', expand=False)
         exp = Index(np.array([('a', '_', 'b_c'), ('c', '_', 'd_e'),
-                              ('f', '_', 'g_h'), np.nan]))
+                              ('f', '_', 'g_h'), np.nan, None]))
         tm.assert_index_equal(result, exp)
         assert result.nlevels == 1
 
         result = values.str.rpartition('_', expand=False)
         exp = Index(np.array([('a_b', '_', 'c'), ('c_d', '_', 'e'),
-                              ('f_g', '_', 'h'), np.nan]))
+                              ('f_g', '_', 'h'), np.nan, None]))
         tm.assert_index_equal(result, exp)
         assert result.nlevels == 1
 
         result = values.str.partition('_')
         exp = Index([('a', '_', 'b_c'), ('c', '_', 'd_e'),
-                     ('f', '_', 'g_h'), (np.nan, np.nan, np.nan)])
+                     ('f', '_', 'g_h'), (np.nan, np.nan, np.nan),
+                     (None, None, None)])
         tm.assert_index_equal(result, exp)
         assert isinstance(result, MultiIndex)
         assert result.nlevels == 3
 
         result = values.str.rpartition('_')
         exp = Index([('a_b', '_', 'c'), ('c_d', '_', 'e'),
-                     ('f_g', '_', 'h'), (np.nan, np.nan, np.nan)])
+                     ('f_g', '_', 'h'), (np.nan, np.nan, np.nan),
+                     (None, None, None)])
         tm.assert_index_equal(result, exp)
         assert isinstance(result, MultiIndex)
         assert result.nlevels == 3
 
     def test_partition_to_dataframe(self):
-        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h', None])
         result = values.str.partition('_')
-        exp = DataFrame({0: ['a', 'c', np.nan, 'f'],
-                         1: ['_', '_', np.nan, '_'],
-                         2: ['b_c', 'd_e', np.nan, 'g_h']})
+        exp = DataFrame({0: ['a', 'c', np.nan, 'f', None],
+                         1: ['_', '_', np.nan, '_', None],
+                         2: ['b_c', 'd_e', np.nan, 'g_h', None]})
         tm.assert_frame_equal(result, exp)
 
         result = values.str.rpartition('_')
-        exp = DataFrame({0: ['a_b', 'c_d', np.nan, 'f_g'],
-                         1: ['_', '_', np.nan, '_'],
-                         2: ['c', 'e', np.nan, 'h']})
+        exp = DataFrame({0: ['a_b', 'c_d', np.nan, 'f_g', None],
+                         1: ['_', '_', np.nan, '_', None],
+                         2: ['c', 'e', np.nan, 'h', None]})
         tm.assert_frame_equal(result, exp)
 
-        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h', None])
         result = values.str.partition('_', expand=True)
-        exp = DataFrame({0: ['a', 'c', np.nan, 'f'],
-                         1: ['_', '_', np.nan, '_'],
-                         2: ['b_c', 'd_e', np.nan, 'g_h']})
+        exp = DataFrame({0: ['a', 'c', np.nan, 'f', None],
+                         1: ['_', '_', np.nan, '_', None],
+                         2: ['b_c', 'd_e', np.nan, 'g_h', None]})
         tm.assert_frame_equal(result, exp)
 
         result = values.str.rpartition('_', expand=True)
-        exp = DataFrame({0: ['a_b', 'c_d', np.nan, 'f_g'],
-                         1: ['_', '_', np.nan, '_'],
-                         2: ['c', 'e', np.nan, 'h']})
+        exp = DataFrame({0: ['a_b', 'c_d', np.nan, 'f_g', None],
+                         1: ['_', '_', np.nan, '_', None],
+                         2: ['c', 'e', np.nan, 'h', None]})
         tm.assert_frame_equal(result, exp)
 
     def test_partition_with_name(self):

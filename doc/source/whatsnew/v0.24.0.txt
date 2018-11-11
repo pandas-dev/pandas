@@ -1192,7 +1192,7 @@ Numeric
 Strings
 ^^^^^^^
 
-- BUG Index.str.partition not nan-safe (:issue:`23558`)
+- BUG in :func:`Index.str.partition` is not nan-safe (:issue:`23558`)
 -
 -
 
