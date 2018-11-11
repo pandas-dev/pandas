@@ -12,41 +12,6 @@ from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 import pandas.util.testing as tm
 
 
-class TestDatetimeArray(object):
-
-    @pytest.mark.xfail(reason='DatetimeArray', strict=True)
-    def test_repr(self):
-        dti = pd.date_range('1994-07-01', periods=2, freq='W', tz='US/Central')
-        arr = DatetimeArray(dti)
-
-        # non-truncated
-        expected = (
-            "<DatetimeArray>\n"
-            "['1994-07-03 00:00:00-05:00', '1994-07-10 00:00:00-05:00']\n"
-            "Length: 2, dtype: datetime64[ns, US/Central], freq: W-SUN")
-        result = repr(arr)
-        assert result == expected
-
-    @pytest.mark.xfail(reason='DatetimeArray', strict=True)
-    def test_repr_truncates(self):
-        # truncated
-        dti = pd.date_range('1994-07-01', periods=1000, freq='W',
-                            tz='US/Central')
-        arr = DatetimeArray(dti)
-        expected = (
-            "<DatetimeArray>\n"
-            "['1994-07-03 00:00:00-05:00', "
-            " '1994-07-10 00:00:00-05:00', "
-            " '1994-07-17 00:00:00-05:00', "
-            " '...', "
-            " '1994-08-14 00:00:00-05:00', "
-            " '1994-08-21 00:00:00-05:00', "
-            " '1994-08-28 00:00:00-05:00']\n"
-            "Length: 9, dtype: datetime64[ns, US/Central], freq: W-SUN")
-        result = repr(arr)
-        assert result == expected
-
-
 class TestDatetimeArrayComparisons(object):
     # TODO: merge this into tests/arithmetic/test_datetime64 once it is
     #  sufficiently robust
