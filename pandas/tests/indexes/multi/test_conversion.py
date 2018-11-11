@@ -83,6 +83,7 @@ def test_to_frame():
 
 
 def test_to_frame_dtype_fidelity():
+    # GH 22420
     mi = pd.MultiIndex.from_arrays([
         pd.date_range('19910905', periods=6, tz='US/Eastern'),
         [1, 1, 1, 2, 2, 2],
@@ -103,6 +104,15 @@ def test_to_frame_dtype_fidelity():
 
     tm.assert_frame_equal(df, expected_df)
     assert original_dtypes == df_dtypes
+
+
+def test_to_frame_resulting_column_order():
+    # GH 22420
+    expected = ['z', 0, 'a']
+    mi = pd.MultiIndex.from_arrays([['a', 'b', 'c'], ['x', 'y', 'z'],
+                                   ['q', 'w', 'e']], names=expected)
+    result = mi.to_frame().columns.tolist()
+    assert result == expected
 
 
 def test_to_hierarchical():

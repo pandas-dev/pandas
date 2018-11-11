@@ -91,6 +91,9 @@ def test_copy_in_constructor():
     assert mi.levels[0][0] == val
 
 
+# ----------------------------------------------------------------------------
+# from_arrays
+# ----------------------------------------------------------------------------
 def test_from_arrays(idx):
     arrays = []
     for lev, lab in zip(idx.levels, idx.labels):
@@ -263,6 +266,9 @@ def test_from_arrays_different_lengths(idx1, idx2):
                            MultiIndex.from_arrays, [idx1, idx2])
 
 
+# ----------------------------------------------------------------------------
+# from_tuples
+# ----------------------------------------------------------------------------
 def test_from_tuples():
     tm.assert_raises_regex(TypeError, 'Cannot infer number of levels '
                            'from empty list',
@@ -306,6 +312,28 @@ def test_from_tuples_index_values(idx):
     assert (result.values == idx.values).all()
 
 
+def test_tuples_with_name_string():
+    # GH 15110 and GH 14848
+
+    li = [(0, 0, 1), (0, 1, 0), (1, 0, 0)]
+    with pytest.raises(ValueError):
+        pd.Index(li, name='abc')
+    with pytest.raises(ValueError):
+        pd.Index(li, name='a')
+
+
+def test_from_tuples_with_tuple_label():
+    # GH 15457
+    expected = pd.DataFrame([[2, 1, 2], [4, (1, 2), 3]],
+                            columns=['a', 'b', 'c']).set_index(['a', 'b'])
+    idx = pd.MultiIndex.from_tuples([(2, 1), (4, (1, 2))], names=('a', 'b'))
+    result = pd.DataFrame([2, 3], columns=['c'], index=idx)
+    tm.assert_frame_equal(expected, result)
+
+
+# ----------------------------------------------------------------------------
+# from_product
+# ----------------------------------------------------------------------------
 def test_from_product_empty_zero_levels():
     # 0 levels
     with tm.assert_raises_regex(
@@ -455,26 +483,11 @@ def test_create_index_existing_name(idx):
     tm.assert_index_equal(result, expected)
 
 
-def test_tuples_with_name_string():
-    # GH 15110 and GH 14848
-
-    li = [(0, 0, 1), (0, 1, 0), (1, 0, 0)]
-    with pytest.raises(ValueError):
-        pd.Index(li, name='abc')
-    with pytest.raises(ValueError):
-        pd.Index(li, name='a')
-
-
-def test_from_tuples_with_tuple_label():
-    # GH 15457
-    expected = pd.DataFrame([[2, 1, 2], [4, (1, 2), 3]],
-                            columns=['a', 'b', 'c']).set_index(['a', 'b'])
-    idx = pd.MultiIndex.from_tuples([(2, 1), (4, (1, 2))], names=('a', 'b'))
-    result = pd.DataFrame([2, 3], columns=['c'], index=idx)
-    tm.assert_frame_equal(expected, result)
-
-
+# ----------------------------------------------------------------------------
+# from_frame
+# ----------------------------------------------------------------------------
 def test_from_frame():
+    # GH 22420
     df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
                       columns=['L1', 'L2'])
     expected = pd.MultiIndex.from_tuples([('a', 'a'), ('a', 'b'),
@@ -497,6 +510,7 @@ def test_from_frame():
                                                 names=['L1']))
 ])
 def test_from_frame_squeeze(squeeze, input_type, expected):
+    # GH 22420
     if input_type == 'multi':
         df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
                           columns=['L1', 'L2'])
@@ -507,12 +521,22 @@ def test_from_frame_squeeze(squeeze, input_type, expected):
     tm.assert_index_equal(expected, result)
 
 
-def test_from_frame_non_frame():
+@pytest.mark.parametrize('non_frame', [
+    pd.Series([1, 2, 3, 4]),
+    [1, 2, 3, 4],
+    [[1, 2], [3, 4], [5, 6]],
+    pd.Index([1, 2, 3, 4]),
+    np.array([[1, 2], [3, 4], [5, 6]]),
+    27
+])
+def test_from_frame_non_frame(non_frame):
+    # GH 22420
     with tm.assert_raises_regex(TypeError, 'Input must be a DataFrame'):
-        pd.MultiIndex.from_frame([1, 2, 3, 4])
+        pd.MultiIndex.from_frame(non_frame)
 
 
 def test_from_frame_dtype_fidelity():
+    # GH 22420
     df = pd.DataFrame({
         'dates': pd.date_range('19910905', periods=6, tz='US/Eastern'),
         'a': [1, 1, 1, 2, 2, 2],
@@ -541,6 +565,7 @@ def test_from_frame_dtype_fidelity():
     ('bad_input', None),
 ])
 def test_from_frame_names(names_in, names_out):
+    # GH 22420
     df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
                       columns=pd.MultiIndex.from_tuples([('L1', 'x'),
                                                          ('L2', 'y')]))
