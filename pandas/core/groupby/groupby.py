@@ -1309,15 +1309,9 @@ class GroupBy(_GroupBy):
         rule : str or DateOffset
             The offset string or object representing target grouper conversion.
         *args, **kwargs
-            For compatibility with other groupby methods. Available keyword
-            arguments are:
-
-               * closed : {'right', 'left'}
-                 Which side of bin interval is closed.
-               * label : {'right', 'left'}
-                 Which bin edge label to label bucket with.
-               * loffset : timedelta
-                 Adjust the resampled time labels.
+            For compatibility with other groupby methods. Possible arguments
+            are `how`, `fill_method`, `limit`, `kind` and `on`, and other
+            arguments of `TimeGrouper`.
 
         Returns
         -------
