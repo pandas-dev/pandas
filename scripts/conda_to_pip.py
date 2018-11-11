@@ -87,10 +87,10 @@ if __name__ == '__main__':
 
     repo_path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
     res = main(os.path.join(repo_path, 'environment.yml'),
-               os.path.join(repo_path, 'requirements.txt'),
+               os.path.join(repo_path, 'requirements_dev.txt'),
                compare=args.compare)
     if res:
-        sys.stderr.write('`requirements.txt` has to be generated with `{}` '
-                         'after `environment.yml` is modified.\n'.format(
+        sys.stderr.write('`requirements_dev.txt` has to be generated with '
+                         '`{}` after `environment.yml` is modified.\n'.format(
                              sys.argv[0]))
     sys.exit(res)
