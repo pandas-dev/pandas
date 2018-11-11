@@ -709,9 +709,6 @@ class Timestamp(_Timestamp):
 
         elif ts_input is _no_input:
             # User passed keyword arguments.
-            if tz is None:
-                # Handle the case where the user passes `tz` and not `tzinfo`
-                tz = tzinfo
             return Timestamp(datetime(year, month, day, hour or 0,
                                       minute or 0, second or 0,
                                       microsecond or 0, tzinfo),
@@ -727,6 +724,11 @@ class Timestamp(_Timestamp):
         if tzinfo is not None:
             # User passed tzinfo instead of tz; avoid silently ignoring
             tz, tzinfo = tzinfo, None
+
+        if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:
+            warnings.warn("Passing a datetime or Timestamp with tzinfo and the"
+                          " tz parameter will raise in the future. Use"
+                          " tz_convert instead.", FutureWarning)
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
 

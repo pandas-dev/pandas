@@ -967,6 +967,7 @@ Deprecations
 - The class ``FrozenNDArray`` has been deprecated. When unpickling, ``FrozenNDArray`` will be unpickled to ``np.ndarray`` once this class is removed (:issue:`9031`)
 - Deprecated the `nthreads` keyword of :func:`pandas.read_feather` in favor of
   `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
+- Converting a tz-aware :class:`Timestamp` with :class:`Timestamp` and the ``tz`` argument is now deprecated. Instead use :meth:`Timestamp.tz_convert` (:issue:`23579`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
