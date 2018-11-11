@@ -119,6 +119,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     ! grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas ./doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check that the deprecated `assert_raises_regex` is not used (`pytest.raises(match=pattern)` should be used instead)' ; echo $MSG
+    grep -R --exclude=testing.py --exclude=test_testing.py assert_raises_regex pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Check for modules that pandas should not import' ; echo $MSG
     python -c "
 import sys
