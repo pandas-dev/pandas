@@ -6,7 +6,6 @@ import operator
 
 import pytest
 
-from numpy import nan
 import numpy as np
 
 from pandas.compat import range
@@ -328,7 +327,7 @@ class TestDataFrameOperators(TestData):
         frame_copy = self.frame.reindex(self.frame.index[::2])
 
         del frame_copy['D']
-        frame_copy['C'][:5] = nan
+        frame_copy['C'][:5] = np.nan
 
         added = self.frame + frame_copy
 

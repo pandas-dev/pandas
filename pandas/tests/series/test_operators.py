@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 import operator
 
 import numpy as np
-from numpy import nan
 import pytest
 
 import pandas.compat as compat
@@ -750,12 +749,12 @@ class TestSeriesOperators(TestData):
                 with np.errstate(all='ignore'):
                     if amask[i]:
                         if bmask[i]:
-                            exp_values.append(nan)
+                            exp_values.append(np.nan)
                             continue
                         exp_values.append(op(fill_value, b[i]))
                     elif bmask[i]:
                         if amask[i]:
-                            exp_values.append(nan)
+                            exp_values.append(np.nan)
                             continue
                         exp_values.append(op(a[i], fill_value))
                     else:
@@ -765,8 +764,8 @@ class TestSeriesOperators(TestData):
             expected = Series(exp_values, exp_index)
             assert_series_equal(result, expected)
 
-        a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
-        b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
+        a = Series([np.nan, 1., 2., 3., np.nan], index=np.arange(5))
+        b = Series([np.nan, 1, np.nan, 3, np.nan, 4.], index=np.arange(6))
 
         result = op(a, b)
         exp = equiv_op(a, b)

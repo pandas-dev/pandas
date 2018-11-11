@@ -45,13 +45,14 @@ cdef extern from "numpy/arrayobject.h":
 
 
 cdef extern from "src/parse_helper.h":
-    int floatify(object, double *result, int *maybe_int) except -1
+    int floatify(object, float64_t *result, int *maybe_int) except -1
 
 cimport util
 from util cimport (is_nan,
                    UINT8_MAX, UINT64_MAX, INT64_MAX, INT64_MIN)
 
 from tslib import array_to_datetime
+from tslibs.nattype cimport NPY_NAT
 from tslibs.nattype import NaT
 from tslibs.conversion cimport convert_to_tsobject
 from tslibs.timedeltas cimport convert_to_timedelta64
@@ -67,11 +68,8 @@ cdef object oINT64_MAX = <int64_t>INT64_MAX
 cdef object oINT64_MIN = <int64_t>INT64_MIN
 cdef object oUINT64_MAX = <uint64_t>UINT64_MAX
 
-cdef int64_t NPY_NAT = util.get_nat()
-iNaT = util.get_nat()
-
 cdef bint PY2 = sys.version_info[0] == 2
-cdef double nan = <double>np.NaN
+cdef float64_t NaN = <float64_t>np.NaN
 
 
 def values_from_object(obj: object):
@@ -104,7 +102,7 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 # ----------------------------------------------------------------------
 
 
-def is_scalar(val: object) -> bint:
+def is_scalar(val: object) -> bool:
     """
     Return True if given value is scalar.
 
@@ -628,7 +626,7 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
 
     nat_count = 0
     if hasnans:
-        mask = values == iNaT
+        mask = values == NPY_NAT
         nat_count = np.sum(mask)
         values = values[~mask]
 
@@ -1816,7 +1814,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 
         if val.__hash__ is not None and val in na_values:
             seen.saw_null()
-            floats[i] = complexes[i] = nan
+            floats[i] = complexes[i] = NaN
         elif util.is_float_object(val):
             fval = val
             if fval != fval:
@@ -1847,11 +1845,11 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             seen.bool_ = True
         elif val is None:
             seen.saw_null()
-            floats[i] = complexes[i] = nan
+            floats[i] = complexes[i] = NaN
         elif hasattr(val, '__len__') and len(val) == 0:
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
-                floats[i] = complexes[i] = nan
+                floats[i] = complexes[i] = NaN
             else:
                 raise ValueError('Empty string encountered')
         elif util.is_complex_object(val):
@@ -1866,7 +1864,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 
                 if fval in na_values:
                     seen.saw_null()
-                    floats[i] = complexes[i] = nan
+                    floats[i] = complexes[i] = NaN
                 else:
                     if fval != fval:
                         seen.null_ = True
@@ -1899,7 +1897,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
                 elif "uint64" in str(e):  # Exception from check functions.
                     raise
                 seen.saw_null()
-                floats[i] = nan
+                floats[i] = NaN
 
     if seen.check_uint64_conflict():
         return values
@@ -1967,10 +1965,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             floats[i] = complexes[i] = fnan
         elif val is NaT:
             if convert_datetime:
-                idatetimes[i] = iNaT
+                idatetimes[i] = NPY_NAT
                 seen.datetime_ = 1
             if convert_timedelta:
-                itimedeltas[i] = iNaT
+                itimedeltas[i] = NPY_NAT
                 seen.timedelta_ = 1
             if not (convert_datetime or convert_timedelta):
                 seen.object_ = 1

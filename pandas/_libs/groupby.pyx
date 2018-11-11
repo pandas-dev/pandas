@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 from libc.stdlib cimport malloc, free
 
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray,
-                    double_t,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t)
 cnp.import_array()
@@ -20,10 +19,9 @@ from algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE, TIEBREAK_MIN,
                     TIEBREAK_MAX, TIEBREAK_FIRST, TIEBREAK_DENSE)
 from algos import take_2d_axis1_float64_float64, groupsort_indexer, tiebreakers
 
-cdef int64_t iNaT = get_nat()
+cdef int64_t NPY_NAT = get_nat()
 
-cdef double NaN = <double>np.NaN
-cdef double nan = NaN
+cdef float64_t NaN = <float64_t>np.NaN
 
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
@@ -67,13 +65,13 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     return result
 
 
-# TODO: Is this redundant with algos.kth_smallest?
+# TODO: Is this redundant with algos.kth_smallest
 cdef inline float64_t kth_smallest_c(float64_t* a,
                                      Py_ssize_t k,
                                      Py_ssize_t n) nogil:
     cdef:
         Py_ssize_t i, j, l, m
-        double_t x, t
+        float64_t x, t
 
     l = 0
     m = n - 1
@@ -109,7 +107,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     cdef:
         Py_ssize_t i, j, N, K, ngroups, size
         ndarray[int64_t] _counts
-        ndarray data
+        ndarray[float64_t, ndim=2] data
         float64_t* ptr
 
     assert min_count == -1, "'min_count' only used in add and prod"
@@ -139,8 +137,8 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cumprod_float64(float64_t[:, :] out,
-                          float64_t[:, :] values,
-                          int64_t[:] labels,
+                          const float64_t[:, :] values,
+                          const int64_t[:] labels,
                           bint is_datetimelike,
                           bint skipna=True):
     """
@@ -177,7 +175,7 @@ def group_cumprod_float64(float64_t[:, :] out,
 @cython.wraparound(False)
 def group_cumsum(numeric[:, :] out,
                  numeric[:, :] values,
-                 int64_t[:] labels,
+                 const int64_t[:] labels,
                  is_datetimelike,
                  bint skipna=True):
     """
@@ -217,7 +215,7 @@ def group_cumsum(numeric[:, :] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_shift_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
+def group_shift_indexer(int64_t[:] out, const int64_t[:] labels,
                         int ngroups, int periods):
     cdef:
         Py_ssize_t N, i, j, ii
@@ -291,7 +289,7 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
     """
     cdef:
         Py_ssize_t i, N
-        ndarray[int64_t] sorted_labels
+        int64_t[:] sorted_labels
         int64_t idx, curr_fill_idx=-1, filled_vals=0
 
     N = len(out)
@@ -327,10 +325,10 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_any_all(ndarray[uint8_t] out,
-                  ndarray[int64_t] labels,
-                  ndarray[uint8_t] values,
-                  ndarray[uint8_t] mask,
+def group_any_all(uint8_t[:] out,
+                  const int64_t[:] labels,
+                  const uint8_t[:] values,
+                  const uint8_t[:] mask,
                   object val_test,
                   bint skipna):
     """Aggregated boolean values to show truthfulness of group elements

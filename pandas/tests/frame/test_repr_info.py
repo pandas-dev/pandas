@@ -7,7 +7,6 @@ import re
 import sys
 import textwrap
 
-from numpy import nan
 import numpy as np
 import pytest
 
@@ -49,8 +48,8 @@ class TestDataFrameReprInfoEtc(TestData):
         biggie = DataFrame({'A': np.random.randn(200),
                             'B': tm.makeStringIndex(200)},
                            index=lrange(200))
-        biggie.loc[:20, 'A'] = nan
-        biggie.loc[:20, 'B'] = nan
+        biggie.loc[:20, 'A'] = np.nan
+        biggie.loc[:20, 'B'] = np.nan
 
         foo = repr(biggie)  # noqa
 
