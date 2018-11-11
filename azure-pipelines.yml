@@ -66,6 +66,7 @@ jobs:
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
+      conda install pyqt  # TODO should be in the dependencies, but not sure if it's being installed, just testing what happens
       ci/code_checks.sh doctests
     displayName: 'Running doctests'
     condition: true
