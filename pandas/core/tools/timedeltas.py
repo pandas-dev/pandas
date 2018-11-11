@@ -130,7 +130,7 @@ def _convert_listlike(arg, unit='ns', box=True, errors='raise', name=None):
         #  returning arg (errors == "ignore"), and where the input is a
         #  generator, we return a useful list-like instead of a
         #  used-up generator
-        arg = np.array(list(arg), dtype='O')
+        arg = np.array(list(arg), dtype=object)
 
     try:
         value = sequence_to_td64ns(arg, unit=unit,
