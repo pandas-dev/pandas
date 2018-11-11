@@ -40,7 +40,7 @@ jobs:
       export CONDA_ENV=pandas
       export ENV_FILE=ci/deps/azure-checks-and-doc.yaml
       ci/incremental/setup_conda_environment.sh
-      conda env list
+      conda list -e  # TODO just for debugging, remove later
     displayName: 'Set up environment'
 
   - script: |
