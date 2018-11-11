@@ -1,7 +1,7 @@
+import pytest
+
 from pandas.compat import StringIO
 from pandas import read_sas
-
-import pandas.util.testing as tm
 
 
 class TestSas(object):
@@ -12,5 +12,5 @@ class TestSas(object):
 
         msg = ("If this is a buffer object rather than a string "
                "name, you must specify a format string")
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             read_sas(b)

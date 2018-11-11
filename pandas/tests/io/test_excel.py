@@ -564,12 +564,12 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df2_parse, dfref, check_names=False)
 
     def test_sheet_name_both_raises(self, ext):
-        with tm.assert_raises_regex(TypeError, "Cannot specify both"):
+        with pytest.raises(TypeError, match="Cannot specify both"):
             self.get_exceldf('test1', ext, sheetname='Sheet1',
                              sheet_name='Sheet1')
 
         excel = self.get_excelfile('test1', ext)
-        with tm.assert_raises_regex(TypeError, "Cannot specify both"):
+        with pytest.raises(TypeError, match="Cannot specify both"):
             excel.parse(sheetname='Sheet1',
                         sheet_name='Sheet1')
 
@@ -1040,7 +1040,7 @@ class TestXlrdReader(ReadingTestsBase):
     def test_read_excel_nrows_non_integer_parameter(self, ext):
         # GH 16645
         msg = "'nrows' must be an integer >=0"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             pd.read_excel(os.path.join(self.dirpath, 'test1' + ext),
                           nrows='5')
 
@@ -2133,7 +2133,7 @@ class TestXlwtTests(_WriterBase):
         msg = "Append mode is not supported with xlwt!"
 
         with ensure_clean(ext) as f:
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 ExcelWriter(f, engine=engine, mode='a')
 
 
@@ -2191,7 +2191,7 @@ class TestXlsxWriterTests(_WriterBase):
         msg = "Append mode is not supported with xlsxwriter!"
 
         with ensure_clean(ext) as f:
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 ExcelWriter(f, engine=engine, mode='a')
 
 
@@ -2215,7 +2215,7 @@ class TestExcelWriterEngineTests(object):
                 assert isinstance(writer, klass)
 
     def test_ExcelWriter_dispatch_raises(self):
-        with tm.assert_raises_regex(ValueError, 'No engine'):
+        with pytest.raises(ValueError, match='No engine'):
             ExcelWriter('nothing')
 
     @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")

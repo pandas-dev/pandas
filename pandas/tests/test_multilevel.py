@@ -325,7 +325,7 @@ class TestMultiLevel(Base):
         np.putmask(values[:-1], values[:-1] < 0, 2)
         tm.assert_almost_equal(df.values, values)
 
-        with tm.assert_raises_regex(TypeError, 'boolean values only'):
+        with pytest.raises(TypeError, match='boolean values only'):
             df[df * 0] = 2
 
     def test_frame_getitem_setitem_slice(self):
@@ -772,8 +772,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # can't call with level on regular DataFrame
         df = tm.makeTimeDataFrame()
-        tm.assert_raises_regex(
-            TypeError, 'hierarchical', df.count, level=0)
+        with pytest.raises(TypeError, match='hierarchical'):
+            df.count(level=0)
 
         self.frame['D'] = 'foo'
         result = self.frame.count(level=0, numeric_only=True)
@@ -809,10 +809,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tm.assert_frame_equal(result, expected)
 
     def test_get_level_number_out_of_bounds(self):
-        with tm.assert_raises_regex(IndexError, "Too many levels"):
+        with pytest.raises(IndexError, match="Too many levels"):
             self.frame.index._get_level_number(2)
-        with tm.assert_raises_regex(IndexError,
-                                    "not a valid level number"):
+        with pytest.raises(IndexError, match="not a valid level number"):
             self.frame.index._get_level_number(-3)
 
     def test_unstack(self):
@@ -1029,17 +1028,16 @@ Thur,Lunch,Yes,51.51,17"""
         unstacked = self.ymd.unstack(['year', 'month'])
 
         # Can't use mixture of names and numbers to stack
-        with tm.assert_raises_regex(ValueError, "level should contain"):
+        with pytest.raises(ValueError, match="level should contain"):
             unstacked.stack([0, 'month'])
 
     def test_stack_multiple_out_of_bounds(self):
         # nlevels == 3
         unstacked = self.ymd.unstack(['year', 'month'])
 
-        with tm.assert_raises_regex(IndexError, "Too many levels"):
+        with pytest.raises(IndexError, match="Too many levels"):
             unstacked.stack([2, 3])
-        with tm.assert_raises_regex(IndexError,
-                                    "not a valid level number"):
+        with pytest.raises(IndexError, match="not a valid level number"):
             unstacked.stack([-4, -3])
 
     def test_unstack_period_series(self):
@@ -1327,10 +1325,10 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.ymd.T.swaplevel(0, 1, axis=1).swaplevel(1, 2, axis=1)
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_raises_regex(TypeError, 'hierarchical axis'):
+        with pytest.raises(TypeError, match='hierarchical axis'):
             self.ymd.reorder_levels([1, 2], axis=1)
 
-        with tm.assert_raises_regex(IndexError, 'Too many levels'):
+        with pytest.raises(IndexError, match='Too many levels'):
             self.ymd.index.reorder_levels([1, 2, 3])
 
     def test_insert_index(self):
@@ -2351,9 +2349,9 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result, df)
 
         # gh-16120: already existing column
-        with tm.assert_raises_regex(ValueError,
-                                    (r"cannot insert \('A', ''\), "
-                                     "already exists")):
+        with pytest.raises(ValueError,
+                           match=(r"cannot insert \('A', ''\), "
+                                  "already exists")):
             df.rename_axis('A').reset_index()
 
         # gh-16164: multiindex (tuple) full key
@@ -2368,9 +2366,9 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result, expected)
 
         # with index name which is a too long tuple...
-        with tm.assert_raises_regex(ValueError,
-                                    ("Item must have length equal to number "
-                                     "of levels.")):
+        with pytest.raises(ValueError,
+                           match=("Item must have length equal "
+                                  "to number of levels.")):
             df.rename_axis([('C', 'c', 'i')]).reset_index()
 
         # or too short...
@@ -2384,9 +2382,9 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result, expected)
 
         # ... which is incompatible with col_fill=None
-        with tm.assert_raises_regex(ValueError,
-                                    ("col_fill=None is incompatible with "
-                                     r"incomplete column name \('C', 'c'\)")):
+        with pytest.raises(ValueError,
+                           match=("col_fill=None is incompatible with "
+                                  r"incomplete column name \('C', 'c'\)")):
             df2.rename_axis([('C', 'c')]).reset_index(col_fill=None)
 
         # with col_level != 0

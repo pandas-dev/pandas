@@ -292,7 +292,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                            'set specified tz: {1}')
                     raise TypeError(msg.format(data.tz, tz))
 
-            subarr = data.asi8.view(_NS_DTYPE)
+            subarr = data._data
 
             if freq is None:
                 freq = data.freq
@@ -519,7 +519,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
         Parameters
         ----------
-        keep_tz : optional, defaults False.
+        keep_tz : optional, defaults False
             return the data keeping the timezone.
 
             If keep_tz is True:

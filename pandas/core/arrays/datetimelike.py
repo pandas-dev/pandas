@@ -66,7 +66,7 @@ def _make_comparison_op(cls, op):
         with warnings.catch_warnings(record=True):
             warnings.filterwarnings("ignore", "elementwise", FutureWarning)
             with np.errstate(all='ignore'):
-                result = op(self.values, np.asarray(other))
+                result = op(self._data, np.asarray(other))
 
         return result
 
@@ -118,13 +118,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     def __iter__(self):
         return (self._box_func(v) for v in self.asi8)
-
-    @property
-    def values(self):
-        """ return the underlying data as an ndarray """
-        if is_timedelta64_dtype(self):
-            return self._data.view(np.ndarray)
-        return self._data
 
     @property
     def asi8(self):

@@ -106,7 +106,7 @@ class TestPeriodIndex(object):
             index.union(index2)
 
         msg = 'can only call with other PeriodIndex-ed objects'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             index.join(index.to_timestamp())
 
         index3 = period_range('1/1/2000', '1/20/2000', freq='2D')

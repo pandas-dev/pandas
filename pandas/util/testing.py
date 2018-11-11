@@ -6,6 +6,7 @@ from functools import wraps
 import locale
 import os
 import re
+from shutil import rmtree
 import string
 import subprocess
 import sys
@@ -34,7 +35,9 @@ from pandas import (
     IntervalIndex, MultiIndex, Panel, PeriodIndex, RangeIndex, Series,
     TimedeltaIndex, bdate_range)
 from pandas.core.algorithms import take_1d
-from pandas.core.arrays import ExtensionArray, IntervalArray, PeriodArray
+from pandas.core.arrays import (
+    DatetimeArrayMixin as DatetimeArray, ExtensionArray, IntervalArray,
+    PeriodArray, period_array)
 import pandas.core.common as com
 
 from pandas.io.common import urlopen
@@ -759,6 +762,25 @@ def ensure_clean(filename=None, return_filelike=False):
                 print("Exception on removing file: {error}".format(error=e))
 
 
+@contextmanager
+def ensure_clean_dir():
+    """
+    Get a temporary directory path and agrees to remove on close.
+
+    Yields
+    ------
+    Temporary directory path
+    """
+    directory_name = tempfile.mkdtemp(suffix='')
+    try:
+        yield directory_name
+    finally:
+        try:
+            rmtree(directory_name)
+        except Exception:
+            pass
+
+
 # -----------------------------------------------------------------------------
 # Comparators
 
@@ -1047,6 +1069,15 @@ def assert_period_array_equal(left, right, obj='PeriodArray'):
     assert_numpy_array_equal(left._data, right._data,
                              obj='{obj}.values'.format(obj=obj))
     assert_attr_equal('freq', left, right, obj=obj)
+
+
+def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
+    _check_isinstance(left, right, DatetimeArray)
+
+    assert_numpy_array_equal(left._data, right._data,
+                             obj='{obj}._data'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
+    assert_attr_equal('tz', left, right, obj=obj)
 
 
 def raise_assert_detail(obj, message, left, right, diff=None):
@@ -1546,6 +1577,8 @@ def assert_equal(left, right, **kwargs):
         assert_interval_array_equal(left, right, **kwargs)
     elif isinstance(left, PeriodArray):
         assert_period_array_equal(left, right, **kwargs)
+    elif isinstance(left, DatetimeArray):
+        assert_datetime_array_equal(left, right, **kwargs)
     elif isinstance(left, ExtensionArray):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):
@@ -1573,6 +1606,11 @@ def box_expected(expected, box_cls):
         expected = pd.Series(expected)
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
+    elif box_cls is PeriodArray:
+        # the PeriodArray constructor is not as flexible as period_array
+        expected = period_array(expected)
+    elif box_cls is DatetimeArray:
+        expected = DatetimeArray(expected)
     elif box_cls is np.ndarray:
         expected = np.array(expected)
     else:
@@ -2503,6 +2541,9 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     for use by `re.search()`. This is a port of the `assertRaisesRegexp`
     function from unittest in Python 2.7.
 
+    .. deprecated:: 0.24.0
+        Use `pytest.raises` instead.
+
     Examples
     --------
     >>> assert_raises_regex(ValueError, 'invalid literal for.*XYZ', int, 'XYZ')
@@ -2532,6 +2573,10 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     AssertionError: "banana" does not match "'str' object does not support \
 item assignment"
     """
+    warnings.warn(("assert_raises_regex has been deprecated and will "
+                   "be removed in the next release. Please use "
+                   "`pytest.raises` instead."), FutureWarning, stacklevel=2)
+
     manager = _AssertRaisesContextmanager(exception=_exception, regexp=_regexp)
     if _callable is not None:
         with manager:
