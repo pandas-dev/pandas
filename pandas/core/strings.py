@@ -659,7 +659,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
         If True, case sensitive
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
-    na : default NaN, fill value for missing values.
+    na : default NaN, fill value for missing values
 
     Returns
     -------
@@ -2665,7 +2665,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Parameters
     ----------
-    to_strip : str or None, default None.
+    to_strip : str or None, default None
         Specifying the set of characters to be removed.
         All combinations of this set of characters will be stripped.
         If None then whitespaces are removed.
