@@ -310,7 +310,7 @@ class SparseDtype(ExtensionDtype):
         ValueError
             When the current fill value cannot be converted to the
             new `dtype` (e.g. trying to convert ``np.nan`` to an
-            integer dtype.
+            integer dtype).
 
 
         Examples
