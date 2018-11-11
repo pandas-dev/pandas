@@ -1,4 +1,5 @@
 import decimal
+import math
 import operator
 
 import numpy as np
@@ -63,9 +64,23 @@ def data_for_grouping():
 class BaseDecimal(object):
 
     def assert_series_equal(self, left, right, *args, **kwargs):
+        def convert(x):
+            # need to convert array([Decimal(NaN)], dtype='object') to np.NaN
+            # because Series[object].isnan doesn't recognize decimal(NaN) as
+            # NA.
+            try:
+                return math.isnan(x)
+            except TypeError:
+                return False
 
-        left_na = left.isna()
-        right_na = right.isna()
+        if left.dtype == 'object':
+            left_na = left.apply(convert)
+        else:
+            left_na = left.isna()
+        if right.dtype == 'object':
+            right_na = right.apply(convert)
+        else:
+            right_na = right.isna()
 
         tm.assert_series_equal(left_na, right_na)
         return tm.assert_series_equal(left[~left_na],
@@ -192,7 +207,7 @@ class TestSetitem(BaseDecimal, base.BaseSetitemTests):
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")
-    with tm.assert_raises_regex(ValueError, xpr):
+    with pytest.raises(ValueError, match=xpr):
         pd.Series([0, 1, 2], dtype=DecimalDtype())
 
 

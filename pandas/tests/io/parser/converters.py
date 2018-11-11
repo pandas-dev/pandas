@@ -24,7 +24,7 @@ class ConverterTests(object):
         data = """index,A,B,C,D
 foo,2,3,4,5
 """
-        with tm.assert_raises_regex(TypeError, 'Type converters.+'):
+        with pytest.raises(TypeError, match='Type converters.+'):
             self.read_csv(StringIO(data), converters=0)
 
     def test_converters(self):

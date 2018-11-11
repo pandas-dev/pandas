@@ -3,7 +3,6 @@ import pytest
 
 import pandas as pd
 from pandas.core.sparse.api import SparseDtype
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize("dtype, fill_value", [
@@ -138,5 +137,5 @@ def test_parse_subtype(string, expected):
     "Sparse[bool, True]",
 ])
 def test_construct_from_string_fill_value_raises(string):
-    with tm.assert_raises_regex(TypeError, 'fill_value in the string is not'):
+    with pytest.raises(TypeError, match='fill_value in the string is not'):
         SparseDtype.construct_from_string(string)

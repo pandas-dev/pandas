@@ -659,7 +659,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
         If True, case sensitive
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
-    na : default NaN, fill value for missing values.
+    na : default NaN, fill value for missing values
 
     Returns
     -------
@@ -2156,13 +2156,6 @@ class StringMethods(NoNewAttributesMixin):
         `join`-keyword works as in other methods.
 
         >>> t = pd.Series(['d', 'a', 'e', 'c'], index=[3, 0, 4, 2])
-        >>> s.str.cat(t, join=None, na_rep='-')
-        0    ad
-        1    ba
-        2    -e
-        3    dc
-        dtype: object
-        >>>
         >>> s.str.cat(t, join='left', na_rep='-')
         0    aa
         1    b-
@@ -2672,7 +2665,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Parameters
     ----------
-    to_strip : str or None, default None.
+    to_strip : str or None, default None
         Specifying the set of characters to be removed.
         All combinations of this set of characters will be stripped.
         If None then whitespaces are removed.
