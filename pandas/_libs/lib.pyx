@@ -2274,7 +2274,7 @@ def to_object_array_tuples(rows: list):
 
     k = 0
     for i in range(n):
-        tmp = 1 if is_float(rows[i]) else len(rows[i])
+        tmp = 1 if util.is_nan(rows[i]) else len(rows[i])
         if tmp > k:
             k = tmp
 
@@ -2288,7 +2288,7 @@ def to_object_array_tuples(rows: list):
     except Exception:
         # upcast any subclasses to tuple
         for i in range(n):
-            row = tuple(rows[i]) if not is_float(rows[i]) else (rows[i],)
+            row = (rows[i],) if util.is_nan(rows[i]) else tuple(rows[i])
             for j in range(len(row)):
                 result[i, j] = row[j]
 
