@@ -603,11 +603,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         -------
         y : Index or DatetimeIndex
         """
-        self._assert_can_do_setop(other)
+        return super(DatetimeIndex, self).union(other)
 
-        if self._is_inconsistent(other):
-            return self._union_inconsistent_dtypes(other)
-
+    def _union(self, other):
         if len(other) == 0 or self.equals(other) or len(self) == 0:
             return super(DatetimeIndex, self).union(other)
 

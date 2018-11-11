@@ -2792,6 +2792,10 @@ class Index(IndexOpsMixin, PandasObject):
         if self._is_inconsistent(other):
             return self._union_inconsistent_dtypes(other)
 
+        return self._union(other)
+
+    def _union(self, other):
+
         # if is_dtype_equal(self.dtype, other.dtype):
         if len(self) == 0:
             return other._get_reconciled_name_object(self)

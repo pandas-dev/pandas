@@ -419,7 +419,7 @@ class RangeIndex(Int64Index):
     def _is_inconsistent(self, other):
         is_inconsistent = super(RangeIndex, self)._is_inconsistent(other)
         if is_inconsistent:
-            return not isinstance(other, Int64Index)
+            return not type(other) is Int64Index
         else:
             return is_inconsistent
 
@@ -435,11 +435,10 @@ class RangeIndex(Int64Index):
         -------
         union : Index
         """
-        self._assert_can_do_setop(other)
+        return super(RangeIndex, self).union(other)
 
-        if self._is_inconsistent(other):
-            return self._union_inconsistent_dtypes(other)
 
+    def _union(self, other):
         if len(other) == 0 or self.equals(other) or len(self) == 0:
             return super(RangeIndex, self).union(other)
 

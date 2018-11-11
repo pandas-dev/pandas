@@ -281,11 +281,9 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         -------
         y : Index or TimedeltaIndex
         """
-        self._assert_can_do_setop(other)
+        return super(TimedeltaIndex, self).union(other)
 
-        if self._is_inconsistent(other):
-            return self._union_inconsistent_dtypes(other)
-
+    def _union(self, other):
         if len(other) == 0 or self.equals(other) or len(self) == 0:
             return super(TimedeltaIndex, self).union(other)
 
