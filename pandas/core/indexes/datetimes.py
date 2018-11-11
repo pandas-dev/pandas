@@ -485,7 +485,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
         Parameters
         ----------
-        keep_tz : optional, defaults False.
+        keep_tz : optional, defaults False
             return the data keeping the timezone.
 
             If keep_tz is True:
