@@ -248,6 +248,7 @@ Backwards incompatible API changes
 
 - A newly constructed empty :class:`DataFrame` with integer as the ``dtype`` will now only be cast to ``float64`` if ``index`` is specified (:issue:`22858`)
 - :meth:`Series.str.cat` will now raise if `others` is a `set` (:issue:`23009`)
+- Passing scalar values to :class:`DatetimeIndex` or :class:`TimedeltaIndex` will now raise ``TypeError`` instead of ``ValueError`` (:issue:`23539`)
 
 .. _whatsnew_0240.api_breaking.deps:
 
@@ -971,6 +972,7 @@ Deprecations
 - The class ``FrozenNDArray`` has been deprecated. When unpickling, ``FrozenNDArray`` will be unpickled to ``np.ndarray`` once this class is removed (:issue:`9031`)
 - Deprecated the `nthreads` keyword of :func:`pandas.read_feather` in favor of
   `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
+- Constructing a :class:`TimedeltaIndex` from data with ``datetime64``-dtyped data is deprecated, will raise ``TypeError`` in a future version (:issue:`23539`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
