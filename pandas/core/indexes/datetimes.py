@@ -607,7 +607,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
     def _union(self, other):
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super(DatetimeIndex, self).union(other)
+            return super(DatetimeIndex, self)._union(other)
 
         if not isinstance(other, DatetimeIndex):
             try:
@@ -620,7 +620,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         if this._can_fast_union(other):
             return this._fast_union(other)
         else:
-            result = Index.union(this, other)
+            result = Index._union(this, other)
             if isinstance(result, DatetimeIndex):
                 result._tz = timezones.tz_standardize(this.tz)
                 if (result.freq is None and

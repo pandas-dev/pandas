@@ -2758,6 +2758,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _union_inconsistent_dtypes(self, other):
         this = self.astype('O')
+        # call Index for when `other` is list-like
         other = Index(other).astype('O')
         return Index.union(this, other).astype('O')
 
@@ -2787,11 +2788,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         """
         self._assert_can_do_setop(other)
-        other = ensure_index(other)
 
         if self._is_inconsistent(other):
             return self._union_inconsistent_dtypes(other)
 
+        other = ensure_index(other)
         return self._union(other)
 
     def _union(self, other):

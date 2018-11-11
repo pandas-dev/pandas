@@ -876,7 +876,12 @@ class TestIndex(Base):
         union = first.union(first)
         assert union is first
 
+        # This should no longer be the same object, since [] is not consistent,
+        # both objects will be recast to dtype('O')
         union = first.union([])
+        assert union.equals(first)
+
+        union = first.union(pd.Index([]))
         assert union is first
 
         union = Index([]).union(first)

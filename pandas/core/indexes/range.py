@@ -440,7 +440,7 @@ class RangeIndex(Int64Index):
 
     def _union(self, other):
         if len(other) == 0 or self.equals(other) or len(self) == 0:
-            return super(RangeIndex, self).union(other)
+            return super(RangeIndex, self)._union(other)
 
         if isinstance(other, RangeIndex):
             start_s, step_s = self._start, self._step
@@ -479,7 +479,7 @@ class RangeIndex(Int64Index):
                         (end_s - step_o <= end_o)):
                     return RangeIndex(start_r, end_r + step_o, step_o)
 
-        return self._int64index.union(other)
+        return self._int64index._union(other)
 
     @Appender(_index_shared_docs['join'])
     def join(self, other, how='left', level=None, return_indexers=False,
