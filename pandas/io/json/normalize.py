@@ -110,10 +110,10 @@ def json_normalize(data, record_path=None, meta=None,
         assumed to be an array of records
     meta : list of paths (string or list of strings), default None
         Fields to use as metadata for each record in resulting table
+    meta_prefix : string, default None
     record_prefix : string, default None
         If True, prefix records with dotted (?) path, e.g. foo.bar.field if
         path to records is ['foo', 'bar']
-    meta_prefix : string, default None
     errors : {'raise', 'ignore'}, default 'raise'
 
         * 'ignore' : will ignore KeyError if keys listed in meta are not
