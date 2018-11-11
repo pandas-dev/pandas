@@ -72,7 +72,6 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_sequence,
     is_named_tuple)
-from pandas.core.dtypes.concat import _get_sliced_frame_result_type
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCMultiIndex
 from pandas.core.dtypes.missing import isna, notna
 
@@ -864,12 +863,17 @@ class DataFrame(NDFrame):
            data types, the iterator returns a copy and not a view, and writing
            to it will have no effect.
 
-        Returns
-        -------
+        Yields
+        ------
+        index : label or tuple of label
+            The index of the row. A tuple for a `MultiIndex`.
+        data : Series
+            The data of the row as a Series.
+
         it : generator
             A generator that iterates over the rows of the frame.
 
-        See also
+        See Also
         --------
         itertuples : Iterate over DataFrame rows as namedtuples of the values.
         iteritems : Iterate over (column name, Series) pairs.
@@ -3226,7 +3230,7 @@ class DataFrame(NDFrame):
 
     def _box_col_values(self, values, items):
         """ provide boxed values for a column """
-        klass = _get_sliced_frame_result_type(values, self)
+        klass = self._constructor_sliced
         return klass(values, index=self.index, name=items, fastpath=True)
 
     def __setitem__(self, key, value):
@@ -3941,6 +3945,10 @@ class DataFrame(NDFrame):
             necessary. Setting to False will improve the performance of this
             method
 
+        Returns
+        -------
+        DataFrame
+
         Examples
         --------
         >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
@@ -3981,10 +3989,6 @@ class DataFrame(NDFrame):
         2  2014  4      40
         3  2013  7      84
         4  2014  10     31
-
-        Returns
-        -------
-        dataframe : DataFrame
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(keys, list):
@@ -6684,6 +6688,15 @@ class DataFrame(NDFrame):
             of `decimals` which are not columns of the input will be
             ignored.
 
+        Returns
+        -------
+        DataFrame
+
+        See Also
+        --------
+        numpy.around
+        Series.round
+
         Examples
         --------
         >>> df = pd.DataFrame(np.random.random([3, 3]),
@@ -6709,15 +6722,6 @@ class DataFrame(NDFrame):
         first   0.0  1  0.17
         second  0.0  1  0.58
         third   0.9  0  0.49
-
-        Returns
-        -------
-        DataFrame object
-
-        See Also
-        --------
-        numpy.around
-        Series.round
         """
         from pandas.core.reshape.concat import concat
 
@@ -6783,7 +6787,6 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> import numpy as np
         >>> histogram_intersection = lambda a, b: np.minimum(a, b
         ... ).sum().round(decimals=1)
         >>> df = pd.DataFrame([(.2, .3), (.0, .6), (.6, .0), (.2, .1)],
