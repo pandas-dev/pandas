@@ -200,7 +200,8 @@ class TestSeriesLogicalOps(object):
         pytest.param(ops.ror_,
                      marks=pytest.mark.xfail(reason="Index.get_indexer "
                                                     "with non unique index",
-                                             raises=InvalidIndexError, strict=True)),
+                                             raises=InvalidIndexError,
+                                             strict=True)),
         pytest.param(ops.rxor,
                      marks=pytest.mark.xfail(reason="GH#22092 Index "
                                                     "implementation raises",
