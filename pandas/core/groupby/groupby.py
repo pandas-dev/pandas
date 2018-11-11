@@ -1309,9 +1309,8 @@ class GroupBy(_GroupBy):
         rule : str or DateOffset
             The offset string or object representing target grouper conversion.
         *args, **kwargs
-            For compatibility with other groupby methods. Possible arguments
-            are `how`, `fill_method`, `limit`, `kind` and `on`, and other
-            arguments of `TimeGrouper`.
+            Possible arguments are `how`, `fill_method`, `limit`, `kind` and
+            `on`, and other arguments of `TimeGrouper`.
 
         Returns
         -------
