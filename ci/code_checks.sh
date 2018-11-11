@@ -177,8 +177,8 @@ fi
 
 ### DEPENDENCIES ###
 if [[ -z "$CHECK" || "$CHECK" == "dependencies" ]]; then
-    MSG='Check that requirements.txt has been generated from environment.yml' ; echo $MSG
-    $BASE_DIR/scripts/conda_to_pip.py --compare
+    MSG='Check that requirements-dev.txt has been generated from environment.yml' ; echo $MSG
+    $BASE_DIR/scripts/generate_pip_deps_from_conda.py --compare
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 

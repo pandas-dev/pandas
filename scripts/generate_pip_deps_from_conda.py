@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 """
-Convert the conda environment.yml to the pip requirements.txt,
+Convert the conda environment.yml to the pip requirements-dev.txt,
 or check that they have the same packages (for the CI)
 
 Usage:
 
-    Generate `requirements.txt`
+    Generate `requirements-dev.txt`
     $ ./conda_to_pip
 
-    Compare and fail (exit status != 0) if `requirements.txt` has not been
+    Compare and fail (exit status != 0) if `requirements-dev.txt` has not been
     generated with this script:
     $ ./conda_to_pip --compare
 """
@@ -52,7 +52,7 @@ def main(conda_fname, pip_fname, compare=False):
     conda_fname : str
         Path to the conda file with dependencies (e.g. `environment.yml`).
     pip_fname : str
-        Path to the pip file with dependencies (e.g. `requirements.txt`).
+        Path to the pip file with dependencies (e.g. `requirements-dev.txt`).
     compare : bool, default False
         Whether to generate the pip file (``False``) or to compare if the
         pip file has been generated with this script and the last version
@@ -87,10 +87,10 @@ if __name__ == '__main__':
 
     repo_path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
     res = main(os.path.join(repo_path, 'environment.yml'),
-               os.path.join(repo_path, 'requirements_dev.txt'),
+               os.path.join(repo_path, 'requirements-dev.txt'),
                compare=args.compare)
     if res:
-        sys.stderr.write('`requirements_dev.txt` has to be generated with '
+        sys.stderr.write('`requirements-dev.txt` has to be generated with '
                          '`{}` after `environment.yml` is modified.\n'.format(
                              sys.argv[0]))
     sys.exit(res)

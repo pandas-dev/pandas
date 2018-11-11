@@ -218,7 +218,7 @@ You'll need to have at least python3.5 installed on your system.
    . ~/virtualenvs/pandas-dev/bin/activate
 
    # Install the build dependencies
-   python -m pip install -r requirements.txt
+   python -m pip install -r requirements-dev.txt
 
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
