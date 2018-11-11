@@ -158,7 +158,7 @@ class TestResampleAPI(object):
         pytest.raises(KeyError, g.__getitem__, ['D'])
 
         pytest.raises(KeyError, g.__getitem__, ['A', 'D'])
-        with tm.assert_raises_regex(KeyError, '^[^A]+$'):
+        with pytest.raises(KeyError, match='^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
             g[['A', 'D']]
@@ -940,11 +940,10 @@ class TestDatetimeIndex(Base):
 
         for func in ('min', 'max', 'sum', 'prod',
                      'mean', 'var', 'std'):
-            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                                   getattr(r, func),
-                                   func, 1, 2, 3)
-            tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                                   getattr(r, func), axis=1)
+            with pytest.raises(UnsupportedFunctionCall, match=msg):
+                getattr(r, func)(func, 1, 2, 3)
+            with pytest.raises(UnsupportedFunctionCall, match=msg):
+                getattr(r, func)(axis=1)
 
     def test_resample_how_callables(self):
         # GH 7929
@@ -1576,6 +1575,7 @@ class TestDatetimeIndex(Base):
                               'Group': ['A', 'A']},
                              index=pd.to_timedelta([0, 10], unit='s'))
         expected = expected.reindex(['Group_obj', 'Group'], axis=1)
+        expected['Group'] = expected['Group_obj'].astype('category')
         tm.assert_frame_equal(result, expected)
 
     def test_resample_daily_anchored(self):
@@ -3307,11 +3307,10 @@ class TestTimeGrouper(object):
         for name, func in zip(index_names, index_funcs):
             index = func(n)
             df = DataFrame({'a': np.random.randn(n)}, index=index)
-            with tm.assert_raises_regex(TypeError,
-                                        "Only valid with "
-                                        "DatetimeIndex, TimedeltaIndex "
-                                        "or PeriodIndex, but got an "
-                                        "instance of %r" % name):
+
+            msg = ("Only valid with DatetimeIndex, TimedeltaIndex "
+                   "or PeriodIndex, but got an instance of %r" % name)
+            with pytest.raises(TypeError, match=msg):
                 df.groupby(TimeGrouper('D'))
 
     def test_aaa_group_order(self):

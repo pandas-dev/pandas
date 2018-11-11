@@ -453,17 +453,17 @@ class TestCasting(object):
 
         msg = "cannot safely"
         arr = [1.2, 2.3, 3.7]
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             integer_array(arr, dtype=dtype)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             pd.Series(arr).astype(dtype)
 
         arr = [1.2, 2.3, 3.7, np.nan]
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             integer_array(arr, dtype=dtype)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             pd.Series(arr).astype(dtype)
 
 
@@ -650,9 +650,10 @@ def test_preserve_dtypes(op):
 
     # groupby
     result = getattr(df.groupby("A"), op)()
+
     expected = pd.DataFrame({
         "B": np.array([1.0, 3.0]),
-        "C": np.array([1, 3], dtype="int64")
+        "C": integer_array([1, 3], dtype="Int64")
     }, index=pd.Index(['a', 'b'], name='A'))
     tm.assert_frame_equal(result, expected)
 
@@ -673,19 +674,20 @@ def test_reduce_to_float(op):
 
     # groupby
     result = getattr(df.groupby("A"), op)()
+
     expected = pd.DataFrame({
         "B": np.array([1.0, 3.0]),
-        "C": np.array([1, 3], dtype="float64")
+        "C": integer_array([1, 3], dtype="Int64")
     }, index=pd.Index(['a', 'b'], name='A'))
     tm.assert_frame_equal(result, expected)
 
 
 def test_astype_nansafe():
-    # https://github.com/pandas-dev/pandas/pull/22343
+    # see gh-22343
     arr = integer_array([np.nan, 1, 2], dtype="Int8")
+    msg = "cannot convert float NaN to integer"
 
-    with tm.assert_raises_regex(
-            ValueError, 'cannot convert float NaN to integer'):
+    with pytest.raises(ValueError, match=msg):
         arr.astype('uint32')
 
 

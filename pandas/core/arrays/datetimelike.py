@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype)
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame, ABCIndexClass
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
@@ -65,7 +66,7 @@ def _make_comparison_op(cls, op):
         with warnings.catch_warnings(record=True):
             warnings.filterwarnings("ignore", "elementwise", FutureWarning)
             with np.errstate(all='ignore'):
-                result = op(self.values, np.asarray(other))
+                result = op(self._data, np.asarray(other))
 
         return result
 
@@ -119,14 +120,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return (self._box_func(v) for v in self.asi8)
 
     @property
-    def values(self):
-        """ return the underlying data as an ndarray """
-        return self._data.view(np.ndarray)
-
-    @property
     def asi8(self):
         # do not cache or you'll create a memory leak
-        return self.values.view('i8')
+        return self._data.view('i8')
 
     # ------------------------------------------------------------------
     # Array-like Methods
@@ -160,7 +156,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             return self._box_func(val)
 
         if com.is_bool_indexer(key):
-            key = np.asarray(key)
+            key = np.asarray(key, dtype=bool)
             if key.all():
                 key = slice(0, None, None)
             else:
@@ -198,6 +194,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     # ------------------------------------------------------------------
     # Null Handling
+
+    def isna(self):
+        return self._isnan
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _isnan(self):
@@ -370,6 +369,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         Add a delta of a timedeltalike
         return the i8 result view
         """
+        if isna(other):
+            # i.e np.timedelta64("NaT"), not recognized by delta_to_nanoseconds
+            new_values = np.empty(len(self), dtype='i8')
+            new_values[:] = iNaT
+            return new_values
+
         inc = delta_to_nanoseconds(other)
         new_values = checked_add_with_arr(self.asi8, inc,
                                           arr_mask=self._isnan).view('i8')
@@ -442,7 +447,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             Array of DateOffset objects; nulls represented by NaT
         """
         if not is_period_dtype(self):
-            raise TypeError("cannot subtract {dtype}-dtype to {cls}"
+            raise TypeError("cannot subtract {dtype}-dtype from {cls}"
                             .format(dtype=other.dtype,
                                     cls=type(self).__name__))
 
@@ -741,6 +746,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 raise TypeError("cannot subtract {cls} from {typ}"
                                 .format(cls=type(self).__name__,
                                         typ=type(other).__name__))
+            elif is_period_dtype(self) and is_timedelta64_dtype(other):
+                # TODO: Can we simplify/generalize these cases at all?
+                raise TypeError("cannot subtract {cls} from {dtype}"
+                                .format(cls=type(self).__name__,
+                                        dtype=other.dtype))
             return -(self - other)
         cls.__rsub__ = __rsub__
 

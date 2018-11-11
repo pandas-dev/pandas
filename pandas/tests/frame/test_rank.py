@@ -194,11 +194,11 @@ class TestRank(TestData):
         # bad values throw error
         msg = "na_option must be one of 'keep', 'top', or 'bottom'"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.frame.rank(na_option='bad', ascending=False)
 
         # invalid type
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.frame.rank(na_option=True, ascending=False)
 
     def test_rank_axis(self):

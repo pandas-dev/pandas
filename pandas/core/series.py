@@ -947,7 +947,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 except Exception:
                     pass
 
-            if not isinstance(key, (list, Series, np.ndarray, Series)):
+            if is_scalar(key):
+                key = [key]
+            elif not isinstance(key, (list, Series, np.ndarray)):
                 try:
                     key = list(key)
                 except Exception:
@@ -1911,7 +1913,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> import numpy as np
         >>> histogram_intersection = lambda a, b: np.minimum(a, b
         ... ).sum().round(decimals=1)
         >>> s1 = pd.Series([.2, .0, .6, .2])
@@ -3023,7 +3024,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        order : list of int representing new level order.
+        order : list of int representing new level order
                (reference level by number or key)
 
         Returns
