@@ -437,7 +437,6 @@ class RangeIndex(Int64Index):
         """
         return super(RangeIndex, self).union(other)
 
-
     def _union(self, other):
         if len(other) == 0 or self.equals(other) or len(self) == 0:
             return super(RangeIndex, self)._union(other)

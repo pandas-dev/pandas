@@ -8,8 +8,8 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.core.dtypes.dtypes import PeriodDtype, CategoricalDtype, \
-                                      IntervalDtype
+from pandas.core.dtypes.dtypes import (
+    PeriodDtype, CategoricalDtype, IntervalDtype)
 
 
 def makeEmptyIndex(_=None):
@@ -29,7 +29,7 @@ INDEXES = dict(
     catIndex=tm.makeCategoricalIndex,
     emptyIndex=makeEmptyIndex,
     intervalIndex=tm.makeIntervalIndex,
-)   
+)
 
 
 COMPATIBLE_INCONSISTENT_PAIRS = {
@@ -37,9 +37,7 @@ COMPATIBLE_INCONSISTENT_PAIRS = {
 }
 
 
-@pytest.mark.parametrize('idxType', 
-    INDEXES.keys()
-)
+@pytest.mark.parametrize('idxType', INDEXES.keys())
 def test_union_same_types(idxType):
     idx1 = INDEXES[idxType](10)
     idx2 = INDEXES[idxType](20)
@@ -48,17 +46,16 @@ def test_union_same_types(idxType):
     # Note: catIndex reflects only left dtype, should it reflect both?
 
 
-@pytest.mark.parametrize('idxType1,idxType2', 
-    list(it.combinations(INDEXES, 2))
-)
+@pytest.mark.parametrize('idxType1,idxType2',
+                         list(it.combinations(INDEXES, 2)))
 def test_union_different_types(idxType1, idxType2):
     if tuple(sorted([idxType1, idxType2])) in COMPATIBLE_INCONSISTENT_PAIRS:
-        return    
+        return
 
     idx1 = INDEXES[idxType1](10)
     idx2 = INDEXES[idxType2](20)
 
-    # A union with a CategoricalIndex (even as dtype('O')) and a 
+    # A union with a CategoricalIndex (even as dtype('O')) and a
     # non-CategoricalIndex can only be made if both indices are monotonic.
     # This is true before this PR as well.
     if idxType1 == 'catIndex' or idxType2 == 'catIndex':
@@ -70,8 +67,7 @@ def test_union_different_types(idxType1, idxType2):
 
 
 @pytest.mark.parametrize('idxType1,idxType2',
-    COMPATIBLE_INCONSISTENT_PAIRS
-)
+                         COMPATIBLE_INCONSISTENT_PAIRS)
 def test_compatible_inconsistent_pairs(idxType1, idxType2):
     idx1 = INDEXES[idxType1](10)
     idx2 = INDEXES[idxType2](20)
