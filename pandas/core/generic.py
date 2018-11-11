@@ -9691,8 +9691,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.ptp = _make_stat_function(
             cls, 'ptp', name, name2, axis_descr,
-            """
-            Returns the difference between the maximum value and the
+            """Returns the difference between the maximum value and the
             minimum value in the object. This is the equivalent of the
             ``numpy.ndarray`` method ``ptp``.
 
