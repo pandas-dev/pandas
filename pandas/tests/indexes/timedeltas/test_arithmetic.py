@@ -453,10 +453,16 @@ class TestTimedeltaIndexArithmetic(object):
         # setup
         s1 = pd.to_timedelta(Series(['00:00:01']))
         s2 = pd.to_timedelta(Series(['00:00:02']))
-        sn = pd.to_timedelta(Series([pd.NaT]))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # Passing datetime64-dtype data to TimedeltaIndex is deprecated
+            sn = pd.to_timedelta(Series([pd.NaT]))
+
         df1 = pd.DataFrame(['00:00:01']).apply(pd.to_timedelta)
         df2 = pd.DataFrame(['00:00:02']).apply(pd.to_timedelta)
-        dfn = pd.DataFrame([pd.NaT]).apply(pd.to_timedelta)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # Passing datetime64-dtype data to TimedeltaIndex is deprecated
+            dfn = pd.DataFrame([pd.NaT]).apply(pd.to_timedelta)
+
         scalar1 = pd.to_timedelta('00:00:01')
         scalar2 = pd.to_timedelta('00:00:02')
         timedelta_NaT = pd.to_timedelta('NaT')
