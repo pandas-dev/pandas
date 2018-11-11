@@ -269,6 +269,7 @@ dialect : str or csv.Dialect instance, default None
 tupleize_cols : bool, default False
     Leave a list of tuples on columns as is (default is to convert to
     a MultiIndex on the columns).
+
     .. deprecated:: 0.21.0
        This argument will be removed and will always convert to MultiIndex
 
@@ -311,6 +312,7 @@ DataFrame or TextParser
 
 See Also
 --------
+to_csv : Write DataFrame to a comma-separated values (csv) file.
 %s
 
 Examples
@@ -334,17 +336,21 @@ delimiter : str, default ``None``
     Alias for sep.
     """
 
-_see_also = ("to_csv : Write DataFrame to "
-             "a comma-separated values (csv) file.")
+_see_also_csv_doc = ('read_csv : Read a comma-separated values '
+                     '(csv) file into DataFrame.')
+
+_see_also_fwf_doc = ('read_fwf : Read a table of '
+                     'fixed-width formatted lines into DataFrame.')
 
 _example_doc = "pd.{_api}('/tmp/data.csv')"
 
 _read_csv_doc = """
-Read CSV (comma-separated) file into DataFrame.
+Read a comma-separated values (csv) file into DataFrame.
 
 %s
-""" % (_parser_params % (_sep_doc.format(default="','"), _engine_doc,
-                         _see_also, _example_doc.format(_api='read_csv')))
+""" % (_parser_params % (_sep_doc.format(default="','"),
+                         _engine_doc, _see_also_fwf_doc,
+                         _example_doc.format(_api='read_csv')))
 
 _read_table_doc = """
 Read general delimited file into DataFrame.
@@ -354,7 +360,8 @@ Read general delimited file into DataFrame.
 
 %s
 """ % (_parser_params % (_sep_doc.format(default="\\t (tab-stop)"),
-                         _engine_doc, _see_also,
+                         _engine_doc,
+                         '{}\n{}'.format(_see_also_csv_doc, _see_also_fwf_doc),
                          _example_doc.format(_api='read_table')))
 
 _fwf_widths = """\
@@ -377,7 +384,8 @@ _read_fwf_doc = """
 Read a table of fixed-width formatted lines into DataFrame.
 
 %s
-""" % (_parser_params % (_fwf_widths, '', _see_also,
+""" % (_parser_params % (_fwf_widths, '',
+                         _see_also_csv_doc,
                          _example_doc.format(_api='read_fwf')))
 
 
