@@ -13,7 +13,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 
-class TestSeriesCombine():
+class TestSeriesCombine(object):
 
     def test_append(self, datetime_series, string_series, object_series):
         appendedSeries = string_series.append(object_series)
