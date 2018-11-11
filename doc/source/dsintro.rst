@@ -150,8 +150,8 @@ Like a NumPy array, a pandas Series as a :attr:`Series.dtype`.
 
 This is often a NumPy dtype. However, pandas and 3rd-party libraries
 extend NumPy's type system in a few places, in which case the dtype would
-be a :class:`~pandas.api.extensions.ExtensionDtype`.
-See :ref:`dsintro.data_type` for more.
+be a :class:`~pandas.api.extensions.ExtensionDtype`. Some examples within
+pandas are :ref:`categorical` and :ref:`integer_na`. See :ref:`dsintro.data_type` for more.
 
 If you need the actual array backing a ``Series``, use :attr:`Series.array`.
 
@@ -161,6 +161,8 @@ If you need the actual array backing a ``Series``, use :attr:`Series.array`.
 
 Again, this is often a NumPy array, but may instead be a
 :class:`~pandas.api.extensions.ExtensionArray`. See :ref:`dsintro.data_type` for more.
+Accessing the array can be useful when you need to do some operation without the
+index (to disable :ref:`automatic alignment <dsintro.alignment>`, for example).
 
 While Series is ndarray-like, if you need an *actual* ndarray, then use
 :meth:`Series.to_numpy`.
@@ -169,8 +171,8 @@ While Series is ndarray-like, if you need an *actual* ndarray, then use
 
    s.to_numpy()
 
-Even if the Series is backed by an extension type, :meth:`Series.to_numpy` will return
-a NumPy ndarray.
+Even if the Series is backed by a :class:`~pandas.api.extensions.ExtensionArray`,
+:meth:`Series.to_numpy` will return a NumPy ndarray.
 
 Series is dict-like
 ~~~~~~~~~~~~~~~~~~~
@@ -649,6 +651,8 @@ For a more exhaustive treatment of sophisticated label-based indexing and
 slicing, see the :ref:`section on indexing <indexing>`. We will address the
 fundamentals of reindexing / conforming to new sets of labels in the
 :ref:`section on reindexing <basics.reindexing>`.
+
+.. _dsintro.alignment:
 
 Data alignment and arithmetic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
