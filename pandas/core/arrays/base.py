@@ -675,7 +675,7 @@ class ExtensionArray(StringMixin):
         # repr does. So we include a newline in our template, and strip
         # any trailing newlines from format_object_summary
         data = format_object_summary(self, self._formatter(), name=False,
-                                     trailing_comma=False).rstrip('\n')
+                                     trailing_comma=False).rstrip()
         name = self.__class__.__name__
         return template.format(class_name=name, data=data,
                                length=len(self),
