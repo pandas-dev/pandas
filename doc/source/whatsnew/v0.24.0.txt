@@ -1128,6 +1128,9 @@ Datetimelike
 - Bug in :class:`PeriodIndex` with attribute ``freq.n`` greater than 1 where adding a :class:`DateOffset` object would return incorrect results (:issue:`23215`)
 - Bug in :class:`Series` that interpreted string indices as lists of characters when setting datetimelike values (:issue:`23451`)
 - Bug in :class:`Timestamp` constructor which would drop the frequency of an input :class:`Timestamp` (:issue:`22311`)
+- Bug in :class:`DatetimeIndex` where calling ``np.array(dtindex, dtype=object)`` would incorrectly return an array of ``long`` objects (:issue:`23524`)
+- Bug in :class:`Index` where passing a timezone-aware :class:`DatetimeIndex` and `dtype=object` would incorrectly raise a ``ValueError`` (:issue:`23524`)
+- Bug in :class:`Index` where calling ``np.array(dtindex, dtype=object)`` on a timezone-naive :class:`DatetimeIndex` would return an array of ``datetime`` objects instead of :class:`Timestamp` objects, potentially losing nanosecond portions of the timestamps (:issue:`23524`)
 
 Timedelta
 ^^^^^^^^^
@@ -1174,6 +1177,7 @@ Offsets
 - Bug in :class:`FY5253` where date offsets could incorrectly raise an ``AssertionError`` in arithmetic operatons (:issue:`14774`)
 - Bug in :class:`DateOffset` where keyword arguments ``week`` and ``milliseconds`` were accepted and ignored.  Passing these will now raise ``ValueError`` (:issue:`19398`)
 - Bug in adding :class:`DateOffset` with :class:`DataFrame` or :class:`PeriodIndex` incorrectly raising ``TypeError`` (:issue:`23215`)
+- Bug in comparing :class:`DateOffset` objects with non-DateOffset objects, particularly strings, raising ``ValueError`` instead of returning ``False`` for equality checks and ``True`` for not-equal checks (:issue:`23524`)
 
 Numeric
 ^^^^^^^
