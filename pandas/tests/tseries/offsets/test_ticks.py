@@ -267,3 +267,25 @@ def test_compare_ticks(cls):
     assert cls(4) > three
     assert cls(3) == cls(3)
     assert cls(3) != cls(4)
+
+
+@pytest.mark.parametrize('cls', tick_classes)
+def test_compare_ticks_to_strs(cls):
+    # GH#23524
+    off = cls(19)
+
+    # These tests should work with any strings, but we particularly are
+    #  interested in "infer" as that comparison is convenient to make in
+    #  Datetime/Timedelta Array/Index constructors
+    assert not off == "infer"
+    assert not "foo" == off
+
+    for left, right in [("infer", off), (off, "infer")]:
+        with pytest.raises(TypeError):
+            left < right
+        with pytest.raises(TypeError):
+            left <= right
+        with pytest.raises(TypeError):
+            left > right
+        with pytest.raises(TypeError):
+            left >= right

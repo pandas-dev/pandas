@@ -308,8 +308,13 @@ class _BaseOffset(object):
 
     def __eq__(self, other):
         if is_string_object(other):
-            other = to_offset(other)
-
+            try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return False
         try:
             return self._params == other._params
         except AttributeError:
