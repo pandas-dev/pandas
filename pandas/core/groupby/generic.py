@@ -18,8 +18,8 @@ from pandas._libs import Timestamp, lib
 import pandas.compat as compat
 from pandas.compat import lzip, map
 from pandas.compat.numpy import _np_version_under1p13
-from pandas.util._decorators import Appender, Substitution
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (

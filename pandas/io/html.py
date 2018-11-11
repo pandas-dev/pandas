@@ -12,7 +12,7 @@ import pandas.compat as compat
 from pandas.compat import (
     binary_type, iteritems, lmap, lrange, raise_with_traceback, string_types,
     u)
-from pandas.errors import EmptyDataError, AbstractMethodError
+from pandas.errors import AbstractMethodError, EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
 

@@ -10,8 +10,8 @@ import zipfile
 import pandas.compat as compat
 from pandas.compat import BytesIO, StringIO, string_types, text_type
 from pandas.errors import (  # noqa
-    AbstractMethodError,
-    DtypeWarning, EmptyDataError, ParserError, ParserWarning)
+    AbstractMethodError, DtypeWarning, EmptyDataError, ParserError,
+    ParserWarning)
 
 from pandas.core.dtypes.common import is_file_like, is_number
 
