@@ -147,12 +147,10 @@ class TestConcatAppendCommon(ConcatenateBase):
             tm.assert_index_equal(res, exp)
 
             # cannot append non-index
-            with tm.assert_raises_regex(TypeError,
-                                        'all inputs must be Index'):
+            with pytest.raises(TypeError, match='all inputs must be Index'):
                 pd.Index(vals1).append(vals2)
 
-            with tm.assert_raises_regex(TypeError,
-                                        'all inputs must be Index'):
+            with pytest.raises(TypeError, match='all inputs must be Index'):
                 pd.Index(vals1).append([pd.Index(vals2), vals3])
 
             # ----- Series ----- #
@@ -202,16 +200,16 @@ class TestConcatAppendCommon(ConcatenateBase):
             msg = (r'cannot concatenate object of type \"(.+?)\";'
                    ' only pd.Series, pd.DataFrame, and pd.Panel'
                    r' \(deprecated\) objs are valid')
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 pd.Series(vals1).append(vals2)
 
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 pd.Series(vals1).append([pd.Series(vals2), vals3])
 
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 pd.concat([pd.Series(vals1), vals2])
 
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 pd.concat([pd.Series(vals1), pd.Series(vals2), vals3])
 
     def test_concatlike_dtypes_coercion(self):
