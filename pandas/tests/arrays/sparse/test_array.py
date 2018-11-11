@@ -763,6 +763,7 @@ class TestSparseArray(object):
         tm.assert_numpy_array_equal(np.array([2, 5, 9], dtype=np.int32),
                                     sa.nonzero()[0])
 
+
 class TestSparseArrayAnalytics(object):
 
     @pytest.mark.parametrize('data,pos,neg', [
