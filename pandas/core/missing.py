@@ -116,7 +116,7 @@ def update_array(this, that, overwrite=True, filter_func=None,
     dict.update : Similar method for `dict`.
     """
     updated = _update_array(this, that, overwrite=overwrite,
-                           filter_func=filter_func, errors=errors)
+                            filter_func=filter_func, errors=errors)
     return this if updated is None else updated
 
 

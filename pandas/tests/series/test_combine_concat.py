@@ -4,13 +4,12 @@
 from datetime import datetime
 
 import numpy as np
-from numpy import nan
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Series, compat, date_range
 import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal, assert_frame_equal
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestSeriesCombine():
@@ -170,7 +169,7 @@ class TestSeriesCombine():
         s = Series([0, 1, 2, np.nan, np.nan, 5, 6, np.nan])
         other = Series([1, 3, np.nan, 7, 9], index=[1, 3, 5, 7, 9])
 
-        with tm.assert_raises_regex(ValueError, "Data overlaps"):
+        with pytest.raises(ValueError, match="Data overlaps"):
             s.update(other, errors='raise')
 
     def test_concat_empty_series_dtypes_roundtrips(self):

@@ -4208,14 +4208,21 @@ class NDFrame(PandasObject, SelectionMixin):
             If 'raise', will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
 
-        Raises
-        ------
-        ValueError
-            When `errors='ignore'` and there's overlapping non-NA data.
+            .. versionchanged :: 0.24.0
+               Changed from `raise_conflict=False|True`
+               to `errors='ignore'|'raise'`.
 
         Returns
         -------
-        Nothing, the object is modified inplace.
+        None : method directly changes calling object
+
+        Raises
+        ------
+        ValueError
+            * When `errors='raise'` and there's overlapping non-NA data.
+            * When `errors` is not either `'ignore'` or `'raise'`
+        NotImplementedError
+            * If `join != 'left'`
 
         See Also
         --------
