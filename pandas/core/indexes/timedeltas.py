@@ -17,7 +17,8 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import (
-    TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td, _to_m8)
+    TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td, _to_m8,
+    sequence_to_td64ns)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -26,8 +27,7 @@ from pandas.core.indexes.datetimelike import (
     wrap_field_accessor)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-from pandas.core.tools.timedeltas import (
-    _coerce_scalar_to_timedelta_type, to_timedelta)
+from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
 
 from pandas.tseries.frequencies import to_offset
 
@@ -132,12 +132,6 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
                 periods=None, closed=None, dtype=None, copy=False,
                 name=None, verify_integrity=True):
 
-        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
-            if copy:
-                return data.copy()
-            else:
-                return data._shallow_copy()
-
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         if data is None:
@@ -147,32 +141,31 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
             result.name = name
             return result
 
-        if unit is not None:
-            data = to_timedelta(data, unit=unit, box=False)
-
         if is_scalar(data):
-            raise ValueError('TimedeltaIndex() must be called with a '
-                             'collection of some kind, {data} was passed'
-                             .format(data=repr(data)))
+            raise TypeError('{cls}() must be called with a '
+                            'collection of some kind, {data} was passed'
+                            .format(cls=cls.__name__, data=repr(data)))
 
-        # convert if not already
-        if getattr(data, 'dtype', None) != _TD_DTYPE:
-            data = to_timedelta(data, unit=unit, box=False)
-        elif copy:
-            data = np.array(data, copy=True)
-
-        data = np.array(data, copy=False)
-        if data.dtype == np.object_:
-            data = array_to_timedelta64(data)
-        if data.dtype != _TD_DTYPE:
-            if is_timedelta64_dtype(data):
-                # non-nano unit
-                # TODO: watch out for overflows
-                data = data.astype(_TD_DTYPE)
+        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
+            if copy:
+                return data.copy()
             else:
-                data = ensure_int64(data).view(_TD_DTYPE)
+                return data._shallow_copy()
 
-        assert data.dtype == 'm8[ns]', data.dtype
+        # - Cases checked above all return/raise before reaching here - #
+
+        data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
+        if inferred_freq is not None:
+            if freq is not None and freq != inferred_freq:
+                raise ValueError('Inferred frequency {inferred} from passed '
+                                 'values does not conform to passed frequency '
+                                 '{passed}'
+                                 .format(inferred=inferred_freq,
+                                         passed=freq.freqstr))
+            elif freq_infer:
+                freq = inferred_freq
+                freq_infer = False
+            verify_integrity = False
 
         subarr = cls._simple_new(data, name=name, freq=freq)
         # check that we are matching freqs
@@ -181,9 +174,7 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
                 cls._validate_frequency(subarr, freq)
 
         if freq_infer:
-            inferred = subarr.inferred_freq
-            if inferred:
-                subarr.freq = to_offset(inferred)
+            subarr.freq = to_offset(subarr.inferred_freq)
 
         return subarr
 

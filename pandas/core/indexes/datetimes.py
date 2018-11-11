@@ -223,6 +223,21 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 dayfirst=False, yearfirst=False, dtype=None,
                 copy=False, name=None, verify_integrity=True):
 
+        if data is None:
+            # TODO: Remove this block and associated kwargs; GH#20535
+            result = cls._generate_range(start, end, periods,
+                                         freq=freq, tz=tz, normalize=normalize,
+                                         closed=closed, ambiguous=ambiguous)
+            result.name = name
+            return result
+
+        if is_scalar(data):
+            raise TypeError("{cls}() must be called with a "
+                            "collection of some kind, {data} was passed"
+                            .format(cls=cls.__name__, data=repr(data)))
+
+        # - Cases checked above all return/raise before reaching here - #
+
         # This allows to later ensure that the 'copy' parameter is honored:
         if isinstance(data, Index):
             ref_to_data = data._data
@@ -237,20 +252,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
 
-        if data is None:
-            # TODO: Remove this block and associated kwargs; GH#20535
-            result = cls._generate_range(start, end, periods,
-                                         freq=freq, tz=tz, normalize=normalize,
-                                         closed=closed, ambiguous=ambiguous)
-            result.name = name
-            return result
-
-        if not isinstance(data, (np.ndarray, Index, ABCSeries,
-                                 DatetimeArray)):
-            if is_scalar(data):
-                raise ValueError('DatetimeIndex() must be called with a '
-                                 'collection of some kind, %s was passed'
-                                 % repr(data))
+        if not isinstance(data, (np.ndarray, Index, ABCSeries, DatetimeArray)):
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
                 data = list(data)
@@ -312,9 +314,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 cls._validate_frequency(subarr, freq, ambiguous=ambiguous)
 
         if freq_infer:
-            inferred = subarr.inferred_freq
-            if inferred:
-                subarr.freq = to_offset(inferred)
+            subarr.freq = to_offset(subarr.inferred_freq)
 
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
