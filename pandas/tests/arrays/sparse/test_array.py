@@ -502,7 +502,7 @@ class TestSparseArray(object):
 
     def test_astype_nan_raises(self):
         arr = SparseArray([1.0, np.nan])
-        with tm.assert_raises_regex(ValueError, 'Cannot convert non-finite'):
+        with pytest.raises(ValueError, match='Cannot convert non-finite'):
             arr.astype(int)
 
     def test_set_fill_value(self):
