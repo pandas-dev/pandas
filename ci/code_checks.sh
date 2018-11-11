@@ -199,7 +199,7 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Validate docstrings (SS04, EX04)' ; echo $MSG
-    scripts/validate_docstrings.py --format=azure --errors=SS04,EX04
+    scripts/validate_docstrings.py --format=azure --errors=SS04,EX04,PR05
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
