@@ -392,9 +392,7 @@ def is_datetime64_dtype(arr_or_dtype):
         return False
     try:
         tipo = _get_dtype_type(arr_or_dtype)
-    except TypeError:
-        return False
-    except UnicodeEncodeError:
+    except (TypeError, UnicodeEncodeError) as e:
         return False
     return issubclass(tipo, np.datetime64)
 
