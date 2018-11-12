@@ -1960,7 +1960,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                 "'ExtensionArray._formatting_values' is deprecated. "
                 "Specify 'ExtensionArray._formatter' instead."
             )
-            warnings.warn(msg, FutureWarning, stacklevel=10)
+            warnings.warn(msg, DeprecationWarning, stacklevel=10)
             return self.values._formatting_values()
 
         return self.values

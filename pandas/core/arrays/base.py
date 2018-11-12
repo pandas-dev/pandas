@@ -45,11 +45,6 @@ class ExtensionArray(StringMixin):
     * copy
     * _concat_same_type
 
-    An additional method is available to satisfy pandas' internal,
-    private block API.
-
-    * _formatting_values
-
     A default repr displaying the type, (truncated) data, length,
     and dtype is provided. It can be customized or replaced by
     by overriding:

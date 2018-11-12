@@ -396,6 +396,6 @@ def test_formatting_values_deprecated():
     # different levels for 2 vs. 3
     check_stacklevel = compat.PY3
 
-    with tm.assert_produces_warning(FutureWarning,
+    with tm.assert_produces_warning(DeprecationWarning,
                                     check_stacklevel=check_stacklevel):
         repr(ser)
