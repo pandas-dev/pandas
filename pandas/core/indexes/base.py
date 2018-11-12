@@ -19,6 +19,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,
     ABCPeriodIndex, ABCTimedeltaIndex, ABCDatetimeIndex,
+    ABCTimedeltaArray,
     ABCDateOffset)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
@@ -123,7 +124,8 @@ def _make_arithmetic_op(op, cls):
         elif isinstance(other, ABCTimedeltaIndex):
             # Defer to subclass implementation
             return NotImplemented
-        elif isinstance(other, np.ndarray) and is_timedelta64_dtype(other):
+        elif (isinstance(other, (np.ndarray, ABCTimedeltaArray)) and
+              is_timedelta64_dtype(other)):
             # GH#22390; wrap in Series for op, this will in turn wrap in
             # TimedeltaIndex, but will correctly raise TypeError instead of
             # NullFrequencyError for add/sub ops

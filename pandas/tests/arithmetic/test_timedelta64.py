@@ -16,6 +16,20 @@ from pandas import (
     timedelta_range,
     Timedelta, Timestamp, NaT, Series, TimedeltaIndex, DatetimeIndex,
     DataFrame)
+from pandas.core.arrays import TimedeltaArrayMixin as TimedeltaArray
+
+
+def get_upcast_box(box, vector):
+    """
+    Given two box-types, find the one that takes priority
+    """
+    if box is DataFrame or isinstance(vector, DataFrame):
+        return DataFrame
+    if box is Series or isinstance(vector, Series):
+        return Series
+    if box is pd.Index or isinstance(vector, pd.Index):
+        return pd.Index
+    return box
 
 
 # ------------------------------------------------------------------
@@ -1279,19 +1293,20 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                         Series([20, 30, 40])],
                              ids=lambda x: type(x).__name__)
     @pytest.mark.parametrize('op', [operator.mul, ops.rmul])
-    def test_td64arr_rmul_numeric_array(self, op, box,
+    def test_td64arr_rmul_numeric_array(self, op, box_with_timedelta,
                                         vector, dtype, tdser):
         # GH#4521
         # divide/multiply by integers
+        box = box_with_timedelta
+        xbox = get_upcast_box(box, vector)
+
         vector = vector.astype(dtype)
 
         expected = Series(['1180 Days', '1770 Days', 'NaT'],
                           dtype='timedelta64[ns]')
 
         tdser = tm.box_expected(tdser, box)
-        # TODO: Make this up-casting more systematic?
-        box = Series if (box is pd.Index and type(vector) is Series) else box
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, xbox)
 
         result = op(vector, tdser)
         tm.assert_equal(result, expected)
@@ -1303,16 +1318,19 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                         pd.Index([20, 30, 40]),
                                         Series([20, 30, 40])],
                              ids=lambda x: type(x).__name__)
-    def test_td64arr_div_numeric_array(self, box, vector, dtype, tdser):
+    def test_td64arr_div_numeric_array(self, box_with_timedelta,
+                                       vector, dtype, tdser):
         # GH#4521
         # divide/multiply by integers
+        box = box_with_timedelta
+        xbox = get_upcast_box(box, vector)
+
         vector = vector.astype(dtype)
         expected = Series(['2.95D', '1D 23H 12m', 'NaT'],
                           dtype='timedelta64[ns]')
 
         tdser = tm.box_expected(tdser, box)
-        box = Series if (box is pd.Index and type(vector) is Series) else box
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, xbox)
 
         result = tdser / vector
         tm.assert_equal(result, expected)
@@ -1376,7 +1394,9 @@ class TestTimedeltaArraylikeMulDivOps(object):
 
 class TestTimedeltaArraylikeInvalidArithmeticOps(object):
 
-    def test_td64arr_pow_invalid(self, scalar_td, box):
+    def test_td64arr_pow_invalid(self, scalar_td, box_with_timedelta):
+        box = box_with_timedelta
+
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
 

@@ -43,7 +43,8 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDataFrame, ABCPanel,
     ABCIndex, ABCIndexClass,
-    ABCSparseSeries, ABCSparseArray)
+    ABCSparseSeries, ABCSparseArray,
+    ABCTimedeltaArray)
 
 
 # -----------------------------------------------------------------------------

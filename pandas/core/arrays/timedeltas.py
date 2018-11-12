@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+from __future__ import division
+
 from datetime import timedelta
+import operator
 import warnings
 
 import numpy as np
@@ -22,7 +25,8 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_list_like,
     ensure_int64)
-from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCSeries, ABCTimedeltaIndex, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
@@ -107,8 +111,29 @@ def _td_array_cmp(cls, op):
     return compat.set_function_name(wrapper, opname, cls)
 
 
+def _wrap_tdi_op(op):
+    """
+    Instead of re-implementing multiplication/division etc operations
+    in the Array class, for now we dispatch to the Timedelta implementations.
+    """
+    def method(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+
+        from pandas import TimedeltaIndex
+        obj = TimedeltaIndex(self)
+        result = op(obj, other)
+        if is_timedelta64_dtype(result):
+            return type(self)(result)
+        return np.array(result)
+
+    method.__name__ = '__{name}__'.format(name=op.__name__)
+    return method
+
+
 class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     _typ = "timedeltaarray"
+    __array_priority__ = 1000
 
     @property
     def _box_func(self):
@@ -284,6 +309,13 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                 return result
 
         return NotImplemented
+
+    __mul__ = _wrap_tdi_op(operator.mul)
+    __rmul__ = __mul__
+    __truediv__ = _wrap_tdi_op(operator.truediv)
+
+    if compat.PY2:
+        __div__ = __truediv__
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timedelta methods

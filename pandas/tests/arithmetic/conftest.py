@@ -5,7 +5,10 @@ import numpy as np
 import pandas as pd
 
 from pandas.compat import long
-from pandas.core.arrays import PeriodArray, DatetimeArrayMixin as DatetimeArray
+from pandas.core.arrays import (
+    PeriodArray,
+    DatetimeArrayMixin as DatetimeArray,
+    TimedeltaArrayMixin as TimedeltaArray)
 
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
@@ -187,5 +190,14 @@ def box_with_period(request):
 def box_with_datetime(request):
     """
     Like `box`, but specific to datetime64 for also testing DatetimeArray
+    """
+    return request.param
+
+
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, TimedeltaArray],
+                ids=lambda x: x.__name__)
+def box_with_timedelta(request):
+    """
+    Like `box`, but specific to timedelta64 for also testing TimedeltaArray
     """
     return request.param

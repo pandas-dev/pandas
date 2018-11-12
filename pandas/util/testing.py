@@ -37,7 +37,7 @@ from pandas import (
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArrayMixin as DatetimeArray, ExtensionArray, IntervalArray,
-    PeriodArray, period_array)
+    PeriodArray, period_array, TimedeltaArrayMixin as TimedeltaArray)
 import pandas.core.common as com
 
 from pandas.io.common import urlopen
@@ -1080,6 +1080,14 @@ def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
     assert_attr_equal('tz', left, right, obj=obj)
 
 
+def assert_timedelta_array_equal(left, right, obj='TimedeltaArray'):
+    _check_isinstance(left, right, TimedeltaArray)
+
+    assert_numpy_array_equal(left._data, right._data,
+                             obj='{obj}._data'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
+
+
 def raise_assert_detail(obj, message, left, right, diff=None):
     __tracebackhide__ = True
 
@@ -1579,6 +1587,8 @@ def assert_equal(left, right, **kwargs):
         assert_period_array_equal(left, right, **kwargs)
     elif isinstance(left, DatetimeArray):
         assert_datetime_array_equal(left, right, **kwargs)
+    elif isinstance(left, TimedeltaArray):
+        assert_timedelta_array_equal(left, right, **kwargs)
     elif isinstance(left, ExtensionArray):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):
@@ -1616,6 +1626,8 @@ def box_expected(expected, box_cls, transpose=True):
         expected = period_array(expected)
     elif box_cls is DatetimeArray:
         expected = DatetimeArray(expected)
+    elif box_cls is TimedeltaArray:
+        expected = TimedeltaArray(expected)
     elif box_cls is np.ndarray:
         expected = np.array(expected)
     else:

@@ -236,6 +236,12 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
+    __mul__ = Index.__mul__
+    __rmul__ = Index.__rmul__
+    __truediv__ = Index.__truediv__
+    if compat.PY2:
+        __div__ = Index.__div__
+
     days = wrap_field_accessor(TimedeltaArrayMixin.days)
     seconds = wrap_field_accessor(TimedeltaArrayMixin.seconds)
     microseconds = wrap_field_accessor(TimedeltaArrayMixin.microseconds)
