@@ -257,7 +257,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         return result
 
     # ------------------------------------------------------------------------
+    # Wrapping PeriodArray
+
+    # ------------------------------------------------------------------------
     # Data
+
     @property
     def _ndarray_values(self):
         return self._data._ndarray_values
@@ -361,13 +365,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         result = self._data.asfreq(freq=freq, how=how)
         return self._simple_new(result, name=self.name)
 
-    def _nat_new(self, box=True):
-        # TODO(DatetimeArray): remove this
-        result = self._data._nat_new(box=box)
-        if box:
-            result = self._simple_new(result, name=self.name)
-        return result
-
     def to_timestamp(self, freq=None, how='start'):
         from pandas import DatetimeIndex
         result = self._data.to_timestamp(freq=freq, how=how)
@@ -425,6 +422,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     # ------------------------------------------------------------------------
     # Indexing
+
     @cache_readonly
     def _engine(self):
         return self._engine_type(lambda: self, len(self))
