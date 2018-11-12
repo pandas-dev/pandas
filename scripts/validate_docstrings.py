@@ -777,7 +777,7 @@ def validate_all(prefix):
     return result
 
 
-def main(func_name, prefix, errors, output_format, skip_deprecated):
+def main(func_name, prefix, errors, output_format, deprecated):
     def header(title, width=80, char='#'):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
@@ -828,7 +828,7 @@ def main(func_name, prefix, errors, output_format, skip_deprecated):
 
     else:
         doc = Docstring(func_name)
-        if skip_deprecated and doc.deprecated:
+        if deprecated and doc.deprecated:
             return exit_status
 
         result = validate_one(func_name)
