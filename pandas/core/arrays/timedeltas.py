@@ -115,8 +115,11 @@ def _td_array_cmp(cls, op):
 def _wrap_tdi_op(op):
     """
     Instead of re-implementing multiplication/division etc operations
-    in the Array class, for now we dispatch to the Timedelta implementations.
+    in the Array class, for now we dispatch to the TimedeltaIndex
+    implementations.
     """
+    # TODO: implement directly here and wrap in TimedeltaIndex, instead of
+    #  the other way around
     def method(self, other):
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
             return NotImplemented

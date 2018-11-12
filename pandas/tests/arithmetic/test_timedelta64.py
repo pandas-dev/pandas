@@ -467,23 +467,23 @@ class TestTimedeltaArraylikeAddSubOps(object):
         ts = Timestamp('2012-01-01')
         # TODO: parametrize over types of datetime scalar?
 
-        tdser = timedelta_range('1 day', periods=3)
+        tdarr = timedelta_range('1 day', periods=3)
         expected = pd.date_range('2012-01-02', periods=3)
 
-        tdser = tm.box_expected(tdser, box)
+        tdarr = tm.box_expected(tdarr, box)
         expected = tm.box_expected(expected, box)
 
-        tm.assert_equal(ts + tdser, expected)
-        tm.assert_equal(tdser + ts, expected)
+        tm.assert_equal(ts + tdarr, expected)
+        tm.assert_equal(tdarr + ts, expected)
 
         expected2 = pd.date_range('2011-12-31', periods=3, freq='-1D')
         expected2 = tm.box_expected(expected2, box)
 
-        tm.assert_equal(ts - tdser, expected2)
-        tm.assert_equal(ts + (-tdser), expected2)
+        tm.assert_equal(ts - tdarr, expected2)
+        tm.assert_equal(ts + (-tdarr), expected2)
 
         with pytest.raises(TypeError):
-            tdser - ts
+            tdarr - ts
 
     def test_tdi_sub_dt64_array(self, box_with_timedelta):
         box = box_with_timedelta
