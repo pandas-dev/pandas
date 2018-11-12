@@ -16,8 +16,6 @@ from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.algorithms import quantile
 import pandas.core.reshape.tile as tmod
 
-import pdb
-
 class TestCut(object):
 
     def test_simple(self):
@@ -39,6 +37,7 @@ class TestCut(object):
                                                6.53333333, 9.7]))
 
     def test_str_bins(self):
+        # GH 14627
         data = np.array([0.1, 0.1, 0.2, 0.5, 0.5, 0.9, 1.0])
         result, bins_cut = cut(data, bins="auto",
                                retbins=True)
@@ -55,6 +54,13 @@ class TestCut(object):
         expected = Categorical(intervals, ordered=True)
         tm.assert_index_equal(result.categories,
                               expected.categories)
+        
+        
+        # Test that a `bin` string not present in `np.histogram_bin_edges`
+        # throws a ValueError.
+        tm.assert_raises_regex(ValueError, 
+            "'*' is not a valid estimator for `bins`", 
+            cut, data, "bad bins")
 
     def test_right(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])

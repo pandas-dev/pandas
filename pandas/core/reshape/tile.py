@@ -13,6 +13,8 @@ from pandas.core.dtypes.common import (
     is_scalar, is_timedelta64_dtype)
 from pandas.core.dtypes.missing import isna
 
+from pandas.compat import string_types
+
 from pandas import (
     Categorical, Index, Interval, IntervalIndex, Series, Timedelta, Timestamp,
     to_datetime, to_timedelta)
@@ -42,7 +44,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
           range of `x` is extended by .1% on each side to include the minimum
           and maximum values of `x`.
         * str : Bin calculaton dispatched to `np.histogram_bin_edges`. See that
-          documentation for details.
+          documentation for details. (versionadded:: 0.24.0)
         * sequence of scalars : Defines the bin edges allowing for non-uniform
           width. No extension of the range of `x` is done.
         * IntervalIndex : Defines the exact bins to be used.
@@ -87,9 +89,9 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     bins : numpy.ndarray or IntervalIndex
         The computed or specified bins. Only returned when `retbins=True`.
-        For scalar or sequence `bins`, this is an ndarray with the computed
-        bins. If set `duplicates=drop`, `bins` will drop non-unique bin. For
-        an IntervalIndex `bins`, this is equal to `bins`.
+        For scalar, str, or sequence `bins`, this is an ndarray with the 
+        computed bins. If set `duplicates=drop`, `bins` will drop non-unique 
+        bin. For an IntervalIndex `bins`, this is equal to `bins`.
 
     See Also
     --------
@@ -100,6 +102,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     Series : One-dimensional array with axis labels (including time series).
     pandas.IntervalIndex : Immutable Index implementing an ordered,
         sliceable set.
+    numpy.histogram_bin_edges : Bin calculation dispatched to this method when
+        `bins` is a string.
 
     Notes
     -----
@@ -185,7 +189,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     Categories (3, interval[int64]): [(0, 1] < (2, 3] < (4, 5]]
 
     Passng a string for `bins` dispatches the bin calculation to numpy's
-    `histogram_bin_edges`.
+    `histogram_bin_edges`. (Starting in version 0.24.)
     >>> pd.cut(array([0.1, 0.1, 0.2, 0.5, 0.5, 0.9, 1.0]),
     ...        bins="auto")
     ... # doctest: +ELLIPSIS`
@@ -200,7 +204,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     x_is_series, series_index, name, x = _preprocess_for_cut(x)
     x, dtype = _coerce_to_type(x)
 
-    if isinstance(bins, str):
+    if isinstance(bins, string_types):
+        # GH 14627
         bins = np.histogram_bin_edges(x, bins)
         mn, mx = bins[0], bins[-1]
         adj = (mx - mn)
