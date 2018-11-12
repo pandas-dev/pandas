@@ -1674,7 +1674,7 @@ class IndexCol(StringMixin):
     def __iter__(self):
         return iter(self.values)
 
-    def maybe_set_size(self, min_itemsize=None, **kwargs):
+    def maybe_set_size(self, min_itemsize=None):
         """ maybe set a string col itemsize:
                min_itemsize can be an integer or a dict with this columns name
                with an integer size """
@@ -1687,13 +1687,13 @@ class IndexCol(StringMixin):
                 self.typ = _tables(
                 ).StringCol(itemsize=min_itemsize, pos=self.pos)
 
-    def validate(self, handler, append, **kwargs):
+    def validate(self, handler, append):
         self.validate_names()
 
     def validate_names(self):
         pass
 
-    def validate_and_set(self, handler, append, **kwargs):
+    def validate_and_set(self, handler, append):
         self.set_table(handler.table)
         self.validate_col()
         self.validate_attr(append)
@@ -3772,7 +3772,7 @@ class Table(Fixed):
 
         return Index(coords)
 
-    def read_column(self, column, where=None, start=None, stop=None, **kwargs):
+    def read_column(self, column, where=None, start=None, stop=None):
         """return a single column from the table, generally only indexables
         are interesting
         """
@@ -4727,7 +4727,7 @@ class Selection(object):
 
     """
 
-    def __init__(self, table, where=None, start=None, stop=None, **kwargs):
+    def __init__(self, table, where=None, start=None, stop=None):
         self.table = table
         self.where = where
         self.start = start
