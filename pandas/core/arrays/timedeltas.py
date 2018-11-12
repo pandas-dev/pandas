@@ -320,6 +320,12 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     if compat.PY2:
         __div__ = __truediv__
 
+    # Note: TimedeltaIndex overrides this in call to cls._add_numeric_methods
+    def __neg__(self):
+        if self.freq is not None:
+            return type(self)(-self._data, freq=-self.freq)
+        return type(self)(-self._data)
+
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timedelta methods
 

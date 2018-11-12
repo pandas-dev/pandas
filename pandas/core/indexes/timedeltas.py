@@ -239,6 +239,8 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
     __mul__ = Index.__mul__
     __rmul__ = Index.__rmul__
     __truediv__ = Index.__truediv__
+    __floordiv__ = Index.__floordiv__
+    __rfloordiv__ = Index.__rfloordiv__
     if compat.PY2:
         __div__ = Index.__div__
 

@@ -16,7 +16,9 @@ from pandas import (
     timedelta_range,
     Timedelta, Timestamp, NaT, Series, TimedeltaIndex, DatetimeIndex,
     DataFrame)
-from pandas.core.arrays import TimedeltaArrayMixin as TimedeltaArray
+from pandas.core.arrays import (
+    TimedeltaArrayMixin as TimedeltaArray,
+    DatetimeArrayMixin as DatetimeArray)
 
 
 def get_upcast_box(box, vector):
@@ -366,8 +368,10 @@ class TestTimedeltaArraylikeAddSubOps(object):
     # -------------------------------------------------------------
     # Invalid Operations
 
-    def test_td64arr_add_str_invalid(self, box):
+    def test_td64arr_add_str_invalid(self, box_with_timedelta):
         # GH#13624
+        box = box_with_timedelta
+
         tdi = TimedeltaIndex(['1 day', '2 days'])
         tdi = tm.box_expected(tdi, box)
 
@@ -380,7 +384,9 @@ class TestTimedeltaArraylikeAddSubOps(object):
     @pytest.mark.parametrize('op', [operator.add, ops.radd,
                                     operator.sub, ops.rsub],
                              ids=lambda x: x.__name__)
-    def test_td64arr_add_sub_float(self, box, op, other):
+    def test_td64arr_add_sub_float(self, box_with_timedelta, op, other):
+        box = box_with_timedelta
+
         tdi = TimedeltaIndex(['-1 days', '-1 days'])
         tdi = tm.box_expected(tdi, box)
 
@@ -388,9 +394,11 @@ class TestTimedeltaArraylikeAddSubOps(object):
             op(tdi, other)
 
     @pytest.mark.parametrize('freq', [None, 'H'])
-    def test_td64arr_sub_period(self, box, freq):
+    def test_td64arr_sub_period(self, box_with_timedelta, freq):
         # GH#13078
         # not supported, check TypeError
+        box = box_with_timedelta
+
         p = pd.Period('2011-01-01', freq='D')
         idx = TimedeltaIndex(['1 hours', '2 hours'], freq=freq)
         idx = tm.box_expected(idx, box)
@@ -403,8 +411,10 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
     @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
     @pytest.mark.parametrize('tdi_freq', [None, 'H'])
-    def test_td64arr_sub_pi(self, box, tdi_freq, pi_freq):
+    def test_td64arr_sub_pi(self, box_with_timedelta, tdi_freq, pi_freq):
         # GH#20049 subtracting PeriodIndex should raise TypeError
+        box = box_with_timedelta
+
         tdi = TimedeltaIndex(['1 hours', '2 hours'], freq=tdi_freq)
         dti = Timestamp('2018-03-07 17:16:40') + tdi
         pi = dti.to_period(pi_freq)
@@ -417,7 +427,9 @@ class TestTimedeltaArraylikeAddSubOps(object):
     # -------------------------------------------------------------
     # Binary operations td64 arraylike and datetime-like
 
-    def test_td64arr_sub_timestamp_raises(self, box):
+    def test_td64arr_sub_timestamp_raises(self, box_with_timedelta):
+        box = box_with_timedelta
+
         idx = TimedeltaIndex(['1 day', '2 day'])
         idx = tm.box_expected(idx, box)
 
@@ -427,8 +439,11 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with pytest.raises(TypeError, match=msg):
             idx - Timestamp('2011-01-01')
 
-    def test_td64arr_add_timestamp(self, box, tz_naive_fixture):
+    def test_td64arr_add_timestamp(self, box_with_timedelta, tz_naive_fixture):
         # GH#23215
+        box = box_with_timedelta
+        xbox = box if box is not TimedeltaArray else DatetimeArray
+
         # TODO: parametrize over scalar datetime types?
         tz = tz_naive_fixture
         other = Timestamp('2011-01-01', tz=tz)
@@ -439,7 +454,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
         # FIXME: fails with transpose=True because of tz-aware DataFrame
         #  transpose bug
         idx = tm.box_expected(idx, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        expected = tm.box_expected(expected, xbox, transpose=False)
 
         result = idx + other
         tm.assert_equal(result, expected)
@@ -452,8 +467,8 @@ class TestTimedeltaArraylikeAddSubOps(object):
         ts = Timestamp('2012-01-01')
         # TODO: parametrize over types of datetime scalar?
 
-        tdser = Series(timedelta_range('1 day', periods=3))
-        expected = Series(pd.date_range('2012-01-02', periods=3))
+        tdser = timedelta_range('1 day', periods=3)
+        expected = pd.date_range('2012-01-02', periods=3)
 
         tdser = tm.box_expected(tdser, box)
         expected = tm.box_expected(expected, box)
@@ -461,8 +476,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
         tm.assert_equal(ts + tdser, expected)
         tm.assert_equal(tdser + ts, expected)
 
-        expected2 = Series(pd.date_range('2011-12-31',
-                                         periods=3, freq='-1D'))
+        expected2 = pd.date_range('2011-12-31', periods=3, freq='-1D')
         expected2 = tm.box_expected(expected2, box)
 
         tm.assert_equal(ts - tdser, expected2)
@@ -471,14 +485,17 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with pytest.raises(TypeError):
             tdser - ts
 
-    def test_tdi_sub_dt64_array(self, box):
+    def test_tdi_sub_dt64_array(self, box_with_timedelta):
+        box = box_with_timedelta
+        xbox = box if box is not TimedeltaArray else DatetimeArray
+
         dti = pd.date_range('2016-01-01', periods=3)
         tdi = dti - dti.shift(1)
         dtarr = dti.values
         expected = pd.DatetimeIndex(dtarr) - tdi
 
         tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, xbox)
 
         with pytest.raises(TypeError):
             tdi - dtarr
@@ -487,29 +504,35 @@ class TestTimedeltaArraylikeAddSubOps(object):
         result = dtarr - tdi
         tm.assert_equal(result, expected)
 
-    def test_tdi_add_dt64_array(self, box):
+    def test_tdi_add_dt64_array(self, box_with_timedelta):
+        box = box_with_timedelta
+        xbox = box if box is not TimedeltaArray else DatetimeArray
+
         dti = pd.date_range('2016-01-01', periods=3)
         tdi = dti - dti.shift(1)
         dtarr = dti.values
         expected = pd.DatetimeIndex(dtarr) + tdi
 
         tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, xbox)
 
         result = tdi + dtarr
         tm.assert_equal(result, expected)
         result = dtarr + tdi
         tm.assert_equal(result, expected)
 
-    def test_td64arr_add_datetime64_nat(self, box):
+    def test_td64arr_add_datetime64_nat(self, box_with_timedelta):
         # GH#23215
+        box = box_with_timedelta
+        xbox = box if box is not TimedeltaArray else pd.Index
+
         other = np.datetime64('NaT')
 
         tdi = timedelta_range('1 day', periods=3)
         expected = pd.DatetimeIndex(["NaT", "NaT", "NaT"])
 
         tdser = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, xbox)
 
         tm.assert_equal(tdser + other, expected)
         tm.assert_equal(other + tdser, expected)
