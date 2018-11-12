@@ -540,7 +540,6 @@ def test_from_frame_dtype_fidelity():
 @pytest.mark.parametrize('names_in,names_out', [
     (None, [('L1', 'x'), ('L2', 'y')]),
     (['x', 'y'], ['x', 'y']),
-    (lambda x: '_'.join(x), ['L1_x', 'L2_y']),
     ('bad_input', None),
 ])
 def test_from_frame_names(names_in, names_out):
@@ -550,8 +549,7 @@ def test_from_frame_names(names_in, names_out):
                                                          ('L2', 'y')]))
     if names_out is None:
         with tm.assert_raises_regex(TypeError, "'names' must be a list / "
-                                               "sequence of column names, "
-                                               "or a callable."):
+                                               "sequence of column names."):
             pd.MultiIndex.from_frame(df, names=names_in)
     else:
         mi = pd.MultiIndex.from_frame(df, names=names_in)
