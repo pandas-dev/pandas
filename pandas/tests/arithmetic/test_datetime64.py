@@ -1155,14 +1155,18 @@ class TestDatetimeIndexArithmetic(object):
     def test_dti_add_timedeltalike(self, tz_naive_fixture, two_hours,
                                    box_with_datetime):
         # GH#22005, GH#22163 check DataFrame doesn't raise TypeError
+        box = box_with_datetime
+
         tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
-        rng = tm.box_expected(rng, box_with_datetime)
+
+        # FIXME: calling with transpose=True raises ValueError
+        rng = tm.box_expected(rng, box, transpose=False)
 
         result = rng + two_hours
         expected = pd.date_range('2000-01-01 02:00',
                                  '2000-02-01 02:00', tz=tz)
-        expected = tm.box_expected(expected, box_with_datetime)
+        expected = tm.box_expected(expected, box, transpose=False)
         tm.assert_equal(result, expected)
 
     def test_dti_iadd_timedeltalike(self, tz_naive_fixture, two_hours):
@@ -1192,12 +1196,15 @@ class TestDatetimeIndexArithmetic(object):
     def test_dt64arr_add_sub_td64_nat(self, box, tz_naive_fixture):
         # GH#23320 special handling for timedelta64("NaT")
         tz = tz_naive_fixture
+
         dti = pd.date_range("1994-04-01", periods=9, tz=tz, freq="QS")
         other = np.timedelta64("NaT")
         expected = pd.DatetimeIndex(["NaT"] * 9, tz=tz)
 
-        obj = tm.box_expected(dti, box)
-        expected = tm.box_expected(expected, box)
+        # FIXME: fails with transpose=True due to tz-aware DataFrame
+        #  transpose bug
+        obj = tm.box_expected(dti, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
 
         result = obj + other
         tm.assert_equal(result, expected)
@@ -1450,10 +1457,8 @@ class TestDatetimeIndexArithmetic(object):
                                     operator.sub, ops.rsub])
     @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
     @pytest.mark.parametrize('dti_freq', [None, 'D'])
-    def test_dti_sub_pi(self, dti_freq, pi_freq, op, box_df_broadcast_failure):
+    def test_dti_sub_pi(self, dti_freq, pi_freq, op, box):
         # GH#20049 subtracting PeriodIndex should raise TypeError
-        box = box_df_broadcast_failure
-
         dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
         pi = dti.to_period(pi_freq)
 
@@ -1782,6 +1787,8 @@ class TestDatetimeIndexArithmetic(object):
 
     def test_dti_add_offset_tzaware(self, tz_aware_fixture, box_with_datetime):
         # GH#21610, GH#22163 ensure DataFrame doesn't return object-dtype
+        box = box_with_datetime
+
         timezone = tz_aware_fixture
         if timezone == 'US/Pacific':
             dates = date_range('2012-11-01', periods=3, tz=timezone)
@@ -1793,8 +1800,9 @@ class TestDatetimeIndexArithmetic(object):
         expected = DatetimeIndex(['2010-11-01 05:00', '2010-11-01 06:00',
                                   '2010-11-01 07:00'], freq='H', tz=timezone)
 
-        dates = tm.box_expected(dates, box_with_datetime)
-        expected = tm.box_expected(expected, box_with_datetime)
+        # FIXME: these raise ValueError with transpose=True
+        dates = tm.box_expected(dates, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
 
         # TODO: parametrize over the scalar being added?  radd?  sub?
         offset = dates + pd.offsets.Hour(5)
