@@ -17,6 +17,7 @@ import pandas.util.testing as tm
     ([1, 2], None, np.array([1, 2])),
     ([1, 2], object, np.array([1, 2], dtype=object)),
     ([1, 2], 'float32', np.array([1., 2.0], dtype=np.dtype('float32'))),
+    (np.array([1, 2]), None, np.array([1, 2])),
     ([pd.Period('2000', 'D'), pd.Period('2001', 'D')], 'Period[D]',
      period_array(['2000', '2001'], freq='D')),
     ([pd.Period('2000', 'D')], pd.PeriodDtype('D'),
