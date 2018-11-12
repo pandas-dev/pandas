@@ -691,14 +691,19 @@ class ExtensionArray(object):
         Parameters
         ----------
         formatter: GenericArrayFormatter, optional
-            The formatter this array is being rendered with. This will be
-            passed when the ExtensionArray is being rendered inside of a
-            Series, Index, or DataFrame. This will be ``None`` when called
-            from a top-level ``repr(array)``.
+            The formatter this array is being rendered with. When the array
+            is being rendered inside an Index, Series, or DataFrame, a
+            formatter will be provided. So if you want your objects to
+            render differently inside a Series from on its own, checking
+            with ``formatter is None`` is an option.
 
-            By default, when ``formatter`` is passed, the return value
-            is ``formatter.formatter``. Otherwise, the default formatter
-            is ``repr``.
+            The default behavior depends on whether `formatter` is passed.
+
+            * When `formatter` is None, :func:`repr` is returned.
+            * When `formatter` is passed, ``formatter.formatter`` is used,
+              which falls back to :func:`repr` if that isn't specified.
+
+            In general, just returning :func:`repr` should be fine.
 
         Returns
         -------
