@@ -1171,7 +1171,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         fill_value = fill_values[0]
 
-        if len(set(fill_values)) > 1:
+        # np.nan isn't a singleton, so we may end up with multiple
+        # NaNs here, so we ignore tha all NA case too.
+        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
             warnings.warn("Concatenating sparse arrays with multiple fill "
                           "values: '{}'. Picking the first and "
                           "converting the rest.".format(fill_values),
