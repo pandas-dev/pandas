@@ -175,6 +175,41 @@ class TestDatetimeArray(object):
 
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_take_fill_valid(self, datetime_index, tz_naive_fixture):
+        dti = datetime_index.tz_localize(tz_naive_fixture)
+        arr = DatetimeArray(dti)
+
+        now = pd.Timestamp.now().tz_localize(dti.tz)
+        result = arr.take([-1, 1], allow_fill=True, fill_value=now)
+        assert result[0] == now
+
+        with pytest.raises(ValueError):
+            # fill_value Timedelta invalid
+            arr.take([-1, 1], allow_fill=True, fill_value=now - now)
+
+        with pytest.raises(ValueError):
+            # fill_value Period invalid
+            arr.take([-1, 1], allow_fill=True, fill_value=pd.Period('2014Q1'))
+
+        tz = None if dti.tz is not None else 'US/Eastern'
+        now = pd.Timestamp.now().tz_localize(tz)
+        with pytest.raises(TypeError):
+            # Timestamp with mismatched tz-awareness
+            arr.take([-1, 1], allow_fill=True, fill_value=now)
+
+    def test_concat_same_type_invalid(self, datetime_index):
+        # different timezones
+        dti = datetime_index
+        arr = DatetimeArray(dti)
+
+        if arr.tz is None:
+            other = arr.tz_localize('UTC')
+        else:
+            other = arr.tz_localize(None)
+
+        with pytest.raises(AssertionError):
+            arr._concat_same_type([arr, other])
+
 
 class TestTimedeltaArray(object):
     def test_from_tdi(self):
@@ -222,6 +257,35 @@ class TestTimedeltaArray(object):
         expected = np.array(getattr(tdi, propname), dtype=result.dtype)
 
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_take_fill_valid(self, timedelta_index):
+        tdi = timedelta_index
+        arr = TimedeltaArray(tdi)
+
+        td1 = pd.Timedelta(days=1)
+        result = arr.take([-1, 1], allow_fill=True, fill_value=td1)
+        assert result[0] == td1
+
+        now = pd.Timestamp.now()
+        with pytest.raises(ValueError):
+            # fill_value Timestamp invalid
+            arr.take([0, 1], allow_fill=True, fill_value=now)
+
+        with pytest.raises(ValueError):
+            # fill_value Period invalid
+            arr.take([0, 1], allow_fill=True, fill_value=now.to_period('D'))
+
+    def test_concat_same_type_invalid(self, timedelta_index):
+        # different freqs
+        tdi = timedelta_index
+        arr = TimedeltaArray(tdi)
+        other = pd.timedelta_range('1D', periods=5, freq='2D')
+        # FIXME: TimedeltaArray should inherit freq='2D' without specifying it
+        other = TimedeltaArray(other, freq='2D')
+        assert other.freq != arr.freq
+
+        with pytest.raises(AssertionError):
+            arr._concat_same_type([arr, other])
 
 
 class TestPeriodArray(object):

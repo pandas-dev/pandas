@@ -132,10 +132,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return self._data.nbytes
 
     @property
-    def nbytes(self):
-        return self._data.nbytes
-
-    @property
     def shape(self):
         return (len(self),)
 
@@ -203,6 +199,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # ------------------------------------------------------------------
     # ExtensionArray Interface
     # TODO:
+    #   * _from_sequence
     #   * argsort / _values_for_argsort
     #   * _reduce
 
@@ -252,7 +249,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     def copy(self, deep=False):
         values = self.asi8
         if deep:
-            values = i8values.copy()
+            values = values.copy()
         return type(self)(values, dtype=self.dtype, freq=self.freq)
 
     def _values_for_factorize(self):
@@ -263,15 +260,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if is_datetime64tz_dtype(original):
             return cls(values, tz=original.tz, freq=original.freq)
         return cls(values, freq=original.freq)
-
-    @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
-        arr = np.asarray(scalars, dtype=object)
-        if copy:
-            arr = arr.copy()
-
-        # If necessary this will infer tz from dtype
-        return cls(arr, dtype=dtype)
 
     # ------------------------------------------------------------------
     # Null Handling
