@@ -661,7 +661,7 @@ class ExtensionArray(object):
         from pandas.io.formats.printing import format_object_summary
 
         template = (
-            u'<{class_name}>\n'
+            u'{class_name}'
             u'{data}\n'
             u'Length: {length}, dtype: {dtype}'
         )
@@ -670,10 +670,16 @@ class ExtensionArray(object):
         # any trailing newlines from format_object_summary
         data = format_object_summary(self, self._formatter(), name=False,
                                      trailing_comma=False).rstrip()
-        name = self.__class__.__name__
-        return template.format(class_name=name, data=data,
+        class_name = u'<{}>\n'.format(self.__class__.__name__)
+        return template.format(class_name=class_name, data=data,
                                length=len(self),
                                dtype=self.dtype)
+
+    def __bytes__(self):
+        from pandas.core.config import get_option
+
+        encoding = get_option("display.encoding")
+        return str(self).encode(encoding, 'replace')
 
     def _formatter(self, formatter=None):
         # type: (Optional[ExtensionArrayFormatter]) -> Callable[[Any], str]
@@ -705,7 +711,12 @@ class ExtensionArray(object):
     def _formatting_values(self):
         # type: () -> np.ndarray
         # At the moment, this has to be an array since we use result.dtype
-        """An array of values to be printed in, e.g. the Series repr"""
+        """An array of values to be printed in, e.g. the Series repr
+
+        .. deprecated:: 0.24.0
+
+           Use :meth:`ExtensionArray._formatter` instead.
+        """
         return np.array(self)
 
     # ------------------------------------------------------------------------

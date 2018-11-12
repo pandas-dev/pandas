@@ -499,7 +499,7 @@ class Categorical(ExtensionArray, PandasObject):
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return Categorical(scalars, dtype=dtype)
 
-    def _formatter(self, formatter):
+    def _formatter(self, formatter=None):
         # backwards compat with old printing.
         return None
 
@@ -1989,6 +1989,9 @@ class Categorical(ExtensionArray, PandasObject):
             result = ('[], {repr_msg}'.format(repr_msg=msg))
 
         return result
+
+    def __repr__(self):
+        return super(ExtensionArray, self).__repr__()
 
     def _maybe_coerce_indexer(self, indexer):
         """ return an indexer coerced to the codes dtype """
