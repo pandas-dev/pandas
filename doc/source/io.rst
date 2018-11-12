@@ -2854,6 +2854,11 @@ It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. ``read_excel`` takes
 a ``usecols`` keyword to allow you to specify a subset of columns to parse.
 
+.. deprecated:: 0.24.0
+
+Passing in an integer for ``usecols`` has been deprecated. Please pass in a list
+of ints from 0 to ``usecols`` inclusive instead.
+
 If ``usecols`` is an integer, then it is assumed to indicate the last column
 to be parsed.
 

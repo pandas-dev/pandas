@@ -105,23 +105,34 @@ class SharedItems(object):
 class ReadingTestsBase(SharedItems):
     # This is based on ExcelWriterBase
 
-    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
+    @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
     def test_usecols_int(self, ext):
 
-        dfref = self.get_csv_refdf('test1')
-        dfref = dfref.reindex(columns=['A', 'B', 'C'])
-        df1 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0, usecols=3)
-        df2 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                               index_col=0, usecols=3)
+        df_ref = self.get_csv_refdf("test1")
+        df_ref = df_ref.reindex(columns=["A", "B", "C"])
 
-        with tm.assert_produces_warning(FutureWarning):
-            df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+        # usecols as int
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            df1 = self.get_exceldf("test1", ext, "Sheet1",
+                                   index_col=0, usecols=3)
+
+        # usecols as int
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            df2 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
+                                   index_col=0, usecols=3)
+
+        # parse_cols instead of usecols, usecols as int
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            df3 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
                                    index_col=0, parse_cols=3)
 
         # TODO add index to xls file)
-        tm.assert_frame_equal(df1, dfref, check_names=False)
-        tm.assert_frame_equal(df2, dfref, check_names=False)
-        tm.assert_frame_equal(df3, dfref, check_names=False)
+        tm.assert_frame_equal(df1, df_ref, check_names=False)
+        tm.assert_frame_equal(df2, df_ref, check_names=False)
+        tm.assert_frame_equal(df3, df_ref, check_names=False)
 
     @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_usecols_list(self, ext):
