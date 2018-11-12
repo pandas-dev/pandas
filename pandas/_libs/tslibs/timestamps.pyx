@@ -40,6 +40,7 @@ from timezones cimport (
 # Constants
 _zero_time = datetime_time(0, 0)
 _no_input = object()
+cdef int64_t DAY_NS = 86400000000000
 
 
 # ----------------------------------------------------------------------
@@ -1285,6 +1286,8 @@ class Timestamp(_Timestamp):
         Normalize Timestamp to midnight, preserving
         tz information.
         """
+        if self.tz is None:
+            return Timestamp(self.value - (self.value % DAY_NS))
         normalized_value = normalize_i8_timestamps(
             np.array([self.value], dtype='i8'), tz=self.tz)[0]
         return Timestamp(normalized_value).tz_localize(self.tz)
