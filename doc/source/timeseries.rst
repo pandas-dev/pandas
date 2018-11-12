@@ -2373,7 +2373,7 @@ can be controlled by the ``nonexistent`` argument. The following options are ava
 
 .. ipython:: python
 
-    dti = date_range(start='2015-03-29 01:30:00', periods=3, freq='H')
+    dti = pd.date_range(start='2015-03-29 01:30:00', periods=3, freq='H')
     # 2:30 is a nonexistent time
 
 Localization of nonexistent times will raise an error by default.
