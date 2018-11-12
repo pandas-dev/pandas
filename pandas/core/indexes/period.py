@@ -259,9 +259,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     # ------------------------------------------------------------------------
     # Wrapping PeriodArray
 
-    # override DatetimeLikeArrayMixin.__repr__
-    __repr__ = Index.__repr__
-
     # ------------------------------------------------------------------------
     # Data
 
