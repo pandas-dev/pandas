@@ -458,6 +458,22 @@ bar,foo"""
 
         tm.assert_frame_equal(pd.concat(reader), df)
 
+    def test_read_chunksize_jagged_names(self):
+        # see gh-23509
+        data = "\n".join(["0"] * 7 + [",".join(["0"] * 10)])
+        reader = self.read_csv(StringIO(data), names=range(10), chunksize=4)
+
+        expected = DataFrame()
+
+        for i in range(10):
+            if i == 0:
+                expected[i] = [0] * 8
+            else:
+                expected[i] = [np.nan] * 7 + [0]
+
+        result = pd.concat(reader)
+        tm.assert_frame_equal(result, expected)
+
     def test_read_text_list(self):
         data = """A,B,C\nfoo,1,2,3\nbar,4,5,6"""
         as_list = [['A', 'B', 'C'], ['foo', '1', '2', '3'], ['bar',

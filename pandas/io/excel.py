@@ -95,6 +95,10 @@ parse_cols : int or list, default None
 usecols : int, str, list-like, or callable default None
     * If None, then parse all columns,
     * If int, then indicates last column to be parsed
+
+    .. deprecated:: 0.24.0
+       Pass in a list of ints instead from 0 to `usecols` inclusive.
+
     * If string, then indicates comma separated list of Excel column letters
       and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
       both sides.
@@ -778,6 +782,10 @@ def _maybe_convert_usecols(usecols):
         return usecols
 
     if is_integer(usecols):
+        warnings.warn(("Passing in an integer for `usecols` has been "
+                       "deprecated. Please pass in a list of ints from "
+                       "0 to `usecols` inclusive instead."),
+                      FutureWarning, stacklevel=2)
         return lrange(usecols + 1)
 
     if isinstance(usecols, compat.string_types):
