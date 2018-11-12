@@ -33,20 +33,21 @@ From the bash command line with $GITHUB token.
     $ ./scripts/announce.py $GITHUB v1.11.0..v1.11.1 > announce.rst
 
 """
-from __future__ import print_function, division
+from __future__ import division, print_function
 
+import codecs
 import os
 import re
-import codecs
 import textwrap
+
 from git import Repo
 
 UTF8Writer = codecs.getwriter('utf8')
 this_repo = Repo(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 author_msg = """\
-A total of %d people contributed to this release.  People with a "+" by their
-names contributed a patch for the first time.
+A total of %d people contributed patches to this release.  People with a
+"+" by their names contributed a patch for the first time.
 """
 
 pull_request_msg = """\
