@@ -350,6 +350,35 @@ class BadGenericDocStrings(object):
         This mentions NDFrame, which is not correct.
         """
 
+    def unknown_section(self):
+        """
+        This section has an unknown section title.
+
+        Unknown Section
+        ---------------
+        This should raise an error in the validation.
+        """
+
+    def sections_in_wrong_order(self):
+        """
+        This docstring has the sections in the wrong order.
+
+        Parameters
+        ----------
+        name : str
+            This section is in the right position.
+
+        Examples
+        --------
+        >>> print('So far Examples is good, as it goes before Parameters')
+        So far Examples is good, as it goes before Parameters
+
+        See Also
+        --------
+        function : This should generate an error, as See Also needs to go
+            before Examples.
+        """
+
 
 class BadSummaries(object):
 
@@ -706,6 +735,11 @@ class TestValidator(object):
         ('BadGenericDocStrings', 'private_classes',
          ("Private classes (NDFrame) should not be mentioned in public "
           'docstrings',)),
+        ('BadGenericDocStrings', 'unknown_section',
+         ('Found unknown section "Unknown Section".',)),
+        ('BadGenericDocStrings', 'sections_in_wrong_order',
+         ('Wrong order of sections. "See Also" should be located before '
+          '"Notes"',)),
         ('BadSeeAlso', 'desc_no_period',
          ('Missing period at end of description for See Also "Series.iloc"',)),
         ('BadSeeAlso', 'desc_first_letter_lowercase',
