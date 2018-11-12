@@ -2348,9 +2348,12 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
                      [[1.5, np.nan, 3.], [1.5, np.nan, 3.],
                       [1.5, np.nan, 3.],
                       [1.5, np.nan, 3.]]])
+        other = Panel([[[]]])
 
-        pytest.raises(Exception, pan.update, *(pan, ),
-                      **{'raise_conflict': True})
+        with pytest.raises(ValueError, match='Data overlaps'):
+            pan.update(pan, errors='raise')
+        with tm.assert_produces_warning(FutureWarning):
+            pan.update(other, raise_conflict=True)
 
     def test_all_any(self):
         assert (self.panel.all(axis=0).values == nanall(

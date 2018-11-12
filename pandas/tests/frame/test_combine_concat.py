@@ -322,7 +322,9 @@ class TestDataFrameConcatCommon(TestData):
         other = DataFrame([[2., nan],
                            [nan, 7]], index=[1, 3], columns=[1, 2])
         with pytest.raises(ValueError, match="Data overlaps"):
-            df.update(other, raise_conflict=True)
+            df.update(other, errors='raise')
+        with tm.assert_produces_warning(FutureWarning):
+            df.update(other, raise_conflict=False)
 
     def test_update_from_non_df(self):
         d = {'a': Series([1, 2, 3, 4]), 'b': Series([5, 6, 7, 8])}
