@@ -1011,7 +1011,9 @@ class TestTimedeltaArraylikeMulDivOps(object):
     # Multiplication
     # organized with scalar others first, then array-like
 
-    def test_td64arr_mul_int(self, box):
+    def test_td64arr_mul_int(self, box_with_timedelta):
+        box = box_with_timedelta
+
         idx = TimedeltaIndex(np.arange(5, dtype='int64'))
         idx = tm.box_expected(idx, box)
 
@@ -1021,13 +1023,18 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = 1 * idx
         tm.assert_equal(result, idx)
 
-    def test_td64arr_mul_tdlike_scalar_raises(self, two_hours, box):
+    def test_td64arr_mul_tdlike_scalar_raises(self, two_hours,
+                                              box_with_timedelta):
+        box = box_with_timedelta
+
         rng = timedelta_range('1 days', '10 days', name='foo')
         rng = tm.box_expected(rng, box)
         with pytest.raises(TypeError):
             rng * two_hours
 
-    def test_tdi_mul_int_array_zerodim(self, box):
+    def test_tdi_mul_int_array_zerodim(self, box_with_timedelta):
+        box = box_with_timedelta
+
         rng5 = np.arange(5, dtype='int64')
         idx = TimedeltaIndex(rng5)
         expected = TimedeltaIndex(rng5 * 5)
@@ -1038,7 +1045,9 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = idx * np.array(5, dtype='int64')
         tm.assert_equal(result, expected)
 
-    def test_tdi_mul_int_array(self, box):
+    def test_tdi_mul_int_array(self, box_with_timedelta):
+        box = box_with_timedelta
+
         rng5 = np.arange(5, dtype='int64')
         idx = TimedeltaIndex(rng5)
         expected = TimedeltaIndex(rng5 ** 2)
@@ -1049,26 +1058,29 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = idx * rng5
         tm.assert_equal(result, expected)
 
-    def test_tdi_mul_int_series(self, box):
+    def test_tdi_mul_int_series(self, box_with_timedelta):
+        box = box_with_timedelta
+        xbox = pd.Series if box in [pd.Index, TimedeltaArray] else box
+
         idx = TimedeltaIndex(np.arange(5, dtype='int64'))
         expected = TimedeltaIndex(np.arange(5, dtype='int64') ** 2)
 
         idx = tm.box_expected(idx, box)
-
-        box2 = pd.Series if box is pd.Index else box
-        expected = tm.box_expected(expected, box2)
+        expected = tm.box_expected(expected, xbox)
 
         result = idx * pd.Series(np.arange(5, dtype='int64'))
         tm.assert_equal(result, expected)
 
-    def test_tdi_mul_float_series(self, box):
+    def test_tdi_mul_float_series(self, box_with_timedelta):
+        box = box_with_timedelta
+        xbox = pd.Series if box in [pd.Index, TimedeltaArray] else box
+
         idx = TimedeltaIndex(np.arange(5, dtype='int64'))
         idx = tm.box_expected(idx, box)
 
         rng5f = np.arange(5, dtype='float64')
         expected = TimedeltaIndex(rng5f * (rng5f + 1.0))
-        box2 = pd.Series if box is pd.Index else box
-        expected = tm.box_expected(expected, box2)
+        expected = tm.box_expected(expected, xbox)
 
         result = idx * Series(rng5f + 1.0)
         tm.assert_equal(result, expected)
@@ -1081,12 +1093,15 @@ class TestTimedeltaArraylikeMulDivOps(object):
         pd.Float64Index(range(1, 11)),
         pd.RangeIndex(1, 11)
     ], ids=lambda x: type(x).__name__)
-    def test_tdi_rmul_arraylike(self, other, box):
+    def test_tdi_rmul_arraylike(self, other, box_with_timedelta):
+        box = box_with_timedelta
+        xbox = get_upcast_box(box, other)
+
         tdi = TimedeltaIndex(['1 Day'] * 10)
         expected = timedelta_range('1 days', '10 days')
 
         tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, xbox)
 
         result = other * tdi
         tm.assert_equal(result, expected)
@@ -1096,37 +1111,48 @@ class TestTimedeltaArraylikeMulDivOps(object):
     # ------------------------------------------------------------------
     # __div__
 
-    def test_td64arr_div_nat_invalid(self, box):
+    def test_td64arr_div_nat_invalid(self, box_with_timedelta):
         # don't allow division by NaT (maybe could in the future)
+        box = box_with_timedelta
+
         rng = timedelta_range('1 days', '10 days', name='foo')
         rng = tm.box_expected(rng, box)
         with pytest.raises(TypeError):
             rng / pd.NaT
 
-    def test_td64arr_div_int(self, box):
+    def test_td64arr_div_int(self, box_with_timedelta):
+        box = box_with_timedelta
+
         idx = TimedeltaIndex(np.arange(5, dtype='int64'))
         idx = tm.box_expected(idx, box)
 
         result = idx / 1
         tm.assert_equal(result, idx)
 
-    def test_tdi_div_tdlike_scalar(self, two_hours, box):
+    def test_tdi_div_tdlike_scalar(self, two_hours, box_with_timedelta):
         # GH#20088, GH#22163 ensure DataFrame returns correct dtype
+        box = box_with_timedelta
+        xbox = box if box is not TimedeltaArray else np.ndarray
+
         rng = timedelta_range('1 days', '10 days', name='foo')
         expected = pd.Float64Index((np.arange(10) + 1) * 12, name='foo')
 
         rng = tm.box_expected(rng, box)
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, xbox)
 
         result = rng / two_hours
         tm.assert_equal(result, expected)
 
-    def test_tdi_div_tdlike_scalar_with_nat(self, two_hours, box):
+    def test_tdi_div_tdlike_scalar_with_nat(self, two_hours,
+                                            box_with_timedelta):
+        box = box_with_timedelta
+        xbox = box if box is not TimedeltaArray else np.ndarray
+
         rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
         expected = pd.Float64Index([12, np.nan, 24], name='foo')
 
         rng = tm.box_expected(rng, box)
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, xbox)
 
         result = rng / two_hours
         tm.assert_equal(result, expected)
