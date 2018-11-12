@@ -555,7 +555,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             self._validate_index_level(level)
 
         # call DatetimeArray method
-        result = DatetimeArrayMixin.unique(self)
+        result = DatetimeArray.unique(self)
         return self._shallow_copy(result._data)
 
     def union(self, other):
