@@ -76,6 +76,7 @@ ERROR_MSGS = {
             '{allowed_sections}',
     'GL07': 'Wrong order of sections. "{wrong_section}" should be located '
             'before "{goes_before}", the right order is: {sorted_sections}',
+    'GL08': 'No docstring found',
     'SS01': 'No summary found (a short summary in a single line should be '
             'present at the beginning of the docstring)',
     'SS02': 'Summary does not start with a capital letter',
@@ -585,6 +586,20 @@ def validate_one(func_name):
 
     errs = []
     wrns = []
+
+    if len(doc.raw_doc) == 0:
+        errs.append(error('GL08'))
+        return {
+            'type': doc.type,
+            'docstring': doc.clean_doc,
+            'deprecated': doc.deprecated,
+            'file': doc.source_file_name,
+            'file_line': doc.source_file_def_line,
+            'github_link': doc.github_url,
+            'errors': errs,
+            'warnings': wrns,
+            'examples_errors': []}
+
     if doc.start_blank_lines != 1:
         errs.append(error('GL01'))
     if doc.end_blank_lines != 1:
