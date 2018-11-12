@@ -6506,16 +6506,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def asof(self, where, subset=None):
         """
-        Return the last row(s) without any `NaN`s before `where`.
+        Return the last row(s) without any NaNs before `where`.
 
         The last row (for each element in `where`, if list) without any
-        `NaN` is taken.
-        In case of a :class:`~pandas.DataFrame`, the last row without `NaN`
+        NaN is taken.
+        In case of a :class:`~pandas.DataFrame`, the last row without NaN
         considering only the subset of columns (if not `None`)
 
         .. versionadded:: 0.19.0 For DataFrame
 
-        If there is no good value, `NaN` is returned for a Series or
+        If there is no good value, NaN is returned for a Series or
         a Series of NaN values for a DataFrame
 
         Parameters
@@ -6524,7 +6524,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Date(s) before which the last row(s) are returned.
         subset : str or array-like of str, default `None`
             For DataFrame, if not `None`, only use these columns to
-            check for `NaN`s.
+            check for NaNs.
 
         Notes
         -----
@@ -6560,7 +6560,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2.0
 
         For a sequence `where`, a Series is returned. The first value is
-        ``NaN``, because the first element of `where` is before the first
+        NaN, because the first element of `where` is before the first
         index value.
 
         >>> s.asof([5, 20])
@@ -6569,7 +6569,7 @@ class NDFrame(PandasObject, SelectionMixin):
         dtype: float64
 
         Missing values are not considered. The following is ``2.0``, not
-        ``NaN``, even though ``NaN`` is at the index location for ``30``.
+        NaN, even though NaN is at the index location for ``30``.
 
         >>> s.asof(30)
         2.0
