@@ -31,6 +31,7 @@ from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
+from pandas.core import ops
 
 from pandas.tseries.offsets import Tick
 from pandas.tseries.frequencies import to_offset
@@ -313,6 +314,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     __mul__ = _wrap_tdi_op(operator.mul)
     __rmul__ = __mul__
     __truediv__ = _wrap_tdi_op(operator.truediv)
+    __floordiv__ = _wrap_tdi_op(operator.floordiv)
+    __rfloordiv__ = _wrap_tdi_op(ops.rfloordiv)
 
     if compat.PY2:
         __div__ = __truediv__

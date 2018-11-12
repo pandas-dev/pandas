@@ -1134,59 +1134,75 @@ class TestTimedeltaArraylikeMulDivOps(object):
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
-    def test_td64arr_floordiv_tdscalar(self, box, scalar_td):
+    def test_td64arr_floordiv_tdscalar(self, box_with_timedelta, scalar_td):
         # GH#18831
+        box = box_with_timedelta
+        xbox = box if box is not TimedeltaArray else np.ndarray
+
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
 
         expected = Series([0, 0, np.nan])
 
         td1 = tm.box_expected(td1, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        expected = tm.box_expected(expected, xbox, transpose=False)
 
         result = td1 // scalar_td
         tm.assert_equal(result, expected)
 
-    def test_td64arr_rfloordiv_tdscalar(self, box, scalar_td):
+    def test_td64arr_rfloordiv_tdscalar(self, box_with_timedelta, scalar_td):
         # GH#18831
+        box = box_with_timedelta
+        xbox = box if box is not TimedeltaArray else np.ndarray
+
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
 
         expected = Series([1, 1, np.nan])
 
         td1 = tm.box_expected(td1, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        expected = tm.box_expected(expected, xbox, transpose=False)
 
         result = scalar_td // td1
         tm.assert_equal(result, expected)
 
-    def test_td64arr_rfloordiv_tdscalar_explicit(self, box, scalar_td):
+    def test_td64arr_rfloordiv_tdscalar_explicit(self, box_with_timedelta,
+                                                 scalar_td):
         # GH#18831
+        box = box_with_timedelta
+        xbox = box if box is not TimedeltaArray else np.ndarray
+
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
 
         expected = Series([1, 1, np.nan])
 
         td1 = tm.box_expected(td1, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        expected = tm.box_expected(expected, xbox, transpose=False)
 
         # We can test __rfloordiv__ using this syntax,
         # see `test_timedelta_rfloordiv`
         result = td1.__rfloordiv__(scalar_td)
         tm.assert_equal(result, expected)
 
-    def test_td64arr_floordiv_int(self, box):
+    def test_td64arr_floordiv_int(self, box_with_timedelta):
+        box = box_with_timedelta
+
         idx = TimedeltaIndex(np.arange(5, dtype='int64'))
         idx = tm.box_expected(idx, box)
         result = idx // 1
         tm.assert_equal(result, idx)
 
-    def test_td64arr_floordiv_tdlike_scalar(self, two_hours, box):
+    def test_td64arr_floordiv_tdlike_scalar(self, two_hours,
+                                            box_with_timedelta):
+        box = box_with_timedelta
+        xbox = box if box is not TimedeltaArray else np.ndarray
+
         tdi = timedelta_range('1 days', '10 days', name='foo')
         expected = pd.Int64Index((np.arange(10) + 1) * 12, name='foo')
 
         tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, xbox)
 
         result = tdi // two_hours
         tm.assert_equal(result, expected)
@@ -1197,19 +1213,23 @@ class TestTimedeltaArraylikeMulDivOps(object):
         Timedelta('10m7s'),
         Timedelta('10m7s').to_timedelta64()
     ], ids=lambda x: type(x).__name__)
-    def test_td64arr_rfloordiv_tdlike_scalar(self, scalar_td, box):
+    def test_td64arr_rfloordiv_tdlike_scalar(self, scalar_td,
+                                             box_with_timedelta):
         # GH#19125
+        box = box_with_timedelta
+        xbox = box if box is not TimedeltaArray else np.ndarray
+
         tdi = TimedeltaIndex(['00:05:03', '00:05:03', pd.NaT], freq=None)
         expected = pd.Index([2.0, 2.0, np.nan])
 
         tdi = tm.box_expected(tdi, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        expected = tm.box_expected(expected, xbox, transpose=False)
 
         res = tdi.__rfloordiv__(scalar_td)
         tm.assert_equal(res, expected)
 
         expected = pd.Index([0.0, 0.0, np.nan])
-        expected = tm.box_expected(expected, box, transpose=False)
+        expected = tm.box_expected(expected, xbox, transpose=False)
 
         res = tdi // (scalar_td)
         tm.assert_equal(res, expected)
@@ -1217,7 +1237,9 @@ class TestTimedeltaArraylikeMulDivOps(object):
     # ------------------------------------------------------------------
     # Operations with invalid others
 
-    def test_td64arr_mul_tdscalar_invalid(self, box, scalar_td):
+    def test_td64arr_mul_tdscalar_invalid(self, box_with_timedelta, scalar_td):
+        box = box_with_timedelta
+
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
 
@@ -1232,7 +1254,9 @@ class TestTimedeltaArraylikeMulDivOps(object):
         with pytest.raises(TypeError, match=pattern):
             scalar_td * td1
 
-    def test_td64arr_mul_too_short_raises(self, box):
+    def test_td64arr_mul_too_short_raises(self, box_with_timedelta):
+        box = box_with_timedelta
+
         idx = TimedeltaIndex(np.arange(5, dtype='int64'))
         idx = tm.box_expected(idx, box)
         with pytest.raises(TypeError):
@@ -1240,7 +1264,9 @@ class TestTimedeltaArraylikeMulDivOps(object):
         with pytest.raises(ValueError):
             idx * np.array([1, 2])
 
-    def test_td64arr_mul_td64arr_raises(self, box):
+    def test_td64arr_mul_td64arr_raises(self, box_with_timedelta):
+        box = box_with_timedelta
+
         idx = TimedeltaIndex(np.arange(5, dtype='int64'))
         idx = tm.box_expected(idx, box)
         with pytest.raises(TypeError):
@@ -1250,9 +1276,11 @@ class TestTimedeltaArraylikeMulDivOps(object):
     # Operations with numeric others
 
     @pytest.mark.parametrize('one', [1, np.array(1), 1.0, np.array(1.0)])
-    def test_td64arr_mul_numeric_scalar(self, box, one, tdser):
+    def test_td64arr_mul_numeric_scalar(self, box_with_timedelta, one, tdser):
         # GH#4521
         # divide/multiply by integers
+        box = box_with_timedelta
+
         expected = Series(['-59 Days', '-59 Days', 'NaT'],
                           dtype='timedelta64[ns]')
 
@@ -1274,9 +1302,11 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize('two', [2, 2.0, np.array(2), np.array(2.0)])
-    def test_td64arr_div_numeric_scalar(self, box, two, tdser):
+    def test_td64arr_div_numeric_scalar(self, box_with_timedelta, two, tdser):
         # GH#4521
         # divide/multiply by integers
+        box = box_with_timedelta
+
         expected = Series(['29.5D', '29.5D', 'NaT'], dtype='timedelta64[ns]')
 
         tdser = tm.box_expected(tdser, box)
