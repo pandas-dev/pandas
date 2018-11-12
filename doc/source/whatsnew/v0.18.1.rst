@@ -268,7 +268,7 @@ These changes conform sparse handling to return the correct types and work to ma
 
 ``SparseArray.take`` now returns a scalar for scalar input, ``SparseArray`` for others. Furthermore, it handles a negative indexer with the same rule as ``Index`` (:issue:`10560`, :issue:`12796`)
 
-.. ipython:: python
+.. code-block:: python
 
    s = pd.SparseArray([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
    s.take(0)
