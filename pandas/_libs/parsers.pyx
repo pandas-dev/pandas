@@ -65,8 +65,8 @@ CParserError = ParserError
 
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
-cdef double INF = <double>np.inf
-cdef double NEGINF = -INF
+cdef float64_t INF = <float64_t>np.inf
+cdef float64_t NEGINF = -INF
 
 
 cdef extern from "errno.h":
@@ -182,10 +182,10 @@ cdef extern from "parser/tokenizer.h":
         int64_t skip_first_N_rows
         int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
-        double (*double_converter_nogil)(const char *, char **,
-                                         char, char, char, int) nogil
-        double (*double_converter_withgil)(const char *, char **,
-                                           char, char, char, int)
+        float64_t (*double_converter_nogil)(const char *, char **,
+                                            char, char, char, int) nogil
+        float64_t (*double_converter_withgil)(const char *, char **,
+                                              char, char, char, int)
 
         #  error handling
         char *warn_msg
@@ -233,12 +233,12 @@ cdef extern from "parser/tokenizer.h":
     uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
                            uint64_t uint_max, int *error, char tsep) nogil
 
-    double xstrtod(const char *p, char **q, char decimal, char sci,
-                   char tsep, int skip_trailing) nogil
-    double precise_xstrtod(const char *p, char **q, char decimal, char sci,
-                           char tsep, int skip_trailing) nogil
-    double round_trip(const char *p, char **q, char decimal, char sci,
+    float64_t xstrtod(const char *p, char **q, char decimal, char sci,
                       char tsep, int skip_trailing) nogil
+    float64_t precise_xstrtod(const char *p, char **q, char decimal, char sci,
+                              char tsep, int skip_trailing) nogil
+    float64_t round_trip(const char *p, char **q, char decimal, char sci,
+                         char tsep, int skip_trailing) nogil
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
@@ -1697,8 +1697,8 @@ cdef _try_double(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         char *p_end
-        double *data
-        double NA = na_values[np.float64]
+        float64_t *data
+        float64_t NA = na_values[np.float64]
         kh_float64_t *na_fset
         ndarray result
         khiter_t k
@@ -1706,7 +1706,7 @@ cdef _try_double(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.float64)
-    data = <double *>result.data
+    data = <float64_t *>result.data
     na_fset = kset_float64_from_list(na_flist)
     if parser.double_converter_nogil != NULL:  # if it can run without the GIL
         with nogil:
@@ -1717,8 +1717,8 @@ cdef _try_double(parser_t *parser, int64_t col,
     else:
         assert parser.double_converter_withgil != NULL
         error = _try_double_nogil(parser,
-                                  <double (*)(const char *, char **,
-                                              char, char, char, int)
+                                  <float64_t (*)(const char *, char **,
+                                                 char, char, char, int)
                                   nogil>parser.double_converter_withgil,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
@@ -1730,14 +1730,14 @@ cdef _try_double(parser_t *parser, int64_t col,
 
 
 cdef inline int _try_double_nogil(parser_t *parser,
-                                  double (*double_converter)(
+                                  float64_t (*double_converter)(
                                       const char *, char **, char,
                                       char, char, int) nogil,
                                   int col, int line_start, int line_end,
                                   bint na_filter, kh_str_t *na_hashset,
                                   bint use_na_flist,
                                   const kh_float64_t *na_flist,
-                                  double NA, double *data,
+                                  float64_t NA, float64_t *data,
                                   int *na_count) nogil:
     cdef:
         int error,
