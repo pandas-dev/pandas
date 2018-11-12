@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.compat import (range, lrange, StringIO, lzip, u, product as
-                           cart_product, zip)
+                           cart_product, zip, is_platform_windows)
 import pandas as pd
 import pandas._libs.index as _index
 
@@ -1216,8 +1216,8 @@ Thur,Lunch,Yes,51.51,17"""
 
     @pytest.mark.slow
     def test_unstack_number_of_levels_larger_than_int32(self):
-        if sys.platform == 'win32':
-            # GH 20601
+        # GH 20601
+        if is_platform_windows():
             df = DataFrame(np.random.randn(2 ** 16, 2),
                            index=[np.arange(2 ** 16), np.arange(2 ** 16)])
             with tm.assert_raises_regex(ValueError, 'int32 overflow'):

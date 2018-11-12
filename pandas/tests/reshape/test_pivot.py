@@ -13,7 +13,7 @@ import pandas as pd
 from pandas import (DataFrame, Series, Index, MultiIndex,
                     Grouper, date_range, concat, Categorical)
 from pandas.core.reshape.pivot import pivot_table, crosstab
-from pandas.compat import range, product
+from pandas.compat import range, product, is_platform_windows
 import pandas.util.testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 
@@ -1280,7 +1280,7 @@ class TestPivotTable(object):
     @pytest.mark.slow
     def test_pivot_number_of_levels_larger_than_int32(self):
         # GH 20601
-        if sys.platform == 'win32':
+        if is_platform_windows():
             df = DataFrame({'ind1': np.arange(2 ** 16),
                             'ind2': np.arange(2 ** 16),
                             'count': 0})
