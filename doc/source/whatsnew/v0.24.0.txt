@@ -1335,6 +1335,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` when resampling by a weekly offset (``'W'``) across a DST transition (:issue:`9119`, :issue:`21459`)
 - Bug in :meth:`DataFrame.expanding` in which the ``axis`` argument was not being respected during aggregations (:issue:`23372`)
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` which caused missing values when the input function can accept a :class:`DataFrame` but renames it (:issue:`23455`).
+- Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.nunique` in which the names of column levels were lost (:issue:`23222`).
 
 Reshaping
 ^^^^^^^^^

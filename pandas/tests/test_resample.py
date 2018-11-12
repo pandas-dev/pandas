@@ -1947,6 +1947,14 @@ class TestDatetimeIndex(Base):
         result = df.ID.groupby(pd.Grouper(freq='D')).nunique()
         assert_series_equal(result, expected)
 
+    def test_resample_nunique_preserves_column_level_names(self):
+        # GH 23222
+        df = tm.makeTimeDataFrame(freq='1D').abs()
+        df.columns = pd.MultiIndex.from_arrays([df.columns.tolist()] * 2,
+                                               names=["lev0", "lev1"])
+        result = df.resample("1h").nunique()
+        tm.assert_index_equal(df.columns, result.columns)
+
     def test_resample_nunique_with_date_gap(self):
         # GH 13453
         index = pd.date_range('1-1-2000', '2-15-2000', freq='h')
