@@ -6,9 +6,9 @@ import pytest
 
 from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO
+from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, read_csv, read_table
-import pandas.core.common as com
 import pandas.util.testing as tm
 
 from .c_parser_only import CParserTests
@@ -46,7 +46,7 @@ class BaseParser(CommentTests, CompressionTests,
         raise NotImplementedError
 
     def float_precision_choices(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
