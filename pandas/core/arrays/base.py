@@ -9,7 +9,6 @@ import numpy as np
 
 import operator
 
-from pandas.core.base import StringMixin
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.errors import AbstractMethodError
 from pandas.compat.numpy import function as nv
@@ -20,7 +19,7 @@ from pandas.core.dtypes.common import is_list_like
 _not_implemented_message = "{} does not implement {}."
 
 
-class ExtensionArray(StringMixin):
+class ExtensionArray(object):
     """Abstract base class for custom 1-D array types.
 
     pandas will recognize instances of this class as proper arrays
@@ -50,7 +49,7 @@ class ExtensionArray(StringMixin):
     by overriding:
 
     * _formatter
-    * __unicode__
+    * __repr__
 
     Some methods require casting the ExtensionArray to an ndarray of Python
     objects with ``self.astype(object)``, which may be expensive. When
@@ -658,7 +657,7 @@ class ExtensionArray(StringMixin):
     # ------------------------------------------------------------------------
     # Printing
     # ------------------------------------------------------------------------
-    def __unicode__(self):
+    def __repr__(self):
         from pandas.io.formats.printing import format_object_summary
 
         template = (
@@ -686,10 +685,14 @@ class ExtensionArray(StringMixin):
         Parameters
         ----------
         formatter: GenericArrayFormatter, optional
-            The formatter this array is being rendered with. The formatter
-            may have a `.formatter` method already defined. By default, this
-            will be used if a `formatter` is passed, otherwise the formatter
-            is ``str``.
+            The formatter this array is being rendered with. This will be
+            passed when the ExtensionArray is being rendered inside of a
+            Series, Index, or DataFrame. This will be ``None`` when called
+            from a top-level ``repr(array)``.
+
+            By default, when ``formatter`` is passed, the return value
+            is ``formatter.formatter``. Otherwise, the default formatter
+            is ``repr``.
 
         Returns
         -------
@@ -697,7 +700,7 @@ class ExtensionArray(StringMixin):
             A callable that gets instances of the scalar type and
             returns a string.
         """
-        return getattr(formatter, 'formatter', None) or str
+        return getattr(formatter, 'formatter', None) or repr
 
     def _formatting_values(self):
         # type: () -> np.ndarray
