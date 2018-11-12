@@ -887,11 +887,12 @@ if __name__ == '__main__':
                            'validates all errors (ignored when validating '
                            'a single docstring)')
     argparser.add_argument('--deprecated', default=False, type=bool,
-                           help='boolean variable that determines if this the docstring'
-                           'should be checked or not even the function or method will'
-                           'be deprecated in later version. Default is True, means if the'
-                           'function will be deprecated, the docstring will not be displayed'
-                           'in the output of script')
+                           help='boolean variable that determines if this '
+                           'the docstring should be checked or not even '
+                           'the function or method will be deprecated '
+                           'in later version. Default is True, means if the '
+                           'function will be deprecated, the docstring will '
+                           'not be displayed in the output of script')
 
     args = argparser.parse_args()
     sys.exit(main(args.function, args.prefix,
