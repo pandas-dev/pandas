@@ -37,7 +37,7 @@ def array(data, dtype=None, copy=False):
     Examples
     --------
     If a dtype is not specified, `data` is passed through to
-    :meth:`numpy.array`, and an ndarray is returned.
+    :meth:`numpy.array`, and an ``ndarray`` is returned.
 
     >>> pd.array([1, 2])
     array([1, 2])
@@ -59,6 +59,19 @@ def array(data, dtype=None, copy=False):
     ...          dtype=pd.CategoricalDtype(['a', 'b', 'c'], ordered=True))
     [a, b, a]
     Categories (3, object): [a < b < c]
+
+    Because omitting the `dtype` passes the data through to NumPy,
+    a mixture of valid integers and NA will return a floating-point
+    NumPy array.
+
+    >>> pd.array([1, 2, np.nan])
+    array([ 1.,  2., nan])
+
+    To use pandas' nullable :class:`pandas.arrays.IntegerArray`, specify
+    the dtype:
+
+    >>> pd.array([1, 2, np.nan], dtype='Int64')
+    IntegerArray([1, 2, nan], dtype='Int64')
     """
     from pandas.core.arrays import period_array
 
@@ -66,7 +79,7 @@ def array(data, dtype=None, copy=False):
         data = data._values
 
     # this returns None for not-found dtypes.
-    dtype = registry.find(dtype) or dtype
+    dtype = dtype or registry.find(dtype)
 
     if is_extension_array_dtype(dtype):
         cls = dtype.construct_array_type()

@@ -824,7 +824,8 @@ Interval
 :class:`IntervalArray` is an array for storing data representing intervals.
 The scalar type is a :class:`Interval`. These may be stored in a :class:`Series`
 or as a :class:`IntervalIndex`. :class:`IntervalArray` can be closed on the
-left, right, or both, or neither sides.
+``'left'``, ``'right'``, or ``'both'``, or ``'neither'`` sides.
+See :ref:`indexing.intervallindex` for more.
 
 .. currentmodule:: pandas
 
@@ -838,6 +839,10 @@ left, right, or both, or neither sides.
 Period
 ~~~~~~
 
+Periods represent a span of time (e.g. the year 2000, or the hour from 11:00 to 12:00
+on January 1st, 2000). A collection of :class:`Period` objects with a common frequency
+can be collected in a :class:`PeriodArray`. See :ref:`timeseries.periods` for more.
+
 .. autosummary::
    :toctree: generated/
 
@@ -845,6 +850,10 @@ Period
 
 Sparse
 ~~~~~~
+
+Sparse data may be stored and operated on more efficiently when there is a single value
+that's often repeated. :class:`SparseArray` is a container for this type of data.
+See :ref:`sparse` for more.
 
 .. _api.arrays.sparse:
 

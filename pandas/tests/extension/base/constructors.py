@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.core.dtypes.dtypes import registry
+
 import pandas as pd
 from pandas.core.internals import ExtensionBlock
 
@@ -55,3 +57,12 @@ class BaseConstructorsTests(BaseExtensionTests):
 
         result = pd.Series(list(data), dtype=str(dtype))
         self.assert_series_equal(result, expected)
+
+    def test_pandas_array(self, data):
+        if registry.find(data.dtype) is not None:
+            # they've registered, so pd.array should work.
+            result = pd.array(data, dtype=data.dtype)
+            expected = type(data)._from_sequence(data, dtype=data.dtype)
+            self.assert_extension_array_equal(result, expected)
+        else:
+            raise pytest.skip("dtype not registered.")
