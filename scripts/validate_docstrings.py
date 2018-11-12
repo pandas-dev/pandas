@@ -777,7 +777,7 @@ def validate_all(prefix):
     return result
 
 
-def main(func_name, prefix, errors, output_format):
+def main(func_name, prefix, errors, output_format, skip_deprecated):
     def header(title, width=80, char='#'):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
@@ -827,6 +827,10 @@ def main(func_name, prefix, errors, output_format):
         sys.stdout.write(output)
 
     else:
+        doc = Docstring(func_name)
+        if skip_deprecated and doc.deprecated:
+            return exit_status
+
         result = validate_one(func_name)
         sys.stderr.write(header('Docstring ({})'.format(func_name)))
         sys.stderr.write('{}\n'.format(result['docstring']))
@@ -882,8 +886,15 @@ if __name__ == '__main__':
                            'list of error codes to validate. By default it '
                            'validates all errors (ignored when validating '
                            'a single docstring)')
+    argparser.add_argument('--deprecated', default=False, type=bool,
+                           help='boolean variable that determines if this the docstring'
+                           'should be checked or not even the function or method will'
+                           'be deprecated in later version. Default is True, means if the'
+                           'function will be deprecated, the docstring will not be displayed'
+                           'in the output of script')
 
     args = argparser.parse_args()
     sys.exit(main(args.function, args.prefix,
                   args.errors.split(',') if args.errors else None,
-                  args.format))
+                  args.format,
+                  args.deprecated))

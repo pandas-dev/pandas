@@ -981,3 +981,19 @@ class TestMainFunction(object):
                                                errors=['ER03'],
                                                output_format='default')
         assert exit_status == 1
+
+    def test_exit_status_for_deprecated_function(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_one', lambda func_name: {
+                'docstring': 'pandas.Panel.name',
+                'errors': [('ER01', 'err desc'),
+                           ('ER02', 'err desc'),
+                           ('ER03', 'err desc')],
+                'warnings': [],
+                'examples_errors': ''})
+        exit_status = validate_docstrings.main(func_name='docstring1',
+                                               prefix=None,
+                                               errors=[],
+                                               output_format='default',
+                                               deprecated=True)
+        assert exit_status == 0
