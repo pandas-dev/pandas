@@ -832,7 +832,14 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
-        new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
+        if self.tz is None:
+            not_null = self.notnull()
+            DAY_NS = 86400000000000
+            new_values = self.asi8.copy()
+            adjustment = (new_values[not_null] % DAY_NS)
+            new_values[not_null] = new_values[not_null] - adjustment
+        else:
+            new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
         return type(self)(new_values, freq='infer').tz_localize(self.tz)
 
     def to_period(self, freq=None):
