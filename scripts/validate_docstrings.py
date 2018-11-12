@@ -603,14 +603,14 @@ def validate_one(func_name):
                            if section not in ALLOWED_SECTIONS]
     for section in unexpected_sections:
         errs.append(error('GL06',
-                            section=section,
-                            allowed_sections=', '.join(ALLOWED_SECTIONS)))
+                          section=section,
+                          allowed_sections=', '.join(ALLOWED_SECTIONS)))
 
     correct_order = [section for section in ALLOWED_SECTIONS
                      if section in doc.section_titles]
     if correct_order != doc.section_titles:
         errs.append(error('GL07',
-                            correct_sections=', '.join(correct_order)))
+                          correct_sections=', '.join(correct_order)))
 
     if not doc.summary:
         errs.append(error('SS01'))
