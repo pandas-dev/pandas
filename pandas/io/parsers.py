@@ -53,7 +53,9 @@ from pandas.io.date_converters import generic_parser
 # so we need to remove it if we see it.
 _BOM = u('\ufeff')
 
-_parser_params = r"""Also supports optionally iterating or breaking of the file
+_parser_params = r"""{summary}
+
+Also supports optionally iterating or breaking of the file
 into chunks.
 
 Additional help can be found in the `online docs for IO Tools
@@ -71,7 +73,7 @@ filepath_or_buffer : str, path object, or file-like object
 
     By file-like object, we refer to objects with a ``read()`` method, such as
     a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
-%s
+{sep_doc}
 header : int or list of ints, default 'infer'
     Row number(s) to use as the column names, and the start of the
     data.  Default behavior is to infer the column names: if no names
@@ -122,12 +124,12 @@ mangle_dupe_cols : bool, default True
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
 dtype : Type name or dict of column -> type, default None
-    Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
+    Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
     Use `str` or `object` together with suitable `na_values` settings
     to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
-%s
+{engine_doc}
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels.
@@ -185,8 +187,8 @@ default False
       each as a separate date column.
     * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
       a single date column.
-    * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result
-      'foo'
+    * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+      result 'foo'
 
     If a column or index contains an unparseable date, the entire column or
     index will be returned unaltered as an object data type. For non-standard
@@ -221,7 +223,7 @@ chunksize : int, default None
     See the `IO Tools docs
     <http://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
-compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
+compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and
     `filepath_or_buffer` is path-like, then detect compression from the
     following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
@@ -309,15 +311,32 @@ float_precision : str, optional
 Returns
 -------
 DataFrame or TextParser
+    A comma-separated values (csv) file is returned as two-dimensional
+    data structure with labeled axes.
 
 See Also
 --------
 to_csv : Write DataFrame to a comma-separated values (csv) file.
-%s
+read_csv : Read a comma-separated values (csv) file into DataFrame.
+read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
 Examples
 --------
-%s # doctest: +SKI"""
+>>> pd.{func_name}('data.csv')  # doctest: +SKIP
+"""
+
+# Summary line for read_csv,read_table and read_fwf
+_summary_read_csv = """
+Read a comma-separated values (csv) file into DataFrame."""
+
+_summary_read_table = """
+Read general delimited file into DataFrame.
+
+.. deprecated:: 0.24.0
+   Use :func:`pandas.read_csv` instead, passing ``sep='\t'`` if necessary."""
+
+_summary_read_fwf = """
+Read a table of fixed-width formatted lines into DataFrame."""
 
 # engine is not used in read_fwf() so is factored out of the shared docstring
 _engine_doc = """engine : {'c', 'python'}, optional
@@ -335,34 +354,24 @@ _sep_doc = r"""sep : str, default {default}
 delimiter : str, default ``None``
     Alias for sep.
     """
+# _read_csv_doc = """
+# Read a comma-separated values (csv) file into DataFrame.
 
-_see_also_csv_doc = ('read_csv : Read a comma-separated values '
-                     '(csv) file into DataFrame.')
+# %s
+# """ % (_parser_params % (_sep_doc.format(default="','"),
+#                          _engine_doc,
+#                          _example_doc.format(_api='read_csv')))
+_read_csv_doc = (_parser_params
+                 .format(summary=_summary_read_csv,
+                         sep_doc=_sep_doc.format(default="','"),
+                         engine_doc=_engine_doc,
+                         func_name='read_csv'))
 
-_see_also_fwf_doc = ('read_fwf : Read a table of '
-                     'fixed-width formatted lines into DataFrame.')
-
-_example_doc = "pd.{_api}('/tmp/data.csv')"
-
-_read_csv_doc = """
-Read a comma-separated values (csv) file into DataFrame.
-
-%s
-""" % (_parser_params % (_sep_doc.format(default="','"),
-                         _engine_doc, _see_also_fwf_doc,
-                         _example_doc.format(_api='read_csv')))
-
-_read_table_doc = """
-Read general delimited file into DataFrame.
-
-.. deprecated:: 0.24.0
-   Use :func:`pandas.read_csv` instead, passing ``sep='\t'`` if necessary.
-
-%s
-""" % (_parser_params % (_sep_doc.format(default="\\t (tab-stop)"),
-                         _engine_doc,
-                         '{}\n{}'.format(_see_also_csv_doc, _see_also_fwf_doc),
-                         _example_doc.format(_api='read_table')))
+_read_table_doc = (_parser_params
+                   .format(summary=_summary_read_table,
+                           sep_doc=_sep_doc.format(default="\\t (tab-stop)"),
+                           engine_doc=_engine_doc,
+                           func_name='read_table'))
 
 _fwf_widths = """\
 colspecs : list of pairs (int, int) or 'infer'. optional
@@ -380,13 +389,11 @@ delimiter : str, default ``'\t' + ' '``
     if it is not spaces (e.g., '~').
 """
 
-_read_fwf_doc = """
-Read a table of fixed-width formatted lines into DataFrame.
-
-%s
-""" % (_parser_params % (_fwf_widths, '',
-                         _see_also_csv_doc,
-                         _example_doc.format(_api='read_fwf')))
+_read_fwf_doc = (_parser_params
+                 .format(summary=_summary_read_fwf,
+                         sep_doc='',
+                         engine_doc='',
+                         func_name='read_fwf'))
 
 
 def _validate_integer(name, val, min_val=0):
