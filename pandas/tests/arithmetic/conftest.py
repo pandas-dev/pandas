@@ -158,19 +158,18 @@ def box_df_fail(request):
     return request.param
 
 
-@pytest.fixture(params=[
-    pd.Index,
-    pd.Series,
-    pytest.param(pd.DataFrame,
-                 marks=pytest.mark.xfail(reason="Tries to broadcast "
-                                                "incorrectly",
-                                         strict=True, raises=ValueError))
-], ids=lambda x: x.__name__)
-def box_df_broadcast_failure(request):
+@pytest.fixture(params=[(pd.Index, False),
+                        (pd.Series, False),
+                        (pd.DataFrame, False),
+                        pytest.param((pd.DataFrame, True),
+                                     marks=pytest.mark.xfail(strict=True))],
+                ids=lambda x: x[0].__name__ + '-' + str(x[1]))
+def box_transpose_fail(request):
     """
-    Fixture equivalent to `box` but with the common failing case where
-    the DataFrame operation tries to broadcast incorrectly.
+    Fixture similar to `box` but testing both transpose cases for DataFrame,
+    with the tranpose=True case xfailed.
     """
+    # GH#23620
     return request.param
 
 

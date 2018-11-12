@@ -1587,7 +1587,7 @@ def assert_equal(left, right, **kwargs):
         raise NotImplementedError(type(left))
 
 
-def box_expected(expected, box_cls):
+def box_expected(expected, box_cls, transpose=True):
     """
     Helper function to wrap the expected output of a test in a given box_class.
 
@@ -1606,6 +1606,11 @@ def box_expected(expected, box_cls):
         expected = pd.Series(expected)
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
+        if transpose:
+            # for vector operations, we we need a DataFrame to be a single-row,
+            #  not a single-column, in order to operate against non-DataFrame
+            #  vectors of the same length.
+            expected = expected.T
     elif box_cls is PeriodArray:
         # the PeriodArray constructor is not as flexible as period_array
         expected = period_array(expected)
