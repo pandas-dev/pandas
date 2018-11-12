@@ -53,7 +53,8 @@ from pandas.io.date_converters import generic_parser
 # so we need to remove it if we see it.
 _BOM = u('\ufeff')
 
-_parser_params = r"""{summary}
+_parser_params = r"""
+{summary}
 
 Also supports optionally iterating or breaking of the file
 into chunks.
@@ -325,19 +326,6 @@ Examples
 >>> pd.{func_name}('data.csv')  # doctest: +SKIP
 """
 
-# Summary line for read_csv,read_table and read_fwf
-_summary_read_csv = """
-Read a comma-separated values (csv) file into DataFrame."""
-
-_summary_read_table = """
-Read general delimited file into DataFrame.
-
-.. deprecated:: 0.24.0
-   Use :func:`pandas.read_csv` instead, passing ``sep='\t'`` if necessary."""
-
-_summary_read_fwf = """
-Read a table of fixed-width formatted lines into DataFrame."""
-
 # engine is not used in read_fwf() so is factored out of the shared docstring
 _engine_doc = """engine : {'c', 'python'}, optional
     Parser engine to use. The C engine is faster while the python engine is
@@ -355,18 +343,6 @@ delimiter : str, default ``None``
     Alias for sep.
     """
 
-_read_csv_doc = (_parser_params
-                 .format(summary=_summary_read_csv,
-                         sep_doc=_sep_doc.format(default="','"),
-                         engine_doc=_engine_doc,
-                         func_name='read_csv'))
-
-_read_table_doc = (_parser_params
-                   .format(summary=_summary_read_table,
-                           sep_doc=_sep_doc.format(default="\\t (tab-stop)"),
-                           engine_doc=_engine_doc,
-                           func_name='read_table'))
-
 _fwf_widths = """\
 colspecs : list of pairs (int, int) or 'infer'. optional
     A list of pairs (tuples) giving the extents of the fixed-width
@@ -382,12 +358,6 @@ delimiter : str, default ``'\t' + ' '``
     Can be used to specify the filler character of the fields
     if it is not spaces (e.g., '~').
 """
-
-_read_fwf_doc = (_parser_params
-                 .format(summary=_summary_read_fwf,
-                         sep_doc='',
-                         engine_doc='',
-                         func_name='read_fwf'))
 
 
 def _validate_integer(name, val, min_val=0):
@@ -734,13 +704,32 @@ def _make_parser_function(name, default_sep=','):
 
 
 read_csv = _make_parser_function('read_csv', default_sep=',')
-read_csv = Appender(_read_csv_doc)(read_csv)
+read_csv = Appender(_parser_params.format(
+                    func_name='read_csv',
+                    summary=('Read a comma-separated values (csv) file '
+                             'into DataFrame.'),
+                    sep_doc=_sep_doc.format(default="','"),
+                    engine_doc=_engine_doc)
+                    )(read_csv)
 
 read_table = _make_parser_function('read_table', default_sep='\t')
-read_table = Appender(_read_table_doc)(read_table)
+read_table = Appender(_parser_params.format(
+                      func_name='read_table',
+                      summary="""Read general delimited file into DataFrame.
+
+.. deprecated:: 0.24.0
+Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
+                      sep_doc=_sep_doc.format(default="\\t (tab-stop)"),
+                      engine_doc=_engine_doc)
+                      )(read_table)
 
 
-@Appender(_read_fwf_doc)
+@Appender(_parser_params.format(
+          func_name='read_fwf',
+          summary=('Read a table of fixed-width formatted lines '
+                   'into DataFrame.'),
+          sep_doc='',
+          engine_doc=''))
 def read_fwf(filepath_or_buffer, colspecs='infer', widths=None, **kwds):
     # Check input arguments.
     if colspecs is None and widths is None:
