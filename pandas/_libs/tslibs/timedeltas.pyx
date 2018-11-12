@@ -1113,7 +1113,7 @@ class Timedelta(_Timedelta):
     value : Timedelta, timedelta, np.timedelta64, string, or integer
     unit : str, optional
         Denote the unit of the input, if input is an integer. Default 'ns'.
-        Possible values: 
+        Possible values:
         {'Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
         'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds', 'sec', 'second',
         'ms', 'milliseconds', 'millisecond', 'milli', 'millis', 'L',
