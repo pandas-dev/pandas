@@ -318,13 +318,13 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 
    .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....), :]
+      df.loc[(slice('A1', 'A3'), ...), :]             # noqa: E999
 
    You should **not** do this:
  
    .. code-block:: python
 
-      df.loc[(slice('A1','A3'),.....)]
+      df.loc[(slice('A1', 'A3'), ...)]                # noqa: E999
 
 .. ipython:: python
 
@@ -502,6 +502,47 @@ method, allowing you to permute the hierarchical index levels in one step:
 .. ipython:: python
 
    df[:5].reorder_levels([1,0], axis=0)
+
+.. _advanced.index_names:
+
+Renaming names of an ``Index`` or ``MultiIndex``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :meth:`~DataFrame.rename` method is used to rename the labels of a
+``MultiIndex``, and is typically used to rename the columns of a ``DataFrame``.
+The ``columns`` argument of ``rename`` allows a dictionary to be specified
+that includes only the columns you wish to rename.
+
+.. ipython:: python
+
+   df.rename(columns={0: "col0", 1: "col1"})
+
+This method can also be used to rename specific labels of the main index
+of the ``DataFrame``.
+
+.. ipython:: python
+
+   df.rename(index={"one" : "two", "y" : "z"})
+
+The :meth:`~DataFrame.rename_axis` method is used to rename the name of a
+``Index`` or ``MultiIndex``. In particular, the names of the levels of a
+``MultiIndex`` can be specified, which is useful if ``reset_index()`` is later
+used to move the values from the ``MultiIndex`` to a column.
+
+.. ipython:: python
+
+   df.rename_axis(index=['abc', 'def'])
+
+Note that the columns of a ``DataFrame`` are an index, so that using
+``rename_axis`` with the ``columns`` argument will change the name of that
+index.
+
+.. ipython:: python
+
+   df.rename_axis(columns="Cols").columns
+
+Both ``rename`` and ``rename_axis`` support specifying a dictionary,
+``Series`` or a mapping function to map labels/names to new values.
 
 Sorting a ``MultiIndex``
 ------------------------
@@ -738,7 +779,7 @@ values **not** in the categories, similarly to how you can reindex **any** panda
    Reshaping and Comparison operations on a ``CategoricalIndex`` must have the same categories
    or a ``TypeError`` will be raised.
 
-   .. code-block:: python
+   .. code-block:: ipython
 
       In [9]: df3 = pd.DataFrame({'A' : np.arange(6),
                                   'B' : pd.Series(list('aabbca')).astype('category')})
@@ -1030,7 +1071,7 @@ On the other hand, if the index is not monotonic, then both slice bounds must be
     # OK because 2 and 4 are in the index
     df.loc[2:4, :]
 
-.. code-block:: python
+.. code-block:: ipython
 
     # 0 is not in the index
     In [9]: df.loc[0:4, :]

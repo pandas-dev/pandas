@@ -7,10 +7,10 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
 import pandas as pd
+from pandas import DatetimeIndex, Timestamp, date_range
+import pandas.util.testing as tm
 
-from pandas import date_range, Timestamp, DatetimeIndex
 from pandas.tseries.frequencies import to_offset
 
 
@@ -97,14 +97,16 @@ class TestDatetimeIndexOps(object):
         assert elt.round(freq='H') == expected_elt
 
         msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             rng.round(freq='foo')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             elt.round(freq='foo')
 
         msg = "<MonthEnd> is a non-fixed frequency"
-        tm.assert_raises_regex(ValueError, msg, rng.round, freq='M')
-        tm.assert_raises_regex(ValueError, msg, elt.round, freq='M')
+        with pytest.raises(ValueError, match=msg):
+            rng.round(freq='M')
+        with pytest.raises(ValueError, match=msg):
+            elt.round(freq='M')
 
         # GH#14440 & GH#15578
         index = DatetimeIndex(['2016-10-17 12:00:00.0015'], tz=tz)

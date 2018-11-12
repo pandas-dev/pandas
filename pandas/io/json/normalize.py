@@ -1,12 +1,14 @@
 # ---------------------------------------------------------------------
 # JSON normalization routines
 
-import copy
 from collections import defaultdict
+import copy
+
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas import compat, DataFrame
+
+from pandas import DataFrame, compat
 
 
 def _convert_to_line_delimits(s):
@@ -108,10 +110,10 @@ def json_normalize(data, record_path=None, meta=None,
         assumed to be an array of records
     meta : list of paths (string or list of strings), default None
         Fields to use as metadata for each record in resulting table
+    meta_prefix : string, default None
     record_prefix : string, default None
         If True, prefix records with dotted (?) path, e.g. foo.bar.field if
         path to records is ['foo', 'bar']
-    meta_prefix : string, default None
     errors : {'raise', 'ignore'}, default 'raise'
 
         * 'ignore' : will ignore KeyError if keys listed in meta are not
@@ -250,11 +252,10 @@ def json_normalize(data, record_path=None, meta=None,
                             if errors == 'ignore':
                                 meta_val = np.nan
                             else:
-                                raise \
-                                    KeyError("Try running with "
-                                             "errors='ignore' as key "
-                                             "{err} is not always present"
-                                             .format(err=e))
+                                raise KeyError("Try running with "
+                                               "errors='ignore' as key "
+                                               "{err} is not always present"
+                                               .format(err=e))
                     meta_vals[key].append(meta_val)
 
                 records.extend(recs)

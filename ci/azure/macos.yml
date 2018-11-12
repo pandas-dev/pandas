@@ -9,8 +9,8 @@ jobs:
   strategy:
     maxParallel: 11
     matrix:
-      py35_np_110:
-        ENV_FILE: ci/azure-macos-35.yml
+      py35_np_120:
+        ENV_FILE: ci/deps/azure-macos-35.yaml
         CONDA_PY: "35"
         CONDA_ENV: pandas
         TEST_ARGS: "--skip-slow --skip-network"
@@ -39,5 +39,30 @@ jobs:
         source activate pandas && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
     - task: PublishTestResults@2
       inputs:
-        testResultsFiles: '/tmp/*.xml'
+        testResultsFiles: 'test-data-*.xml'
         testRunTitle: 'MacOS-35'
+    - powershell: |
+        $junitXml = "test-data-single.xml"
+        $(Get-Content $junitXml | Out-String) -match 'failures="(.*?)"'
+        if ($matches[1] -eq 0)
+        {
+          Write-Host "No test failures in test-data-single"
+        }
+        else
+        {
+          # note that this will produce $LASTEXITCODE=1
+          Write-Error "$($matches[1]) tests failed"
+        }
+
+        $junitXmlMulti = "test-data-multiple.xml"
+        $(Get-Content $junitXmlMulti | Out-String) -match 'failures="(.*?)"'
+        if ($matches[1] -eq 0)
+        {
+          Write-Host "No test failures in test-data-multi"
+        }
+        else
+        {
+          # note that this will produce $LASTEXITCODE=1
+          Write-Error "$($matches[1]) tests failed"
+        }
+      displayName: Check for test failures

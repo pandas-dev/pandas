@@ -5,8 +5,10 @@ import cython
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, float64_t, int32_t,
-                    int64_t, uint8_t, uint64_t, intp_t,
+from numpy cimport (ndarray, intp_t,
+                    float64_t, float32_t,
+                    int64_t, int32_t, int16_t, int8_t,
+                    uint64_t, uint32_t, uint16_t, uint8_t,
                     # Note: NPY_DATETIME, NPY_TIMEDELTA are only available
                     # for cimport in cython>=0.27.3
                     NPY_DATETIME, NPY_TIMEDELTA)
@@ -23,7 +25,7 @@ from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
-cdef int64_t iNaT = util.get_nat()
+cdef int64_t NPY_NAT = util.get_nat()
 
 
 cdef inline bint is_definitely_invalid_key(object val):
@@ -518,7 +520,7 @@ cpdef convert_scalar(ndarray arr, object value):
         elif isinstance(value, (datetime, np.datetime64, date)):
             return Timestamp(value).value
         elif value is None or value != value:
-            return iNaT
+            return NPY_NAT
         elif util.is_string_object(value):
             return Timestamp(value).value
         raise ValueError("cannot set a Timestamp with a non-timestamp")
@@ -529,7 +531,7 @@ cpdef convert_scalar(ndarray arr, object value):
         elif isinstance(value, timedelta):
             return Timedelta(value).value
         elif value is None or value != value:
-            return iNaT
+            return NPY_NAT
         elif util.is_string_object(value):
             return Timedelta(value).value
         raise ValueError("cannot set a Timedelta with a non-timedelta")

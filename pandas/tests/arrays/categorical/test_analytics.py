@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import sys
 
 import numpy as np
-
-import pandas.util.testing as tm
-from pandas import Categorical, Index, Series
+import pytest
 
 from pandas.compat import PYPY
+
+from pandas import Categorical, Index, Series
+import pandas.util.testing as tm
 
 
 class TestCategoricalAnalytics(object):
@@ -305,7 +305,8 @@ class TestCategoricalAnalytics(object):
         tm.assert_categorical_equal(np.repeat(cat, 2), exp)
 
         msg = "the 'axis' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.repeat, cat, 2, axis=1)
+        with pytest.raises(ValueError, match=msg):
+            np.repeat(cat, 2, axis=1)
 
     def test_isna(self):
         exp = np.array([False, False, True])

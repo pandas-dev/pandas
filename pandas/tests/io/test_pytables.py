@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import is_categorical_dtype
 tables = pytest.importorskip('tables')
 from pandas.io import pytables as pytables  # noqa:E402
 from pandas.io.pytables import (TableIterator,  # noqa:E402
-                                HDFStore, get_store, Term, read_hdf,
+                                HDFStore, Term, read_hdf,
                                 PossibleDataLossError, ClosedFileError)
 
 
@@ -145,32 +145,6 @@ class Base(object):
 @pytest.mark.single
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
-
-    def test_factory_fun(self):
-        path = create_tempfile(self.path)
-        try:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                with get_store(path) as tbl:
-                    raise ValueError('blah')
-        except ValueError:
-            pass
-        finally:
-            safe_remove(path)
-
-        try:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                with get_store(path) as tbl:
-                    tbl['a'] = tm.makeDataFrame()
-
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                with get_store(path) as tbl:
-                    assert len(tbl) == 1
-                    assert type(tbl['a']) == DataFrame
-        finally:
-            safe_remove(self.path)
 
     def test_context(self):
         path = create_tempfile(self.path)
@@ -1110,9 +1084,7 @@ class TestHDFStore(Base):
     def test_latin_encoding(self):
 
         if compat.PY2:
-            tm.assert_raises_regex(
-                TypeError, r'\[unicode\] is not implemented as a table column')
-            return
+            pytest.skip("[unicode] is not implemented as a table column")
 
         values = [[b'E\xc9, 17', b'', b'a', b'b', b'c'],
                   [b'E\xc9, 17', b'a', b'b', b'c'],
@@ -1371,8 +1343,8 @@ class TestHDFStore(Base):
             with catch_warnings(record=True):
                 simplefilter("ignore", FutureWarning)
                 wp = tm.makePanel()
-                wp2 = wp.rename_axis(
-                    {x: "%s_extra" % x for x in wp.minor_axis}, axis=2)
+                wp2 = wp.rename(
+                    minor_axis={x: "%s_extra" % x for x in wp.minor_axis})
 
                 def check_col(key, name, size):
                     assert getattr(store.get_storer(key)
@@ -1507,6 +1479,16 @@ class TestHDFStore(Base):
             _maybe_remove(store, 'df')
             pytest.raises(ValueError, store.append, 'df',
                           df, min_itemsize={'foo': 20, 'foobar': 20})
+
+    def test_append_with_empty_string(self):
+
+        with ensure_clean_store(self.path) as store:
+
+            # with all empty strings (GH 12242)
+            df = DataFrame({'x': ['a', 'b', 'c', 'd', 'e', 'f', '']})
+            store.append('df', df[:-1], min_itemsize={'x': 1})
+            store.append('df', df[-1:], min_itemsize={'x': 1})
+            tm.assert_frame_equal(store.select('df'), df)
 
     def test_to_hdf_with_min_itemsize(self):
 
@@ -2182,14 +2164,14 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
 
-            l = [('date', datetime.date(2001, 1, 2))]
+            dtypes = [('date', datetime.date(2001, 1, 2))]
 
             # py3 ok for unicode
             if not compat.PY3:
-                l.append(('unicode', u('\\u03c3')))
+                dtypes.append(('unicode', u('\\u03c3')))
 
             # currently not supported dtypes ####
-            for n, f in l:
+            for n, f in dtypes:
                 df = tm.makeDataFrame()
                 df[n] = f
                 pytest.raises(
@@ -2614,8 +2596,8 @@ class TestHDFStore(Base):
                 for t in terms:
                     store.select('wp', t)
 
-                with tm.assert_raises_regex(
-                        TypeError, 'Only named functions are supported'):
+                with pytest.raises(TypeError,
+                                   match='Only named functions are supported'):
                     store.select(
                         'wp',
                         'major_axis == (lambda x: x)("20130101")')
@@ -2626,9 +2608,8 @@ class TestHDFStore(Base):
                 expected = Panel({-1: wpneg[-1]})
                 tm.assert_panel_equal(res, expected)
 
-                with tm.assert_raises_regex(NotImplementedError,
-                                            'Unary addition '
-                                            'not supported'):
+                msg = 'Unary addition not supported'
+                with pytest.raises(NotImplementedError, match=msg):
                     store.select('wpneg', 'items == +1')
 
     def test_term_compat(self):
@@ -4536,9 +4517,8 @@ class TestHDFStore(Base):
             pytest.raises(ClosedFileError, store.get_storer, 'df2')
             pytest.raises(ClosedFileError, store.remove, 'df2')
 
-            def f():
+            with pytest.raises(ClosedFileError, match='file is not open'):
                 store.select('df')
-            tm.assert_raises_regex(ClosedFileError, 'file is not open', f)
 
     def test_pytables_native_read(self, datapath):
         with ensure_clean_store(
@@ -4987,9 +4967,8 @@ class TestHDFStore(Base):
             df = DataFrame(np.random.randn(10, 2), columns=index(2))
             with ensure_clean_path(self.path) as path:
                 with catch_warnings(record=True):
-                    with tm.assert_raises_regex(
-                        ValueError, ("cannot have non-object label "
-                                     "DataIndexableCol")):
+                    msg = "cannot have non-object label DataIndexableCol"
+                    with pytest.raises(ValueError, match=msg):
                         df.to_hdf(path, 'df', format='table',
                                   data_columns=True)
 
@@ -5171,14 +5150,14 @@ class TestHDFStore(Base):
                           pd.Timedelta(1, 's')]:
                     query = 'date {op} v'.format(op=op)
                     with pytest.raises(TypeError):
-                        result = store.select('test', where=query)
+                        store.select('test', where=query)
 
                 # strings to other columns must be convertible to type
                 v = 'a'
                 for col in ['int', 'float', 'real_date']:
                     query = '{col} {op} v'.format(op=op, col=col)
                     with pytest.raises(ValueError):
-                        result = store.select('test', where=query)
+                        store.select('test', where=query)
 
                 for v, col in zip(['1', '1.1', '2014-01-01'],
                                   ['int', 'float', 'real_date']):

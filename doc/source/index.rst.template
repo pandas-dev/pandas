@@ -14,15 +14,15 @@ pandas: powerful Python data analysis toolkit
 
 **Binary Installers:** https://pypi.org/project/pandas
 
-**Source Repository:** http://github.com/pandas-dev/pandas
+**Source Repository:** https://github.com/pandas-dev/pandas
 
 **Issues & Ideas:** https://github.com/pandas-dev/pandas/issues
 
-**Q&A Support:** http://stackoverflow.com/questions/tagged/pandas
+**Q&A Support:** https://stackoverflow.com/questions/tagged/pandas
 
-**Developer Mailing List:** http://groups.google.com/group/pydata
+**Developer Mailing List:** https://groups.google.com/forum/#!forum/pydata
 
-**pandas** is a `Python <http://www.python.org>`__ package providing fast,
+**pandas** is a `Python <https://www.python.org>`__ package providing fast,
 flexible, and expressive data structures designed to make working with
 "relational" or "labeled" data both easy and intuitive. It aims to be the
 fundamental high-level building block for doing practical, **real world** data
@@ -45,7 +45,7 @@ and :class:`DataFrame` (2-dimensional), handle the vast majority of typical use
 cases in finance, statistics, social science, and many areas of
 engineering. For R users, :class:`DataFrame` provides everything that R's
 ``data.frame`` provides and much more. pandas is built on top of `NumPy
-<http://www.numpy.org>`__ and is intended to integrate well within a scientific
+<https://www.numpy.org>`__ and is intended to integrate well within a scientific
 computing environment with many other 3rd party libraries.
 
 Here are just a few of the things that pandas does well:
@@ -86,13 +86,13 @@ is the ideal tool for all of these tasks.
 Some other notes
 
  - pandas is **fast**. Many of the low-level algorithmic bits have been
-   extensively tweaked in `Cython <http://cython.org>`__ code. However, as with
+   extensively tweaked in `Cython <https://cython.org>`__ code. However, as with
    anything else generalization usually sacrifices performance. So if you focus
    on one feature for your application you may be able to create a faster
    specialized tool.
 
  - pandas is a dependency of `statsmodels
-   <http://www.statsmodels.org/stable/index.html>`__, making it an important part of the
+   <https://www.statsmodels.org/stable/index.html>`__, making it an important part of the
    statistical computing ecosystem in Python.
 
  - pandas has been used extensively in production in financial applications.
@@ -101,7 +101,7 @@ Some other notes
 
    This documentation assumes general familiarity with NumPy. If you haven't
    used NumPy much or at all, do invest some time in `learning about NumPy
-   <http://docs.scipy.org>`__ first.
+   <https://docs.scipy.org>`__ first.
 
 See the package overview for more detail about what's in the library.
 

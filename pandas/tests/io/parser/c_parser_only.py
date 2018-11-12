@@ -7,18 +7,20 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
+from io import TextIOWrapper
 import os
 import sys
 import tarfile
 
-import pytest
 import numpy as np
+import pytest
+
+from pandas.compat import PY3, BytesIO, StringIO, lrange, range
+import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 from pandas import DataFrame
-from pandas.compat import StringIO, range, lrange
+import pandas.util.testing as tm
 
 
 class CParserTests(object):
@@ -33,9 +35,8 @@ class CParserTests(object):
         # see gh-9205: test certain malformed input files that cause
         # buffer overflows in tokenizer.c
         cperr = 'Buffer overflow caught - possible malformed input file.'
-        with pytest.raises(pd.errors.ParserError) as excinfo:
+        with pytest.raises(pd.errors.ParserError, match=cperr):
             self.read_table(StringIO(malf))
-        assert cperr in str(excinfo.value)
 
     def test_buffer_rd_bytes(self):
         # see gh-12098: src->buffer in the C parser can be freed twice leading
@@ -98,7 +99,7 @@ nan 2
 3.0 3
 """
         # fallback casting, but not castable
-        with tm.assert_raises_regex(ValueError, 'cannot safely convert'):
+        with pytest.raises(ValueError, match='cannot safely convert'):
             self.read_csv(StringIO(data), sep=r'\s+', header=None,
                           names=['a', 'b'], dtype={'a': np.int32})
 
@@ -453,6 +454,14 @@ No,No,No"""
         result = self.read_csv(NoNextBuffer(data))
 
         tm.assert_frame_equal(result, expected)
+
+    def test_buffer_rd_bytes_bad_unicode(self):
+        # see gh-22748
+        t = BytesIO(b"\xB0")
+        if PY3:
+            t = TextIOWrapper(t, encoding='ascii', errors='surrogateescape')
+        with pytest.raises(UnicodeError):
+            self.read_csv(t, encoding='UTF-8')
 
     @pytest.mark.parametrize("tar_suffix", [".tar", ".tar.gz"])
     def test_read_tarfile(self, tar_suffix):

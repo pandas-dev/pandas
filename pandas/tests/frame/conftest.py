@@ -18,6 +18,20 @@ def float_frame():
 
 
 @pytest.fixture
+def float_frame_with_na():
+    """
+    Fixture for DataFrame of floats with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D']; some entries are missing
+    """
+    df = DataFrame(tm.getSeriesData())
+    # set some NAs
+    df.loc[5:10] = np.nan
+    df.loc[15:20, -2:] = np.nan
+    return df
+
+
+@pytest.fixture
 def float_frame2():
     """
     Fixture for DataFrame of floats with index of unique strings
@@ -25,6 +39,21 @@ def float_frame2():
     Columns are ['D', 'C', 'B', 'A']
     """
     return DataFrame(tm.getSeriesData(), columns=['D', 'C', 'B', 'A'])
+
+
+@pytest.fixture
+def bool_frame_with_na():
+    """
+    Fixture for DataFrame of booleans with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D']; some entries are missing
+    """
+    df = DataFrame(tm.getSeriesData()) > 0
+    df = df.astype(object)
+    # set some NAs
+    df.loc[5:10] = np.nan
+    df.loc[15:20, -2:] = np.nan
+    return df
 
 
 @pytest.fixture
@@ -182,12 +211,13 @@ def frame_of_index_cols():
     """
     Fixture for DataFrame of columns that can be used for indexing
 
-    Columns are ['A', 'B', 'C', 'D', 'E']; 'A' & 'B' contain duplicates (but
-    are jointly unique), the rest are unique.
+    Columns are ['A', 'B', 'C', 'D', 'E', ('tuple', 'as', 'label')];
+    'A' & 'B' contain duplicates (but are jointly unique), the rest are unique.
     """
     df = DataFrame({'A': ['foo', 'foo', 'foo', 'bar', 'bar'],
                     'B': ['one', 'two', 'three', 'one', 'two'],
                     'C': ['a', 'b', 'c', 'd', 'e'],
                     'D': np.random.randn(5),
-                    'E': np.random.randn(5)})
+                    'E': np.random.randn(5),
+                    ('tuple', 'as', 'label'): np.random.randn(5)})
     return df

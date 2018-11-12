@@ -15,14 +15,13 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 """
 import string
 
-import pytest
-import pandas as pd
 import numpy as np
+import pytest
 
-from pandas.api.types import CategoricalDtype
+import pandas as pd
 from pandas import Categorical
+from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():
@@ -73,10 +72,10 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestInterface(base.BaseInterfaceTests):
-    @pytest.mark.skip(reason="Memory usage doesn't match")
-    def test_memory_usage(self):
+    @pytest.mark.skip(reason="Memory usage doesn't match", strict=True)
+    def test_memory_usage(self, data):
         # Is this deliberate?
-        pass
+        super(TestInterface, self).test_memory_usage(data)
 
 
 class TestConstructors(base.BaseConstructorsTests):
@@ -84,69 +83,56 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
-    def test_concat_columns(self, data, na_value):
-        pass
-
-    @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
-    def test_align(self, data, na_value):
-        pass
-
-    @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
-    def test_align_frame(self, data, na_value):
-        pass
-
-    @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
-    def test_merge(self, data, na_value):
-        pass
+    pass
 
 
 class TestGetitem(base.BaseGetitemTests):
-    skip_take = pytest.mark.skip(reason="GH-20664.")
+    skip_take = pytest.mark.skip(reason="GH-20664.", strict=True)
 
-    @pytest.mark.skip(reason="Backwards compatibility")
-    def test_getitem_scalar(self):
+    @pytest.mark.skip(reason="Backwards compatibility", strict=True)
+    def test_getitem_scalar(self, data):
         # CategoricalDtype.type isn't "correct" since it should
         # be a parent of the elements (object). But don't want
         # to break things by changing.
-        pass
+        super(TestGetitem, self).test_getitem_scalar(data)
 
     @skip_take
-    def test_take(self):
+    def test_take(self, data, na_value, na_cmp):
         # TODO remove this once Categorical.take is fixed
-        pass
+        super(TestGetitem, self).test_take(data, na_value, na_cmp)
 
     @skip_take
-    def test_take_negative(self):
-        pass
+    def test_take_negative(self, data):
+        super().test_take_negative(data)
 
     @skip_take
-    def test_take_pandas_style_negative_raises(self):
-        pass
+    def test_take_pandas_style_negative_raises(self, data, na_value):
+        super().test_take_pandas_style_negative_raises(data, na_value)
 
     @skip_take
-    def test_take_non_na_fill_value(self):
-        pass
+    def test_take_non_na_fill_value(self, data_missing):
+        super().test_take_non_na_fill_value(data_missing)
 
     @skip_take
-    def test_take_out_of_bounds_raises(self):
-        pass
+    def test_take_out_of_bounds_raises(self, data, allow_fill):
+        return super().test_take_out_of_bounds_raises(data, allow_fill)
 
-    @pytest.mark.skip(reason="GH-20747. Unobserved categories.")
-    def test_take_series(self):
-        pass
+    @pytest.mark.skip(reason="GH-20747. Unobserved categories.", strict=True)
+    def test_take_series(self, data):
+        super().test_take_series(data)
 
     @skip_take
-    def test_reindex_non_na_fill_value(self):
-        pass
+    def test_reindex_non_na_fill_value(self, data_missing):
+        super().test_reindex_non_na_fill_value(data_missing)
 
-    @pytest.mark.xfail(reason="Categorical.take buggy")
-    def test_take_empty(self):
-        pass
+    @pytest.mark.skip(reason="Categorical.take buggy", strict=True)
+    def test_take_empty(self, data, na_value, na_cmp):
+        super().test_take_empty(data, na_value, na_cmp)
 
-    @pytest.mark.xfail(reason="test not written correctly for categorical")
-    def test_reindex(self):
-        pass
+    @pytest.mark.skip(reason="test not written correctly for categorical",
+                      strict=True)
+    def test_reindex(self, data, na_value):
+        super().test_reindex(data, na_value)
 
 
 class TestSetitem(base.BaseSetitemTests):
@@ -155,21 +141,23 @@ class TestSetitem(base.BaseSetitemTests):
 
 class TestMissing(base.BaseMissingTests):
 
-    @pytest.mark.skip(reason="Not implemented")
-    def test_fillna_limit_pad(self):
-        pass
+    @pytest.mark.skip(reason="Not implemented", strict=True)
+    def test_fillna_limit_pad(self, data_missing):
+        super().test_fillna_limit_pad(data_missing)
 
-    @pytest.mark.skip(reason="Not implemented")
-    def test_fillna_limit_backfill(self):
-        pass
+    @pytest.mark.skip(reason="Not implemented", strict=True)
+    def test_fillna_limit_backfill(self, data_missing):
+        super().test_fillna_limit_backfill(data_missing)
+
+
+class TestReduce(base.BaseNoReduceTests):
+    pass
 
 
 class TestMethods(base.BaseMethodsTests):
-    pass
-
-    @pytest.mark.skip(reason="Unobserved categories included")
+    @pytest.mark.skip(reason="Unobserved categories included", strict=True)
     def test_value_counts(self, all_data, dropna):
-        pass
+        return super().test_value_counts(all_data, dropna)
 
     def test_combine_add(self, data_repeated):
         # GH 20825
@@ -186,6 +174,10 @@ class TestMethods(base.BaseMethodsTests):
         result = s1.combine(val, lambda x1, x2: x1 + x2)
         expected = pd.Series([a + val for a in list(orig_data1)])
         self.assert_series_equal(result, expected)
+
+    @pytest.mark.skip(reason="Not Applicable", strict=True)
+    def test_fillna_length_mismatch(self, data_missing):
+        super().test_fillna_length_mismatch(data_missing)
 
 
 class TestCasting(base.BaseCastingTests):
@@ -205,8 +197,13 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     def test_add_series_with_extension_array(self, data):
         ser = pd.Series(data)
-        with tm.assert_raises_regex(TypeError, "cannot perform"):
+        with pytest.raises(TypeError, match="cannot perform"):
             ser + data
+
+    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
+        return super(TestArithmeticOps, self)._check_divmod_op(
+            s, op, other, exc=TypeError
+        )
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):

@@ -2,12 +2,14 @@
 Support pre-0.12 series pickle compatibility.
 """
 
-import sys
-import pandas  # noqa
 import copy
 import pickle as pkl
-from pandas import compat, Index
-from pandas.compat import u, string_types  # noqa
+import sys
+
+from pandas.compat import string_types, u  # noqa
+
+import pandas  # noqa
+from pandas import Index, compat
 
 
 def load_reduce(self):
@@ -56,8 +58,21 @@ def load_reduce(self):
 
 # If classes are moved, provide compat here.
 _class_locations_map = {
+    ('pandas.core.sparse.array', 'SparseArray'):
+        ('pandas.core.arrays', 'SparseArray'),
 
     # 15477
+    #
+    # TODO: When FrozenNDArray is removed, add
+    # the following lines for compat:
+    #
+    # ('pandas.core.base', 'FrozenNDArray'):
+    #     ('numpy', 'ndarray'),
+    # ('pandas.core.indexes.frozen', 'FrozenNDArray'):
+    #     ('numpy', 'ndarray'),
+    #
+    # Afterwards, remove the current entry
+    # for `pandas.core.base.FrozenNDArray`.
     ('pandas.core.base', 'FrozenNDArray'):
         ('pandas.core.indexes.frozen', 'FrozenNDArray'),
     ('pandas.core.base', 'FrozenList'):
@@ -88,7 +103,7 @@ _class_locations_map = {
 
     # 15998 top-level dirs moving
     ('pandas.sparse.array', 'SparseArray'):
-        ('pandas.core.sparse.array', 'SparseArray'),
+        ('pandas.core.arrays.sparse', 'SparseArray'),
     ('pandas.sparse.series', 'SparseSeries'):
         ('pandas.core.sparse.series', 'SparseSeries'),
     ('pandas.sparse.frame', 'SparseDataFrame'):

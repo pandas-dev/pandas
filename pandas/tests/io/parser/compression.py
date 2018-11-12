@@ -5,15 +5,17 @@ Tests compressed data parsing functionality for all
 of the parsers defined in parsers.py
 """
 
+import bz2
+import gzip
+
 import pytest
 
-import pandas as pd
 import pandas.compat as compat
-import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
-import gzip
-import bz2
+import pandas as pd
+import pandas.util.testing as tm
+
 try:
     lzma = compat.import_lzma()
 except ImportError:
@@ -50,19 +52,18 @@ class CompressionTests(object):
                 for file_name in inner_file_names:
                     tmp.writestr(file_name, data)
 
-            tm.assert_raises_regex(ValueError, 'Multiple files',
-                                   self.read_csv, path, compression='zip')
+            with pytest.raises(ValueError, match='Multiple files'):
+                self.read_csv(path, compression='zip')
 
-            tm.assert_raises_regex(ValueError, 'Multiple files',
-                                   self.read_csv, path,
-                                   compression='infer')
+            with pytest.raises(ValueError, match='Multiple files'):
+                self.read_csv(path, compression='infer')
 
         with tm.ensure_clean() as path:
-            with zipfile.ZipFile(path, mode='w') as tmp:
+            with zipfile.ZipFile(path, mode='w'):
                 pass
 
-            tm.assert_raises_regex(ValueError, 'Zero files',
-                                   self.read_csv, path, compression='zip')
+            with pytest.raises(ValueError, match='Zero files'):
+                self.read_csv(path, compression='zip')
 
         with tm.ensure_clean() as path:
             with open(path, 'wb') as f:
@@ -131,5 +132,5 @@ class CompressionTests(object):
 
     def test_invalid_compression(self):
         msg = 'Unrecognized compression type: sfark'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv('test_file.zip', compression='sfark')

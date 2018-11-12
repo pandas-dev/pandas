@@ -288,8 +288,11 @@ class DateOffset(BaseOffset):
 
             weeks = (kwds.get('weeks', 0)) * self.n
             if weeks:
-                i = (i.to_period('W') + weeks).to_timestamp() + \
-                    i.to_perioddelta('W')
+                # integer addition on PeriodIndex is deprecated,
+                #   so we directly use _time_shift instead
+                asper = i.to_period('W')
+                shifted = asper._data._time_shift(weeks)
+                i = shifted.to_timestamp() + i.to_perioddelta('W')
 
             timedelta_kwds = {k: v for k, v in kwds.items()
                               if k in ['days', 'hours', 'minutes',
@@ -536,13 +539,21 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         time = i.to_perioddelta('D')
         # to_period rolls forward to next BDay; track and
         # reduce n where it does when rolling forward
-        shifted = (i.to_perioddelta('B') - time).asi8 != 0
+        asper = i.to_period('B')
         if self.n > 0:
-            roll = np.where(shifted, self.n - 1, self.n)
-        else:
-            roll = self.n
+            shifted = (i.to_perioddelta('B') - time).asi8 != 0
 
-        return (i.to_period('B') + roll).to_timestamp() + time
+            # Integer-array addition is deprecated, so we use
+            # _time_shift directly
+            roll = np.where(shifted, self.n - 1, self.n)
+            shifted = asper._data._addsub_int_array(roll, operator.add)
+        else:
+            # Integer addition is deprecated, so we use _time_shift directly
+            roll = self.n
+            shifted = asper._data._time_shift(roll)
+
+        result = shifted.to_timestamp() + time
+        return result
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -796,7 +807,6 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
     Parameters
     ----------
     n : int, default 1
-    offset : timedelta, default timedelta(0)
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
@@ -805,8 +815,8 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
+    offset : timedelta, default timedelta(0)
     """
-    _cacheable = False
     _prefix = 'C'
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])
@@ -948,7 +958,6 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
     Parameters
     ----------
     n : int, default 1
-    offset : timedelta, default timedelta(0)
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
@@ -957,8 +966,8 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
+    offset : timedelta, default timedelta(0)
     """
-    _cacheable = False
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])
 
@@ -1093,6 +1102,7 @@ class SemiMonthOffset(DateOffset):
     @apply_index_wraps
     def apply_index(self, i):
         # determine how many days away from the 1st of the month we are
+        dti = i
         days_from_start = i.to_perioddelta('M').asi8
         delta = Timedelta(days=self.day_of_month - 1).value
 
@@ -1109,7 +1119,12 @@ class SemiMonthOffset(DateOffset):
         time = i.to_perioddelta('D')
 
         # apply the correct number of months
-        i = (i.to_period('M') + (roll // 2)).to_timestamp()
+
+        # integer-array addition on PeriodIndex is deprecated,
+        #  so we use _addsub_int_array directly
+        asper = i.to_period('M')
+        shifted = asper._data._addsub_int_array(roll // 2, operator.add)
+        i = type(dti)(shifted.to_timestamp())
 
         # apply the correct day
         i = self._apply_index_days(i, roll)
@@ -1290,8 +1305,10 @@ class Week(DateOffset):
     @apply_index_wraps
     def apply_index(self, i):
         if self.weekday is None:
-            return ((i.to_period('W') + self.n).to_timestamp() +
-                    i.to_perioddelta('W'))
+            # integer addition on PeriodIndex is deprecated,
+            #  so we use _time_shift directly
+            shifted = i.to_period('W')._data._time_shift(self.n)
+            return shifted.to_timestamp() + i.to_perioddelta('W')
         else:
             return self._end_apply_index(i)
 
@@ -1316,10 +1333,16 @@ class Week(DateOffset):
             normed = dtindex - off + Timedelta(1, 'D') - Timedelta(1, 'ns')
             roll = np.where(base_period.to_timestamp(how='end') == normed,
                             self.n, self.n - 1)
+            # integer-array addition on PeriodIndex is deprecated,
+            #  so we use _addsub_int_array directly
+            shifted = base_period._data._addsub_int_array(roll, operator.add)
+            base = shifted.to_timestamp(how='end')
         else:
+            # integer addition on PeriodIndex is deprecated,
+            #  so we use _time_shift directly
             roll = self.n
+            base = base_period._data._time_shift(roll).to_timestamp(how='end')
 
-        base = (base_period + roll).to_timestamp(how='end')
         return base + off + Timedelta(1, 'ns') - Timedelta(1, 'D')
 
     def onOffset(self, dt):
@@ -2176,9 +2199,18 @@ class CalendarDay(SingleConstructorOffset):
 
 
 def _tick_comp(op):
-    def f(self, other):
-        return op(self.delta, other.delta)
+    assert op not in [operator.eq, operator.ne]
 
+    def f(self, other):
+        try:
+            return op(self.delta, other.delta)
+        except AttributeError:
+            # comparing with a non-Tick object
+            raise TypeError("Invalid comparison between {cls} and {typ}"
+                            .format(cls=type(self).__name__,
+                                    typ=type(other).__name__))
+
+    f.__name__ = '__{opname}__'.format(opname=op.__name__)
     return f
 
 
@@ -2197,8 +2229,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     __ge__ = _tick_comp(operator.ge)
     __lt__ = _tick_comp(operator.lt)
     __le__ = _tick_comp(operator.le)
-    __eq__ = _tick_comp(operator.eq)
-    __ne__ = _tick_comp(operator.ne)
 
     def __add__(self, other):
         if isinstance(other, Tick):
@@ -2219,8 +2249,13 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
-
-            other = to_offset(other)
+            try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return False
 
         if isinstance(other, Tick):
             return self.delta == other.delta
@@ -2235,8 +2270,13 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     def __ne__(self, other):
         if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
-
-            other = to_offset(other)
+            try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return True
 
         if isinstance(other, Tick):
             return self.delta != other.delta
@@ -2390,7 +2430,7 @@ def generate_range(start=None, end=None, periods=None,
     elif end and not offset.onOffset(end):
         end = offset.rollback(end)
 
-    if periods is None and end < start:
+    if periods is None and end < start and offset.n >= 0:
         end = None
         periods = 0
 

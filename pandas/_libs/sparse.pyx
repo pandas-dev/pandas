@@ -19,11 +19,8 @@ _np_version_under1p11 = LooseVersion(_np_version) < LooseVersion('1.11')
 # -----------------------------------------------------------------------------
 # Preamble stuff
 
-cdef float64_t NaN = <float64_t> np.NaN
-cdef float64_t INF = <float64_t> np.inf
-
-cdef inline int int_max(int a, int b): return a if a >= b else b
-cdef inline int int_min(int a, int b): return a if a <= b else b
+cdef float64_t NaN = <float64_t>np.NaN
+cdef float64_t INF = <float64_t>np.inf
 
 # -----------------------------------------------------------------------------
 
@@ -67,6 +64,10 @@ cdef class IntIndex(SparseIndex):
         output = 'IntIndex\n'
         output += 'Indices: %s\n' % repr(self.indices)
         return output
+
+    @property
+    def nbytes(self):
+        return self.indices.nbytes
 
     def check_integrity(self):
         """
@@ -217,7 +218,7 @@ cdef class IntIndex(SparseIndex):
 
         n = len(indexer)
         results = np.empty(n, dtype=np.int32)
-        results.fill(-1)
+        results[:] = -1
 
         if self.npoints == 0:
             return results
@@ -246,9 +247,9 @@ cdef class IntIndex(SparseIndex):
         sinds = self.indices
 
         result = np.empty(other.npoints, dtype=np.float64)
-        result.fill(fill_value)
+        result[:] = fill_value
 
-        for 0 <= i < other.npoints:
+        for i in range(other.npoints):
             while oinds[i] > sinds[j] and j < self.npoints:
                 j += 1
 
@@ -270,6 +271,7 @@ cdef class IntIndex(SparseIndex):
     cpdef take(self, ndarray[float64_t, ndim=1] values,
                ndarray[int32_t, ndim=1] indices):
         pass
+
 
 cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     cdef:
@@ -311,6 +313,7 @@ cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     lens = lens[:result_indexer]
     return locs, lens
 
+
 # -----------------------------------------------------------------------------
 # BlockIndex
 
@@ -336,8 +339,8 @@ cdef class BlockIndex(SparseIndex):
         self.blengths = np.ascontiguousarray(blengths, dtype=np.int32)
 
         # in case we need
-        self.locbuf = <int32_t*> self.blocs.data
-        self.lenbuf = <int32_t*> self.blengths.data
+        self.locbuf = <int32_t*>self.blocs.data
+        self.lenbuf = <int32_t*>self.blengths.data
 
         self.length = length
         self.nblocks = np.int32(len(self.blocs))
@@ -358,6 +361,10 @@ cdef class BlockIndex(SparseIndex):
         output += 'Block lengths: %s' % repr(self.blengths)
 
         return output
+
+    @property
+    def nbytes(self):
+        return self.blocs.nbytes + self.blengths.nbytes
 
     @property
     def ngaps(self):
@@ -572,7 +579,7 @@ cdef class BlockIndex(SparseIndex):
 
         n = len(indexer)
         results = np.empty(n, dtype=np.int32)
-        results.fill(-1)
+        results[:] = -1
 
         if self.npoints == 0:
             return results
@@ -662,11 +669,6 @@ cdef class BlockMerge(object):
             self.xi = yi
             self.yi = xi
 
-cdef class BlockIntersection(BlockMerge):
-    """
-    not done yet
-    """
-    pass
 
 cdef class BlockUnion(BlockMerge):
     """
@@ -794,69 +796,14 @@ include "sparse_op_helper.pxi"
 
 
 # -----------------------------------------------------------------------------
-# Indexing operations
-
-def get_reindexer(ndarray[object, ndim=1] values, dict index_map):
-    cdef object idx
-    cdef Py_ssize_t i
-    cdef Py_ssize_t new_length = len(values)
-    cdef ndarray[int32_t, ndim=1] indexer
-
-    indexer = np.empty(new_length, dtype=np.int32)
-
-    for i in range(new_length):
-        idx = values[i]
-        if idx in index_map:
-            indexer[i] = index_map[idx]
-        else:
-            indexer[i] = -1
-
-    return indexer
-
-# def reindex_block(ndarray[float64_t, ndim=1] values,
-#                   BlockIndex sparse_index,
-#                   ndarray[int32_t, ndim=1] indexer):
-#     cdef:
-#         Py_ssize_t i, length
-#         ndarray[float64_t, ndim=1] out
-
-#     out = np.empty(length, dtype=np.float64)
-
-#     for i in range(length):
-#         if indexer[i] == -1:
-#             pass
-
-
-# cdef class SparseCruncher(object):
-#     """
-#     Class to acquire float pointer for convenient operations on sparse data
-#     structures
-#     """
-#     cdef:
-#         SparseIndex index
-#         float64_t* buf
-
-#     def __init__(self, ndarray[float64_t, ndim=1, mode='c'] values,
-#                  SparseIndex index):
-
-#         self.index = index
-#         self.buf = <float64_t*> values.data
-
-
-def reindex_integer(ndarray[float64_t, ndim=1] values,
-                    IntIndex sparse_index,
-                    ndarray[int32_t, ndim=1] indexer):
-    pass
-
-
-# -----------------------------------------------------------------------------
 # SparseArray mask create operations
 
 def make_mask_object_ndarray(ndarray[object, ndim=1] arr, object fill_value):
-    cdef object value
-    cdef Py_ssize_t i
-    cdef Py_ssize_t new_length = len(arr)
-    cdef ndarray[int8_t, ndim=1] mask
+    cdef:
+        object value
+        Py_ssize_t i
+        Py_ssize_t new_length = len(arr)
+        ndarray[int8_t, ndim=1] mask
 
     mask = np.ones(new_length, dtype=np.int8)
 

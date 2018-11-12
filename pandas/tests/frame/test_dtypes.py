@@ -12,6 +12,7 @@ from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
 from pandas.compat import u
 from pandas import _np_version_under1p14
 
+from pandas.core.arrays import integer_array
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, CategoricalDtype
 from pandas.tests.frame.common import TestData
 from pandas.util.testing import (assert_series_equal,
@@ -328,9 +329,8 @@ class TestDataFrameDataTypes(TestData):
 
     def test_select_dtypes_empty(self):
         df = DataFrame({'a': list('abc'), 'b': list(range(1, 4))})
-        with tm.assert_raises_regex(ValueError, 'at least one of '
-                                    'include or exclude '
-                                    'must be nonempty'):
+        msg = 'at least one of include or exclude must be nonempty'
+        with pytest.raises(ValueError, match=msg):
             df.select_dtypes()
 
     def test_select_dtypes_bad_datetime64(self):
@@ -340,10 +340,10 @@ class TestDataFrameDataTypes(TestData):
                         'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
                         'f': pd.date_range('now', periods=3).values})
-        with tm.assert_raises_regex(ValueError, '.+ is too specific'):
+        with pytest.raises(ValueError, match='.+ is too specific'):
             df.select_dtypes(include=['datetime64[D]'])
 
-        with tm.assert_raises_regex(ValueError, '.+ is too specific'):
+        with pytest.raises(ValueError, match='.+ is too specific'):
             df.select_dtypes(exclude=['datetime64[as]'])
 
     def test_select_dtypes_datetime_with_tz(self):
@@ -372,7 +372,7 @@ class TestDataFrameDataTypes(TestData):
         msg = "string dtypes are not allowed"
         kwargs = {arg: [dtype]}
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             df.select_dtypes(**kwargs)
 
     def test_select_dtypes_bad_arg_raises(self):
@@ -383,8 +383,9 @@ class TestDataFrameDataTypes(TestData):
                         'd': np.arange(4.0, 7.0, dtype='float64'),
                         'e': [True, False, True],
                         'f': pd.date_range('now', periods=3).values})
-        with tm.assert_raises_regex(TypeError, 'data type.'
-                                    '*not understood'):
+
+        msg = 'data type.*not understood'
+        with pytest.raises(TypeError, match=msg):
             df.select_dtypes(['blargy, blarg, blarg'])
 
     def test_select_dtypes_typecodes(self):
@@ -513,7 +514,7 @@ class TestDataFrameDataTypes(TestData):
         msg = "Cannot convert non-finite values \\(NA or inf\\) to integer"
         df = DataFrame([val])
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df.astype(dtype)
 
     def test_astype_str(self, text_dtype):
@@ -660,11 +661,53 @@ class TestDataFrameDataTypes(TestData):
     def test_astype_categoricaldtype_class_raises(self, cls):
         df = DataFrame({"A": ['a', 'a', 'b', 'c']})
         xpr = "Expected an instance of {}".format(cls.__name__)
-        with tm.assert_raises_regex(TypeError, xpr):
+        with pytest.raises(TypeError, match=xpr):
             df.astype({"A": cls})
 
-        with tm.assert_raises_regex(TypeError, xpr):
+        with pytest.raises(TypeError, match=xpr):
             df['A'].astype(cls)
+
+    @pytest.mark.parametrize("dtype", ['Int64', 'Int32', 'Int16'])
+    def test_astype_extension_dtypes(self, dtype):
+        # GH 22578
+        df = pd.DataFrame([[1., 2.], [3., 4.], [5., 6.]], columns=['a', 'b'])
+
+        expected1 = pd.DataFrame({'a': integer_array([1, 3, 5],
+                                                     dtype=dtype),
+                                  'b': integer_array([2, 4, 6],
+                                                     dtype=dtype)})
+        tm.assert_frame_equal(df.astype(dtype), expected1)
+        tm.assert_frame_equal(df.astype('int64').astype(dtype), expected1)
+        tm.assert_frame_equal(df.astype(dtype).astype('float64'), df)
+
+        df = pd.DataFrame([[1., 2.], [3., 4.], [5., 6.]], columns=['a', 'b'])
+        df['b'] = df['b'].astype(dtype)
+        expected2 = pd.DataFrame({'a': [1., 3., 5.],
+                                  'b': integer_array([2, 4, 6],
+                                                     dtype=dtype)})
+        tm.assert_frame_equal(df, expected2)
+
+        tm.assert_frame_equal(df.astype(dtype), expected1)
+        tm.assert_frame_equal(df.astype('int64').astype(dtype), expected1)
+
+    @pytest.mark.parametrize("dtype", ['Int64', 'Int32', 'Int16'])
+    def test_astype_extension_dtypes_1d(self, dtype):
+        # GH 22578
+        df = pd.DataFrame({'a': [1., 2., 3.]})
+
+        expected1 = pd.DataFrame({'a': integer_array([1, 2, 3],
+                                                     dtype=dtype)})
+        tm.assert_frame_equal(df.astype(dtype), expected1)
+        tm.assert_frame_equal(df.astype('int64').astype(dtype), expected1)
+
+        df = pd.DataFrame({'a': [1., 2., 3.]})
+        df['a'] = df['a'].astype(dtype)
+        expected2 = pd.DataFrame({'a': integer_array([1, 2, 3],
+                                                     dtype=dtype)})
+        tm.assert_frame_equal(df, expected2)
+
+        tm.assert_frame_equal(df.astype(dtype), expected1)
+        tm.assert_frame_equal(df.astype('int64').astype(dtype), expected1)
 
     @pytest.mark.parametrize('dtype', [
         {100: 'float64', 200: 'uint64'}, 'category', 'float64'])
@@ -786,9 +829,6 @@ class TestDataFrameDataTypes(TestData):
 
         with pytest.raises(ValueError):
             df.astype(np.float64, errors=True)
-
-        with tm.assert_produces_warning(FutureWarning):
-            df.astype(np.int8, raise_on_error=False)
 
         df.astype(np.int8, errors='ignore')
 

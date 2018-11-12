@@ -2,9 +2,10 @@
 
 from copy import copy, deepcopy
 
-import pandas.util.testing as tm
 import pytest
+
 from pandas import MultiIndex
+import pandas.util.testing as tm
 
 
 def assert_multiindex_copied(copy, original):

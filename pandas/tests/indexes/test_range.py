@@ -1,21 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
 from datetime import datetime
 from itertools import combinations
 import operator
 
-from pandas.compat import range, u, PY3
-
 import numpy as np
+import pytest
 
-from pandas import (isna, Series, Index, Float64Index,
-                    Int64Index, RangeIndex)
-
-import pandas.util.testing as tm
+from pandas.compat import PY3, range, u
 
 import pandas as pd
+from pandas import Float64Index, Index, Int64Index, RangeIndex, Series, isna
+import pandas.util.testing as tm
 
 from .test_numeric import Numeric
 
@@ -67,10 +63,8 @@ class TestRangeIndex(Numeric):
         self.check_binop(ops, scalars, idxs)
 
     def test_too_many_names(self):
-        def testit():
+        with pytest.raises(ValueError, match="^Length"):
             self.index.names = ["roger", "harold"]
-
-        tm.assert_raises_regex(ValueError, "^Length", testit)
 
     def test_constructor(self):
         index = RangeIndex(5)
@@ -95,7 +89,7 @@ class TestRangeIndex(Numeric):
         tm.assert_index_equal(Index(expected), index)
 
         msg = "RangeIndex\\(\\.\\.\\.\\) must be called with integers"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             RangeIndex()
 
         for index in [RangeIndex(0), RangeIndex(start=0), RangeIndex(stop=0),
@@ -107,7 +101,7 @@ class TestRangeIndex(Numeric):
             assert index._step == 1
             tm.assert_index_equal(Index(expected), index)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             RangeIndex(name='Foo')
 
         for index in [RangeIndex(0, name='Foo'),
@@ -188,6 +182,25 @@ class TestRangeIndex(Numeric):
         assert orig.name == 'original'
         assert copy.name == 'copy'
         assert new.name == 'new'
+
+    # TODO: mod, divmod?
+    @pytest.mark.parametrize('op', [operator.add, operator.sub,
+                                    operator.mul, operator.floordiv,
+                                    operator.truediv, operator.pow])
+    def test_arithmetic_with_frame_or_series(self, op):
+        # check that we return NotImplemented when operating with Series
+        # or DataFrame
+        index = pd.RangeIndex(5)
+        other = pd.Series(np.random.randn(5))
+
+        expected = op(pd.Series(index), other)
+        result = op(index, other)
+        tm.assert_series_equal(result, expected)
+
+        other = pd.DataFrame(np.random.randn(2, 5))
+        expected = op(pd.DataFrame([index, index]), other)
+        result = op(index, other)
+        tm.assert_frame_equal(result, expected)
 
     def test_numeric_compat2(self):
         # validate that we are handling the RangeIndex overrides to numeric ops
@@ -340,38 +353,38 @@ class TestRangeIndex(Numeric):
         assert self.index.dtype == np.int64
 
     def test_is_monotonic(self):
-        assert self.index.is_monotonic
-        assert self.index.is_monotonic_increasing
-        assert not self.index.is_monotonic_decreasing
-        assert self.index._is_strictly_monotonic_increasing
-        assert not self.index._is_strictly_monotonic_decreasing
+        assert self.index.is_monotonic is True
+        assert self.index.is_monotonic_increasing is True
+        assert self.index.is_monotonic_decreasing is False
+        assert self.index._is_strictly_monotonic_increasing is True
+        assert self.index._is_strictly_monotonic_decreasing is False
 
         index = RangeIndex(4, 0, -1)
-        assert not index.is_monotonic
-        assert not index._is_strictly_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is False
+        assert index._is_strictly_monotonic_increasing is False
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
         index = RangeIndex(1, 2)
-        assert index.is_monotonic
-        assert index.is_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_increasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
         index = RangeIndex(2, 1)
-        assert index.is_monotonic
-        assert index.is_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_increasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
         index = RangeIndex(1, 1)
-        assert index.is_monotonic
-        assert index.is_monotonic_increasing
-        assert index.is_monotonic_decreasing
-        assert index._is_strictly_monotonic_increasing
-        assert index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic is True
+        assert index.is_monotonic_increasing is True
+        assert index.is_monotonic_decreasing is True
+        assert index._is_strictly_monotonic_increasing is True
+        assert index._is_strictly_monotonic_decreasing is True
 
     def test_equals_range(self):
         equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
@@ -750,7 +763,7 @@ class TestRangeIndex(Numeric):
 
         # fill_value
         msg = "Unable to fill values because RangeIndex cannot contain NA"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -1]), fill_value=True)
 
         # allow_fill=False
@@ -760,9 +773,9 @@ class TestRangeIndex(Numeric):
         tm.assert_index_equal(result, expected)
 
         msg = "Unable to fill values because RangeIndex cannot contain NA"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
