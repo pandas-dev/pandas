@@ -3409,6 +3409,7 @@ class DataFrame(NDFrame):
         Berkeley    25.0
 
         Where the value is a callable, evaluated on `df`:
+
         >>> df.assign(temp_f=lambda x: x.temp_c * 9 / 5 + 32)
                   temp_c  temp_f
         Portland    17.0    62.6
@@ -3416,6 +3417,7 @@ class DataFrame(NDFrame):
 
         Alternatively, the same behavior can be achieved by directly
         referencing an existing Series or sequence:
+
         >>> df.assign(temp_f=df['temp_c'] * 9 / 5 + 32)
                   temp_c  temp_f
         Portland    17.0    62.6
@@ -3424,6 +3426,7 @@ class DataFrame(NDFrame):
         In Python 3.6+, you can create multiple columns within the same assign
         where one of the columns depends on another one defined within the same
         assign:
+
         >>> df.assign(temp_f=lambda x: x['temp_c'] * 9 / 5 + 32,
         ...           temp_k=lambda x: (x['temp_f'] +  459.67) * 5 / 9)
                   temp_c  temp_f  temp_k
