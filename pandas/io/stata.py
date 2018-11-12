@@ -461,7 +461,8 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
 
 excessive_string_length_error = """
 Fixed width strings in Stata .dta files are limited to 244 (or fewer)
-characters.  Column '%s' does not satisfy this restriction.
+characters.  Column '%s' does not satisfy this restriction. Use the
+'version=117' parameter to write the newer (Stata 13 and later) format.
 """
 
 
