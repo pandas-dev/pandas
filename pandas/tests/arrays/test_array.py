@@ -29,7 +29,8 @@ import pandas.util.testing as tm
      pd.IntervalArray.from_tuples([(1, 2), (3, 4)])),
     ([0, 1], 'Sparse[int64]', pd.SparseArray([0, 1], dtype='int64')),
     ([1, None], 'Int16', integer_array([1, None], dtype='Int16')),
-
+    (pd.Series([1, 2]), None, np.array([1, 2], dtype=np.int64)),
+    (pd.Index([1, 2]), None, np.array([1, 2], dtype=np.int64)),
     # "3rd party" EAs work
     ([decimal.Decimal(0), decimal.Decimal(1)], 'decimal', to_decimal([0, 1])),
 ])

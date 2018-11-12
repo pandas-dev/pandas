@@ -90,7 +90,8 @@ def array(data, dtype=None, copy=False):
         dtype = data.dtype
 
     # this returns None for not-found dtypes.
-    dtype = dtype or registry.find(dtype)
+    if dtype is not None:
+        dtype = registry.find(dtype) or dtype
 
     if is_extension_array_dtype(dtype):
         cls = dtype.construct_array_type()
