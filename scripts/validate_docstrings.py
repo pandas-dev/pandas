@@ -886,13 +886,10 @@ if __name__ == '__main__':
                            'list of error codes to validate. By default it '
                            'validates all errors (ignored when validating '
                            'a single docstring)')
-    argparser.add_argument('--ignore_deprecated', default=False, type=bool,
-                           help='boolean variable that determines if this '
-                           'the docstring should be checked or not even '
-                           'the function or method will be deprecated '
-                           'in later version. Default is True, means if the '
-                           'function will be deprecated, the docstring will '
-                           'not be displayed in the output of script')
+    argparser.add_argument('--ignore_deprecated', default=False,
+                           action='store_true', help='if this flag is set, '
+                           'deprecated objects are ignored when validating '
+                           'all docstrings')
 
     args = argparser.parse_args()
     sys.exit(main(args.function, args.prefix,
