@@ -515,7 +515,6 @@ Reshaping, sorting
    Series.repeat
    Series.squeeze
    Series.view
-   Series.sortlevel
 
 
 Combining / joining / merging
@@ -850,6 +849,22 @@ Sparse
 
    SparseSeries.to_coo
    SparseSeries.from_coo
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.sparse.npoints
+   Series.sparse.density
+   Series.sparse.fill_value
+   Series.sparse.sp_values
+
+
+.. autosummary::
+   :toctree: generated/
+
+   Series.sparse.from_coo
+   Series.sparse.to_coo
 
 .. _api.dataframe:
 
@@ -1659,6 +1674,7 @@ IntervalIndex Components
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
    IntervalIndex.set_closed
+   IntervalIndex.overlaps
 
 
 .. _api.multiindex:
@@ -2046,6 +2062,7 @@ Properties
     Interval.mid
     Interval.open_left
     Interval.open_right
+    Interval.overlaps
     Interval.right
 
 Timedelta
@@ -2087,6 +2104,62 @@ Methods
     Timedelta.to_pytimedelta
     Timedelta.to_timedelta64
     Timedelta.total_seconds
+
+.. _api.dateoffsets:
+
+Date Offsets
+------------
+
+.. currentmodule:: pandas.tseries.offsets
+
+.. autosummary::
+   :toctree: generated/
+
+   DateOffset
+   BusinessDay
+   BusinessHour
+   CustomBusinessDay
+   CustomBusinessHour
+   MonthOffset
+   MonthEnd
+   MonthBegin
+   BusinessMonthEnd
+   BusinessMonthBegin
+   CustomBusinessMonthEnd
+   CustomBusinessMonthBegin
+   SemiMonthOffset
+   SemiMonthEnd
+   SemiMonthBegin
+   Week
+   WeekOfMonth
+   LastWeekOfMonth
+   QuarterOffset
+   BQuarterEnd
+   BQuarterBegin
+   QuarterEnd
+   QuarterBegin
+   YearOffset
+   BYearEnd
+   BYearBegin
+   YearEnd
+   YearBegin
+   FY5253
+   FY5253Quarter
+   Easter
+   Tick
+   Day
+   Hour
+   Minute
+   Second
+   Milli
+   Micro
+   Nano
+   BDay
+   BMonthEnd
+   BMonthBegin
+   CBMonthEnd
+   CBMonthBegin
+   CDay
 
 .. _api.frequencies:
 

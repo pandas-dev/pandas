@@ -1,15 +1,14 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
 from datetime import datetime
 
 import numpy as np
-
-from pandas import Series, DataFrame, Index, MultiIndex, RangeIndex
+import pytest
 
 from pandas.compat import lrange, range, zip
+
+from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series
 import pandas.util.testing as tm
 
 
@@ -144,6 +143,11 @@ class TestSeriesAlterAxes(object):
         tm.assert_index_equal(rs.index, Index(index.get_level_values(1)))
         assert isinstance(rs, Series)
 
+    def test_reset_index_name(self):
+        s = Series([1, 2, 3], index=Index(range(3), name='x'))
+        assert s.reset_index().index.name is None
+        assert s.reset_index(drop=True).index.name is None
+
     def test_reset_index_level(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]],
                        columns=['A', 'B', 'C'])
@@ -221,6 +225,24 @@ class TestSeriesAlterAxes(object):
                            names=['L1', 'L2', 'L0'])
         expected = Series(np.arange(6), index=e_idx)
         tm.assert_series_equal(result, expected)
+
+    def test_rename_axis_mapper(self):
+        # GH 19978
+        mi = MultiIndex.from_product([['a', 'b', 'c'], [1, 2]],
+                                     names=['ll', 'nn'])
+        s = Series([i for i in range(len(mi))], index=mi)
+
+        result = s.rename_axis(index={'ll': 'foo'})
+        assert result.index.names == ['foo', 'nn']
+
+        result = s.rename_axis(index=str.upper, axis=0)
+        assert result.index.names == ['LL', 'NN']
+
+        result = s.rename_axis(index=['foo', 'goo'])
+        assert result.index.names == ['foo', 'goo']
+
+        with tm.assert_raises_regex(TypeError, 'unexpected'):
+            s.rename_axis(columns='wrong')
 
     def test_rename_axis_inplace(self, datetime_series):
         # GH 15704

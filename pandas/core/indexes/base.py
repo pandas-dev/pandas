@@ -18,7 +18,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,
-    ABCPeriodIndex, ABCTimedeltaIndex,
+    ABCPeriodIndex, ABCTimedeltaIndex, ABCDatetimeIndex,
     ABCDateOffset)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
@@ -61,7 +61,7 @@ import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
 from pandas.io.formats.printing import (
     pprint_thing, default_pprint, format_object_summary, format_object_attrs)
-from pandas.core.ops import make_invalid_op
+from pandas.core.ops import make_invalid_op, get_op_result_name
 from pandas.core.strings import StringMethods
 
 __all__ = ['Index']
@@ -222,11 +222,21 @@ class Index(IndexOpsMixin, PandasObject):
     # To hand over control to subclasses
     _join_precedence = 1
 
-    # Cython methods
-    _left_indexer_unique = libjoin.left_join_indexer_unique_object
-    _left_indexer = libjoin.left_join_indexer_object
-    _inner_indexer = libjoin.inner_join_indexer_object
-    _outer_indexer = libjoin.outer_join_indexer_object
+    # Cython methods; see github.com/cython/cython/issues/2647
+    #  for why we need to wrap these instead of making them class attributes
+    # Moreover, cython will choose the appropriate-dtyped sub-function
+    #  given the dtypes of the passed arguments
+    def _left_indexer_unique(self, left, right):
+        return libjoin.left_join_indexer_unique(left, right)
+
+    def _left_indexer(self, left, right):
+        return libjoin.left_join_indexer(left, right)
+
+    def _inner_indexer(self, left, right):
+        return libjoin.inner_join_indexer(left, right)
+
+    def _outer_indexer(self, left, right):
+        return libjoin.outer_join_indexer(left, right)
 
     _typ = 'index'
     _data = None
@@ -252,13 +262,17 @@ class Index(IndexOpsMixin, PandasObject):
     str = CachedAccessor("str", StringMethods)
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
-                fastpath=False, tupleize_cols=True, **kwargs):
+                fastpath=None, tupleize_cols=True, **kwargs):
 
         if name is None and hasattr(data, 'name'):
             name = data.name
 
-        if fastpath:
-            return cls._simple_new(data, name)
+        if fastpath is not None:
+            warnings.warn("The 'fastpath' keyword is deprecated, and will be "
+                          "removed in a future version.",
+                          FutureWarning, stacklevel=2)
+            if fastpath:
+                return cls._simple_new(data, name)
 
         from .range import RangeIndex
 
@@ -302,6 +316,11 @@ class Index(IndexOpsMixin, PandasObject):
                 return Index(result.to_pytimedelta(), dtype=_o_dtype)
             else:
                 return result
+
+        elif is_period_dtype(data) and not is_object_dtype(dtype):
+            from pandas import PeriodIndex
+            result = PeriodIndex(data, copy=copy, name=name, **kwargs)
+            return result
 
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
@@ -375,8 +394,7 @@ class Index(IndexOpsMixin, PandasObject):
             # maybe coerce to a sub-class
             from pandas.core.indexes.period import (
                 PeriodIndex, IncompatibleFrequency)
-            if isinstance(data, PeriodIndex):
-                return PeriodIndex(data, copy=copy, name=name, **kwargs)
+
             if is_signed_integer_dtype(data.dtype):
                 from .numeric import Int64Index
                 return Int64Index(data, copy=copy, dtype=dtype, name=name)
@@ -527,6 +545,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         # _simple_new expects an ndarray
         values = getattr(values, 'values', values)
+        if isinstance(values, ABCDatetimeIndex):
+            # `self.values` returns `self` for tz-aware, so we need to unwrap
+            #  more specifically
+            values = values.asi8
 
         return self._simple_new(values, **attributes)
 
@@ -1231,7 +1253,7 @@ class Index(IndexOpsMixin, PandasObject):
             other = Index(other, name=self.name)
             result_name = self.name
         else:
-            result_name = self.name if self.name == other.name else None
+            result_name = get_op_result_name(self, other)
         return other, result_name
 
     def _convert_for_op(self, value):
@@ -2056,7 +2078,7 @@ class Index(IndexOpsMixin, PandasObject):
             return promote(getitem(key))
 
         if com.is_bool_indexer(key):
-            key = np.asarray(key)
+            key = np.asarray(key, dtype=bool)
 
         key = com.values_from_object(key)
         result = getitem(key)
@@ -2203,7 +2225,7 @@ class Index(IndexOpsMixin, PandasObject):
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
         if self._can_hold_na:
-            return self._isnan.any()
+            return bool(self._isnan.any())
         else:
             return False
 
@@ -2723,19 +2745,15 @@ class Index(IndexOpsMixin, PandasObject):
     def __xor__(self, other):
         return self.symmetric_difference(other)
 
-    def _get_consensus_name(self, other):
+    def _get_reconciled_name_object(self, other):
         """
-        Given 2 indexes, give a consensus name meaning
-        we take the not None one, or None if the names differ.
-        Return a new object if we are resetting the name
+        If the result of a set operation will be self,
+        return self, unless the name changes, in which
+        case make a shallow copy of self.
         """
-        if self.name != other.name:
-            if self.name is None or other.name is None:
-                name = self.name or other.name
-            else:
-                name = None
-            if self.name != name:
-                return self._shallow_copy(name=name)
+        name = get_op_result_name(self, other)
+        if self.name != name:
+            return self._shallow_copy(name=name)
         return self
 
     def union(self, other):
@@ -2763,10 +2781,10 @@ class Index(IndexOpsMixin, PandasObject):
         other = ensure_index(other)
 
         if len(other) == 0 or self.equals(other):
-            return self._get_consensus_name(other)
+            return self._get_reconciled_name_object(other)
 
         if len(self) == 0:
-            return other._get_consensus_name(self)
+            return other._get_reconciled_name_object(self)
 
         # TODO: is_dtype_union_equal is a hack around
         # 1. buggy set ops with duplicates (GH #13432)
@@ -2829,11 +2847,10 @@ class Index(IndexOpsMixin, PandasObject):
                                   stacklevel=3)
 
         # for subclasses
-        return self._wrap_union_result(other, result)
+        return self._wrap_setop_result(other, result)
 
-    def _wrap_union_result(self, other, result):
-        name = self.name if self.name == other.name else None
-        return self.__class__(result, name=name)
+    def _wrap_setop_result(self, other, result):
+        return self._constructor(result, name=get_op_result_name(self, other))
 
     def intersection(self, other):
         """
@@ -2863,7 +2880,7 @@ class Index(IndexOpsMixin, PandasObject):
         other = ensure_index(other)
 
         if self.equals(other):
-            return self._get_consensus_name(other)
+            return self._get_reconciled_name_object(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
@@ -2883,7 +2900,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_monotonic and other.is_monotonic:
             try:
                 result = self._inner_indexer(lvals, rvals)[0]
-                return self._wrap_union_result(other, result)
+                return self._wrap_setop_result(other, result)
             except TypeError:
                 pass
 
@@ -2929,7 +2946,8 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
 
         if self.equals(other):
-            return self._shallow_copy([])
+            # pass an empty np.ndarray with the appropriate dtype
+            return self._shallow_copy(self._data[:0])
 
         other, result_name = self._convert_can_do_setop(other)
 
@@ -3697,7 +3715,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(target, Index) and len(target) == 0:
             attrs = self._get_attributes_dict()
             attrs.pop('freq', None)  # don't preserve freq
-            target = self._simple_new(None, dtype=self.dtype, **attrs)
+            values = self._data[:0]  # appropriately-dtyped empty array
+            target = self._simple_new(values, dtype=self.dtype, **attrs)
         else:
             target = ensure_index(target)
 
@@ -4151,7 +4170,7 @@ class Index(IndexOpsMixin, PandasObject):
             return join_index
 
     def _wrap_joined_index(self, joined, other):
-        name = self.name if self.name == other.name else None
+        name = get_op_result_name(self, other)
         return Index(joined, name=name)
 
     def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
@@ -4684,6 +4703,13 @@ class Index(IndexOpsMixin, PandasObject):
     def _evaluate_with_timedelta_like(self, other, op):
         # Timedelta knows how to operate with np.array, so dispatch to that
         # operation and then wrap the results
+        if self._is_numeric_dtype and op.__name__ in ['add', 'sub',
+                                                      'radd', 'rsub']:
+            raise TypeError("Operation {opname} between {cls} and {other} "
+                            "is invalid".format(opname=op.__name__,
+                                                cls=self.dtype,
+                                                other=type(other).__name__))
+
         other = Timedelta(other)
         values = self.values
 

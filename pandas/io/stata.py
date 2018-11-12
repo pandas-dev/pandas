@@ -10,31 +10,33 @@ You can find more information on http://presbrey.mit.edu/PyDTA and
 http://www.statsmodels.org/devel/
 """
 
+from collections import OrderedDict
 import datetime
 import struct
 import sys
-from collections import OrderedDict
 import warnings
 
-import numpy as np
 from dateutil.relativedelta import relativedelta
+import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
+from pandas.compat import (
+    BytesIO, lmap, lrange, lzip, range, string_types, text_type, zip)
+from pandas.util._decorators import Appender, deprecate_kwarg
 
-from pandas import compat, to_timedelta, to_datetime, isna, DatetimeIndex
-from pandas.compat import (lrange, lmap, lzip, text_type, string_types, range,
-                           zip, BytesIO)
+from pandas.core.dtypes.common import (
+    ensure_object, is_categorical_dtype, is_datetime64_dtype)
+
+from pandas import DatetimeIndex, compat, isna, to_datetime, to_timedelta
 from pandas.core.arrays import Categorical
 from pandas.core.base import StringMixin
-from pandas.core.dtypes.common import (is_categorical_dtype, ensure_object,
-                                       is_datetime64_dtype)
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
-from pandas.io.common import (get_filepath_or_buffer, BaseIterator,
-                              _stringify_path)
-from pandas.util._decorators import Appender, deprecate_kwarg
+
+from pandas.io.common import (
+    BaseIterator, _stringify_path, get_filepath_or_buffer)
 
 _version_error = ("Version of given Stata file is not 104, 105, 108, "
                   "111 (Stata 7SE), 113 (Stata 8/9), 114 (Stata 10/11), "

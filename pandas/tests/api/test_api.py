@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
 
-import pytest
 import pandas as pd
 from pandas import api
 from pandas.util import testing as tm
@@ -30,11 +29,11 @@ class TestPDApi(Base):
 
     # top-level sub-packages
     lib = ['api', 'compat', 'core', 'errors', 'pandas',
-           'plotting', 'test', 'testing', 'tools', 'tseries',
+           'plotting', 'test', 'testing', 'tseries',
            'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = ['parser', 'lib', 'tslib']
+    deprecated_modules = []
 
     # misc
     misc = ['IndexSlice', 'NaT']
@@ -49,7 +48,7 @@ class TestPDApi(Base):
                'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['TimeGrouper', 'Expr', 'Term']
+    deprecated_classes = ['TimeGrouper']
 
     # these should be deprecated in the future
     deprecated_classes_in_future = ['Panel']
@@ -89,8 +88,7 @@ class TestPDApi(Base):
     deprecated_funcs_in_future = []
 
     # these are already deprecated; awaiting removal
-    deprecated_funcs = ['pnow', 'match', 'groupby', 'get_store',
-                        'plot_params', 'scatter_matrix']
+    deprecated_funcs = []
 
     def test_api(self):
 
@@ -131,80 +129,10 @@ class TestTopLevelDeprecations(object):
     # top-level API deprecations
     # GH 13790
 
-    def test_pnow(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.pnow(freq='M')
-
-    def test_term(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.Term('index>=date')
-
-    def test_expr(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.Expr('2>1')
-
-    def test_match(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.match([1, 2, 3], [1])
-
-    def test_groupby(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.groupby(pd.Series([1, 2, 3]), [1, 1, 1])
-
     def test_TimeGrouper(self):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             pd.TimeGrouper(freq='D')
-
-    # GH 15940
-
-    def test_get_store(self):
-        pytest.importorskip('tables')
-        with tm.ensure_clean() as path:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                s = pd.get_store(path)
-                s.close()
-
-
-class TestParser(object):
-
-    @pytest.mark.filterwarnings("ignore")
-    def test_deprecation_access_func(self):
-        pd.parser.na_values
-
-
-class TestLib(object):
-
-    @pytest.mark.filterwarnings("ignore")
-    def test_deprecation_access_func(self):
-        pd.lib.infer_dtype('foo')
-
-
-class TestTSLib(object):
-
-    @pytest.mark.filterwarnings("ignore")
-    def test_deprecation_access_func(self):
-        pd.tslib.Timestamp('20160101')
-
-
-class TestTypes(object):
-
-    def test_deprecation_access_func(self):
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            from pandas.types.concat import union_categoricals
-            c1 = pd.Categorical(list('aabc'))
-            c2 = pd.Categorical(list('abcd'))
-            union_categoricals(
-                [c1, c2],
-                sort_categories=True,
-                ignore_order=True)
 
 
 class TestCDateRange(object):

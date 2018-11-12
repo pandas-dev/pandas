@@ -2,8 +2,8 @@
 
 import numpy as np
 
-import pandas.util.testing as tm
 from pandas import Categorical, Index
+import pandas.util.testing as tm
 
 
 class TestCategoricalSort(object):

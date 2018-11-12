@@ -61,9 +61,12 @@ def test_bs4_version_fails(monkeypatch, datapath):
 
 
 def test_invalid_flavor():
-    url = 'google.com'
-    with pytest.raises(ValueError):
-        read_html(url, 'google', flavor='not a* valid**++ flaver')
+    url = "google.com"
+    flavor = "invalid flavor"
+    msg = r"\{" + flavor + r"\} is not a valid set of flavors"
+
+    with tm.assert_raises_regex(ValueError, msg):
+        read_html(url, "google", flavor=flavor)
 
 
 @td.skip_if_no('bs4')
@@ -270,7 +273,7 @@ class TestReadHtml(object):
                 self.read_html('http://www.a23950sdfa908sd.com',
                                match='.*Water.*')
         except ValueError as e:
-            assert str(e) == 'No tables found'
+            assert 'No tables found' in str(e)
 
     @pytest.mark.slow
     def test_file_url(self):

@@ -15,7 +15,6 @@ pycodestyle:
         - E402,  # module level import not at top of file
         - E722,  # do not use bare except
         - E731,  # do not assign a lambda expression, use a def
-        - E741,  # ambiguous variable name 'l'
         - C406,  # Unnecessary list literal - rewrite as a dict literal.
         - C408,  # Unnecessary dict call - rewrite as a literal.
         - C409   # Unnecessary list passed to tuple() - rewrite as a tuple literal.

@@ -1,12 +1,13 @@
-import operator
 import collections
+import operator
 
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
 from pandas.compat import PY2, PY36
+
+import pandas as pd
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
 
@@ -138,7 +139,11 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
-    pass
+    @pytest.mark.xfail(reason="dict for NA", strict=True)
+    def test_unstack(self, data, index):
+        # The base test has NaN for the expected NA value.
+        # this matches otherwise
+        return super().test_unstack(data, index)
 
 
 class TestGetitem(BaseJSON, base.BaseGetitemTests):

@@ -1,7 +1,6 @@
 """
 datetimelike delegation
 """
-
 import numpy as np
 
 from pandas.core.dtypes.generic import ABCSeries
@@ -15,7 +14,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.period import PeriodArray
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.algorithms import take_1d
 
@@ -46,7 +45,8 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         else:
             if is_period_arraylike(data):
-                return PeriodIndex(data, copy=False, name=self.name)
+                # TODO: use to_period_array
+                return PeriodArray(data, copy=False)
             if is_datetime_arraylike(data):
                 return DatetimeIndex(data, copy=False, name=self.name)
 
@@ -270,11 +270,11 @@ class TimedeltaProperties(Properties):
         return self._get_values().inferred_freq
 
 
-@delegate_names(delegate=PeriodIndex,
-                accessors=PeriodIndex._datetimelike_ops,
+@delegate_names(delegate=PeriodArray,
+                accessors=PeriodArray._datetimelike_ops,
                 typ="property")
-@delegate_names(delegate=PeriodIndex,
-                accessors=PeriodIndex._datetimelike_methods,
+@delegate_names(delegate=PeriodArray,
+                accessors=PeriodArray._datetimelike_methods,
                 typ="method")
 class PeriodProperties(Properties):
     """

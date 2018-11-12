@@ -1,37 +1,34 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
-from datetime import datetime, timedelta
-from decimal import Decimal
-from collections import defaultdict
-
-import pandas.util.testing as tm
-from pandas.core.dtypes.generic import ABCIndex
-from pandas.core.dtypes.common import is_unsigned_integer_dtype
-from pandas.core.indexes.api import Index, MultiIndex
-from pandas.tests.indexes.common import Base
-
-from pandas.compat import (range, lrange, lzip, u,
-                           text_type, zip, PY3, PY35, PY36, StringIO)
 import math
 import operator
+from collections import defaultdict
+from datetime import datetime, timedelta
+from decimal import Decimal
+
 import numpy as np
-
-from pandas import (period_range, date_range, Series,
-                    DataFrame, Float64Index, Int64Index, UInt64Index,
-                    CategoricalIndex, DatetimeIndex, TimedeltaIndex,
-                    PeriodIndex, RangeIndex, isna)
-from pandas.core.index import _get_combined_index, ensure_index_from_sequences
-from pandas.util.testing import assert_almost_equal
-from pandas.compat.numpy import np_datetime64_compat
-
-import pandas.core.config as cf
-
-from pandas.core.indexes.datetimes import _to_m8
+import pytest
 
 import pandas as pd
+import pandas.core.config as cf
+import pandas.util.testing as tm
+from pandas import (
+    CategoricalIndex, DataFrame, DatetimeIndex, Float64Index, Int64Index,
+    PeriodIndex, RangeIndex, Series, TimedeltaIndex, UInt64Index, date_range,
+    isna, period_range
+)
 from pandas._libs.tslib import Timestamp
+from pandas.compat import (
+    PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip
+)
+from pandas.compat.numpy import np_datetime64_compat
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
+from pandas.core.dtypes.generic import ABCIndex
+from pandas.core.index import _get_combined_index, ensure_index_from_sequences
+from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.datetimes import _to_m8
+from pandas.tests.indexes.common import Base
+from pandas.util.testing import assert_almost_equal
 
 
 class TestIndex(Base):
@@ -789,6 +786,67 @@ class TestIndex(Base):
 
         assert len(result) == 0
 
+    @pytest.mark.parametrize(
+        'fname, sname, expected_name',
+        [
+            ('A', 'A', 'A'),
+            ('A', 'B', None),
+            ('A', None, None),
+            (None, 'B', None),
+            (None, None, None),
+        ])
+    def test_corner_union(self, indices, fname, sname, expected_name):
+        # GH 9943 9862
+        # Test unions with various name combinations
+        # Do not test MultiIndex or repeats
+
+        if isinstance(indices, MultiIndex) or not indices.is_unique:
+            pytest.skip("Not for MultiIndex or repeated indices")
+
+        # Test copy.union(copy)
+        first = indices.copy().set_names(fname)
+        second = indices.copy().set_names(sname)
+        union = first.union(second)
+        expected = indices.copy().set_names(expected_name)
+        tm.assert_index_equal(union, expected)
+
+        # Test copy.union(empty)
+        first = indices.copy().set_names(fname)
+        second = indices.drop(indices).set_names(sname)
+        union = first.union(second)
+        expected = indices.copy().set_names(expected_name)
+        tm.assert_index_equal(union, expected)
+
+        # Test empty.union(copy)
+        first = indices.drop(indices).set_names(fname)
+        second = indices.copy().set_names(sname)
+        union = first.union(second)
+        expected = indices.copy().set_names(expected_name)
+        tm.assert_index_equal(union, expected)
+
+        # Test empty.union(empty)
+        first = indices.drop(indices).set_names(fname)
+        second = indices.drop(indices).set_names(sname)
+        union = first.union(second)
+        expected = indices.drop(indices).set_names(expected_name)
+        tm.assert_index_equal(union, expected)
+
+    def test_chained_union(self):
+        # Chained unions handles names correctly
+        i1 = Index([1, 2], name='i1')
+        i2 = Index([3, 4], name='i2')
+        i3 = Index([5, 6], name='i3')
+        union = i1.union(i2.union(i3))
+        expected = i1.union(i2).union(i3)
+        tm.assert_index_equal(union, expected)
+
+        j1 = Index([1, 2], name='j1')
+        j2 = Index([], name='j2')
+        j3 = Index([], name='j3')
+        union = j1.union(j2.union(j3))
+        expected = j1.union(j2).union(j3)
+        tm.assert_index_equal(union, expected)
+
     def test_union(self):
         # TODO: Replace with fixturesult
         first = self.strIndex[5:20]
@@ -827,7 +885,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("first_list", [list('ab'), list()])
     @pytest.mark.parametrize("second_list", [list('ab'), list()])
     @pytest.mark.parametrize("first_name, second_name, expected_name", [
-        ('A', 'B', None), (None, 'B', 'B'), ('A', None, 'A')])
+        ('A', 'B', None), (None, 'B', None), ('A', None, None)])
     def test_union_name_preservation(self, first_list, second_list, first_name,
                                      second_name, expected_name):
         first = Index(first_list, name=first_name)
@@ -2427,10 +2485,10 @@ class TestMixedIntIndex(Base):
         pd.to_datetime(['2000-01-01', 'NaT', '2000-01-02']),
         pd.to_timedelta(['1 day', 'NaT'])])
     def test_is_monotonic_na(self, index):
-        assert not index.is_monotonic_increasing
-        assert not index.is_monotonic_decreasing
-        assert not index._is_strictly_monotonic_increasing
-        assert not index._is_strictly_monotonic_decreasing
+        assert index.is_monotonic_increasing is False
+        assert index.is_monotonic_decreasing is False
+        assert index._is_strictly_monotonic_increasing is False
+        assert index._is_strictly_monotonic_decreasing is False
 
     def test_repr_summary(self):
         with cf.option_context('display.max_seq_items', 10):
@@ -2530,3 +2588,32 @@ def test_index_subclass_constructor_wrong_kwargs(index_maker):
     # GH #19348
     with tm.assert_raises_regex(TypeError, 'unexpected keyword argument'):
         index_maker(foo='bar')
+
+
+def test_deprecated_fastpath():
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx = pd.Index(
+            np.array(['a', 'b'], dtype=object), name='test', fastpath=True)
+
+    expected = pd.Index(['a', 'b'], name='test')
+    tm.assert_index_equal(idx, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx = pd.Int64Index(
+            np.array([1, 2, 3], dtype='int64'), name='test', fastpath=True)
+
+    expected = pd.Index([1, 2, 3], name='test', dtype='int64')
+    tm.assert_index_equal(idx, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx = pd.RangeIndex(0, 5, 2, name='test', fastpath=True)
+
+    expected = pd.RangeIndex(0, 5, 2, name='test')
+    tm.assert_index_equal(idx, expected)
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx = pd.CategoricalIndex(['a', 'b', 'c'], name='test', fastpath=True)
+
+    expected = pd.CategoricalIndex(['a', 'b', 'c'], name='test')
+    tm.assert_index_equal(idx, expected)

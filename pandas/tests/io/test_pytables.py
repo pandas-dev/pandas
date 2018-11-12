@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import is_categorical_dtype
 tables = pytest.importorskip('tables')
 from pandas.io import pytables as pytables  # noqa:E402
 from pandas.io.pytables import (TableIterator,  # noqa:E402
-                                HDFStore, get_store, Term, read_hdf,
+                                HDFStore, Term, read_hdf,
                                 PossibleDataLossError, ClosedFileError)
 
 
@@ -145,32 +145,6 @@ class Base(object):
 @pytest.mark.single
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
-
-    def test_factory_fun(self):
-        path = create_tempfile(self.path)
-        try:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                with get_store(path) as tbl:
-                    raise ValueError('blah')
-        except ValueError:
-            pass
-        finally:
-            safe_remove(path)
-
-        try:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                with get_store(path) as tbl:
-                    tbl['a'] = tm.makeDataFrame()
-
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                with get_store(path) as tbl:
-                    assert len(tbl) == 1
-                    assert type(tbl['a']) == DataFrame
-        finally:
-            safe_remove(self.path)
 
     def test_context(self):
         path = create_tempfile(self.path)
@@ -1371,8 +1345,8 @@ class TestHDFStore(Base):
             with catch_warnings(record=True):
                 simplefilter("ignore", FutureWarning)
                 wp = tm.makePanel()
-                wp2 = wp.rename_axis(
-                    {x: "%s_extra" % x for x in wp.minor_axis}, axis=2)
+                wp2 = wp.rename(
+                    minor_axis={x: "%s_extra" % x for x in wp.minor_axis})
 
                 def check_col(key, name, size):
                     assert getattr(store.get_storer(key)
@@ -1507,6 +1481,16 @@ class TestHDFStore(Base):
             _maybe_remove(store, 'df')
             pytest.raises(ValueError, store.append, 'df',
                           df, min_itemsize={'foo': 20, 'foobar': 20})
+
+    def test_append_with_empty_string(self):
+
+        with ensure_clean_store(self.path) as store:
+
+            # with all empty strings (GH 12242)
+            df = DataFrame({'x': ['a', 'b', 'c', 'd', 'e', 'f', '']})
+            store.append('df', df[:-1], min_itemsize={'x': 1})
+            store.append('df', df[-1:], min_itemsize={'x': 1})
+            tm.assert_frame_equal(store.select('df'), df)
 
     def test_to_hdf_with_min_itemsize(self):
 
@@ -2182,14 +2166,14 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
 
-            l = [('date', datetime.date(2001, 1, 2))]
+            dtypes = [('date', datetime.date(2001, 1, 2))]
 
             # py3 ok for unicode
             if not compat.PY3:
-                l.append(('unicode', u('\\u03c3')))
+                dtypes.append(('unicode', u('\\u03c3')))
 
             # currently not supported dtypes ####
-            for n, f in l:
+            for n, f in dtypes:
                 df = tm.makeDataFrame()
                 df[n] = f
                 pytest.raises(
