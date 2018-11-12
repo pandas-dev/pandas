@@ -702,7 +702,7 @@ Index Types
 
 We have discussed ``MultiIndex`` in the previous sections pretty extensively.
 Documentation about ``DatetimeIndex`` and ``PeriodIndex`` are shown :ref:`here <timeseries.overview>`,
-and documentation about ``TimedeltaIndex`` is found :ref:`here <timedeltas.timedeltaindex>`.
+and documentation about ``TimedeltaIndex`` is found :ref:`here <timedeltas.index>`.
 
 In the following sub-sections we will highlight some other index types.
 
