@@ -14,6 +14,7 @@ dependencies:
   - flake8
   - flake8-comprehensions
   - flake8-rst
+  - gitpython
   - hypothesis>=3.58.0
   - isort
   - moto
