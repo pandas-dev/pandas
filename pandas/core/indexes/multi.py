@@ -1423,7 +1423,7 @@ class MultiIndex(Index):
         return MultiIndex(levels, labels, sortorder=sortorder, names=names)
 
     @classmethod
-    def from_frame(cls, df, sortorder=None, names=None, squeeze=True):
+    def from_frame(cls, df, sortorder=None, names=None):
         """
         Make a MultiIndex from a DataFrame.
 
@@ -1440,14 +1440,11 @@ class MultiIndex(Index):
             If no names are provided, use the column names, or tuple of column
             names if the columns is a MultiIndex. If a sequence, overwrite
             names with the given sequence.
-        squeeze : bool, default True
-            If df is a single column, squeeze MultiIndex to be a regular Index.
 
         Returns
         -------
         MultiIndex or Index
-            The MultiIndex representation of the given DataFrame. Returns an
-            Index if the DataFrame is single column and squeeze is True.
+            The MultiIndex representation of the given DataFrame.
 
         Examples
         --------
@@ -1466,18 +1463,6 @@ class MultiIndex(Index):
         MultiIndex(levels=[[0, 1, 2], ['happy', 'jolly', 'joy']],
                    labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 2, 2]],
                    names=['number', 'mood'])
-
-        >>> df = pd.DataFrame([[0], [1]], columns=['number'])
-        >>> df
-           number
-        0       0
-        1       1
-        >>> pd.MultiIndex.from_frame(df)
-        Int64Index([0, 1], dtype='int64', name='number')
-        >>> pd.MultiIndex.from_frame(df, squeeze=False)
-        MultiIndex(levels=[[0, 1]],
-                   labels=[[0, 1]],
-                   names=['number'])
 
         See Also
         --------
@@ -1502,14 +1487,9 @@ class MultiIndex(Index):
                             "names.")
 
         # This way will preserve dtype of columns
-        mi = cls.from_arrays([df.iloc[:, x] for x in range(len(df.columns))],
-                             sortorder=sortorder,
-                             names=names)
-
-        if squeeze and len(mi.levels) == 1:
-            return mi.get_level_values(0)
-        else:
-            return mi
+        return cls.from_arrays([df.iloc[:, x] for x in range(len(df.columns))],
+                               sortorder=sortorder,
+                               names=names)
 
     def _sort_levels_monotonic(self):
         """

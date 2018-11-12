@@ -497,30 +497,6 @@ def test_from_frame():
     tm.assert_index_equal(expected, result)
 
 
-@pytest.mark.parametrize('squeeze,input_type,expected', [
-    (True, 'multi', pd.MultiIndex.from_tuples([('a', 'a'), ('a', 'b'),
-                                               ('b', 'a'), ('b', 'b')],
-                                              names=['L1', 'L2'])),
-    (True, 'single', pd.Index(['a', 'a', 'b', 'b'], name='L1')),
-    (False, 'multi', pd.MultiIndex.from_tuples([('a', 'a'), ('a', 'b'),
-                                                ('b', 'a'), ('b', 'b')],
-                                               names=['L1', 'L2'])),
-    (False, 'single', pd.MultiIndex.from_tuples([('a',), ('a',),
-                                                 ('b',), ('b',)],
-                                                names=['L1']))
-])
-def test_from_frame_squeeze(squeeze, input_type, expected):
-    # GH 22420
-    if input_type == 'multi':
-        df = pd.DataFrame([['a', 'a'], ['a', 'b'], ['b', 'a'], ['b', 'b']],
-                          columns=['L1', 'L2'])
-    elif input_type == 'single':
-        df = pd.DataFrame([['a'], ['a'], ['b'], ['b']], columns=['L1'])
-
-    result = pd.MultiIndex.from_frame(df, squeeze=squeeze)
-    tm.assert_index_equal(expected, result)
-
-
 @pytest.mark.parametrize('non_frame', [
     pd.Series([1, 2, 3, 4]),
     [1, 2, 3, 4],
