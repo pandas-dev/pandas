@@ -58,9 +58,10 @@ class TestCut(object):
         
         # Test that a `bin` string not present in `np.histogram_bin_edges`
         # throws a ValueError.
-        tm.assert_raises_regex(ValueError, 
-            "'*' is not a valid estimator for `bins`", 
-            cut, data, "bad bins")
+        with pytest.raises(ValueError,
+            match="'*' is not a valid estimator for `bins`", 
+            message="Verify acceptable bins in `np.histogram_bin_edges`."):
+                cut(data, bins="bad bins")
 
     def test_right(self):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
