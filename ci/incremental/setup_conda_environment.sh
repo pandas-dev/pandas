@@ -17,6 +17,7 @@ conda remove --all -q -y -n $CONDA_ENV
 echo
 echo "[create env]"
 time conda env create -q -n "${CONDA_ENV}" --file="${ENV_FILE}" || exit 1
+conda list -e
 
 # Activate first
 set +v
@@ -37,6 +38,8 @@ conda list pandas
 if [ -n "$LOCALE_OVERRIDE" ]; then
     sudo locale-gen "$LOCALE_OVERRIDE"
 fi
+
+conda list -e
 
 # # Install the compiler toolchain
 # if [[ $(uname) == Linux ]]; then

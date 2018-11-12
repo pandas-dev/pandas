@@ -205,7 +205,7 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Validate docstrings (SS04, PR03, PR05, EX04)' ; echo $MSG
-    scripts/validate_docstrings.py --format=azure --errors=SS04,PR03,PR05,EX04
+    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=SS04,PR03,PR05,EX04
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -214,7 +214,7 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "dependencies" ]]; then
 
     MSG='Check that requirements-dev.txt has been generated from environment.yml' ; echo $MSG
-    $BASE_DIR/scripts/generate_pip_deps_from_conda.py --compare
+    $BASE_DIR/scripts/generate_pip_deps_from_conda.py --compare --azure
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
