@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 
 from pandas._libs import properties, Timestamp, iNaT
+from pandas.errors import AbstractMethodError
+
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
@@ -200,7 +202,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """Used when a manipulation result has the same dimensions as the
         original.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def __unicode__(self):
         # unicode representation based upon iterating over self
@@ -221,7 +223,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """Used when a manipulation result has one lower dimension(s) as the
         original, such as DataFrame single columns slicing.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     @property
     def _constructor_expanddim(self):
@@ -2884,7 +2886,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return lower
 
     def _box_item_values(self, key, values):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _maybe_cache_changed(self, item, value):
         """The object has called back to us saying maybe it has changed.

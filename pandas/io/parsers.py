@@ -21,7 +21,8 @@ from pandas._libs.tslibs import parsing
 import pandas.compat as compat
 from pandas.compat import (
     PY3, StringIO, lrange, lzip, map, range, string_types, u, zip)
-from pandas.errors import EmptyDataError, ParserError, ParserWarning
+from pandas.errors import (
+    AbstractMethodError, EmptyDataError, ParserError, ParserWarning)
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -34,7 +35,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
-import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.index import (
     Index, MultiIndex, RangeIndex, ensure_index_from_sequences)
@@ -1064,7 +1064,7 @@ class TextFileReader(BaseIterator):
             self._engine = klass(self.f, **self.options)
 
     def _failover_to_python(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def read(self, nrows=None):
         nrows = _validate_integer('nrows', nrows)

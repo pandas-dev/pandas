@@ -56,6 +56,9 @@ from pandas.io.formats.printing import pprint_thing
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
 DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
+ALLOWED_SECTIONS = ['Parameters', 'Attributes', 'Methods', 'Returns', 'Yields',
+                    'Other Parameters', 'Raises', 'Warns', 'See Also', 'Notes',
+                    'References', 'Examples']
 ERROR_MSGS = {
     'GL01': 'Docstring text (summary) should start in the line immediately '
             'after the opening quotes (not in the same line, or leaving a '
@@ -69,6 +72,10 @@ ERROR_MSGS = {
             'mentioned in public docstrings',
     'GL05': 'Tabs found at the start of line "{line_with_tabs}", please use '
             'whitespace only',
+    'GL06': 'Found unknown section "{section}". Allowed sections are: '
+            '{allowed_sections}',
+    'GL07': 'Wrong order of sections. "{wrong_section}" should be located '
+            'before "{goes_before}", the right order is: {sorted_sections}',
     'SS01': 'No summary found (a short summary in a single line should be '
             'present at the beginning of the docstring)',
     'SS02': 'Summary does not start with a capital letter',
@@ -354,6 +361,18 @@ class Docstring(object):
         return False
 
     @property
+    def section_titles(self):
+        sections = []
+        self.doc._doc.reset()
+        while not self.doc._doc.eof():
+            content = self.doc._read_to_next_section()
+            if (len(content) > 1
+                    and len(content[0]) == len(content[1])
+                    and set(content[1]) == {'-'}):
+                sections.append(content[0])
+        return sections
+
+    @property
     def summary(self):
         return ' '.join(self.doc['Summary'])
 
@@ -579,6 +598,25 @@ def validate_one(func_name):
     for line in doc.raw_doc.splitlines():
         if re.match("^ *\t", line):
             errs.append(error('GL05', line_with_tabs=line.lstrip()))
+
+    unseen_sections = list(ALLOWED_SECTIONS)
+    for section in doc.section_titles:
+        if section not in ALLOWED_SECTIONS:
+            errs.append(error('GL06',
+                              section=section,
+                              allowed_sections=', '.join(ALLOWED_SECTIONS)))
+        else:
+            if section in unseen_sections:
+                section_idx = unseen_sections.index(section)
+                unseen_sections = unseen_sections[section_idx + 1:]
+            else:
+                section_idx = ALLOWED_SECTIONS.index(section)
+                goes_before = ALLOWED_SECTIONS[section_idx + 1]
+                errs.append(error('GL07',
+                                  sorted_sections=' > '.join(ALLOWED_SECTIONS),
+                                  wrong_section=section,
+                                  goes_before=goes_before))
+                break
 
     if not doc.summary:
         errs.append(error('SS01'))
