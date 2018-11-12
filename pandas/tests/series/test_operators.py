@@ -14,6 +14,7 @@ import pandas as pd
 from pandas import (
     Categorical, DataFrame, Index, NaT, Series, bdate_range, date_range, isna)
 from pandas.core import ops
+from pandas.core.indexes.base import InvalidIndexError
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 from pandas.util.testing import (
@@ -198,11 +199,14 @@ class TestSeriesLogicalOps(object):
         pytest.param(ops.ror_,
                      marks=pytest.mark.xfail(reason="GH#22092 Index "
                                                     "implementation raises",
-                                             raises=ValueError, strict=True)),
+                                             raises=InvalidIndexError,
+                                             strict=True)),
         pytest.param(ops.rxor,
                      marks=pytest.mark.xfail(reason="GH#22092 Index "
-                                                    "implementation raises",
-                                             raises=TypeError, strict=True))
+                                                    "implementation returns "
+                                                    "Index",
+                                             raises=AssertionError,
+                                             strict=True))
     ])
     def test_logical_ops_with_index(self, op):
         # GH#22092, GH#19792
