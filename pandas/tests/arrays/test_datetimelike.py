@@ -58,60 +58,60 @@ def timedelta_index(request):
 
 class SharedTests(object):
     index_cls = None
-    
+
     def test_take(self):
         data = np.arange(100, dtype='i8')
         np.random.shuffle(data)
-        
+
         idx = self.index_cls._simple_new(data, freq='D')
         arr = self.array_cls(idx)
-        
+
         takers = [1, 4, 94]
         result = arr.take(takers)
         expected = idx.take(takers)
-        
+
         tm.assert_index_equal(self.index_cls(result), expected)
-        
+
         takers = np.array([1, 4, 94])
         result = arr.take(takers)
         expected = idx.take(takers)
-        
+
         tm.assert_index_equal(self.index_cls(result), expected)
-    
+
     def test_take_fill(self):
         data = np.arange(10, dtype='i8')
-        
+
         idx = self.index_cls._simple_new(data, freq='D')
         arr = self.array_cls(idx)
-        
+
         result = arr.take([-1, 1], allow_fill=True, fill_value=None)
         assert result[0] is pd.NaT
-        
+
         result = arr.take([-1, 1], allow_fill=True, fill_value=np.nan)
         assert result[0] is pd.NaT
-        
+
         result = arr.take([-1, 1], allow_fill=True, fill_value=pd.NaT)
         assert result[0] is pd.NaT
-        
+
         with pytest.raises(ValueError):
             arr.take([0, 1], allow_fill=True, fill_value=2)
-        
+
         with pytest.raises(ValueError):
             arr.take([0, 1], allow_fill=True, fill_value=2.0)
-        
+
         with pytest.raises(ValueError):
             arr.take([0, 1], allow_fill=True,
                      fill_value=pd.Timestamp.now().time)
-    
+
     def test_concat_same_type(self):
         data = np.arange(10, dtype='i8')
-        
+
         idx = self.index_cls._simple_new(data, freq='D').insert(0, pd.NaT)
         arr = self.array_cls(idx)
-        
+
         result = arr._concat_same_type([arr[:-1], arr[1:], arr])
         expected = idx._concat_same_dtype([idx[:-1], idx[1:], idx], None)
-        
+
         tm.assert_index_equal(self.index_cls(result), expected)
 
 
