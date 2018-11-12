@@ -314,11 +314,11 @@ class TestArithmeticOps(BaseOpsUtil):
 
 class TestComparisonOps(BaseOpsUtil):
 
-    def _compare_other(self, s, data, op_name, other):
+    def _compare_other(self, data, op_name, other):
         op = self.get_op_from_name(op_name)
 
         # array
-        result = op(s, other)
+        result = pd.Series(op(data, other))
         expected = pd.Series(op(data._data, other))
 
         # fill the nan locations
@@ -340,14 +340,12 @@ class TestComparisonOps(BaseOpsUtil):
 
     def test_compare_scalar(self, data, all_compare_operators):
         op_name = all_compare_operators
-        s = pd.Series(data)
-        self._compare_other(s, data, op_name, 0)
+        self._compare_other(data, op_name, 0)
 
     def test_compare_array(self, data, all_compare_operators):
         op_name = all_compare_operators
-        s = pd.Series(data)
         other = pd.Series([0] * len(data))
-        self._compare_other(s, data, op_name, other)
+        self._compare_other(data, op_name, other)
 
 
 class TestCasting(object):

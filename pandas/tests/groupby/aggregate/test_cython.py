@@ -9,7 +9,6 @@ from __future__ import print_function
 import pytest
 
 import numpy as np
-from numpy import nan
 import pandas as pd
 
 from pandas import (bdate_range, DataFrame, Index, Series, Timestamp,
@@ -36,11 +35,11 @@ import pandas.util.testing as tm
     'max',
 ])
 def test_cythonized_aggers(op_name):
-    data = {'A': [0, 0, 0, 0, 1, 1, 1, 1, 1, 1., nan, nan],
+    data = {'A': [0, 0, 0, 0, 1, 1, 1, 1, 1, 1., np.nan, np.nan],
             'B': ['A', 'B'] * 6,
             'C': np.random.randn(12)}
     df = DataFrame(data)
-    df.loc[2:10:2, 'C'] = nan
+    df.loc[2:10:2, 'C'] = np.nan
 
     op = lambda x: getattr(x, op_name)()
 
