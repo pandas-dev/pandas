@@ -23,7 +23,7 @@ This module supports the following requirements:
 - all options in a certain sub - namespace can be reset at once.
 - the user can set / get / reset or ask for the description of an option.
 - a developer can register and mark an option as deprecated.
-- you can register a callback to be invoked when the the option value
+- you can register a callback to be invoked when the option value
   is set or reset. Changing the stored value is considered misuse, but
   is not verboten.
 
@@ -33,8 +33,8 @@ Implementation
 - Data is stored using nested dictionaries, and should be accessed
   through the provided API.
 
-- "Registered options" and "Deprecated options" have metadata associcated
-  with them, which are stored in auxilary dictionaries keyed on the
+- "Registered options" and "Deprecated options" have metadata associated
+  with them, which are stored in auxiliary dictionaries keyed on the
   fully-qualified key, e.g. "x.y.z.option".
 
 - the config_init module is imported by the package's __init__.py file.
@@ -51,13 +51,14 @@ Implementation
 import re
 
 from collections import namedtuple
+from contextlib import contextmanager
 import warnings
 from pandas.compat import map, lmap, u
 import pandas.compat as compat
 
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
-RegisteredOption = namedtuple(
-    'RegisteredOption', 'key defval doc validator cb')
+RegisteredOption = namedtuple('RegisteredOption',
+                              'key defval doc validator cb')
 
 _deprecated_options = {}  # holds deprecated option metdata
 _registered_options = {}  # holds registered option metdata
@@ -66,20 +67,20 @@ _reserved_keys = ['all']  # keys which have a special meaning
 
 
 class OptionError(AttributeError, KeyError):
-
     """Exception for pandas.options, backwards compatible with KeyError
-    checks"""
-
+    checks
+    """
 
 #
 # User API
+
 
 def _get_single_key(pat, silent):
     keys = _select_options(pat)
     if len(keys) == 0:
         if not silent:
             _warn_if_deprecated(pat)
-        raise OptionError('No such keys(s): %r' % pat)
+        raise OptionError('No such keys(s): {pat!r}'.format(pat=pat))
     if len(keys) > 1:
         raise OptionError('Pattern matched multiple keys')
     key = keys[0]
@@ -100,53 +101,37 @@ def _get_option(pat, silent=False):
     return root[k]
 
 
-def _set_single_option(pat, value, silent):
-    key = _get_single_key(pat, silent)
-
-    o = _get_registered_option(key)
-    if o and o.validator:
-        o.validator(value)
-
-    # walk the nested dict
-    root, k = _get_root(key)
-    root[k] = value
-
-    if o.cb:
-        o.cb(key)
-
-
-def _set_multiple_options(args, silent):
-    for k, v in zip(args[::2], args[1::2]):
-        _set_single_option(k, v, silent)
-
-
 def _set_option(*args, **kwargs):
     # must at least 1 arg deal with constraints later
     nargs = len(args)
     if not nargs or nargs % 2 != 0:
-        raise AssertionError("Must provide an even number of non-keyword "
-                             "arguments")
-
-    # must be 0 or 1 kwargs
-    nkwargs = len(kwargs)
-    if nkwargs not in (0, 1):
-        raise AssertionError("The can only be 0 or 1 keyword arguments")
-
-    # if 1 kwarg then it must be silent=True or silent=False
-    if nkwargs:
-        k, = list(kwargs.keys())
-        v, = list(kwargs.values())
-
-        if k != 'silent':
-            raise ValueError("the only allowed keyword argument is 'silent', "
-                             "you passed '{0}'".format(k))
-        if not isinstance(v, bool):
-            raise TypeError("the type of the keyword argument passed must be "
-                            "bool, you passed a {0}".format(v.__class__))
+        raise ValueError("Must provide an even number of non-keyword "
+                         "arguments")
 
     # default to false
-    silent = kwargs.get('silent', False)
-    _set_multiple_options(args, silent)
+    silent = kwargs.pop('silent', False)
+
+    if kwargs:
+        msg = '_set_option() got an unexpected keyword argument "{kwarg}"'
+        raise TypeError(msg.format(list(kwargs.keys())[0]))
+
+    for k, v in zip(args[::2], args[1::2]):
+        key = _get_single_key(k, silent)
+
+        o = _get_registered_option(key)
+        if o and o.validator:
+            o.validator(v)
+
+        # walk the nested dict
+        root, k = _get_root(key)
+        root[k] = v
+
+        if o.cb:
+            if silent:
+                with warnings.catch_warnings(record=True):
+                    o.cb(key)
+            else:
+                o.cb(key)
 
 
 def _describe_option(pat='', _print_desc=True):
@@ -165,7 +150,7 @@ def _describe_option(pat='', _print_desc=True):
         return s
 
 
-def _reset_option(pat):
+def _reset_option(pat, silent=False):
 
     keys = _select_options(pat)
 
@@ -179,7 +164,7 @@ def _reset_option(pat):
                          'value')
 
     for k in keys:
-        _set_option(k, _registered_options[k].defval)
+        _set_option(k, _registered_options[k].defval, silent=silent)
 
 
 def get_default_val(pat):
@@ -188,9 +173,7 @@ def get_default_val(pat):
 
 
 class DictWrapper(object):
-
-    """ provide attribute-style access to a nested dict
-    """
+    """ provide attribute-style access to a nested dict"""
 
     def __init__(self, d, prefix=""):
         object.__setattr__(self, "d", d)
@@ -213,7 +196,10 @@ class DictWrapper(object):
         if prefix:
             prefix += "."
         prefix += key
-        v = object.__getattribute__(self, "d")[key]
+        try:
+            v = object.__getattribute__(self, "d")[key]
+        except KeyError:
+            raise OptionError("No such option")
         if isinstance(v, dict):
             return DictWrapper(v, prefix)
         else:
@@ -222,12 +208,11 @@ class DictWrapper(object):
     def __dir__(self):
         return list(self.d.keys())
 
-
 # For user convenience,  we'd like to have the available options described
 # in the docstring. For dev convenience we'd like to generate the docstrings
 # dynamically instead of maintaining them by hand. To this, we use the
 # class below which wraps functions inside a callable, and converts
-# __doc__ into a propery function. The doctsrings below are templates
+# __doc__ into a property function. The doctsrings below are templates
 # using the py2.6+ advanced formatting syntax to plug in a concise list
 # of options, and option descriptions.
 
@@ -248,46 +233,57 @@ class CallableDynamicDoc(object):
         return self.__doc_tmpl__.format(opts_desc=opts_desc,
                                         opts_list=opts_list)
 
+
 _get_option_tmpl = """
-get_option(pat) - Retrieves the value of the specified option
+get_option(pat)
+
+Retrieves the value of the specified option.
 
 Available options:
+
 {opts_list}
 
 Parameters
 ----------
-pat - str/regexp which should match a single option.
-
-Note: partial matches are supported for convenience, but unless you use the
-full option name (e.g. x.y.z.option_name), your code may break in future
-versions if new options with similar names are introduced.
+pat : str
+    Regexp which should match a single option.
+    Note: partial matches are supported for convenience, but unless you use the
+    full option name (e.g. x.y.z.option_name), your code may break in future
+    versions if new options with similar names are introduced.
 
 Returns
 -------
-result - the value of the option
+result : the value of the option
 
 Raises
 ------
-OptionError if no such option exists
+OptionError : if no such option exists
+
+Notes
+-----
+The available options with its descriptions:
 
 {opts_desc}
 """
 
 _set_option_tmpl = """
-set_option(pat,value) - Sets the value of the specified option
+set_option(pat, value)
+
+Sets the value of the specified option.
 
 Available options:
+
 {opts_list}
 
 Parameters
 ----------
-pat - str/regexp which should match a single option.
-
-Note: partial matches are supported for convenience, but unless you use the
-full option name (e.g. x.y.z.option_name), your code may break in future
-versions if new options with similar names are introduced.
-
-value - new value of option.
+pat : str
+    Regexp which should match a single option.
+    Note: partial matches are supported for convenience, but unless you use the
+    full option name (e.g. x.y.z.option_name), your code may break in future
+    versions if new options with similar names are introduced.
+value :
+    new value of option.
 
 Returns
 -------
@@ -297,54 +293,71 @@ Raises
 ------
 OptionError if no such option exists
 
+Notes
+-----
+The available options with its descriptions:
+
 {opts_desc}
 """
 
 _describe_option_tmpl = """
-describe_option(pat,_print_desc=False) Prints the description
-for one or more registered options.
+describe_option(pat, _print_desc=False)
+
+Prints the description for one or more registered options.
 
 Call with not arguments to get a listing for all registered options.
 
 Available options:
+
 {opts_list}
 
 Parameters
 ----------
-pat - str, a regexp pattern. All matching keys will have their
-      description displayed.
-
-_print_desc - if True (default) the description(s) will be printed
-             to stdout otherwise, the description(s) will be returned
-             as a unicode string (for testing).
+pat : str
+    Regexp pattern. All matching keys will have their description displayed.
+_print_desc : bool, default True
+    If True (default) the description(s) will be printed to stdout.
+    Otherwise, the description(s) will be returned as a unicode string
+    (for testing).
 
 Returns
 -------
 None by default, the description(s) as a unicode string if _print_desc
 is False
 
+Notes
+-----
+The available options with its descriptions:
+
 {opts_desc}
 """
 
 _reset_option_tmpl = """
-reset_option(pat) - Reset one or more options to their default value.
+reset_option(pat)
+
+Reset one or more options to their default value.
 
 Pass "all" as argument to reset all options.
 
 Available options:
+
 {opts_list}
 
 Parameters
 ----------
-pat - str/regex  if specified only options matching `prefix`* will be reset
-
-Note: partial matches are supported for convenience, but unless you use the
-full option name (e.g. x.y.z.option_name), your code may break in future
-versions if new options with similar names are introduced.
+pat : str/regex
+    If specified only options matching `prefix*` will be reset.
+    Note: partial matches are supported for convenience, but unless you
+    use the full option name (e.g. x.y.z.option_name), your code may break
+    in future versions if new options with similar names are introduced.
 
 Returns
 -------
 None
+
+Notes
+-----
+The available options with its descriptions:
 
 {opts_desc}
 """
@@ -362,31 +375,40 @@ options = DictWrapper(_global_config)
 
 
 class option_context(object):
+    """
+    Context manager to temporarily set options in the `with` statement context.
+
+    You need to invoke as ``option_context(pat, val, [(pat, val), ...])``.
+
+    Examples
+    --------
+
+    >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
+    ...     ...
+
+    """
 
     def __init__(self, *args):
         if not (len(args) % 2 == 0 and len(args) >= 2):
-            raise AssertionError(
-                'Need to invoke as'
-                'option_context(pat, val, [(pat, val), ...)).'
-            )
+            raise ValueError('Need to invoke as'
+                             ' option_context(pat, val, [(pat, val), ...]).')
 
-        ops = list(zip(args[::2], args[1::2]))
+        self.ops = list(zip(args[::2], args[1::2]))
+
+    def __enter__(self):
         undo = []
-        for pat, val in ops:
+        for pat, val in self.ops:
             undo.append((pat, _get_option(pat, silent=True)))
 
         self.undo = undo
 
-        for pat, val in ops:
+        for pat, val in self.ops:
             _set_option(pat, val, silent=True)
-
-    def __enter__(self):
-        pass
 
     def __exit__(self, *args):
         if self.undo:
             for pat, val in self.undo:
-                _set_option(pat, val)
+                _set_option(pat, val, silent=True)
 
 
 def register_option(key, defval, doc='', validator=None, cb=None):
@@ -417,9 +439,11 @@ def register_option(key, defval, doc='', validator=None, cb=None):
     key = key.lower()
 
     if key in _registered_options:
-        raise OptionError("Option '%s' has already been registered" % key)
+        msg = "Option '{key}' has already been registered"
+        raise OptionError(msg.format(key=key))
     if key in _reserved_keys:
-        raise OptionError("Option '%s' is a reserved key" % key)
+        msg = "Option '{key}' is a reserved key"
+        raise OptionError(msg.format(key=key))
 
     # the default value should be legal
     if validator:
@@ -430,22 +454,21 @@ def register_option(key, defval, doc='', validator=None, cb=None):
 
     for k in path:
         if not bool(re.match('^' + tokenize.Name + '$', k)):
-            raise ValueError("%s is not a valid identifier" % k)
-        if keyword.iskeyword(key):
-            raise ValueError("%s is a python keyword" % k)
+            raise ValueError("{k} is not a valid identifier".format(k=k))
+        if keyword.iskeyword(k):
+            raise ValueError("{k} is a python keyword".format(k=k))
 
     cursor = _global_config
+    msg = "Path prefix to option '{option}' is already an option"
     for i, p in enumerate(path[:-1]):
         if not isinstance(cursor, dict):
-            raise OptionError("Path prefix to option '%s' is already an option"
-                              % '.'.join(path[:i]))
+            raise OptionError(msg.format(option='.'.join(path[:i])))
         if p not in cursor:
             cursor[p] = {}
         cursor = cursor[p]
 
     if not isinstance(cursor, dict):
-        raise OptionError("Path prefix to option '%s' is already an option"
-                          % '.'.join(path[:-1]))
+        raise OptionError(msg.format(option='.'.join(path[:-1])))
 
     cursor[path[-1]] = defval  # initialize
 
@@ -497,14 +520,14 @@ def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
     key = key.lower()
 
     if key in _deprecated_options:
-        raise OptionError("Option '%s' has already been defined as deprecated."
-                          % key)
+        msg = "Option '{key}' has already been defined as deprecated."
+        raise OptionError(msg.format(key=key))
 
     _deprecated_options[key] = DeprecatedOption(key, msg, rkey, removal_ver)
 
-
 #
 # functions internal to the module
+
 
 def _select_options(pat):
     """returns a list of keys matching `pat`
@@ -592,17 +615,19 @@ def _warn_if_deprecated(key):
     d = _get_deprecated_option(key)
     if d:
         if d.msg:
-            warnings.warn(d.msg, DeprecationWarning)
+            print(d.msg)
+            warnings.warn(d.msg, FutureWarning)
         else:
-            msg = "'%s' is deprecated" % key
+            msg = "'{key}' is deprecated".format(key=key)
             if d.removal_ver:
-                msg += ' and will be removed in %s' % d.removal_ver
+                msg += (' and will be removed in {version}'
+                        .format(version=d.removal_ver))
             if d.rkey:
-                msg += ", please use '%s' instead." % d.rkey
+                msg += ", please use '{rkey}' instead.".format(rkey=d.rkey)
             else:
                 msg += ', please refrain from using it.'
 
-            warnings.warn(msg, DeprecationWarning)
+            warnings.warn(msg, FutureWarning)
         return True
     return False
 
@@ -613,22 +638,24 @@ def _build_option_description(k):
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
-    s = u('%s: ') % k
-    if o:
-        s += u('[default: %s] [currently: %s]') % (o.defval,
-                                                   _get_option(k, True))
+    s = u('{k} ').format(k=k)
 
     if o.doc:
-        s += '\n' + '\n    '.join(o.doc.strip().split('\n'))
+        s += '\n'.join(o.doc.strip().split('\n'))
     else:
-        s += 'No description available.\n'
+        s += 'No description available.'
+
+    if o:
+        s += (u('\n    [default: {default}] [currently: {current}]')
+              .format(default=o.defval, current=_get_option(k, True)))
 
     if d:
-        s += u('\n\t(Deprecated')
-        s += (u(', use `%s` instead.') % d.rkey if d.rkey else '')
-        s += u(')\n')
+        s += u('\n    (Deprecated')
+        s += (u(', use `{rkey}` instead.')
+              .format(rkey=d.rkey if d.rkey else ''))
+        s += u(')')
 
-    s += '\n'
+    s += '\n\n'
     return s
 
 
@@ -639,9 +666,9 @@ def pp_options_list(keys, width=80, _print=False):
     from itertools import groupby
 
     def pp(name, ks):
-        pfx = (name + '.[' if name else '')
+        pfx = ('- ' + name + '.[' if name else '')
         ls = wrap(', '.join(ks), width, initial_indent=pfx,
-                  subsequent_indent=' ' * len(pfx), break_long_words=False)
+                  subsequent_indent='  ', break_long_words=False)
         if ls and ls[-1] and name:
             ls[-1] = ls[-1] + ']'
         return ls
@@ -661,16 +688,13 @@ def pp_options_list(keys, width=80, _print=False):
     else:
         return s
 
-
 #
 # helpers
-
-from contextlib import contextmanager
 
 
 @contextmanager
 def config_prefix(prefix):
-    """contextmanager for multiple invocations of API  with a common prefix
+    """contextmanager for multiple invocations of API with a common prefix
 
     supported API functions: (register / get / set )__option
 
@@ -699,9 +723,8 @@ def config_prefix(prefix):
     global register_option, get_option, set_option, reset_option
 
     def wrap(func):
-
         def inner(key, *args, **kwds):
-            pkey = '%s.%s' % (prefix, key)
+            pkey = '{prefix}.{key}'.format(prefix=prefix, key=key)
             return func(pkey, *args, **kwds)
 
         return inner
@@ -717,9 +740,9 @@ def config_prefix(prefix):
     get_option = _get_option
     register_option = _register_option
 
-
 # These factories and methods are handy for use as the validator
 # arg in register_option
+
 
 def is_type_factory(_type):
     """
@@ -730,14 +753,15 @@ def is_type_factory(_type):
 
     Returns
     -------
-    validator - a function of a single argument x , which returns the
-                True if type(x) is equal to `_type`
+    validator - a function of a single argument x , which raises
+                ValueError if type(x) is not equal to `_type`
 
     """
 
     def inner(x):
         if type(x) != _type:
-            raise ValueError("Value must have type '%s'" % str(_type))
+            msg = "Value must have type '{typ!s}'"
+            raise ValueError(msg.format(typ=_type))
 
     return inner
 
@@ -751,33 +775,43 @@ def is_instance_factory(_type):
 
     Returns
     -------
-    validator - a function of a single argument x , which returns the
-                True if x is an instance of `_type`
+    validator - a function of a single argument x , which raises
+                ValueError if x is not an instance of `_type`
 
     """
     if isinstance(_type, (tuple, list)):
         _type = tuple(_type)
-        from pandas.core.common import pprint_thing
+        from pandas.io.formats.printing import pprint_thing
         type_repr = "|".join(map(pprint_thing, _type))
     else:
-        type_repr = "'%s'" % _type
+        type_repr = "'{typ}'".format(typ=_type)
 
     def inner(x):
         if not isinstance(x, _type):
-            raise ValueError("Value must be an instance of %s" % type_repr)
+            msg = "Value must be an instance of {type_repr}"
+            raise ValueError(msg.format(type_repr=type_repr))
 
     return inner
 
 
 def is_one_of_factory(legal_values):
+
+    callables = [c for c in legal_values if callable(c)]
+    legal_values = [c for c in legal_values if not callable(c)]
+
     def inner(x):
-        from pandas.core.common import pprint_thing as pp
-        if not x in legal_values:
-            pp_values = lmap(pp, legal_values)
-            raise ValueError("Value must be one of %s"
-                             % pp("|".join(pp_values)))
+        from pandas.io.formats.printing import pprint_thing as pp
+        if x not in legal_values:
+
+            if not any(c(x) for c in callables):
+                pp_values = pp("|".join(lmap(pp, legal_values)))
+                msg = "Value must be one of {pp_values}"
+                if len(callables):
+                    msg += " or a callable"
+                raise ValueError(msg.format(pp_values=pp_values))
 
     return inner
+
 
 # common type validators, for convenience
 # usage: register_option(... , validator = is_int)
@@ -787,3 +821,21 @@ is_float = is_type_factory(float)
 is_str = is_type_factory(str)
 is_unicode = is_type_factory(compat.text_type)
 is_text = is_instance_factory((str, bytes))
+
+
+def is_callable(obj):
+    """
+
+    Parameters
+    ----------
+    `obj` - the object to be checked
+
+    Returns
+    -------
+    validator - returns True if object is callable
+        raises ValueError otherwise.
+
+    """
+    if not callable(obj):
+        raise ValueError("Value must be a callable")
+    return True

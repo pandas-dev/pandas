@@ -10,7 +10,7 @@ def parse_results(filename):
     root = tree.getroot()
     skipped = []
 
-    current_class = old_class = ''
+    current_class = ''
     i = 1
     assert i - 1 == len(skipped)
     for el in root.findall('testcase'):
@@ -24,26 +24,29 @@ def parse_results(filename):
             out = ''
             if old_class != current_class:
                 ndigits = int(math.log(i, 10) + 1)
-                out += ('-' * (len(name + msg) + 4 + ndigits) + '\n') # 4 for : + space + # + space
+
+                # 4 for : + space + # + space
+                out += ('-' * (len(name + msg) + 4 + ndigits) + '\n')
             out += '#{i} {name}: {msg}'.format(i=i, name=name, msg=msg)
             skipped.append(out)
             i += 1
             assert i - 1 == len(skipped)
     assert i - 1 == len(skipped)
-    assert len(skipped) == int(root.attrib['skip'])
+    # assert len(skipped) == int(root.attrib['skip'])
     return '\n'.join(skipped)
 
 
 def main(args):
     print('SKIPPED TESTS:')
-    print(parse_results(args.filename))
+    for fn in args.filename:
+        print(parse_results(fn))
     return 0
 
 
 def parse_args():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('filename', help='XUnit file to parse')
+    parser.add_argument('filename', nargs='+', help='XUnit file to parse')
     return parser.parse_args()
 
 

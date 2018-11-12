@@ -1,110 +1,76 @@
-.. currentmodule:: pandas.rpy
-
 .. _rpy:
 
 .. ipython:: python
    :suppress:
 
-   from pandas import *
-   options.display.max_rows=15
+   import pandas as pd
+   pd.options.display.max_rows = 15
 
 
 ******************
 rpy2 / R interface
 ******************
 
-.. note::
+.. warning::
 
-   This is all highly experimental. I would like to get more people involved
-   with building a nice RPy2 interface for pandas
-
-
-If your computer has R and rpy2 (> 2.2) installed (which will be left to the
-reader), you will be able to leverage the below functionality. On Windows,
-doing this is quite an ordeal at the moment, but users on Unix-like systems
-should find it quite easy. rpy2 evolves in time, and is currently reaching 
-its release 2.3, while the current interface is
-designed for the 2.2.x series. We recommend to use 2.2.x over other series 
-unless you are prepared to fix parts of the code, yet the rpy2-2.3.0
-introduces improvements such as a better R-Python bridge memory management
-layer so it might be a good idea to bite the bullet and submit patches for
-the few minor differences that need to be fixed.
+    Up to pandas 0.19, a ``pandas.rpy`` module existed with functionality to
+    convert between pandas and ``rpy2`` objects. This functionality now lives in
+    the `rpy2 <https://rpy2.readthedocs.io/>`__ project itself.
+    See the `updating section <http://pandas.pydata.org/pandas-docs/version/0.19.0/r_interface.html#updating-your-code-to-use-rpy2-functions>`__
+    of the previous documentation for a guide to port your code from the
+    removed ``pandas.rpy`` to ``rpy2`` functions.
 
 
-::
+`rpy2 <http://rpy2.bitbucket.org/>`__ is an interface to R running embedded in a Python process, and also includes functionality to deal with pandas DataFrames.
+Converting data frames back and forth between rpy2 and pandas should be largely
+automated (no need to convert explicitly, it will be done on the fly in most
+rpy2 functions).
+To convert explicitly, the functions are ``pandas2ri.py2ri()`` and
+``pandas2ri.ri2py()``.
 
-    # if installing for the first time
-    hg clone http://bitbucket.org/lgautier/rpy2
 
-    cd rpy2
-    hg pull
-    hg update version_2.2.x
-    sudo python setup.py install
+See also the documentation of the `rpy2 <http://rpy2.bitbucket.org/>`__ project: https://rpy2.readthedocs.io.
 
-.. note::
+In the remainder of this page, a few examples of explicit conversion is given. The pandas conversion of rpy2 needs first to be activated:
 
-    To use R packages with this interface, you will need to install
-    them inside R yourself. At the moment it cannot install them for
-    you.
+.. ipython:: python
 
-Once you have done installed R and rpy2, you should be able to import
-``pandas.rpy.common`` without a hitch.
+   from rpy2.robjects import r, pandas2ri
+   pandas2ri.activate()
 
 Transferring R data sets into Python
 ------------------------------------
 
-The **load_data** function retrieves an R data set and converts it to the
-appropriate pandas object (most likely a DataFrame):
-
+Once the pandas conversion is activated (``pandas2ri.activate()``), many conversions
+of R to pandas objects will be done automatically. For example, to obtain the 'iris' dataset as a pandas DataFrame:
 
 .. ipython:: python
 
-   import pandas.rpy.common as com
-   infert = com.load_data('infert')
+    r.data('iris')
+    r['iris'].head()
 
-   infert.head()
-
+If the pandas conversion was not activated, the above could also be accomplished
+by explicitly converting it with the ``pandas2ri.ri2py`` function
+(``pandas2ri.ri2py(r['iris'])``).
 
 Converting DataFrames into R objects
 ------------------------------------
 
-.. versionadded:: 0.8
-
-Starting from pandas 0.8, there is **experimental** support to convert
+The ``pandas2ri.py2ri`` function support the reverse operation to convert
 DataFrames into the equivalent R object (that is, **data.frame**):
 
 .. ipython:: python
 
-   from pandas import DataFrame
-
-   df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C':[7,8,9]},
-                  index=["one", "two", "three"])
-   r_dataframe = com.convert_to_r_dataframe(df)
-
+   df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C':[7,8,9]},
+                     index=["one", "two", "three"])
+   r_dataframe = pandas2ri.py2ri(df)
    print(type(r_dataframe))
    print(r_dataframe)
-
 
 The DataFrame's index is stored as the ``rownames`` attribute of the
 data.frame instance.
 
-You can also use **convert_to_r_matrix** to obtain a ``Matrix`` instance, but
-bear in mind that it will only work with homogeneously-typed DataFrames (as
-R matrices bear no information on the data type):
 
-
-.. ipython:: python
-
-   r_matrix = com.convert_to_r_matrix(df)
-
-   print(type(r_matrix))
-   print(r_matrix)
-
-
-Calling R functions with pandas objects
----------------------------------------
-
-
-
-High-level interface to R estimators
-------------------------------------
+..
+   Calling R functions with pandas objects
+   High-level interface to R estimators

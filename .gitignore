@@ -1,41 +1,114 @@
-*.pyc
-*.pyo
-*.swp
-.ropeproject
-build
-dist
-MANIFEST
-*.c
-!np_datetime.c
-!np_datetime_strings.c
-!skts.c
-*.cpp
-*.so
-*.pyd
-*.h5
-*.dta
-pandas/version.py
-doc/source/generated
-doc/source/_static
-doc/source/vbench
-doc/source/vbench.rst
-doc/build/html/index.html
-*flymake*
-scikits
-.coverage
-pandas.egg-info
+#########################################
+# Editor temporary/working/backup files #
+.#*
 *\#*\#
-.tox
-pandas/io/*.dat
-pandas/io/*.json
+[#]*#
+*~
+*$
+*.bak
+*flymake*
+*.iml
+*.kdev4
 *.log
-.noseids
-.build_cache_dir
-.vagrant
-*.whl
-**/wheelhouse/*
+*.swp
+*.pdb
 .project
 .pydevproject
 .settings
 .idea
-*.pdb
+.vagrant
+.noseids
+.ipynb_checkpoints
+.tags
+.cache/
+.vscode/
+
+# Compiled source #
+###################
+*.a
+*.com
+*.class
+*.dll
+*.exe
+*.pxi
+*.o
+*.py[ocd]
+*.so
+.build_cache_dir
+MANIFEST
+
+# Python files #
+################
+# setup.py working directory
+build
+# sphinx build directory
+doc/_build
+# setup.py dist directory
+dist
+# Egg metadata
+*.egg-info
+.eggs
+.pypirc
+
+# tox testing tool
+.tox
+# rope
+.ropeproject
+# wheel files
+*.whl
+**/wheelhouse/*
+# coverage
+.coverage
+coverage.xml
+coverage_html_report
+*.pytest_cache
+# hypothesis test database
+.hypothesis/
+
+# OS generated files #
+######################
+.directory
+.gdb_history
+.DS_Store
+ehthumbs.db
+Icon?
+Thumbs.db
+
+# Data files #
+##############
+*.dta
+*.xpt
+*.h5
+pandas/io/*.dat
+pandas/io/*.json
+scikits
+
+# Generated Sources #
+#####################
+!skts.c
+!np_datetime.c
+!np_datetime_strings.c
+*.c
+*.cpp
+
+# Unit / Performance Testing #
+##############################
+asv_bench/env/
+asv_bench/html/
+asv_bench/results/
+asv_bench/pandas/
+
+# Documentation generated files #
+#################################
+doc/source/generated
+doc/source/_static
+doc/source/vbench
+doc/source/vbench.rst
+doc/source/index.rst
+doc/build/html/index.html
+# Windows specific leftover:
+doc/tmp.sv
+doc/source/styled.xlsx
+doc/source/templates/
+env/
+doc/source/savefig/
