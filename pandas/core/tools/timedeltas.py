@@ -6,15 +6,12 @@ import numpy as np
 import pandas as pd
 from pandas._libs import tslibs
 from pandas._libs.tslibs.timedeltas import (convert_to_timedelta64,
-                                            array_to_timedelta64,
                                             parse_timedelta_unit)
 
-from pandas.core.dtypes.common import (
-    ensure_object,
-    is_integer_dtype,
-    is_timedelta64_dtype,
-    is_list_like)
+from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
+
+from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
 def to_timedelta(arg, unit='ns', box=True, errors='raise'):
@@ -24,14 +21,14 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     Parameters
     ----------
     arg : string, timedelta, list, tuple, 1-d array, or Series
-    unit : string, {'Y', 'M', 'W', 'D', 'days', 'day',
-                    'hours', hour', 'hr', 'h', 'm', 'minute', 'min', 'minutes',
-                    'T', 'S', 'seconds', 'sec', 'second', 'ms',
-                    'milliseconds', 'millisecond', 'milli', 'millis', 'L',
-                    'us', 'microseconds', 'microsecond', 'micro', 'micros',
-                    'U', 'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond'
-                    'N'}, optional
+    unit : str, optional
         Denote the unit of the input, if input is an integer. Default 'ns'.
+        Possible values:
+        {'Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
+        'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds', 'sec', 'second',
+        'ms', 'milliseconds', 'millisecond', 'milli', 'millis', 'L',
+        'us', 'microseconds', 'microsecond', 'micro', 'micros', 'U',
+        'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond', 'N'}
     box : boolean, default True
         - If True returns a Timedelta/TimedeltaIndex of the results
         - if False returns a np.timedelta64 or ndarray of values of dtype
@@ -129,31 +126,27 @@ def _convert_listlike(arg, unit='ns', box=True, errors='raise', name=None):
     """Convert a list of objects to a timedelta index object."""
 
     if isinstance(arg, (list, tuple)) or not hasattr(arg, 'dtype'):
-        arg = np.array(list(arg), dtype='O')
+        # This is needed only to ensure that in the case where we end up
+        #  returning arg (errors == "ignore"), and where the input is a
+        #  generator, we return a useful list-like instead of a
+        #  used-up generator
+        arg = np.array(list(arg), dtype=object)
 
-    # these are shortcut-able
-    if is_timedelta64_dtype(arg):
-        value = arg.astype('timedelta64[ns]')
-    elif is_integer_dtype(arg):
-        value = arg.astype('timedelta64[{unit}]'.format(unit=unit)).astype(
-            'timedelta64[ns]', copy=False)
-    else:
-        try:
-            value = array_to_timedelta64(ensure_object(arg),
-                                         unit=unit, errors=errors)
-            value = value.astype('timedelta64[ns]', copy=False)
-        except ValueError:
-            if errors == 'ignore':
-                return arg
-            else:
-                # This else-block accounts for the cases when errors='raise'
-                # and errors='coerce'. If errors == 'raise', these errors
-                # should be raised. If errors == 'coerce', we shouldn't
-                # expect any errors to be raised, since all parsing errors
-                # cause coercion to pd.NaT. However, if an error / bug is
-                # introduced that causes an Exception to be raised, we would
-                # like to surface it.
-                raise
+    try:
+        value = sequence_to_td64ns(arg, unit=unit,
+                                   errors=errors, copy=False)[0]
+    except ValueError:
+        if errors == 'ignore':
+            return arg
+        else:
+            # This else-block accounts for the cases when errors='raise'
+            # and errors='coerce'. If errors == 'raise', these errors
+            # should be raised. If errors == 'coerce', we shouldn't
+            # expect any errors to be raised, since all parsing errors
+            # cause coercion to pd.NaT. However, if an error / bug is
+            # introduced that causes an Exception to be raised, we would
+            # like to surface it.
+            raise
 
     if box:
         from pandas import TimedeltaIndex
