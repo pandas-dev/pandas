@@ -1370,3 +1370,28 @@ of the data values:
        'weight': [100, 140, 180],
        'sex': ['Male', 'Female']})
    df
+
+
+Load a file from S3
+-------------------
+
+Pandas support loading files from a S3 bucket for remote file interactivity.
+You will be required to install the S3Fs_ library.
+
+.. code-block:: python
+
+    df = pd.read_csv('s3://baseballdatabank/core/Parks.csv')
+    df.head(1)
+
+If your S3 bucket requires cedentials you will need to set them as environment
+variables or in the ``~/.aws/credentials`` config file, refer to the `S3Fs
+documentation on credentials
+<https://s3fs.readthedocs.io/en/latest/#credentials>`_.
+
+.. code-block:: shell
+
+    export AWS_ACCESS_KEY_ID = ''
+    export AWS_SECRET_ACCESS_KEY = ''
+    export AWS_SESSION_TOKEN = ''
+
+.. _S3Fs: https://pypi.org/project/s3fs/
