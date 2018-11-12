@@ -675,12 +675,6 @@ class ExtensionArray(object):
                                length=len(self),
                                dtype=self.dtype)
 
-    def __bytes__(self):
-        from pandas.core.config import get_option
-
-        encoding = get_option("display.encoding")
-        return str(self).encode(encoding, 'replace')
-
     def _formatter(self, formatter=None):
         # type: (Optional[ExtensionArrayFormatter]) -> Callable[[Any], str]
         """Formatting function for scalar values.
