@@ -5,7 +5,6 @@ import numpy as np
 
 from pandas._libs import (
     NaT, Timedelta, index as libindex, join as libjoin, lib)
-from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 import pandas.compat as compat
 from pandas.util._decorators import Appender, Substitution
 
