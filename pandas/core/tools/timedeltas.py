@@ -91,6 +91,10 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
         raise ValueError("errors must be one of 'ignore', "
                          "'raise', or 'coerce'}")
 
+    if unit in ['Y', 'y', 'M']:
+        warnings.warn("M and Y units are deprecated.",
+                      FutureWarning, stacklevel=2)
+
     if arg is None:
         return arg
     elif isinstance(arg, ABCSeries):
