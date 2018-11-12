@@ -984,16 +984,25 @@ class TestMainFunction(object):
 
     def test_exit_status_for_deprecated_function(self, monkeypatch):
         monkeypatch.setattr(
-            validate_docstrings, 'validate_one', lambda func_name: {
-                'docstring': 'pandas.Panel.name',
-                'errors': [('ER01', 'err desc'),
-                           ('ER02', 'err desc'),
-                           ('ER03', 'err desc')],
-                'warnings': [],
-                'examples_errors': ''})
-        exit_status = validate_docstrings.main(func_name='docstring1',
+            validate_docstrings, 'validate_all', lambda prefix: {
+                'Series.foo': {'errors': [('ER01', 'err desc'),
+                                          ('ER02', 'err desc'),
+                                          ('ER03', 'err desc')],
+                               'file': 'series.py',
+                               'file_line': 142,
+                               'deprecated': True},
+                'DataFrame.bar': {'errors': [('ER01', 'err desc'),
+                                             ('ER02', 'err desc')],
+                                  'file': 'frame.py',
+                                  'file_line': 598,
+                                  'deprecated': True},
+                'Series.foobar': {'errors': [('ER01', 'err desc')],
+                                  'file': 'series.py',
+                                  'file_line': 279,
+                                  'deprecated': False}})
+        exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=[],
                                                output_format='default',
                                                deprecated=True)
-        assert exit_status == 0
+        assert exit_status == 1
