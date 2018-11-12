@@ -83,6 +83,9 @@ if __name__ == '__main__':
     argparser.add_argument('--compare',
                            action='store_true',
                            help='compare whether the two files are equivalent')
+    argparser.add_argument('--azure',
+                           action='store_true',
+                           help='show the output in azure-pipelines format')
     args = argparser.parse_args()
 
     repo_path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
@@ -90,7 +93,10 @@ if __name__ == '__main__':
                os.path.join(repo_path, 'requirements-dev.txt'),
                compare=args.compare)
     if res:
-        sys.stderr.write('`requirements-dev.txt` has to be generated with '
-                         '`{}` after `environment.yml` is modified.\n'.format(
-                             sys.argv[0]))
+        msg = ('`requirements-dev.txt` has to be generated with `{}` after '
+               '`environment.yml` is modified.\n'.format(sys.argv[0]))
+        if args.azure:
+            msg = ('##vso[task.logissue type=error;'
+                   'sourcepath=requirements-dev.txt]{}'.format(msg))
+        sys.stderr.write(msg)
     sys.exit(res)
