@@ -672,7 +672,7 @@ class IndexOpsMixin(object):
         nv.validate_transpose(args, kwargs)
         return self
 
-    T = property(transpose, doc="return the transpose, which is by "
+    T = property(transpose, doc="Return the transpose, which is by "
                                 "definition self")
 
     @property
