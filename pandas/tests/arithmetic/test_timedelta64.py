@@ -554,11 +554,16 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with pytest.raises(err):
             int_ser - tdser
 
-    def test_td64arr_add_intlike(self, box):
+    def test_td64arr_add_intlike(self, box_with_timedelta):
         # GH#19123
+        box = box_with_timedelta
+
         tdi = TimedeltaIndex(['59 days', '59 days', 'NaT'])
         ser = tm.box_expected(tdi, box)
-        err = TypeError if box is not pd.Index else NullFrequencyError
+
+        err = TypeError
+        if box in [pd.Index, TimedeltaArray]:
+            err = NullFrequencyError
 
         other = Series([20, 30, 40], dtype='uint8')
 
@@ -584,10 +589,13 @@ class TestTimedeltaArraylikeAddSubOps(object):
             ser - pd.Index(other)
 
     @pytest.mark.parametrize('scalar', [1, 1.5, np.array(2)])
-    def test_td64arr_add_sub_numeric_scalar_invalid(self, box, scalar, tdser):
+    def test_td64arr_add_sub_numeric_scalar_invalid(self, box_with_timedelta,
+                                                    scalar, tdser):
+        box = box_with_timedelta
+
         tdser = tm.box_expected(tdser, box)
         err = TypeError
-        if box is pd.Index and not isinstance(scalar, float):
+        if box in [pd.Index, TimedeltaArray] and not isinstance(scalar, float):
             err = NullFrequencyError
 
         with pytest.raises(err):
@@ -615,7 +623,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
             err = NullFrequencyError
 
         vector = vec.astype(dtype)
-        # TODO: parametrize over these four ops?
         with pytest.raises(err):
             tdser + vector
         with pytest.raises(err):
