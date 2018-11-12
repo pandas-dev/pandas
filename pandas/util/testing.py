@@ -37,7 +37,7 @@ from pandas import (
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArrayMixin as DatetimeArray, ExtensionArray, IntervalArray,
-    PeriodArray, period_array, TimedeltaArrayMixin as TimedeltaArray)
+    PeriodArray, TimedeltaArrayMixin as TimedeltaArray, period_array)
 import pandas.core.common as com
 
 from pandas.io.common import urlopen
