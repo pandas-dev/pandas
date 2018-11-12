@@ -272,10 +272,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     # --------------------------------------------------------------------
     # Data / Attributes
-    @property
-    def nbytes(self):
-        # TODO(DatetimeArray): remove
-        return self._data.nbytes
 
     @cache_readonly
     def dtype(self):
@@ -284,10 +280,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     @property
     def _ndarray_values(self):
         # Ordinals
-        return self._data
-
-    @property
-    def asi8(self):
         return self._data
 
     @property
@@ -329,6 +321,58 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     @property
     def end_time(self):
         return self.to_timestamp(how='end')
+
+    def to_timestamp(self, freq=None, how='start'):
+        """
+        Cast to DatetimeArray/Index.
+
+        Parameters
+        ----------
+        freq : string or DateOffset, optional
+            Target frequency. The default is 'D' for week or longer,
+            'S' otherwise
+        how : {'s', 'e', 'start', 'end'}
+
+        Returns
+        -------
+        DatetimeArray/Index
+        """
+        from pandas.core.arrays import DatetimeArrayMixin
+
+        how = libperiod._validate_end_alias(how)
+
+        end = how == 'E'
+        if end:
+            if freq == 'B':
+                # roll forward to ensure we land on B date
+                adjust = Timedelta(1, 'D') - Timedelta(1, 'ns')
+                return self.to_timestamp(how='start') + adjust
+            else:
+                adjust = Timedelta(1, 'ns')
+                return (self + self.freq).to_timestamp(how='start') - adjust
+
+        if freq is None:
+            base, mult = frequencies.get_freq_code(self.freq)
+            freq = frequencies.get_to_timestamp_base(base)
+        else:
+            freq = Period._maybe_convert_freq(freq)
+
+        base, mult = frequencies.get_freq_code(freq)
+        new_data = self.asfreq(freq, how=how)
+
+        new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
+        return DatetimeArrayMixin(new_data, freq='infer')
+
+    # --------------------------------------------------------------------
+    # Array-like / EA-Interface Methods
+
+    def __repr__(self):
+        return '<{}>\n{}\nLength: {}, dtype: {}'.format(
+            self.__class__.__name__,
+            [str(s) for s in self],
+            len(self),
+            self.dtype
+        )
 
     def _formatter(self, formatter=None):
         if formatter:
@@ -453,6 +497,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                             name=result.index.name)
         return Series(result.values, index=index, name=result.name)
 
+    # --------------------------------------------------------------------
+
     def shift(self, periods=1):
         """
         Shift values by desired number.
@@ -564,49 +610,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
         return type(self)(new_data, freq=freq)
 
-    def to_timestamp(self, freq=None, how='start'):
-        """
-        Cast to DatetimeArray/Index
-
-        Parameters
-        ----------
-        freq : string or DateOffset, optional
-            Target frequency. The default is 'D' for week or longer,
-            'S' otherwise
-        how : {'s', 'e', 'start', 'end'}
-
-        Returns
-        -------
-        DatetimeArray/Index
-        """
-        from pandas.core.arrays import DatetimeArrayMixin
-
-        how = libperiod._validate_end_alias(how)
-
-        end = how == 'E'
-        if end:
-            if freq == 'B':
-                # roll forward to ensure we land on B date
-                adjust = Timedelta(1, 'D') - Timedelta(1, 'ns')
-                return self.to_timestamp(how='start') + adjust
-            else:
-                adjust = Timedelta(1, 'ns')
-                return (self + self.freq).to_timestamp(how='start') - adjust
-
-        if freq is None:
-            base, mult = frequencies.get_freq_code(self.freq)
-            freq = frequencies.get_to_timestamp_base(base)
-        else:
-            freq = Period._maybe_convert_freq(freq)
-
-        base, mult = frequencies.get_freq_code(freq)
-        new_data = self.asfreq(freq, how=how)
-
-        new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
-        return DatetimeArrayMixin(new_data, freq='infer')
-
     # ------------------------------------------------------------------
     # Formatting
+
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         """ actually format my specific types """
         # TODO(DatetimeArray): remove
@@ -627,9 +633,13 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             values = np.array([formatter(dt) for dt in values])
         return values
 
+    # Delegation...
+    def strftime(self, date_format):
+        return self._format_native_types(date_format=date_format)
+
     def repeat(self, repeats, *args, **kwargs):
         """
-        Repeat elements of a Categorical.
+        Repeat elements of a PeriodArray.
 
         See also
         --------
@@ -639,10 +649,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         nv.validate_repeat(args, kwargs)
         values = self._data.repeat(repeats)
         return type(self)(values, self.freq)
-
-    # Delegation...
-    def strftime(self, date_format):
-        return self._format_native_types(date_format=date_format)
 
     def astype(self, dtype, copy=True):
         # TODO: Figure out something better here...
