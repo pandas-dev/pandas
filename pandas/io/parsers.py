@@ -354,13 +354,7 @@ _sep_doc = r"""sep : str, default {default}
 delimiter : str, default ``None``
     Alias for sep.
     """
-# _read_csv_doc = """
-# Read a comma-separated values (csv) file into DataFrame.
 
-# %s
-# """ % (_parser_params % (_sep_doc.format(default="','"),
-#                          _engine_doc,
-#                          _example_doc.format(_api='read_csv')))
 _read_csv_doc = (_parser_params
                  .format(summary=_summary_read_csv,
                          sep_doc=_sep_doc.format(default="','"),
