@@ -129,24 +129,24 @@ class TestSeriesCombine(object):
         expected = Series([45., 2., False, True])
         assert_series_equal(s, expected)
 
-        t_src = Series([10, 11, 12])
-        t = t_src.copy()
+        s = Series([10, 11, 12])
+        s_copy = s.copy()
         other = Series([61, 63], index=[1, 3])
-        t.update(other)
+        s_copy.update(other)
 
         expected = Series([10, 61, 12])
-        assert_series_equal(t, expected)
+        assert_series_equal(s_copy, expected)
 
         # we always try to keep original dtype, even if other has different one
-        t = t_src.copy()
-        t.update(other.astype(float))
-        assert_series_equal(t, expected)
+        s_copy = s.copy()
+        s_copy.update(other.astype(float))
+        assert_series_equal(s_copy, expected)
 
         # if keeping the dtype is not possible, we allow upcasting
-        t = t_src.copy()
-        t.update(other + 0.1)
+        s_copy = s.copy()
+        s_copy.update(other + 0.1)
         expected = Series([10., 61.1, 12.])
-        assert_series_equal(t, expected)
+        assert_series_equal(s_copy, expected)
 
     def test_concat_empty_series_dtypes_roundtrips(self):
 
