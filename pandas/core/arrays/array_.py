@@ -24,8 +24,16 @@ def array(data, dtype=None, copy=False):
         dtype, or an extension type registered with pandas using
         :meth:`pandas.api.extensions.register_extension_dtype`.
 
-        By default, the dtype will be inferred from the data
-        with :meth:`numpy.array`.
+        If not specified, there are two possibilities:
+
+        1. When `data` is a :class:`Series`, :class:`Index`, or
+           :class:`ExtensionArray`, the `dtype` will be taken
+           from the data.
+        2. Otherwise, pandas will attempt to infer the `dtype`
+           from the data.
+
+        In particular, note that when `data` is a NumPy, ``data.dtype``
+        is ignored.
 
     copy : bool, default False
         Whether to copy the data.
@@ -73,10 +81,13 @@ def array(data, dtype=None, copy=False):
     >>> pd.array([1, 2, np.nan], dtype='Int64')
     IntegerArray([1, 2, nan], dtype='Int64')
     """
-    from pandas.core.arrays import period_array
+    from pandas.core.arrays import period_array, ExtensionArray
 
     if isinstance(data, (ABCSeries, ABCIndexClass)):
         data = data._values
+
+    if dtype is None and isinstance(data, ExtensionArray):
+        dtype = data.dtype
 
     # this returns None for not-found dtypes.
     dtype = dtype or registry.find(dtype)
