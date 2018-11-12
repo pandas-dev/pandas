@@ -1903,19 +1903,26 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
-    def test_to_html_truncation_index_false_max_rows(self, datapath):
+    @pytest.mark.parametrize('index', [False, 0])
+    def test_to_html_truncation_index_false_max_rows(self, datapath, index):
         # GH 15019
-        np.random.seed(seed=0)
-        df = pd.DataFrame(np.random.randn(5, 2))
-        result = df.to_html(max_rows=4, index=False)
+        data = [[1.764052, 0.400157],
+                [0.978738, 2.240893],
+                [1.867558, -0.977278],
+                [0.950088, -0.151357],
+                [-0.103219, 0.410599]]
+        df = pd.DataFrame(data)
+        result = df.to_html(max_rows=4, index=index)
         expected = expected_html(datapath, 'gh15019_expected_output')
         assert result == expected
 
-    def test_to_html_truncation_index_false_max_cols(self, datapath):
+    @pytest.mark.parametrize('index', [False, 0])
+    def test_to_html_truncation_index_false_max_cols(self, datapath, index):
         # GH 22783
-        np.random.seed(seed=0)
-        df = pd.DataFrame(np.random.randn(2, 5))
-        result = df.to_html(max_cols=4, index=False)
+        data = [[1.764052, 0.400157, 0.978738, 2.240893, 1.867558],
+                [-0.977278, 0.950088, -0.151357, -0.103219, 0.410599]]
+        df = pd.DataFrame(data)
+        result = df.to_html(max_cols=4, index=index)
         expected = expected_html(datapath, 'gh22783_expected_output')
         assert result == expected
 
