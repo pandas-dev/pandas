@@ -80,7 +80,7 @@ class TimelikeOps(object):
 
     _round_doc = (
         """
-        {op} the data to the specified `freq`.
+        Perform {op} operation on the data to the specified `freq`.
 
         Parameters
         ----------
