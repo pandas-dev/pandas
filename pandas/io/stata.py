@@ -466,6 +466,12 @@ characters.  Column '%s' does not satisfy this restriction. Use the
 """
 
 
+general_object_array_error = """
+Writing non-string object columns is not supported. Column '%s' does not
+satisfy this restriction.
+"""
+
+
 class PossiblePrecisionLoss(Warning):
     pass
 
@@ -1868,7 +1874,7 @@ def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
         inferred_dtype = infer_dtype(column.dropna())
         if not (inferred_dtype in ('string', 'unicode') or
                 len(column) == 0):
-            raise ValueError('Writing general object arrays is not supported')
+            raise ValueError(general_object_array_error % column.name)
         itemsize = max_len_string_array(ensure_object(column.values))
         if itemsize > max_str_len:
             if dta_version >= 117:
