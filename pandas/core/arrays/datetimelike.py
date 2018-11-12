@@ -124,8 +124,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         # do not cache or you'll create a memory leak
         return self._data.view('i8')
 
-    # ------------------------------------------------------------------
-    # Array-like Methods
+    # ----------------------------------------------------------------
+    # Array-Like / EA-Interface Methods
+
+    @property
+    def nbytes(self):
+        return self._data.nbytes
 
     @property
     def nbytes(self):
