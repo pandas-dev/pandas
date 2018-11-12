@@ -73,7 +73,7 @@ def is_string_like(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Examples
     --------
@@ -127,7 +127,7 @@ def is_iterator(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -172,7 +172,7 @@ def is_file_like(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -203,7 +203,7 @@ def is_re(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -227,7 +227,7 @@ def is_re_compilable(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -261,7 +261,7 @@ def is_list_like(obj, allow_sets=True):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
     allow_sets : boolean, default True
         If this parameter is False, sets will not be considered list-like
 
@@ -310,7 +310,7 @@ def is_array_like(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -343,7 +343,7 @@ def is_nested_list_like(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -384,7 +384,7 @@ def is_dict_like(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -408,7 +408,7 @@ def is_named_tuple(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------
@@ -468,7 +468,7 @@ def is_sequence(obj):
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : The object to check
 
     Returns
     -------

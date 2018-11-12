@@ -9,16 +9,19 @@
 # In the future we may want to add the validation of docstrings and other checks here.
 #
 # Usage:
-#   $ ./ci/code_checks.sh             # run all checks
-#   $ ./ci/code_checks.sh lint        # run linting only
-#   $ ./ci/code_checks.sh patterns    # check for patterns that should not exist
-#   $ ./ci/code_checks.sh doctests    # run doctests
+#   $ ./ci/code_checks.sh               # run all checks
+#   $ ./ci/code_checks.sh lint          # run linting only
+#   $ ./ci/code_checks.sh patterns      # check for patterns that should not exist
+#   $ ./ci/code_checks.sh doctests      # run doctests
+#   $ ./ci/code_checks.sh dependencies  # check that dependencies are consistent
 
 echo "inside $0"
 [[ $LINT ]] || { echo "NOT Linting. To lint use: LINT=true $0 $1"; exit 0; }
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" ]] || { echo "Unknown command $1. Usage: $0 [lint|patterns|doctests]"; exit 9999; }
+[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" || "$1" == "dependencies"  ]] \
+    || { echo "Unknown command $1. Usage: $0 [lint|patterns|doctests|dependencies]"; exit 9999; }
 
 source activate pandas
+BASE_DIR="$(dirname $0)/.."
 RET=0
 CHECK=$1
 
@@ -119,6 +122,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     ! grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas ./doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check that the deprecated `assert_raises_regex` is not used (`pytest.raises(match=pattern)` should be used instead)' ; echo $MSG
+    ! grep -R --exclude=*.pyc --exclude=testing.py --exclude=test_testing.py assert_raises_regex pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Check for modules that pandas should not import' ; echo $MSG
     python -c "
 import sys
@@ -151,7 +158,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests generic.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/generic.py \
-        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -to_json -transpose -values -xs"
+        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -to_json -transpose -values -xs"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests top-level reshaping functions' ; echo $MSG
@@ -170,6 +177,13 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-from_arrays -from_breaks -from_intervals -from_tuples -get_loc -set_closed -to_tuples -interval_range"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+fi
+
+### DEPENDENCIES ###
+if [[ -z "$CHECK" || "$CHECK" == "dependencies" ]]; then
+    MSG='Check that requirements-dev.txt has been generated from environment.yml' ; echo $MSG
+    $BASE_DIR/scripts/generate_pip_deps_from_conda.py --compare
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 exit $RET

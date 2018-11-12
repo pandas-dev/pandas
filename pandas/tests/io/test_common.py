@@ -269,14 +269,15 @@ class TestMMapWrapper(object):
             msg = "[Errno 22]"
             err = mmap.error
 
-        tm.assert_raises_regex(err, msg, icom.MMapWrapper, non_file)
+        with pytest.raises(err, match=msg):
+            icom.MMapWrapper(non_file)
 
         target = open(mmap_file, 'r')
         target.close()
 
         msg = "I/O operation on closed file"
-        tm.assert_raises_regex(
-            ValueError, msg, icom.MMapWrapper, target)
+        with pytest.raises(ValueError, match=msg):
+            icom.MMapWrapper(target)
 
     def test_get_attr(self, mmap_file):
         with open(mmap_file, 'r') as target:
@@ -307,5 +308,5 @@ class TestMMapWrapper(object):
         with tm.ensure_clean() as path:
             df = tm.makeDataFrame()
             df.to_csv(path)
-            with tm.assert_raises_regex(ValueError, 'Unknown engine'):
+            with pytest.raises(ValueError, match='Unknown engine'):
                 pd.read_csv(path, engine='pyt')

@@ -837,15 +837,14 @@ class TestMisc(Base):
 
     def test_slice_with_zero_step_raises(self):
         s = Series(np.arange(20), index=_mklbl('A', 20))
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: s[::0])
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: s.loc[::0])
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            s[::0]
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            s.loc[::0]
         with catch_warnings(record=True):
             simplefilter("ignore")
-            tm.assert_raises_regex(ValueError,
-                                   'slice step cannot be zero',
-                                   lambda: s.ix[::0])
+            with pytest.raises(ValueError, match='slice step cannot be zero'):
+                s.ix[::0]
 
     def test_indexing_assignment_dict_already_exists(self):
         df = DataFrame({'x': [1, 2, 6],
@@ -1062,18 +1061,18 @@ def test_validate_indices_ok():
 
 def test_validate_indices_low():
     indices = np.asarray([0, -2])
-    with tm.assert_raises_regex(ValueError, "'indices' contains"):
+    with pytest.raises(ValueError, match="'indices' contains"):
         validate_indices(indices, 2)
 
 
 def test_validate_indices_high():
     indices = np.asarray([0, 1, 2])
-    with tm.assert_raises_regex(IndexError, "indices are out"):
+    with pytest.raises(IndexError, match="indices are out"):
         validate_indices(indices, 2)
 
 
 def test_validate_indices_empty():
-    with tm.assert_raises_regex(IndexError, "indices are out"):
+    with pytest.raises(IndexError, match="indices are out"):
         validate_indices(np.array([0, 1]), 0)
 
 
