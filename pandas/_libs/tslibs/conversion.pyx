@@ -1116,9 +1116,9 @@ def normalize_date(dt: object) -> datetime:
 @cython.boundscheck(False)
 def normalize_i8_timestamps(int64_t[:] stamps, object tz=None):
     """
-    Normalize each of the (nanosecond) timestamps in the given array by
-    rounding down to the beginning of the day (i.e. midnight).  If `tz`
-    is not None, then this is midnight for this timezone.
+    Normalize each of the (nanosecond) timezone aware timestamps in the given
+    array by rounding down to the beginning of the day (i.e. midnight).
+    This is midnight for timezone, `tz`.
 
     Parameters
     ----------
@@ -1134,17 +1134,8 @@ def normalize_i8_timestamps(int64_t[:] stamps, object tz=None):
         npy_datetimestruct dts
         int64_t[:] result = np.empty(n, dtype=np.int64)
 
-    if tz is not None:
-        tz = maybe_get_tz(tz)
-        result = _normalize_local(stamps, tz)
-    else:
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = _normalized_stamp(&dts)
+    tz = maybe_get_tz(tz)
+    result = _normalize_local(stamps, tz)
 
     return result.base  # .base to access underlying np.ndarray
 
