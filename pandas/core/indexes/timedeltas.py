@@ -15,7 +15,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.timedeltas import (
-    TimedeltaArrayMixin, _is_convertible_to_td, _to_m8)
+    TimedeltaArrayMixin, _is_convertible_to_td, _to_m8,
+    sequence_to_td64ns)
 from pandas.core.arrays import datetimelike as dtl
 
 from pandas.core.indexes.base import Index
@@ -26,13 +27,14 @@ from pandas.tseries.frequencies import to_offset
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs
 import pandas.core.common as com
+from pandas.core.ops import get_op_result_name
 import pandas.core.dtypes.concat as _concat
 from pandas.util._decorators import Appender, Substitution
 from pandas.core.indexes.datetimelike import (
     TimelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op,
     wrap_array_method, wrap_field_accessor)
 from pandas.core.tools.timedeltas import (
-    to_timedelta, _coerce_scalar_to_timedelta_type)
+    _coerce_scalar_to_timedelta_type)
 from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT)
 
@@ -137,12 +139,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 periods=None, closed=None, dtype=None, copy=False,
                 name=None, verify_integrity=True):
 
-        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
-            if copy:
-                return data.copy()
-            else:
-                return data._shallow_copy()
-
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         if data is None:
@@ -152,19 +148,31 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             result.name = name
             return result
 
-        if unit is not None:
-            data = to_timedelta(data, unit=unit, box=False)
-
         if is_scalar(data):
-            raise ValueError('TimedeltaIndex() must be called with a '
-                             'collection of some kind, {data} was passed'
-                             .format(data=repr(data)))
+            raise TypeError('{cls}() must be called with a '
+                            'collection of some kind, {data} was passed'
+                            .format(cls=cls.__name__, data=repr(data)))
 
-        # convert if not already
-        if getattr(data, 'dtype', None) != _TD_DTYPE:
-            data = to_timedelta(data, unit=unit, box=False)
-        elif copy:
-            data = np.array(data, copy=True)
+        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
+            if copy:
+                return data.copy()
+            else:
+                return data._shallow_copy()
+
+        # - Cases checked above all return/raise before reaching here - #
+
+        data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
+        if inferred_freq is not None:
+            if freq is not None and freq != inferred_freq:
+                raise ValueError('Inferred frequency {inferred} from passed '
+                                 'values does not conform to passed frequency '
+                                 '{passed}'
+                                 .format(inferred=inferred_freq,
+                                         passed=freq.freqstr))
+            elif freq_infer:
+                freq = inferred_freq
+                freq_infer = False
+            verify_integrity = False
 
         subarr = cls._simple_new(data, name=name, freq=freq)
         # check that we are matching freqs
@@ -173,15 +181,22 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 cls._validate_frequency(subarr, freq)
 
         if freq_infer:
-            inferred = subarr.inferred_freq
-            if inferred:
-                subarr.freq = to_offset(inferred)
+            subarr.freq = to_offset(subarr.inferred_freq)
 
         return subarr
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, **kwargs):
-        result = super(TimedeltaIndex, cls)._simple_new(values, freq, **kwargs)
+    def _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):
+        # `dtype` is passed by _shallow_copy in corner cases, should always
+        #  be timedelta64[ns] if present
+        assert dtype == _TD_DTYPE
+
+        assert isinstance(values, np.ndarray), type(values)
+        if values.dtype == 'i8':
+            values = values.view('m8[ns]')
+        assert values.dtype == 'm8[ns]', values.dtype
+
+        result = super(TimedeltaIndex, cls)._simple_new(values, freq)
         result.name = name
         result._reset_identity()
         return result
@@ -218,12 +233,17 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                                     nat_rep=na_rep,
                                     justify='all').get_result()
 
+    # -------------------------------------------------------------------
+    # Wrapping TimedeltaArray
+
     days = wrap_field_accessor(TimedeltaArrayMixin.days)
     seconds = wrap_field_accessor(TimedeltaArrayMixin.seconds)
     microseconds = wrap_field_accessor(TimedeltaArrayMixin.microseconds)
     nanoseconds = wrap_field_accessor(TimedeltaArrayMixin.nanoseconds)
 
     total_seconds = wrap_array_method(TimedeltaArrayMixin.total_seconds, True)
+
+    # -------------------------------------------------------------------
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
@@ -253,6 +273,10 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         y : Index or TimedeltaIndex
         """
         self._assert_can_do_setop(other)
+
+        if len(other) == 0 or self.equals(other) or len(self) == 0:
+            return super(TimedeltaIndex, self).union(other)
+
         if not isinstance(other, TimedeltaIndex):
             try:
                 other = TimedeltaIndex(other)
@@ -285,7 +309,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                           sort=sort)
 
     def _wrap_joined_index(self, joined, other):
-        name = self.name if self.name == other.name else None
+        name = get_op_result_name(self, other)
         if (isinstance(other, TimedeltaIndex) and self.freq == other.freq and
                 self._can_fast_union(other)):
             joined = self._shallow_copy(joined, name=name)
@@ -345,10 +369,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         else:
             return left
 
-    def _wrap_union_result(self, other, result):
-        name = self.name if self.name == other.name else None
-        return self._simple_new(result, name=name, freq=None)
-
     def intersection(self, other):
         """
         Specialized intersection for TimedeltaIndex objects. May be much faster
@@ -363,6 +383,10 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         y : Index or TimedeltaIndex
         """
         self._assert_can_do_setop(other)
+
+        if self.equals(other):
+            return self._get_reconciled_name_object(other)
+
         if not isinstance(other, TimedeltaIndex):
             try:
                 other = TimedeltaIndex(other)

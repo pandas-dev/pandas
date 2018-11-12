@@ -4,10 +4,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import DataFrame, Index, MultiIndex, Series
 from pandas.core.util.hashing import _hash_scalar, hash_tuple, hash_tuples
 from pandas.util import hash_array, hash_pandas_object
+import pandas.util.testing as tm
 
 
 class TestHashing(object):
@@ -47,7 +47,7 @@ class TestHashing(object):
     @pytest.mark.parametrize('val', [5, 'foo', pd.Timestamp('20130101')])
     def test_hash_array_errors(self, val):
         msg = 'must pass a ndarray-like'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             hash_array(val)
 
     def check_equal(self, obj, **kwargs):
@@ -104,7 +104,7 @@ class TestHashing(object):
     @pytest.mark.parametrize('val', [5, 'foo', pd.Timestamp('20130101')])
     def test_hash_tuples_err(self, val):
         msg = 'must be convertible to a list-of-tuples'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             hash_tuples(val)
 
     def test_multiindex_unique(self):
@@ -238,7 +238,7 @@ class TestHashing(object):
     def test_invalid_key(self):
         # this only matters for object dtypes
         msg = 'key should be a 16-byte string encoded'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             hash_pandas_object(Series(list('abc')), hash_key='foo')
 
     def test_alread_encoded(self):

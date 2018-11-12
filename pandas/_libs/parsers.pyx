@@ -65,8 +65,8 @@ CParserError = ParserError
 
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
-cdef double INF = <double> np.inf
-cdef double NEGINF = -INF
+cdef float64_t INF = <float64_t>np.inf
+cdef float64_t NEGINF = -INF
 
 
 cdef extern from "errno.h":
@@ -182,10 +182,10 @@ cdef extern from "parser/tokenizer.h":
         int64_t skip_first_N_rows
         int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
-        double (*double_converter_nogil)(const char *, char **,
-                                         char, char, char, int) nogil
-        double (*double_converter_withgil)(const char *, char **,
-                                           char, char, char, int)
+        float64_t (*double_converter_nogil)(const char *, char **,
+                                            char, char, char, int) nogil
+        float64_t (*double_converter_withgil)(const char *, char **,
+                                              char, char, char, int)
 
         #  error handling
         char *warn_msg
@@ -233,12 +233,12 @@ cdef extern from "parser/tokenizer.h":
     uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
                            uint64_t uint_max, int *error, char tsep) nogil
 
-    double xstrtod(const char *p, char **q, char decimal, char sci,
-                   char tsep, int skip_trailing) nogil
-    double precise_xstrtod(const char *p, char **q, char decimal, char sci,
-                           char tsep, int skip_trailing) nogil
-    double round_trip(const char *p, char **q, char decimal, char sci,
+    float64_t xstrtod(const char *p, char **q, char decimal, char sci,
                       char tsep, int skip_trailing) nogil
+    float64_t precise_xstrtod(const char *p, char **q, char decimal, char sci,
+                              char tsep, int skip_trailing) nogil
+    float64_t round_trip(const char *p, char **q, char decimal, char sci,
+                         char tsep, int skip_trailing) nogil
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
@@ -302,6 +302,7 @@ cdef class TextReader:
         object tupleize_cols
         object usecols
         list dtype_cast_order
+        set unnamed_cols
         set noconvert
 
     def __cinit__(self, source,
@@ -361,7 +362,7 @@ cdef class TextReader:
             if not isinstance(encoding, bytes):
                 encoding = encoding.encode('utf-8')
             encoding = encoding.lower()
-            self.c_encoding = <char*> encoding
+            self.c_encoding = <char*>encoding
         else:
             self.c_encoding = NULL
 
@@ -536,7 +537,7 @@ cdef class TextReader:
                 self.header = [ header ]
 
         self.names = names
-        self.header, self.table_width = self._get_header()
+        self.header, self.table_width, self.unnamed_cols = self._get_header()
 
         if not self.table_width:
             raise EmptyDataError("No columns to parse from file")
@@ -611,7 +612,7 @@ cdef class TextReader:
             for i in self.skiprows:
                 parser_add_skiprow(self.parser, i)
         else:
-            self.parser.skipfunc = <PyObject *> self.skiprows
+            self.parser.skipfunc = <PyObject *>self.skiprows
 
     cdef _setup_parser_source(self, source):
         cdef:
@@ -668,7 +669,7 @@ cdef class TextReader:
                 source = icom.UTF8Recoder(source,
                                           self.encoding.decode('utf-8'))
                 self.encoding = b'utf-8'
-                self.c_encoding = <char*> self.encoding
+                self.c_encoding = <char*>self.encoding
 
             self.handle = source
 
@@ -720,13 +721,15 @@ cdef class TextReader:
         cdef:
             Py_ssize_t i, start, field_count, passed_count, unnamed_count  # noqa
             char *word
-            object name
+            object name, old_name
             int status
             int64_t hr, data_line
             char *errors = "strict"
             cdef StringPath path = _string_path(self.c_encoding)
 
         header = []
+        unnamed_cols = set()
+
         if self.parser.header_start >= 0:
 
             # Header is in the file
@@ -759,6 +762,7 @@ cdef class TextReader:
 
                 counts = {}
                 unnamed_count = 0
+
                 for i in range(field_count):
                     word = self.parser.words[start + i]
 
@@ -769,6 +773,9 @@ cdef class TextReader:
                     elif path == ENCODED:
                         name = PyUnicode_Decode(word, strlen(word),
                                                 self.c_encoding, errors)
+
+                    # We use this later when collecting placeholder names.
+                    old_name = name
 
                     if name == '':
                         if self.has_mi_columns:
@@ -786,6 +793,9 @@ cdef class TextReader:
                             name = '%s.%d' % (name, count)
                             count = counts.get(name, 0)
 
+                    if old_name == '':
+                        unnamed_cols.add(name)
+
                     this_header.append(name)
                     counts[name] = count + 1
 
@@ -798,6 +808,7 @@ cdef class TextReader:
                         lc = len(this_header)
                         ic = (len(self.index_col) if self.index_col
                               is not None else 0)
+
                         if lc != unnamed_count and lc - ic > unnamed_count:
                             hr -= 1
                             self.parser_start -= 1
@@ -830,7 +841,7 @@ cdef class TextReader:
             if self.parser.lines < 1:
                 self._tokenize_rows(1)
 
-            return None, self.parser.line_fields[0]
+            return None, self.parser.line_fields[0], unnamed_cols
 
         # Corner case, not enough lines in the file
         if self.parser.lines < data_line + 1:
@@ -864,7 +875,7 @@ cdef class TextReader:
             elif self.allow_leading_cols and passed_count < field_count:
                 self.leading_cols = field_count - passed_count
 
-        return header, field_count
+        return header, field_count, unnamed_cols
 
     def read(self, rows=None):
         """
@@ -1438,13 +1449,13 @@ cdef _string_box_factorize(parser_t *parser, int64_t col,
         # in the hash table
         if k != table.n_buckets:
             # this increments the refcount, but need to test
-            pyval = <object> table.vals[k]
+            pyval = <object>table.vals[k]
         else:
             # box it. new ref?
             pyval = PyBytes_FromString(word)
 
             k = kh_put_strbox(table, word, &ret)
-            table.vals[k] = <PyObject*> pyval
+            table.vals[k] = <PyObject*>pyval
 
         result[i] = pyval
 
@@ -1492,13 +1503,13 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         # in the hash table
         if k != table.n_buckets:
             # this increments the refcount, but need to test
-            pyval = <object> table.vals[k]
+            pyval = <object>table.vals[k]
         else:
             # box it. new ref?
             pyval = PyUnicode_FromString(word)
 
             k = kh_put_strbox(table, word, &ret)
-            table.vals[k] = <PyObject *> pyval
+            table.vals[k] = <PyObject *>pyval
 
         result[i] = pyval
 
@@ -1549,14 +1560,14 @@ cdef _string_box_decode(parser_t *parser, int64_t col,
         # in the hash table
         if k != table.n_buckets:
             # this increments the refcount, but need to test
-            pyval = <object> table.vals[k]
+            pyval = <object>table.vals[k]
         else:
             # box it. new ref?
             size = strlen(word)
             pyval = PyUnicode_Decode(word, size, encoding, errors)
 
             k = kh_put_strbox(table, word, &ret)
-            table.vals[k] = <PyObject *> pyval
+            table.vals[k] = <PyObject *>pyval
 
         result[i] = pyval
 
@@ -1648,7 +1659,7 @@ cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
         ndarray result
 
     result = np.empty(line_end - line_start, dtype='|S%d' % width)
-    data = <char*> result.data
+    data = <char*>result.data
 
     with nogil:
         _to_fw_string_nogil(parser, col, line_start, line_end, width, data)
@@ -1686,8 +1697,8 @@ cdef _try_double(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         char *p_end
-        double *data
-        double NA = na_values[np.float64]
+        float64_t *data
+        float64_t NA = na_values[np.float64]
         kh_float64_t *na_fset
         ndarray result
         khiter_t k
@@ -1695,7 +1706,7 @@ cdef _try_double(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.float64)
-    data = <double *> result.data
+    data = <float64_t *>result.data
     na_fset = kset_float64_from_list(na_flist)
     if parser.double_converter_nogil != NULL:  # if it can run without the GIL
         with nogil:
@@ -1706,8 +1717,8 @@ cdef _try_double(parser_t *parser, int64_t col,
     else:
         assert parser.double_converter_withgil != NULL
         error = _try_double_nogil(parser,
-                                  <double (*)(const char *, char **,
-                                              char, char, char, int)
+                                  <float64_t (*)(const char *, char **,
+                                                 char, char, char, int)
                                   nogil>parser.double_converter_withgil,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
@@ -1719,14 +1730,14 @@ cdef _try_double(parser_t *parser, int64_t col,
 
 
 cdef inline int _try_double_nogil(parser_t *parser,
-                                  double (*double_converter)(
+                                  float64_t (*double_converter)(
                                       const char *, char **, char,
                                       char, char, int) nogil,
                                   int col, int line_start, int line_end,
                                   bint na_filter, kh_str_t *na_hashset,
                                   bint use_na_flist,
                                   const kh_float64_t *na_flist,
-                                  double NA, double *data,
+                                  float64_t NA, float64_t *data,
                                   int *na_count) nogil:
     cdef:
         int error,
@@ -1803,7 +1814,7 @@ cdef _try_uint64(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.uint64)
-    data = <uint64_t *> result.data
+    data = <uint64_t *>result.data
 
     uint_state_init(&state)
     coliter_setup(&it, parser, col, line_start)
@@ -1879,7 +1890,7 @@ cdef _try_int64(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.int64)
-    data = <int64_t *> result.data
+    data = <int64_t *>result.data
     coliter_setup(&it, parser, col, line_start)
     with nogil:
         error = _try_int64_nogil(parser, col, line_start, line_end,
@@ -1951,7 +1962,7 @@ cdef _try_bool_flex(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.uint8)
-    data = <uint8_t *> result.data
+    data = <uint8_t *>result.data
     with nogil:
         error = _try_bool_flex_nogil(parser, col, line_start, line_end,
                                      na_filter, na_hashset, true_hashset,
@@ -2087,14 +2098,14 @@ cdef raise_parser_error(object base, parser_t *parser):
         Py_XDECREF(traceback)
 
         if value != NULL:
-            old_exc = <object> value
+            old_exc = <object>value
             Py_XDECREF(value)
 
             # PyErr_Fetch only returned the error message in *value,
             # so the Exception class must be extracted from *type.
             if isinstance(old_exc, compat.string_types):
                 if type != NULL:
-                    exc_type = <object> type
+                    exc_type = <object>type
                 else:
                     exc_type = ParserError
 

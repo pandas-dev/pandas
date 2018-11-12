@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 import operator
 
 import numpy as np
-from numpy import nan
 import pytest
 
 import pandas.compat as compat
@@ -604,23 +603,23 @@ class TestSeriesComparisons(object):
         for left, right in [(s1, s2), (s2, s1), (s3, s4), (s4, s3)]:
 
             msg = "Can only compare identically-labeled Series objects"
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 left == right
 
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 left != right
 
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 left < right
 
             msg = "Can only compare identically-labeled DataFrame objects"
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 left.to_frame() == right.to_frame()
 
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 left.to_frame() != right.to_frame()
 
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 left.to_frame() < right.to_frame()
 
 
@@ -750,12 +749,12 @@ class TestSeriesOperators(TestData):
                 with np.errstate(all='ignore'):
                     if amask[i]:
                         if bmask[i]:
-                            exp_values.append(nan)
+                            exp_values.append(np.nan)
                             continue
                         exp_values.append(op(fill_value, b[i]))
                     elif bmask[i]:
                         if amask[i]:
-                            exp_values.append(nan)
+                            exp_values.append(np.nan)
                             continue
                         exp_values.append(op(a[i], fill_value))
                     else:
@@ -765,8 +764,8 @@ class TestSeriesOperators(TestData):
             expected = Series(exp_values, exp_index)
             assert_series_equal(result, expected)
 
-        a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
-        b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
+        a = Series([np.nan, 1., 2., 3., np.nan], index=np.arange(5))
+        b = Series([np.nan, 1, np.nan, 3, np.nan, 4.], index=np.arange(6))
 
         result = op(a, b)
         exp = equiv_op(a, b)

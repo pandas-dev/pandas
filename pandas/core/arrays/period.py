@@ -35,7 +35,7 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCPeriodIndex
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.missing import pad_1d, backfill_1d
 
 import pandas.core.common as com
@@ -149,6 +149,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     period_array : Create a new PeriodArray
     pandas.PeriodIndex : Immutable Index for period data
     """
+    # array priority higher than numpy scalars
+    __array_priority__ = 1000
     _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
 
@@ -165,7 +167,10 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     # --------------------------------------------------------------------
     # Constructors
-    def __init__(self, values, freq=None, copy=False):
+
+    def __init__(self, values, freq=None, dtype=None, copy=False):
+        freq = dtl.validate_dtype_freq(dtype, freq)
+
         if freq is not None:
             freq = Period._maybe_convert_freq(freq)
 
@@ -397,9 +402,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                                 fill_value=fill_value)
 
         return type(self)(new_values, self.freq)
-
-    def isna(self):
-        return self._data == iNaT
 
     def fillna(self, value=None, method=None, limit=None):
         # TODO(#20300)
@@ -758,12 +760,15 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         assert isinstance(self.freq, Tick)  # checked by calling function
         assert isinstance(other, (timedelta, np.timedelta64, Tick))
 
-        delta = self._check_timedeltalike_freq_compat(other)
+        if notna(other):
+            # special handling for np.timedelta64("NaT"), avoid calling
+            #  _check_timedeltalike_freq_compat as that would raise TypeError
+            other = self._check_timedeltalike_freq_compat(other)
 
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here
         #  is an integer, delta_to_nanoseconds will return it unchanged.
-        ordinals = super(PeriodArray, self)._add_timedeltalike_scalar(delta)
+        ordinals = super(PeriodArray, self)._add_timedeltalike_scalar(other)
         return ordinals
 
     def _add_delta_tdi(self, other):
@@ -967,24 +972,15 @@ def dt64arr_to_periodarr(data, freq, tz=None):
     if data.dtype != np.dtype('M8[ns]'):
         raise ValueError('Wrong dtype: %s' % data.dtype)
 
-    if freq is not None:
-        freq = Period._maybe_convert_freq(freq)
+    if freq is None:
+        if isinstance(data, ABCIndexClass):
+            data, freq = data._values, data.freq
+        elif isinstance(data, ABCSeries):
+            data, freq = data._values, data.dt.freq
 
-    if isinstance(data, ABCIndexClass):
-        if freq is None:
-            freq = data.freq
-        elif freq != data.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(freq.freqstr, data.freq.freqstr)
-            raise IncompatibleFrequency(msg)
-        data = data._values
+    freq = Period._maybe_convert_freq(freq)
 
-    elif isinstance(data, ABCSeries):
-        if freq is None:
-            freq = data.dt.freq
-        elif freq != data.dt.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(freq.freqstr,
-                                              data.dt.freq.freqstr)
-            raise IncompatibleFrequency(msg)
+    if isinstance(data, (ABCIndexClass, ABCSeries)):
         data = data._values
 
     base, mult = frequencies.get_freq_code(freq)

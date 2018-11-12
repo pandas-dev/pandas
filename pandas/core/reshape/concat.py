@@ -177,12 +177,12 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
       letter  number animal
     0      c       3    cat
     1      d       4    dog
-    >>> pd.concat([df1, df3])
-      animal letter  number
-    0    NaN      a       1
-    1    NaN      b       2
-    0    cat      c       3
-    1    dog      d       4
+    >>> pd.concat([df1, df3], sort=False)
+      letter  number animal
+    0      a       1    NaN
+    1      b       2    NaN
+    0      c       3    cat
+    1      d       4    dog
 
     Combine ``DataFrame`` objects with overlapping columns
     and return only those that are shared by passing ``inner`` to
@@ -322,7 +322,7 @@ class _Concatenator(object):
 
         # Standardize axis parameter to int
         if isinstance(sample, Series):
-            axis = DataFrame()._get_axis_number(axis)
+            axis = DataFrame._get_axis_number(axis)
         else:
             axis = sample._get_axis_number(axis)
 
@@ -502,7 +502,7 @@ class _Concatenator(object):
                 else:
                     return ibase.default_index(len(self.objs))
             else:
-                return ensure_index(self.keys)
+                return ensure_index(self.keys).set_names(self.names)
         else:
             indexes = [x._data.axes[self.axis] for x in self.objs]
 

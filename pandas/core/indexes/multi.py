@@ -1614,7 +1614,7 @@ class MultiIndex(Index):
             return tuple(retval)
         else:
             if com.is_bool_indexer(key):
-                key = np.asarray(key)
+                key = np.asarray(key, dtype=bool)
                 sortorder = self.sortorder
             else:
                 # cannot be sure whether the result will be sorted
@@ -1885,7 +1885,7 @@ class MultiIndex(Index):
         ascending : boolean, default True
             False to sort in descending order
             Can also be a list to specify a directed ordering
-        sort_remaining : sort by the remaining levels after level.
+        sort_remaining : sort by the remaining levels after level
 
         Returns
         -------

@@ -365,8 +365,8 @@ Length
 ~~~~~~
 
 SAS determines the length of a character string with the 
-`LENGTHN <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm>`__  
-and `LENGTHC <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm>`__ 
+`LENGTHN <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm>`__
+and `LENGTHC <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm>`__
 functions. ``LENGTHN`` excludes trailing blanks and ``LENGTHC`` includes trailing blanks.
 
 .. code-block:: sas
@@ -391,7 +391,7 @@ Find
 ~~~~
 
 SAS determines the position of a character in a string with the 
-`FINDW <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm>`__ function. 
+`FINDW <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm>`__ function.
 ``FINDW`` takes the string defined by the first argument and searches for the first position of the substring 
 you supply as the second argument.
 
@@ -417,7 +417,7 @@ Substring
 ~~~~~~~~~
 
 SAS extracts a substring from a string based on its position with the 
-`SUBSTR <http://www2.sas.com/proceedings/sugi25/25/cc/25p088.pdf>`__ function. 
+`SUBSTR <https://www2.sas.com/proceedings/sugi25/25/cc/25p088.pdf>`__ function.
 
 .. code-block:: sas
 
@@ -438,7 +438,7 @@ indexes are zero-based.
 Scan
 ~~~~
 
-The SAS `SCAN <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm>`__ 
+The SAS `SCAN <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm>`__
 function returns the nth word from a string. The first argument is the string you want to parse and the 
 second argument specifies which word you want to extract.
 
@@ -469,9 +469,9 @@ approaches, but this just shows a simple approach.
 Upcase, Lowcase, and Propcase
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The SAS `UPCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm>`__ 
-`LOWCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm>`__ and 
-`PROPCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/a002598106.htm>`__ 
+The SAS `UPCASE <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm>`__
+`LOWCASE <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm>`__ and
+`PROPCASE <https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/a002598106.htm>`__
 functions change the case of the argument.
 
 .. code-block:: sas
@@ -709,7 +709,7 @@ This means that the size of data able to be loaded in pandas is limited by your
 machine's memory, but also that the operations on that data may be faster.
 
 If out of core processing is needed, one possibility is the
-`dask.dataframe <http://dask.pydata.org/en/latest/dataframe.html>`_
+`dask.dataframe <https://dask.pydata.org/en/latest/dataframe.html>`_
 library (currently in development) which
 provides a subset of pandas functionality for an on-disk ``DataFrame``
 
@@ -744,7 +744,7 @@ XPORT is a relatively limited format and the parsing of it is not as
 optimized as some of the other pandas readers. An alternative way
 to interop data between SAS and pandas is to serialize to csv.
 
-.. code-block:: python
+.. code-block:: ipython
 
    # version 0.17, 10M rows
 

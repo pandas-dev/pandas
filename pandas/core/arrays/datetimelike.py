@@ -12,7 +12,8 @@ from pandas._libs.tslibs.timestamps import maybe_integer_op_deprecated
 from pandas._libs.tslibs.period import (
     Period, DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
-from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas.errors import (
+    AbstractMethodError, NullFrequencyError, PerformanceWarning)
 from pandas import compat
 
 from pandas.tseries import frequencies
@@ -35,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype)
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame, ABCIndexClass
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
@@ -64,7 +66,7 @@ def _make_comparison_op(cls, op):
         with warnings.catch_warnings(record=True):
             warnings.filterwarnings("ignore", "elementwise", FutureWarning)
             with np.errstate(all='ignore'):
-                result = op(self.values, np.asarray(other))
+                result = op(self._data, np.asarray(other))
 
         return result
 
@@ -78,29 +80,15 @@ class AttributesMixin(object):
     @property
     def _attributes(self):
         # Inheriting subclass should implement _attributes as a list of strings
-        from pandas.errors import AbstractMethodError
         raise AbstractMethodError(self)
 
     @classmethod
     def _simple_new(cls, values, **kwargs):
-        from pandas.errors import AbstractMethodError
         raise AbstractMethodError(cls)
 
     def _get_attributes_dict(self):
         """return an attributes dict for my class"""
         return {k: getattr(self, k, None) for k in self._attributes}
-
-    def _shallow_copy(self, values=None, **kwargs):
-        if values is None:
-            # Note: slightly different from Index implementation which defaults
-            # to self.values
-            values = self._ndarray_values
-
-        attributes = self._get_attributes_dict()
-        attributes.update(kwargs)
-        if not len(values) and 'dtype' not in kwargs:
-            attributes['dtype'] = self.dtype
-        return self._simple_new(values, **attributes)
 
 
 class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
@@ -120,7 +108,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         """
         box function to get object from internal representation
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _box_values(self, values):
         """
@@ -132,14 +120,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return (self._box_func(v) for v in self.asi8)
 
     @property
-    def values(self):
-        """ return the underlying data as an ndarray """
-        return self._data.view(np.ndarray)
-
-    @property
     def asi8(self):
         # do not cache or you'll create a memory leak
-        return self.values.view('i8')
+        return self._data.view('i8')
 
     # ------------------------------------------------------------------
     # Array-like Methods
@@ -173,7 +156,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             return self._box_func(val)
 
         if com.is_bool_indexer(key):
-            key = np.asarray(key)
+            key = np.asarray(key, dtype=bool)
             if key.all():
                 key = slice(0, None, None)
             else:
@@ -211,6 +194,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     # ------------------------------------------------------------------
     # Null Handling
+
+    def isna(self):
+        return self._isnan
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _isnan(self):
@@ -349,7 +335,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                         .format(cls=type(self).__name__))
 
     def _add_offset(self, offset):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _add_delta(self, other):
         """
@@ -383,6 +369,12 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         Add a delta of a timedeltalike
         return the i8 result view
         """
+        if isna(other):
+            # i.e np.timedelta64("NaT"), not recognized by delta_to_nanoseconds
+            new_values = np.empty(len(self), dtype='i8')
+            new_values[:] = iNaT
+            return new_values
+
         inc = delta_to_nanoseconds(other)
         new_values = checked_add_with_arr(self.asi8, inc,
                                           arr_mask=self._isnan).view('i8')
@@ -423,7 +415,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         # and datetime dtypes
         result = np.zeros(len(self), dtype=np.int64)
         result.fill(iNaT)
-        return self._shallow_copy(result, freq=None)
+        if is_timedelta64_dtype(self):
+            return type(self)(result, freq=None)
+        return type(self)(result, tz=self.tz, freq=None)
 
     def _sub_nat(self):
         """Subtract pd.NaT from self"""
@@ -453,7 +447,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             Array of DateOffset objects; nulls represented by NaT
         """
         if not is_period_dtype(self):
-            raise TypeError("cannot subtract {dtype}-dtype to {cls}"
+            raise TypeError("cannot subtract {dtype}-dtype from {cls}"
                             .format(dtype=other.dtype,
                                     cls=type(self).__name__))
 
@@ -752,6 +746,11 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 raise TypeError("cannot subtract {cls} from {typ}"
                                 .format(cls=type(self).__name__,
                                         typ=type(other).__name__))
+            elif is_period_dtype(self) and is_timedelta64_dtype(other):
+                # TODO: Can we simplify/generalize these cases at all?
+                raise TypeError("cannot subtract {cls} from {dtype}"
+                                .format(cls=type(self).__name__,
+                                        dtype=other.dtype))
             return -(self - other)
         cls.__rsub__ = __rsub__
 

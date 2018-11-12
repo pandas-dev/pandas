@@ -21,7 +21,7 @@ from pandas.core.indexes.base import (
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
 import pandas.core.indexes.base as ibase
-
+from pandas.core.ops import get_op_result_name
 
 _num_index_shared_docs = dict()
 
@@ -215,7 +215,7 @@ class Int64Index(IntegerIndex):
                 ._convert_scalar_indexer(key, kind=kind))
 
     def _wrap_joined_index(self, joined, other):
-        name = self.name if self.name == other.name else None
+        name = get_op_result_name(self, other)
         return Int64Index(joined, name=name)
 
     @classmethod
@@ -288,7 +288,7 @@ class UInt64Index(IntegerIndex):
         return keyarr
 
     def _wrap_joined_index(self, joined, other):
-        name = self.name if self.name == other.name else None
+        name = get_op_result_name(self, other)
         return UInt64Index(joined, name=name)
 
     @classmethod
