@@ -568,16 +568,12 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         # TODO: what about self.name?  if so, use shallow_copy?
 
     def unique(self, level=None):
-        # Override here since IndexOpsMixin.unique uses self._values.unique
-        # For DatetimeIndex with TZ, that's a DatetimeIndex -> recursion error
-        # So we extract the tz-naive DatetimeIndex, unique that, and wrap the
-        # result with out TZ.
-        if self.tz is not None:
-            naive = type(self)(self._ndarray_values, copy=False)
-        else:
-            naive = self
-        result = super(DatetimeIndex, naive).unique(level=level)
-        return self._shallow_copy(result.values)
+        if level is not None:
+            self._validate_index_level(level)
+
+        # call DatetimeArray method
+        result = DatetimeArrayMixin.unique(self)
+        return self._shallow_copy(result._data)
 
     def union(self, other):
         """

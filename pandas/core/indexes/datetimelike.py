@@ -225,6 +225,11 @@ class TimelikeOps(object):
 class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     """ common ops mixin to support a unified interface datetimelike Index """
 
+    # override DatetimeLikeArrayMixin method
+    copy = Index.copy
+    unique = Index.unique
+    take = Index.take
+
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
     # subclasses bc they are immutable
@@ -771,7 +776,7 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
         try:
             return np.array(other, copy=False).view('i8')
         except TypeError:
-            # period array cannot be coerces to int
+            # period array cannot be coerced to int
             other = Index(other)
     return other.asi8
 

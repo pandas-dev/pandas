@@ -39,7 +39,7 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
-from pandas.core.algorithms import checked_add_with_arr
+from pandas.core.algorithms import checked_add_with_arr, take, unique1d
 
 from .base import ExtensionOpsMixin
 from pandas.util._decorators import deprecate_kwarg
@@ -128,6 +128,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     # Array-like Methods
 
     @property
+    def nbytes(self):
+        return self._data.nbytes
+
+    @property
     def shape(self):
         return (len(self),)
 
@@ -191,6 +195,79 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if is_object_dtype(dtype):
             return self._box_values(self.asi8)
         return super(DatetimeLikeArrayMixin, self).astype(dtype, copy)
+
+    # ------------------------------------------------------------------
+    # ExtensionArray Interface
+    # TODO:
+    #   * argsort / _values_for_argsort
+    #   * _reduce
+
+    def unique(self):
+        result = unique1d(self.asi8)
+        return type(self)(result, dtype=self.dtype)
+
+    def _validate_fill_value(self, fill_value):
+        """
+        If a fill_value is passed to `take` convert it to an i8 representation,
+        raising ValueError if this is not possible.
+
+        Parameters
+        ----------
+        fill_value : object
+
+        Returns
+        -------
+        fill_value : np.int64
+
+        Raises
+        ------
+        ValueError
+        """
+        raise AbstractMethodError(self)
+
+    def take(self, indices, allow_fill=False, fill_value=None):
+        if allow_fill:
+            fill_value = self._validate_fill_value(fill_value)
+
+        new_values = take(self.asi8,
+                          indices,
+                          allow_fill=allow_fill,
+                          fill_value=fill_value)
+
+        return type(self)(new_values, dtype=self.dtype)
+
+    @classmethod
+    def _concat_same_type(cls, to_concat):
+        # for TimedeltaArray and PeriodArray; DatetimeArray overrides
+        freqs = {x.freq for x in to_concat}
+        assert len(freqs) == 1
+        freq = list(freqs)[0]
+        values = np.concatenate([x.asi8 for x in to_concat])
+        return cls._simple_new(values, freq=freq)
+
+    def copy(self, deep=False):
+        values = self.asi8
+        if deep:
+            values = i8values.copy()
+        return type(self)(values, dtype=self.dtype, freq=self.freq)
+
+    def _values_for_factorize(self):
+        return self.asi8, iNaT
+
+    @classmethod
+    def _from_factorized(cls, values, original):
+        if is_datetime64tz_dtype(original):
+            return cls(values, tz=original.tz, freq=original.freq)
+        return cls(values, freq=original.freq)
+
+    @classmethod
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        arr = np.asarray(scalars, dtype=object)
+        if copy:
+            arr = arr.copy()
+
+        # If necessary this will infer tz from dtype
+        return cls(arr, dtype=dtype)
 
     # ------------------------------------------------------------------
     # Null Handling
