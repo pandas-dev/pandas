@@ -390,22 +390,30 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ndarray compatibility
     @property
     def dtype(self):
-        """ Return the dtype object of the underlying data """
+        """
+        Return the dtype object of the underlying data.
+        """
         return self._data.dtype
 
     @property
     def dtypes(self):
-        """ Return the dtype object of the underlying data """
+        """
+        Return the dtype object of the underlying data.
+        """
         return self._data.dtype
 
     @property
     def ftype(self):
-        """ Return if the data is sparse|dense """
+        """
+        Return if the data is sparse|dense.
+        """
         return self._data.ftype
 
     @property
     def ftypes(self):
-        """ Return if the data is sparse|dense """
+        """
+        Return if the data is sparse|dense.
+        """
         return self._data.ftype
 
     @property
@@ -443,7 +451,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def _values(self):
-        """ Return the internal repr of this data """
+        """
+        Return the internal repr of this data.
+        """
         return self._data.internal_values()
 
     def _formatting_values(self):
@@ -453,7 +463,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._data.formatting_values()
 
     def get_values(self):
-        """ Same as values (but handles sparseness conversions); is a view """
+        """
+        Same as values (but handles sparseness conversions); is a view.
+        """
         return self._data.get_values()
 
     @property
