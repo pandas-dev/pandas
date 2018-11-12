@@ -14,11 +14,13 @@
 #   $ ./ci/code_checks.sh patterns    # check for patterns that should not exist
 #   $ ./ci/code_checks.sh doctests    # run doctests
 #   $ ./ci/code_checks.sh docstrings  # validate docstring errors
+#   $ ./ci/code_checks.sh dependencies  # check that dependencies are consistent
 
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" || "$1" == "docstrings" ]] || \
-    { echo "Unknown command $1. Usage: $0 [lint|patterns|doctests|docstrings]"; exit 9999; }
+[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "dependecies" ]] || \
+    { echo "Unknown command $1. Usage: $0 [lint|patterns|doctests|docstrings|dependencies]"; exit 9999; }
 
 source activate pandas
+BASE_DIR="$(dirname $0)/.."
 RET=0
 CHECK=$1
 
@@ -142,6 +144,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas ./doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check that the deprecated `assert_raises_regex` is not used (`pytest.raises(match=pattern)` should be used instead)' ; echo $MSG
+    ! grep -R --exclude=*.pyc --exclude=testing.py --exclude=test_testing.py assert_raises_regex pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     MSG='Check for modules that pandas should not import' ; echo $MSG
     python -c "
 import sys
@@ -174,7 +180,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests generic.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/generic.py \
-        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -to_json -transpose -values -xs"
+        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -to_json -transpose -values -xs"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests top-level reshaping functions' ; echo $MSG
@@ -200,6 +206,15 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Validate docstrings (SS04, PR03, PR05, EX04)' ; echo $MSG
     scripts/validate_docstrings.py --format=azure --errors=SS04,PR03,PR05,EX04
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+fi
+
+### DEPENDENCIES ###
+if [[ -z "$CHECK" || "$CHECK" == "dependencies" ]]; then
+
+    MSG='Check that requirements-dev.txt has been generated from environment.yml' ; echo $MSG
+    $BASE_DIR/scripts/generate_pip_deps_from_conda.py --compare
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

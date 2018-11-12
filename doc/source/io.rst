@@ -2854,6 +2854,11 @@ It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. ``read_excel`` takes
 a ``usecols`` keyword to allow you to specify a subset of columns to parse.
 
+.. deprecated:: 0.24.0
+
+Passing in an integer for ``usecols`` has been deprecated. Please pass in a list
+of ints from 0 to ``usecols`` inclusive instead.
+
 If ``usecols`` is an integer, then it is assumed to indicate the last column
 to be parsed.
 
@@ -2861,7 +2866,13 @@ to be parsed.
 
    read_excel('path_to_file.xls', 'Sheet1', usecols=2)
 
-If `usecols` is a list of integers, then it is assumed to be the file column
+You can also specify a comma-delimited set of Excel columns and ranges as a string:
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', 'Sheet1', usecols='A,C:E')
+
+If ``usecols`` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
 
 .. code-block:: python
@@ -2869,6 +2880,27 @@ indices to be parsed.
    read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
 
 Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
+
+.. versionadded:: 0.24
+
+If ``usecols`` is a list of strings, it is assumed that each string corresponds
+to a column name provided either by the user in ``names`` or inferred from the
+document header row(s). Those strings define which columns will be parsed:
+
+.. code-block:: python
+
+    read_excel('path_to_file.xls', 'Sheet1', usecols=['foo', 'bar'])
+
+Element order is ignored, so ``usecols=['baz', 'joe']`` is the same as ``['joe', 'baz']``.
+
+.. versionadded:: 0.24
+
+If ``usecols`` is callable, the callable function will be evaluated against
+the column names, returning names where the callable function evaluates to ``True``.
+
+.. code-block:: python
+
+    read_excel('path_to_file.xls', 'Sheet1', usecols=lambda x: x.isalpha())
 
 Parsing Dates
 +++++++++++++
@@ -4672,6 +4704,43 @@ this file into a ``DataFrame``.
 Passing ``index=True`` will *always* write the index, even if that's not the
 underlying engine's default behavior.
 
+
+Partitioning Parquet files
+''''''''''''''''''''''''''
+
+.. versionadded:: 0.24.0
+
+Parquet supports partitioning of data based on the values of one or more columns.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [0, 0, 1, 1], 'b': [0, 1, 0, 1]})
+    df.to_parquet(fname='test', engine='pyarrow', partition_cols=['a'], compression=None)
+
+The `fname` specifies the parent directory to which data will be saved.
+The `partition_cols` are the column names by which the dataset will be partitioned.
+Columns are partitioned in the order they are given. The partition splits are
+determined by the unique values in the partition columns.
+The above example creates a partitioned dataset that may look like:
+
+.. code-block:: text
+
+    test
+    ├── a=0
+    │   ├── 0bac803e32dc42ae83fddfd029cbdebc.parquet
+    │   └──  ...
+    └── a=1
+        ├── e6ab24a4f45147b49b54a662f0c412a3.parquet
+        └── ...
+
+.. ipython:: python
+   :suppress:
+
+   from shutil import rmtree
+   try:
+       rmtree('test')
+   except Exception:
+       pass
 
 .. _io.sql:
 
