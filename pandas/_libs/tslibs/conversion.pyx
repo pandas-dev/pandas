@@ -1130,8 +1130,7 @@ def normalize_i8_timestamps(int64_t[:] stamps, object tz=None):
     result : int64 ndarray of converted of normalized nanosecond timestamps
     """
     cdef:
-        Py_ssize_t i, n = len(stamps)
-        npy_datetimestruct dts
+        Py_ssize_t n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
 
     tz = maybe_get_tz(tz)
