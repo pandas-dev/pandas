@@ -21,8 +21,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_int64_dtype,
     is_datetime64tz_dtype,
-    is_datetime64_dtype,
-    ensure_int64)
+    is_datetime64_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -437,19 +436,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             raise ValueError("'fill_value' should be a Timestamp. "
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
-
-    @classmethod
-    def _concat_same_type(cls, to_concat):
-        freqs = {x.freq for x in to_concat}
-        assert len(freqs) == 1
-        freq = list(freqs)[0]
-
-        tzs = {x.tz for x in to_concat}
-        assert len(tzs) == 1
-        tz = list(tzs)[0]
-
-        values = np.concatenate([x.asi8 for x in to_concat])
-        return cls._simple_new(values, freq=freq, tz=tz)
 
     # -----------------------------------------------------------------
     # Comparison Methods

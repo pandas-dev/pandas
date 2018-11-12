@@ -239,12 +239,17 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     @classmethod
     def _concat_same_type(cls, to_concat):
-        # for TimedeltaArray and PeriodArray; DatetimeArray overrides
         freqs = {x.freq for x in to_concat}
         assert len(freqs) == 1
         freq = list(freqs)[0]
+
+        # dtype captures tz for datetime64tz case
+        dtypes = {x.dtype for x in to_concat}
+        assert len(dtypes) == 1
+        dtype = list(dtypes)[0]
+
         values = np.concatenate([x.asi8 for x in to_concat])
-        return cls._simple_new(values, freq=freq)
+        return cls(values, dtype=dtype, freq=freq)
 
     def copy(self, deep=False):
         values = self.asi8
@@ -257,9 +262,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
     @classmethod
     def _from_factorized(cls, values, original):
-        if is_datetime64tz_dtype(original):
-            return cls(values, tz=original.tz, freq=original.freq)
-        return cls(values, freq=original.freq)
+        return cls(values, dtype=original.dtype, freq=original.freq)
 
     # ------------------------------------------------------------------
     # Null Handling

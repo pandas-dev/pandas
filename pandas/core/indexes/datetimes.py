@@ -554,6 +554,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         if level is not None:
             self._validate_index_level(level)
 
+        # TODO(DatetimeArray): change dispatch once inheritance is removed
         # call DatetimeArray method
         result = DatetimeArray.unique(self)
         return self._shallow_copy(result._data)
