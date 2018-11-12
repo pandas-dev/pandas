@@ -191,6 +191,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         return cls._simple_new(index, freq=freq)
 
     # ----------------------------------------------------------------
+    # Array-Like / EA-Interface Methods
+
+    # ----------------------------------------------------------------
     # Arithmetic Methods
 
     _create_comparison_method = classmethod(_td_array_cmp)
@@ -412,20 +415,25 @@ def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
     array : list-like
     copy : bool, default False
     unit : str, default "ns"
+        The timedelta unit to treat integers as multiples of.
     errors : {"raise", "coerce", "ignore"}, default "raise"
+        How to handle elements that cannot be converted to timedelta64[ns].
+        See ``pandas.to_timedelta`` for details.
 
     Returns
     -------
-    ndarray[timedelta64[ns]]
+    converted : numpy.ndarray
+        The sequence converted to a numpy array with dtype ``timedelta64[ns]``.
     inferred_freq : Tick or None
+        The inferred frequency of the sequence.
 
     Raises
     ------
-    ValueError : data cannot be converted to timedelta64[ns]
+    ValueError : Data cannot be converted to timedelta64[ns].
 
     Notes
     -----
-    Unlike `pandas.to_timedelta`, if setting `errors=ignore` will not cause
+    Unlike `pandas.to_timedelta`, if setting ``errors=ignore`` will not cause
     errors to be ignored; they are caught and subsequently ignored at a
     higher level.
     """
@@ -497,12 +505,13 @@ def ints_to_td64ns(data, unit="ns"):
 
     Parameters
     ----------
-    data : np.ndarray with integer-dtype
+    data : numpy.ndarray with integer-dtype
     unit : str, default "ns"
+        The timedelta unit to treat integers as multiples of.
 
     Returns
     -------
-    ndarray[timedelta64[ns]]
+    numpy.ndarray : timedelta64[ns] array converted from data
     bool : whether a copy was made
     """
     copy_made = False
@@ -538,15 +547,18 @@ def objects_to_td64ns(data, unit="ns", errors="raise"):
     ----------
     data : ndarray or Index
     unit : str, default "ns"
+        The timedelta unit to treat integers as multiples of.
     errors : {"raise", "coerce", "ignore"}, default "raise"
+        How to handle elements that cannot be converted to timedelta64[ns].
+        See ``pandas.to_timedelta`` for details.
 
     Returns
     -------
-    ndarray[timedelta64[ns]]
+    numpy.ndarray : timedelta64[ns] array converted from data
 
     Raises
     ------
-    ValueError : data cannot be converted to timedelta64[ns]
+    ValueError : Data cannot be converted to timedelta64[ns].
 
     Notes
     -----

@@ -385,7 +385,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         return libresolution.resolution(self.asi8, self.tz)
 
     # ----------------------------------------------------------------
-    # Array-like Methods
+    # Array-Like / EA-Interface Methods
 
     def __array__(self, dtype=None):
         if is_object_dtype(dtype):
