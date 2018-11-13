@@ -10,6 +10,7 @@ from pandas._libs import NaT, iNaT, lib
 from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -21,7 +22,7 @@ import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import algorithms, common as com, ops
+from pandas.core import algorithms, ops
 from pandas.core.arrays import PeriodArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas.core.indexes.base as ibase
@@ -90,6 +91,8 @@ class TimelikeOps(object):
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            Only relevant for DatetimeIndex:
+
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False designates
@@ -98,7 +101,6 @@ class TimelikeOps(object):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-            Only relevant for DatetimeIndex
 
             .. versionadded:: 0.24.0
         nonexistent : 'shift', 'NaT', default 'raise'
@@ -531,7 +533,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     @property
     def _formatter_func(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _format_attrs(self):
         """
