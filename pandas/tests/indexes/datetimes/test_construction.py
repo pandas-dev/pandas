@@ -19,7 +19,7 @@ import pandas.util.testing as tm
 class TestDatetimeIndex(object):
 
     def test_td64_deprecation(self):
-        # GH#?????
+        # GH#23675
         data = np.array([0], dtype='m8[ns]')
         with tm.assert_produces_warning(FutureWarning):
             result = DatetimeIndex(data)
