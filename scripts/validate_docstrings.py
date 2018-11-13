@@ -587,7 +587,7 @@ def validate_one(func_name):
     errs = []
     wrns = []
 
-    if len(doc.raw_doc) == 0:
+    if not doc.raw_doc:
         errs.append(error('GL08'))
         return {
             'type': doc.type,
