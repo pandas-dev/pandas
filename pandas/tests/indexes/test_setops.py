@@ -8,8 +8,12 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
+from pandas import Int64Index, RangeIndex
+from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.dtypes import (
     PeriodDtype, CategoricalDtype, IntervalDtype)
+
+from pandas.tests.indexes.conftest import index_factory
 
 
 def makeEmptyIndex(_=None):
@@ -33,44 +37,65 @@ INDEXES = dict(
 
 
 COMPATIBLE_INCONSISTENT_PAIRS = {
-    ('intIndex', 'rangeIndex')
+    (Int64Index, RangeIndex): (tm.makeIntIndex, tm.makeRangeIndex)
 }
 
 
-@pytest.mark.parametrize('idxType', INDEXES.keys())
-def test_union_same_types(idxType):
-    idx1 = INDEXES[idxType](10)
-    idx2 = INDEXES[idxType](20)
+# @pytest.mark.parametrize('idxType', INDEXES.keys())
+# def test_union_same_types(idxType):
+#     idx1 = INDEXES[idxType](10)
+#     idx2 = INDEXES[idxType](20)
+#     assert idx1.union(idx2).dtype == idx1.dtype
+
+#     # Note: catIndex reflects only left dtype, should it reflect both?
+
+
+def test_union_same_types(index_factory):
+    # Union with a non-unique, non-monotonic index raises error
+    # Only needed for bool index factory
+    idx1 = index_factory(10).sort_values()
+    idx2 = index_factory(20).sort_values()
     assert idx1.union(idx2).dtype == idx1.dtype
 
     # Note: catIndex reflects only left dtype, should it reflect both?
 
 
-@pytest.mark.parametrize('idxType1,idxType2',
-                         list(it.combinations(INDEXES, 2)))
-def test_union_different_types(idxType1, idxType2):
-    if tuple(sorted([idxType1, idxType2])) in COMPATIBLE_INCONSISTENT_PAIRS:
+@pytest.mark.parametrize(
+    'idxfactory1,idxfactory2',
+    list(it.combinations(index_factory._pytestfixturefunction.params, 2))
+)
+def test_union_different_types(idxfactory1, idxfactory2):
+    idx1 = idxfactory1(10)
+    idx2 = idxfactory2(20)
+
+    if (tuple(sorted([type(idx1), type(idx2)], key=lambda x: str(x))) 
+        in COMPATIBLE_INCONSISTENT_PAIRS):
         return
 
-    idx1 = INDEXES[idxType1](10)
-    idx2 = INDEXES[idxType2](20)
+    if any(isinstance(idx, pd.MultiIndex) for idx in [idx1, idx2]):
+        return
+
+    if is_dtype_equal(idx1.dtype, idx2.dtype):
+        return
 
     # A union with a CategoricalIndex (even as dtype('O')) and a
     # non-CategoricalIndex can only be made if both indices are monotonic.
     # This is true before this PR as well.
-    if idxType1 == 'catIndex' or idxType2 == 'catIndex':
-        idx1 = idx1.sort_values()
-        idx2 = idx2.sort_values()
+    #
+    # Union with a non-unique, non-monotonic index raises error
+    # This applies to the boolean index
+    idx1 = idx1.sort_values()
+    idx2 = idx2.sort_values()
 
     assert idx1.union(idx2).dtype == np.dtype('O')
     assert idx2.union(idx1).dtype == np.dtype('O')
 
 
-@pytest.mark.parametrize('idxType1,idxType2',
-                         COMPATIBLE_INCONSISTENT_PAIRS)
-def test_compatible_inconsistent_pairs(idxType1, idxType2):
-    idx1 = INDEXES[idxType1](10)
-    idx2 = INDEXES[idxType2](20)
+@pytest.mark.parametrize('idx_fact1,idx_fact2',
+                         COMPATIBLE_INCONSISTENT_PAIRS.values())
+def test_compatible_inconsistent_pairs(idx_fact1, idx_fact2):
+    idx1 = idx_fact1(10)
+    idx2 = idx_fact2(20)
 
     res1 = idx1.union(idx2)
     res2 = idx2.union(idx1)
