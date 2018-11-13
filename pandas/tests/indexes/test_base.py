@@ -2266,12 +2266,12 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('idx.', 4))
 
-    def test_to_index(self, indices):
+    def test_to_flat_index(self, indices):
         # 22866
         if isinstance(indices, MultiIndex):
             pytest.skip("Separate expectation for MultiIndex")
 
-        result = indices.to_index()
+        result = indices.to_flat_index()
         tm.assert_index_equal(result, indices)
 
 
