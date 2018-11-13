@@ -670,8 +670,9 @@ class TestWideToLong(object):
         # Generate data
         people = ['Susie', 'Alejandro']
         day = ['Monday', 'Tuesday', 'Wednesday']
-        data = [[person, d, *np.random.randint(0, 5, 2)] for person in
-                people for d in day]
+        cols = ['burgers', 'fries']
+        data = [[person, d] + list(np.random.randint(0, 5, len(cols)))
+                for person in people for d in day]
         df = pd.DataFrame(data, columns=['Name', 'day', 'burgers', 'fries'])
 
         # Try to melt with missing column name
