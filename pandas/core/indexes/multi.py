@@ -193,7 +193,7 @@ class MultiIndex(Index):
     set_levels
     set_labels
     to_frame
-    to_index
+    to_flat_index
     is_lexsorted
     sortlevel
     droplevel

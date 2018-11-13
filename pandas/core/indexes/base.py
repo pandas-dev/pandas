@@ -1113,45 +1113,32 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return format_object_attrs(self)
 
-    def to_index(self, sep=None):
+    def to_flat_index(self):
         """
         Convert a MultiIndex to an Index of Tuples containing the level values.
 
         .. versionadded:: 0.24.0
 
-        Parameters
-        ----------
-        sep : str, optional
-            Not yet implemented.
-
         Returns
         -------
-        pd.Index : an Index with the MultiIndex data represented in Tuples.
+        pd.Index
+            Index with the MultiIndex data represented in Tuples.
 
         Notes
         -----
         This method will simply return the caller if called by anything other
         than a MultiIndex.
 
-        See Also
-        --------
-        to_series : Similar method to construct a Series.
-        to_frame : Similar method to construct a DataFrame.
-
         Examples
         --------
         >>> index = pd.MultiIndex.from_product(
         ...     [['foo', 'bar'], ['baz', 'qux']],
         ...     names=['a', 'b'])
-        >>> index.to_index()
+        >>> index.to_flat_index()
         Index([('foo', 'baz'), ('foo', 'qux'),
                ('bar', 'baz'), ('bar', 'qux')],
               dtype='object')
         """
-        if sep is not None:
-            # TODO: Add support for separator to return strs instad of tuples
-            raise NotImplementedError
-
         if not isinstance(self, ABCMultiIndex):
             return self
 

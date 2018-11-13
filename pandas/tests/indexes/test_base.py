@@ -2274,10 +2274,6 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
         result = indices.to_index()
         tm.assert_index_equal(result, indices)
 
-    def test_to_index_sep_raises(self, indices):
-        with pytest.raises(NotImplementedError):
-            indices.to_index(sep="")
-
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
