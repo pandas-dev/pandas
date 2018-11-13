@@ -235,6 +235,16 @@ class ReadingTestsBase(SharedItems):
             self.get_exceldf("test1", ext, "Sheet1", index_col=["A"],
                              usecols=["A", "C"])
 
+    def test_index_col_empty(self, ext):
+        # see gh-9208
+        result = self.get_exceldf("test1", ext, "Sheet3",
+                                  index_col=["A", "B", "C"])
+        expected = DataFrame(columns=["D", "E", "F"],
+                             index=MultiIndex(levels=[[]] * 3,
+                                              labels=[[]] * 3,
+                                              names=["A", "B", "C"]))
+        tm.assert_frame_equal(result, expected)
+
     def test_usecols_pass_non_existent_column(self, ext):
         msg = ("Usecols do not match columns, "
                "columns expected but not found: " + r"\['E'\]")
