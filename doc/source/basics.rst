@@ -45,8 +45,8 @@ of elements to display is five, but you may pass a custom number.
 
 .. _basics.attrs:
 
-Attributes and the raw ndarray(s)
----------------------------------
+Attributes and Underlying Data
+------------------------------
 
 pandas objects have a number of attributes enabling you to access the metadata
 
@@ -64,14 +64,28 @@ Note, **these attributes can be safely assigned to**!
    df.columns = [x.lower() for x in df.columns]
    df
 
-To get the actual data inside a data structure, one need only access the
-**values** property:
+Pandas objects (:class:`Index`, :class:`Series`, :class:`DataFrame`) can be
+thought of as containers for arrays, which hold the actual data and do the
+actual computation. For many types, the underlying array is a
+:class:`numpy.ndarray`. However, pandas and 3rd party libraries may *extend*
+NumPy's type system to add support for custom arrays
+(see :ref:`dsintro.data_types`).
+
+To get the actual data inside a :class:`Index` or :class:`Series`, use
+the **array** property
 
 .. ipython:: python
 
-    s.values
-    df.values
-    wp.values
+   s.array
+   s.index.array
+
+Getting the "raw data" inside a :class:`DataFrame` is possibly a bit more
+complex. When your ``DataFrame`` only has a single data type for all the
+columns, :atr:`DataFrame.values` will return the underlying data:
+
+.. ipython:: python
+
+   df.values
 
 If a DataFrame or Panel contains homogeneously-typed data, the ndarray can
 actually be modified in-place, and the changes will be reflected in the data
@@ -537,7 +551,7 @@ will exclude NAs on Series input by default:
 .. ipython:: python
 
    np.mean(df['one'])
-   np.mean(df['one'].values)
+   np.mean(df['one'].array)
 
 :meth:`Series.nunique` will return the number of unique non-NA values in a
 Series:
@@ -834,7 +848,7 @@ Series operation on each column or row:
 
    tsdf = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
                        index=pd.date_range('1/1/2000', periods=10))
-   tsdf.values[3:7] = np.nan
+   tsdf.array[3:7] = np.nan
 
 .. ipython:: python
 
@@ -2270,11 +2284,11 @@ dtypes:
                       'float64': np.arange(4.0, 7.0),
                       'bool1': [True, False, True],
                       'bool2': [False, True, False],
-                      'dates': pd.date_range('now', periods=3).values,
+                      'dates': pd.date_range('now', periods=3),
                       'category': pd.Series(list("ABC")).astype('category')})
    df['tdeltas'] = df.dates.diff()
    df['uint64'] = np.arange(3, 6).astype('u8')
-   df['other_dates'] = pd.date_range('20130101', periods=3).values
+   df['other_dates'] = pd.date_range('20130101', periods=3)
    df['tz_aware_dates'] = pd.date_range('20130101', periods=3, tz='US/Eastern')
    df
 

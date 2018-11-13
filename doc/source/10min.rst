@@ -114,13 +114,24 @@ Here is how to view the top and bottom rows of the frame:
    df.head()
    df.tail(3)
 
-Display the index, columns, and the underlying NumPy data:
+Display the index, columns:
 
 .. ipython:: python
 
    df.index
    df.columns
+
+:attr:`DataFrame.values` gives a NumPy representation of the underlying data.
+However, this can be an expensive operation when your :class:`DataFrame` has
+columns with different data types. **NumPy arrays have a single dtype for
+the entire array, so accessing ``df.values`` may have to coerce data**. We
+recommend using ``df.values`` only when you know that your data has a single
+data type.
+
+.. ipython:: python
+
    df.values
+
 
 :func:`~DataFrame.describe` shows a quick statistic summary of your data:
 

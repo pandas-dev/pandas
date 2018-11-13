@@ -770,10 +770,15 @@ class IndexOpsMixin(object):
         # type: () -> Union[np.ndarray, ExtensionArray]
         """The actual Array backing this Series or Index.
 
+        This differs from ``.values``, which may require converting or
+        copying data.
+
         Returns
         -------
         Union[ndarray, ExtensionArray]
-            This is the actual array stored within this object.
+            This is the actual array stored within this object. This differs
+            from ``.values`` which may require converting the data
+            to a different form. We recommend using :
 
         Notes
         -----
@@ -793,12 +798,13 @@ class IndexOpsMixin(object):
         For any 3rd-party extension types, the array type will be an
         ExtensionArray.
 
-        All remaining arrays (ndarrays), ``.array`` will be the ndarray
+        For all remaining dtypes ``.array`` will be the :class:`numpy.ndarray`
         stored within.
 
         See Also
         --------
-        to_numpy : Similar method that always returns a NumPy array.
+        Index.to_numpy : Similar method that always returns a NumPy array.
+        Series.to_numpy : Similar method that always returns a NumPy array.
 
         Examples
         --------
@@ -819,15 +825,17 @@ class IndexOpsMixin(object):
         Returns
         -------
         numpy.ndarray
-            An ndarray with
 
         Notes
         -----
-        For NumPy arrays, this will be a reference to the actual data stored
-        in this Series or Index.
+        For NumPy dtypes, this will be a reference to the actual data stored
+        in this Series or Index. Modifying the result in place will modify
+        the data stored in the Series or Index (not that we recommend doing
+        that).
 
-        For extension types, this may involve copying data and coercing the
-        result to a NumPy type (possibly object), which may be expensive.
+        For extension types, ``to_numpy`` *may* require copying data and
+        coercing the result to a NumPy type (possibly object),
+        which may be expensive.
 
         This table lays out the different array types for each extension
         dtype within pandas.
@@ -838,13 +846,14 @@ class IndexOpsMixin(object):
         category[T]        ndarray[T] (same dtype as input)
         period             ndarray[object] (Periods)
         interval           ndarray[object] (Intervals)
-        IntegerNA          IntegerArray[object]
+        IntegerNA          ndarray[object]
         datetime64[ns, tz] datetime64[ns]? object?
         ================== ================================
 
         See Also
         --------
-        array : Get the actual data stored within.
+        Series.array : Get the actual data stored within.
+        Index.array : Get the actual data stored within.
 
         Examples
         --------

@@ -859,6 +859,35 @@ completion mechanism so they can be tab-completed:
     In [5]: df.fo<TAB>
     df.foo1  df.foo2
 
+.. _dsintro.data_type:
+
+Data Types
+----------
+
+Pandas type system is mostly built on top of `NumPy's <https://docs.scipy.org/doc/numpy-1.15.1/reference/arrays.dtypes.html>`__.
+NumPy provides the basic arrays and data types for numeric
+string, *tz-naive* datetime, and others types of data.
+
+Pandas and third-party libraries *extend* NumPy's type system in a few places.
+This section describes the extensions pandas has made internally.
+See :ref:`extending.extension-types` for how to write your own extension that
+works with pandas. See :ref:`ecosystem.extensions` for a list of third-party
+libraries that have implemented an extension.
+
+The following table lists all of pandas extension types. See the respective
+documentation sections for more on each type.
+
+=================== ========================= ================== ============================= =============================
+Kind of Data        Data Type                 Scalar             Array                         Documentation
+=================== ========================= ================== ============================= =============================
+tz-aware datetime   :class:`DatetimeArray`    :class:`Timestamp` :class:`arrays.DatetimeArray` :ref:`timeseries.timezone`
+Categorical         :class:`CategoricalDtype` (none)             :class:`Categorical`          :ref:`categorical`
+period (time spans) :class:`PeriodDtype`      :class:`Period`    :class:`arrays.PeriodArray`   :ref:`timeseries.periods`
+sparse              :class:`SparseDtype`      (none)             :class:`arrays.SparseArray`   :ref:`sparse`
+intervals           :class:`IntervalDtype`    :class:`Interval`  :class:`arrays.IntervalArray` :ref:`advanced.intervalindex`
+nullable integer    :clsas:`Int64Dtype`, ...  (none)             :class:`arrays.IntegerArray`  :ref:`integer_na`
+=================== ========================= ================== ============================= =============================
+
 .. _basics.panel:
 
 Panel

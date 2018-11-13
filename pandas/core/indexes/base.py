@@ -718,7 +718,23 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def values(self):
-        """ return the underlying data as an ndarray """
+        """
+        Return an array representing the data in the Index.
+
+        .. warning::
+
+           We recommend you use :attr:`Index.array` or
+           :meth:`Index.to_numpy` instead of ``.values``.
+
+        Returns
+        -------
+        array: Union[np.ndarray, ExtensionArray]
+
+        See Also
+        --------
+        Index.array
+        Index.to_numpy
+        """
         return self._data.view(np.ndarray)
 
     @property
