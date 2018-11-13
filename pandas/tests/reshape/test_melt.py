@@ -661,6 +661,7 @@ class TestWideToLong(object):
                                  i=['node_id', 'A'],
                                  j='time')
         tm.assert_frame_equal(result, expected)
+
     def test_melt_missing_columns(self):
         # Addresses issue #23575
         # This test is to ensure that pandas raises an error if melting is
@@ -669,7 +670,8 @@ class TestWideToLong(object):
         # Generate data
         people = ['Susie', 'Alejandro']
         day = ['Monday', 'Tuesday', 'Wednesday']
-        data = [[person, d, *np.random.randint(0, 5, 2)] for person in people for d in day]
+        data = [[person, d, *np.random.randint(0, 5, 2)] for person in
+                people for d in day]
         df = pd.DataFrame(data, columns=['Name', 'day', 'burgers', 'fries'])
 
         # Try to melt with missing column name
