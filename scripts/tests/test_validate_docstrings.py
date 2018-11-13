@@ -288,6 +288,34 @@ class BadGenericDocStrings(object):
         """
         pass
 
+    def two_linebreaks_between_sections(self, foo):
+        """
+        Test linebreaks message GL03.
+
+        Note 2 blank lines before parameters section.
+
+
+        Parameters
+        ----------
+        foo : str
+            Description of foo parameter.
+        """
+        pass
+
+    def linebreak_at_end_of_docstring(self, foo):
+        """
+        Test linebreaks message GL03.
+
+        Note extra blank line at end of docstring.
+
+        Parameters
+        ----------
+        foo : str
+            Description of foo parameter.
+
+        """
+        pass
+
     def plot(self, kind, **kwargs):
         """
         Generate a plot.
@@ -694,7 +722,9 @@ class TestValidator(object):
     @capture_stderr
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method',
-        'private_classes'])
+        'private_classes',
+        'two_linebreaks_between_sections', 'linebreak_at_end_of_docstring',
+    ])
     def test_bad_generic_functions(self, func):
         errors = validate_one(self._import_path(  # noqa:F821
             klass='BadGenericDocStrings', func=func))['errors']
