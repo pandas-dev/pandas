@@ -876,7 +876,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return an ndarray of the flattened values of the underlying data
 
-        See also
+        See Also
         --------
         numpy.ndarray.ravel
         """
@@ -2160,7 +2160,7 @@ class Index(IndexOpsMixin, PandasObject):
             If allow_fill=True and fill_value is not None, indices specified by
             -1 is regarded as NA. If Index doesn't hold NA, raise ValueError
 
-        See also
+        See Also
         --------
         numpy.ndarray.take
         """
@@ -2305,7 +2305,7 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray
             Boolean array to indicate which entries are not NA.
 
-        See also
+        See Also
         --------
         Index.notnull : alias of notna
         Index.isna: inverse of notna
@@ -2338,7 +2338,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return a new Index of the values set with the mask
 
-        See also
+        See Also
         --------
         numpy.ndarray.putmask
         """
@@ -2695,7 +2695,7 @@ class Index(IndexOpsMixin, PandasObject):
             Integer indices that would sort the index if used as
             an indexer.
 
-        See also
+        See Also
         --------
         numpy.argsort : Similar method for NumPy arrays.
         Index.sort_values : Return sorted copy of Index.
@@ -3202,7 +3202,7 @@ class Index(IndexOpsMixin, PandasObject):
         values : Index
             Calling object, as there is only one level in the Index.
 
-        See also
+        See Also
         --------
         MultiIndex.get_level_values : get values for a level of a MultiIndex
 
@@ -3607,7 +3607,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_contained : ndarray
             NumPy array of boolean values.
 
-        See also
+        See Also
         --------
         Series.isin : Same for Series.
         DataFrame.isin : Same method for DataFrames.

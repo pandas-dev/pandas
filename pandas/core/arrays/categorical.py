@@ -313,7 +313,7 @@ class Categorical(ExtensionArray, PandasObject):
     See the `user guide
     <http://pandas.pydata.org/pandas-docs/stable/categorical.html>`_ for more.
 
-    See also
+    See Also
     --------
     pandas.api.types.CategoricalDtype : Type for categorical data
     CategoricalIndex : An Index with an underlying ``Categorical``
@@ -457,7 +457,7 @@ class Categorical(ExtensionArray, PandasObject):
             If the new categories do not validate as categories or if the
             number of new categories is unequal the number of old categories
 
-        See also
+        See Also
         --------
         rename_categories
         reorder_categories
@@ -823,7 +823,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         cat : Categorical with reordered categories or None if inplace.
 
-        See also
+        See Also
         --------
         rename_categories
         reorder_categories
@@ -894,7 +894,7 @@ class Categorical(ExtensionArray, PandasObject):
            With ``inplace=False``, the new categorical is returned.
            With ``inplace=True``, there is no return value.
 
-        See also
+        See Also
         --------
         reorder_categories
         add_categories
@@ -971,7 +971,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         cat : Categorical with reordered categories or None if inplace.
 
-        See also
+        See Also
         --------
         rename_categories
         add_categories
@@ -1010,7 +1010,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         cat : Categorical with new categories added or None if inplace.
 
-        See also
+        See Also
         --------
         rename_categories
         reorder_categories
@@ -1058,7 +1058,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         cat : Categorical with removed categories or None if inplace.
 
-        See also
+        See Also
         --------
         rename_categories
         reorder_categories
@@ -1100,7 +1100,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         cat : Categorical with unused categories dropped or None if inplace.
 
-        See also
+        See Also
         --------
         rename_categories
         reorder_categories
@@ -1364,7 +1364,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         a boolean array of whether my values are null
 
-        See also
+        See Also
         --------
         isna : top-level isna
         isnull : alias of isna
@@ -1387,7 +1387,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         a boolean array of whether my values are not null
 
-        See also
+        See Also
         --------
         notna : top-level notna
         notnull : alias of notna
@@ -1503,7 +1503,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         argsorted : numpy array
 
-        See also
+        See Also
         --------
         numpy.ndarray.argsort
 
@@ -2322,7 +2322,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Repeat elements of a Categorical.
 
-        See also
+        See Also
         --------
         numpy.ndarray.repeat
 

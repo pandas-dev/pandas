@@ -1739,7 +1739,7 @@ cdef class _Period(object):
         -------
         Timestamp
 
-        See also
+        See Also
         --------
         Period.end_time : Return the end Timestamp.
         Period.dayofyear : Return the day of year.

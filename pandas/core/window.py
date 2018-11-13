@@ -50,7 +50,7 @@ Returns
 -------
 same type as input
 
-See also
+See Also
 --------
 pandas.Series.%(name)s
 pandas.DataFrame.%(name)s
@@ -733,7 +733,7 @@ class Window(_Window):
     8 -0.096361  0.818139  0.472290
     9  0.070889  0.134399 -0.031308
 
-    See also
+    See Also
     --------
     pandas.DataFrame.rolling.aggregate
     pandas.DataFrame.aggregate
@@ -1640,7 +1640,7 @@ class Rolling(_Rolling_and_Expanding):
     8 -0.289082 -1.647453
     9  0.212668 -1.647453
 
-    See also
+    See Also
     --------
     pandas.Series.rolling
     pandas.DataFrame.rolling
@@ -1916,7 +1916,7 @@ class Expanding(_Rolling_and_Expanding):
     8  0.067236  0.948257  0.163353
     9 -0.286980  0.618493 -0.694496
 
-    See also
+    See Also
     --------
     pandas.DataFrame.expanding.aggregate
     pandas.DataFrame.rolling.aggregate
@@ -2219,7 +2219,7 @@ class EWM(_Rolling):
     8  0.067236  0.948257  0.163353
     9 -0.286980  0.618493 -0.694496
 
-    See also
+    See Also
     --------
     pandas.DataFrame.rolling.aggregate
 

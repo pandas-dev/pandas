@@ -88,7 +88,7 @@ def to_numeric(arg, errors='raise', downcast=None):
     3   -3.0
     dtype: float64
 
-    See also
+    See Also
     --------
     pandas.DataFrame.astype : Cast argument to a specified dtype.
     pandas.to_datetime : Convert argument to datetime.
