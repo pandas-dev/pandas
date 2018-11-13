@@ -258,7 +258,7 @@ class TestStringMethods(object):
                 and inferred_dtype != 'bytes'):
             pytest.xfail(reason='Method not nan-safe on Index; see GH 23558')
         if (method_name == 'split' and box == Index
-                and inferred_dtype in ['mixed', 'mixed-integer']
+                and inferred_dtype in ['unicode', 'mixed', 'mixed-integer']
                 and dtype == object and kwargs.get('expand', None) == True):
             pytest.xfail(reason='Method not nan-safe on Index; see GH 23677')
 
