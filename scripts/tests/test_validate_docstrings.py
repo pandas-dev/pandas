@@ -817,6 +817,20 @@ class TestValidator(object):
         for msg in msgs:
             assert msg in ' '.join(err[1] for err in result['errors'])
 
+    def test_validate_all_ignore_deprecated(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_one', lambda func_name: {
+                'docstring': 'docstring1',
+                'errors': [('ER01', 'err desc'),
+                           ('ER02', 'err desc'),
+                           ('ER03', 'err desc')],
+                'warnings': [],
+                'examples_errors': '',
+                'deprecated': True})
+        result = validate_docstrings.validate_all(prefix=None,
+                                                  ignore_deprecated=True)
+        assert len(result) == 0
+
 
 class TestApiItems(object):
     @property
@@ -992,29 +1006,3 @@ class TestMainFunction(object):
                                                output_format='default',
                                                ignore_deprecated=False)
         assert exit_status == 1
-
-    def test_exit_status_for_deprecated_function(self, monkeypatch):
-        monkeypatch.setattr(
-            validate_docstrings, 'validate_all',
-            lambda prefix, ignore_deprecated=True: {
-                'Series.foo': {'errors': [('ER01', 'err desc'),
-                                          ('ER02', 'err desc'),
-                                          ('ER03', 'err desc')],
-                               'file': 'series.py',
-                               'file_line': 142,
-                               'deprecated': True},
-                'DataFrame.bar': {'errors': [('ER01', 'err desc'),
-                                             ('ER02', 'err desc')],
-                                  'file': 'frame.py',
-                                  'file_line': 598,
-                                  'deprecated': False},
-                'pandas.Panel': {'errors': [('ER01', 'err desc')],
-                                 'file': 'series.py',
-                                 'file_line': 279,
-                                 'deprecated': False}})
-        exit_status = validate_docstrings.main(func_name=None,
-                                               prefix=None,
-                                               errors=['ER01'],
-                                               output_format='default',
-                                               ignore_deprecated=True)
-        assert exit_status == 2
