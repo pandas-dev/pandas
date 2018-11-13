@@ -71,15 +71,14 @@ _any_string_method = [
     ('zfill',         (10,),                  {})                  # noqa: E241
 ] + list(zip([
     # methods without positional arguments: zip with empty tuple and empty dict
-    'cat', 'len', 'split', 'rsplit',
-    'partition', 'rpartition', 'get_dummies',
-    'slice', 'slice_replace',
-    'strip', 'lstrip', 'rstrip',
-    'lower', 'upper', 'capitalize',
-    'title', 'swapcase',
-    'isalpha', 'isnumeric', 'isalnum',
-    'isdigit', 'isdecimal', 'isspace',
-    'islower', 'isupper', 'istitle'
+    'capitalize', 'cat', 'get_dummies',
+    'isalnum', 'isalpha', 'isdecimal',
+    'isdigit', 'islower', 'isnumeric',
+    'isspace', 'istitle', 'isupper',
+    'len', 'lower', 'lstrip', 'partition',
+    'rpartition', 'rsplit', 'rstrip',
+    'slice', 'slice_replace', 'split',
+    'strip', 'swapcase', 'title', 'upper'
 ], [()] * 100, [{}] * 100))
 ids, _, _ = zip(*_any_string_method)  # use method name as fixture-id
 
