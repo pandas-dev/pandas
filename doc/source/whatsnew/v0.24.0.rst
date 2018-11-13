@@ -1179,7 +1179,7 @@ Timezones
 - Bug in :class:`DatetimeIndex` comparisons failing to raise ``TypeError`` when comparing timezone-aware ``DatetimeIndex`` against ``np.datetime64`` (:issue:`22074`)
 - Bug in ``DataFrame`` assignment with a timezone-aware scalar (:issue:`19843`)
 - Bug in :func:`DataFrame.asof` that raised a ``TypeError`` when attempting to compare tz-naive and tz-aware timestamps (:issue:`21194`)
-- Bug when constructing a :class:`DatetimeIndex` with :class:`Timestamp`s constructed with the ``replace`` method across DST (:issue:`18785`)
+- Bug when constructing a :class:`DatetimeIndex` with :class:`Timestamp` constructed with the ``replace`` method across DST (:issue:`18785`)
 - Bug when setting a new value with :meth:`DataFrame.loc` with a :class:`DatetimeIndex` with a DST transition (:issue:`18308`, :issue:`20724`)
 - Bug in :meth:`DatetimeIndex.unique` that did not re-localize tz-aware dates correctly (:issue:`21737`)
 - Bug when indexing a :class:`Series` with a DST transition (:issue:`21846`)
@@ -1263,7 +1263,7 @@ MultiIndex
 ^^^^^^^^^^
 
 - Removed compatibility for :class:`MultiIndex` pickles prior to version 0.8.0; compatibility with :class:`MultiIndex` pickles from version 0.13 forward is maintained (:issue:`21654`)
-- :meth:`MultiIndex.get_loc_level` (and as a consequence, ``.loc`` on a :class:`MultiIndex`ed object) will now raise a ``KeyError``, rather than returning an empty ``slice``, if asked a label which is present in the ``levels`` but is unused (:issue:`22221`)
+- :meth:`MultiIndex.get_loc_level` (and as a consequence, ``.loc`` on a ``Series`` or ``DataFrame`` with a :class:`MultiIndex` index) will now raise a ``KeyError``, rather than returning an empty ``slice``, if asked a label which is present in the ``levels`` but is unused (:issue:`22221`)
 - Fix ``TypeError`` in Python 3 when creating :class:`MultiIndex` in which some levels have mixed types, e.g. when some labels are tuples (:issue:`15457`)
 
 I/O
@@ -1368,7 +1368,7 @@ Reshaping
 - Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
 - Bug in :func:`pandas.concat` when concatenating a multicolumn DataFrame with tz-aware data against a DataFrame with a different number of columns (:issue`22796`)
 - Bug in :func:`merge_asof` where confusing error message raised when attempting to merge with missing values (:issue:`23189`)
-- Bug in :meth:`DataFrame.nsmallest` and :meth:`DataFrame.nlargest` for dataframes that have :class:`MultiIndex`ed columns (:issue:`23033`).
+- Bug in :meth:`DataFrame.nsmallest` and :meth:`DataFrame.nlargest` for dataframes that have a :class:`MultiIndex` for columns (:issue:`23033`).
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
