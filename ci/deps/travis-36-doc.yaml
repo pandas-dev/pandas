@@ -2,38 +2,42 @@ name: pandas
 channels:
   - defaults
   - conda-forge
+  - r
 dependencies:
   - beautifulsoup4
+  - bottleneck
   - cython>=0.28.2
-  - dask
   - fastparquet
-  - flake8>=3.5
-  - flake8-comprehensions
-  - gcsfs
-  - geopandas
   - html5lib
+  - hypothesis>=3.58.0
+  - ipykernel
   - ipython
-  - isort
-  - jinja2
+  - ipywidgets
   - lxml
   - matplotlib
-  - nomkl
+  - nbconvert
+  - nbformat
+  - nbsphinx
+  - notebook
   - numexpr
-  - numpy
+  - numpy=1.13*
   - openpyxl
-  - psycopg2
-  - pyarrow=0.9.0
-  - pymysql
+  - pandoc
+  - pyarrow
+  - pyqt
   - pytables
+  - python-dateutil
   - python-snappy
   - python=3.6*
   - pytz
-  - s3fs
-  - scikit-learn
+  - r
+  - rpy2
   - scipy
   - seaborn
+  - sphinx
   - sqlalchemy
   - statsmodels
+  - tzlocal
   - xarray
   - xlrd
   - xlsxwriter
@@ -41,12 +45,3 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
-  - pytest-cov
-  - moto
-  - hypothesis>=3.58.0
-  - pip:
-    - brotlipy
-    - coverage
-    - cpplint
-    - pandas-datareader
-    - python-dateutil

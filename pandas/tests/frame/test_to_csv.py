@@ -6,7 +6,6 @@ import os
 import csv
 import pytest
 
-from numpy import nan
 import numpy as np
 
 from pandas.compat import (lmap, range, lrange, StringIO, u)
@@ -52,7 +51,7 @@ class TestDataFrameToCSV(TestData):
     def test_to_csv_from_csv1(self):
 
         with ensure_clean('__tmp_to_csv_from_csv1__') as path:
-            self.frame['A'][:5] = nan
+            self.frame['A'][:5] = np.nan
 
             self.frame.to_csv(path)
             self.frame.to_csv(path, columns=['A', 'B'])
@@ -621,12 +620,12 @@ class TestDataFrameToCSV(TestData):
 
             for i in [6, 7]:
                 msg = 'len of {i}, but only 5 lines in file'.format(i=i)
-                with tm.assert_raises_regex(ParserError, msg):
+                with pytest.raises(ParserError, match=msg):
                     read_csv(path, header=lrange(i), index_col=0)
 
             # write with cols
-            with tm.assert_raises_regex(TypeError, 'cannot specify cols '
-                                        'with a MultiIndex'):
+            msg = 'cannot specify cols with a MultiIndex'
+            with pytest.raises(TypeError, match=msg):
                 df.to_csv(path, columns=['foo', 'bar'])
 
         with ensure_clean('__tmp_to_csv_multiindex__') as path:
@@ -1124,11 +1123,11 @@ class TestDataFrameToCSV(TestData):
         assert result == expected
 
         msg = "need to escape, but no escapechar set"
-        tm.assert_raises_regex(csv.Error, msg, df.to_csv,
-                               quoting=csv.QUOTE_NONE)
-        tm.assert_raises_regex(csv.Error, msg, df.to_csv,
-                               quoting=csv.QUOTE_NONE,
-                               escapechar=None)
+        with pytest.raises(csv.Error, match=msg):
+            df.to_csv(quoting=csv.QUOTE_NONE)
+
+        with pytest.raises(csv.Error, match=msg):
+            df.to_csv(quoting=csv.QUOTE_NONE, escapechar=None)
 
         expected_rows = [',c_bool,c_float,c_int,c_string',
                          '0,True,1.0,42.0,a',

@@ -204,7 +204,8 @@ the user is interacting with. So the signature must be
 
 .. code-block:: python
 
-    def __init__(self, pandas_object):
+    def __init__(self, pandas_object):  # noqa: E999
+        ...
 
 For consistency with pandas methods, you should raise an ``AttributeError``
 if the data passed to your accessor has an incorrect dtype.
@@ -246,7 +247,7 @@ Back in an interactive IPython session:
     >>> ds.geo.plot()
     # plots data on a map
 
-See also
+See Also
 --------
 %(others)s
 """

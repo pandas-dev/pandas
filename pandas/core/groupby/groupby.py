@@ -20,11 +20,13 @@ from pandas._libs import Timestamp, groupby as libgroupby
 import pandas.compat as compat
 from pandas.compat import callable, range, set_function_name, zip
 from pandas.compat.numpy import function as nv
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_kwargs
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
-from pandas.core.dtypes.common import ensure_float, is_numeric_dtype, is_scalar
+from pandas.core.dtypes.common import (
+    ensure_float, is_extension_array_dtype, is_numeric_dtype, is_scalar)
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas.core.algorithms as algorithms
@@ -41,7 +43,7 @@ from pandas.core.sorting import get_group_index_sorter
 
 _doc_template = """
 
-        See also
+        See Also
         --------
         pandas.Series.%(name)s
         pandas.DataFrame.%(name)s
@@ -89,7 +91,7 @@ _apply_docs = dict(
     --------
     {examples}
 
-    See also
+    See Also
     --------
     pipe : Apply function to the full GroupBy object instead of to each
         group.
@@ -251,7 +253,7 @@ Returns
 -------
 %(klass)s
 
-See also
+See Also
 --------
 aggregate, transform
 
@@ -705,7 +707,7 @@ b  2""")
         yield self._selection_name, self._selected_obj
 
     def transform(self, func, *args, **kwargs):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _cumcount_array(self, ascending=True):
         """
@@ -754,7 +756,18 @@ b  2""")
             dtype = obj.dtype
 
         if not is_scalar(result):
-            if numeric_only and is_numeric_dtype(dtype) or not numeric_only:
+            if is_extension_array_dtype(dtype):
+                # The function can return something of any type, so check
+                # if the type is compatible with the calling EA.
+                try:
+                    result = obj.values._from_sequence(result)
+                except Exception:
+                    # https://github.com/pandas-dev/pandas/issues/22850
+                    # pandas has no control over what 3rd-party ExtensionArrays
+                    # do in _values_from_sequence. We still want ops to work
+                    # though, so we catch any regular Exception.
+                    pass
+            elif numeric_only and is_numeric_dtype(dtype) or not numeric_only:
                 result = maybe_downcast_to_dtype(result, dtype)
 
         return result
@@ -849,7 +862,7 @@ b  2""")
         return self._wrap_aggregated_output(output)
 
     def _wrap_applied_output(self, *args, **kwargs):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _concat_objects(self, keys, values, not_indexed_same=False):
         from pandas.core.reshape.concat import concat
@@ -1611,7 +1624,7 @@ class GroupBy(_GroupBy):
         5    0
         dtype: int64
 
-        See also
+        See Also
         --------
         .cumcount : Number the rows in each group.
         """
@@ -1667,7 +1680,7 @@ class GroupBy(_GroupBy):
         5    0
         dtype: int64
 
-        See also
+        See Also
         --------
         .ngroup : Number the groups themselves.
         """

@@ -1176,7 +1176,7 @@ class MultiIndex(Index):
         -------
         DataFrame : a DataFrame containing the original MultiIndex data.
 
-        See also
+        See Also
         --------
         DataFrame
         """
@@ -1614,7 +1614,7 @@ class MultiIndex(Index):
             return tuple(retval)
         else:
             if com.is_bool_indexer(key):
-                key = np.asarray(key)
+                key = np.asarray(key, dtype=bool)
                 sortorder = self.sortorder
             else:
                 # cannot be sure whether the result will be sorted
@@ -1885,7 +1885,7 @@ class MultiIndex(Index):
         ascending : boolean, default True
             False to sort in descending order
             Can also be a list to specify a directed ordering
-        sort_remaining : sort by the remaining levels after level.
+        sort_remaining : sort by the remaining levels after level
 
         Returns
         -------
@@ -2204,7 +2204,7 @@ class MultiIndex(Index):
         or a sequence of such. If you want to use those, use
         :meth:`MultiIndex.get_locs` instead.
 
-        See also
+        See Also
         --------
         Index.get_loc : get_loc method for (single-level) index.
         MultiIndex.slice_locs : Get slice location given start label(s) and
@@ -2530,7 +2530,7 @@ class MultiIndex(Index):
         >>> mi.get_locs([[True, False, True], slice('e', 'f')])
         array([2], dtype=int64)
 
-        See also
+        See Also
         --------
         MultiIndex.get_loc : Get location for a label or a tuple of labels.
         MultiIndex.slice_locs : Get slice location given start label(s) and
@@ -2657,7 +2657,7 @@ class MultiIndex(Index):
         Determines if two MultiIndex objects have the same labeling information
         (the levels themselves do not necessarily have to be the same)
 
-        See also
+        See Also
         --------
         equal_levels
         """

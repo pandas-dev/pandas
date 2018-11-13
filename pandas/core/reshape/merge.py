@@ -199,7 +199,7 @@ def merge_ordered(left, right, on=None,
         The output type will the be same as 'left', if it is a subclass
         of DataFrame.
 
-    See also
+    See Also
     --------
     merge
     merge_asof
@@ -447,7 +447,7 @@ def merge_asof(left, right, on=None,
     3 2016-05-25 13:30:00.048   GOOG  720.92       100     NaN     NaN
     4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
 
-    See also
+    See Also
     --------
     merge
     merge_ordered

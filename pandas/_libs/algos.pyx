@@ -15,8 +15,7 @@ from numpy cimport (ndarray,
                     NPY_FLOAT32, NPY_FLOAT64,
                     NPY_OBJECT,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float32_t, float64_t,
-                    double_t)
+                    uint32_t, uint64_t, float32_t, float64_t)
 cnp.import_array()
 
 
@@ -32,10 +31,9 @@ import missing
 
 cdef float64_t FP_ERR = 1e-13
 
-cdef double NaN = <double> np.NaN
-cdef double nan = NaN
+cdef float64_t NaN = <float64_t>np.NaN
 
-cdef int64_t iNaT = get_nat()
+cdef int64_t NPY_NAT = get_nat()
 
 tiebreakers = {
     'average': TIEBREAK_AVERAGE,
@@ -77,6 +75,8 @@ class NegInfinity(object):
     __ge__ = lambda self, other: isinstance(other, NegInfinity)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
     """
     Efficiently find the unique first-differences of the given array.
@@ -126,11 +126,11 @@ def is_lexsorted(list_of_arrays: list) -> bint:
     nlevels = len(list_of_arrays)
     n = len(list_of_arrays[0])
 
-    cdef int64_t **vecs = <int64_t**> malloc(nlevels * sizeof(int64_t*))
+    cdef int64_t **vecs = <int64_t**>malloc(nlevels * sizeof(int64_t*))
     for i in range(nlevels):
         arr = list_of_arrays[i]
         assert arr.dtype.name == 'int64'
-        vecs[i] = <int64_t*> cnp.PyArray_DATA(arr)
+        vecs[i] = <int64_t*>cnp.PyArray_DATA(arr)
 
     # Assume uniqueness??
     with nogil:
@@ -197,7 +197,7 @@ def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k) nogil:
+def kth_smallest(numeric[:] a, Py_ssize_t k) -> numeric:
     cdef:
         Py_ssize_t i, j, l, m, n = a.shape[0]
         numeric x
@@ -240,7 +240,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
         int64_t nobs = 0
         float64_t vx, vy, sumx, sumy, sumxx, sumyy, meanx, meany, divisor
 
-    N, K = (<object> mat).shape
+    N, K = (<object>mat).shape
 
     if minp is None:
         minpv = 1
@@ -305,7 +305,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
         int64_t nobs = 0
         float64_t vx, vy, sumx, sumxx, sumyy, mean, divisor
 
-    N, K = (<object> mat).shape
+    N, K = (<object>mat).shape
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
@@ -407,7 +407,7 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     nleft = len(old)
     nright = len(new)
     indexer = np.empty(nright, dtype=np.int64)
-    indexer.fill(-1)
+    indexer[:] = -1
 
     if limit is None:
         lim = nright
@@ -529,7 +529,7 @@ def pad_2d_inplace(ndarray[algos_t, ndim=2] values,
         algos_t val
         int lim, fill_count = 0
 
-    K, N = (<object> values).shape
+    K, N = (<object>values).shape
 
     # GH#2778
     if N == 0:
@@ -605,7 +605,7 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     nleft = len(old)
     nright = len(new)
     indexer = np.empty(nright, dtype=np.int64)
-    indexer.fill(-1)
+    indexer[:] = -1
 
     if limit is None:
         lim = nright
@@ -728,7 +728,7 @@ def backfill_2d_inplace(ndarray[algos_t, ndim=2] values,
         algos_t val
         int lim, fill_count = 0
 
-    K, N = (<object> values).shape
+    K, N = (<object>values).shape
 
     # GH#2778
     if N == 0:
@@ -793,7 +793,7 @@ arrmap_bool = arrmap["uint8_t"]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def is_monotonic(ndarray[algos_t] arr, bint timelike):
+def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     """
     Returns
     -------
@@ -810,7 +810,7 @@ def is_monotonic(ndarray[algos_t] arr, bint timelike):
     n = len(arr)
 
     if n == 1:
-        if arr[0] != arr[0] or (timelike and <int64_t>arr[0] == iNaT):
+        if arr[0] != arr[0] or (timelike and <int64_t>arr[0] == NPY_NAT):
             # single value is NaN
             return False, False, True
         else:
@@ -818,7 +818,7 @@ def is_monotonic(ndarray[algos_t] arr, bint timelike):
     elif n < 2:
         return True, True, True
 
-    if timelike and <int64_t>arr[0] == iNaT:
+    if timelike and <int64_t>arr[0] == NPY_NAT:
         return False, False, True
 
     if algos_t is not object:
@@ -826,7 +826,7 @@ def is_monotonic(ndarray[algos_t] arr, bint timelike):
             prev = arr[0]
             for i in range(1, n):
                 cur = arr[i]
-                if timelike and <int64_t>cur == iNaT:
+                if timelike and <int64_t>cur == NPY_NAT:
                     is_monotonic_inc = 0
                     is_monotonic_dec = 0
                     break
@@ -851,7 +851,7 @@ def is_monotonic(ndarray[algos_t] arr, bint timelike):
         prev = arr[0]
         for i in range(1, n):
             cur = arr[i]
-            if timelike and <int64_t>cur == iNaT:
+            if timelike and <int64_t>cur == NPY_NAT:
                 is_monotonic_inc = 0
                 is_monotonic_dec = 0
                 break
