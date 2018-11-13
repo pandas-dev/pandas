@@ -1001,17 +1001,20 @@ class TestMainFunction(object):
                                           ('ER02', 'err desc'),
                                           ('ER03', 'err desc')],
                                'file': 'series.py',
-                               'file_line': 142},
+                               'file_line': 142,
+                               'deprecated': True},
                 'DataFrame.bar': {'errors': [('ER01', 'err desc'),
                                              ('ER02', 'err desc')],
                                   'file': 'frame.py',
-                                  'file_line': 598},
+                                  'file_line': 598,
+                                  'deprecated': False},
                 'pandas.Panel': {'errors': [('ER01', 'err desc')],
                                  'file': 'series.py',
-                                 'file_line': 279}})
+                                 'file_line': 279,
+                                 'deprecated': False}})
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
-                                               errors=[],
+                                               errors=['ER01'],
                                                output_format='default',
                                                ignore_deprecated=True)
-        assert exit_status == 5
+        assert exit_status == 2
