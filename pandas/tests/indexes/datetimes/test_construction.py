@@ -18,6 +18,14 @@ import pandas.util.testing as tm
 
 class TestDatetimeIndex(object):
 
+    def test_td64_deprecation(self):
+        # GH#?????
+        data = np.array([0], dtype='m8[ns]')
+        with tm.assert_produces_warning(FutureWarning):
+            result = DatetimeIndex(data)
+
+        assert result[0] == Timestamp('1970-01-01')
+
     def test_construction_caching(self):
 
         df = pd.DataFrame({'dt': pd.date_range('20130101', periods=3),

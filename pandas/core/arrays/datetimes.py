@@ -187,7 +187,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     _freq = None
 
     @classmethod
-    def _simple_new(cls, values, freq=None, tz=None, **kwargs):
+    def _simple_new(cls, values, freq=None, tz=None):
         """
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor

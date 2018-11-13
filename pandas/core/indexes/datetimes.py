@@ -16,10 +16,11 @@ import pandas.compat as compat
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
-    _INT64_DTYPE, _NS_DTYPE, ensure_int64, is_datetime64_dtype,
-    is_datetime64_ns_dtype, is_datetimetz, is_dtype_equal, is_float,
-    is_integer, is_integer_dtype, is_list_like, is_period_dtype, is_scalar,
-    is_string_like, pandas_dtype)
+    _INT64_DTYPE, _NS_DTYPE, ensure_int64, is_datetime64_ns_dtype,
+    is_datetime64tz_dtype, is_dtype_equal, is_extension_type, is_float,
+    is_float_dtype, is_integer, is_list_like, is_object_dtype, is_period_dtype,
+    is_scalar, is_string_dtype, is_string_like, is_timedelta64_dtype,
+    pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -252,19 +253,55 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
 
-        if not isinstance(data, (np.ndarray, Index, ABCSeries, DatetimeArray)):
-            # other iterable of some kind
-            if not isinstance(data, (list, tuple)):
+        if not hasattr(data, "dtype"):
+            # e.g. list, tuple
+            if np.ndim(data) == 0:
+                # i.e. generator
                 data = list(data)
-            data = np.asarray(data, dtype='O')
+            data = np.asarray(data)
+            copy = False
         elif isinstance(data, ABCSeries):
             data = data._values
 
-        # data must be Index or np.ndarray here
-        if not (is_datetime64_dtype(data) or is_datetimetz(data) or
-                is_integer_dtype(data) or lib.infer_dtype(data) == 'integer'):
-            data = tools.to_datetime(data, dayfirst=dayfirst,
-                                     yearfirst=yearfirst)
+        # By this point we are assured to have either a numpy array or Index
+
+        if is_float_dtype(data):
+            # Note: we must cast to datetime64[ns] here in order to treat these
+            #  as wall-times instead of UTC timestamps.
+            data = data.astype(_NS_DTYPE)
+            copy = False
+            # TODO: Why do we treat this differently from integer dtypes?
+
+        elif is_timedelta64_dtype(data):
+            warnings.warn("Passing timedelta64-dtype data to {cls} is "
+                          "deprecated, will raise a TypeError in a future "
+                          "version".format(cls=cls.__name__),
+                          FutureWarning, stacklevel=2)
+            data = data.view(_NS_DTYPE)
+
+        elif is_period_dtype(data):
+            # Note: without explicitly raising here, PeriondIndex
+            #  test_setops.test_join_does_not_recur fails
+            raise TypeError("Passing PeriodDtype data to {cls} is invalid.  "
+                            "Use `data.to_timestamp()` instead"
+                            .format(cls=cls.__name__))
+
+        elif is_extension_type(data) and not is_datetime64tz_dtype(data):
+            # Includes categorical
+            # TODO: We have no tests for these
+            data = np.array(data, dtype=np.object_)
+            copy = False
+
+        if is_object_dtype(data) or is_string_dtype(data):
+            # TODO: We do not have tests specific to string-dtypes,
+            #  also complex or categorical or other extension
+            copy = False
+            if lib.infer_dtype(data) == 'integer':
+                # TODO: This is an ugly special-casing; can we avoid it?
+                data = data.astype(np.int64)
+            else:
+                data = tools.to_datetime(data, dayfirst=dayfirst,
+                                         yearfirst=yearfirst)
 
         if isinstance(data, DatetimeArray):
             if tz is None:
@@ -281,6 +318,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             subarr = data._data
 
             if freq is None:
+                # TODO: Should this be the stronger condition of `freq_infer`?
                 freq = data.freq
                 verify_integrity = False
         elif issubclass(data.dtype.type, np.datetime64):
@@ -319,8 +357,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
     @classmethod
-    def _simple_new(cls, values, name=None, freq=None, tz=None,
-                    dtype=None, **kwargs):
+    def _simple_new(cls, values, name=None, freq=None, tz=None, dtype=None):
         """
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
@@ -328,8 +365,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         # DatetimeArray._simple_new will accept either i8 or M8[ns] dtypes
         assert isinstance(values, np.ndarray), type(values)
 
-        result = super(DatetimeIndex, cls)._simple_new(values, freq, tz,
-                                                       **kwargs)
+        result = super(DatetimeIndex, cls)._simple_new(values, freq, tz)
         result.name = name
         result._reset_identity()
         return result

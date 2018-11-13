@@ -978,6 +978,7 @@ Deprecations
   `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
 - :func:`pandas.read_excel` has deprecated accepting ``usecols`` as an integer. Please pass in a list of ints from 0 to ``usecols`` inclusive instead (:issue:`23527`)
 - Constructing a :class:`TimedeltaIndex` from data with ``datetime64``-dtyped data is deprecated, will raise ``TypeError`` in a future version (:issue:`23539`)
+- Constructing a :class:`DatetimeIndex` from data with ``timedelta64``-dtyped data is deprecated, will raise ``TypeError`` in a future version (:issue:`?????`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
