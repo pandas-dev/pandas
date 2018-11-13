@@ -675,4 +675,5 @@ class TestWideToLong(object):
         df = pd.DataFrame(data, columns=['Name', 'day', 'burgers', 'fries'])
 
         # Try to melt with missing column name
-        df.melt(['Name', 'day'], ['Burgers', 'fries'])
+        with pytest.raises(ValueError):
+            df.melt(['Name', 'day'], ['Burgers', 'fries'])
