@@ -600,7 +600,7 @@ def validate_one(func_name):
         mentioned_errs = doc.mentioned_private_classes
         if mentioned_errs:
             errs.append(error('GL04',
-                              mentioned_private_classes=', '.join(mentioned_errs)))
+                mentioned_private_classes=', '.join(mentioned_errs)))
         for line in doc.raw_doc.splitlines():
             if re.match("^ *\t", line):
                 errs.append(error('GL05', line_with_tabs=line.lstrip()))
@@ -609,8 +609,8 @@ def validate_one(func_name):
         for section in doc.section_titles:
             if section not in ALLOWED_SECTIONS:
                 errs.append(error('GL06',
-                                  section=section,
-                                  allowed_sections=', '.join(ALLOWED_SECTIONS)))
+                            section=section,
+                            allowed_sections=', '.join(ALLOWED_SECTIONS)))
             else:
                 if section in unseen_sections:
                     section_idx = unseen_sections.index(section)
@@ -619,9 +619,9 @@ def validate_one(func_name):
                     section_idx = ALLOWED_SECTIONS.index(section)
                     goes_before = ALLOWED_SECTIONS[section_idx + 1]
                     errs.append(error('GL07',
-                                      sorted_sections=' > '.join(ALLOWED_SECTIONS),
-                                      wrong_section=section,
-                                      goes_before=goes_before))
+                                sorted_sections=' > '.join(ALLOWED_SECTIONS),
+                                wrong_section=section,
+                                goes_before=goes_before))
                     break
 
         if not doc.summary:
@@ -690,8 +690,8 @@ def validate_one(func_name):
                     errs.append(error('SA04', reference_name=rel_name))
                 if rel_name.startswith('pandas.'):
                     errs.append(error('SA05',
-                                      reference_name=rel_name,
-                                      right_reference=rel_name[len('pandas.'):]))
+                                reference_name=rel_name,
+                                right_reference=rel_name[len('pandas.'):]))
 
         examples_errs = ''
         if not doc.examples:
@@ -702,10 +702,10 @@ def validate_one(func_name):
                 errs.append(error('EX02', doctest_log=examples_errs))
             for err in doc.validate_pep8():
                 errs.append(error('EX03',
-                                  error_code=err.error_code,
-                                  error_message=err.message,
-                                  times_happening=' ({} times)'.format(err.count)
-                                                  if err.count > 1 else ''))
+                            error_code=err.error_code,
+                            error_message=err.message,
+                            times_happening=' ({} times)'.format(err.count)
+                                            if err.count > 1 else ''))
             examples_source_code = ''.join(doc.examples_source_code)
             for wrong_import in ('numpy', 'pandas'):
                 if 'import {}'.format(wrong_import) in examples_source_code:
