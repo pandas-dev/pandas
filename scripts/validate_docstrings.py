@@ -600,7 +600,7 @@ def validate_one(func_name):
         mentioned_errs = doc.mentioned_private_classes
         if mentioned_errs:
             errs.append(error('GL04',
-                mentioned_private_classes=', '.join(mentioned_errs)))
+                        mentioned_private_classes=', '.join(mentioned_errs)))
         for line in doc.raw_doc.splitlines():
             if re.match("^ *\t", line):
                 errs.append(error('GL05', line_with_tabs=line.lstrip()))
