@@ -675,6 +675,26 @@ class TestWideToLong(object):
                 for person in people for d in day]
         df = pd.DataFrame(data, columns=['Name', 'day', 'burgers', 'fries'])
 
-        # Try to melt with missing column name
-        with pytest.raises(ValueError):
+        # Try to melt with missing `value_vars` column name
+        with pytest.raises(KeyError, match="The following 'value_vars' are not"
+                                           " present in"
+                                           " the DataFrame: 'Burgers'"):
             df.melt(['Name', 'day'], ['Burgers', 'fries'])
+
+        # Try to melt with missing `id_vars` column name
+        with pytest.raises(KeyError, match="The following 'id_vars' are not"
+                                           " present in"
+                                           " the DataFrame: 'Day'"):
+            df.melt(['Name', 'Day'], ['Burgers', 'fries'])
+
+        # Try with error in both-> `id_vars` caught first
+        with pytest.raises(KeyError, match="The following 'id_vars' are not"
+                                           " present in"
+                                           " the DataFrame: 'not_here'"):
+            df.melt(['Name', 'day', 'not_here'], ['Burgers', 'fries'])
+
+        # Multiple missing
+        with pytest.raises(KeyError, match="The following 'id_vars' are not"
+                                           " present in"
+                                           " the DataFrame: 'not_here, or_there'"):
+            df.melt(['Name', 'day', 'not_here', 'or_there'], ['Burgers', 'fries'])
