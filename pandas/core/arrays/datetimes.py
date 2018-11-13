@@ -874,7 +874,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         PeriodIndex(['2017-01-01', '2017-01-02'],
                     dtype='period[D]', freq='D')
 
-        See also
+        See Also
         --------
         pandas.PeriodIndex: Immutable ndarray holding ordinal values
         pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
