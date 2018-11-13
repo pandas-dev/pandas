@@ -1113,6 +1113,26 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return format_object_attrs(self)
 
+    def to_flat_index(self):
+        """
+        Identity method.
+
+        .. versionadded:: 0.24.0
+
+        This is implemented for compatability with subclass implementations
+        when chaining.
+
+        Returns
+        -------
+        pd.Index
+            Caller.
+
+        See Also
+        --------
+        MultiIndex.to_flat_index : Subclass implementation.
+        """
+        return self
+
     def to_series(self, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
