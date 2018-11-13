@@ -634,14 +634,17 @@ class ExcelFile(object):
                 else:
                     offset = 1 + max(header)
 
-                for col in index_col:
-                    last = data[offset][col]
+                # Check if we have an empty dataset
+                # before trying to collect data.
+                if offset < len(data):
+                    for col in index_col:
+                        last = data[offset][col]
 
-                    for row in range(offset + 1, len(data)):
-                        if data[row][col] == '' or data[row][col] is None:
-                            data[row][col] = last
-                        else:
-                            last = data[row][col]
+                        for row in range(offset + 1, len(data)):
+                            if data[row][col] == '' or data[row][col] is None:
+                                data[row][col] = last
+                            else:
+                                last = data[row][col]
 
             has_index_names = is_list_like(header) and len(header) > 1
 
