@@ -239,7 +239,7 @@ one pass, you can do
     2013-01-01 00:00:02      7  4.949747
     2013-01-01 00:00:04      5       NaN
 
-    See also
+    See Also
     --------
     pandas.DataFrame.groupby.aggregate
     pandas.DataFrame.resample.transform
@@ -983,7 +983,7 @@ class DatetimeIndexResampler(Resampler):
         fill_value : scalar, default None
             Value to use for missing values
 
-        See also
+        See Also
         --------
         .fillna
 
@@ -1113,7 +1113,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         fill_value : scalar, default None
             Value to use for missing values
 
-        See also
+        See Also
         --------
         .fillna
 
