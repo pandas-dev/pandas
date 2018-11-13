@@ -663,7 +663,7 @@ class TestWideToLong(object):
         tm.assert_frame_equal(result, expected)
 
     def test_melt_missing_columns(self):
-        # Addresses issue #23575
+        # GH-23575
         # This test is to ensure that pandas raises an error if melting is
         # attempted with column names absent from the dataframe
 
