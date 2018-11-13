@@ -727,7 +727,7 @@ class TestValidator(object):
         assert errors
 
     @capture_stderr
-    def test_bad_class(self):
+    def test_no_docstring(self):
         errors = validate_one(self._import_path(
             klass='NoDocstrings'))['errors']
         assert isinstance(errors, list)
