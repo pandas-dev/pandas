@@ -14,7 +14,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 """
 import glob
 import pytest
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 
 import os
 from distutils.version import LooseVersion
@@ -202,6 +202,7 @@ def test_pickles(current_pickle_data, legacy_pickle):
 
     version = os.path.basename(os.path.dirname(legacy_pickle))
     with catch_warnings(record=True):
+        simplefilter("ignore")
         compare(current_pickle_data, legacy_pickle, version)
 
 
@@ -332,9 +333,9 @@ class TestCompression(object):
             f = bz2.BZ2File(dest_path, "w")
         elif compression == 'zip':
             import zipfile
-            zip_file = zipfile.ZipFile(dest_path, "w",
-                                       compression=zipfile.ZIP_DEFLATED)
-            zip_file.write(src_path, os.path.basename(src_path))
+            with zipfile.ZipFile(dest_path, "w",
+                                 compression=zipfile.ZIP_DEFLATED) as f:
+                f.write(src_path, os.path.basename(src_path))
         elif compression == 'xz':
             lzma = pandas.compat.import_lzma()
             f = lzma.LZMAFile(dest_path, "w")
@@ -343,9 +344,8 @@ class TestCompression(object):
             raise ValueError(msg)
 
         if compression != "zip":
-            with open(src_path, "rb") as fh:
+            with open(src_path, "rb") as fh, f:
                 f.write(fh.read())
-            f.close()
 
     def test_write_explicit(self, compression, get_random_path):
         base = get_random_path
@@ -370,8 +370,7 @@ class TestCompression(object):
 
     @pytest.mark.parametrize('compression', ['', 'None', 'bad', '7z'])
     def test_write_explicit_bad(self, compression, get_random_path):
-        with tm.assert_raises_regex(ValueError,
-                                    "Unrecognized compression type"):
+        with pytest.raises(ValueError, match="Unrecognized compression type"):
             with tm.ensure_clean(get_random_path) as path:
                 df = tm.makeDataFrame()
                 df.to_pickle(path, compression=compression)
@@ -474,7 +473,7 @@ class TestProtocol(object):
         # For Python 2, HIGHEST_PROTOCOL should be 2.
         msg = ("pickle protocol {protocol} asked for; the highest available "
                "protocol is 2").format(protocol=protocol)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean(get_random_path) as path:
                 df = tm.makeDataFrame()
                 df.to_pickle(path, protocol=protocol)

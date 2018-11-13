@@ -71,7 +71,9 @@ class FrameApply(object):
         self.result_type = result_type
 
         # curry if needed
-        if kwds or args and not isinstance(func, np.ufunc):
+        if ((kwds or args) and
+                not isinstance(func, (np.ufunc, compat.string_types))):
+
             def f(x):
                 return func(x, *args, **kwds)
         else:

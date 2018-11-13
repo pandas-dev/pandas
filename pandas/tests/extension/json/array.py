@@ -13,17 +13,22 @@ hack around pandas by using UserDicts.
 import collections
 import itertools
 import numbers
+import random
+import string
 import sys
 
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
+
+from pandas import compat
 from pandas.core.arrays import ExtensionArray
 
 
 class JSONDtype(ExtensionDtype):
-    type = collections.Mapping
+    type = compat.Mapping
     name = 'json'
+
     try:
         na_value = collections.UserDict()
     except AttributeError:
@@ -51,6 +56,7 @@ class JSONDtype(ExtensionDtype):
 
 class JSONArray(ExtensionArray):
     dtype = JSONDtype()
+    __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False):
         for val in values:
@@ -79,7 +85,7 @@ class JSONArray(ExtensionArray):
             return self.data[item]
         elif isinstance(item, np.ndarray) and item.dtype == 'bool':
             return self._from_sequence([x for x, m in zip(self, item) if m])
-        elif isinstance(item, collections.Iterable):
+        elif isinstance(item, compat.Iterable):
             # fancy indexing
             return type(self)([self.data[i] for i in item])
         else:
@@ -91,7 +97,7 @@ class JSONArray(ExtensionArray):
             self.data[key] = value
         else:
             if not isinstance(value, (type(self),
-                                      collections.Sequence)):
+                                      compat.Sequence)):
                 # broadcast value
                 value = itertools.cycle([value])
 
@@ -178,3 +184,10 @@ class JSONArray(ExtensionArray):
         # cast them to an (N, P) array, instead of an (N,) array of tuples.
         frozen = [()] + [tuple(x.items()) for x in self]
         return np.array(frozen, dtype=object)[1:]
+
+
+def make_data():
+    # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
+    return [collections.UserDict([
+        (random.choice(string.ascii_letters), random.randint(0, 100))
+        for _ in range(random.randint(0, 10))]) for _ in range(100)]

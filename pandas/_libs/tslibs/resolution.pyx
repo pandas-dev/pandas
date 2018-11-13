@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from cython cimport Py_ssize_t
+from cython import Py_ssize_t
 
 import numpy as np
 from numpy cimport ndarray, int64_t, int32_t

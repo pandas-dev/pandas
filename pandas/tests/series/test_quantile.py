@@ -1,14 +1,14 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
+from pandas.core.dtypes.common import is_integer
 
+import pandas as pd
 from pandas import Index, Series
 from pandas.core.indexes.datetimes import Timestamp
-from pandas.core.dtypes.common import is_integer
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -44,7 +44,7 @@ class TestSeriesQuantile(TestData):
 
         msg = 'percentiles should all be in the interval \\[0, 1\\]'
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 self.ts.quantile(invalid)
 
     def test_quantile_multi(self):
@@ -151,6 +151,16 @@ class TestSeriesQuantile(TestData):
 
         res = Series([pd.NaT, pd.NaT]).quantile([0.5])
         tm.assert_series_equal(res, pd.Series([pd.NaT], index=[0.5]))
+
+    @pytest.mark.parametrize('values, dtype', [
+        ([0, 0, 0, 1, 2, 3], 'Sparse[int]'),
+        ([0., None, 1., 2.], 'Sparse[float]'),
+    ])
+    def test_quantile_sparse(self, values, dtype):
+        ser = pd.Series(values, dtype=dtype)
+        result = ser.quantile([0.5])
+        expected = pd.Series(np.asarray(ser)).quantile([0.5])
+        tm.assert_series_equal(result, expected)
 
     def test_quantile_empty(self):
 

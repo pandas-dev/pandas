@@ -1066,14 +1066,10 @@ class TestToHTML(object):
         df.pivot_table(index=[u('clé1')], columns=[u('clé2')])._repr_html_()
 
     def test_to_html_truncate(self):
-        pytest.skip("unreliable on travis")
         index = pd.DatetimeIndex(start='20010101', freq='D', periods=20)
         df = DataFrame(index=index, columns=range(20))
-        fmt.set_option('display.max_rows', 8)
-        fmt.set_option('display.max_columns', 4)
-        result = df._repr_html_()
+        result = df.to_html(max_rows=8, max_cols=4)
         expected = '''\
-<div{0}>
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -1159,23 +1155,15 @@ class TestToHTML(object):
       <td>NaN</td>
     </tr>
   </tbody>
-</table>
-<p>20 rows × 20 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
+</table>'''
         assert result == expected
 
     def test_to_html_truncate_multi_index(self):
-        pytest.skip("unreliable on travis")
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         df = DataFrame(index=arrays, columns=arrays)
-        fmt.set_option('display.max_rows', 7)
-        fmt.set_option('display.max_columns', 7)
-        result = df._repr_html_()
+        result = df.to_html(max_rows=7, max_cols=7)
         expected = '''\
-<div{0}>
 <table border="1" class="dataframe">
   <thead>
     <tr>
@@ -1276,24 +1264,16 @@ class TestToHTML(object):
       <td>NaN</td>
     </tr>
   </tbody>
-</table>
-<p>8 rows × 8 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
+</table>'''
         assert result == expected
 
+    @pytest.mark.xfail(reason='GH22887 TypeError', strict=True)
     def test_to_html_truncate_multi_index_sparse_off(self):
-        pytest.skip("unreliable on travis")
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         df = DataFrame(index=arrays, columns=arrays)
-        fmt.set_option('display.max_rows', 7)
-        fmt.set_option('display.max_columns', 7)
-        fmt.set_option('display.multi_sparse', False)
-        result = df._repr_html_()
+        result = df.to_html(max_rows=7, max_cols=7, sparsify=False)
         expected = '''\
-<div{0}>
 <table border="1" class="dataframe">
   <thead>
     <tr>
@@ -1387,11 +1367,7 @@ class TestToHTML(object):
       <td>NaN</td>
     </tr>
   </tbody>
-</table>
-<p>8 rows × 8 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
+</table>'''
         assert result == expected
 
     def test_to_html_border(self):
@@ -1604,7 +1580,7 @@ class TestToHTML(object):
         df = DataFrame()
         msg = "Invalid value for justify parameter"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df.to_html(justify=justify)
 
     def test_to_html_index(self):
@@ -1839,6 +1815,67 @@ class TestToHTML(object):
           <tbody>
             <tr>
               <td>1</td>
+            </tr>
+          </tbody>
+        </table>""")
+        assert result == expected
+
+    def test_to_html_multiindex_max_cols(self):
+        # GH 6131
+        index = MultiIndex(levels=[['ba', 'bb', 'bc'], ['ca', 'cb', 'cc']],
+                           labels=[[0, 1, 2], [0, 1, 2]],
+                           names=['b', 'c'])
+        columns = MultiIndex(levels=[['d'], ['aa', 'ab', 'ac']],
+                             labels=[[0, 0, 0], [0, 1, 2]],
+                             names=[None, 'a'])
+        data = np.array(
+            [[1., np.nan, np.nan], [np.nan, 2., np.nan], [np.nan, np.nan, 3.]])
+        df = DataFrame(data, index, columns)
+        result = df.to_html(max_cols=2)
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <thead>
+            <tr>
+              <th></th>
+              <th></th>
+              <th colspan="3" halign="left">d</th>
+            </tr>
+            <tr>
+              <th></th>
+              <th>a</th>
+              <th>aa</th>
+              <th>...</th>
+              <th>ac</th>
+            </tr>
+            <tr>
+              <th>b</th>
+              <th>c</th>
+              <th></th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>ba</th>
+              <th>ca</th>
+              <td>1.0</td>
+              <td>...</td>
+              <td>NaN</td>
+            </tr>
+            <tr>
+              <th>bb</th>
+              <th>cb</th>
+              <td>NaN</td>
+              <td>...</td>
+              <td>NaN</td>
+            </tr>
+            <tr>
+              <th>bc</th>
+              <th>cc</th>
+              <td>NaN</td>
+              <td>...</td>
+              <td>3.0</td>
             </tr>
           </tbody>
         </table>""")

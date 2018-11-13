@@ -5,45 +5,37 @@ and latex files. This module also applies to display formatting.
 """
 
 from __future__ import print_function
-# pylint: disable=W0141
 
 from functools import partial
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import NaT, iNaT, Timestamp, Timedelta
 from pandas._libs.tslib import format_array_from_datetime
+from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
+from pandas.compat import StringIO, lzip, map, u, zip
+
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_datetime64_dtype, is_datetimetz, is_float,
+    is_float_dtype, is_integer, is_integer_dtype, is_interval_dtype,
+    is_list_like, is_numeric_dtype, is_period_arraylike, is_scalar,
+    is_timedelta64_dtype)
+from pandas.core.dtypes.generic import ABCMultiIndex, ABCSparseArray
+from pandas.core.dtypes.missing import isna, notna
 
 from pandas import compat
-from pandas.compat import StringIO, lzip, map, zip, u
-
-from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_float_dtype,
-    is_period_arraylike,
-    is_integer_dtype,
-    is_interval_dtype,
-    is_datetimetz,
-    is_integer,
-    is_float,
-    is_scalar,
-    is_numeric_dtype,
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-    is_list_like)
-from pandas.core.dtypes.generic import ABCSparseArray, ABCMultiIndex
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.index import Index, ensure_index
 from pandas.core.config import get_option, set_option
+from pandas.core.index import Index, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 
-from pandas.io.formats.terminal import get_terminal_size
 from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
+from pandas.io.formats.terminal import get_terminal_size
+
+# pylint: disable=W0141
 
 
 common_docstring = """
@@ -288,8 +280,7 @@ class SeriesFormatter(object):
         if self.index:
             result = self.adj.adjoin(3, *[fmt_index[1:], fmt_values])
         else:
-            result = self.adj.adjoin(3, fmt_values).replace('\n ',
-                                                            '\n').strip()
+            result = self.adj.adjoin(3, fmt_values)
 
         if self.header and have_header:
             result = fmt_index[0] + '\n' + result
@@ -650,8 +641,6 @@ class DataFrameFormatter(TableFormatter):
                 self._chk_truncate()
                 strcols = self._to_str_columns()
                 text = self.adj.adjoin(1, *strcols)
-        if not self.index:
-            text = text.replace('\n ', '\n').strip()
         self.buf.writelines(text)
 
         if self.should_show_dimensions:

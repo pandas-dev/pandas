@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 import operator
 
-from cpython cimport (PyFloat_Check, PyBool_Check,
-                      PyObject_RichCompareBool,
+from cpython cimport (PyObject_RichCompareBool,
                       Py_EQ, Py_NE, Py_LT, Py_LE, Py_GT, Py_GE)
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 import numpy as np
 from numpy cimport ndarray, uint8_t, import_array
@@ -272,7 +271,7 @@ def maybe_convert_bool(ndarray[object] arr,
     for i in range(n):
         val = arr[i]
 
-        if PyBool_Check(val):
+        if isinstance(val, bool):
             if val is True:
                 result[i] = 1
             else:
@@ -281,7 +280,7 @@ def maybe_convert_bool(ndarray[object] arr,
             result[i] = 1
         elif val in false_vals:
             result[i] = 0
-        elif PyFloat_Check(val):
+        elif isinstance(val, float):
             result[i] = UINT8_MAX
             na_count += 1
         else:

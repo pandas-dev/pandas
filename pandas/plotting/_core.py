@@ -12,6 +12,7 @@ import numpy as np
 from pandas.util._decorators import cache_readonly, Appender
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
+from pandas.errors import AbstractMethodError
 
 import pandas.core.common as com
 from pandas.core.base import PandasObject
@@ -30,9 +31,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.io.formats.printing import pprint_thing
 
-from pandas.plotting._compat import (_mpl_ge_1_3_1,
-                                     _mpl_ge_1_5_0,
-                                     _mpl_ge_2_0_0)
+from pandas.plotting._compat import _mpl_ge_3_0_0
 from pandas.plotting._style import (plot_params,
                                     _get_standard_colors)
 from pandas.plotting._tools import (_subplots, _flatten, table,
@@ -375,7 +374,7 @@ class MPLPlot(object):
         self.data = numeric_data
 
     def _make_plot(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _add_table(self):
         if self.table is False:
@@ -549,14 +548,6 @@ class MPLPlot(object):
     def plt(self):
         import matplotlib.pyplot as plt
         return plt
-
-    @staticmethod
-    def mpl_ge_1_3_1():
-        return _mpl_ge_1_3_1()
-
-    @staticmethod
-    def mpl_ge_1_5_0():
-        return _mpl_ge_1_5_0()
 
     _need_to_set_index = False
 
@@ -843,11 +834,16 @@ class PlanePlot(MPLPlot):
         # For a more detailed description of the issue
         # see the following link:
         # https://github.com/ipython/ipython/issues/11215
-
         img = ax.collections[0]
         cbar = self.fig.colorbar(img, ax=ax, **kwds)
+
+        if _mpl_ge_3_0_0():
+            # The workaround below is no longer necessary.
+            return
+
         points = ax.get_position().get_points()
         cbar_points = cbar.ax.get_position().get_points()
+
         cbar.ax.set_position([cbar_points[0, 0],
                               points[0, 1],
                               cbar_points[1, 0] - cbar_points[0, 0],
@@ -902,8 +898,7 @@ class ScatterPlot(PlanePlot):
         scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
                              label=label, cmap=cmap, **self.kwds)
         if cb:
-            if self.mpl_ge_1_3_1():
-                cbar_label = c if c_is_column else ''
+            cbar_label = c if c_is_column else ''
             self._plot_colorbar(ax, label=cbar_label)
 
         if label is not None:
@@ -1006,10 +1001,9 @@ class LinePlot(MPLPlot):
                              **kwds)
             self._add_legend_handle(newlines[0], label, index=i)
 
-            if not _mpl_ge_2_0_0():
-                lines = _get_all_lines(ax)
-                left, right = _get_xlim(lines)
-                ax.set_xlim(left, right)
+            lines = _get_all_lines(ax)
+            left, right = _get_xlim(lines)
+            ax.set_xlim(left, right)
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None,
@@ -1135,8 +1129,7 @@ class AreaPlot(LinePlot):
 
         # need to remove label, because subplots uses mpl legend as it is
         line_kwds = kwds.copy()
-        if cls.mpl_ge_1_5_0():
-            line_kwds.pop('label')
+        line_kwds.pop('label')
         lines = MPLPlot._plot(ax, x, y_values, style=style, **line_kwds)
 
         # get data from the line to get coordinates for fill_between
@@ -1159,18 +1152,8 @@ class AreaPlot(LinePlot):
         cls._update_stacker(ax, stacking_id, y)
 
         # LinePlot expects list of artists
-        res = [rect] if cls.mpl_ge_1_5_0() else lines
+        res = [rect]
         return res
-
-    def _add_legend_handle(self, handle, label, index=None):
-        if not self.mpl_ge_1_5_0():
-            from matplotlib.patches import Rectangle
-            # Because fill_between isn't supported in legend,
-            # specifically add Rectangle handle here
-            alpha = self.kwds.get('alpha', None)
-            handle = Rectangle((0, 0), 1, 1, fc=handle.get_color(),
-                               alpha=alpha)
-        LinePlot._add_legend_handle(self, handle, label, index=index)
 
     def _post_plot_logic(self, ax, data):
         LinePlot._post_plot_logic(self, ax, data)
@@ -3385,25 +3368,13 @@ class FramePlotMethods(BasePlotMethods):
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame({
-            ...     'sales': [3, 2, 3, 9, 10, 6],
-            ...     'signups': [5, 5, 6, 12, 14, 13],
-            ...     'visits': [20, 42, 28, 62, 81, 50],
-            ... }, index=pd.date_range(start='2018/01/01', end='2018/07/01',
-            ...                        freq='M'))
             >>> ax = df.plot.area(stacked=False)
 
-        Draw an area plot for each metric:
+        Draw an area plot for a single column:
 
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame({
-            ...     'sales': [3, 2, 3, 9, 10, 6],
-            ...     'signups': [5, 5, 6, 12, 14, 13],
-            ...     'visits': [20, 42, 28, 62, 81, 50],
-            ... }, index=pd.date_range(start='2018/01/01', end='2018/07/01',
-            ...                        freq='M'))
             >>> ax = df.plot.area(y='sales')
 
         Draw with a different `x`:
@@ -3414,9 +3385,8 @@ class FramePlotMethods(BasePlotMethods):
             >>> df = pd.DataFrame({
             ...     'sales': [3, 2, 3],
             ...     'visits': [20, 42, 28],
-            ...     'day': ['Monday', 'Tuesday', 'Wednesday'],
-            ... }, index=pd.date_range(start='2018/01/01', end='2018/07/01',
-            ...                        freq='M'))
+            ...     'day': [1, 2, 3],
+            ... })
             >>> ax = df.plot.area(x='day')
         """
         return self(kind='area', x=x, y=y, **kwds)

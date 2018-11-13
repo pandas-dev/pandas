@@ -1,5 +1,7 @@
-import pytest
+import itertools
+
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas.core.internals import ExtensionBlock
@@ -46,8 +48,7 @@ class BaseReshapingTests(BaseExtensionTests):
         df1 = pd.DataFrame({'A': data[:3]})
         df2 = pd.DataFrame({"A": [1, 2, 3]})
         df3 = pd.DataFrame({"A": ['a', 'b', 'c']}).astype('category')
-        df4 = pd.DataFrame({"A": pd.SparseArray([1, 2, 3])})
-        dfs = [df1, df2, df3, df4]
+        dfs = [df1, df2, df3]
 
         # dataframes
         result = pd.concat(dfs)
@@ -171,3 +172,68 @@ class BaseReshapingTests(BaseExtensionTests):
                  [data[0], data[0], data[1], data[2], na_value],
                  dtype=data.dtype)})
         self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
+
+    @pytest.mark.parametrize("columns", [
+        ["A", "B"],
+        pd.MultiIndex.from_tuples([('A', 'a'), ('A', 'b')],
+                                  names=['outer', 'inner']),
+    ])
+    def test_stack(self, data, columns):
+        df = pd.DataFrame({"A": data[:5], "B": data[:5]})
+        df.columns = columns
+        result = df.stack()
+        expected = df.astype(object).stack()
+        # we need a second astype(object), in case the constructor inferred
+        # object -> specialized, as is done for period.
+        expected = expected.astype(object)
+
+        if isinstance(expected, pd.Series):
+            assert result.dtype == df.iloc[:, 0].dtype
+        else:
+            assert all(result.dtypes == df.iloc[:, 0].dtype)
+
+        result = result.astype(object)
+        self.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("index", [
+        # Two levels, uniform.
+        pd.MultiIndex.from_product(([['A', 'B'], ['a', 'b']]),
+                                   names=['a', 'b']),
+
+        # non-uniform
+        pd.MultiIndex.from_tuples([('A', 'a'), ('A', 'b'), ('B', 'b')]),
+
+        # three levels, non-uniform
+        pd.MultiIndex.from_product([('A', 'B'), ('a', 'b', 'c'), (0, 1, 2)]),
+        pd.MultiIndex.from_tuples([
+            ('A', 'a', 1),
+            ('A', 'b', 0),
+            ('A', 'a', 0),
+            ('B', 'a', 0),
+            ('B', 'c', 1),
+        ]),
+    ])
+    @pytest.mark.parametrize("obj", ["series", "frame"])
+    def test_unstack(self, data, index, obj):
+        data = data[:len(index)]
+        if obj == "series":
+            ser = pd.Series(data, index=index)
+        else:
+            ser = pd.DataFrame({"A": data, "B": data}, index=index)
+
+        n = index.nlevels
+        levels = list(range(n))
+        # [0, 1, 2]
+        # [(0,), (1,), (2,), (0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)]
+        combinations = itertools.chain.from_iterable(
+            itertools.permutations(levels, i) for i in range(1, n)
+        )
+
+        for level in combinations:
+            result = ser.unstack(level=level)
+            assert all(isinstance(result[col].values, type(data))
+                       for col in result.columns)
+            expected = ser.astype(object).unstack(level=level)
+            result = result.astype(object)
+
+            self.assert_frame_equal(result, expected)
