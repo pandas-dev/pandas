@@ -668,7 +668,7 @@ class TestWideToLong(object):
         # attempted with column names absent from the dataframe
 
         # Generate data
-        df = pd.DataFrame(np.random.randn(5,4), columns=list('abcd'))
+        df = pd.DataFrame(np.random.randn(5, 4), columns=list('abcd'))
 
         # Try to melt with missing `value_vars` column name
         with pytest.raises(KeyError, match="The following 'value_vars' are not"
@@ -691,5 +691,6 @@ class TestWideToLong(object):
         # Multiple missing
         with pytest.raises(KeyError, match="The following 'id_vars' are not"
                                            " present in"
-                                           " the DataFrame: 'not_here, or_there'"):
+                                           " the DataFrame: "
+                                           "'not_here, or_there'"):
             df.melt(['a', 'b', 'not_here', 'or_there'], ['c', 'd'])
