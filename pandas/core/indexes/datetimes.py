@@ -578,16 +578,12 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         result = super(DatetimeIndex, naive).unique(level=level)
         return self._shallow_copy(result.values)
 
-    def _is_inconsistent(self, other):
-        is_inconsistent = super(DatetimeIndex, self)._is_inconsistent(other)
-        if is_inconsistent:
-            if hasattr(other, 'dtype'):
-                # If same base, consider consistent, let UTC logic takeover
-                return self.dtype.base != other.dtype.base
-            else:
-                return True
-        else:
-            return is_inconsistent
+    def _is_compatible_with_other(self, other):
+        is_compat = super(DatetimeIndex, self)._is_compatible_with_other(other)
+        if not is_compat:
+            is_compat = (hasattr(other, 'dtype') 
+                         and self.dtype.base == other.dtype.base)
+        return is_compat
 
     def union(self, other):
         """

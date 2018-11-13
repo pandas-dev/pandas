@@ -2756,15 +2756,24 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(name=name)
         return self
 
-    def _union_inconsistent_dtypes(self, other):
+    def _union_incompatible_dtypes(self, other):
+        """
+        Casts this and other index to object dtype to allow the formation
+        of a union between incompatible types.
+        """
         this = self.astype('O')
         # call Index for when `other` is list-like
         other = Index(other).astype('O')
         return Index.union(this, other).astype('O')
 
-    def _is_inconsistent(self, other):
-        return (type(self) is not type(other)
-                or not is_dtype_equal(self.dtype, other.dtype))
+    def _is_compatible_with_other(self, other):
+        """
+        Check whether this and the other dtype are compatible with each other.
+        Meaning a union can be formed between them without needing to be cast
+        to dtype object.
+        """
+        return (type(self) is type(other) 
+                and is_dtype_equal(self.dtype, other.dtype))
 
     def union(self, other):
         """
@@ -2789,15 +2798,20 @@ class Index(IndexOpsMixin, PandasObject):
         """
         self._assert_can_do_setop(other)
 
-        if self._is_inconsistent(other):
-            return self._union_inconsistent_dtypes(other)
+        if not self._is_compatible_with_other(other):
+            return self._union_incompatible_dtypes(other)
 
+        # This line needs to be after _union_incompatible_dtypes to ensure 
+        # the original type of other is not lost after being cast to Index
         other = ensure_index(other)
         return self._union(other)
 
     def _union(self, other):
+        """
+        Specific union logic should go here. In subclasses union behavior
+        should be overwritten here rather than in `self.union`
+        """
 
-        # if is_dtype_equal(self.dtype, other.dtype):
         if len(self) == 0:
             return other._get_reconciled_name_object(self)
         elif len(other) == 0:
@@ -2805,19 +2819,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         if self.equals(other):
             return self._get_reconciled_name_object(other)
-
-
-        # TODO: is_dtype_union_equal is a hack around
-        # 1. buggy set ops with duplicates (GH #13432)
-        # 2. CategoricalIndex lacking setops (GH #10186)
-        # Once those are fixed, this workaround can be removed
-
-        # remove? this might be too lenient
-        # if not is_dtype_union_equal(self.dtype, other.dtype):
-        #     this = self.astype('O')
-        #     other = other.astype('O')
-        #     # force object dtype, for empty index cases
-        #     return this.union(other).astype('O')
 
         # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self) or is_datetime64tz_dtype(self):
