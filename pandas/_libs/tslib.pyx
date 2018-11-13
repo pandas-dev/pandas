@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import cython
 from cython import Py_ssize_t
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
@@ -37,7 +38,8 @@ from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 get_datetime64_nanos,
                                 tz_convert_utc_to_tzlocal)
 
-from tslibs.nattype import NaT, nat_strings, iNaT
+# many modules still look for NaT and iNaT here despite them not being needed
+from tslibs.nattype import nat_strings, NaT, iNaT  # noqa:F821
 from tslibs.nattype cimport checknull_with_nat, NPY_NAT
 
 from tslibs.offsets cimport to_offset
@@ -71,6 +73,8 @@ cdef inline object create_time_from_ts(
     return time(dts.hour, dts.min, dts.sec, dts.us, tz)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def ints_to_pydatetime(int64_t[:] arr, tz=None, freq=None, box="datetime"):
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
@@ -213,6 +217,8 @@ def _test_parse_iso8601(object ts):
         return Timestamp(obj.value)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
                                object format=None, object na_rep=None):
     """
@@ -335,7 +341,7 @@ def array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         # then need to iterate
         try:
             iresult = values.astype('i8', casting='same_kind', copy=False)
-            mask = iresult == iNaT
+            mask = iresult == NPY_NAT
             iresult[mask] = 0
             fvalues = iresult.astype('f8') * m
             need_to_iterate = False
@@ -351,7 +357,7 @@ def array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                                           "'{unit}'".format(unit=unit))
             result = (iresult * m).astype('M8[ns]')
             iresult = result.view('i8')
-            iresult[mask] = iNaT
+            iresult[mask] = NPY_NAT
             return result
 
     result = np.empty(n, dtype='M8[ns]')
@@ -449,6 +455,8 @@ def array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
     return oresult
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         dayfirst=False, yearfirst=False,
                         format=None, utc=None,
@@ -752,6 +760,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         return array_to_datetime_object(values, is_raise, dayfirst, yearfirst)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
                               dayfirst=False, yearfirst=False):
     """

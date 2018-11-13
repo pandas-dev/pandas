@@ -7,8 +7,6 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import pytest
 
-import pandas.util.testing as tm
-
 from pandas import Timestamp
 from pandas.tseries.frequencies import get_offset
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
@@ -44,9 +42,9 @@ def test_get_offset_name():
 
 
 def test_get_offset():
-    with tm.assert_raises_regex(ValueError, INVALID_FREQ_ERR_MSG):
+    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
         get_offset('gibberish')
-    with tm.assert_raises_regex(ValueError, INVALID_FREQ_ERR_MSG):
+    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
         get_offset('QS-JAN-B')
 
     pairs = [

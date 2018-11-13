@@ -475,7 +475,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the flattened underlying data as an ndarray
 
-        See also
+        See Also
         --------
         numpy.ndarray.ravel
         """
@@ -487,7 +487,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated:: 0.24.0
 
-        See also
+        See Also
         --------
         numpy.ndarray.compress
         """
@@ -538,7 +538,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Applies the `put` method to its `values` attribute
         if it has one.
 
-        See also
+        See Also
         --------
         numpy.ndarray.put
         """
@@ -947,7 +947,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 except Exception:
                     pass
 
-            if not isinstance(key, (list, Series, np.ndarray, Series)):
+            if is_scalar(key):
+                key = [key]
+            elif not isinstance(key, (list, Series, np.ndarray)):
                 try:
                     key = list(key)
                 except Exception:
@@ -990,7 +992,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
         for more information about the `repeats` argument.
 
-        See also
+        See Also
         --------
         numpy.ndarray.repeat
         """
@@ -1911,7 +1913,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> import numpy as np
         >>> histogram_intersection = lambda a, b: np.minimum(a, b
         ... ).sum().round(decimals=1)
         >>> s1 = pd.Series([.2, .0, .6, .2])
@@ -2063,16 +2064,53 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def dot(self, other):
         """
-        Matrix multiplication with DataFrame or inner-product with Series
-        objects. Can also be called using `self @ other` in Python >= 3.5.
+        Compute the dot product between the Series and the columns of other.
+
+        This method computes the dot product between the Series and another
+        one, or the Series and each columns of a DataFrame, or the Series and
+        each columns of an array.
+
+        It can also be called using `self @ other` in Python >= 3.5.
 
         Parameters
         ----------
-        other : Series or DataFrame
+        other : Series, DataFrame or array-like
+            The other object to compute the dot product with its columns.
 
         Returns
         -------
-        dot_product : scalar or Series
+        scalar, Series or numpy.ndarray
+            Return the dot product of the Series and other if other is a
+            Series, the Series of the dot product of Series and each rows of
+            other if other is a DataFrame or a numpy.ndarray between the Series
+            and each columns of the numpy array.
+
+        See Also
+        --------
+        DataFrame.dot: Compute the matrix product with the DataFrame.
+        Series.mul: Multiplication of series and other, element-wise.
+
+        Notes
+        -----
+        The Series and other has to share the same index if other is a Series
+        or a DataFrame.
+
+        Examples
+        --------
+        >>> s = pd.Series([0, 1, 2, 3])
+        >>> other = pd.Series([-1, 2, -3, 4])
+        >>> s.dot(other)
+        8
+        >>> s @ other
+        8
+        >>> df = pd.DataFrame([[0 ,1], [-2, 3], [4, -5], [6, 7]])
+        >>> s.dot(df)
+        0    24
+        1    14
+        dtype: int64
+        >>> arr = np.array([[0, 1], [-2, 3], [4, -5], [6, 7]])
+        >>> s.dot(arr)
+        array([24, 14])
         """
         from pandas.core.frame import DataFrame
         if isinstance(other, (Series, DataFrame)):
@@ -2143,7 +2181,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         list and then concatenate the list with the original Series all at
         once.
 
-        See also
+        See Also
         --------
         pandas.concat : General function to concatenate DataFrame, Series
             or Panel objects
@@ -2746,7 +2784,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         argsorted : Series, with -1 indicated where nan values are present
 
-        See also
+        See Also
         --------
         numpy.ndarray.argsort
         """
@@ -2986,7 +3024,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        order : list of int representing new level order.
+        order : list of int representing new level order
                (reference level by number or key)
 
         Returns
@@ -3160,7 +3198,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     max   4
     dtype: int64
 
-    See also
+    See Also
     --------
     pandas.Series.apply : Invoke function on a Series.
     pandas.Series.transform : Transform function producing
@@ -3225,7 +3263,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         y : Series or DataFrame if func returns a Series
 
-        See also
+        See Also
         --------
         Series.map: For element-wise operations
         Series.agg: only perform aggregating type operations
@@ -3853,7 +3891,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.
 
-        See also
+        See Also
         --------
         pandas.read_csv
 

@@ -10,7 +10,9 @@ import json
 import numpy as np
 import pandas as pd
 
-from pandas._libs import tslib, properties
+from pandas._libs import properties, Timestamp, iNaT
+from pandas.errors import AbstractMethodError
+
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
@@ -200,7 +202,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """Used when a manipulation result has the same dimensions as the
         original.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def __unicode__(self):
         # unicode representation based upon iterating over self
@@ -221,7 +223,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """Used when a manipulation result has one lower dimension(s) as the
         original, such as DataFrame single columns slicing.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     @property
     def _constructor_expanddim(self):
@@ -1848,7 +1850,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df.dropna().empty
         True
 
-        See also
+        See Also
         --------
         pandas.Series.dropna
         pandas.DataFrame.dropna
@@ -2397,6 +2399,15 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         pandas.read_sql : read a DataFrame from a table
 
+        Notes
+        -----
+        Timezone aware datetime columns will be written as
+        ``Timestamp with timezone`` type with SQLAlchemy if supported by the
+        database. Otherwise, the datetimes will be stored as timezone unaware
+        timestamps local to the original timezone.
+
+        .. versionadded:: 0.24.0
+
         References
         ----------
         .. [1] http://docs.sqlalchemy.org
@@ -2875,7 +2886,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return lower
 
     def _box_item_values(self, key, values):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _maybe_cache_changed(self, item, value):
         """The object has called back to us saying maybe it has changed.
@@ -5091,7 +5102,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1   b    2    2.0
         2   c    3    3.0
 
-        >>> df.get_ftype_counts()
+        >>> df.get_ftype_counts()  # doctest: +SKIP
         float64:dense    1
         int64:dense      1
         object:dense     1
@@ -5239,11 +5250,11 @@ class NDFrame(PandasObject, SelectionMixin):
             the same type. Alternatively, use {col: dtype, ...}, where col is a
             column label and dtype is a numpy.dtype or Python type to cast one
             or more of the DataFrame's columns to column-specific types.
-        copy : bool, default True.
+        copy : bool, default True
             Return a copy when ``copy=True`` (be very careful setting
             ``copy=False`` as changes to values then may propagate to other
             pandas objects).
-        errors : {'raise', 'ignore'}, default 'raise'.
+        errors : {'raise', 'ignore'}, default 'raise'
             Control raising of exceptions on invalid data for provided dtype.
 
             - ``raise`` : allow exceptions to be raised
@@ -5279,7 +5290,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Convert to ordered categorical type with custom ordering:
 
-        >>> ser.astype('category', ordered=True, categories=[2, 1])
+        >>> cat_dtype = pd.api.types.CategoricalDtype(
+        ...                     categories=[2, 1], ordered=True)
+        >>> ser.astype(cat_dtype)
         0    1
         1    2
         dtype: category
@@ -5296,7 +5309,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1     2
         dtype: int64
 
-        See also
+        See Also
         --------
         pandas.to_datetime : Convert argument to datetime.
         pandas.to_timedelta : Convert argument to timedelta.
@@ -6495,40 +6508,98 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def asof(self, where, subset=None):
         """
-        The last row without any NaN is taken (or the last row without
-        NaN considering only the subset of columns in the case of a DataFrame)
+        Return the last row(s) without any NaNs before `where`.
+
+        The last row (for each element in `where`, if list) without any
+        NaN is taken.
+        In case of a :class:`~pandas.DataFrame`, the last row without NaN
+        considering only the subset of columns (if not `None`)
 
         .. versionadded:: 0.19.0 For DataFrame
 
-        If there is no good value, NaN is returned for a Series
+        If there is no good value, NaN is returned for a Series or
         a Series of NaN values for a DataFrame
 
         Parameters
         ----------
-        where : date or array of dates
-        subset : string or list of strings, default None
-           if not None use these columns for NaN propagation
+        where : date or array-like of dates
+            Date(s) before which the last row(s) are returned.
+        subset : str or array-like of str, default `None`
+            For DataFrame, if not `None`, only use these columns to
+            check for NaNs.
 
         Notes
         -----
-        Dates are assumed to be sorted
-        Raises if this is not the case
+        Dates are assumed to be sorted. Raises if this is not the case.
 
         Returns
         -------
-        where is scalar
+        scalar, Series, or DataFrame
 
-          - value or NaN if input is Series
-          - Series if input is DataFrame
-
-        where is Index: same shape object as input
+           * scalar : when `self` is a Series and `where` is a scalar
+           * Series: when `self` is a Series and `where` is an array-like,
+             or when `self` is a DataFrame and `where` is a scalar
+           * DataFrame : when `self` is a DataFrame and `where` is an
+             array-like
 
         See Also
         --------
-        merge_asof
+        merge_asof : Perform an asof merge. Similar to left join.
 
+        Examples
+        --------
+        A Series and a scalar `where`.
+
+        >>> s = pd.Series([1, 2, np.nan, 4], index=[10, 20, 30, 40])
+        >>> s
+        10    1.0
+        20    2.0
+        30    NaN
+        40    4.0
+        dtype: float64
+
+        >>> s.asof(20)
+        2.0
+
+        For a sequence `where`, a Series is returned. The first value is
+        NaN, because the first element of `where` is before the first
+        index value.
+
+        >>> s.asof([5, 20])
+        5     NaN
+        20    2.0
+        dtype: float64
+
+        Missing values are not considered. The following is ``2.0``, not
+        NaN, even though NaN is at the index location for ``30``.
+
+        >>> s.asof(30)
+        2.0
+
+        Take all columns into consideration
+
+        >>> df = pd.DataFrame({'a': [10, 20, 30, 40, 50],
+        ...                    'b': [None, None, None, None, 500]},
+        ...                   index=pd.DatetimeIndex(['2018-02-27 09:01:00',
+        ...                                           '2018-02-27 09:02:00',
+        ...                                           '2018-02-27 09:03:00',
+        ...                                           '2018-02-27 09:04:00',
+        ...                                           '2018-02-27 09:05:00']))
+        >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
+        ...                           '2018-02-27 09:04:30']))
+                              a   b
+        2018-02-27 09:03:30 NaN NaN
+        2018-02-27 09:04:30 NaN NaN
+
+        Take a single column into consideration
+
+        >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
+        ...                           '2018-02-27 09:04:30']),
+        ...         subset=['a'])
+                                 a   b
+        2018-02-27 09:03:30   30.0 NaN
+        2018-02-27 09:04:30   40.0 NaN
         """
-
         if isinstance(where, compat.string_types):
             from pandas import to_datetime
             where = to_datetime(where)
@@ -7431,46 +7502,67 @@ class NDFrame(PandasObject, SelectionMixin):
                  label=None, convention='start', kind=None, loffset=None,
                  limit=None, base=0, on=None, level=None):
         """
+        Resample time-series data.
+
         Convenience method for frequency conversion and resampling of time
-        series.  Object must have a datetime-like index (DatetimeIndex,
-        PeriodIndex, or TimedeltaIndex), or pass datetime-like values
-        to the on or level keyword.
+        series. Object must have a datetime-like index (`DatetimeIndex`,
+        `PeriodIndex`, or `TimedeltaIndex`), or pass datetime-like values
+        to the `on` or `level` keyword.
 
         Parameters
         ----------
-        rule : string
-            the offset string or object representing target conversion
-        axis : int, optional, default 0
-        closed : {'right', 'left'}
+        rule : str
+            The offset string or object representing target conversion.
+        how : str
+            Method for down/re-sampling, default to 'mean' for downsampling.
+
+            .. deprecated:: 0.18.0
+               The new syntax is ``.resample(...).mean()``, or
+               ``.resample(...).apply(<func>)``
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            Which axis to use for up- or down-sampling. For `Series` this
+            will default to 0, i.e. along the rows. Must be
+            `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`.
+        fill_method : str, default None
+            Filling method for upsampling.
+
+            .. deprecated:: 0.18.0
+               The new syntax is ``.resample(...).<func>()``,
+               e.g. ``.resample(...).pad()``
+        closed : {'right', 'left'}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
-        label : {'right', 'left'}
+        label : {'right', 'left'}, default None
             Which bin edge label to label bucket with. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
-        convention : {'start', 'end', 's', 'e'}
-            For PeriodIndex only, controls whether to use the start or end of
-            `rule`
-        kind: {'timestamp', 'period'}, optional
+        convention : {'start', 'end', 's', 'e'}, default 'start'
+            For `PeriodIndex` only, controls whether to use the start or
+            end of `rule`.
+        kind : {'timestamp', 'period'}, optional, default None
             Pass 'timestamp' to convert the resulting index to a
-            ``DateTimeIndex`` or 'period' to convert it to a ``PeriodIndex``.
+            `DateTimeIndex` or 'period' to convert it to a `PeriodIndex`.
             By default the input representation is retained.
-        loffset : timedelta
-            Adjust the resampled time labels
+        loffset : timedelta, default None
+            Adjust the resampled time labels.
+        limit : int, default None
+            Maximum size gap when reindexing with `fill_method`.
+
+            .. deprecated:: 0.18.0
         base : int, default 0
             For frequencies that evenly subdivide 1 day, the "origin" of the
             aggregated intervals. For example, for '5min' frequency, base could
-            range from 0 through 4. Defaults to 0
-        on : string, optional
+            range from 0 through 4. Defaults to 0.
+        on : str, optional
             For a DataFrame, column to use instead of index for resampling.
             Column must be datetime-like.
 
             .. versionadded:: 0.19.0
 
-        level : string or int, optional
+        level : str or int, optional
             For a MultiIndex, level (name or number) to use for
-            resampling.  Level must be datetime-like.
+            resampling. `level` must be datetime-like.
 
             .. versionadded:: 0.19.0
 
@@ -7486,6 +7578,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+        See Also
+        --------
+        groupby : Group by mapping, function, label, or list of labels.
+        Series.resample : Resample a Series.
+        DataFrame.resample: Resample a DataFrame.
 
         Examples
         --------
@@ -7543,7 +7641,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Upsample the series into 30 second bins.
 
-        >>> series.resample('30S').asfreq()[0:5] #select first 5 rows
+        >>> series.resample('30S').asfreq()[0:5]   # Select first 5 rows
         2000-01-01 00:00:00   0.0
         2000-01-01 00:00:30   NaN
         2000-01-01 00:01:00   1.0
@@ -7576,8 +7674,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Pass a custom function via ``apply``
 
         >>> def custom_resampler(array_like):
-        ...     return np.sum(array_like)+5
-
+        ...     return np.sum(array_like) + 5
+        ...
         >>> series.resample('3T').apply(custom_resampler)
         2000-01-01 00:00:00     8
         2000-01-01 00:03:00    17
@@ -7587,73 +7685,106 @@ class NDFrame(PandasObject, SelectionMixin):
         For a Series with a PeriodIndex, the keyword `convention` can be
         used to control whether to use the start or end of `rule`.
 
+        Resample a year by quarter using 'start' `convention`. Values are
+        assigned to the first quarter of the period.
+
         >>> s = pd.Series([1, 2], index=pd.period_range('2012-01-01',
-                                                        freq='A',
-                                                        periods=2))
+        ...                                             freq='A',
+        ...                                             periods=2))
         >>> s
         2012    1
         2013    2
         Freq: A-DEC, dtype: int64
+        >>> s.resample('Q', convention='start').asfreq()
+        2012Q1    1.0
+        2012Q2    NaN
+        2012Q3    NaN
+        2012Q4    NaN
+        2013Q1    2.0
+        2013Q2    NaN
+        2013Q3    NaN
+        2013Q4    NaN
+        Freq: Q-DEC, dtype: float64
 
-        Resample by month using 'start' `convention`. Values are assigned to
-        the first month of the period.
+        Resample quarters by month using 'end' `convention`. Values are
+        assigned to the last month of the period.
 
-        >>> s.resample('M', convention='start').asfreq().head()
-        2012-01    1.0
-        2012-02    NaN
-        2012-03    NaN
-        2012-04    NaN
-        2012-05    NaN
+        >>> q = pd.Series([1, 2, 3, 4], index=pd.period_range('2018-01-01',
+        ...                                                   freq='Q',
+        ...                                                   periods=4))
+        >>> q
+        2018Q1    1
+        2018Q2    2
+        2018Q3    3
+        2018Q4    4
+        Freq: Q-DEC, dtype: int64
+        >>> q.resample('M', convention='end').asfreq()
+        2018-03    1.0
+        2018-04    NaN
+        2018-05    NaN
+        2018-06    2.0
+        2018-07    NaN
+        2018-08    NaN
+        2018-09    3.0
+        2018-10    NaN
+        2018-11    NaN
+        2018-12    4.0
         Freq: M, dtype: float64
 
-        Resample by month using 'end' `convention`. Values are assigned to
-        the last month of the period.
-
-        >>> s.resample('M', convention='end').asfreq()
-        2012-12    1.0
-        2013-01    NaN
-        2013-02    NaN
-        2013-03    NaN
-        2013-04    NaN
-        2013-05    NaN
-        2013-06    NaN
-        2013-07    NaN
-        2013-08    NaN
-        2013-09    NaN
-        2013-10    NaN
-        2013-11    NaN
-        2013-12    2.0
-        Freq: M, dtype: float64
-
-        For DataFrame objects, the keyword ``on`` can be used to specify the
+        For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.
 
-        >>> df = pd.DataFrame(data=9*[range(4)], columns=['a', 'b', 'c', 'd'])
-        >>> df['time'] = pd.date_range('1/1/2000', periods=9, freq='T')
-        >>> df.resample('3T', on='time').sum()
-                             a  b  c  d
-        time
-        2000-01-01 00:00:00  0  3  6  9
-        2000-01-01 00:03:00  0  3  6  9
-        2000-01-01 00:06:00  0  3  6  9
+        >>> d = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...           'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
+        >>> df = pd.DataFrame(d)
+        >>> df['week_starting'] = pd.date_range('01/01/2018',
+        ...                                     periods=8,
+        ...                                     freq='W')
+        >>> df
+           price  volume week_starting
+        0     10      50    2018-01-07
+        1     11      60    2018-01-14
+        2      9      40    2018-01-21
+        3     13     100    2018-01-28
+        4     14      50    2018-02-04
+        5     18     100    2018-02-11
+        6     17      40    2018-02-18
+        7     19      50    2018-02-25
+        >>> df.resample('M', on='week_starting').mean()
+                       price  volume
+        week_starting
+        2018-01-31     10.75    62.5
+        2018-02-28     17.00    60.0
 
-        For a DataFrame with MultiIndex, the keyword ``level`` can be used to
-        specify on level the resampling needs to take place.
+        For a DataFrame with MultiIndex, the keyword `level` can be used to
+        specify on which level the resampling needs to take place.
 
-        >>> time = pd.date_range('1/1/2000', periods=5, freq='T')
-        >>> df2 = pd.DataFrame(data=10*[range(4)],
-                               columns=['a', 'b', 'c', 'd'],
-                               index=pd.MultiIndex.from_product([time, [1, 2]])
-                               )
-        >>> df2.resample('3T', level=0).sum()
-                             a  b   c   d
-        2000-01-01 00:00:00  0  6  12  18
-        2000-01-01 00:03:00  0  4   8  12
-
-        See also
-        --------
-        groupby : Group by mapping, function, label, or list of labels.
+        >>> days = pd.date_range('1/1/2000', periods=4, freq='D')
+        >>> d2 = dict({'price': [10, 11, 9, 13, 14, 18, 17, 19],
+        ...            'volume': [50, 60, 40, 100, 50, 100, 40, 50]})
+        >>> df2 = pd.DataFrame(d2,
+        ...                    index=pd.MultiIndex.from_product([days,
+        ...                                                     ['morning',
+        ...                                                      'afternoon']]
+        ...                                                     ))
+        >>> df2
+                              price  volume
+        2000-01-01 morning       10      50
+                   afternoon     11      60
+        2000-01-02 morning        9      40
+                   afternoon     13     100
+        2000-01-03 morning       14      50
+                   afternoon     18     100
+        2000-01-04 morning       17      40
+                   afternoon     19      50
+        >>> df2.resample('D', level=0).sum()
+                    price  volume
+        2000-01-01     21     110
+        2000-01-02     22     140
+        2000-01-03     32     150
+        2000-01-04     36      90
         """
+
         from pandas.core.resample import (resample,
                                           _maybe_process_deprecations)
         axis = self._get_axis_number(axis)
@@ -8082,7 +8213,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # This is a single-dimensional object.
             if not is_bool_dtype(cond):
                 raise ValueError(msg.format(dtype=cond.dtype))
-        else:
+        elif not cond.empty:
             for dt in cond.dtypes:
                 if not is_bool_dtype(dt):
                     raise ValueError(msg.format(dtype=dt))
@@ -8361,32 +8492,59 @@ class NDFrame(PandasObject, SelectionMixin):
                           errors=errors)
 
     _shared_docs['shift'] = ("""
-        Shift index by desired number of periods with an optional time freq
+        Shift index by desired number of periods with an optional time `freq`.
+
+        When `freq` is not passed, shift the index without realigning the data.
+        If `freq` is passed (in this case, the index must be date or datetime,
+        or it will raise a `NotImplementedError`), the index will be
+        increased using the periods and the `freq`.
 
         Parameters
         ----------
         periods : int
-            Number of periods to move, can be positive or negative.
-        freq : DateOffset, timedelta, or time rule string, optional
-            Increment to use from the tseries module or time rule (e.g. 'EOM').
-            See Notes.
-        axis : %(axes_single_arg)s
+            Number of periods to shift. Can be positive or negative.
+        freq : DateOffset, tseries.offsets, timedelta, or str, optional
+            Offset to use from the tseries module or time rule (e.g. 'EOM').
+            If `freq` is specified then the index values are shifted but the
+            data is not realigned. That is, use `freq` if you would like to
+            extend the index when shifting and preserve the original data.
+        axis : {0 or 'index', 1 or 'columns', None}, default None
+            Shift direction.
+
+        Returns
+        -------
+        %(klass)s
+            Copy of input object, shifted.
 
         See Also
         --------
         Index.shift : Shift values of Index.
         DatetimeIndex.shift : Shift values of DatetimeIndex.
         PeriodIndex.shift : Shift values of PeriodIndex.
+        tshift : Shift the time index, using the index's frequency if
+            available.
 
-        Notes
-        -----
-        If freq is specified then the index values are shifted but the data
-        is not realigned. That is, use freq if you would like to extend the
-        index when shifting and preserve the original data.
+        Examples
+        --------
+        >>> df = pd.DataFrame({'Col1': [10, 20, 15, 30, 45],
+        ...                    'Col2': [13, 23, 18, 33, 48],
+        ...                    'Col3': [17, 27, 22, 37, 52]})
 
-        Returns
-        -------
-        shifted : %(klass)s
+        >>> df.shift(periods=3)
+           Col1  Col2  Col3
+        0   NaN   NaN   NaN
+        1   NaN   NaN   NaN
+        2   NaN   NaN   NaN
+        3  10.0  13.0  17.0
+        4  20.0  23.0  27.0
+
+        >>> df.shift(periods=1, axis='columns')
+           Col1  Col2  Col3
+        0   NaN  10.0  13.0
+        1   NaN  20.0  23.0
+        2   NaN  15.0  18.0
+        3   NaN  30.0  33.0
+        4   NaN  45.0  48.0
     """)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
@@ -8716,6 +8874,13 @@ class NDFrame(PandasObject, SelectionMixin):
         copy : boolean, default True
             Also make a copy of the underlying data
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            When clocks moved backward due to DST, ambiguous times may arise.
+            For example in Central European Time (UTC+01), when going from
+            03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
+            00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
+            `ambiguous` parameter dictates how ambiguous times should be
+            handled.
+
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False designates
@@ -8743,6 +8908,52 @@ class NDFrame(PandasObject, SelectionMixin):
         ------
         TypeError
             If the TimeSeries is tz-aware and tz is not None.
+
+        Examples
+        --------
+
+        Localize local times:
+
+        >>> s = pd.Series([1],
+        ... index=pd.DatetimeIndex(['2018-09-15 01:30:00']))
+        >>> s.tz_localize('CET')
+        2018-09-15 01:30:00+02:00    1
+        dtype: int64
+
+        Be careful with DST changes. When there is sequential data, pandas
+        can infer the DST time:
+
+        >>> s = pd.Series(range(7), index=pd.DatetimeIndex([
+        ... '2018-10-28 01:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 03:00:00',
+        ... '2018-10-28 03:30:00']))
+        >>> s.tz_localize('CET', ambiguous='infer')
+        2018-10-28 01:30:00+02:00    0
+        2018-10-28 02:00:00+02:00    1
+        2018-10-28 02:30:00+02:00    2
+        2018-10-28 02:00:00+01:00    3
+        2018-10-28 02:30:00+01:00    4
+        2018-10-28 03:00:00+01:00    5
+        2018-10-28 03:30:00+01:00    6
+        dtype: int64
+
+        In some cases, inferring the DST is impossible. In such cases, you can
+        pass an ndarray to the ambiguous parameter to set the DST explicitly
+
+        >>> s = pd.Series(range(3), index=pd.DatetimeIndex([
+        ... '2018-10-28 01:20:00',
+        ... '2018-10-28 02:36:00',
+        ... '2018-10-28 03:46:00']))
+        >>> s.tz_localize('CET', ambiguous=np.array([True, True, False]))
+        2018-10-28 01:20:00+02:00    0
+        2018-10-28 02:36:00+02:00    1
+        2018-10-28 03:46:00+01:00    2
+        dtype: int64
+
         """
         if nonexistent not in ('raise', 'NaT', 'shift'):
             raise ValueError("The nonexistent argument must be one of 'raise',"
@@ -9133,9 +9344,9 @@ class NDFrame(PandasObject, SelectionMixin):
                     tz = data.dt.tz
                     asint = data.dropna().values.view('i8')
                     names += ['top', 'freq', 'first', 'last']
-                    result += [tslib.Timestamp(top, tz=tz), freq,
-                               tslib.Timestamp(asint.min(), tz=tz),
-                               tslib.Timestamp(asint.max(), tz=tz)]
+                    result += [Timestamp(top, tz=tz), freq,
+                               Timestamp(asint.min(), tz=tz),
+                               Timestamp(asint.max(), tz=tz)]
                 else:
                     names += ['top', 'freq']
                     result += [top, freq]
@@ -9482,8 +9693,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.ptp = _make_stat_function(
             cls, 'ptp', name, name2, axis_descr,
-            """
-            Returns the difference between the maximum value and the
+            """Returns the difference between the maximum value and the
             minimum value in the object. This is the equivalent of the
             ``numpy.ndarray`` method ``ptp``.
 
@@ -9880,7 +10090,7 @@ False
 """
 
 _all_see_also = """\
-See also
+See Also
 --------
 pandas.Series.all : Return True if all elements are True
 pandas.DataFrame.any : Return True if one (or more) elements are True
@@ -9907,7 +10117,7 @@ Returns
 -------
 %(outname)s : %(name1)s or %(name2)s\n
 %(examples)s
-See also
+See Also
 --------
 pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
     but ignores ``NaN`` values.
@@ -10473,7 +10683,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
                 issubclass(y.dtype.type, (np.datetime64, np.timedelta64))):
             result = accum_func(y, axis)
             mask = isna(self)
-            np.putmask(result, mask, tslib.iNaT)
+            np.putmask(result, mask, iNaT)
         elif skipna and not issubclass(y.dtype.type, (np.integer, np.bool_)):
             mask = isna(self)
             np.putmask(y, mask, mask_a)

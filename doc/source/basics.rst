@@ -306,8 +306,8 @@ To evaluate single-element pandas objects in a boolean context, use the method
 
    .. code-block:: python
 
-       >>> if df:
-            ...
+       >>> if df:                         # noqa: E999
+               ...
 
    Or
 
@@ -317,7 +317,7 @@ To evaluate single-element pandas objects in a boolean context, use the method
 
    These will both raise errors, as you are trying to compare multiple values.
 
-   .. code-block:: python
+   .. code-block:: python-traceback
 
        ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
 
@@ -732,9 +732,8 @@ with the equivalent
 .. code-block:: python
 
    >>> (df.pipe(h)
-          .pipe(g, arg1=1)
-          .pipe(f, arg2=2, arg3=3)
-       )
+   ...    .pipe(g, arg1=1)
+   ...    .pipe(f, arg2=2, arg3=3))
 
 Pandas encourages the second style, which is known as method chaining.
 ``pipe`` makes it easy to use your own or another library's functions
@@ -767,7 +766,7 @@ We encourage you to view the source code of :meth:`~DataFrame.pipe`.
 
 .. _dplyr: https://github.com/hadley/dplyr
 .. _magrittr: https://github.com/smbache/magrittr
-.. _R: http://www.r-project.org
+.. _R: https://www.r-project.org
 
 
 Row or Column-wise Function Application
@@ -2296,7 +2295,7 @@ For example, to select ``bool`` columns:
    df.select_dtypes(include=[bool])
 
 You can also pass the name of a dtype in the `NumPy dtype hierarchy
-<http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__:
+<https://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__:
 
 .. ipython:: python
 
