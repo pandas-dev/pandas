@@ -1816,7 +1816,6 @@ class _TestMySQLAlchemy(object):
 
     def test_read_procedure(self):
         import pymysql
-        
         # see GH7324. Although it is more an api test, it is added to the
         # mysql tests as sqlite does not have stored procedures
         df = DataFrame({'a': [1, 2, 3], 'b': [0.1, 0.2, 0.3]})
