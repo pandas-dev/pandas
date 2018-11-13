@@ -2325,10 +2325,23 @@ class Categorical(ExtensionArray, PandasObject):
         See also
         --------
         numpy.ndarray.repeat
-
+        Categorical.tile
         """
         nv.validate_repeat(args, kwargs)
         codes = self._codes.repeat(repeats)
+        return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
+
+    def tile(self, reps, *args, **kwargs):
+        """
+        Tile elements of a Categorical.
+
+        See also
+        --------
+        numpy.tile
+        Categorical.repeat
+        """
+        nv.validate_tile(args, kwargs)
+        codes = np.tile(self._codes, reps)
         return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
 
     # Implement the ExtensionArray interface

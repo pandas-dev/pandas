@@ -308,6 +308,14 @@ class TestCategoricalAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             np.repeat(cat, 2, axis=1)
 
+    def test_tile(self):
+        # GH15853
+        cat = Categorical(["a", "b"], categories=["b", "a"], ordered=True)
+        exp = Categorical(["a", "b", "a", "b"], categories=["b", "a"],
+                          ordered=True)
+        res = cat.tile(2)
+        tm.assert_categorical_equal(res, exp)
+
     def test_isna(self):
         exp = np.array([False, False, True])
         c = Categorical(["a", "b", np.nan])

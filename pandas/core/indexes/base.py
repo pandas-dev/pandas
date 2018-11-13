@@ -546,6 +546,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             values = self.values
+
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
         if not len(values) and 'dtype' not in kwargs:
@@ -557,7 +558,6 @@ class Index(IndexOpsMixin, PandasObject):
             # `self.values` returns `self` for tz-aware, so we need to unwrap
             #  more specifically
             values = values.asi8
-
         return self._simple_new(values, **attributes)
 
     def _shallow_copy_with_infer(self, values, **kwargs):
@@ -822,6 +822,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Series.repeat : Equivalent function for Series
         numpy.repeat : Underlying implementation
+        Index.tile : repeat the entire index as a group, not by element
 
         Examples
         --------
@@ -835,6 +836,47 @@ class Index(IndexOpsMixin, PandasObject):
         """
         nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(repeats))
+
+    def tile(self, reps, *args, **kwargs):
+        """
+        Tile elements of an Index.
+
+        Returns a new index constructed by repeating the current index
+        the number of times given by reps.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        reps : int
+            The number of repetitions of the element groups.
+        **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
+
+        Returns
+        -------
+        pandas.Index
+            Newly created Index with tiled elements.
+
+        See Also
+        --------
+        Series.tile : Equivalent function for Series
+        numpy.tile : Underlying implementation
+        Index.repeat : repeat the index element by element, not as a group
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Int64Index([1, 2, 3], dtype='int64')
+        >>> idx.tile(2)
+        Int64Index([1, 2, 3, 1, 2, 3], dtype='int64')
+        >>> idx.tile(3)
+        Int64Index([1, 2, 3, 1, 2, 3, 1, 2, 3], dtype='int64')
+        """
+        nv.validate_tile(args, kwargs)
+        return self._shallow_copy(np.tile(self._values[:], reps))
 
     _index_shared_docs['where'] = """
         .. versionadded:: 0.19.0

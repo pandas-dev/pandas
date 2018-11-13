@@ -211,6 +211,7 @@ Other Enhancements
 - :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
 - :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with :class:`MultiIndex` (:issue:`21115`)
 - :meth:`Series.droplevel` and :meth:`DataFrame.droplevel` are now implemented (:issue:`20342`)
+- :meth:`Index.tile`, :meth:`Series.tile`, and :meth:`Categorical.tile` were introduced, parallel to the repeat methods, to ease categorical melting (:issue:`15853`)
 - Added support for reading from/writing to Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`, :issue:`23094`)
 - :func:`to_gbq` and :func:`read_gbq` signature and documentation updated to
   reflect changes from the `Pandas-GBQ library version 0.6.0
@@ -1357,6 +1358,7 @@ Reshaping
 - Bug in :func:`pandas.concat` when concatenating a multicolumn DataFrame with tz-aware data against a DataFrame with a different number of columns (:issue`22796`)
 - Bug in :func:`merge_asof` where confusing error message raised when attempting to merge with missing values (:issue:`23189`)
 - Bug in :meth:`DataFrame.nsmallest` and :meth:`DataFrame.nlargest` for dataframes that have :class:`MultiIndex`ed columns (:issue:`23033`).
+- Bug in :meth:`DataFrame.melt` causing loss of categorical status when melting with categorical id_vars columns (:issue:`15853`).
 
 .. _whatsnew_0240.bug_fixes.sparse:
 

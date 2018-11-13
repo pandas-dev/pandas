@@ -1395,6 +1395,27 @@ class TestSeriesAnalytics(object):
         with pytest.raises(ValueError, match=msg):
             np.repeat(s, 2, axis=0)
 
+    def test_tile(self):
+        s = Series(np.random.randn(3), index=['a', 'b', 'c'])
+
+        reps = s.tile(5)
+        exp = Series(np.tile(s.values, 5), index=np.tile(s.index.values, 5))
+        assert_series_equal(reps, exp)
+
+    def test_tile_categorical(self):
+        s = Series(pd.Categorical(["x", "y", "x", "z"],
+                                  categories=["x", "z", "y"],
+                                  ordered=True))
+        res_1 = s.tile(1)
+        assert_series_equal(s, res_1)
+
+        res_2 = s.tile(2)
+        exp_2 = Series(pd.Categorical(["x", "y", "x", "z"] * 2,
+                                      categories=s.cat.categories,
+                                      ordered=True),
+                       index=[0, 1, 2, 3] * 2)
+        assert_series_equal(res_2, exp_2)
+
     def test_searchsorted(self):
         s = Series([1, 2, 3])
 

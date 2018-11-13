@@ -2485,6 +2485,26 @@ class TestMixedIntIndex(Base):
         result = index.repeat(repeats)
         tm.assert_index_equal(result, expected)
 
+    def test_tile(self):
+        reps = 2
+        index = pd.Index([1, 2, 3])
+        expected = pd.Index([1, 2, 3, 1, 2, 3])
+
+        result = index.tile(reps)
+        tm.assert_index_equal(result, expected)
+
+    def test_tile_datetimeindex(self):
+        index = pd.date_range("2018-01-01", "2018-01-03")
+        result = index.tile(2)
+        expected = pd.to_datetime(["2018-01-01", "2018-01-02",
+                                   "2018-01-03"] * 2)
+
+        tm.assert_index_equal(result, expected)
+
+        # Even if reps = 1, verify we lose frequency
+        one_result = index.tile(1)
+        assert one_result.freq is None
+
     @pytest.mark.parametrize("index", [
         pd.Index([np.nan]), pd.Index([np.nan, 1]),
         pd.Index([1, 2, np.nan]), pd.Index(['a', 'b', np.nan]),

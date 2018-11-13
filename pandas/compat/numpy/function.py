@@ -211,6 +211,10 @@ REPEAT_DEFAULTS = dict(axis=None)
 validate_repeat = CompatValidator(REPEAT_DEFAULTS, fname='repeat',
                                   method='both', max_fname_arg_count=1)
 
+TILE_DEFAULTS = dict(axis=None)
+validate_tile = CompatValidator(TILE_DEFAULTS, fname='tile',
+                                method='both', max_fname_arg_count=1)
+
 ROUND_DEFAULTS = dict(out=None)
 validate_round = CompatValidator(ROUND_DEFAULTS, fname='round',
                                  method='both', max_fname_arg_count=1)

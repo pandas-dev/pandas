@@ -989,16 +989,40 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def repeat(self, repeats, *args, **kwargs):
         """
-        Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
+        Repeat elements of a Series. Refer to `numpy.ndarray.repeat`
         for more information about the `repeats` argument.
 
         See also
         --------
+        pd.Series.tile
         numpy.ndarray.repeat
         """
         nv.validate_repeat(args, kwargs)
         new_index = self.index.repeat(repeats)
         new_values = self._values.repeat(repeats)
+        return self._constructor(new_values,
+                                 index=new_index).__finalize__(self)
+
+    def tile(self, reps, *args, **kwargs):
+        """
+        Tile elements of a Series. Refer to `numpy.tile`
+        for more information about the `reps` argument, although
+        note that we do not support multidimensional tiling of Series.
+
+        See also
+        --------
+        pd.Series.repeat
+        numpy.tile
+        """
+        nv.validate_tile(args, kwargs)
+        new_index = self.index.tile(reps)
+        if is_categorical_dtype(self.dtype):
+            new_values = Categorical.from_codes(np.tile(self.cat.codes, reps),
+                                                categories=self.cat.categories,
+                                                ordered=self.cat.ordered)
+        else:
+            new_values = np.tile(self._values, reps)
+
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)
 

@@ -233,6 +233,23 @@ class TestMelt(object):
         expected.columns = ['klass', 'col', 'attribute', 'value']
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('id_vars', [['a'], ['b'], ['a', 'b']])
+    def test_categorical_id_vars(self, id_vars):
+        # GH 15853
+        df = DataFrame({"a": pd.Series(["a", "b", "c", "a", "d"],
+                                       dtype="category"),
+                        "b": pd.Series(pd.Categorical([0, 1, 1, 2, 1],
+                                                      categories=[0, 2, 1, 3],
+                                                      ordered=True)),
+                        "c": range(5), "d": np.arange(5.0, 0.0, -1)},
+                       columns=["a", "b", "c", "d"])
+
+        result = df.melt(id_vars=id_vars)
+        for column in id_vars:
+            num = len(df.columns) - len(id_vars)
+            expected = df[column].tile(num).reset_index(drop=True)
+            tm.assert_series_equal(result[column], expected)
+
 
 class TestLreshape(object):
 
