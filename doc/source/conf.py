@@ -408,6 +408,7 @@ warnings.filterwarnings("ignore", message="\nPanel is deprecated",
                         category=FutureWarning)
 
 
+ipython_warning_is_error = False
 ipython_exec_lines = [
     'import numpy as np',
     'import pandas as pd',
