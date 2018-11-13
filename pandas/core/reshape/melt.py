@@ -37,8 +37,9 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
             id_vars = list(id_vars)
             missing = Index(id_vars).difference(frame.columns)
             if not missing.empty:
-                raise ValueError('Columns {missing} are not in'
-                                 ' dataframe'.format(missing=missing))
+                raise KeyError("The following 'id_vars' are not present"
+                               " in the DataFrame:"
+                               " '{missing}'".format(missing=', '.join(missing)))
     else:
         id_vars = []
 
@@ -54,8 +55,9 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
             # Check that `value_vars` are in frame
             missing = Index(value_vars).difference(frame.columns)
             if not missing.empty:
-                raise ValueError('Columns {missing} are not in'
-                                 ' dataframe'.format(missing=missing))
+                raise KeyError("The following 'value_vars' are not present in"
+                               " the DataFrame:"
+                               " '{missing}'".format(missing=', '.join(missing)))
         frame = frame.loc[:, id_vars + value_vars]
     else:
         frame = frame.copy()
