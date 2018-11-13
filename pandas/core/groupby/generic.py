@@ -734,7 +734,7 @@ class SeriesGroupBy(GroupBy):
     1    1    2
     2    3    4
 
-    See also
+    See Also
     --------
     pandas.Series.groupby.apply
     pandas.Series.groupby.transform
@@ -1289,7 +1289,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
     1   1   2  0.590716
     2   3   4  0.704907
 
-    See also
+    See Also
     --------
     pandas.DataFrame.groupby.apply
     pandas.DataFrame.groupby.transform

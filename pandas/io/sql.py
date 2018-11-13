@@ -222,7 +222,7 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     -----
     Any datetime values with time zone information will be converted to UTC.
 
-    See also
+    See Also
     --------
     read_sql_query : Read SQL query into a DataFrame.
     read_sql
@@ -302,7 +302,7 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     Any datetime values with time zone information parsed via the `parse_dates`
     parameter will be converted to UTC.
 
-    See also
+    See Also
     --------
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql
@@ -366,7 +366,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     -------
     DataFrame
 
-    See also
+    See Also
     --------
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql_query : Read SQL query into a DataFrame.
@@ -1002,7 +1002,7 @@ class SQLDatabase(PandasSQL):
         -------
         DataFrame
 
-        See also
+        See Also
         --------
         pandas.read_sql_table
         SQLDatabase.read_query
@@ -1063,7 +1063,7 @@ class SQLDatabase(PandasSQL):
         -------
         DataFrame
 
-        See also
+        See Also
         --------
         read_sql_table : Read SQL database table into a DataFrame
         read_sql
