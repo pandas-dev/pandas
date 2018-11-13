@@ -922,7 +922,7 @@ class TestMainFunction(object):
                 'docstring2': {'errors': [('ER04', 'err desc'),
                                           ('ER05', 'err desc')],
                                'file': 'module2.py',
-                               'file_line': 925}})
+                               'file_line': 925}}, lambda ignore_deprecated: {})
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=[],
@@ -935,7 +935,8 @@ class TestMainFunction(object):
             validate_docstrings, 'validate_all', lambda prefix: {
                 'docstring1': {'errors': [],
                                'warnings': [('WN01', 'warn desc')]},
-                'docstring2': {'errors': []}})
+                'docstring2': {'errors': []}}, lambda ignore_deprecated: {
+            })
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=[],
