@@ -1004,5 +1004,5 @@ class TestMainFunction(object):
                                                prefix=None,
                                                errors=[],
                                                output_format='default',
-                                               deprecated=True)
+                                               ignore_deprecated=True)
         assert exit_status == 1
