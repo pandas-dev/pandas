@@ -1,26 +1,23 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=E1101,W0612
 
-from datetime import datetime, date, timedelta, time
+from datetime import datetime, timedelta
 import pytest
 import re
-from decimal import Decimal
 
 from numpy import nan as NA
 import numpy as np
 from numpy.random import randint
 
-from pandas.compat import range, u, PY3
+from pandas.compat import range, u
 import pandas.compat as compat
-from pandas import (Index, Series, DataFrame, isna, MultiIndex, notna, concat,
-                    Timestamp, Period, NaT, Interval)
-import pandas._libs.lib as lib
+from pandas import Index, Series, DataFrame, isna, MultiIndex, notna, concat
 
 from pandas.util.testing import assert_series_equal, assert_index_equal
 import pandas.util.testing as tm
 
+import pandas.conftest as top_level_conftest
 import pandas.core.strings as strings
-
 
 def assert_series_or_index_equal(left, right):
     if isinstance(left, Series):
@@ -85,71 +82,18 @@ def all_string_methods(request):
     return request.param
 
 
-_all_allowed_skipna_inferred_dtypes = [
-    ('string', ['a', np.nan, 'c']),
-    ('unicode' if not PY3 else 'string', [u('a'), np.nan, u('c')]),
-    ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
-    ('empty', [np.nan, np.nan, np.nan]),
-    ('empty', []),
-    ('mixed-integer', ['a', np.nan, 2]),
-    ('mixed', ['a', np.nan, 2.0])]
-ids, _ = zip(*_all_allowed_skipna_inferred_dtypes)  # use inferred type as id
+_any_allowed_skipna_inferred_dtype = [
+    (dtype, values) for dtype, values
+    in top_level_conftest._any_skipna_inferred_dtype
+    if dtype in {'series', 'unicode', 'empty',
+                 'bytes', 'mixed', 'mixed-integer'}]
+ids, _ = zip(*_any_allowed_skipna_inferred_dtype)  # use inferred type as id
 
 
-@pytest.fixture(params=_all_allowed_skipna_inferred_dtypes, ids=ids)
-def all_allowed_skipna_inferred_dtypes(request):
+@pytest.fixture(params=_any_allowed_skipna_inferred_dtype, ids=ids)
+def any_allowed_skipna_inferred_dtype(request):
     """
     Fixture for all (inferred) dtypes allowed in StringMethods.__init__
-
-    Returns an np.ndarray that will be inferred to have the given dtype (when
-    skipping missing values).
-
-    The allowed (inferred) types are:
-    * 'string'
-    * 'unicode' (if PY2)
-    * 'empty'
-    * 'bytes' (if PY3)
-    * 'mixed'
-    * 'mixed-integer'
-    """
-    inferred_dtype, values = request.param
-    values = np.array(values, dtype=object)  # object dtype to avoid casting
-
-    # make sure the inferred dtype of the fixture is as requested
-    assert inferred_dtype == lib.infer_dtype(values, skipna=True)
-
-    return inferred_dtype, values
-
-
-# categoricals are handled separately
-_all_skipna_inferred_dtypes = _all_allowed_skipna_inferred_dtypes + [
-    ('floating', [1.0, np.nan, 2.0]),
-    ('integer', [1, np.nan, 2]),
-    ('mixed-integer-float', [1, np.nan, 2.0]),
-    ('decimal', [Decimal(1), np.nan, Decimal(2)]),
-    ('boolean', [True, np.nan, False]),
-    ('datetime64', [np.datetime64('2013-01-01'), np.nan,
-                    np.datetime64('2018-01-01')]),
-    ('datetime', [Timestamp('20130101'), np.nan, Timestamp('20180101')]),
-    ('date', [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
-    # The following two dtypes are commented out due to GH 23554
-    # ('complex', [1 + 1j, np.nan, 2 + 2j]),
-    # ('timedelta64', [np.timedelta64(1, 'D'),
-    #                  np.nan, np.timedelta64(2, 'D')]),
-    ('timedelta', [timedelta(1), np.nan, timedelta(2)]),
-    ('time', [time(1), np.nan, time(2)]),
-    ('period', [Period(2013), NaT, Period(2018)]),
-    ('interval', [Interval(0, 1), np.nan, Interval(0, 2)])]
-ids, _ = zip(*_all_skipna_inferred_dtypes)  # use inferred type as fixture-id
-
-
-@pytest.fixture(params=_all_skipna_inferred_dtypes, ids=ids)
-def all_skipna_inferred_dtypes(request):
-    """
-    Fixture for all inferred dtypes from _libs.lib.infer_dtype
-
-    Returns an np.ndarray that will be inferred to have the given dtype (when
-    skipping missing values).
 
     The covered (inferred) types are:
     * 'string'
@@ -158,25 +102,28 @@ def all_skipna_inferred_dtypes(request):
     * 'bytes' (if PY3)
     * 'mixed'
     * 'mixed-integer'
-    * 'mixed-integer-float'
-    * 'floating'
-    * 'integer'
-    * 'decimal'
-    * 'boolean'
-    * 'datetime64'
-    * 'datetime'
-    * 'date'
-    * 'timedelta'
-    * 'time'
-    * 'period'
-    * 'interval'
+
+    Returns
+    -------
+    inferred_dtype : str
+        The string for the inferred dtype from _libs.lib.infer_dtype
+    values : np.ndarray
+        An array of object dtype that will be inferred to have
+        `inferred_dtype`
+
+    Examples
+    --------
+    >>> import pandas._libs.lib as lib
+    >>>
+    >>> def test_something(any_allowed_skipna_inferred_dtype):
+    ...     inferred_dtype, values = any_skipna_inferred_dtype
+    ...     # will pass
+    ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
     """
     inferred_dtype, values = request.param
     values = np.array(values, dtype=object)  # object dtype to avoid casting
 
-    # make sure the inferred dtype of the fixture is as requested
-    assert inferred_dtype == lib.infer_dtype(values, skipna=True)
-
+    # correctness of inference tested in tests/dtypes/test_inference.py
     return inferred_dtype, values
 
 
@@ -190,9 +137,9 @@ class TestStringMethods(object):
 
     @pytest.mark.parametrize('dtype', [object, 'category'])
     @pytest.mark.parametrize('box', [Series, Index])
-    def test_api_per_dtype(self, box, dtype, all_skipna_inferred_dtypes):
+    def test_api_per_dtype(self, box, dtype, any_skipna_inferred_dtype):
         # one instance of parametrized fixture
-        inferred_dtype, values = all_skipna_inferred_dtypes
+        inferred_dtype, values = any_skipna_inferred_dtype
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
 
@@ -240,14 +187,14 @@ class TestStringMethods(object):
     @pytest.mark.parametrize('dtype', [object, 'category'])
     @pytest.mark.parametrize('box', [Series, Index])
     def test_api_per_method(self, box, dtype,
-                            all_allowed_skipna_inferred_dtypes,
+                            any_allowed_skipna_inferred_dtype,
                             all_string_methods):
         # this test does not check correctness of the different methods,
         # just that the methods work on the specified (inferred) dtypes,
         # and raise on all others
 
         # one instance of each parametrized fixture
-        inferred_dtype, values = all_allowed_skipna_inferred_dtypes
+        inferred_dtype, values = any_allowed_skipna_inferred_dtype
         method_name, minimal_args = all_string_methods
 
         # TODO: get rid of these xfails
