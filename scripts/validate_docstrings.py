@@ -722,7 +722,7 @@ def validate_one(func_name):
             'examples_errors': examples_errs}
 
 
-def validate_all(prefix, ignore_deprecated):
+def validate_all(prefix, ignore_deprecated=False):
     """
     Execute the validation of all docstrings, and return a dict with the
     results.
