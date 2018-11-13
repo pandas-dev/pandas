@@ -668,33 +668,28 @@ class TestWideToLong(object):
         # attempted with column names absent from the dataframe
 
         # Generate data
-        people = ['Susie', 'Alejandro']
-        day = ['Monday', 'Tuesday', 'Wednesday']
-        cols = ['burgers', 'fries']
-        data = [[person, d] + list(np.random.randint(0, 5, len(cols)))
-                for person in people for d in day]
-        df = pd.DataFrame(data, columns=['Name', 'day', 'burgers', 'fries'])
+        df = pd.DataFrame(np.random.randn(5,4), columns=list('abcd'))
 
         # Try to melt with missing `value_vars` column name
         with pytest.raises(KeyError, match="The following 'value_vars' are not"
                                            " present in"
-                                           " the DataFrame: 'Burgers'"):
-            df.melt(['Name', 'day'], ['Burgers', 'fries'])
+                                           " the DataFrame: 'C'"):
+            df.melt(['a', 'b'], ['C', 'd'])
 
         # Try to melt with missing `id_vars` column name
         with pytest.raises(KeyError, match="The following 'id_vars' are not"
                                            " present in"
-                                           " the DataFrame: 'Day'"):
-            df.melt(['Name', 'Day'], ['Burgers', 'fries'])
+                                           " the DataFrame: 'A'"):
+            df.melt(['A', 'b'], ['c', 'd'])
 
         # Try with error in both-> `id_vars` caught first
         with pytest.raises(KeyError, match="The following 'id_vars' are not"
                                            " present in"
                                            " the DataFrame: 'not_here'"):
-            df.melt(['Name', 'day', 'not_here'], ['Burgers', 'fries'])
+            df.melt(['a', 'b', 'not_here'], ['c', 'd'])
 
         # Multiple missing
         with pytest.raises(KeyError, match="The following 'id_vars' are not"
                                            " present in"
                                            " the DataFrame: 'not_here, or_there'"):
-            df.melt(['Name', 'day', 'not_here', 'or_there'], ['Burgers', 'fries'])
+            df.melt(['a', 'b', 'not_here', 'or_there'], ['c', 'd'])
