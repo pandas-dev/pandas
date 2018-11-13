@@ -12,6 +12,7 @@ from pandas.core.dtypes.missing import notna
 
 from pandas import compat
 from pandas.core.arrays import Categorical
+from pandas.core.indexes.base import Index
 from pandas.core.frame import _shared_docs
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
@@ -34,9 +35,9 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         else:
             # Check that `id_vars` are in frame
             id_vars = list(id_vars)
-            missing = [v for v in id_vars if v not in frame.columns]
+            missing = Index(id_vars).difference(frame.columns)
             if missing:
-                raise ValueError(f'Columns {missing} are not in dataframe')
+                raise ValueError('Columns {missing} are not in dataframe'.format(missing=missing))
     else:
         id_vars = []
 
@@ -50,10 +51,10 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         else:
             value_vars = list(value_vars)
             # Check that `value_vars` are in frame
-            missing = [v for v in value_vars if v not in frame.columns]
+            missing = Index(value_vars).difference(frame.columns)
             if missing:
                 # missing_vars = str(missing)
-                raise ValueError(f'Columns {missing} are not in dataframe')
+                raise ValueError('Columns {missing} are not in dataframe'.format(missing=missing))
         frame = frame.loc[:, id_vars + value_vars]
     else:
         frame = frame.copy()
