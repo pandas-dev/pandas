@@ -836,7 +836,7 @@ class IndexOpsMixin(object):
         """
         Return a ndarray of the maximum argument indexer.
 
-        See also
+        See Also
         --------
         numpy.ndarray.argmax
         """
@@ -879,7 +879,7 @@ class IndexOpsMixin(object):
         """
         Return a ndarray of the minimum argument indexer.
 
-        See also
+        See Also
         --------
         numpy.ndarray.argmin
         """

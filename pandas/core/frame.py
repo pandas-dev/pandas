@@ -346,7 +346,7 @@ class DataFrame(NDFrame):
     1  4  5  6
     2  7  8  9
 
-    See also
+    See Also
     --------
     DataFrame.from_records : constructor from tuples, also record arrays
     DataFrame.from_dict : from dicts of Series, arrays, or dicts
@@ -1694,7 +1694,7 @@ class DataFrame(NDFrame):
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.
 
-        See also
+        See Also
         --------
         pandas.read_csv
 
@@ -1828,24 +1828,6 @@ class DataFrame(NDFrame):
                                               ref_items=selfsorted.columns)
 
         return self._constructor_expanddim(new_mgr)
-
-    @Appender(_shared_docs['to_excel'] % _shared_doc_kwargs)
-    def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
-                 float_format=None, columns=None, header=True, index=True,
-                 index_label=None, startrow=0, startcol=0, engine=None,
-                 merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
-                 freeze_panes=None):
-
-        from pandas.io.formats.excel import ExcelFormatter
-        formatter = ExcelFormatter(self, na_rep=na_rep, cols=columns,
-                                   header=header,
-                                   float_format=float_format, index=index,
-                                   index_label=index_label,
-                                   merge_cells=merge_cells,
-                                   inf_rep=inf_rep)
-        formatter.write(excel_writer, sheet_name=sheet_name, startrow=startrow,
-                        startcol=startcol, freeze_panes=freeze_panes,
-                        engine=engine)
 
     @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def to_stata(self, fname, convert_dates=None, write_index=True,
@@ -3409,6 +3391,7 @@ class DataFrame(NDFrame):
         Berkeley    25.0
 
         Where the value is a callable, evaluated on `df`:
+
         >>> df.assign(temp_f=lambda x: x.temp_c * 9 / 5 + 32)
                   temp_c  temp_f
         Portland    17.0    62.6
@@ -3416,6 +3399,7 @@ class DataFrame(NDFrame):
 
         Alternatively, the same behavior can be achieved by directly
         referencing an existing Series or sequence:
+
         >>> df.assign(temp_f=df['temp_c'] * 9 / 5 + 32)
                   temp_c  temp_f
         Portland    17.0    62.6
@@ -3424,6 +3408,7 @@ class DataFrame(NDFrame):
         In Python 3.6+, you can create multiple columns within the same assign
         where one of the columns depends on another one defined within the same
         assign:
+
         >>> df.assign(temp_f=lambda x: x['temp_c'] * 9 / 5 + 32,
         ...           temp_k=lambda x: (x['temp_f'] +  459.67) * 5 / 9)
                   temp_c  temp_f  temp_k
@@ -5589,7 +5574,7 @@ class DataFrame(NDFrame):
         -------
         table : DataFrame
 
-        See also
+        See Also
         --------
         DataFrame.pivot : pivot without aggregation that can handle
             non-numeric data
@@ -5794,7 +5779,7 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.18.0
 
-        See also
+        See Also
         --------
         DataFrame.pivot : Pivot a table based on column values.
         DataFrame.stack : Pivot a level of the column labels (inverse operation
@@ -5864,7 +5849,7 @@ class DataFrame(NDFrame):
     col_level : int or string, optional
         If columns are a MultiIndex then use this level to melt.
 
-    See also
+    See Also
     --------
     %(other)s
     pivot_table
@@ -6105,7 +6090,7 @@ class DataFrame(NDFrame):
     3    NaN
     dtype: float64
 
-    See also
+    See Also
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
@@ -6239,7 +6224,7 @@ class DataFrame(NDFrame):
         side-effects, as they will take effect twice for the first
         column/row.
 
-        See also
+        See Also
         --------
         DataFrame.applymap: For elementwise operations
         DataFrame.aggregate: only perform aggregating type operations
@@ -6348,7 +6333,7 @@ class DataFrame(NDFrame):
         DataFrame
             Transformed DataFrame.
 
-        See also
+        See Also
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame
 
@@ -6431,7 +6416,7 @@ class DataFrame(NDFrame):
         those rows to a list and then concatenate the list with the original
         DataFrame all at once.
 
-        See also
+        See Also
         --------
         pandas.concat : General function to concatenate DataFrame, Series
             or Panel objects
