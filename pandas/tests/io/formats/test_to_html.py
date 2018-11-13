@@ -1602,7 +1602,7 @@ class TestToHTML(object):
         df = DataFrame()
         msg = "Invalid value for justify parameter"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df.to_html(justify=justify)
 
     def test_to_html_index(self):

@@ -5,7 +5,6 @@ import pytest
 import numpy as np
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import Timedelta
 
 
@@ -90,15 +89,16 @@ def test_construction():
         Timedelta('3.1415')
 
     # invalid construction
-    tm.assert_raises_regex(ValueError, "cannot construct a Timedelta",
-                           lambda: Timedelta())
-    tm.assert_raises_regex(ValueError,
-                           "unit abbreviation w/o a number",
-                           lambda: Timedelta('foo'))
-    tm.assert_raises_regex(ValueError,
-                           "cannot construct a Timedelta from the "
-                           "passed arguments, allowed keywords are ",
-                           lambda: Timedelta(day=10))
+    with pytest.raises(ValueError, match="cannot construct a Timedelta"):
+        Timedelta()
+
+    with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
+        Timedelta('foo')
+
+    msg = ("cannot construct a Timedelta from "
+           "the passed arguments, allowed keywords are ")
+    with pytest.raises(ValueError, match=msg):
+        Timedelta(day=10)
 
     # floats
     expected = np.timedelta64(
@@ -190,8 +190,8 @@ def test_iso_constructor(fmt, exp):
     'P1DT0H0M0.0000000000000S', 'P1DT0H0M00000000000S',
     'P1DT0H0M0.S'])
 def test_iso_constructor_raises(fmt):
-    with tm.assert_raises_regex(ValueError, 'Invalid ISO 8601 Duration '
-                                'format - {}'.format(fmt)):
+    with pytest.raises(ValueError, match=('Invalid ISO 8601 Duration '
+                                          'format - {}'.format(fmt))):
         Timedelta(fmt)
 
 

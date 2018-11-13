@@ -22,11 +22,11 @@ from pandas.core.indexes.datetimelike import (
 )
 from pandas.core.tools.datetimes import parse_time_string, DateParseError
 
-from pandas._libs import tslib, index as libindex
+from pandas._libs import index as libindex
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
                                         DIFFERENT_FREQ_INDEX)
 
-from pandas._libs.tslibs import resolution
+from pandas._libs.tslibs import resolution, NaT, iNaT
 
 from pandas.core.algorithms import unique1d
 import pandas.core.arrays.datetimelike as dtl
@@ -257,7 +257,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         return result
 
     # ------------------------------------------------------------------------
+    # Wrapping PeriodArray
+
+    # ------------------------------------------------------------------------
     # Data
+
     @property
     def _ndarray_values(self):
         return self._data._ndarray_values
@@ -336,7 +340,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         # places outside of indexes/period.py are calling this _box_func,
         # but passing data that's already boxed.
         def func(x):
-            if isinstance(x, Period) or x is tslib.NaT:
+            if isinstance(x, Period) or x is NaT:
                 return x
             else:
                 return Period._from_ordinal(ordinal=x, freq=self.freq)
@@ -360,13 +364,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     def asfreq(self, freq=None, how='E'):
         result = self._data.asfreq(freq=freq, how=how)
         return self._simple_new(result, name=self.name)
-
-    def _nat_new(self, box=True):
-        # TODO(DatetimeArray): remove this
-        result = self._data._nat_new(box=box)
-        if box:
-            result = self._simple_new(result, name=self.name)
-        return result
 
     def to_timestamp(self, freq=None, how='start'):
         from pandas import DatetimeIndex
@@ -425,6 +422,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     # ------------------------------------------------------------------------
     # Indexing
+
     @cache_readonly
     def _engine(self):
         return self._engine_type(lambda: self, len(self))
@@ -726,7 +724,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                 raise KeyError(key)
 
             try:
-                ordinal = tslib.iNaT if key is tslib.NaT else key.ordinal
+                ordinal = iNaT if key is NaT else key.ordinal
                 if tolerance is not None:
                     tolerance = self._convert_tolerance(tolerance,
                                                         np.asarray(key))
