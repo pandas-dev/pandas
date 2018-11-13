@@ -91,6 +91,8 @@ class TimelikeOps(object):
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            Only relevant for DatetimeIndex:
+
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False designates
@@ -99,7 +101,6 @@ class TimelikeOps(object):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-            Only relevant for DatetimeIndex
 
             .. versionadded:: 0.24.0
         nonexistent : 'shift', 'NaT', default 'raise'
@@ -440,7 +441,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         Return the minimum value of the Index or minimum along
         an axis.
 
-        See also
+        See Also
         --------
         numpy.ndarray.min
         """
@@ -469,7 +470,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         See `numpy.ndarray.argmin` for more information on the
         `axis` parameter.
 
-        See also
+        See Also
         --------
         numpy.ndarray.argmin
         """
@@ -490,7 +491,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         Return the maximum value of the Index or maximum along
         an axis.
 
-        See also
+        See Also
         --------
         numpy.ndarray.max
         """
@@ -519,7 +520,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         See `numpy.ndarray.argmax` for more information on the
         `axis` parameter.
 
-        See also
+        See Also
         --------
         numpy.ndarray.argmax
         """

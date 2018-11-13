@@ -611,7 +611,7 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         """
         Repeat elements of a PeriodArray.
 
-        See also
+        See Also
         --------
         numpy.ndarray.repeat
         """
