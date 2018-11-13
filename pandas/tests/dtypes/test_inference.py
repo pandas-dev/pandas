@@ -495,7 +495,7 @@ class TestTypeInference(object):
     class Dummy():
         pass
 
-    def test_dtype_fixture(self, any_skipna_inferred_dtype):
+    def test_inferred_dtype_fixture(self, any_skipna_inferred_dtype):
         # see pandas/conftest.py
         inferred_dtype, values = any_skipna_inferred_dtype
 
