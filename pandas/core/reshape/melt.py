@@ -38,9 +38,8 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
             missing = Index(id_vars).difference(frame.columns)
             if not missing.empty:
                 raise KeyError("The following 'id_vars' are not present"
-                               " in the DataFrame:"
-                               " '{missing}'"
-                               "".format(missing=', '.join(missing)))
+                               " in the DataFrame: {missing}"
+                               "".format(missing=list(missing)))
     else:
         id_vars = []
 
@@ -57,9 +56,8 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
             missing = Index(value_vars).difference(frame.columns)
             if not missing.empty:
                 raise KeyError("The following 'value_vars' are not present in"
-                               " the DataFrame:"
-                               " '{missing}'"
-                               "".format(missing=', '.join(missing)))
+                               " the DataFrame: {missing}"
+                               "".format(missing=list(missing)))
         frame = frame.loc[:, id_vars + value_vars]
     else:
         frame = frame.copy()

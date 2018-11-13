@@ -305,6 +305,30 @@ class TestLreshape(object):
                 'wt': ['wt%d' % i for i in range(1, 4)]}
         pytest.raises(ValueError, lreshape, df, spec)
 
+    def test_melt_missing_columns_raises(self):
+        # GH-23575
+        # This test is to ensure that pandas raises an error if melting is
+        # attempted with column names absent from the dataframe
+
+        # Generate data
+        df = pd.DataFrame(np.random.randn(5, 4), columns=list('abcd'))
+
+        # Try to melt with missing `value_vars` column name
+        msg = "The following '{Var}' are not present in the DataFrame: {Col}"
+        with pytest.raises(KeyError,
+                           match=msg.format(Var='value_vars', Col=['C'])):
+            df.melt(['a', 'b'], ['C', 'd'])
+
+        # Try to melt with missing `id_vars` column name
+        with pytest.raises(KeyError,
+                           match=msg.format(Var='id_vars', Col=['A'])):
+            df.melt(['A', 'b'], ['c', 'd'])
+
+        # Multiple missing
+        with pytest.raises(KeyError,
+                           match=msg.format(Var='id_vars', Col=['not_here', 'or_there'])):
+            df.melt(['a', 'b', 'not_here', 'or_there'], ['c', 'd'])
+
 
 class TestWideToLong(object):
 
@@ -661,36 +685,3 @@ class TestWideToLong(object):
                                  i=['node_id', 'A'],
                                  j='time')
         tm.assert_frame_equal(result, expected)
-
-    def test_melt_missing_columns(self):
-        # GH-23575
-        # This test is to ensure that pandas raises an error if melting is
-        # attempted with column names absent from the dataframe
-
-        # Generate data
-        df = pd.DataFrame(np.random.randn(5, 4), columns=list('abcd'))
-
-        # Try to melt with missing `value_vars` column name
-        with pytest.raises(KeyError, match="The following 'value_vars' are not"
-                                           " present in"
-                                           " the DataFrame: 'C'"):
-            df.melt(['a', 'b'], ['C', 'd'])
-
-        # Try to melt with missing `id_vars` column name
-        with pytest.raises(KeyError, match="The following 'id_vars' are not"
-                                           " present in"
-                                           " the DataFrame: 'A'"):
-            df.melt(['A', 'b'], ['c', 'd'])
-
-        # Try with error in both-> `id_vars` caught first
-        with pytest.raises(KeyError, match="The following 'id_vars' are not"
-                                           " present in"
-                                           " the DataFrame: 'not_here'"):
-            df.melt(['a', 'b', 'not_here'], ['c', 'd'])
-
-        # Multiple missing
-        with pytest.raises(KeyError, match="The following 'id_vars' are not"
-                                           " present in"
-                                           " the DataFrame: "
-                                           "'not_here, or_there'"):
-            df.melt(['a', 'b', 'not_here', 'or_there'], ['c', 'd'])
