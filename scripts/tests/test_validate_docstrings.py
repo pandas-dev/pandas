@@ -952,7 +952,8 @@ class TestMainFunction(object):
                                           ('ER02', 'err desc'),
                                           ('ER03', 'err desc')]},
                 'docstring2': {'errors': [('ER04', 'err desc'),
-                                          ('ER05', 'err desc')]}})
+                                          ('ER05', 'err desc')]}},
+            lambda ignore_deprecated: {})
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=[],
@@ -974,7 +975,8 @@ class TestMainFunction(object):
                                   'file_line': 598},
                 'Series.foobar': {'errors': [('ER01', 'err desc')],
                                   'file': 'series.py',
-                                  'file_line': 279}})
+                                  'file_line': 279}},
+            lambda ignore_deprecated: {})
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=['ER01'],
@@ -1006,7 +1008,8 @@ class TestMainFunction(object):
                 'Series.foobar': {'errors': [('ER01', 'err desc')],
                                   'file': 'series.py',
                                   'file_line': 279,
-                                  'deprecated': False}})
+                                  'deprecated': False}},
+            lambda ignore_deprecated: {})
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=[],
