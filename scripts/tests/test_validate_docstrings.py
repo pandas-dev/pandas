@@ -996,7 +996,7 @@ class TestMainFunction(object):
     def test_exit_status_for_deprecated_function(self, monkeypatch):
         monkeypatch.setattr(
             validate_docstrings, 'validate_all',
-            lambda prefix, ignore_deprecated=None: {
+            lambda prefix, ignore_deprecated=True: {
                 'Series.foo': {'errors': [('ER01', 'err desc'),
                                           ('ER02', 'err desc'),
                                           ('ER03', 'err desc')],
