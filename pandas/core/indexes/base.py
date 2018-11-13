@@ -522,6 +522,12 @@ class Index(IndexOpsMixin, PandasObject):
                     values = cls(values, name=name, dtype=dtype,
                                  **kwargs)._ndarray_values
 
+        if isinstance(values, (ABCSeries, cls)):
+            # Index._data must always be an ndarray.
+            # This is no-copy for when _values is an ndarray,
+            # which should be always at this point.
+            values = np.asarray(values._values)
+
         result = object.__new__(cls)
         result._data = values
         result.name = name

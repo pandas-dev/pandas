@@ -504,6 +504,12 @@ class TestIndex(Base):
         with pytest.raises(ValueError, match=msg):
             Index(["a", "b", "c"], dtype=float)
 
+    def test_constructor_unwraps_index(self):
+        a = pd.Index([True, False])
+        b = pd.Index(a)
+        expected = np.array([True, False], dtype=object)
+        tm.assert_numpy_array_equal(b._data, expected)
+
     def test_view_with_args(self):
 
         restricted = ['unicodeIndex', 'strIndex', 'catIndex', 'boolIndex',
