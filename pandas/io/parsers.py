@@ -343,6 +343,22 @@ delimiter : str, default ``None``
     Alias for sep.
     """
 
+_fwf_widths = r"""
+colspecs : list of pairs (int, int) or 'infer'. optional
+    A list of pairs (tuples) giving the extents of the fixed-width
+    fields of each line as half-open intervals (i.e.,  [from, to[ ).
+    String value 'infer' can be used to instruct the parser to try
+    detecting the column specifications from the first 100 rows of
+    the data which are not being skipped via skiprows (default='infer').
+widths : list of ints. optional
+    A list of field widths which can be used instead of 'colspecs' if
+    the intervals are contiguous.
+delimiter : str, default ``'\t' + ' '``
+    Characters to consider as filler characters in the fixed-width file.
+    Can be used to specify the filler character of the fields
+    if it is not spaces (e.g., '~').
+"""
+
 
 def _validate_integer(name, val, min_val=0):
     """
@@ -712,7 +728,7 @@ Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
           func_name='read_fwf',
           summary=('Read a table of fixed-width formatted lines '
                    'into DataFrame.'),
-          sep_doc='',
+          sep_doc=_fwf_widths,
           engine_doc=''))
 def read_fwf(filepath_or_buffer, colspecs='infer', widths=None, **kwds):
     # Check input arguments.
