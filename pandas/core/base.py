@@ -774,7 +774,7 @@ class IndexOpsMixin(object):
     @property
     def base(self):
         """
-        Return the base object if the memory of the underlying data is shared
+        Return the base object if the memory of the underlying data is shared.
         """
         warnings.warn("{obj}.base is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
