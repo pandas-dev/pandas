@@ -825,8 +825,7 @@ class TestValidator(object):
           'E226 missing whitespace around arithmetic operator',)),
         ('BadExamples', 'missing_whitespace_after_comma',
          ("flake8 error: E231 missing whitespace after ',' (3 times)",)),
-        ('NoDocstrings', 'method_wo_docstrings',
-          (""))
+        ('NoDocstrings', 'method_wo_docstrings', ("No docstring found",)),
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))
