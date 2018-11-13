@@ -301,11 +301,19 @@ class Index(IndexOpsMixin, PandasObject):
               (dtype is not None and is_datetime64_any_dtype(dtype)) or
                 'tz' in kwargs):
             from pandas import DatetimeIndex
-            result = DatetimeIndex(data, copy=copy, name=name,
-                                   dtype=dtype, **kwargs)
+
             if dtype is not None and is_dtype_equal(_o_dtype, dtype):
-                return Index(result.to_pydatetime(), dtype=_o_dtype)
+                # GH#23524 passing `dtype=object` to DatetimeIndex is invalid,
+                #  will raise in the where `data` is already tz-aware.  So
+                #  we leave it out of this step and cast to object-dtype after
+                #  the DatetimeIndex construction.
+                # Note we can pass copy=False because the .astype below
+                #  will always make a copy
+                result = DatetimeIndex(data, copy=False, name=name, **kwargs)
+                return result.astype(object)
             else:
+                result = DatetimeIndex(data, copy=copy, name=name,
+                                       dtype=dtype, **kwargs)
                 return result
 
         elif (is_timedelta64_dtype(data) or
@@ -709,7 +717,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def _values(self):
-        # type: () -> Union[ExtensionArray, Index]
+        # type: () -> Union[ExtensionArray, Index, np.ndarray]
         # TODO(EA): remove index types as they become extension arrays
         """The best array representation.
 
@@ -721,18 +729,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         It may differ from the public '.values' method.
 
-        index             | values          | _values     | _ndarray_values |
-        ----------------- | -------------- -| ----------- | --------------- |
-        CategoricalIndex  | Categorical     | Categorical | codes           |
-        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]     | ndarray[M8ns]   |
-
-        For the following, the ``._values`` is currently ``ndarray[object]``,
-        but will soon be an ``ExtensionArray``
-
-        index             | values          | _values      | _ndarray_values |
-        ----------------- | --------------- | ------------ | --------------- |
-        PeriodIndex       | ndarray[object] | ndarray[obj] | ndarray[int]    |
-        IntervalIndex     | ndarray[object] | ndarray[obj] | ndarray[object] |
+        index             | values          | _values       | _ndarray_values |
+        ----------------- | --------------- | ------------- | --------------- |
+        Index             | ndarray         | ndarray       | ndarray         |
+        CategoricalIndex  | Categorical     | Categorical   | ndarray[int]    |
+        DatetimeIndex     | ndarray[M8ns]   | ndarray[M8ns] | ndarray[M8ns]   |
+        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]       | ndarray[M8ns]   |
+        PeriodIndex       | ndarray[object] | PeriodArray   | ndarray[int]    |
+        IntervalIndex     | IntervalArray   | IntervalArray | ndarray[object] |
 
         See Also
         --------
@@ -872,7 +876,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return an ndarray of the flattened values of the underlying data
 
-        See also
+        See Also
         --------
         numpy.ndarray.ravel
         """
@@ -1875,12 +1879,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Works on different Index of types.
 
-        >>> pd.Index([1, 2, 2, 3, 3, 3, 4]).get_duplicates()
+        >>> pd.Index([1, 2, 2, 3, 3, 3, 4]).get_duplicates()  # doctest: +SKIP
         [2, 3]
-        >>> pd.Index([1., 2., 2., 3., 3., 3., 4.]).get_duplicates()
-        [2.0, 3.0]
-        >>> pd.Index(['a', 'b', 'b', 'c', 'c', 'c', 'd']).get_duplicates()
-        ['b', 'c']
 
         Note that for a DatetimeIndex, it does not return a list but a new
         DatetimeIndex:
@@ -1888,22 +1888,22 @@ class Index(IndexOpsMixin, PandasObject):
         >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03',
         ...                         '2018-01-03', '2018-01-04', '2018-01-04'],
         ...                        format='%Y-%m-%d')
-        >>> pd.Index(dates).get_duplicates()
+        >>> pd.Index(dates).get_duplicates()  # doctest: +SKIP
         DatetimeIndex(['2018-01-03', '2018-01-04'],
                       dtype='datetime64[ns]', freq=None)
 
         Sorts duplicated elements even when indexes are unordered.
 
-        >>> pd.Index([1, 2, 3, 2, 3, 4, 3]).get_duplicates()
+        >>> pd.Index([1, 2, 3, 2, 3, 4, 3]).get_duplicates()  # doctest: +SKIP
         [2, 3]
 
         Return empty array-like structure when all elements are unique.
 
-        >>> pd.Index([1, 2, 3, 4]).get_duplicates()
+        >>> pd.Index([1, 2, 3, 4]).get_duplicates()  # doctest: +SKIP
         []
         >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03'],
         ...                        format='%Y-%m-%d')
-        >>> pd.Index(dates).get_duplicates()
+        >>> pd.Index(dates).get_duplicates()  # doctest: +SKIP
         DatetimeIndex([], dtype='datetime64[ns]', freq=None)
         """
         warnings.warn("'get_duplicates' is deprecated and will be removed in "
@@ -2160,7 +2160,7 @@ class Index(IndexOpsMixin, PandasObject):
             If allow_fill=True and fill_value is not None, indices specified by
             -1 is regarded as NA. If Index doesn't hold NA, raise ValueError
 
-        See also
+        See Also
         --------
         numpy.ndarray.take
         """
@@ -2305,7 +2305,7 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray
             Boolean array to indicate which entries are not NA.
 
-        See also
+        See Also
         --------
         Index.notnull : alias of notna
         Index.isna: inverse of notna
@@ -2338,7 +2338,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return a new Index of the values set with the mask
 
-        See also
+        See Also
         --------
         numpy.ndarray.putmask
         """
@@ -2695,7 +2695,7 @@ class Index(IndexOpsMixin, PandasObject):
             Integer indices that would sort the index if used as
             an indexer.
 
-        See also
+        See Also
         --------
         numpy.argsort : Similar method for NumPy arrays.
         Index.sort_values : Return sorted copy of Index.
@@ -3227,7 +3227,7 @@ class Index(IndexOpsMixin, PandasObject):
         values : Index
             Calling object, as there is only one level in the Index.
 
-        See also
+        See Also
         --------
         MultiIndex.get_level_values : get values for a level of a MultiIndex
 
@@ -3632,7 +3632,7 @@ class Index(IndexOpsMixin, PandasObject):
         is_contained : ndarray
             NumPy array of boolean values.
 
-        See also
+        See Also
         --------
         Series.isin : Same for Series.
         DataFrame.isin : Same method for DataFrames.

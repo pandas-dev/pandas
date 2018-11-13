@@ -72,7 +72,6 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_sequence,
     is_named_tuple)
-from pandas.core.dtypes.concat import _get_sliced_frame_result_type
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCMultiIndex
 from pandas.core.dtypes.missing import isna, notna
 
@@ -347,7 +346,7 @@ class DataFrame(NDFrame):
     1  4  5  6
     2  7  8  9
 
-    See also
+    See Also
     --------
     DataFrame.from_records : constructor from tuples, also record arrays
     DataFrame.from_dict : from dicts of Series, arrays, or dicts
@@ -864,12 +863,17 @@ class DataFrame(NDFrame):
            data types, the iterator returns a copy and not a view, and writing
            to it will have no effect.
 
-        Returns
-        -------
+        Yields
+        ------
+        index : label or tuple of label
+            The index of the row. A tuple for a `MultiIndex`.
+        data : Series
+            The data of the row as a Series.
+
         it : generator
             A generator that iterates over the rows of the frame.
 
-        See also
+        See Also
         --------
         itertuples : Iterate over DataFrame rows as namedtuples of the values.
         iteritems : Iterate over (column name, Series) pairs.
@@ -1690,7 +1694,7 @@ class DataFrame(NDFrame):
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.
 
-        See also
+        See Also
         --------
         pandas.read_csv
 
@@ -1970,7 +1974,7 @@ class DataFrame(NDFrame):
         to_feather(self, fname)
 
     def to_parquet(self, fname, engine='auto', compression='snappy',
-                   index=None, **kwargs):
+                   index=None, partition_cols=None, **kwargs):
         """
         Write a DataFrame to the binary parquet format.
 
@@ -1984,7 +1988,11 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         fname : str
-            String file path.
+            File path or Root Directory path. Will be used as Root Directory
+            path while writing a partitioned dataset.
+
+            .. versionchanged:: 0.24.0
+
         engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
             Parquet library to use. If 'auto', then the option
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -1996,6 +2004,12 @@ class DataFrame(NDFrame):
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file. If ``None``,
             the behavior depends on the chosen engine.
+
+            .. versionadded:: 0.24.0
+
+        partition_cols : list, optional, default None
+            Column names by which to partition the dataset
+            Columns are partitioned in the order they are given
 
             .. versionadded:: 0.24.0
 
@@ -2027,7 +2041,8 @@ class DataFrame(NDFrame):
         """
         from pandas.io.parquet import to_parquet
         to_parquet(self, fname, engine,
-                   compression=compression, index=index, **kwargs)
+                   compression=compression, index=index,
+                   partition_cols=partition_cols, **kwargs)
 
     @Substitution(header='Write out the column names. If a list of strings '
                          'is given, it is assumed to be aliases for the '
@@ -3225,7 +3240,7 @@ class DataFrame(NDFrame):
 
     def _box_col_values(self, values, items):
         """ provide boxed values for a column """
-        klass = _get_sliced_frame_result_type(values, self)
+        klass = self._constructor_sliced
         return klass(values, index=self.index, name=items, fastpath=True)
 
     def __setitem__(self, key, value):
@@ -3394,6 +3409,7 @@ class DataFrame(NDFrame):
         Berkeley    25.0
 
         Where the value is a callable, evaluated on `df`:
+
         >>> df.assign(temp_f=lambda x: x.temp_c * 9 / 5 + 32)
                   temp_c  temp_f
         Portland    17.0    62.6
@@ -3401,6 +3417,7 @@ class DataFrame(NDFrame):
 
         Alternatively, the same behavior can be achieved by directly
         referencing an existing Series or sequence:
+
         >>> df.assign(temp_f=df['temp_c'] * 9 / 5 + 32)
                   temp_c  temp_f
         Portland    17.0    62.6
@@ -3409,6 +3426,7 @@ class DataFrame(NDFrame):
         In Python 3.6+, you can create multiple columns within the same assign
         where one of the columns depends on another one defined within the same
         assign:
+
         >>> df.assign(temp_f=lambda x: x['temp_c'] * 9 / 5 + 32,
         ...           temp_k=lambda x: (x['temp_f'] +  459.67) * 5 / 9)
                   temp_c  temp_f  temp_k
@@ -3940,6 +3958,10 @@ class DataFrame(NDFrame):
             necessary. Setting to False will improve the performance of this
             method
 
+        Returns
+        -------
+        DataFrame
+
         Examples
         --------
         >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
@@ -3980,10 +4002,6 @@ class DataFrame(NDFrame):
         2  2014  4      40
         3  2013  7      84
         4  2014  10     31
-
-        Returns
-        -------
-        dataframe : DataFrame
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(keys, list):
@@ -5503,56 +5521,78 @@ class DataFrame(NDFrame):
         ...                    "C": ["small", "large", "large", "small",
         ...                          "small", "large", "small", "small",
         ...                          "large"],
-        ...                    "D": [1, 2, 2, 3, 3, 4, 5, 6, 7]})
+        ...                    "D": [1, 2, 2, 3, 3, 4, 5, 6, 7],
+        ...                    "E": [2, 4, 5, 5, 6, 6, 8, 9, 9]})
         >>> df
-             A    B      C  D
-        0  foo  one  small  1
-        1  foo  one  large  2
-        2  foo  one  large  2
-        3  foo  two  small  3
-        4  foo  two  small  3
-        5  bar  one  large  4
-        6  bar  one  small  5
-        7  bar  two  small  6
-        8  bar  two  large  7
+             A    B      C  D  E
+        0  foo  one  small  1  2
+        1  foo  one  large  2  4
+        2  foo  one  large  2  5
+        3  foo  two  small  3  5
+        4  foo  two  small  3  6
+        5  bar  one  large  4  6
+        6  bar  one  small  5  8
+        7  bar  two  small  6  9
+        8  bar  two  large  7  9
+
+        This first example aggregates values by taking the sum.
 
         >>> table = pivot_table(df, values='D', index=['A', 'B'],
         ...                     columns=['C'], aggfunc=np.sum)
         >>> table
         C        large  small
         A   B
-        bar one    4.0    5.0
-            two    7.0    6.0
-        foo one    4.0    1.0
-            two    NaN    6.0
+        bar one      4      5
+            two      7      6
+        foo one      4      1
+            two    NaN      6
+
+        We can also fill missing values using the `fill_value` parameter.
 
         >>> table = pivot_table(df, values='D', index=['A', 'B'],
-        ...                     columns=['C'], aggfunc=np.sum)
+        ...                     columns=['C'], aggfunc=np.sum, fill_value=0)
         >>> table
         C        large  small
         A   B
-        bar one    4.0    5.0
-            two    7.0    6.0
-        foo one    4.0    1.0
-            two    NaN    6.0
+        bar one      4      5
+            two      7      6
+        foo one      4      1
+            two      0      6
+
+        The next example aggregates by taking the mean across multiple columns.
+
+        >>> table = pivot_table(df, values=['D', 'E'], index=['A', 'C'],
+        ...                     aggfunc={'D': np.mean,
+        ...                              'E': np.mean})
+        >>> table
+                          D         E
+                       mean      mean
+        A   C
+        bar large  5.500000  7.500000
+            small  5.500000  8.500000
+        foo large  2.000000  4.500000
+            small  2.333333  4.333333
+
+        We can also calculate multiple types of aggregations for any given
+        value column.
 
         >>> table = pivot_table(df, values=['D', 'E'], index=['A', 'C'],
         ...                     aggfunc={'D': np.mean,
         ...                              'E': [min, max, np.mean]})
         >>> table
                           D   E
-                       mean max median min
+                       mean max      mean min
         A   C
-        bar large  5.500000  16   14.5  13
-            small  5.500000  15   14.5  14
-        foo large  2.000000  10    9.5   9
-            small  2.333333  12   11.0   8
+        bar large  5.500000  9   7.500000   6
+            small  5.500000  9   8.500000   8
+        foo large  2.000000  5   4.500000   4
+            small  2.333333  6   4.333333   2
 
         Returns
         -------
         table : DataFrame
 
-        See also
+        See Also
         --------
         DataFrame.pivot : pivot without aggregation that can handle
             non-numeric data
@@ -5757,7 +5797,7 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.18.0
 
-        See also
+        See Also
         --------
         DataFrame.pivot : Pivot a table based on column values.
         DataFrame.stack : Pivot a level of the column labels (inverse operation
@@ -5827,7 +5867,7 @@ class DataFrame(NDFrame):
     col_level : int or string, optional
         If columns are a MultiIndex then use this level to melt.
 
-    See also
+    See Also
     --------
     %(other)s
     pivot_table
@@ -6068,7 +6108,7 @@ class DataFrame(NDFrame):
     3    NaN
     dtype: float64
 
-    See also
+    See Also
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
@@ -6202,7 +6242,7 @@ class DataFrame(NDFrame):
         side-effects, as they will take effect twice for the first
         column/row.
 
-        See also
+        See Also
         --------
         DataFrame.applymap: For elementwise operations
         DataFrame.aggregate: only perform aggregating type operations
@@ -6311,7 +6351,7 @@ class DataFrame(NDFrame):
         DataFrame
             Transformed DataFrame.
 
-        See also
+        See Also
         --------
         DataFrame.apply : Apply a function along input axis of DataFrame
 
@@ -6394,7 +6434,7 @@ class DataFrame(NDFrame):
         those rows to a list and then concatenate the list with the original
         DataFrame all at once.
 
-        See also
+        See Also
         --------
         pandas.concat : General function to concatenate DataFrame, Series
             or Panel objects
@@ -6683,6 +6723,15 @@ class DataFrame(NDFrame):
             of `decimals` which are not columns of the input will be
             ignored.
 
+        Returns
+        -------
+        DataFrame
+
+        See Also
+        --------
+        numpy.around
+        Series.round
+
         Examples
         --------
         >>> df = pd.DataFrame(np.random.random([3, 3]),
@@ -6708,15 +6757,6 @@ class DataFrame(NDFrame):
         first   0.0  1  0.17
         second  0.0  1  0.58
         third   0.9  0  0.49
-
-        Returns
-        -------
-        DataFrame object
-
-        See Also
-        --------
-        numpy.around
-        Series.round
         """
         from pandas.core.reshape.concat import concat
 
@@ -6782,7 +6822,6 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> import numpy as np
         >>> histogram_intersection = lambda a, b: np.minimum(a, b
         ... ).sum().round(decimals=1)
         >>> df = pd.DataFrame([(.2, .3), (.0, .6), (.6, .0), (.2, .1)],

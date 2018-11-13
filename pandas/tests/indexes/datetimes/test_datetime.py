@@ -95,8 +95,8 @@ class TestDatetimeIndex(object):
 
     def test_hash_error(self):
         index = date_range('20010101', periods=10)
-        with tm.assert_raises_regex(TypeError, "unhashable type: %r" %
-                                    type(index).__name__):
+        with pytest.raises(TypeError, match=("unhashable type: %r" %
+                                             type(index).__name__)):
             hash(index)
 
     def test_stringified_slice_with_tz(self):
