@@ -76,6 +76,7 @@ ERROR_MSGS = {
             '{allowed_sections}',
     'GL07': 'Wrong order of sections. "{wrong_section}" should be located '
             'before "{goes_before}", the right order is: {sorted_sections}',
+    'GL08': 'Docstring does not exist',
     'SS01': 'No summary found (a short summary in a single line should be '
             'present at the beginning of the docstring)',
     'SS02': 'Summary does not start with a capital letter',
@@ -295,6 +296,10 @@ class Docstring(object):
         # TODO(py27): remove ismethod
         return (inspect.isfunction(self.obj)
                 or inspect.ismethod(self.obj))
+
+    @property
+    def exists(self):
+        return self.raw_doc != ''
 
     @property
     def source_file_name(self):
@@ -585,126 +590,129 @@ def validate_one(func_name):
 
     errs = []
     wrns = []
-    if doc.start_blank_lines != 1:
-        errs.append(error('GL01'))
-    if doc.end_blank_lines != 1:
-        errs.append(error('GL02'))
-    if doc.double_blank_lines:
-        errs.append(error('GL03'))
-    mentioned_errs = doc.mentioned_private_classes
-    if mentioned_errs:
-        errs.append(error('GL04',
-                          mentioned_private_classes=', '.join(mentioned_errs)))
-    for line in doc.raw_doc.splitlines():
-        if re.match("^ *\t", line):
-            errs.append(error('GL05', line_with_tabs=line.lstrip()))
+    if doc.exists:
+        if doc.start_blank_lines != 1:
+            errs.append(error('GL01'))
+        if doc.end_blank_lines != 1:
+            errs.append(error('GL02'))
+        if doc.double_blank_lines:
+            errs.append(error('GL03'))
+        mentioned_errs = doc.mentioned_private_classes
+        if mentioned_errs:
+            errs.append(error('GL04',
+                              mentioned_private_classes=', '.join(mentioned_errs)))
+        for line in doc.raw_doc.splitlines():
+            if re.match("^ *\t", line):
+                errs.append(error('GL05', line_with_tabs=line.lstrip()))
 
-    unseen_sections = list(ALLOWED_SECTIONS)
-    for section in doc.section_titles:
-        if section not in ALLOWED_SECTIONS:
-            errs.append(error('GL06',
-                              section=section,
-                              allowed_sections=', '.join(ALLOWED_SECTIONS)))
+        unseen_sections = list(ALLOWED_SECTIONS)
+        for section in doc.section_titles:
+            if section not in ALLOWED_SECTIONS:
+                errs.append(error('GL06',
+                                  section=section,
+                                  allowed_sections=', '.join(ALLOWED_SECTIONS)))
+            else:
+                if section in unseen_sections:
+                    section_idx = unseen_sections.index(section)
+                    unseen_sections = unseen_sections[section_idx + 1:]
+                else:
+                    section_idx = ALLOWED_SECTIONS.index(section)
+                    goes_before = ALLOWED_SECTIONS[section_idx + 1]
+                    errs.append(error('GL07',
+                                      sorted_sections=' > '.join(ALLOWED_SECTIONS),
+                                      wrong_section=section,
+                                      goes_before=goes_before))
+                    break
+
+        if not doc.summary:
+            errs.append(error('SS01'))
         else:
-            if section in unseen_sections:
-                section_idx = unseen_sections.index(section)
-                unseen_sections = unseen_sections[section_idx + 1:]
+            if not doc.summary[0].isupper():
+                errs.append(error('SS02'))
+            if doc.summary[-1] != '.':
+                errs.append(error('SS03'))
+            if doc.summary != doc.summary.lstrip():
+                errs.append(error('SS04'))
+            elif (doc.is_function_or_method
+                    and doc.summary.split(' ')[0][-1] == 's'):
+                errs.append(error('SS05'))
+            if doc.num_summary_lines > 1:
+                errs.append(error('SS06'))
+
+        if not doc.extended_summary:
+            wrns.append(('ES01', 'No extended summary found'))
+
+        # PR01: Parameters not documented
+        # PR02: Unknown parameters
+        # PR03: Wrong parameters order
+        errs += doc.parameter_mismatches
+
+        for param in doc.doc_parameters:
+            if not param.startswith("*"):  # Check can ignore var / kwargs
+                if not doc.parameter_type(param):
+                    errs.append(error('PR04', param_name=param))
+                else:
+                    if doc.parameter_type(param)[-1] == '.':
+                        errs.append(error('PR05', param_name=param))
+                    common_type_errors = [('integer', 'int'),
+                                          ('boolean', 'bool'),
+                                          ('string', 'str')]
+                    for wrong_type, right_type in common_type_errors:
+                        if wrong_type in doc.parameter_type(param):
+                            errs.append(error('PR06',
+                                              param_name=param,
+                                              right_type=right_type,
+                                              wrong_type=wrong_type))
+            if not doc.parameter_desc(param):
+                errs.append(error('PR07', param_name=param))
             else:
-                section_idx = ALLOWED_SECTIONS.index(section)
-                goes_before = ALLOWED_SECTIONS[section_idx + 1]
-                errs.append(error('GL07',
-                                  sorted_sections=' > '.join(ALLOWED_SECTIONS),
-                                  wrong_section=section,
-                                  goes_before=goes_before))
-                break
+                if not doc.parameter_desc(param)[0].isupper():
+                    errs.append(error('PR08', param_name=param))
+                if doc.parameter_desc(param)[-1] != '.':
+                    errs.append(error('PR09', param_name=param))
 
-    if not doc.summary:
-        errs.append(error('SS01'))
-    else:
-        if not doc.summary[0].isupper():
-            errs.append(error('SS02'))
-        if doc.summary[-1] != '.':
-            errs.append(error('SS03'))
-        if doc.summary != doc.summary.lstrip():
-            errs.append(error('SS04'))
-        elif (doc.is_function_or_method
-                and doc.summary.split(' ')[0][-1] == 's'):
-            errs.append(error('SS05'))
-        if doc.num_summary_lines > 1:
-            errs.append(error('SS06'))
+        if doc.is_function_or_method:
+            if not doc.returns and 'return' in doc.method_source:
+                errs.append(error('RT01'))
+            if not doc.yields and 'yield' in doc.method_source:
+                errs.append(error('YD01'))
 
-    if not doc.extended_summary:
-        wrns.append(('ES01', 'No extended summary found'))
-
-    # PR01: Parameters not documented
-    # PR02: Unknown parameters
-    # PR03: Wrong parameters order
-    errs += doc.parameter_mismatches
-
-    for param in doc.doc_parameters:
-        if not param.startswith("*"):  # Check can ignore var / kwargs
-            if not doc.parameter_type(param):
-                errs.append(error('PR04', param_name=param))
-            else:
-                if doc.parameter_type(param)[-1] == '.':
-                    errs.append(error('PR05', param_name=param))
-                common_type_errors = [('integer', 'int'),
-                                      ('boolean', 'bool'),
-                                      ('string', 'str')]
-                for wrong_type, right_type in common_type_errors:
-                    if wrong_type in doc.parameter_type(param):
-                        errs.append(error('PR06',
-                                          param_name=param,
-                                          right_type=right_type,
-                                          wrong_type=wrong_type))
-        if not doc.parameter_desc(param):
-            errs.append(error('PR07', param_name=param))
+        if not doc.see_also:
+            wrns.append(error('SA01'))
         else:
-            if not doc.parameter_desc(param)[0].isupper():
-                errs.append(error('PR08', param_name=param))
-            if doc.parameter_desc(param)[-1] != '.':
-                errs.append(error('PR09', param_name=param))
+            for rel_name, rel_desc in doc.see_also.items():
+                if rel_desc:
+                    if not rel_desc.endswith('.'):
+                        errs.append(error('SA02', reference_name=rel_name))
+                    if not rel_desc[0].isupper():
+                        errs.append(error('SA03', reference_name=rel_name))
+                else:
+                    errs.append(error('SA04', reference_name=rel_name))
+                if rel_name.startswith('pandas.'):
+                    errs.append(error('SA05',
+                                      reference_name=rel_name,
+                                      right_reference=rel_name[len('pandas.'):]))
 
-    if doc.is_function_or_method:
-        if not doc.returns and 'return' in doc.method_source:
-            errs.append(error('RT01'))
-        if not doc.yields and 'yield' in doc.method_source:
-            errs.append(error('YD01'))
-
-    if not doc.see_also:
-        wrns.append(error('SA01'))
+        examples_errs = ''
+        if not doc.examples:
+            wrns.append(error('EX01'))
+        else:
+            examples_errs = doc.examples_errors
+            if examples_errs:
+                errs.append(error('EX02', doctest_log=examples_errs))
+            for err in doc.validate_pep8():
+                errs.append(error('EX03',
+                                  error_code=err.error_code,
+                                  error_message=err.message,
+                                  times_happening=' ({} times)'.format(err.count)
+                                                  if err.count > 1 else ''))
+            examples_source_code = ''.join(doc.examples_source_code)
+            for wrong_import in ('numpy', 'pandas'):
+                if 'import {}'.format(wrong_import) in examples_source_code:
+                    errs.append(error('EX04', imported_library=wrong_import))
     else:
-        for rel_name, rel_desc in doc.see_also.items():
-            if rel_desc:
-                if not rel_desc.endswith('.'):
-                    errs.append(error('SA02', reference_name=rel_name))
-                if not rel_desc[0].isupper():
-                    errs.append(error('SA03', reference_name=rel_name))
-            else:
-                errs.append(error('SA04', reference_name=rel_name))
-            if rel_name.startswith('pandas.'):
-                errs.append(error('SA05',
-                                  reference_name=rel_name,
-                                  right_reference=rel_name[len('pandas.'):]))
-
-    examples_errs = ''
-    if not doc.examples:
-        wrns.append(error('EX01'))
-    else:
+        errs.append(error("GL08"))
         examples_errs = doc.examples_errors
-        if examples_errs:
-            errs.append(error('EX02', doctest_log=examples_errs))
-        for err in doc.validate_pep8():
-            errs.append(error('EX03',
-                              error_code=err.error_code,
-                              error_message=err.message,
-                              times_happening=' ({} times)'.format(err.count)
-                                              if err.count > 1 else ''))
-        examples_source_code = ''.join(doc.examples_source_code)
-        for wrong_import in ('numpy', 'pandas'):
-            if 'import {}'.format(wrong_import) in examples_source_code:
-                errs.append(error('EX04', imported_library=wrong_import))
-
     return {'type': doc.type,
             'docstring': doc.clean_doc,
             'deprecated': doc.deprecated,
