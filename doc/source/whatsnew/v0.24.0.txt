@@ -1263,9 +1263,6 @@ MultiIndex
 I/O
 ^^^
 
-- Bug in :meth:`to_sql` when writing timezone aware data (``datetime64[ns, tz]`` dtype) would raise a ``TypeError`` (:issue:`9086`)
-- Bug in :meth:`to_sql` where a naive DatetimeIndex would be written as ``TIMESTAMP WITH TIMEZONE`` type in supported databases, e.g. PostgreSQL (:issue:`23510`)
-
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
 Proper handling of `np.NaN` in a string data-typed column with the Python engine
@@ -1301,6 +1298,9 @@ Current Behavior:
 
 Notice how we now instead output ``np.nan`` itself instead of a stringified form of it.
 
+- Bug in :meth:`to_sql` when writing timezone aware data (``datetime64[ns, tz]`` dtype) would raise a ``TypeError`` (:issue:`9086`)
+- Bug in :meth:`to_sql` where a naive DatetimeIndex would be written as ``TIMESTAMP WITH TIMEZONE`` type in supported databases, e.g. PostgreSQL (:issue:`23510`)
+- Bug in :meth:`read_excel()` when ``parse_cols`` is specified with an empty dataset (:issue:`9208`)
 - :func:`read_html()` no longer ignores all-whitespace ``<tr>`` within ``<thead>`` when considering the ``skiprows`` and ``header`` arguments. Previously, users had to decrease their ``header`` and ``skiprows`` values on such tables to work around the issue. (:issue:`21641`)
 - :func:`read_excel()` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
 - :func:`read_csv()` and func:`read_table()` will throw ``UnicodeError`` and not coredump on badly encoded strings (:issue:`22748`)
