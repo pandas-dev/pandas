@@ -54,7 +54,6 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
             # Check that `value_vars` are in frame
             missing = Index(value_vars).difference(frame.columns)
             if not missing.empty:
-                # missing_vars = str(missing)
                 raise ValueError('Columns {missing} are not in'
                                  ' dataframe'.format(missing=missing))
         frame = frame.loc[:, id_vars + value_vars]
