@@ -247,7 +247,7 @@ Back in an interactive IPython session:
     >>> ds.geo.plot()
     # plots data on a map
 
-See also
+See Also
 --------
 %(others)s
 """
