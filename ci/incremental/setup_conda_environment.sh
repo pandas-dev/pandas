@@ -22,7 +22,7 @@ time conda env create -q -n "${CONDA_ENV}" --file="${ENV_FILE}" || exit 1
 conda list -e
 
 echo "Installing pyqt, as seems it's not got from the file (debugging why)"
-conda install pyqt
+conda install -yq pyqt
 conda list -e
 
 
