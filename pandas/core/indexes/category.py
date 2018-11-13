@@ -25,6 +25,7 @@ from pandas.core import accessor
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.indexes.base as ibase
+from pandas.core.ops import get_op_result_name
 from pandas.core.arrays.categorical import Categorical, contains
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -323,6 +324,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def itemsize(self):
         # Size of the items in categories, not codes.
         return self.values.itemsize
+
+    def _wrap_setop_result(self, other, result):
+        name = get_op_result_name(self, other)
+        return self._shallow_copy(result, name=name)
 
     def get_values(self):
         """ return the underlying data as an ndarray """

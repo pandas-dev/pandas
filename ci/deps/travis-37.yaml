@@ -9,6 +9,7 @@ dependencies:
   - numpy
   - python-dateutil
   - nomkl
+  - pyarrow
   - pytz
   - pytest
   - pytest-xdist

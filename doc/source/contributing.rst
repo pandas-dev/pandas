@@ -170,7 +170,7 @@ We'll now kick off a three-step process:
 .. code-block:: none
 
    # Create and activate the build environment
-   conda env create -f ci/environment-dev.yaml
+   conda env create -f environment.yml
    conda activate pandas-dev
 
    # or with older versions of Anaconda:
@@ -179,9 +179,6 @@ We'll now kick off a three-step process:
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
    python -m pip install -e .
-
-   # Install the rest of the optional dependencies
-   conda install -c defaults -c conda-forge --file=ci/requirements-optional-conda.txt
 
 At this point you should be able to import pandas from your locally built version::
 
@@ -221,13 +218,11 @@ You'll need to have at least python3.5 installed on your system.
    . ~/virtualenvs/pandas-dev/bin/activate
 
    # Install the build dependencies
-   python -m pip install -r ci/requirements_dev.txt
+   python -m pip install -r requirements-dev.txt
+
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
    python -m pip install -e .
-
-   # Install additional dependencies
-   python -m pip install -r ci/requirements-optional-pip.txt
 
 Creating a branch
 -----------------
@@ -612,6 +607,54 @@ Alternatively, you can install the ``grep`` and ``xargs`` commands via the
 `MinGW <http://www.mingw.org/>`__ toolchain, and it will allow you to run the
 commands above.
 
+.. _contributing.import-formatting:
+
+Import Formatting
+~~~~~~~~~~~~~~~~~
+*pandas* uses `isort <https://pypi.org/project/isort/>`__ to standardise import
+formatting across the codebase.
+
+A guide to import layout as per pep8 can be found `here <https://www.python.org/dev/peps/pep-0008/#imports/>`__.
+
+A summary of our current import sections ( in order ):
+
+* Future
+* Python Standard Library
+* Third Party
+* ``pandas._libs``, ``pandas.compat``, ``pandas.util._*``, ``pandas.errors`` (largely not dependent on ``pandas.core``)
+* ``pandas.core.dtypes`` (largely not dependent on the rest of ``pandas.core``)
+* Rest of ``pandas.core.*``
+* Non-core ``pandas.io``, ``pandas.plotting``, ``pandas.tseries``
+* Local application/library specific imports
+
+Imports are alphabetically sorted within these sections.
+
+
+As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
+
+    isort --recursive --check-only pandas
+
+to check that imports are correctly formatted as per the `setup.cfg`.
+
+If you see output like the below in :ref:`Continuous Integration <contributing.ci>` checks:
+
+.. code-block:: shell
+
+   Check import format using isort
+   ERROR: /home/travis/build/pandas-dev/pandas/pandas/io/pytables.py Imports are incorrectly sorted
+   Check import format using isort DONE
+   The command "ci/code_checks.sh" exited with 1
+
+You should run::
+
+    isort pandas/io/pytables.py
+
+to automatically format imports correctly. This will modify your local copy of the files.
+
+The `--recursive` flag can be passed to sort all files in a directory.
+
+You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
+
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -744,7 +787,7 @@ Transitioning to ``pytest``
 .. code-block:: python
 
     class TestReallyCoolFeature(object):
-        ....
+        pass
 
 Going forward, we are moving to a more *functional* style using the `pytest <http://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
 framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
@@ -752,7 +795,7 @@ framework that will facilitate testing and developing. Thus, instead of writing 
 .. code-block:: python
 
     def test_really_cool_feature():
-        ....
+        pass
 
 Using ``pytest``
 ~~~~~~~~~~~~~~~~
@@ -777,24 +820,29 @@ We would name this file ``test_cool_feature.py`` and put in an appropriate place
    import pandas as pd
    from pandas.util import testing as tm
 
+
    @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
    def test_dtypes(dtype):
        assert str(np.dtype(dtype)) == dtype
 
-   @pytest.mark.parametrize('dtype', ['float32',
-       pytest.param('int16', marks=pytest.mark.skip),
-       pytest.param('int32',
-                    marks=pytest.mark.xfail(reason='to show how it works'))])
+
+   @pytest.mark.parametrize(
+       'dtype', ['float32', pytest.param('int16', marks=pytest.mark.skip),
+                 pytest.param('int32', marks=pytest.mark.xfail(
+                     reason='to show how it works'))])
    def test_mark(dtype):
        assert str(np.dtype(dtype)) == 'float32'
+
 
    @pytest.fixture
    def series():
        return pd.Series([1, 2, 3])
 
+
    @pytest.fixture(params=['int8', 'int16', 'int32', 'int64'])
    def dtype(request):
        return request.param
+
 
    def test_series(series, dtype):
        result = series.astype(dtype)
@@ -863,6 +911,7 @@ for details <https://hypothesis.readthedocs.io/en/latest/index.html>`_.
         st.none(), st.booleans(), st.floats(allow_nan=False), st.text(),
         st.lists(any_json_value), st.dictionaries(st.text(), any_json_value)
     ))
+
 
     @given(value=any_json_value)
     def test_json_roundtrip(value):
@@ -1078,6 +1127,8 @@ or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v
 Contributing your changes to *pandas*
 =====================================
 
+.. _contributing.commit-code:
+
 Committing your code
 --------------------
 
@@ -1121,6 +1172,8 @@ is fine, but the former is generally preferred:
 Now you can commit your changes in your local repository::
 
     git commit -m
+
+.. _contributing.push-code:
 
 Pushing your changes
 --------------------

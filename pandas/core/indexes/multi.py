@@ -40,8 +40,7 @@ from pandas.core.indexes.base import (
     Index, ensure_index,
     InvalidIndexError,
     _index_shared_docs)
-from pandas.core.indexes.frozen import (
-    FrozenNDArray, FrozenList, _ensure_frozen)
+from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -734,11 +733,14 @@ class MultiIndex(Index):
             new_levels.append(level)
             new_labels.append(label)
 
-        # reconstruct the multi-index
-        mi = MultiIndex(levels=new_levels, labels=new_labels, names=self.names,
-                        sortorder=self.sortorder, verify_integrity=False)
-
-        return mi.values
+        if len(new_levels) == 1:
+            return Index(new_levels[0])._format_native_types()
+        else:
+            # reconstruct the multi-index
+            mi = MultiIndex(levels=new_levels, labels=new_labels,
+                            names=self.names, sortorder=self.sortorder,
+                            verify_integrity=False)
+            return mi.values
 
     @Appender(_index_shared_docs['_get_grouper_for_level'])
     def _get_grouper_for_level(self, mapper, level):
@@ -1175,7 +1177,7 @@ class MultiIndex(Index):
         -------
         DataFrame : a DataFrame containing the original MultiIndex data.
 
-        See also
+        See Also
         --------
         DataFrame
         """
@@ -1613,7 +1615,7 @@ class MultiIndex(Index):
             return tuple(retval)
         else:
             if com.is_bool_indexer(key):
-                key = np.asarray(key)
+                key = np.asarray(key, dtype=bool)
                 sortorder = self.sortorder
             else:
                 # cannot be sure whether the result will be sorted
@@ -1656,7 +1658,7 @@ class MultiIndex(Index):
                 for new_label in taken:
                     label_values = new_label.values()
                     label_values[mask] = na_value
-                    masked.append(FrozenNDArray(label_values))
+                    masked.append(np.asarray(label_values))
                 taken = masked
         else:
             taken = [lab.take(indices) for lab in self.labels]
@@ -1884,7 +1886,7 @@ class MultiIndex(Index):
         ascending : boolean, default True
             False to sort in descending order
             Can also be a list to specify a directed ordering
-        sort_remaining : sort by the remaining levels after level.
+        sort_remaining : sort by the remaining levels after level
 
         Returns
         -------
@@ -2203,7 +2205,7 @@ class MultiIndex(Index):
         or a sequence of such. If you want to use those, use
         :meth:`MultiIndex.get_locs` instead.
 
-        See also
+        See Also
         --------
         Index.get_loc : get_loc method for (single-level) index.
         MultiIndex.slice_locs : Get slice location given start label(s) and
@@ -2529,7 +2531,7 @@ class MultiIndex(Index):
         >>> mi.get_locs([[True, False, True], slice('e', 'f')])
         array([2], dtype=int64)
 
-        See also
+        See Also
         --------
         MultiIndex.get_loc : Get location for a label or a tuple of labels.
         MultiIndex.slice_locs : Get slice location given start label(s) and
@@ -2656,7 +2658,7 @@ class MultiIndex(Index):
         Determines if two MultiIndex objects have the same labeling information
         (the levels themselves do not necessarily have to be the same)
 
-        See also
+        See Also
         --------
         equal_levels
         """

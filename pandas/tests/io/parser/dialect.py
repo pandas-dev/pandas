@@ -7,10 +7,12 @@ for all of the parsers defined in parsers.py
 
 import csv
 
-from pandas import DataFrame
+import pytest
+
 from pandas.compat import StringIO
 from pandas.errors import ParserWarning
 
+from pandas import DataFrame
 import pandas.util.testing as tm
 
 
@@ -61,7 +63,7 @@ pear:tomato
         data = 'a\n1'
         msg = 'Invalid dialect'
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(data), dialect=InvalidDialect)
 
     def test_dialect_conflict(self):

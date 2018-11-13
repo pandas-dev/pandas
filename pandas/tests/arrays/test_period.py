@@ -1,13 +1,15 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.core.arrays import PeriodArray, period_array
+
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import PeriodDtype
+
+import pandas as pd
+from pandas.core.arrays import PeriodArray, period_array
+import pandas.util.testing as tm
 
 # ----------------------------------------------------------------------------
 # Constructors
@@ -32,10 +34,13 @@ def test_period_array_ok(data, freq, expected):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_from_datetime64_raises():
+def test_from_datetime64_freq_changes():
+    # https://github.com/pandas-dev/pandas/issues/23438
     arr = pd.date_range("2017", periods=3, freq="D")
-    with tm.assert_raises_regex(IncompatibleFrequency, "freq"):
-        PeriodArray._from_datetime64(arr, freq="M")
+    result = PeriodArray._from_datetime64(arr, freq="M")
+    expected = period_array(['2017-01-01', '2017-01-01', '2017-01-01'],
+                            freq="M")
+    tm.assert_period_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("data, freq, msg", [
@@ -48,22 +53,22 @@ def test_from_datetime64_raises():
      "Input has different freq"),
 ])
 def test_period_array_raises(data, freq, msg):
-    with tm.assert_raises_regex(IncompatibleFrequency, msg):
+    with pytest.raises(IncompatibleFrequency, match=msg):
         period_array(data, freq)
 
 
 def test_period_array_non_period_series_raies():
     ser = pd.Series([1, 2, 3])
-    with tm.assert_raises_regex(TypeError, 'dtype'):
+    with pytest.raises(TypeError, match='dtype'):
         PeriodArray(ser, freq='D')
 
 
 def test_period_array_freq_mismatch():
     arr = period_array(['2000', '2001'], freq='D')
-    with tm.assert_raises_regex(IncompatibleFrequency, 'freq'):
+    with pytest.raises(IncompatibleFrequency, match='freq'):
         PeriodArray(arr, freq='M')
 
-    with tm.assert_raises_regex(IncompatibleFrequency, 'freq'):
+    with pytest.raises(IncompatibleFrequency, match='freq'):
         PeriodArray(arr, freq=pd.tseries.offsets.MonthEnd())
 
 
@@ -75,11 +80,11 @@ def test_asi8():
 
 def test_take_raises():
     arr = period_array(['2000', '2001'], freq='D')
-    with tm.assert_raises_regex(IncompatibleFrequency, 'freq'):
+    with pytest.raises(IncompatibleFrequency, match='freq'):
         arr.take([0, -1], allow_fill=True,
                  fill_value=pd.Period('2000', freq='W'))
 
-    with tm.assert_raises_regex(ValueError, 'foo'):
+    with pytest.raises(ValueError, match='foo'):
         arr.take([0, -1], allow_fill=True, fill_value='foo')
 
 
@@ -124,13 +129,13 @@ def test_astype_period():
 def test_astype_datetime(other):
     arr = period_array(['2000', '2001', None], freq='D')
     # slice off the [ns] so that the regex matches.
-    with tm.assert_raises_regex(TypeError, other[:-4]):
+    with pytest.raises(TypeError, match=other[:-4]):
         arr.astype(other)
 
 
 def test_fillna_raises():
     arr = period_array(['2000', '2001', '2002'], freq='D')
-    with tm.assert_raises_regex(ValueError, 'Length'):
+    with pytest.raises(ValueError, match='Length'):
         arr.fillna(arr[:2])
 
 
@@ -162,45 +167,31 @@ def test_setitem(key, value, expected):
 
 def test_setitem_raises_incompatible_freq():
     arr = PeriodArray(np.arange(3), freq="D")
-    with tm.assert_raises_regex(IncompatibleFrequency, "freq"):
+    with pytest.raises(IncompatibleFrequency, match="freq"):
         arr[0] = pd.Period("2000", freq="A")
 
     other = period_array(['2000', '2001'], freq='A')
-    with tm.assert_raises_regex(IncompatibleFrequency, "freq"):
+    with pytest.raises(IncompatibleFrequency, match="freq"):
         arr[[0, 1]] = other
 
 
 def test_setitem_raises_length():
     arr = PeriodArray(np.arange(3), freq="D")
-    with tm.assert_raises_regex(ValueError, "length"):
+    with pytest.raises(ValueError, match="length"):
         arr[[0, 1]] = [pd.Period("2000", freq="D")]
 
 
 def test_setitem_raises_type():
     arr = PeriodArray(np.arange(3), freq="D")
-    with tm.assert_raises_regex(TypeError, "int"):
+    with pytest.raises(TypeError, match="int"):
         arr[0] = 1
 
 
 # ----------------------------------------------------------------------------
 # Ops
 
-def tet_sub_period():
+def test_sub_period():
     arr = period_array(['2000', '2001'], freq='D')
     other = pd.Period("2000", freq="M")
-    with tm.assert_raises_regex(IncompatibleFrequency, "freq"):
+    with pytest.raises(IncompatibleFrequency, match="freq"):
         arr - other
-
-
-# ----------------------------------------------------------------------------
-# other
-
-def test_maybe_convert_timedelta():
-    arr = period_array(['2000', '2001'], freq='D')
-    offset = pd.tseries.offsets.Day(2)
-    assert arr._maybe_convert_timedelta(offset) == 2
-    assert arr._maybe_convert_timedelta(2) == 2
-
-    offset = pd.tseries.offsets.BusinessDay()
-    with tm.assert_raises_regex(ValueError, 'freq'):
-        arr._maybe_convert_timedelta(offset)

@@ -50,7 +50,7 @@ Returns
 -------
 same type as input
 
-See also
+See Also
 --------
 pandas.Series.%(name)s
 pandas.DataFrame.%(name)s
@@ -136,7 +136,7 @@ class _Window(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        key : string / list of selections
+        key : str / list of selections
         ndim : 1,2
             requested ndim of result
         subset : object, default None
@@ -464,15 +464,16 @@ class Window(_Window):
         (otherwise result is NA). For a window that is specified by an offset,
         `min_periods` will default to 1. Otherwise, `min_periods` will default
         to the size of the window.
-    center : boolean, default False
+    center : bool, default False
         Set the labels at the center of the window.
-    win_type : string, default None
+    win_type : str, default None
         Provide a window type. If ``None``, all points are evenly weighted.
         See the notes below for further information.
-    on : string, optional
+    on : str, optional
         For a DataFrame, column on which to calculate
         the rolling window, rather than the index
-    closed : string, default None
+    axis : int or str, default 0
+    closed : str, default None
         Make the interval closed on the 'right', 'left', 'both' or
         'neither' endpoints.
         For offset-based windows, it defaults to 'right'.
@@ -480,8 +481,6 @@ class Window(_Window):
         for fixed windows.
 
         .. versionadded:: 0.20.0
-
-    axis : int or string, default 0
 
     Returns
     -------
@@ -661,7 +660,7 @@ class Window(_Window):
 
         Parameters
         ----------
-        mean : boolean, default True
+        mean : bool, default True
             If True computes weighted mean, else weighted sum
 
         Returns
@@ -734,7 +733,7 @@ class Window(_Window):
     8 -0.096361  0.818139  0.472290
     9  0.070889  0.134399 -0.031308
 
-    See also
+    See Also
     --------
     pandas.DataFrame.rolling.aggregate
     pandas.DataFrame.aggregate
@@ -819,11 +818,11 @@ class _Rolling(_Window):
 
         Parameters
         ----------
-        func : string/callable to apply
-        name : string, optional
+        func : str/callable to apply
+        name : str, optional
            name of this function
         window : int/array, default to _get_window()
-        center : boolean, default to self.center
+        center : bool, default to self.center
         check_minp : function, default to _use_window
 
         Returns
@@ -1641,7 +1640,7 @@ class Rolling(_Rolling_and_Expanding):
     8 -0.289082 -1.647453
     9  0.212668 -1.647453
 
-    See also
+    See Also
     --------
     pandas.Series.rolling
     pandas.DataFrame.rolling
@@ -1816,9 +1815,9 @@ class Expanding(_Rolling_and_Expanding):
     min_periods : int, default 1
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
-    center : boolean, default False
+    center : bool, default False
         Set the labels at the center of the window.
-    axis : int or string, default 0
+    axis : int or str, default 0
 
     Returns
     -------
@@ -1866,12 +1865,25 @@ class Expanding(_Rolling_and_Expanding):
         return Expanding
 
     def _get_window(self, other=None):
-        obj = self._selected_obj
-        if other is None:
-            return (max(len(obj), self.min_periods) if self.min_periods
-                    else len(obj))
-        return (max((len(obj) + len(obj)), self.min_periods)
-                if self.min_periods else (len(obj) + len(obj)))
+        """
+        Get the window length over which to perform some operation.
+
+        Parameters
+        ----------
+        other : object, default None
+            The other object that is involved in the operation.
+            Such an object is involved for operations like covariance.
+
+        Returns
+        -------
+        window : int
+            The window length.
+        """
+        axis = self.obj._get_axis(self.axis)
+        length = len(axis) + (other is not None) * len(axis)
+
+        other = self.min_periods or -1
+        return max(length, other)
 
     _agg_doc = dedent("""
     Examples
@@ -1904,7 +1916,7 @@ class Expanding(_Rolling_and_Expanding):
     8  0.067236  0.948257  0.163353
     9 -0.286980  0.618493 -0.694496
 
-    See also
+    See Also
     --------
     pandas.DataFrame.expanding.aggregate
     pandas.DataFrame.rolling.aggregate
@@ -2049,7 +2061,7 @@ _bias_template = """
 
 Parameters
 ----------
-bias : boolean, default False
+bias : bool, default False
     Use a standard estimation bias correction
 """
 
@@ -2066,7 +2078,7 @@ pairwise : bool, default None
     will be a MultiIndex DataFrame in the case of DataFrame inputs.
     In the case of missing elements, only complete pairwise observations will
     be used.
-bias : boolean, default False
+bias : bool, default False
    Use a standard estimation bias correction
 """
 
@@ -2097,10 +2109,10 @@ class EWM(_Rolling):
     min_periods : int, default 0
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
-    adjust : boolean, default True
+    adjust : bool, default True
         Divide by decaying adjustment factor in beginning periods to account
         for imbalance in relative weightings (viewing EWMA as a moving average)
-    ignore_na : boolean, default False
+    ignore_na : bool, default False
         Ignore missing values when calculating weights;
         specify True to reproduce pre-0.15.0 behavior
 
@@ -2207,7 +2219,7 @@ class EWM(_Rolling):
     8  0.067236  0.948257  0.163353
     9 -0.286980  0.618493 -0.694496
 
-    See also
+    See Also
     --------
     pandas.DataFrame.rolling.aggregate
 
@@ -2229,7 +2241,7 @@ class EWM(_Rolling):
 
         Parameters
         ----------
-        func : string/callable to apply
+        func : str/callable to apply
 
         Returns
         -------

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, timedelta, time
+from datetime import datetime, time
 import warnings
 
 import numpy as np
@@ -19,9 +19,9 @@ from pandas import compat
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     is_object_dtype,
+    is_int64_dtype,
     is_datetime64tz_dtype,
     is_datetime64_dtype,
-    is_timedelta64_dtype,
     ensure_int64)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
@@ -76,11 +76,12 @@ def _field_accessor(name, field, docstring=None):
 
         if field in self._object_ops:
             result = fields.get_date_name_field(values, field)
-            result = self._maybe_mask_results(result)
+            result = self._maybe_mask_results(result, fill_value=None)
 
         else:
             result = fields.get_date_field(values, field)
-            result = self._maybe_mask_results(result, convert='float64')
+            result = self._maybe_mask_results(result, fill_value=None,
+                                              convert='float64')
 
         return result
 
@@ -117,28 +118,36 @@ def _dt_array_cmp(cls, op):
             return ops.invalid_comparison(self, other, op)
         else:
             if isinstance(other, list):
-                # FIXME: This can break for object-dtype with mixed types
-                other = type(self)(other)
-            elif not isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
+                try:
+                    other = type(self)(other)
+                except ValueError:
+                    other = np.array(other, dtype=np.object_)
+            elif not isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries,
+                                        DatetimeArrayMixin)):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
                 return ops.invalid_comparison(self, other, op)
 
             if is_object_dtype(other):
                 result = op(self.astype('O'), np.array(other))
+                o_mask = isna(other)
             elif not (is_datetime64_dtype(other) or
                       is_datetime64tz_dtype(other)):
                 # e.g. is_timedelta64_dtype(other)
                 return ops.invalid_comparison(self, other, op)
             else:
                 self._assert_tzawareness_compat(other)
-                result = meth(self, np.asarray(other))
+                if not hasattr(other, 'asi8'):
+                    # ndarray, Series
+                    other = type(self)(other)
+                result = meth(self, other)
+                o_mask = other._isnan
 
             result = com.values_from_object(result)
 
             # Make sure to pass an array to result[...]; indexing with
             # Series breaks with older version of numpy
-            o_mask = np.array(isna(other))
+            o_mask = np.array(o_mask)
             if o_mask.any():
                 result[o_mask] = nat_result
 
@@ -157,6 +166,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         _freq
         _data
     """
+    _typ = "datetimearray"
     _bool_ops = ['is_month_start', 'is_month_end',
                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
                  'is_year_end', 'is_leap_year']
@@ -166,10 +176,15 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     # by returning NotImplemented
     timetuple = None
 
+    # ensure that operations with numpy arrays defer to our implementation
+    __array_priority__ = 1000
+
     # -----------------------------------------------------------------
     # Constructors
 
     _attributes = ["freq", "tz"]
+    _tz = None
+    _freq = None
 
     @classmethod
     def _simple_new(cls, values, freq=None, tz=None, **kwargs):
@@ -177,16 +192,14 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
+        assert isinstance(values, np.ndarray), type(values)
+        if values.dtype == 'i8':
+            # for compat with datetime/timedelta/period shared methods,
+            #  we can sometimes get here with int64 values.  These represent
+            #  nanosecond UTC (or tz-naive) unix timestamps
+            values = values.view('M8[ns]')
 
-        if getattr(values, 'dtype', None) is None:
-            # empty, but with dtype compat
-            if values is None:
-                values = np.empty(0, dtype=_NS_DTYPE)
-                return cls(values, freq=freq, tz=tz, **kwargs)
-            values = np.array(values, copy=False)
-
-        if not is_datetime64_dtype(values):
-            values = ensure_int64(values).view(_NS_DTYPE)
+        assert values.dtype == 'M8[ns]', values.dtype
 
         result = object.__new__(cls)
         result._data = values
@@ -209,11 +222,19 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
 
+        if isinstance(values, DatetimeArrayMixin):
+            # extract nanosecond unix timestamps
+            values = values.asi8
+        if values.dtype == 'i8':
+            values = values.view('M8[ns]')
+
+        assert isinstance(values, np.ndarray), type(values)
+        assert is_datetime64_dtype(values)  # not yet assured nanosecond
+        values = conversion.ensure_datetime64ns(values, copy=False)
+
         result = cls._simple_new(values, freq=freq, tz=tz)
         if freq_infer:
-            inferred = result.inferred_freq
-            if inferred:
-                result.freq = to_offset(inferred)
+            result.freq = to_offset(result.inferred_freq)
 
         # NB: Among other things not yet ported from the DatetimeIndex
         # constructor, this does not call _deepcopy_if_needed
@@ -271,7 +292,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             # TODO: consider re-implementing _cached_range; GH#17914
             index = _generate_regular_range(cls, start, end, periods, freq)
 
-            if tz is not None and getattr(index, 'tz', None) is None:
+            if tz is not None and index.tz is None:
                 arr = conversion.tz_localize_to_utc(
                     ensure_int64(index.values),
                     tz, ambiguous=ambiguous)
@@ -364,7 +385,16 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         return libresolution.resolution(self.asi8, self.tz)
 
     # ----------------------------------------------------------------
-    # Array-like Methods
+    # Array-Like / EA-Interface Methods
+
+    def __array__(self, dtype=None):
+        if is_object_dtype(dtype):
+            return np.array(list(self), dtype=object)
+        elif is_int64_dtype(dtype):
+            return self.asi8
+
+        # TODO: warn that conversion may be lossy?
+        return self._data.view(np.ndarray)  # follow Index.__array__
 
     def __iter__(self):
         """
@@ -424,10 +454,20 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     # -----------------------------------------------------------------
     # Arithmetic Methods
 
-    def _sub_datelike_dti(self, other):
-        """subtraction of two DatetimeIndexes"""
-        if not len(self) == len(other):
+    def _sub_datetime_arraylike(self, other):
+        """subtract DatetimeArray/Index or ndarray[datetime64]"""
+        if len(self) != len(other):
             raise ValueError("cannot add indices of unequal length")
+
+        if isinstance(other, np.ndarray):
+            assert is_datetime64_dtype(other)
+            other = type(self)(other)
+
+        if not self._has_same_tz(other):
+            # require tz compat
+            raise TypeError("{cls} subtraction must have the same "
+                            "timezones or no timezones"
+                            .format(cls=type(self).__name__))
 
         self_i8 = self.asi8
         other_i8 = other.asi8
@@ -456,74 +496,41 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         return type(self)(result, freq='infer')
 
-    def _sub_datelike(self, other):
+    def _sub_datetimelike_scalar(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
-        if isinstance(other, (DatetimeArrayMixin, np.ndarray)):
-            if isinstance(other, np.ndarray):
-                # if other is an ndarray, we assume it is datetime64-dtype
-                other = type(self)(other)
-            if not self._has_same_tz(other):
-                # require tz compat
-                raise TypeError("{cls} subtraction must have the same "
-                                "timezones or no timezones"
-                                .format(cls=type(self).__name__))
-            result = self._sub_datelike_dti(other)
-        elif isinstance(other, (datetime, np.datetime64)):
-            assert other is not NaT
-            other = Timestamp(other)
-            if other is NaT:
-                return self - NaT
+        assert isinstance(other, (datetime, np.datetime64))
+        assert other is not NaT
+        other = Timestamp(other)
+        if other is NaT:
+            return self - NaT
+
+        if not self._has_same_tz(other):
             # require tz compat
-            elif not self._has_same_tz(other):
-                raise TypeError("Timestamp subtraction must have the same "
-                                "timezones or no timezones")
-            else:
-                i8 = self.asi8
-                result = checked_add_with_arr(i8, -other.value,
-                                              arr_mask=self._isnan)
-                result = self._maybe_mask_results(result,
-                                                  fill_value=iNaT)
-        else:
-            raise TypeError("cannot subtract {cls} and {typ}"
-                            .format(cls=type(self).__name__,
-                                    typ=type(other).__name__))
+            raise TypeError("Timestamp subtraction must have the same "
+                            "timezones or no timezones")
+
+        i8 = self.asi8
+        result = checked_add_with_arr(i8, -other.value,
+                                      arr_mask=self._isnan)
+        result = self._maybe_mask_results(result)
         return result.view('timedelta64[ns]')
 
     def _add_delta(self, delta):
         """
-        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
-        to self.
+        Add a timedelta-like, Tick, or TimedeltaIndex-like object
+        to self, yielding a new DatetimeArray
 
         Parameters
         ----------
-        delta : {timedelta, np.timedelta64, DateOffset,
+        other : {timedelta, np.timedelta64, Tick,
                  TimedeltaIndex, ndarray[timedelta64]}
 
         Returns
         -------
-        result : same type as self
-
-        Notes
-        -----
-        The result's name is set outside of _add_delta by the calling
-        method (__add__ or __sub__)
+        result : DatetimeArray
         """
-        from pandas.core.arrays import TimedeltaArrayMixin
-
-        if isinstance(delta, (Tick, timedelta, np.timedelta64)):
-            new_values = self._add_delta_td(delta)
-        elif is_timedelta64_dtype(delta):
-            if not isinstance(delta, TimedeltaArrayMixin):
-                delta = TimedeltaArrayMixin(delta)
-            new_values = self._add_delta_tdi(delta)
-        else:
-            new_values = self.astype('O') + delta
-
-        tz = 'UTC' if self.tz is not None else None
-        result = type(self)(new_values, tz=tz, freq='infer')
-        if self.tz is not None and self.tz is not utc:
-            result = result.tz_convert(self.tz)
-        return result
+        new_values = dtl.DatetimeLikeArrayMixin._add_delta(self, delta)
+        return type(self)(new_values, tz=self.tz, freq='infer')
 
     # -----------------------------------------------------------------
     # Timezone Conversion and Localization Methods
@@ -609,7 +616,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                             'tz_localize to localize')
 
         # No conversion since timestamps are all UTC to begin with
-        return self._shallow_copy(tz=tz)
+        return self._simple_new(self.asi8, tz=tz, freq=self.freq)
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
                     errors=None):
@@ -629,6 +636,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
+            When clocks moved backward due to DST, ambiguous times may arise.
+            For example in Central European Time (UTC+01), when going from
+            03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
+            00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
+            `ambiguous` parameter dictates how ambiguous times should be
+            handled.
 
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
@@ -700,6 +713,40 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
                       dtype='datetime64[ns]', freq='D')
+
+        Be careful with DST changes. When there is sequential data, pandas can
+        infer the DST time:
+        >>> s = pd.to_datetime(pd.Series([
+        ... '2018-10-28 01:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 02:00:00',
+        ... '2018-10-28 02:30:00',
+        ... '2018-10-28 03:00:00',
+        ... '2018-10-28 03:30:00']))
+        >>> s.dt.tz_localize('CET', ambiguous='infer')
+        2018-10-28 01:30:00+02:00    0
+        2018-10-28 02:00:00+02:00    1
+        2018-10-28 02:30:00+02:00    2
+        2018-10-28 02:00:00+01:00    3
+        2018-10-28 02:30:00+01:00    4
+        2018-10-28 03:00:00+01:00    5
+        2018-10-28 03:30:00+01:00    6
+        dtype: int64
+
+        In some cases, inferring the DST is impossible. In such cases, you can
+        pass an ndarray to the ambiguous parameter to set the DST explicitly
+
+        >>> s = pd.to_datetime(pd.Series([
+        ... '2018-10-28 01:20:00',
+        ... '2018-10-28 02:36:00',
+        ... '2018-10-28 03:46:00']))
+        >>> s.dt.tz_localize('CET', ambiguous=np.array([True, True, False]))
+        0   2018-10-28 01:20:00+02:00
+        1   2018-10-28 02:36:00+02:00
+        2   2018-10-28 03:46:00+01:00
+        dtype: datetime64[ns, CET]
+
         """
         if errors is not None:
             warnings.warn("The errors argument is deprecated and will be "
@@ -731,7 +778,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                 self.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent,
             )
         new_dates = new_dates.view(_NS_DTYPE)
-        return self._shallow_copy(new_dates, tz=tz)
+        return self._simple_new(new_dates, tz=tz, freq=self.freq)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
@@ -827,7 +874,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         PeriodIndex(['2017-01-01', '2017-01-02'],
                     dtype='period[D]', freq='D')
 
-        See also
+        See Also
         --------
         pandas.PeriodIndex: Immutable ndarray holding ordinal values
         pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
@@ -847,7 +894,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
             freq = get_period_alias(freq)
 
-        return PeriodArray._from_datetime64(self.values, freq, tz=self.tz)
+        return PeriodArray._from_datetime64(self._data, freq, tz=self.tz)
 
     def to_perioddelta(self, freq):
         """
@@ -866,7 +913,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # TODO: consider privatizing (discussion in GH#23113)
         from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
         i8delta = self.asi8 - self.to_period(freq).to_timestamp().asi8
-        return TimedeltaArrayMixin(i8delta)
+        m8delta = i8delta.view('m8[ns]')
+        return TimedeltaArrayMixin(m8delta)
 
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods
@@ -904,7 +952,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         result = fields.get_date_name_field(values, 'month_name',
                                             locale=locale)
-        result = self._maybe_mask_results(result)
+        result = self._maybe_mask_results(result, fill_value=None)
         return result
 
     def day_name(self, locale=None):
@@ -940,7 +988,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         result = fields.get_date_name_field(values, 'day_name',
                                             locale=locale)
-        result = self._maybe_mask_results(result)
+        result = self._maybe_mask_results(result, fill_value=None)
         return result
 
     @property
@@ -1343,6 +1391,27 @@ DatetimeArrayMixin._add_datetimelike_methods()
 
 
 def _generate_regular_range(cls, start, end, periods, freq):
+    """
+    Generate a range of dates with the spans between dates described by
+    the given `freq` DateOffset.
+
+    Parameters
+    ----------
+    cls : class
+    start : Timestamp or None
+        first point of produced date range
+    end : Timestamp or None
+        last point of produced date range
+    periods : int
+        number of periods in produced date range
+    freq : DateOffset
+        describes space between dates in produced date range
+
+    Returns
+    -------
+    ndarray[np.int64] representing nanosecond unix timestamps
+
+    """
     if isinstance(freq, Tick):
         stride = freq.nanos
         if periods is None:
@@ -1355,33 +1424,71 @@ def _generate_regular_range(cls, start, end, periods, freq):
             tz = start.tz
         elif start is not None:
             b = Timestamp(start).value
-            e = b + np.int64(periods) * stride
+            e = _generate_range_overflow_safe(b, periods, stride, side='start')
             tz = start.tz
         elif end is not None:
             e = Timestamp(end).value + stride
-            b = e - np.int64(periods) * stride
+            b = _generate_range_overflow_safe(e, periods, stride, side='end')
             tz = end.tz
         else:
             raise ValueError("at least 'start' or 'end' should be specified "
                              "if a 'period' is given.")
 
-        data = np.arange(b, e, stride, dtype=np.int64)
-        data = cls._simple_new(data.view(_NS_DTYPE), None, tz=tz)
+        values = np.arange(b, e, stride, dtype=np.int64)
+
     else:
         tz = None
         # start and end should have the same timezone by this point
-        if isinstance(start, Timestamp):
+        if start is not None:
             tz = start.tz
-        elif isinstance(end, Timestamp):
+        elif end is not None:
             tz = end.tz
 
         xdr = generate_range(start=start, end=end,
                              periods=periods, offset=freq)
 
-        values = np.array([x.value for x in xdr])
-        data = cls._simple_new(values, freq=freq, tz=tz)
+        values = np.array([x.value for x in xdr], dtype=np.int64)
 
+    data = cls._simple_new(values, freq=freq, tz=tz)
     return data
+
+
+def _generate_range_overflow_safe(endpoint, periods, stride, side='start'):
+    """
+    Calculate the second endpoint for passing to np.arange, checking
+    to avoid an integer overflow.  Catch OverflowError and re-raise
+    as OutOfBoundsDatetime.
+
+    Parameters
+    ----------
+    endpoint : int
+    periods : int
+    stride : int
+    side : {'start', 'end'}
+
+    Returns
+    -------
+    other_end : int
+
+    Raises
+    ------
+    OutOfBoundsDatetime
+    """
+    # GH#14187 raise instead of incorrectly wrapping around
+    assert side in ['start', 'end']
+    if side == 'end':
+        stride *= -1
+
+    try:
+        other_end = checked_add_with_arr(np.int64(endpoint),
+                                         np.int64(periods) * stride)
+    except OverflowError:
+        raise tslib.OutOfBoundsDatetime('Cannot generate range with '
+                                        '{side}={endpoint} and '
+                                        'periods={periods}'
+                                        .format(side=side, endpoint=endpoint,
+                                                periods=periods))
+    return other_end
 
 
 def _infer_tz_from_endpoints(start, end, tz):

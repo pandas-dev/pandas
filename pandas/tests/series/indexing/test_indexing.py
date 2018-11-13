@@ -3,22 +3,22 @@
 
 """ test get/set & misc """
 
-import pytest
-
 from datetime import timedelta
 
 import numpy as np
-import pandas as pd
-
-from pandas.core.dtypes.common import is_scalar
-from pandas import (Series, DataFrame, MultiIndex,
-                    Timestamp, Timedelta, Categorical)
-from pandas.tseries.offsets import BDay
+import pytest
 
 from pandas.compat import lrange, range
 
-from pandas.util.testing import (assert_series_equal)
+from pandas.core.dtypes.common import is_scalar
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, MultiIndex, Series, Timedelta, Timestamp)
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
+
+from pandas.tseries.offsets import BDay
 
 
 def test_basic_indexing():
@@ -394,9 +394,9 @@ def test_setslice(test_data):
 @pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
 def test_basic_getitem_setitem_corner(test_data):
     # invalid tuples, e.g. td.ts[:, None] vs. td.ts[:, 2]
-    with tm.assert_raises_regex(ValueError, 'tuple-index'):
+    with pytest.raises(ValueError, match='tuple-index'):
         test_data.ts[:, 2]
-    with tm.assert_raises_regex(ValueError, 'tuple-index'):
+    with pytest.raises(ValueError, match='tuple-index'):
         test_data.ts[:, 2] = 2
 
     # weird lists. [slice(0, 5)] will work but not two slices

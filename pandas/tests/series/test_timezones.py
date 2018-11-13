@@ -4,16 +4,17 @@ Tests for Series timezone-related methods
 """
 from datetime import datetime
 
+from dateutil.tz import tzoffset
+import numpy as np
 import pytest
 import pytz
-import numpy as np
-from dateutil.tz import tzoffset
 
-import pandas.util.testing as tm
-from pandas._libs.tslibs import timezones, conversion
+from pandas._libs.tslibs import conversion, timezones
 from pandas.compat import lrange
+
+from pandas import DatetimeIndex, Index, NaT, Series, Timestamp
 from pandas.core.indexes.datetimes import date_range
-from pandas import Series, Timestamp, DatetimeIndex, Index, NaT
+import pandas.util.testing as tm
 
 
 class TestSeriesTimezones(object):
@@ -30,8 +31,9 @@ class TestSeriesTimezones(object):
         # Can't localize if already tz-aware
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
         ts = Series(1, index=rng)
-        tm.assert_raises_regex(TypeError, 'Already tz-aware',
-                               ts.tz_localize, 'US/Eastern')
+
+        with pytest.raises(TypeError, match='Already tz-aware'):
+            ts.tz_localize('US/Eastern')
 
     @pytest.mark.filterwarnings('ignore::FutureWarning')
     def test_tz_localize_errors_deprecation(self):
@@ -122,8 +124,9 @@ class TestSeriesTimezones(object):
         # can't convert tz-naive
         rng = date_range('1/1/2011', periods=200, freq='D')
         ts = Series(1, index=rng)
-        tm.assert_raises_regex(TypeError, "Cannot convert tz-naive",
-                               ts.tz_convert, 'US/Eastern')
+
+        with pytest.raises(TypeError, match="Cannot convert tz-naive"):
+            ts.tz_convert('US/Eastern')
 
     def test_series_tz_convert_to_utc(self):
         base = DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'],

@@ -1,7 +1,6 @@
 """Tests for Interval-Interval operations, such as overlaps, contains, etc."""
 import pytest
 
-import pandas.util.testing as tm
 from pandas import Interval, Timedelta, Timestamp
 
 
@@ -57,5 +56,5 @@ class TestOverlaps(object):
         interval = Interval(0, 1)
         msg = '`other` must be an Interval, got {other}'.format(
             other=type(other).__name__)
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval.overlaps(other)

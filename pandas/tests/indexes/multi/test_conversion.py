@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-
+import pytest
 import numpy as np
+
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import DataFrame, MultiIndex, date_range
@@ -50,11 +51,11 @@ def test_to_frame():
     tm.assert_frame_equal(result, expected)
 
     msg = "'name' must be a list / sequence of column names."
-    with tm.assert_raises_regex(TypeError, msg):
+    with pytest.raises(TypeError, match=msg):
         index.to_frame(name='first')
 
     msg = "'name' should have same length as number of levels on index."
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         index.to_frame(name=['first'])
 
     # Tests for datetime index

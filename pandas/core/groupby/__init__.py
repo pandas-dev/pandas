@@ -1,4 +1,4 @@
-from pandas.core.groupby.groupby import GroupBy  # flake8: noqa
-from pandas.core.groupby.generic import (
-    SeriesGroupBy, DataFrameGroupBy, PanelGroupBy)  # flake8: noqa
-from pandas.core.groupby.grouper import Grouper  # flake8: noqa
+from pandas.core.groupby.groupby import GroupBy  # noqa: F401
+from pandas.core.groupby.generic import (  # noqa: F401
+    SeriesGroupBy, DataFrameGroupBy, PanelGroupBy)
+from pandas.core.groupby.grouper import Grouper  # noqa: F401

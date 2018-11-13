@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
+import pytest
 
-import pandas.util.testing as tm
-from pandas.core.indexes.api import Index, CategoricalIndex
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas._libs import index as libindex
-from .common import Base
-
-from pandas.compat import range, PY3
-
-from pandas import Categorical, IntervalIndex, compat
-from pandas.util.testing import assert_almost_equal
-import pandas.core.config as cf
 import pandas as pd
+import pandas.core.config as cf
+import pandas.util.testing as tm
+from pandas import Categorical, IntervalIndex, compat
+from pandas._libs import index as libindex
+from pandas.compat import PY3, range
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.indexes.api import CategoricalIndex, Index
+from pandas.util.testing import assert_almost_equal
+
+from .common import Base
 
 if PY3:
     unicode = lambda x: x
@@ -343,7 +342,7 @@ class TestCategoricalIndex(Base):
         result = ci.append([])
         tm.assert_index_equal(result, ci, exact=True)
 
-        # appending with different categories or reoreded is not ok
+        # appending with different categories or reordered is not ok
         pytest.raises(
             TypeError,
             lambda: ci.append(ci.values.set_categories(list('abcd'))))
@@ -482,7 +481,7 @@ class TestCategoricalIndex(Base):
         actual = idx.get_indexer(idx)
         tm.assert_numpy_array_equal(expected, actual)
 
-        with tm.assert_raises_regex(ValueError, "Invalid fill method"):
+        with pytest.raises(ValueError, match="Invalid fill method"):
             idx.get_indexer(idx, method="invalid")
 
     def test_reindexing(self):
@@ -759,7 +758,7 @@ class TestCategoricalIndex(Base):
         assert (ci1 == ci1.values).all()
 
         # invalid comparisons
-        with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        with pytest.raises(ValueError, match="Lengths must match"):
             ci1 == Index(['a', 'b', 'c'])
         pytest.raises(TypeError, lambda: ci1 == ci2)
         pytest.raises(
@@ -1001,8 +1000,8 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(idx.fillna(1.0), exp)
 
         # fill by value not in categories raises ValueError
-        with tm.assert_raises_regex(ValueError,
-                                    'fill value must be in categories'):
+        msg = 'fill value must be in categories'
+        with pytest.raises(ValueError, match=msg):
             idx.fillna(2.0)
 
     def test_take_fill_value(self):
@@ -1056,9 +1055,9 @@ class TestCategoricalIndex(Base):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -1094,9 +1093,9 @@ class TestCategoricalIndex(Base):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -1107,16 +1106,16 @@ class TestCategoricalIndex(Base):
         indices = [1, 0, -1]
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        tm.assert_raises_regex(TypeError, msg, idx.take,
-                               indices, foo=2)
+        with pytest.raises(TypeError, match=msg):
+            idx.take(indices, foo=2)
 
         msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, idx.take,
-                               indices, out=indices)
+        with pytest.raises(ValueError, match=msg):
+            idx.take(indices, out=indices)
 
         msg = "the 'mode' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, idx.take,
-                               indices, mode='clip')
+        with pytest.raises(ValueError, match=msg):
+            idx.take(indices, mode='clip')
 
     @pytest.mark.parametrize('dtype, engine_type', [
         (np.int8, libindex.Int8Engine),

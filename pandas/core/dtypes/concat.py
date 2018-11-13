@@ -3,25 +3,19 @@ Utility functions related to concat
 """
 
 import numpy as np
+
 from pandas._libs import tslib, tslibs
-from pandas import compat
+
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_sparse,
-    is_extension_array_dtype,
-    is_datetimetz,
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-    is_period_dtype,
-    is_object_dtype,
-    is_bool_dtype,
-    is_interval_dtype,
-    is_dtype_equal,
-    _NS_DTYPE,
-    _TD_DTYPE)
+    _NS_DTYPE, _TD_DTYPE, is_bool_dtype, is_categorical_dtype,
+    is_datetime64_dtype, is_datetimetz, is_dtype_equal,
+    is_extension_array_dtype, is_interval_dtype, is_object_dtype,
+    is_period_dtype, is_sparse, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDatetimeIndex, ABCTimedeltaIndex,
-    ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame)
+    ABCDatetimeIndex, ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame,
+    ABCTimedeltaIndex)
+
+from pandas import compat
 
 
 def get_dtype_kinds(l):
@@ -105,27 +99,6 @@ def _get_frame_result_type(result, objs):
     else:
         return next(obj for obj in objs if not isinstance(obj,
                                                           ABCSparseDataFrame))
-
-
-def _get_sliced_frame_result_type(data, obj):
-    """
-    return appropriate class of Series. When data is sparse
-    it will return a SparseSeries, otherwise it will return
-    the Series.
-
-    Parameters
-    ----------
-    data : array-like
-    obj : DataFrame
-
-    Returns
-    -------
-    Series or SparseSeries
-    """
-    if is_sparse(data):
-        from pandas.core.sparse.api import SparseSeries
-        return SparseSeries
-    return obj._constructor_sliced
 
 
 def _concat_compat(to_concat, axis=0):

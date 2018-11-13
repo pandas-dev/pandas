@@ -10,35 +10,35 @@ import warnings
 
 import numpy as np
 
-import pandas._libs.sparse as splib
-import pandas.core.algorithms as algos
-import pandas.core.common as com
-import pandas.io.formats.printing as printing
-from pandas import compat
 from pandas._libs import index as libindex, lib
+import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex
 from pandas._libs.tslibs import NaT
+import pandas.compat as compat
 from pandas.compat.numpy import function as nv
-from pandas.core.accessor import PandasDelegate, delegate_names
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
-from pandas.core.base import PandasObject
+from pandas.errors import PerformanceWarning
+
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     astype_nansafe, construct_1d_arraylike_from_scalar, find_common_type,
-    infer_dtype_from_scalar, maybe_convert_platform
-)
+    infer_dtype_from_scalar, maybe_convert_platform)
 from pandas.core.dtypes.common import (
     is_array_like, is_bool_dtype, is_datetime64_any_dtype, is_dtype_equal,
     is_integer, is_list_like, is_object_dtype, is_scalar, is_string_dtype,
-    pandas_dtype
-)
+    pandas_dtype)
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.generic import (
-    ABCIndexClass, ABCSeries, ABCSparseSeries
-)
+    ABCIndexClass, ABCSeries, ABCSparseSeries)
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
+
+from pandas.core.accessor import PandasDelegate, delegate_names
+import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.base import PandasObject
+import pandas.core.common as com
 from pandas.core.missing import interpolate_2d
-from pandas.errors import PerformanceWarning
+
+import pandas.io.formats.printing as printing
 
 
 # ----------------------------------------------------------------------------
@@ -283,6 +283,83 @@ class SparseDtype(ExtensionDtype):
         elif isinstance(dtype, cls):
             return True
         return isinstance(dtype, np.dtype) or dtype == 'Sparse'
+
+    def update_dtype(self, dtype):
+        """Convert the SparseDtype to a new dtype.
+
+        This takes care of converting the ``fill_value``.
+
+        Parameters
+        ----------
+        dtype : Union[str, numpy.dtype, SparseDtype]
+            The new dtype to use.
+
+            * For a SparseDtype, it is simply returned
+            * For a NumPy dtype (or str), the current fill value
+              is converted to the new dtype, and a SparseDtype
+              with `dtype` and the new fill value is returned.
+
+        Returns
+        -------
+        SparseDtype
+            A new SparseDtype with the corret `dtype` and fill value
+            for that `dtype`.
+
+        Raises
+        ------
+        ValueError
+            When the current fill value cannot be converted to the
+            new `dtype` (e.g. trying to convert ``np.nan`` to an
+            integer dtype).
+
+
+        Examples
+        --------
+        >>> SparseDtype(int, 0).update_dtype(float)
+        Sparse[float64, 0.0]
+
+        >>> SparseDtype(int, 1).update_dtype(SparseDtype(float, np.nan))
+        Sparse[float64, nan]
+        """
+        cls = type(self)
+        dtype = pandas_dtype(dtype)
+
+        if not isinstance(dtype, cls):
+            fill_value = astype_nansafe(np.array(self.fill_value),
+                                        dtype).item()
+            dtype = cls(dtype, fill_value=fill_value)
+
+        return dtype
+
+    @property
+    def _subtype_with_str(self):
+        """
+        Whether the SparseDtype's subtype should be considered ``str``.
+
+        Typically, pandas will store string data in an object-dtype array.
+        When converting values to a dtype, e.g. in ``.astype``, we need to
+        be more specific, we need the actual underlying type.
+
+        Returns
+        -------
+
+        >>> SparseDtype(int, 1)._subtype_with_str
+        dtype('int64')
+
+        >>> SparseDtype(object, 1)._subtype_with_str
+        dtype('O')
+
+        >>> dtype = SparseDtype(str, '')
+        >>> dtype.subtype
+        dtype('O')
+
+        >>> dtype._subtype_with_str
+        str
+        """
+        if isinstance(self.fill_value, compat.string_types):
+            return type(self.fill_value)
+        return self.subtype
+
 
 # ----------------------------------------------------------------------------
 # Array
@@ -614,7 +691,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     # Can't put pd.NaT in a datetime64[ns]
                     fill_value = np.datetime64('NaT')
             try:
-                dtype = np.result_type(self.sp_values.dtype, fill_value)
+                dtype = np.result_type(self.sp_values.dtype, type(fill_value))
             except TypeError:
                 dtype = object
 
@@ -996,7 +1073,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if len(self) == 0:
             # Empty... Allow taking only if all empty
             if (indices == -1).all():
-                dtype = np.result_type(self.sp_values, fill_value)
+                dtype = np.result_type(self.sp_values, type(fill_value))
                 taken = np.empty_like(indices, dtype=dtype)
                 taken.fill(fill_value)
                 return taken
@@ -1009,7 +1086,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if self.sp_index.npoints == 0:
             # Avoid taking from the empty self.sp_values
             taken = np.full(sp_indexer.shape, fill_value=fill_value,
-                            dtype=np.result_type(fill_value))
+                            dtype=np.result_type(type(fill_value)))
         else:
             taken = self.sp_values.take(sp_indexer)
 
@@ -1030,12 +1107,13 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             result_type = taken.dtype
 
             if m0.any():
-                result_type = np.result_type(result_type, self.fill_value)
+                result_type = np.result_type(result_type,
+                                             type(self.fill_value))
                 taken = taken.astype(result_type)
                 taken[old_fill_indices] = self.fill_value
 
             if m1.any():
-                result_type = np.result_type(result_type, fill_value)
+                result_type = np.result_type(result_type, type(fill_value))
                 taken = taken.astype(result_type)
                 taken[new_fill_indices] = fill_value
 
@@ -1061,7 +1139,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # edge case in take...
             # I think just return
             out = np.full(indices.shape, self.fill_value,
-                          dtype=np.result_type(self.fill_value))
+                          dtype=np.result_type(type(self.fill_value)))
             arr, sp_index, fill_value = make_sparse(out,
                                                     fill_value=self.fill_value)
             return type(self)(arr, sparse_index=sp_index,
@@ -1073,7 +1151,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         if fillable.any():
             # TODO: may need to coerce array to fill value
-            result_type = np.result_type(taken, self.fill_value)
+            result_type = np.result_type(taken, type(self.fill_value))
             taken = taken.astype(result_type)
             taken[fillable] = self.fill_value
 
@@ -1093,7 +1171,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         fill_value = fill_values[0]
 
-        if len(set(fill_values)) > 1:
+        # np.nan isn't a singleton, so we may end up with multiple
+        # NaNs here, so we ignore tha all NA case too.
+        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
             warnings.warn("Concatenating sparse arrays with multiple fill "
                           "values: '{}'. Picking the first and "
                           "converting the rest.".format(fill_values),
@@ -1212,13 +1292,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
-        dtype = pandas_dtype(dtype)
-
-        if not isinstance(dtype, SparseDtype):
-            dtype = SparseDtype(dtype, fill_value=self.fill_value)
-
+        dtype = self.dtype.update_dtype(dtype)
+        subtype = dtype._subtype_with_str
         sp_values = astype_nansafe(self.sp_values,
-                                   dtype.subtype,
+                                   subtype,
                                    copy=copy)
         if sp_values is self.sp_values and copy:
             sp_values = sp_values.copy()

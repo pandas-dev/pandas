@@ -2,9 +2,9 @@
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
 from pandas import Index, IntervalIndex, date_range, timedelta_range
 from pandas.core.arrays import IntervalArray
+import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[
@@ -38,7 +38,7 @@ class TestMethods(object):
         ('foo', r'invalid literal for (int|long)\(\) with base 10')])
     def test_repeat_errors(self, bad_repeats, msg):
         array = IntervalArray.from_breaks(range(4))
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             array.repeat(bad_repeats)
 
     @pytest.mark.parametrize('new_closed', [

@@ -1,10 +1,9 @@
 # coding=utf-8
 
+import numpy as np
 import pytest
 
-import numpy as np
-
-from pandas import Series, Categorical
+from pandas import Categorical, Series
 import pandas.util.testing as tm
 
 

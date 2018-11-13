@@ -2,9 +2,9 @@
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
 from pandas import Interval, IntervalIndex, Timedelta, Timestamp
 from pandas.core.arrays import IntervalArray
+import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[IntervalArray, IntervalIndex])
@@ -78,5 +78,5 @@ class TestOverlaps(object):
         interval_container = constructor.from_breaks(range(5))
         msg = '`other` must be Interval-like, got {other}'.format(
             other=type(other).__name__)
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval_container.overlaps(other)

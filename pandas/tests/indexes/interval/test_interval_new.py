@@ -1,11 +1,10 @@
 from __future__ import division
 
-import pytest
 import numpy as np
+import pytest
 
-from pandas import Interval, IntervalIndex, Int64Index
 import pandas.util.testing as tm
-
+from pandas import Int64Index, Interval, IntervalIndex
 
 pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
 
@@ -200,7 +199,7 @@ class TestIntervalIndex(object):
 
         msg = ('cannot handle overlapping indices; use '
                'IntervalIndex.get_indexer_non_unique')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             index.get_indexer([0, 2])
 
     @pytest.mark.parametrize('query, expected', [

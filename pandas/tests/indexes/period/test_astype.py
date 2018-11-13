@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import Index, Int64Index, NaT, Period, PeriodIndex, period_range
 import pandas.util.testing as tm
-from pandas import NaT, Period, PeriodIndex, Int64Index, Index, period_range
 
 
 class TestPeriodIndexAsType(object):
@@ -15,7 +15,7 @@ class TestPeriodIndexAsType(object):
         # GH#13149, GH#13209
         idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq='D')
         msg = 'Cannot cast PeriodArray to dtype'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
     def test_astype_conversion(self):

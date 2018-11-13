@@ -4,28 +4,33 @@ channels:
   - conda-forge
 dependencies:
   - beautifulsoup4
-  - bottleneck
-  - dateutil
+  - cython>=0.28.2
   - gcsfs
   - html5lib
-  - jinja2=2.8
+  - ipython
+  - jinja2
   - lxml
-  - matplotlib=2.0.1
+  - matplotlib
+  - nomkl
   - numexpr
-  - numpy=1.12*
-  - openpyxl=2.5.5
+  - numpy
+  - openpyxl
+  - psycopg2
+  - pymysql
   - pytables
-  - python=2.7.*
+  - python-dateutil
+  - python=3.6*
   - pytz
   - s3fs
   - scipy
   - sqlalchemy
+  - xarray
   - xlrd
   - xlsxwriter
   - xlwt
   # universal
-  - cython>=0.28.2
   - pytest
   - pytest-xdist
   - moto
-  - hypothesis>=3.58.0
+  - pip:
+    - hypothesis>=3.58.0

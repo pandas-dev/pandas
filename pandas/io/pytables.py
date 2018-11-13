@@ -5,46 +5,45 @@ to disk
 """
 
 import copy
+from datetime import date, datetime
+from distutils.version import LooseVersion
 import itertools
 import os
 import re
 import time
 import warnings
-from datetime import date, datetime
-from distutils.version import LooseVersion
 
 import numpy as np
 
-import pandas.core.common as com
-from pandas import (
-    DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, Panel,
-    PeriodIndex, Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat,
-    concat, isna, to_datetime
-)
 from pandas._libs import algos, lib, writers as libwriters
 from pandas._libs.tslibs import timezones
 from pandas.compat import PY3, filter, lrange, range, string_types
-from pandas.core import config
-from pandas.core.algorithms import match, unique
-from pandas.core.arrays.categorical import (
-    Categorical, _factorize_from_iterables
-)
-from pandas.core.arrays.sparse import BlockIndex, IntIndex
-from pandas.core.base import StringMixin
-from pandas.core.computation.pytables import Expr, maybe_expression
-from pandas.core.config import get_option
+from pandas.errors import PerformanceWarning
+
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_object, ensure_platform_int, is_categorical_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype, is_list_like,
-    is_timedelta64_dtype
-)
+    is_timedelta64_dtype)
 from pandas.core.dtypes.missing import array_equivalent
+
+from pandas import (
+    DataFrame, DatetimeIndex, Index, Int64Index, MultiIndex, Panel,
+    PeriodIndex, Series, SparseDataFrame, SparseSeries, TimedeltaIndex, compat,
+    concat, isna, to_datetime)
+from pandas.core import config
+from pandas.core.algorithms import match, unique
+from pandas.core.arrays.categorical import (
+    Categorical, _factorize_from_iterables)
+from pandas.core.arrays.sparse import BlockIndex, IntIndex
+from pandas.core.base import StringMixin
+import pandas.core.common as com
+from pandas.core.computation.pytables import Expr, maybe_expression
+from pandas.core.config import get_option
 from pandas.core.index import ensure_index
 from pandas.core.internals import (
     BlockManager, _block2d_to_blocknd, _block_shape, _factor_indexer,
-    make_block
-)
-from pandas.errors import PerformanceWarning
+    make_block)
+
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
@@ -1416,19 +1415,6 @@ class HDFStore(StringMixin):
         return s.read(**kwargs)
 
 
-def get_store(path, **kwargs):
-    """ Backwards compatible alias for ``HDFStore``
-    """
-    warnings.warn(
-        "get_store is deprecated and be "
-        "removed in a future version\n"
-        "HDFStore(path, **kwargs) is the replacement",
-        FutureWarning,
-        stacklevel=6)
-
-    return HDFStore(path, **kwargs)
-
-
 class TableIterator(object):
 
     """ define the iteration interface on a table
@@ -1688,7 +1674,7 @@ class IndexCol(StringMixin):
     def __iter__(self):
         return iter(self.values)
 
-    def maybe_set_size(self, min_itemsize=None, **kwargs):
+    def maybe_set_size(self, min_itemsize=None):
         """ maybe set a string col itemsize:
                min_itemsize can be an integer or a dict with this columns name
                with an integer size """
@@ -1701,13 +1687,13 @@ class IndexCol(StringMixin):
                 self.typ = _tables(
                 ).StringCol(itemsize=min_itemsize, pos=self.pos)
 
-    def validate(self, handler, append, **kwargs):
+    def validate(self, handler, append):
         self.validate_names()
 
     def validate_names(self):
         pass
 
-    def validate_and_set(self, handler, append, **kwargs):
+    def validate_and_set(self, handler, append):
         self.set_table(handler.table)
         self.validate_col()
         self.validate_attr(append)
@@ -3786,7 +3772,7 @@ class Table(Fixed):
 
         return Index(coords)
 
-    def read_column(self, column, where=None, start=None, stop=None, **kwargs):
+    def read_column(self, column, where=None, start=None, stop=None):
         """return a single column from the table, generally only indexables
         are interesting
         """
@@ -4651,7 +4637,7 @@ def _convert_string_array(data, encoding, errors, itemsize=None):
     # create the sized dtype
     if itemsize is None:
         ensured = ensure_object(data.ravel())
-        itemsize = libwriters.max_len_string_array(ensured)
+        itemsize = max(1, libwriters.max_len_string_array(ensured))
 
     data = np.asarray(data, dtype="S%d" % itemsize)
     return data
@@ -4741,7 +4727,7 @@ class Selection(object):
 
     """
 
-    def __init__(self, table, where=None, start=None, stop=None, **kwargs):
+    def __init__(self, table, where=None, start=None, stop=None):
         self.table = table
         self.where = where
         self.start = start

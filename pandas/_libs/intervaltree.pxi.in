@@ -4,21 +4,6 @@ Template for intervaltree
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-from numpy cimport (
-    int64_t, int32_t, float64_t, float32_t, uint64_t,
-    ndarray,
-    PyArray_ArgSort, NPY_QUICKSORT, PyArray_Take)
-import numpy as np
-
-cimport cython
-from cython cimport Py_ssize_t
-
-cimport numpy as cnp
-cnp.import_array()
-
-from hashtable cimport Int64Vector, Int64VectorData
-
-
 ctypedef fused scalar_t:
     float64_t
     float32_t
@@ -26,10 +11,9 @@ ctypedef fused scalar_t:
     int32_t
     uint64_t
 
-
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # IntervalTree
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 cdef class IntervalTree(IntervalMixin):
     """A centered interval tree
@@ -72,6 +56,12 @@ cdef class IntervalTree(IntervalMixin):
 
         self.closed = closed
 
+        # GH 23352: ensure no nan in nodes
+        mask = ~np.isnan(self.left)
+        self.left = self.left[mask]
+        self.right = self.right[mask]
+        indices = indices[mask]
+
         node_cls = NODE_CLASSES[str(self.dtype), closed]
         self.root = node_cls(self.left, self.right, indices, leaf_size)
 
@@ -99,7 +89,7 @@ cdef class IntervalTree(IntervalMixin):
         self.root.query(result, key)
         if not result.data.n:
             raise KeyError(key)
-        return result.to_array()
+        return result.to_array().astype('intp')
 
     def _get_partial_overlap(self, key_left, key_right, side):
         """Return all positions corresponding to intervals with the given side
@@ -149,7 +139,7 @@ cdef class IntervalTree(IntervalMixin):
                 raise KeyError(
                     'indexer does not intersect a unique set of intervals')
             old_len = result.data.n
-        return result.to_array()
+        return result.to_array().astype('intp')
 
     def get_indexer_non_unique(self, scalar_t[:] target):
         """Return the positions corresponding to intervals that overlap with
@@ -169,7 +159,8 @@ cdef class IntervalTree(IntervalMixin):
                 result.append(-1)
                 missing.append(i)
             old_len = result.data.n
-        return result.to_array(), missing.to_array()
+        return (result.to_array().astype('intp'),
+                missing.to_array().astype('intp'))
 
     def __repr__(self):
         return ('<IntervalTree[{dtype},{closed}]: '
@@ -196,9 +187,10 @@ cdef sort_values_and_indices(all_values, all_indices, subset):
     sorted_indices = take(indices, sorter)
     return sorted_values, sorted_indices
 
-#----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # Nodes
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 # we need specialized nodes and leaves to optimize for different dtype and
 # closed values

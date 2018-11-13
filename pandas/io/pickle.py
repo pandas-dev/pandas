@@ -5,7 +5,9 @@ import numpy as np
 from numpy.lib.format import read_array, write_array
 
 from pandas.compat import PY3, BytesIO, cPickle as pkl, pickle_compat as pc
+
 from pandas.core.dtypes.common import _NS_DTYPE, is_datetime64_dtype
+
 from pandas.io.common import _get_handle, _stringify_path
 
 
