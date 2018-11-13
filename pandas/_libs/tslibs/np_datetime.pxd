@@ -54,6 +54,7 @@ cdef extern from "src/datetime/np_datetime.h":
                                            NPY_DATETIMEUNIT fr,
                                            npy_datetimestruct *result) nogil
 
+cdef int64_t DAY_S
 
 cdef int reverse_ops[6]
 

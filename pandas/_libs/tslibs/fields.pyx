@@ -16,7 +16,7 @@ from ccalendar import get_locale_names, MONTHS_FULL, DAYS_FULL
 from ccalendar cimport (get_days_in_month, is_leapyear, dayofweek,
                         get_week_of_year, get_day_of_year)
 from np_datetime cimport (npy_datetimestruct, pandas_timedeltastruct,
-                          dt64_to_dtstruct, td64_to_tdstruct)
+                          dt64_to_dtstruct, td64_to_tdstruct, DAY_S)
 from nattype cimport NPY_NAT
 
 
@@ -36,7 +36,7 @@ def get_time_micros(ndarray[int64_t] dtindex):
     cdef:
         ndarray[int64_t] micros
 
-    micros = np.mod(dtindex, 86400000000000, dtype=np.int64) // 1000LL
+    micros = np.mod(dtindex, DAY_S * 1000000000, dtype=np.int64) // 1000LL
     return micros
 
 
