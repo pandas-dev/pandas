@@ -305,7 +305,7 @@ class RangeIndex(Int64Index):
         -------
         argsorted : numpy array
 
-        See also
+        See Also
         --------
         numpy.ndarray.argsort
         """

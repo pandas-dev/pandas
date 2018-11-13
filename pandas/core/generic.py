@@ -1850,7 +1850,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df.dropna().empty
         True
 
-        See also
+        See Also
         --------
         pandas.Series.dropna
         pandas.DataFrame.dropna
@@ -5309,7 +5309,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1     2
         dtype: int64
 
-        See also
+        See Also
         --------
         pandas.to_datetime : Convert argument to datetime.
         pandas.to_timedelta : Convert argument to timedelta.
@@ -10090,7 +10090,7 @@ False
 """
 
 _all_see_also = """\
-See also
+See Also
 --------
 pandas.Series.all : Return True if all elements are True
 pandas.DataFrame.any : Return True if one (or more) elements are True
@@ -10117,7 +10117,7 @@ Returns
 -------
 %(outname)s : %(name1)s or %(name2)s\n
 %(examples)s
-See also
+See Also
 --------
 pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
     but ignores ``NaN`` values.
