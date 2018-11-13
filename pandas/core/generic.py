@@ -1977,16 +1977,17 @@ class NDFrame(PandasObject, SelectionMixin):
     # I/O Methods
 
     _shared_docs['to_excel'] = """
-    Write %(klass)s to an excel sheet.
+    Write %(klass)s to an Excel sheet.
 
-    To write a single %(klass)s to an excel .xlsx file it is only necessary to
+    To write a single %(klass)s to an Excel .xlsx file it is only necessary to
     specify a target file name. To write to multiple sheets it is necessary to
     create an `ExcelWriter` object with a target file name, and specify a sheet
-    in the file to write to. Multiple sheets may be written to by
-    specifying unique `sheet_name`. With all data written to the file it is
-    necessary to save the changes. Note that creating an ExcelWriter object
-    with a file name that already exists will result in the contents of the
-    existing file being erased.
+    in the file to write to.
+
+    Multiple sheets may be written to by specifying unique `sheet_name`.
+    With all data written to the file it is necessary to save the changes.
+    Note that creating an `ExcelWriter` object with a file name that already
+    exists will result in the contents of the existing file being erased.
 
     Parameters
     ----------
@@ -9950,6 +9951,25 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if path_or_buf is None:
             return formatter.path_or_buf.getvalue()
+
+    @Appender(_shared_docs["to_excel"] % dict(klass="object"))
+    def to_excel(self, excel_writer, sheet_name="Sheet1", na_rep="",
+                 float_format=None, columns=None, header=True, index=True,
+                 index_label=None, startrow=0, startcol=0, engine=None,
+                 merge_cells=True, encoding=None, inf_rep="inf", verbose=True,
+                 freeze_panes=None):
+        df = self if isinstance(self, ABCDataFrame) else self.to_frame()
+
+        from pandas.io.formats.excel import ExcelFormatter
+        formatter = ExcelFormatter(df, na_rep=na_rep, cols=columns,
+                                   header=header,
+                                   float_format=float_format, index=index,
+                                   index_label=index_label,
+                                   merge_cells=merge_cells,
+                                   inf_rep=inf_rep)
+        formatter.write(excel_writer, sheet_name=sheet_name, startrow=startrow,
+                        startcol=startcol, freeze_panes=freeze_panes,
+                        engine=engine)
 
 
 def _doc_parms(cls):
