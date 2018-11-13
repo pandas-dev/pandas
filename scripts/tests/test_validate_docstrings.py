@@ -668,6 +668,12 @@ class BadExamples(object):
         pass
 
 
+class NoDocstrings(object):
+
+    def method_wo_docstrings(self):
+        pass
+
+
 class TestValidator(object):
 
     def _import_path(self, klass=None, func=None):
@@ -717,6 +723,13 @@ class TestValidator(object):
     def test_bad_class(self):
         errors = validate_one(self._import_path(
             klass='BadGenericDocStrings'))['errors']
+        assert isinstance(errors, list)
+        assert errors
+
+    @capture_stderr
+    def test_bad_class(self):
+        errors = validate_one(self._import_path(
+            klass='NoDocstrings'))['errors']
         assert isinstance(errors, list)
         assert errors
 
@@ -812,6 +825,8 @@ class TestValidator(object):
           'E226 missing whitespace around arithmetic operator',)),
         ('BadExamples', 'missing_whitespace_after_comma',
          ("flake8 error: E231 missing whitespace after ',' (3 times)",)),
+        ('NoDocstrings', 'method_wo_docstrings',
+          (""))
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))
