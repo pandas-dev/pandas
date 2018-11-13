@@ -386,7 +386,7 @@ def group_quantile(ndarray[float64_t] out,
                    ndarray[int64_t] labels,
                    numeric[:] values,
                    ndarray[uint8_t] mask,
-                   double_t q,
+                   float64_t q,
                    object interpolation):
     """
     Calculate the quantile per group.
@@ -399,7 +399,7 @@ def group_quantile(ndarray[float64_t] out,
         Array containing the unique group labels.
     values : ndarray
         Array containing the values to apply the function against.
-    q : double
+    q : float
         The quantile value to search for.
 
     Notes
@@ -412,7 +412,7 @@ def group_quantile(ndarray[float64_t] out,
         int64_t lab, ngroups, grp_sz, non_na_sz, grp_start=0, idx=0
         uint8_t interp, offset
         numeric val, next_val
-        double_t q_idx, frac
+        float64_t q_idx, frac
         ndarray[int64_t] counts, non_na_counts
         ndarray[int64_t] sort_arr
 
@@ -450,7 +450,7 @@ def group_quantile(ndarray[float64_t] out,
 
             # Calculate where to retrieve the desired value
             # Casting to int will intentionaly truncate result
-            idx = grp_start + <int64_t>(q * <double_t>(non_na_sz - 1))
+            idx = grp_start + <int64_t>(q * <float64_t>(non_na_sz - 1))
 
             val = values[sort_arr[idx]]
             # If requested quantile falls evenly on a particular index
