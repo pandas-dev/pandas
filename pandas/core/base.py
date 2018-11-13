@@ -675,7 +675,7 @@ class IndexOpsMixin(object):
         return self
 
     T = property(transpose, doc="Return the transpose, which is by "
-                                "definition self")
+                                "definition self.")
 
     @property
     def _is_homogeneous_type(self):
