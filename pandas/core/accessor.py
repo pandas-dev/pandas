@@ -11,7 +11,7 @@ from pandas.util._decorators import Appender
 
 
 class DirNamesMixin(object):
-    _accessors = frozenset([])
+    _accessors = frozenset()
     _deprecations = frozenset(
         ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides'])
 
