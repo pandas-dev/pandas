@@ -271,6 +271,20 @@ class TestDatetimeArray(SharedTests):
         with pytest.raises(AssertionError):
             arr._concat_same_type([arr, other])
 
+    def test_concat_same_type_different_freq(self):
+        # we *can* concatentate DTI with different freqs.
+        a = DatetimeArray(pd.date_range('2000', periods=2, freq='D',
+                                        tz='US/Central'))
+        b = DatetimeArray(pd.date_range('2000', periods=2, freq='H',
+                                        tz='US/Central'))
+        result = DatetimeArray._concat_same_type([a, b])
+        expected = DatetimeArray(pd.to_datetime([
+            '2000-01-01 00:00:00', '2000-01-02 00:00:00',
+            '2000-01-01 00:00:00', '2000-01-01 01:00:00',
+        ]).tz_localize("US/Central"))
+
+        tm.assert_datetime_array_equal(result, expected)
+
 
 class TestTimedeltaArray(SharedTests):
     index_cls = pd.TimedeltaIndex
@@ -338,18 +352,6 @@ class TestTimedeltaArray(SharedTests):
         with pytest.raises(ValueError):
             # fill_value Period invalid
             arr.take([0, 1], allow_fill=True, fill_value=now.to_period('D'))
-
-    def test_concat_same_type_invalid(self, timedelta_index):
-        # different freqs
-        tdi = timedelta_index
-        arr = TimedeltaArray(tdi)
-        other = pd.timedelta_range('1D', periods=5, freq='2D')
-        # FIXME: TimedeltaArray should inherit freq='2D' without specifying it
-        other = TimedeltaArray(other, freq='2D')
-        assert other.freq != arr.freq
-
-        with pytest.raises(AssertionError):
-            arr._concat_same_type([arr, other])
 
 
 class TestPeriodArray(SharedTests):
