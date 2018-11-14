@@ -118,7 +118,7 @@ See the package overview for more detail about what's in the library.
     {{ single_doc }}
     {% endif -%}
     {% if not single_doc -%}
-    whatsnew
+    What's New <whatsnew/v0.24.0>
     install
     contributing
     overview
@@ -159,5 +159,5 @@ See the package overview for more detail about what's in the library.
     developer
     internals
     extending
-    release
+    releases
     {% endif -%}
