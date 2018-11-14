@@ -297,7 +297,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             #  also complex or categorical or other extension
             copy = False
             if lib.infer_dtype(data) == 'integer':
-                # TODO: This is an ugly special-casing; can we avoid it?
                 data = data.astype(np.int64)
             else:
                 data = tools.to_datetime(data, dayfirst=dayfirst,
