@@ -25,8 +25,7 @@ from pandas.core import ops
 from pandas import (
     Timestamp, Timedelta, Period, Series, date_range, NaT,
     DatetimeIndex, TimedeltaIndex)
-from pandas.core.arrays import (
-    DatetimeArrayMixin as DatetimeArray, TimedeltaArrayMixin as TimedeltaArray)
+from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 
 
 # ------------------------------------------------------------------
