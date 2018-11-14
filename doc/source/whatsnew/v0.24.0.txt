@@ -239,6 +239,7 @@ Other Enhancements
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have gained the ``nonexistent`` argument for alternative handling of nonexistent times. See :ref:`timeseries.timezone_nonexistent` (:issue:`8917`)
 - :meth:`read_excel()` now accepts ``usecols`` as a list of column names or callable (:issue:`18273`)
 - :meth:`MultiIndex.to_flat_index` has been added to flatten multiple levels into a single-level :class:`Index` object.
+- :meth:`DataFrame.to_stata` and :class:` pandas.io.stata.StataWriter117` can write mixed sting columns to Stata strl format (:issue:`23633`)
 
 .. _whatsnew_0240.api_breaking:
 
@@ -1206,6 +1207,7 @@ Numeric
 - Bug in :class:`DataFrame` with ``timedelta64[ns]`` dtype arithmetic operations with ``ndarray`` with integer dtype incorrectly treating the narray as ``timedelta64[ns]`` dtype (:issue:`23114`)
 - Bug in :meth:`Series.rpow` with object dtype ``NaN`` for ``1 ** NA`` instead of ``1`` (:issue:`22922`).
 - :meth:`Series.agg` can now handle numpy NaN-aware methods like :func:`numpy.nansum` (:issue:`19629`)
+- Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``pct=True`` and more than 2:sup:`24` rows are present resulted in percentages greater than 1.0 (:issue:`18271`)
 
 Strings
 ^^^^^^^

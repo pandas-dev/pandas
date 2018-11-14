@@ -12,7 +12,7 @@ from pandas._libs.tslibs import (
     conversion, fields, timezones,
     resolution as libresolution)
 
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly, Appender
 from pandas.errors import PerformanceWarning
 from pandas import compat
 
@@ -21,8 +21,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_int64_dtype,
     is_datetime64tz_dtype,
-    is_datetime64_dtype,
-    ensure_int64)
+    is_datetime64_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -294,7 +293,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
             if tz is not None and index.tz is None:
                 arr = conversion.tz_localize_to_utc(
-                    ensure_int64(index.values),
+                    index.asi8,
                     tz, ambiguous=ambiguous)
 
                 index = cls(arr)
@@ -317,7 +316,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
 
-        return cls._simple_new(index.values, freq=freq, tz=tz)
+        return cls._simple_new(index.asi8, freq=freq, tz=tz)
 
     # -----------------------------------------------------------------
     # Descriptive Properties
@@ -418,6 +417,25 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                                                  box="timestamp")
             for v in converted:
                 yield v
+
+    # ----------------------------------------------------------------
+    # ExtensionArray Interface
+
+    @property
+    def _ndarray_values(self):
+        return self._data
+
+    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
+    def _validate_fill_value(self, fill_value):
+        if isna(fill_value):
+            fill_value = iNaT
+        elif isinstance(fill_value, (datetime, np.datetime64)):
+            self._assert_tzawareness_compat(fill_value)
+            fill_value = Timestamp(fill_value).value
+        else:
+            raise ValueError("'fill_value' should be a Timestamp. "
+                             "Got '{got}'.".format(got=fill_value))
+        return fill_value
 
     # -----------------------------------------------------------------
     # Comparison Methods
