@@ -18,11 +18,16 @@ import pandas.util.testing as tm
 
 class TestDatetimeIndex(object):
 
-    def test_td64_deprecation(self):
+    def test_dti_with_timedelta64_data_deprecation(self):
         # GH#23675
         data = np.array([0], dtype='m8[ns]')
         with tm.assert_produces_warning(FutureWarning):
             result = DatetimeIndex(data)
+
+        assert result[0] == Timestamp('1970-01-01')
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = DatetimeIndex(pd.TimedeltaIndex(data))
 
         assert result[0] == Timestamp('1970-01-01')
 
