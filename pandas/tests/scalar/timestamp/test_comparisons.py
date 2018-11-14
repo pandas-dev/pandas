@@ -5,17 +5,8 @@ import operator
 import pytest
 import numpy as np
 
-from dateutil.tz import tzutc
-from pytz import utc
-
 from pandas.compat import long, PY2
 from pandas import Timestamp
-
-
-utc_objs = ['utc', utc, tzutc()]
-if not PY2:
-    from datetime import timezone
-    utc_objs.append(timezone.utc)
 
 
 class TestTimestampComparison(object):
@@ -95,11 +86,10 @@ class TestTimestampComparison(object):
         assert val != np.float64(1)
         assert val != np.int64(1)
 
-    @pytest.mark.parametrize('utc_obj', utc_objs)
-    def test_cant_compare_tz_naive_w_aware(self, utc_obj):
+    def test_cant_compare_tz_naive_w_aware(self, utc_objs):
         # see GH#1404
         a = Timestamp('3/12/2012')
-        b = Timestamp('3/12/2012', tz=utc_obj)
+        b = Timestamp('3/12/2012', tz=utc_objs)
 
         with pytest.raises(TypeError):
             a == b
