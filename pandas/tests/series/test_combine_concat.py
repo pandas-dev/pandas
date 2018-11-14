@@ -121,32 +121,27 @@ class TestSeriesCombine(object):
                              columns=['a', 'b', 'c'])
         assert_frame_equal(df, expected)
 
-    def test_update_dtypes(self):
-        s = Series([1., 2., False, True])
-        other = Series([45], index=[0])
+    @pytest.mark.parametrize('other_values', [
+        [61, 63],       # int
+        [61., 63.],     # float, but can be cast to int
+        [61.1, 63.1],   # float, cannot be cast to int
+        [(61,), (63,)]  # object
+    ], ids=['int', 'float_castable', 'float', 'object'])
+    @pytest.mark.parametrize('caller_dtype', ['int', 'float', object])
+    def test_update_dtypes(self, caller_dtype, other_values):
+        caller_values = [10, 11, 12]
+        s = Series(caller_values, dtype=caller_dtype)
+        other = Series(other_values, index=[1, 3])
         s.update(other)
 
-        expected = Series([45., 2., False, True])
+        expected_values = [caller_values[0], other_values[0], caller_values[2]]
+        try:
+            # we keep original dtype whenever possible
+            expected = Series(expected_values, dtype=caller_dtype)
+        except ValueError:
+            expected = Series(expected_values)
+        print(s, expected)
         assert_series_equal(s, expected)
-
-        s = Series([10, 11, 12])
-        s_copy = s.copy()
-        other = Series([61, 63], index=[1, 3])
-        s_copy.update(other)
-
-        expected = Series([10, 61, 12])
-        assert_series_equal(s_copy, expected)
-
-        # we always try to keep original dtype, even if other has different one
-        s_copy = s.copy()
-        s_copy.update(other.astype(float))
-        assert_series_equal(s_copy, expected)
-
-        # if keeping the dtype is not possible, we allow upcasting
-        s_copy = s.copy()
-        s_copy.update(other + 0.1)
-        expected = Series([10., 61.1, 12.])
-        assert_series_equal(s_copy, expected)
 
     def test_concat_empty_series_dtypes_roundtrips(self):
 
