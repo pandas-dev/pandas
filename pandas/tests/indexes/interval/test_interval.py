@@ -839,12 +839,13 @@ class TestIntervalIndex(Base):
         index = self.create_index(closed=closed)
         set_op = getattr(index, op_name)
 
-        # non-IntervalIndexf
-        expected = getattr(index.astype('O'), op_name)(Index([1, 2, 3]))
+        # non-IntervalIndex
+        if op_name == 'difference':
+            expected = index
+        else:
+            expected = getattr(index.astype('O'), op_name)(Index([1, 2, 3]))
         result = set_op(Index([1, 2, 3]))
         tm.assert_index_equal(result, expected)
-
-        # Come back to mixed interval types
 
         # mixed closed
         msg = ('can only do set operations between two IntervalIndex objects '
