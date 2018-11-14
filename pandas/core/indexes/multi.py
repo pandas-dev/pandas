@@ -1496,6 +1496,34 @@ class MultiIndex(Index):
                                sortorder=sortorder,
                                names=names)
 
+    @classmethod
+    def from_data(cls, data, orient='columns', sortorder=None, names=None):
+        from pandas import DataFrame
+
+        is_df = isinstance(data, DataFrame)
+        try:
+            df = DataFrame(data)
+        except ValueError:
+            raise TypeError("'from_data' input must be valid DataFrame input.")
+        if orient == 'rows':
+            df = df.T
+
+        if not is_df:
+            df.columns = [None for _ in range(len(df.columns))]
+
+        if names is None:
+            pass
+        elif is_list_like(names):
+            if len(names) != len(df.columns):
+                    raise ValueError("'names' should have same length as "
+                                     "number of columns in df.")
+        else:
+            raise TypeError("'names' must be a list / sequence of column "
+                            "names.")
+        return cls.from_arrays([df.iloc[:, x] for x in range(len(df.columns))],
+                               sortorder=sortorder,
+                               names=names)
+
     def _sort_levels_monotonic(self):
         """
         .. versionadded:: 0.20.0
