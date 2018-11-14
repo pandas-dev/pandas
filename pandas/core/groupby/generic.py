@@ -18,6 +18,7 @@ from pandas._libs import Timestamp, lib
 import pandas.compat as compat
 from pandas.compat import lzip, map
 from pandas.compat.numpy import _np_version_under1p13
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -240,7 +241,7 @@ class NDFrameGroupBy(GroupBy):
         return self._wrap_generic_output(result, obj)
 
     def _wrap_aggregated_output(self, output, names=None):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _aggregate_item_by_item(self, func, *args, **kwargs):
         # only for axis==0
@@ -410,7 +411,9 @@ class NDFrameGroupBy(GroupBy):
                         if (isinstance(v.index, MultiIndex) or
                                 key_index is None or
                                 isinstance(key_index, MultiIndex)):
-                            stacked_values = np.vstack(map(np.asarray, values))
+                            stacked_values = np.vstack([
+                                np.asarray(v) for v in values
+                            ])
                             result = DataFrame(stacked_values, index=key_index,
                                                columns=index)
                         else:
@@ -422,7 +425,8 @@ class NDFrameGroupBy(GroupBy):
                                             axis=self.axis).unstack()
                             result.columns = index
                     else:
-                        stacked_values = np.vstack(map(np.asarray, values))
+                        stacked_values = np.vstack([np.asarray(v)
+                                                    for v in values])
                         result = DataFrame(stacked_values.T, index=v.index,
                                            columns=key_index)
 
@@ -583,14 +587,17 @@ class NDFrameGroupBy(GroupBy):
         try:
             res_fast = fast_path(group)
 
-            # compare that we get the same results
+            # verify fast path does not change columns (and names), otherwise
+            # its results cannot be joined with those of the slow path
+            if res_fast.columns != group.columns:
+                return path, res
+            # verify numerical equality with the slow path
             if res.shape == res_fast.shape:
                 res_r = res.values.ravel()
                 res_fast_r = res_fast.values.ravel()
                 mask = notna(res_r)
-            if (res_r[mask] == res_fast_r[mask]).all():
-                path = fast_path
-
+                if (res_r[mask] == res_fast_r[mask]).all():
+                    path = fast_path
         except Exception:
             pass
         return path, res
@@ -727,7 +734,7 @@ class SeriesGroupBy(GroupBy):
     1    1    2
     2    3    4
 
-    See also
+    See Also
     --------
     pandas.Series.groupby.apply
     pandas.Series.groupby.transform
@@ -1282,7 +1289,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
     1   1   2  0.590716
     2   3   4  0.704907
 
-    See also
+    See Also
     --------
     pandas.DataFrame.groupby.apply
     pandas.DataFrame.groupby.transform
@@ -1653,4 +1660,4 @@ class PanelGroupBy(NDFrameGroupBy):
             raise ValueError("axis value must be greater than 0")
 
     def _wrap_aggregated_output(self, output, names=None):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)

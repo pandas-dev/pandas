@@ -8,7 +8,6 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 import pandas as pd
 from pandas.core.arrays import PeriodArray
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 @pytest.fixture
@@ -75,9 +74,7 @@ class TestMethods(BasePeriodTests, base.BaseMethodsTests):
 
 class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
 
-    def test_no_values_attribute(self, data):
-        # We have a values attribute.
-        pass
+    pass
 
 
 class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
@@ -116,7 +113,7 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
         s = pd.Series(data)
         msg = (r"unsupported operand type\(s\) for \+: "
                r"\'PeriodArray\' and \'PeriodArray\'")
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             s + data
 
     def test_error(self):

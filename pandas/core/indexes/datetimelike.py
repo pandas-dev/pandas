@@ -4,44 +4,33 @@ Base and utility classes for tseries type pandas objects.
 """
 import warnings
 
-from pandas import compat
-from pandas.compat.numpy import function as nv
-from pandas.core.tools.timedeltas import to_timedelta
-
 import numpy as np
 
-from pandas._libs import lib, iNaT, NaT
-from pandas._libs.tslibs.timestamps import round_nsint64, RoundTo
+from pandas._libs import NaT, iNaT, lib
+from pandas._libs.tslibs.timestamps import RoundTo, round_nsint64
+import pandas.compat as compat
+from pandas.compat.numpy import function as nv
+from pandas.errors import AbstractMethodError
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    ensure_int64,
-    is_dtype_equal,
-    is_float,
-    is_integer,
-    is_list_like,
-    is_scalar,
-    is_bool_dtype,
-    is_period_dtype,
-    is_categorical_dtype,
-    is_datetime_or_timedelta_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_string_dtype)
-from pandas.core.dtypes.generic import (
-    ABCIndex, ABCSeries, ABCIndexClass)
+    ensure_int64, is_bool_dtype, is_categorical_dtype,
+    is_datetime_or_timedelta_dtype, is_dtype_equal, is_float, is_float_dtype,
+    is_integer, is_integer_dtype, is_list_like, is_object_dtype,
+    is_period_dtype, is_scalar, is_string_dtype)
+import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
-from pandas.core import common as com, algorithms, ops
+
+from pandas.core import algorithms, ops
+from pandas.core.arrays import PeriodArray
+from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+import pandas.core.indexes.base as ibase
+from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.tools.timedeltas import to_timedelta
 
 import pandas.io.formats.printing as printing
 
-from pandas.core.arrays import PeriodArray
-from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
-from pandas.core.indexes.base import Index, _index_shared_docs
-from pandas.util._decorators import Appender, cache_readonly
-import pandas.core.dtypes.concat as _concat
-
-import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
@@ -102,6 +91,8 @@ class TimelikeOps(object):
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            Only relevant for DatetimeIndex:
+
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False designates
@@ -110,7 +101,6 @@ class TimelikeOps(object):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-            Only relevant for DatetimeIndex
 
             .. versionadded:: 0.24.0
         nonexistent : 'shift', 'NaT', default 'raise'
@@ -446,7 +436,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         Return the minimum value of the Index or minimum along
         an axis.
 
-        See also
+        See Also
         --------
         numpy.ndarray.min
         """
@@ -475,7 +465,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         See `numpy.ndarray.argmin` for more information on the
         `axis` parameter.
 
-        See also
+        See Also
         --------
         numpy.ndarray.argmin
         """
@@ -496,7 +486,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         Return the maximum value of the Index or maximum along
         an axis.
 
-        See also
+        See Also
         --------
         numpy.ndarray.max
         """
@@ -525,7 +515,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         See `numpy.ndarray.argmax` for more information on the
         `axis` parameter.
 
-        See also
+        See Also
         --------
         numpy.ndarray.argmax
         """
@@ -543,7 +533,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     @property
     def _formatter_func(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _format_attrs(self):
         """

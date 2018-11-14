@@ -4,9 +4,9 @@ Template for each `dtype` helper function for rank
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # rank_1d, rank_2d
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 {{py:
 
@@ -74,9 +74,9 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
     {{elif dtype == 'float64'}}
     mask = np.isnan(values)
     {{elif dtype == 'int64'}}
-    mask = values == iNaT
+    mask = values == NPY_NAT
 
-    # create copy in case of iNaT
+    # create copy in case of NPY_NAT
     # values are mutated inplace
     if mask.any():
         values = values.copy()
@@ -149,7 +149,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
             {{if dtype != 'uint64'}}
             isnan = sorted_mask[i]
             if isnan and keep_na:
-                ranks[argsorted[i]] = nan
+                ranks[argsorted[i]] = NaN
                 continue
             {{endif}}
 
@@ -257,7 +257,7 @@ def rank_2d_{{dtype}}(object in_arr, axis=0, ties_method='average',
     {{elif dtype == 'float64'}}
     mask = np.isnan(values)
     {{elif dtype == 'int64'}}
-    mask = values == iNaT
+    mask = values == NPY_NAT
     {{endif}}
 
     np.putmask(values, mask, nan_value)
@@ -317,7 +317,7 @@ def rank_2d_{{dtype}}(object in_arr, axis=0, ties_method='average',
             {{else}}
             if (val == nan_value) and keep_na:
             {{endif}}
-                ranks[i, argsorted[i, j]] = nan
+                ranks[i, argsorted[i, j]] = NaN
 
                 {{if dtype == 'object'}}
                 infs += 1

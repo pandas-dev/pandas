@@ -84,6 +84,8 @@ cdef to_offset(object obj):
     Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
     imports
     """
+    if isinstance(obj, _BaseOffset):
+        return obj
     from pandas.tseries.frequencies import to_offset
     return to_offset(obj)
 
@@ -306,8 +308,13 @@ class _BaseOffset(object):
 
     def __eq__(self, other):
         if is_string_object(other):
-            other = to_offset(other)
-
+            try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return False
         try:
             return self._params == other._params
         except AttributeError:
@@ -346,6 +353,7 @@ class _BaseOffset(object):
 
     def __add__(self, other):
         if getattr(other, "_typ", None) in ["datetimeindex", "periodindex",
+                                            "datetimearray", "periodarray",
                                             "series", "period", "dataframe"]:
             # defer to the other class's implementation
             return other + self
@@ -532,7 +540,8 @@ cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
     New month number after shifting npy_datetimestruct
     number of months.
     """
-    cdef int new_month = (dts.month + months) % 12
+    cdef:
+        int new_month = (dts.month + months) % 12
     return 12 if new_month == 0 else new_month
 
 
