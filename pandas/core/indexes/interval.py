@@ -1040,14 +1040,13 @@ class IntervalIndex(IntervalMixin, Index):
         def func(self, other):
             try:
                 other = self._as_like_interval_index(other)
-            # allow ValueError from this method to raise to catch mixed closed
-            # except only Non-Interval index mismatches.
+            # dont catch ValueError so that mixed closed interval indexes raise
+            # only catch Non-Interval index mismatches.
             except TypeError:
-                # Currently this will cause difference operations to return
-                # object dtype as opposed to IntervalIndex, unlike other Index
-                # objects that return the same type when using `difference` on
-                # mismatched types
-                return getattr(self.astype('O'), op_name)(other)
+                result = getattr(self.astype('O'), op_name)(other)
+                if op_name in ('difference'):
+                    result = result.astype(self.dtype)
+                return result
 
             # GH 19016: ensure set op will not return a prohibited dtype
             subtypes = [self.dtype.subtype, other.dtype.subtype]
