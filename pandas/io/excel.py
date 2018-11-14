@@ -175,12 +175,16 @@ convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally
+mangle_dupe_cols : boolean, default True
+    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
+    'X'...'X'. Passing in False will cause data to be overwritten if there
+    are duplicate names in the columns.
 
 Returns
 -------
 parsed : DataFrame or Dict of DataFrames
-    DataFrame from the passed in Excel file.  See notes in sheet_name
-    argument for more information on when a Dict of Dataframes is returned.
+    DataFrame from the passed in Excel file. See notes in sheet_name
+    argument for more information on when a dict of DataFrames is returned.
 
 Examples
 --------
@@ -314,6 +318,7 @@ def read_excel(io,
                comment=None,
                skipfooter=0,
                convert_float=True,
+               mangle_dupe_cols=True,
                **kwds):
 
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
@@ -349,6 +354,7 @@ def read_excel(io,
         comment=comment,
         skipfooter=skipfooter,
         convert_float=convert_float,
+        mangle_dupe_cols=mangle_dupe_cols,
         **kwds)
 
 
@@ -441,6 +447,7 @@ class ExcelFile(object):
               comment=None,
               skipfooter=0,
               convert_float=True,
+              mangle_dupe_cols=True,
               **kwds):
         """
         Parse specified sheet(s) into a DataFrame
@@ -476,6 +483,7 @@ class ExcelFile(object):
                                  comment=comment,
                                  skipfooter=skipfooter,
                                  convert_float=convert_float,
+                                 mangle_dupe_cols=mangle_dupe_cols,
                                  **kwds)
 
     def _parse_excel(self,
@@ -498,6 +506,7 @@ class ExcelFile(object):
                      comment=None,
                      skipfooter=0,
                      convert_float=True,
+                     mangle_dupe_cols=True,
                      **kwds):
 
         _validate_header_arg(header)
@@ -667,6 +676,7 @@ class ExcelFile(object):
                                     comment=comment,
                                     skipfooter=skipfooter,
                                     usecols=usecols,
+                                    mangle_dupe_cols=mangle_dupe_cols,
                                     **kwds)
 
                 output[asheetname] = parser.read(nrows=nrows)
