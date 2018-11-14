@@ -1405,7 +1405,6 @@ class _IXIndexer(_NDFrameIndexer):
     usually better to be explicit and use ``.iloc`` or ``.loc``.
 
     See more at :ref:`Advanced Indexing <advanced>`.
-
     """
 
     def __init__(self, name, obj):

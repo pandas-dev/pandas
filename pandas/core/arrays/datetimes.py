@@ -746,7 +746,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         1   2018-10-28 02:36:00+02:00
         2   2018-10-28 03:46:00+01:00
         dtype: datetime64[ns, CET]
-
         """
         if errors is not None:
             warnings.warn("The errors argument is deprecated and will be "

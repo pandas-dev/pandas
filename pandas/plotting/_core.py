@@ -2460,7 +2460,6 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     See Also
     --------
     matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
-
     """
     import matplotlib.pyplot as plt
 

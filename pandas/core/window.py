@@ -547,7 +547,6 @@ class Window(_Window):
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
 
-
     Contrasting to an integer rolling window, this will roll a variable
     length window corresponding to the time period.
     The default for min_periods is 1.
