@@ -1462,6 +1462,15 @@ class TestRank(object):
         with pytest.raises(TypeError, match=msg):
             algos.rank(arr)
 
+    @pytest.mark.parametrize('values', [
+        np.arange(2**24 + 1),
+        np.arange(2**25 + 2).reshape(2**24 + 1, 2)],
+        ids=['1d', '2d'])
+    def test_pct_max_many_rows(self, values):
+        # GH 18271
+        result = algos.rank(values, pct=True).max()
+        assert result == 1
+
 
 def test_pad_backfill_object_segfault():
 

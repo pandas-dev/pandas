@@ -495,3 +495,10 @@ def test_rank_first_pct(dtype, ser, exp):
         result = s.rank(method='first', pct=True)
         expected = Series(exp).astype(result.dtype)
         assert_series_equal(result, expected)
+
+
+def test_pct_max_many_rows():
+        # GH 18271
+        s = Series(np.arange(2**24 + 1))
+        result = s.rank(pct=True).max()
+        assert result == 1
