@@ -449,9 +449,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             new_values = self.copy()
         return new_values
 
-    def copy(self, deep=False):
-        return type(self)(self._data.copy(), freq=self.freq)
-
     def value_counts(self, dropna=False):
         from pandas import Series, PeriodIndex
 
