@@ -476,13 +476,7 @@ def _concat_datetimetz(to_concat, name=None):
     all inputs must be DatetimeIndex
     it is used in DatetimeIndex.append also
     """
-    # do not pass tz to set because tzlocal cannot be hashed
-    if len({str(x.dtype) for x in to_concat}) != 1:
-        raise ValueError('to_concat must have the same tz')
-    tz = to_concat[0].tz
-    # no need to localize because internal repr will not be changed
-    new_values = np.concatenate([x.asi8 for x in to_concat])
-    return to_concat[0]._simple_new(new_values, tz=tz, name=name)
+    return to_concat[0]._concat_same_dtype(to_concat, name=name)
 
 
 def _concat_index_same_dtype(indexes, klass=None):

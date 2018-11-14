@@ -9,6 +9,7 @@ from pandas._libs.tslibs import Timedelta, Timestamp, NaT, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64, parse_timedelta_unit)
+from pandas.util._decorators import Appender
 
 from pandas import compat
 
@@ -139,7 +140,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         result._freq = freq
         return result
 
-    def __new__(cls, values, freq=None):
+    def __new__(cls, values, freq=None, dtype=_TD_DTYPE):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
@@ -192,6 +193,17 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
+
+    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
+    def _validate_fill_value(self, fill_value):
+        if isna(fill_value):
+            fill_value = iNaT
+        elif isinstance(fill_value, (timedelta, np.timedelta64, Tick)):
+            fill_value = Timedelta(fill_value).value
+        else:
+            raise ValueError("'fill_value' should be a Timedelta. "
+                             "Got '{got}'.".format(got=fill_value))
+        return fill_value
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
