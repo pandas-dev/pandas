@@ -80,16 +80,16 @@ def test_numpy_argsort(idx):
     # backwards compatibility concerns
     if isinstance(type(idx), (CategoricalIndex, RangeIndex)):
         msg = "the 'axis' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg,
-                               np.argsort, idx, axis=1)
+        with pytest.raises(ValueError, match=msg):
+            np.argsort(idx, axis=1)
 
         msg = "the 'kind' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.argsort,
-                               idx, kind='mergesort')
+        with pytest.raises(ValueError, match=msg):
+            np.argsort(idx, kind='mergesort')
 
         msg = "the 'order' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.argsort,
-                               idx, order=('a', 'b'))
+        with pytest.raises(ValueError, match=msg):
+            np.argsort(idx, order=('a', 'b'))
 
 
 def test_unsortedindex():

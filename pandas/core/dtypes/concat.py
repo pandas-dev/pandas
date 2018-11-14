@@ -101,27 +101,6 @@ def _get_frame_result_type(result, objs):
                                                           ABCSparseDataFrame))
 
 
-def _get_sliced_frame_result_type(data, obj):
-    """
-    return appropriate class of Series. When data is sparse
-    it will return a SparseSeries, otherwise it will return
-    the Series.
-
-    Parameters
-    ----------
-    data : array-like
-    obj : DataFrame
-
-    Returns
-    -------
-    Series or SparseSeries
-    """
-    if is_sparse(data):
-        from pandas.core.sparse.api import SparseSeries
-        return SparseSeries
-    return obj._constructor_sliced
-
-
 def _concat_compat(to_concat, axis=0):
     """
     provide concatenation of an array of arrays each of which is a single
@@ -497,13 +476,7 @@ def _concat_datetimetz(to_concat, name=None):
     all inputs must be DatetimeIndex
     it is used in DatetimeIndex.append also
     """
-    # do not pass tz to set because tzlocal cannot be hashed
-    if len({str(x.dtype) for x in to_concat}) != 1:
-        raise ValueError('to_concat must have the same tz')
-    tz = to_concat[0].tz
-    # no need to localize because internal repr will not be changed
-    new_values = np.concatenate([x.asi8 for x in to_concat])
-    return to_concat[0]._simple_new(new_values, tz=tz, name=name)
+    return to_concat[0]._concat_same_dtype(to_concat, name=name)
 
 
 def _concat_index_same_dtype(indexes, klass=None):

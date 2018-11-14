@@ -21,7 +21,6 @@ from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas import Interval
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():
@@ -137,7 +136,7 @@ class TestMissing(BaseInterval, base.BaseMissingTests):
 
     def test_non_scalar_raises(self, data_missing):
         msg = "Got a 'list' instead."
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             data_missing.fillna([1, 1])
 
 

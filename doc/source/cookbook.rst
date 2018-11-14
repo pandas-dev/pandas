@@ -968,7 +968,7 @@ Parsing date components in multi-columns
 
 Parsing date components in multi-columns is faster with a format
 
-.. code-block:: python
+.. code-block:: ipython
 
     In [30]: i = pd.date_range('20000101',periods=10000)
 
@@ -1265,6 +1265,7 @@ The `method` argument within `DataFrame.corr` can accept a callable in addition 
     ...     std_b = np.sqrt(np.sqrt(np.nansum(B**2)) / n)
     ...
     ...     return cov_ab / std_a / std_b
+    ...
     ...
     >>> df = pd.DataFrame(np.random.normal(size=(100, 3)))
     ...

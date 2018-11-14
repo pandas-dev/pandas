@@ -205,7 +205,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
     See Also
     --------
-    match : analogous, but stricter, relying on re.match instead of re.search
+    match : Analogous, but stricter, relying on re.match instead of re.search.
     Series.str.startswith : Test if the start of each string element matches a
         pattern.
     Series.str.endswith : Same as startswith, but tests the end of string.
@@ -659,7 +659,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
         If True, case sensitive
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
-    na : default NaN, fill value for missing values.
+    na : default NaN, fill value for missing values
 
     Returns
     -------
@@ -667,9 +667,9 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
 
     See Also
     --------
-    contains : analogous, but less strict, relying on re.search instead of
-        re.match
-    extract : extract matched groups
+    contains : Analogous, but less strict, relying on re.search instead of
+        re.match.
+    extract : Extract matched groups.
 
     """
     if not case:
@@ -803,7 +803,7 @@ def str_extract(arr, pat, flags=0, expand=True):
 
     See Also
     --------
-    extractall : returns all matches (not just the first match)
+    extractall : Returns all matches (not just the first match).
 
     Examples
     --------
@@ -890,7 +890,7 @@ def str_extractall(arr, pat, flags=0):
 
     See Also
     --------
-    extract : returns first match only (not all matches)
+    extract : Returns first match only (not all matches).
 
     Examples
     --------
@@ -2104,8 +2104,8 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        split : Split each string in the Series/Index
-        join : Join lists contained as elements in the Series/Index
+        split : Split each string in the Series/Index.
+        join : Join lists contained as elements in the Series/Index.
 
         Examples
         --------
@@ -2665,7 +2665,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Parameters
     ----------
-    to_strip : str or None, default None.
+    to_strip : str or None, default None
         Specifying the set of characters to be removed.
         All combinations of this set of characters will be stripped.
         If None then whitespaces are removed.
@@ -2676,9 +2676,9 @@ class StringMethods(NoNewAttributesMixin):
 
     See Also
     --------
-    Series.str.strip : Remove leading and trailing characters in Series/Index
-    Series.str.lstrip : Remove leading characters in Series/Index
-    Series.str.rstrip : Remove trailing characters in Series/Index
+    Series.str.strip : Remove leading and trailing characters in Series/Index.
+    Series.str.lstrip : Remove leading characters in Series/Index.
+    Series.str.rstrip : Remove trailing characters in Series/Index.
 
     Examples
     --------
