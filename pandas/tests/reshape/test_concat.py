@@ -1010,6 +1010,21 @@ class TestAppend(ConcatenateBase):
         assert appended['A'].dtype == 'f8'
         assert appended['B'].dtype == 'O'
 
+    def test_append_empty_frame_to_series_with_dateutil_tz(self):
+        # GH 23682
+        date = Timestamp('2018-10-24 07:30:00', tz=dateutil.tz.UTC)
+        s = Series({'date': date, 'a': 1.0, 'b': 2.0})
+        df = DataFrame(columns=['c', 'd'])
+        result = df.append(s, ignore_index=True)
+        expected = DataFrame([[np.nan, np.nan, 1., 2., date]],
+                             columns=['c', 'd', 'a', 'b', 'date'])
+        # These columns get cast to object after append
+        object_cols = ['c', 'd', 'date']
+        expected.loc[:, object_cols] = expected.loc[:, object_cols].astype(
+            object
+        )
+        assert_frame_equal(result, expected)
+
 
 class TestConcatenate(ConcatenateBase):
 
