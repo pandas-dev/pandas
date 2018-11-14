@@ -1641,13 +1641,15 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
 
     if n == 0:
         return False
-
+    # Get a reference timezone to compare with the rest
     for i in range(n):
         base_val = values[i]
         if base_val is not NaT:
             base_tz = get_timezone(getattr(base_val, 'tzinfo', None))
             break
 
+    # Compare the reference timezone with the rest of the timezones
+    # in the array
     for j in range(i, n):
         val = values[j]
         if val is not NaT:

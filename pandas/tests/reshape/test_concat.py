@@ -1012,7 +1012,7 @@ class TestAppend(ConcatenateBase):
 
     def test_append_empty_frame_to_series_with_dateutil_tz(self):
         # GH 23682
-        date = Timestamp('2018-10-24 07:30:00', tz=dateutil.tz.UTC)
+        date = Timestamp('2018-10-24 07:30:00', tz=dateutil.tz.tzutc())
         s = Series({'date': date, 'a': 1.0, 'b': 2.0})
         df = DataFrame(columns=['c', 'd'])
         result = df.append(s, ignore_index=True)
