@@ -1008,7 +1008,7 @@ Other API Changes
 - :class:`DateOffset` attribute `_cacheable` and method `_should_cache` have been removed (:issue:`23118`)
 - Comparing :class:`Timedelta` to be less or greater than unknown types now raises a ``TypeError`` instead of returning ``False`` (:issue:`20829`)
 - :meth:`Categorical.searchsorted`, when supplied a scalar value to search for, now returns a scalar instead of an array (:issue:`23466`).
-- :meth:`Categorical.searchsorted` now raises a ``keyError`` rather that a ``ValueError``, if a search for key is not found in its categories (:issue:`23466`).
+- :meth:`Categorical.searchsorted` now raises a ``KeyError`` rather that a ``ValueError``, if a searched for key is not found in its categories (:issue:`23466`).
 - :meth:`Index.hasnans` and :meth:`Series.hasnans` now always return a python boolean. Previously, a python or a numpy boolean could be returned, depending on circumstances (:issue:`23294`).
 - The order of the arguments of :func:`DataFrame.to_html` and :func:`DataFrame.to_string` is rearranged to be consistent with each other. (:issue:`23614`)
 
@@ -1132,7 +1132,6 @@ Performance Improvements
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 - Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`, :issue:`21606`)
-- Improved performance of :meth:`Categorical.searchsorted` (:issue:`23466`)
 - Improved performance of membership checks in :class:`Categorical` and :class:`CategoricalIndex`
   (i.e. ``x in cat``-style checks are much faster). :meth:`CategoricalIndex.contains`
   is likewise much faster (:issue:`21369`, :issue:`21508`)
