@@ -106,14 +106,14 @@ def panel_index(time, panels, names=None):
 
 class Panel(NDFrame):
     """
-    Represents wide format panel data, stored as 3-dimensional array
+    Represents wide format panel data, stored as 3-dimensional array.
 
-   .. deprecated:: 0.20.0
-       The recommended way to represent 3-D data are with a MultiIndex on a
-       DataFrame via the :attr:`~Panel.to_frame()` method or with the
-       `xarray package <http://xarray.pydata.org/en/stable/>`__.
-       Pandas provides a :attr:`~Panel.to_xarray()` method to automate this
-       conversion.
+    .. deprecated:: 0.20.0
+        The recommended way to represent 3-D data are with a MultiIndex on a
+        DataFrame via the :attr:`~Panel.to_frame()` method or with the
+        `xarray package <http://xarray.pydata.org/en/stable/>`__.
+        Pandas provides a :attr:`~Panel.to_xarray()` method to automate this
+        conversion.
 
     Parameters
     ----------
@@ -330,7 +330,7 @@ class Panel(NDFrame):
     # ----------------------------------------------------------------------
     # Comparison methods
 
-    def _compare_constructor(self, other, func, try_cast=True):
+    def _compare_constructor(self, other, func):
         if not self._indexed_same(other):
             raise Exception('Can only compare identically-labeled '
                             'same type objects')
@@ -745,13 +745,13 @@ class Panel(NDFrame):
                 "{otype!s} is not supported in combine operation with "
                 "{selftype!s}".format(otype=type(other), selftype=type(self)))
 
-    def _combine_const(self, other, func, try_cast=True):
+    def _combine_const(self, other, func):
         with np.errstate(all='ignore'):
             new_values = func(self.values, other)
         d = self._construct_axes_dict()
         return self._constructor(new_values, **d)
 
-    def _combine_frame(self, other, func, axis=0, try_cast=True):
+    def _combine_frame(self, other, func, axis=0):
         index, columns = self._get_plane_axes(axis)
         axis = self._get_axis_number(axis)
 
@@ -770,7 +770,7 @@ class Panel(NDFrame):
         return self._constructor(new_values, self.items, self.major_axis,
                                  self.minor_axis)
 
-    def _combine_panel(self, other, func, try_cast=True):
+    def _combine_panel(self, other, func):
         items = self.items.union(other.items)
         major = self.major_axis.union(other.major_axis)
         minor = self.minor_axis.union(other.minor_axis)
@@ -1013,21 +1013,21 @@ class Panel(NDFrame):
 
         Returns a Panel with the square root of each element
 
-        >>> p = pd.Panel(np.random.rand(4,3,2))
+        >>> p = pd.Panel(np.random.rand(4, 3, 2))  # doctest: +SKIP
         >>> p.apply(np.sqrt)
 
         Equivalent to p.sum(1), returning a DataFrame
 
-        >>> p.apply(lambda x: x.sum(), axis=1)
+        >>> p.apply(lambda x: x.sum(), axis=1)  # doctest: +SKIP
 
         Equivalent to previous:
 
-        >>> p.apply(lambda x: x.sum(), axis='major')
+        >>> p.apply(lambda x: x.sum(), axis='major')  # doctest: +SKIP
 
         Return the shapes of each DataFrame over axis 2 (i.e the shapes of
         items x major), as a Series
 
-        >>> p.apply(lambda x: x.shape, axis=(0,1))
+        >>> p.apply(lambda x: x.shape, axis=(0,1))  # doctest: +SKIP
 
         Returns
         -------

@@ -9,14 +9,15 @@ Ultimately, the goal is to remove test cases from this
 test suite as new feature support is added to the parsers.
 """
 
-import pandas.io.parsers as parsers
-import pandas.util.testing as tm
+import pytest
 
 from pandas.compat import StringIO
 from pandas.errors import ParserError
-from pandas.io.parsers import read_csv
 
-import pytest
+import pandas.util.testing as tm
+
+import pandas.io.parsers as parsers
+from pandas.io.parsers import read_csv
 
 
 @pytest.fixture(params=["python", "python-fwf"], ids=lambda val: val)
@@ -32,7 +33,7 @@ class TestUnsupportedFeatures(object):
         msg = 'is not supported'
 
         for engine in ('c', 'python'):
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 read_csv(StringIO(data), engine=engine,
                          mangle_dupe_cols=False)
 
@@ -42,14 +43,14 @@ class TestUnsupportedFeatures(object):
         msg = 'does not support'
 
         # specify C engine with unsupported options (raise)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             read_csv(StringIO(data), engine='c',
                      sep=None, delim_whitespace=False)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             read_csv(StringIO(data), engine='c', sep=r'\s')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             read_csv(StringIO(data), engine='c', sep='\t', quotechar=chr(128))
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             read_csv(StringIO(data), engine='c', skipfooter=1)
 
         # specify C-unsupported options without python-unsupported options
@@ -69,9 +70,9 @@ a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         msg = 'Error tokenizing data'
 
-        with tm.assert_raises_regex(ParserError, msg):
+        with pytest.raises(ParserError, match=msg):
             read_csv(StringIO(text), sep='\\s+')
-        with tm.assert_raises_regex(ParserError, msg):
+        with pytest.raises(ParserError, match=msg):
             read_csv(StringIO(text), engine='c', sep='\\s+')
 
         msg = "Only length-1 thousands markers supported"
@@ -79,14 +80,14 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 1|2,334|5
 10|13|10.
 """
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             read_csv(StringIO(data), thousands=',,')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             read_csv(StringIO(data), thousands='')
 
         msg = "Only length-1 line terminators supported"
         data = 'a,b,c~~1,2,3~~4,5,6'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             read_csv(StringIO(data), lineterminator='~~')
 
     def test_python_engine(self, python_engine):
@@ -103,7 +104,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                    'with the %r engine' % (default, python_engine))
 
             kwargs = {default: object()}
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 read_csv(StringIO(data), engine=python_engine, **kwargs)
 
     def test_python_engine_file_no_next(self, python_engine):
@@ -121,7 +122,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         data = "a\n1"
         msg = "The 'python' engine cannot iterate"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             read_csv(NoNextBuffer(data), engine=python_engine)
 
 

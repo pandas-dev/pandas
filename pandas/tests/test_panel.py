@@ -177,8 +177,8 @@ class SafeForLongAndSparse(object):
 
         # Unimplemented numeric_only parameter.
         if 'numeric_only' in signature(f).args:
-            tm.assert_raises_regex(NotImplementedError, name, f,
-                                   numeric_only=True)
+            with pytest.raises(NotImplementedError, match=name):
+                f(numeric_only=True)
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
@@ -221,10 +221,10 @@ class SafeForSparse(object):
         assert self.panel._get_axis_number('major') == 1
         assert self.panel._get_axis_number('minor') == 2
 
-        with tm.assert_raises_regex(ValueError, "No axis named foo"):
+        with pytest.raises(ValueError, match="No axis named foo"):
             self.panel._get_axis_number('foo')
 
-        with tm.assert_raises_regex(ValueError, "No axis named foo"):
+        with pytest.raises(ValueError, match="No axis named foo"):
             self.panel.__ge__(self.panel, axis='foo')
 
     def test_get_axis_name(self):
@@ -502,10 +502,9 @@ class CheckIndexing(object):
 
         # bad shape
         p = Panel(np.random.randn(4, 3, 2))
-        with tm.assert_raises_regex(ValueError,
-                                    r"shape of value must be "
-                                    r"\(3, 2\), shape of given "
-                                    r"object was \(4, 2\)"):
+        msg = (r"shape of value must be \(3, 2\), "
+               r"shape of given object was \(4, 2\)")
+        with pytest.raises(ValueError, match=msg):
             p[0] = np.random.randn(4, 2)
 
     def test_setitem_ndarray(self):
@@ -853,9 +852,8 @@ class CheckIndexing(object):
                     assert_almost_equal(result, expected)
         with catch_warnings():
             simplefilter("ignore", FutureWarning)
-            with tm.assert_raises_regex(TypeError,
-                                        "There must be an argument "
-                                        "for each axis"):
+            msg = "There must be an argument for each axis"
+            with pytest.raises(TypeError, match=msg):
                 self.panel.get_value('a')
 
     def test_set_value(self):
@@ -880,7 +878,7 @@ class CheckIndexing(object):
 
             msg = ("There must be an argument for each "
                    "axis plus the value provided")
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 self.panel.set_value('a')
 
 
@@ -1015,7 +1013,8 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             _check_dtype(panel, dtype)
 
     def test_constructor_fails_with_not_3d_input(self):
-        with tm.assert_raises_regex(ValueError, "The number of dimensions required is 3"):  # noqa
+        msg = "The number of dimensions required is 3"
+        with pytest.raises(ValueError, match=msg):
                 Panel(np.random.randn(10, 2))
 
     def test_consolidate(self):
@@ -1144,35 +1143,23 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
         assert panel['A'].values.dtype == np.float64
 
     def test_constructor_error_msgs(self):
-        def testit():
+        msg = (r"Shape of passed values is \(3, 4, 5\), "
+               r"indices imply \(4, 5, 5\)")
+        with pytest.raises(ValueError, match=msg):
             Panel(np.random.randn(3, 4, 5),
                   lrange(4), lrange(5), lrange(5))
 
-        tm.assert_raises_regex(ValueError,
-                               r"Shape of passed values is "
-                               r"\(3, 4, 5\), indices imply "
-                               r"\(4, 5, 5\)",
-                               testit)
-
-        def testit():
+        msg = (r"Shape of passed values is \(3, 4, 5\), "
+               r"indices imply \(5, 4, 5\)")
+        with pytest.raises(ValueError, match=msg):
             Panel(np.random.randn(3, 4, 5),
                   lrange(5), lrange(4), lrange(5))
 
-        tm.assert_raises_regex(ValueError,
-                               r"Shape of passed values is "
-                               r"\(3, 4, 5\), indices imply "
-                               r"\(5, 4, 5\)",
-                               testit)
-
-        def testit():
+        msg = (r"Shape of passed values is \(3, 4, 5\), "
+               r"indices imply \(5, 5, 4\)")
+        with pytest.raises(ValueError, match=msg):
             Panel(np.random.randn(3, 4, 5),
                   lrange(5), lrange(5), lrange(4))
-
-        tm.assert_raises_regex(ValueError,
-                               r"Shape of passed values is "
-                               r"\(3, 4, 5\), indices imply "
-                               r"\(5, 5, 4\)",
-                               testit)
 
     def test_conform(self):
         df = self.panel['ItemA'][:-5].filter(items=['A', 'B'])
@@ -1634,12 +1621,12 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
         assert_panel_equal(result, expected)
 
         # duplicate axes
-        with tm.assert_raises_regex(TypeError,
-                                    'not enough/duplicate arguments'):
+        with pytest.raises(TypeError,
+                           match='not enough/duplicate arguments'):
             self.panel.transpose('minor', maj='major', minor='items')
 
-        with tm.assert_raises_regex(ValueError,
-                                    'repeated axis in transpose'):
+        with pytest.raises(ValueError,
+                           match='repeated axis in transpose'):
             self.panel.transpose('minor', 'major', major='minor',
                                  minor='items')
 
@@ -1833,8 +1820,9 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
         # #2441
         df = DataFrame({'a': [0, 0, 1], 'b': [1, 1, 1], 'c': [1, 2, 3]})
         idf = df.set_index(['a', 'b'])
-        tm.assert_raises_regex(
-            ValueError, 'non-uniquely indexed', idf.to_panel)
+
+        with pytest.raises(ValueError, match='non-uniquely indexed'):
+            idf.to_panel()
 
     def test_panel_dups(self):
 
@@ -1954,8 +1942,8 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
         shifted3 = ps.tshift(freq=BDay())
         assert_panel_equal(shifted, shifted3)
 
-        tm.assert_raises_regex(ValueError, 'does not match',
-                               ps.tshift, freq='M')
+        with pytest.raises(ValueError, match='does not match'):
+            ps.tshift(freq='M')
 
         # DatetimeIndex
         panel = make_test_panel()
@@ -2067,7 +2055,8 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
         assert_panel_equal(expected, result)
 
         msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.round, p, out=p)
+        with pytest.raises(ValueError, match=msg):
+            np.round(p, out=p)
 
     # removing Panel before NumPy enforces, so just ignore
     @pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
@@ -2110,16 +2099,16 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
     def test_rename(self):
         mapper = {'ItemA': 'foo', 'ItemB': 'bar', 'ItemC': 'baz'}
 
-        renamed = self.panel.rename_axis(mapper, axis=0)
+        renamed = self.panel.rename(items=mapper)
         exp = Index(['foo', 'bar', 'baz'])
         tm.assert_index_equal(renamed.items, exp)
 
-        renamed = self.panel.rename_axis(str.lower, axis=2)
+        renamed = self.panel.rename(minor_axis=str.lower)
         exp = Index(['a', 'b', 'c', 'd'])
         tm.assert_index_equal(renamed.minor_axis, exp)
 
         # don't copy
-        renamed_nocopy = self.panel.rename_axis(mapper, axis=0, copy=False)
+        renamed_nocopy = self.panel.rename(items=mapper, copy=False)
         renamed_nocopy['foo'] = 3.
         assert (self.panel['ItemA'].values == 3).all()
 
@@ -2493,8 +2482,8 @@ class TestPanelFrame(object):
     def test_to_sparse(self):
         if isinstance(self.panel, Panel):
             msg = 'sparsifying is not supported'
-            tm.assert_raises_regex(NotImplementedError, msg,
-                                   self.panel.to_sparse)
+            with pytest.raises(NotImplementedError, match=msg):
+                self.panel.to_sparse
 
     def test_truncate(self):
         dates = self.panel.index.levels[0]

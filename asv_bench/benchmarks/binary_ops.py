@@ -9,8 +9,6 @@ except ImportError:
 
 class Ops(object):
 
-    goal_time = 0.2
-
     params = [[True, False], ['default', 1]]
     param_names = ['use_numexpr', 'threads']
 
@@ -41,8 +39,6 @@ class Ops(object):
 
 
 class Ops2(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**3
@@ -81,8 +77,6 @@ class Ops2(object):
 
 class Timeseries(object):
 
-    goal_time = 0.2
-
     params = [None, 'US/Eastern']
     param_names = ['tz']
 
@@ -109,8 +103,6 @@ class Timeseries(object):
 
 class AddOverflowScalar(object):
 
-    goal_time = 0.2
-
     params = [1, -1, 0]
     param_names = ['scalar']
 
@@ -123,8 +115,6 @@ class AddOverflowScalar(object):
 
 
 class AddOverflowArray(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**6

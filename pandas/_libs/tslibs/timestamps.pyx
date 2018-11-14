@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import enum
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
@@ -16,13 +17,13 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 from util cimport (is_datetime64_object, is_timedelta64_object,
-                   is_integer_object, is_string_object, is_array)
+                   is_integer_object, is_string_object, is_array,
+                   is_offset_object)
 
 cimport ccalendar
 from conversion import tz_localize_to_utc, normalize_i8_timestamps
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
-import enum
 from fields import get_start_end_field, get_date_name_field
 from nattype import NaT
 from nattype cimport NPY_NAT
@@ -40,7 +41,18 @@ from timezones cimport (
 _zero_time = datetime_time(0, 0)
 _no_input = object()
 
+
 # ----------------------------------------------------------------------
+
+def maybe_integer_op_deprecated(obj):
+    # GH#22535 add/sub of integers and int-arrays is deprecated
+    if obj.freq is not None:
+        warnings.warn("Addition/subtraction of integers and integer-arrays "
+                      "to {cls} is deprecated, will be removed in a future "
+                      "version.  Instead of adding/subtracting `n`, use "
+                      "`n * self.freq`"
+                      .format(cls=type(obj).__name__),
+                      FutureWarning)
 
 
 cdef inline object create_timestamp_from_ts(int64_t value,
@@ -107,6 +119,7 @@ cdef inline _npdivmod(x1, x2):
 try:
     from numpy import divmod as npdivmod
 except ImportError:
+    # numpy < 1.13
     npdivmod = _npdivmod
 
 
@@ -165,7 +178,8 @@ def round_nsint64(values, mode, freq):
 
     # if/elif above should catch all rounding modes defined in enum 'RoundTo':
     # if flow of control arrives here, it is a bug
-    assert False, "round_nsint64 called with an unrecognized rounding mode"
+    raise AssertionError("round_nsint64 called with an unrecognized "
+                         "rounding mode")
 
 
 # This is PITA. Because we inherit from datetime, which has very specific
@@ -267,7 +281,8 @@ cdef class _Timestamp(datetime):
 
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
                                          int op) except -1:
-        cdef datetime dtval = self.to_pydatetime()
+        cdef:
+            datetime dtval = self.to_pydatetime()
 
         self._assert_tzawareness_compat(other)
 
@@ -287,8 +302,7 @@ cdef class _Timestamp(datetime):
             elif op == Py_GE:
                 return dtval >= other
 
-    cdef int _assert_tzawareness_compat(_Timestamp self,
-                                        object other) except -1:
+    cdef _assert_tzawareness_compat(_Timestamp self, datetime other):
         if self.tzinfo is None:
             if other.tzinfo is not None:
                 raise TypeError('Cannot compare tz-naive and tz-aware '
@@ -296,7 +310,7 @@ cdef class _Timestamp(datetime):
         elif other.tzinfo is None:
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 
-    cpdef datetime to_pydatetime(_Timestamp self, warn=True):
+    cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):
         """
         Convert a Timestamp object to a native Python datetime object.
 
@@ -315,7 +329,8 @@ cdef class _Timestamp(datetime):
         return np.datetime64(self.value, 'ns')
 
     def __add__(self, other):
-        cdef int64_t other_int, nanos
+        cdef:
+            int64_t other_int, nanos
 
         if is_timedelta64_object(other):
             other_int = other.astype('timedelta64[ns]').view('i8')
@@ -323,6 +338,8 @@ cdef class _Timestamp(datetime):
                              tz=self.tzinfo, freq=self.freq)
 
         elif is_integer_object(other):
+            maybe_integer_op_deprecated(self)
+
             if self is NaT:
                 # to be compat with Period
                 return NaT
@@ -716,12 +733,15 @@ class Timestamp(_Timestamp):
         if ts.value == NPY_NAT:
             return NaT
 
-        if is_string_object(freq):
+        if freq is None:
+            # GH 22311: Try to extract the frequency of a given Timestamp input
+            freq = getattr(ts_input, 'freq', None)
+        elif not is_offset_object(freq):
             freq = to_offset(freq)
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
 
-    def _round(self, freq, mode, ambiguous='raise'):
+    def _round(self, freq, mode, ambiguous='raise', nonexistent='raise'):
         if self.tz is not None:
             value = self.tz_localize(None).value
         else:
@@ -733,10 +753,12 @@ class Timestamp(_Timestamp):
         r = round_nsint64(value, mode, freq)[0]
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
-            result = result.tz_localize(self.tz, ambiguous=ambiguous)
+            result = result.tz_localize(
+                self.tz, ambiguous=ambiguous, nonexistent=nonexistent
+            )
         return result
 
-    def round(self, freq, ambiguous='raise'):
+    def round(self, freq, ambiguous='raise', nonexistent='raise'):
         """
         Round the Timestamp to the specified resolution
 
@@ -754,14 +776,27 @@ class Timestamp(_Timestamp):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
 
         Raises
         ------
         ValueError if the freq cannot be converted
         """
-        return self._round(freq, RoundTo.NEAREST_HALF_EVEN, ambiguous)
+        return self._round(
+            freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
+        )
 
-    def floor(self, freq, ambiguous='raise'):
+    def floor(self, freq, ambiguous='raise', nonexistent='raise'):
         """
         return a new Timestamp floored to this resolution
 
@@ -775,14 +810,25 @@ class Timestamp(_Timestamp):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
 
         Raises
         ------
         ValueError if the freq cannot be converted
         """
-        return self._round(freq, RoundTo.MINUS_INFTY, ambiguous)
+        return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
-    def ceil(self, freq, ambiguous='raise'):
+    def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
         """
         return a new Timestamp ceiled to this resolution
 
@@ -796,12 +842,23 @@ class Timestamp(_Timestamp):
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
             .. versionadded:: 0.24.0
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
 
         Raises
         ------
         ValueError if the freq cannot be converted
         """
-        return self._round(freq, RoundTo.PLUS_INFTY, ambiguous)
+        return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
     @property
     def tz(self):
@@ -961,7 +1018,8 @@ class Timestamp(_Timestamp):
     def is_leap_year(self):
         return bool(ccalendar.is_leapyear(self.year))
 
-    def tz_localize(self, tz, ambiguous='raise', errors='raise'):
+    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
+                    errors=None):
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
@@ -973,19 +1031,38 @@ class Timestamp(_Timestamp):
             None will remove timezone holding local time.
 
         ambiguous : bool, 'NaT', default 'raise'
+            When clocks moved backward due to DST, ambiguous times may arise.
+            For example in Central European Time (UTC+01), when going from
+            03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at
+            00:30:00 UTC and at 01:30:00 UTC. In such a situation, the
+            `ambiguous` parameter dictates how ambiguous times should be
+            handled.
+
             - bool contains flags to determine if time is dst or not (note
               that this flag is only applicable for ambiguous fall dst dates)
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
-        errors : 'raise', 'coerce', default 'raise'
+        nonexistent : 'shift', 'NaT', default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift' will shift the nonexistent time forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
+
+            .. versionadded:: 0.24.0
+
+        errors : 'raise', 'coerce', default None
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
                valid in the specified timezone (e.g. due to a transition from
-               or to DST time)
+               or to DST time). Use ``nonexistent='raise'`` instead.
             - 'coerce' will return NaT if the timestamp can not be converted
-              into the specified timezone
+              into the specified timezone. Use ``nonexistent='NaT'`` instead.
 
-              .. versionadded:: 0.19.0
+              .. deprecated:: 0.24.0
 
         Returns
         -------
@@ -999,13 +1076,31 @@ class Timestamp(_Timestamp):
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
 
+        if errors is not None:
+            warnings.warn("The errors argument is deprecated and will be "
+                          "removed in a future release. Use "
+                          "nonexistent='NaT' or nonexistent='raise' "
+                          "instead.", FutureWarning)
+            if errors == 'coerce':
+                nonexistent = 'NaT'
+            elif errors == 'raise':
+                nonexistent = 'raise'
+            else:
+                raise ValueError("The errors argument must be either 'coerce' "
+                                 "or 'raise'.")
+
+        if nonexistent not in ('raise', 'NaT', 'shift'):
+            raise ValueError("The nonexistent argument must be one of 'raise',"
+                             " 'NaT' or 'shift'")
+
         if self.tzinfo is None:
             # tz naive, localize
             tz = maybe_get_tz(tz)
             if not is_string_object(ambiguous):
                 ambiguous = [ambiguous]
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
-                                       ambiguous=ambiguous, errors=errors)[0]
+                                       ambiguous=ambiguous,
+                                       nonexistent=nonexistent)[0]
             return Timestamp(value, tz=tz)
         else:
             if tz is None:

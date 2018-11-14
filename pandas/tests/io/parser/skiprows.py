@@ -8,12 +8,13 @@ parsing for all of the parsers defined in parsers.py
 from datetime import datetime
 
 import numpy as np
+import pytest
 
-import pandas.util.testing as tm
+from pandas.compat import StringIO, lrange, range
+from pandas.errors import EmptyDataError
 
 from pandas import DataFrame
-from pandas.errors import EmptyDataError
-from pandas.compat import StringIO, range, lrange
+import pandas.util.testing as tm
 
 
 class SkipRowsTests(object):
@@ -215,11 +216,11 @@ line 22",2
 
         skiprows = lambda x: True
         msg = "No columns to parse from file"
-        with tm.assert_raises_regex(EmptyDataError, msg):
+        with pytest.raises(EmptyDataError, match=msg):
             self.read_csv(StringIO(data), skiprows=skiprows)
 
         # This is a bad callable and should raise.
         msg = "by zero"
         skiprows = lambda x: 1 / 0
-        with tm.assert_raises_regex(ZeroDivisionError, msg):
+        with pytest.raises(ZeroDivisionError, match=msg):
             self.read_csv(StringIO(data), skiprows=skiprows)

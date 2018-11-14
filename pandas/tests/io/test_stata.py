@@ -15,7 +15,7 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import compat
+import pandas.compat as compat
 from pandas.compat import iterkeys
 from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.frame import DataFrame, Series
@@ -1505,3 +1505,20 @@ class TestStata(object):
         expected = pd.DataFrame(values, columns=columns)
 
         tm.assert_frame_equal(unicode_df, expected)
+
+    def test_mixed_string_strl(self):
+        # GH 23633
+        output = [
+            {'mixed': 'string' * 500,
+             'number': 0},
+            {'mixed': None,
+             'number': 1}
+        ]
+
+        output = pd.DataFrame(output)
+        with tm.ensure_clean() as path:
+            output.to_stata(path, write_index=False, version=117)
+            reread = read_stata(path)
+            expected = output.fillna('')
+            expected.number = expected.number.astype('int32')
+            tm.assert_frame_equal(reread, expected)

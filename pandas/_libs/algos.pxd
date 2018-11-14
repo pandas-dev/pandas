@@ -1,9 +1,6 @@
 from util cimport numeric
 
 
-cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k) nogil
-
-
 cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
     cdef:
         numeric t

@@ -275,7 +275,7 @@ class TestMerge(object):
                'left_index={lidx}, right_index={ridx}'
                .format(lon=None, ron=None, lidx=False, ridx=False))
 
-        with tm.assert_raises_regex(MergeError, msg):
+        with pytest.raises(MergeError, match=msg):
             merge(df1, df2)
 
     def test_merge_non_unique_indexes(self):
@@ -666,8 +666,8 @@ class TestMerge(object):
                               'value_y': [pd.NaT] + list(exp_y)})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
-        assert result['value_x'].dtype == 'object'
-        assert result['value_y'].dtype == 'object'
+        assert result['value_x'].dtype == 'Period[D]'
+        assert result['value_y'].dtype == 'Period[D]'
 
     def test_indicator(self):
         # PR #10054. xref #7412 and closes #8790.
@@ -1472,7 +1472,7 @@ class TestMergeDtypes(object):
                    "If you wish to proceed you should use "
                    "pd.concat".format(lk_dtype=left['A'].dtype,
                                       rk_dtype=right['A'].dtype))
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 pd.merge(left, right, on='A')
 
     @pytest.mark.parametrize('d1', [np.int64, np.int32,
@@ -1599,7 +1599,7 @@ class TestMergeDtypes(object):
                "you should use pd.concat".format(lk_dtype=df1['A'].dtype,
                                                  rk_dtype=df2['A'].dtype))
         msg = re.escape(msg)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             pd.merge(df1, df2, on=['A'])
 
         # Check that error still raised when swapping order of dataframes
@@ -1608,7 +1608,7 @@ class TestMergeDtypes(object):
                "you should use pd.concat".format(lk_dtype=df2['A'].dtype,
                                                  rk_dtype=df1['A'].dtype))
         msg = re.escape(msg)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             pd.merge(df2, df1, on=['A'])
 
 
@@ -1938,6 +1938,6 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nms, nm):
                           left_index=left_index, right_index=right_index)
         tm.assert_frame_equal(result, expected)
     else:
-        with tm.assert_raises_regex(ValueError, 'a Series without a name'):
+        with pytest.raises(ValueError, match='a Series without a name'):
             result = pd.merge(a, b, on=on, left_on=left_on, right_on=right_on,
                               left_index=left_index, right_index=right_index)

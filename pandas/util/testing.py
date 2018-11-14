@@ -1,53 +1,47 @@
 from __future__ import division
-# pylint: disable-msg=W0402
 
-import re
-import string
-import sys
-import tempfile
-import warnings
-import os
-import subprocess
-import locale
-import traceback
-
+from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-from contextlib import contextmanager
+import locale
+import os
+import re
+from shutil import rmtree
+import string
+import subprocess
+import sys
+import tempfile
+import traceback
+import warnings
 
-from numpy.random import randn, rand
 import numpy as np
-
-import pandas as pd
-from pandas.core.arrays import ExtensionArray, IntervalArray
-from pandas.core.dtypes.missing import array_equivalent
-from pandas.core.dtypes.common import (
-    is_datetimelike_v_numeric,
-    is_datetimelike_v_object,
-    is_number, is_bool,
-    needs_i8_conversion,
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_sequence,
-    is_list_like,
-    is_extension_array_dtype)
-from pandas.io.formats.printing import pprint_thing
-from pandas.core.algorithms import take_1d
-import pandas.core.common as com
-
-import pandas.compat as compat
-from pandas.compat import (
-    filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, StringIO, string_types, PY3, PY2)
-
-from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
-                    DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
-                    Index, MultiIndex,
-                    Series, DataFrame, Panel)
+from numpy.random import rand, randn
 
 from pandas._libs import testing as _testing
-from pandas.io.common import urlopen
+import pandas.compat as compat
+from pandas.compat import (
+    PY2, PY3, Counter, StringIO, callable, filter, httplib, lmap, lrange, lzip,
+    map, raise_with_traceback, range, string_types, u, unichr, zip)
 
+from pandas.core.dtypes.common import (
+    is_bool, is_categorical_dtype, is_datetimelike_v_numeric,
+    is_datetimelike_v_object, is_extension_array_dtype, is_interval_dtype,
+    is_list_like, is_number, is_sequence, needs_i8_conversion)
+from pandas.core.dtypes.missing import array_equivalent
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, DatetimeIndex, Index,
+    IntervalIndex, MultiIndex, Panel, PeriodIndex, RangeIndex, Series,
+    TimedeltaIndex, bdate_range)
+from pandas.core.algorithms import take_1d
+from pandas.core.arrays import (
+    DatetimeArrayMixin as DatetimeArray, ExtensionArray, IntervalArray,
+    PeriodArray, period_array)
+import pandas.core.common as com
+
+from pandas.io.common import urlopen
+from pandas.io.formats.printing import pprint_thing
 
 N = 30
 K = 4
@@ -480,8 +474,8 @@ def get_locales(prefix=None, normalize=True,
     if prefix is None:
         return _valid_locales(out_locales, normalize)
 
-    found = re.compile('{prefix}.*'.format(prefix=prefix)) \
-              .findall('\n'.join(out_locales))
+    pattern = re.compile('{prefix}.*'.format(prefix=prefix))
+    found = pattern.findall('\n'.join(out_locales))
     return _valid_locales(found, normalize)
 
 
@@ -758,7 +752,7 @@ def ensure_clean(filename=None, return_filelike=False):
         finally:
             try:
                 os.close(fd)
-            except Exception as e:
+            except Exception:
                 print("Couldn't close file descriptor: {fdesc} (file: {fname})"
                       .format(fdesc=fd, fname=filename))
             try:
@@ -766,6 +760,25 @@ def ensure_clean(filename=None, return_filelike=False):
                     os.remove(filename)
             except Exception as e:
                 print("Exception on removing file: {error}".format(error=e))
+
+
+@contextmanager
+def ensure_clean_dir():
+    """
+    Get a temporary directory path and agrees to remove on close.
+
+    Yields
+    ------
+    Temporary directory path
+    """
+    directory_name = tempfile.mkdtemp(suffix='')
+    try:
+        yield directory_name
+    finally:
+        try:
+            rmtree(directory_name)
+        except Exception:
+            pass
 
 
 # -----------------------------------------------------------------------------
@@ -895,6 +908,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
 
 def assert_class_equal(left, right, exact=True, obj='Input'):
     """checks classes are equal."""
+    __tracebackhide__ = True
 
     def repr_class(x):
         if isinstance(x, Index):
@@ -934,6 +948,7 @@ def assert_attr_equal(attr, left, right, obj='Attributes'):
         Specify object name being compared, internally used to show appropriate
         assertion message
     """
+    __tracebackhide__ = True
 
     left_attr = getattr(left, attr)
     right_attr = getattr(right, attr)
@@ -964,14 +979,14 @@ def assert_is_valid_plot_return_object(objs):
     import matplotlib.pyplot as plt
     if isinstance(objs, (pd.Series, np.ndarray)):
         for el in objs.ravel():
-            msg = ('one of \'objs\' is not a matplotlib Axes instance, type '
-                   'encountered {name!r}').format(name=el.__class__.__name__)
+            msg = ("one of 'objs' is not a matplotlib Axes instance, type "
+                   "encountered {name!r}").format(name=el.__class__.__name__)
             assert isinstance(el, (plt.Axes, dict)), msg
     else:
-        assert isinstance(objs, (plt.Artist, tuple, dict)), \
-            ('objs is neither an ndarray of Artist instances nor a '
-             'single Artist instance, tuple, or dict, "objs" is a {name!r}'
-             ).format(name=objs.__class__.__name__)
+        assert isinstance(objs, (plt.Artist, tuple, dict)), (
+            'objs is neither an ndarray of Artist instances nor a '
+            'single Artist instance, tuple, or dict, "objs" is a {name!r}'
+            .format(name=objs.__class__.__name__))
 
 
 def isiterable(obj):
@@ -1048,6 +1063,23 @@ def assert_interval_array_equal(left, right, exact='equiv',
     assert_attr_equal('closed', left, right, obj=obj)
 
 
+def assert_period_array_equal(left, right, obj='PeriodArray'):
+    _check_isinstance(left, right, PeriodArray)
+
+    assert_numpy_array_equal(left._data, right._data,
+                             obj='{obj}.values'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
+
+
+def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
+    _check_isinstance(left, right, DatetimeArray)
+
+    assert_numpy_array_equal(left._data, right._data,
+                             obj='{obj}._data'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
+    assert_attr_equal('tz', left, right, obj=obj)
+
+
 def raise_assert_detail(obj, message, left, right, diff=None):
     __tracebackhide__ = True
 
@@ -1102,6 +1134,7 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         Specify object name being compared, internally used to show appropriate
         assertion message
     """
+    __tracebackhide__ = True
 
     # instance validation
     # Show a detailed error message when classes are different
@@ -1209,19 +1242,20 @@ def assert_series_equal(left, right, check_dtype=True,
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
-    check_exact : bool, default False
-        Whether to compare number exactly.
+        If int, then specify the digits to compare.
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
+    check_exact : bool, default False
+        Whether to compare number exactly.
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
-        assertion message
+        assertion message.
     """
+    __tracebackhide__ = True
 
     # instance validation
     _check_isinstance(left, right, Series)
@@ -1395,6 +1429,7 @@ def assert_frame_equal(left, right, check_dtype=True,
     Ignore differing dtypes in columns with check_dtype.
     >>> assert_frame_equal(df1, df2, check_dtype=False)
     """
+    __tracebackhide__ = True
 
     # instance validation
     _check_isinstance(left, right, DataFrame)
@@ -1530,12 +1565,20 @@ def assert_equal(left, right, **kwargs):
     right : Index, Series, DataFrame, ExtensionArray, or np.ndarray
     **kwargs
     """
+    __tracebackhide__ = True
+
     if isinstance(left, pd.Index):
         assert_index_equal(left, right, **kwargs)
     elif isinstance(left, pd.Series):
         assert_series_equal(left, right, **kwargs)
     elif isinstance(left, pd.DataFrame):
         assert_frame_equal(left, right, **kwargs)
+    elif isinstance(left, IntervalArray):
+        assert_interval_array_equal(left, right, **kwargs)
+    elif isinstance(left, PeriodArray):
+        assert_period_array_equal(left, right, **kwargs)
+    elif isinstance(left, DatetimeArray):
+        assert_datetime_array_equal(left, right, **kwargs)
     elif isinstance(left, ExtensionArray):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):
@@ -1544,7 +1587,7 @@ def assert_equal(left, right, **kwargs):
         raise NotImplementedError(type(left))
 
 
-def box_expected(expected, box_cls):
+def box_expected(expected, box_cls, transpose=True):
     """
     Helper function to wrap the expected output of a test in a given box_class.
 
@@ -1563,6 +1606,18 @@ def box_expected(expected, box_cls):
         expected = pd.Series(expected)
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
+        if transpose:
+            # for vector operations, we we need a DataFrame to be a single-row,
+            #  not a single-column, in order to operate against non-DataFrame
+            #  vectors of the same length.
+            expected = expected.T
+    elif box_cls is PeriodArray:
+        # the PeriodArray constructor is not as flexible as period_array
+        expected = period_array(expected)
+    elif box_cls is DatetimeArray:
+        expected = DatetimeArray(expected)
+    elif box_cls is np.ndarray:
+        expected = np.array(expected)
     else:
         raise NotImplementedError(box_cls)
     return expected
@@ -2017,8 +2072,9 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
     assert (is_sequence(ndupe_l) and len(ndupe_l) <= nlevels)
     assert (names is None or names is False or
             names is True or len(names) is nlevels)
-    assert idx_type is None or \
-        (idx_type in ('i', 'f', 's', 'u', 'dt', 'p', 'td') and nlevels == 1)
+    assert idx_type is None or (idx_type in ('i', 'f', 's', 'u',
+                                             'dt', 'p', 'td')
+                                and nlevels == 1)
 
     if names is True:
         # build default names
@@ -2145,12 +2201,12 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
 
     assert c_idx_nlevels > 0
     assert r_idx_nlevels > 0
-    assert r_idx_type is None or \
-        (r_idx_type in ('i', 'f', 's',
-                        'u', 'dt', 'p', 'td') and r_idx_nlevels == 1)
-    assert c_idx_type is None or \
-        (c_idx_type in ('i', 'f', 's',
-                        'u', 'dt', 'p', 'td') and c_idx_nlevels == 1)
+    assert r_idx_type is None or (r_idx_type in ('i', 'f', 's',
+                                                 'u', 'dt', 'p', 'td')
+                                  and r_idx_nlevels == 1)
+    assert c_idx_type is None or (c_idx_type in ('i', 'f', 's',
+                                                 'u', 'dt', 'p', 'td')
+                                  and c_idx_nlevels == 1)
 
     columns = makeCustomIndex(ncols, nlevels=c_idx_nlevels, prefix='C',
                               names=c_idx_names, ndupe_l=c_ndupe_l,
@@ -2483,12 +2539,15 @@ with_connectivity_check = network
 
 def assert_raises_regex(_exception, _regexp, _callable=None,
                         *args, **kwargs):
-    """
+    r"""
     Check that the specified Exception is raised and that the error message
     matches a given regular expression pattern. This may be a regular
     expression object or a string containing a regular expression suitable
     for use by `re.search()`. This is a port of the `assertRaisesRegexp`
     function from unittest in Python 2.7.
+
+    .. deprecated:: 0.24.0
+        Use `pytest.raises` instead.
 
     Examples
     --------
@@ -2519,6 +2578,10 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     AssertionError: "banana" does not match "'str' object does not support \
 item assignment"
     """
+    warnings.warn(("assert_raises_regex has been deprecated and will "
+                   "be removed in the next release. Please use "
+                   "`pytest.raises` instead."), FutureWarning, stacklevel=2)
+
     manager = _AssertRaisesContextmanager(exception=_exception, regexp=_regexp)
     if _callable is not None:
         with manager:
@@ -2665,6 +2728,8 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
 
     ..warn:: This is *not* thread-safe.
     """
+    __tracebackhide__ = True
+
     with warnings.catch_warnings(record=True) as w:
 
         if clear is not None:

@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import pytest
 
-from pandas.api.types import is_integer, is_float, is_float_dtype, is_scalar
 from pandas.core.dtypes.generic import ABCIndexClass
 
-from pandas.core.arrays import (
-    integer_array, IntegerArray)
+import pandas as pd
+from pandas.api.types import is_float, is_float_dtype, is_integer, is_scalar
+from pandas.core.arrays import IntegerArray, integer_array
 from pandas.core.arrays.integer import (
-    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,
-    UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype)
-
+    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype, UInt16Dtype,
+    UInt32Dtype, UInt64Dtype)
 from pandas.tests.extension.base import BaseOpsUtil
+import pandas.util.testing as tm
 
 
 def make_data():
@@ -316,11 +314,11 @@ class TestArithmeticOps(BaseOpsUtil):
 
 class TestComparisonOps(BaseOpsUtil):
 
-    def _compare_other(self, s, data, op_name, other):
+    def _compare_other(self, data, op_name, other):
         op = self.get_op_from_name(op_name)
 
         # array
-        result = op(s, other)
+        result = pd.Series(op(data, other))
         expected = pd.Series(op(data._data, other))
 
         # fill the nan locations
@@ -342,14 +340,12 @@ class TestComparisonOps(BaseOpsUtil):
 
     def test_compare_scalar(self, data, all_compare_operators):
         op_name = all_compare_operators
-        s = pd.Series(data)
-        self._compare_other(s, data, op_name, 0)
+        self._compare_other(data, op_name, 0)
 
     def test_compare_array(self, data, all_compare_operators):
         op_name = all_compare_operators
-        s = pd.Series(data)
         other = pd.Series([0] * len(data))
-        self._compare_other(s, data, op_name, other)
+        self._compare_other(data, op_name, other)
 
 
 class TestCasting(object):
@@ -455,17 +451,17 @@ class TestCasting(object):
 
         msg = "cannot safely"
         arr = [1.2, 2.3, 3.7]
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             integer_array(arr, dtype=dtype)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             pd.Series(arr).astype(dtype)
 
         arr = [1.2, 2.3, 3.7, np.nan]
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             integer_array(arr, dtype=dtype)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             pd.Series(arr).astype(dtype)
 
 
@@ -527,9 +523,9 @@ def test_integer_array_constructor():
 
 @pytest.mark.parametrize('a, b', [
     ([1, None], [1, np.nan]),
-    pytest.param([None], [np.nan],
-                 marks=pytest.mark.xfail(reason='GH-23224',
-                                         strict=True)),
+    ([None], [np.nan]),
+    ([None, np.nan], [np.nan, np.nan]),
+    ([np.nan, np.nan], [np.nan, np.nan]),
 ])
 def test_integer_array_constructor_none_is_nan(a, b):
     result = integer_array(a)
@@ -559,7 +555,9 @@ def test_integer_array_constructor_copy():
         1,
         1.0,
         pd.date_range('20130101', periods=2),
-        np.array(['foo'])])
+        np.array(['foo']),
+        [[1, 2], [3, 4]],
+        [np.nan, {'a': 1}]])
 def test_to_integer_array_error(values):
     # error in converting existing arrays to IntegerArrays
     with pytest.raises(TypeError):
@@ -650,9 +648,10 @@ def test_preserve_dtypes(op):
 
     # groupby
     result = getattr(df.groupby("A"), op)()
+
     expected = pd.DataFrame({
         "B": np.array([1.0, 3.0]),
-        "C": np.array([1, 3], dtype="int64")
+        "C": integer_array([1, 3], dtype="Int64")
     }, index=pd.Index(['a', 'b'], name='A'))
     tm.assert_frame_equal(result, expected)
 
@@ -673,19 +672,20 @@ def test_reduce_to_float(op):
 
     # groupby
     result = getattr(df.groupby("A"), op)()
+
     expected = pd.DataFrame({
         "B": np.array([1.0, 3.0]),
-        "C": np.array([1, 3], dtype="float64")
+        "C": integer_array([1, 3], dtype="Int64")
     }, index=pd.Index(['a', 'b'], name='A'))
     tm.assert_frame_equal(result, expected)
 
 
 def test_astype_nansafe():
-    # https://github.com/pandas-dev/pandas/pull/22343
+    # see gh-22343
     arr = integer_array([np.nan, 1, 2], dtype="Int8")
+    msg = "cannot convert float NaN to integer"
 
-    with tm.assert_raises_regex(
-            ValueError, 'cannot convert float NaN to integer'):
+    with pytest.raises(ValueError, match=msg):
         arr.astype('uint32')
 
 

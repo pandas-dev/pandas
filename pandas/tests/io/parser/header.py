@@ -7,13 +7,13 @@ during parsing for all of the parsers defined in parsers.py
 
 from collections import namedtuple
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas.util.testing as tm
+from pandas.compat import StringIO, lrange, u
 
 from pandas import DataFrame, Index, MultiIndex
-from pandas.compat import StringIO, lrange, u
+import pandas.util.testing as tm
 
 
 class HeaderTests(object):
@@ -21,7 +21,7 @@ class HeaderTests(object):
     def test_read_with_bad_header(self):
         errmsg = r"but only \d+ lines in file"
 
-        with tm.assert_raises_regex(ValueError, errmsg):
+        with pytest.raises(ValueError, match=errmsg):
             s = StringIO(',,')
             self.read_csv(s, header=[10])
 
@@ -322,9 +322,9 @@ q,r,s,t,u,v
         # GH 16338
         msg = 'header must be integer or list of integers'
         data = """1,2\n3,4"""
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(data), sep=',', header=['a', 'b'])
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(data), sep=',', header='string_header')
 
     def test_singleton_header(self):

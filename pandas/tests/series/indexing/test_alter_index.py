@@ -1,22 +1,19 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
 from datetime import datetime
 
-import pandas as pd
 import numpy as np
-
 from numpy import nan
+import pytest
 
-from pandas import compat
-
-from pandas import (Series, date_range, isna, Categorical)
+import pandas.compat as compat
 from pandas.compat import lrange, range
 
-from pandas.util.testing import (assert_series_equal)
+import pandas as pd
+from pandas import Categorical, Series, date_range, isna
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
 
 
 @pytest.mark.parametrize(
@@ -462,6 +459,13 @@ def test_reindex_datetimeindexes_tz_naive_and_aware():
         s.reindex(newidx, method='ffill')
 
 
+def test_reindex_empty_series_tz_dtype():
+    # GH 20869
+    result = Series(dtype='datetime64[ns, UTC]').reindex([0, 1])
+    expected = Series([pd.NaT] * 2, dtype='datetime64[ns, UTC]')
+    tm.assert_equal(result, expected)
+
+
 def test_rename():
     # GH 17407
     s = Series(range(1, 6), index=pd.Index(range(2, 7), name='IntIndex'))
@@ -516,7 +520,7 @@ def test_drop_unique_and_non_unique_index(data, index, axis, drop_labels,
 def test_drop_exception_raised(data, index, drop_labels,
                                axis, error_type, error_desc):
 
-    with tm.assert_raises_regex(error_type, error_desc):
+    with pytest.raises(error_type, match=error_desc):
         Series(data, index=index).drop(drop_labels, axis=axis)
 
 
@@ -553,5 +557,5 @@ def test_drop_empty_list(index, drop_labels):
 ])
 def test_drop_non_empty_list(data, index, drop_labels):
     # GH 21494 and GH 16877
-    with tm.assert_raises_regex(KeyError, 'not found in axis'):
+    with pytest.raises(KeyError, match='not found in axis'):
         pd.Series(data=data, index=index).drop(drop_labels)

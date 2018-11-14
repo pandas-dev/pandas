@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from pandas.compat import long
+from pandas.core.arrays import PeriodArray, DatetimeArrayMixin as DatetimeArray
 
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
@@ -70,7 +71,8 @@ def scalar_td(request):
                         pd.Timedelta(days=3).to_pytimedelta(),
                         pd.Timedelta('72:00:00'),
                         np.timedelta64(3, 'D'),
-                        np.timedelta64(72, 'h')])
+                        np.timedelta64(72, 'h')],
+                ids=lambda x: type(x).__name__)
 def three_days(request):
     """
     Several timedelta-like and DateOffset objects that each represent
@@ -84,7 +86,8 @@ def three_days(request):
                         pd.Timedelta(hours=2).to_pytimedelta(),
                         pd.Timedelta(seconds=2 * 3600),
                         np.timedelta64(2, 'h'),
-                        np.timedelta64(120, 'm')])
+                        np.timedelta64(120, 'm')],
+                ids=lambda x: type(x).__name__)
 def two_hours(request):
     """
     Several timedelta-like and DateOffset objects that each represent
@@ -155,17 +158,34 @@ def box_df_fail(request):
     return request.param
 
 
-@pytest.fixture(params=[
-    pd.Index,
-    pd.Series,
-    pytest.param(pd.DataFrame,
-                 marks=pytest.mark.xfail(reason="Tries to broadcast "
-                                                "incorrectly",
-                                         strict=True, raises=ValueError))
-], ids=lambda x: x.__name__)
-def box_df_broadcast_failure(request):
+@pytest.fixture(params=[(pd.Index, False),
+                        (pd.Series, False),
+                        (pd.DataFrame, False),
+                        pytest.param((pd.DataFrame, True),
+                                     marks=pytest.mark.xfail(strict=True))],
+                ids=lambda x: x[0].__name__ + '-' + str(x[1]))
+def box_transpose_fail(request):
     """
-    Fixture equivalent to `box` but with the common failing case where
-    the DataFrame operation tries to broadcast incorrectly.
+    Fixture similar to `box` but testing both transpose cases for DataFrame,
+    with the tranpose=True case xfailed.
+    """
+    # GH#23620
+    return request.param
+
+
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, PeriodArray],
+                ids=lambda x: x.__name__)
+def box_with_period(request):
+    """
+    Like `box`, but specific to PeriodDtype for also testing PeriodArray
+    """
+    return request.param
+
+
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, DatetimeArray],
+                ids=lambda x: x.__name__)
+def box_with_datetime(request):
+    """
+    Like `box`, but specific to datetime64 for also testing DatetimeArray
     """
     return request.param

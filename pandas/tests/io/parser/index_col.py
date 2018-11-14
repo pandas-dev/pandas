@@ -8,10 +8,10 @@ the parsers defined in parsers.py
 
 import pytest
 
-import pandas.util.testing as tm
+from pandas.compat import StringIO
 
 from pandas import DataFrame, Index, MultiIndex
-from pandas.compat import StringIO
+import pandas.util.testing as tm
 
 
 class IndexColTests(object):
@@ -140,4 +140,32 @@ baz,7,8,9
         data = 'x,y'
         result = self.read_csv(StringIO(data), index_col=False)
         expected = DataFrame([], columns=['x', 'y'])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("index_names", [
+        ["", ""],
+        ["foo", ""],
+        ["", "bar"],
+        ["foo", "bar"],
+        ["NotReallyUnnamed", "Unnamed: 0"],
+    ])
+    def test_multi_index_naming(self, index_names):
+        # We don't want empty index names being replaced with "Unnamed: 0"
+        data = ",".join(index_names + ["col\na,c,1\na,d,2\nb,c,3\nb,d,4"])
+        result = self.read_csv(StringIO(data), index_col=[0, 1])
+
+        expected = DataFrame({"col": [1, 2, 3, 4]},
+                             index=MultiIndex.from_product([["a", "b"],
+                                                            ["c", "d"]]))
+        expected.index.names = [name if name else None for name in index_names]
+        tm.assert_frame_equal(result, expected)
+
+    def test_multi_index_naming_not_all_at_beginning(self):
+        data = ",Unnamed: 2,\na,c,1\na,d,2\nb,c,3\nb,d,4"
+        result = self.read_csv(StringIO(data), index_col=[0, 2])
+
+        expected = DataFrame({"Unnamed: 2": ["c", "d", "c", "d"]},
+                             index=MultiIndex(
+                                 levels=[['a', 'b'], [1, 2, 3, 4]],
+                                 labels=[[0, 0, 1, 1], [0, 1, 2, 3]]))
         tm.assert_frame_equal(result, expected)

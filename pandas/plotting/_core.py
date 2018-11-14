@@ -12,6 +12,7 @@ import numpy as np
 from pandas.util._decorators import cache_readonly, Appender
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
+from pandas.errors import AbstractMethodError
 
 import pandas.core.common as com
 from pandas.core.base import PandasObject
@@ -373,7 +374,7 @@ class MPLPlot(object):
         self.data = numeric_data
 
     def _make_plot(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _add_table(self):
         if self.table is False:
@@ -3491,7 +3492,7 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        matplotlib.pyplot.scatter : scatter plot using multiple input data
+        matplotlib.pyplot.scatter : Scatter plot using multiple input data
             formats.
 
         Examples
@@ -3567,7 +3568,7 @@ class FramePlotMethods(BasePlotMethods):
         See Also
         --------
         DataFrame.plot : Make plots of a DataFrame.
-        matplotlib.pyplot.hexbin : hexagonal binning plot using matplotlib,
+        matplotlib.pyplot.hexbin : Hexagonal binning plot using matplotlib,
             the matplotlib function that is used under the hood.
 
         Examples

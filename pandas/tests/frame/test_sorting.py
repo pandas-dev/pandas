@@ -21,14 +21,6 @@ from pandas.tests.frame.common import TestData
 
 class TestDataFrameSorting(TestData):
 
-    def test_sort(self):
-        frame = DataFrame(np.arange(16).reshape(4, 4), index=[1, 2, 3, 4],
-                          columns=['A', 'B', 'C', 'D'])
-
-        # see gh-9816
-        with tm.assert_produces_warning(FutureWarning):
-            frame.sortlevel()
-
     def test_sort_values(self):
         frame = DataFrame([[1, 1, 2], [3, 1, 0], [4, 5, 6]],
                           index=[1, 2, 3], columns=list('ABC'))
@@ -87,7 +79,7 @@ class TestDataFrameSorting(TestData):
         assert_frame_equal(sorted_df, expected)
 
         msg = r'Length of ascending \(5\) != length of by \(2\)'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             frame.sort_values(by=['A', 'B'], axis=0, ascending=[True] * 5)
 
     def test_sort_values_inplace(self):
@@ -277,7 +269,7 @@ class TestDataFrameSorting(TestData):
 
     def test_frame_column_inplace_sort_exception(self):
         s = self.frame['A']
-        with tm.assert_raises_regex(ValueError, "This Series is a view"):
+        with pytest.raises(ValueError, match="This Series is a view"):
             s.sort_values(inplace=True)
 
         cp = s.copy()
@@ -455,26 +447,26 @@ class TestDataFrameSortIndexKinds(TestData):
         df = DataFrame([lrange(5, 9), lrange(4)],
                        columns=['a', 'a', 'b', 'b'])
 
-        with tm.assert_raises_regex(ValueError, 'not unique'):
+        with pytest.raises(ValueError, match='not unique'):
             # use .sort_values #9816
             with tm.assert_produces_warning(FutureWarning):
                 df.sort_index(by='a')
-        with tm.assert_raises_regex(ValueError, 'not unique'):
+        with pytest.raises(ValueError, match='not unique'):
             df.sort_values(by='a')
 
-        with tm.assert_raises_regex(ValueError, 'not unique'):
+        with pytest.raises(ValueError, match='not unique'):
             # use .sort_values #9816
             with tm.assert_produces_warning(FutureWarning):
                 df.sort_index(by=['a'])
-        with tm.assert_raises_regex(ValueError, 'not unique'):
+        with pytest.raises(ValueError, match='not unique'):
             df.sort_values(by=['a'])
 
-        with tm.assert_raises_regex(ValueError, 'not unique'):
+        with pytest.raises(ValueError, match='not unique'):
             # use .sort_values #9816
             with tm.assert_produces_warning(FutureWarning):
                 # multi-column 'by' is separate codepath
                 df.sort_index(by=['a', 'b'])
-        with tm.assert_raises_regex(ValueError, 'not unique'):
+        with pytest.raises(ValueError, match='not unique'):
             # multi-column 'by' is separate codepath
             df.sort_values(by=['a', 'b'])
 
@@ -482,11 +474,11 @@ class TestDataFrameSortIndexKinds(TestData):
         # GH4370
         df = DataFrame(np.random.randn(4, 2),
                        columns=MultiIndex.from_tuples([('a', 0), ('a', 1)]))
-        with tm.assert_raises_regex(ValueError, 'level'):
+        with pytest.raises(ValueError, match='level'):
             # use .sort_values #9816
             with tm.assert_produces_warning(FutureWarning):
                 df.sort_index(by='a')
-        with tm.assert_raises_regex(ValueError, 'level'):
+        with pytest.raises(ValueError, match='level'):
             df.sort_values(by='a')
 
         # convert tuples to a list of tuples

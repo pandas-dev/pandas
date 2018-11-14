@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 from datetime import datetime
 
 import numpy as np
+import pytest
+
+from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DatetimeIndex, Index, Interval,
+    IntervalIndex, NaT, Series, Timestamp, date_range, period_range,
+    timedelta_range)
 import pandas.util.testing as tm
-from pandas import (Categorical, Index, Series, Timestamp,
-                    CategoricalIndex, date_range, DatetimeIndex,
-                    period_range, timedelta_range, NaT,
-                    Interval, IntervalIndex)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 
 class TestCategoricalConstructors(object):
@@ -25,10 +26,10 @@ class TestCategoricalConstructors(object):
         # This should be a boolean.
         ordered = np.array([0, 1, 2])
 
-        with tm.assert_raises_regex(exp_err, exp_msg):
+        with pytest.raises(exp_err, match=exp_msg):
             Categorical([1, 2, 3], ordered=ordered)
 
-        with tm.assert_raises_regex(exp_err, exp_msg):
+        with pytest.raises(exp_err, match=exp_msg):
             Categorical.from_codes([0, 0, 1], categories=['a', 'b', 'c'],
                                    ordered=ordered)
 
@@ -350,13 +351,13 @@ class TestCategoricalConstructors(object):
 
     def test_constructor_dtype_and_others_raises(self):
         dtype = CategoricalDtype(['a', 'b'], ordered=True)
-        with tm.assert_raises_regex(ValueError, "Cannot"):
+        with pytest.raises(ValueError, match="Cannot"):
             Categorical(['a', 'b'], categories=['a', 'b'], dtype=dtype)
 
-        with tm.assert_raises_regex(ValueError, "Cannot"):
+        with pytest.raises(ValueError, match="Cannot"):
             Categorical(['a', 'b'], ordered=True, dtype=dtype)
 
-        with tm.assert_raises_regex(ValueError, "Cannot"):
+        with pytest.raises(ValueError, match="Cannot"):
             Categorical(['a', 'b'], ordered=False, dtype=dtype)
 
     @pytest.mark.parametrize('categories', [
@@ -371,7 +372,7 @@ class TestCategoricalConstructors(object):
         tm.assert_categorical_equal(result, expected)
 
     def test_constructor_str_unknown(self):
-        with tm.assert_raises_regex(ValueError, "Unknown `dtype`"):
+        with pytest.raises(ValueError, match="Unknown `dtype`"):
             Categorical([1, 2], dtype="foo")
 
     def test_constructor_from_categorical_with_dtype(self):
