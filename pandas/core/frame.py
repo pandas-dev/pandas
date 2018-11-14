@@ -5246,6 +5246,9 @@ class DataFrame(NDFrame):
             If 'raise', will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
 
+            .. versionchanged :: 0.24.0
+               Changed from `raise_conflict=False|True` to `errors='ignore'|'raise'`.
+
         Returns
         -------
         None : method directly changes calling object
@@ -5253,7 +5256,10 @@ class DataFrame(NDFrame):
         Raises
         ------
         ValueError
-            When `errors='raise'` and there's overlapping non-NA data.
+            * When `errors='raise'` and there's overlapping non-NA data.
+            * When `errors` is not either `'ignore'` or `'raise'`
+        NotImplementedError
+            * If `join != 'left'`
 
         See Also
         --------
@@ -5324,6 +5330,9 @@ class DataFrame(NDFrame):
         # TODO: Support other joins
         if join != 'left':  # pragma: no cover
             raise NotImplementedError("Only left join is supported")
+        if errors not in ['ignore', 'raise']:
+            raise ValueError("The parameter errors must be either "
+                             "'ignore' or 'raise'")
 
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
