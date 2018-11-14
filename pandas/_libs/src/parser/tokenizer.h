@@ -142,6 +142,7 @@ typedef struct parser_t {
     int64_t *word_starts;   // where we are in the stream
     int64_t words_len;
     int64_t words_cap;
+    int64_t max_words_cap;  // maximum word cap encountered
 
     char *pword_start;      // pointer to stream start of current field
     int64_t word_start;     // position start of current field

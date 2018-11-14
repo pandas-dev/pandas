@@ -475,7 +475,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the flattened underlying data as an ndarray
 
-        See also
+        See Also
         --------
         numpy.ndarray.ravel
         """
@@ -487,7 +487,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated:: 0.24.0
 
-        See also
+        See Also
         --------
         numpy.ndarray.compress
         """
@@ -538,7 +538,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Applies the `put` method to its `values` attribute
         if it has one.
 
-        See also
+        See Also
         --------
         numpy.ndarray.put
         """
@@ -992,7 +992,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
         for more information about the `repeats` argument.
 
-        See also
+        See Also
         --------
         numpy.ndarray.repeat
         """
@@ -1456,8 +1456,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.unique : top-level unique method for any 1-d array-like object.
-        Index.unique : return Index with unique values from an Index object.
+        pandas.unique : Top-level unique method for any 1-d array-like object.
+        Index.unique : Return Index with unique values from an Index object.
 
         Examples
         --------
@@ -1516,9 +1516,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Index.drop_duplicates : equivalent method on Index
-        DataFrame.drop_duplicates : equivalent method on DataFrame
-        Series.duplicated : related method on Series, indicating duplicate
+        Index.drop_duplicates : Equivalent method on Index.
+        DataFrame.drop_duplicates : Equivalent method on DataFrame.
+        Series.duplicated : Related method on Series, indicating duplicate
             Series values.
 
         Examples
@@ -1638,9 +1638,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.Index.duplicated : Equivalent method on pandas.Index
-        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame
-        pandas.Series.drop_duplicates : Remove duplicate values from Series
+        pandas.Index.duplicated : Equivalent method on pandas.Index.
+        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame.
+        pandas.Series.drop_duplicates : Remove duplicate values from Series.
         """
         return super(Series, self).duplicated(keep=keep)
 
@@ -1913,7 +1913,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> import numpy as np
         >>> histogram_intersection = lambda a, b: np.minimum(a, b
         ... ).sum().round(decimals=1)
         >>> s1 = pd.Series([.2, .0, .6, .2])
@@ -1977,7 +1976,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series.pct_change: Percent change over given number of periods.
         Series.shift: Shift index by desired number of periods with an
             optional time freq.
-        DataFrame.diff: First discrete difference of object
+        DataFrame.diff: First discrete difference of object.
 
         Examples
         --------
@@ -2182,10 +2181,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         list and then concatenate the list with the original Series all at
         once.
 
-        See also
+        See Also
         --------
         pandas.concat : General function to concatenate DataFrame, Series
-            or Panel objects
+            or Panel objects.
 
         Returns
         -------
@@ -2317,7 +2316,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.combine_first : Combine Series values, choosing the calling
-            Series's values first
+            Series's values first.
         """
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
@@ -2382,7 +2381,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.combine : Perform elementwise operation on two Series
-            using a given function
+            using a given function.
         """
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
@@ -2650,9 +2649,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.sort_index: Sort DataFrame by the index
-        DataFrame.sort_values: Sort DataFrame by the value
-        Series.sort_values : Sort Series by the value
+        DataFrame.sort_index: Sort DataFrame by the index.
+        DataFrame.sort_values: Sort DataFrame by the value.
+        Series.sort_values : Sort Series by the value.
 
         Examples
         --------
@@ -2785,7 +2784,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         argsorted : Series, with -1 indicated where nan values are present
 
-        See also
+        See Also
         --------
         numpy.ndarray.argsort
         """
@@ -3025,7 +3024,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        order : list of int representing new level order.
+        order : list of int representing new level order
                (reference level by number or key)
 
         Returns
@@ -3199,7 +3198,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     max   4
     dtype: int64
 
-    See also
+    See Also
     --------
     pandas.Series.apply : Invoke function on a Series.
     pandas.Series.transform : Transform function producing
@@ -3264,11 +3263,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         y : Series or DataFrame if func returns a Series
 
-        See also
+        See Also
         --------
-        Series.map: For element-wise operations
-        Series.agg: only perform aggregating type operations
-        Series.transform: only perform transforming type operations
+        Series.map: For element-wise operations.
+        Series.agg: Only perform aggregating type operations.
+        Series.transform: Only perform transforming type operations.
 
         Examples
         --------
@@ -3743,7 +3742,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.DataFrame.isin : equivalent method on DataFrame
+        pandas.DataFrame.isin : Equivalent method on DataFrame.
 
         Examples
         --------
@@ -3801,8 +3800,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.Series.gt : Greater than of series and other
-        pandas.Series.lt : Less than of series and other
+        pandas.Series.gt : Greater than of series and other.
+        pandas.Series.lt : Less than of series and other.
 
         Examples
         --------
@@ -3892,7 +3891,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.
 
-        See also
+        See Also
         --------
         pandas.read_csv
 
@@ -3970,19 +3969,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                           stacklevel=2)
             kwargs["header"] = False  # Backwards compatibility.
         return self.to_frame().to_csv(**kwargs)
-
-    @Appender(generic._shared_docs['to_excel'] % _shared_doc_kwargs)
-    def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
-                 float_format=None, columns=None, header=True, index=True,
-                 index_label=None, startrow=0, startcol=0, engine=None,
-                 merge_cells=True, encoding=None, inf_rep='inf', verbose=True):
-        df = self.to_frame()
-        df.to_excel(excel_writer=excel_writer, sheet_name=sheet_name,
-                    na_rep=na_rep, float_format=float_format, columns=columns,
-                    header=header, index=index, index_label=index_label,
-                    startrow=startrow, startcol=startcol, engine=engine,
-                    merge_cells=merge_cells, encoding=encoding,
-                    inf_rep=inf_rep, verbose=verbose)
 
     @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
     def isna(self):

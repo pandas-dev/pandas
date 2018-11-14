@@ -451,7 +451,7 @@ class TestSparseSeriesIndexing(object):
 
         msg = ("iLocation based boolean indexing cannot "
                "use an indexable as a mask")
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s.iloc[indexer]
 
 

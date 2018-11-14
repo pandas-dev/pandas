@@ -194,11 +194,11 @@ class TestRank(TestData):
         # bad values throw error
         msg = "na_option must be one of 'keep', 'top', or 'bottom'"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.frame.rank(na_option='bad', ascending=False)
 
         # invalid type
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.frame.rank(na_option=True, ascending=False)
 
     def test_rank_axis(self):
@@ -309,3 +309,10 @@ class TestRank(TestData):
 
         expected = DataFrame(exp)
         tm.assert_frame_equal(result, expected)
+
+    def test_pct_max_many_rows(self):
+        # GH 18271
+        df = DataFrame({'A': np.arange(2**24 + 1),
+                        'B': np.arange(2**24 + 1, 0, -1)})
+        result = df.rank(pct=True).max()
+        assert (result == 1).all()

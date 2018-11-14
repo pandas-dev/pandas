@@ -169,7 +169,7 @@ class TestDatetimeIndex(object):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
         msg = 'Cannot cast DatetimeIndex to dtype'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
     def test_index_convert_to_datetime_array(self):

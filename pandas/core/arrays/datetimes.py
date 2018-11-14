@@ -12,16 +12,16 @@ from pandas._libs.tslibs import (
     conversion, fields, timezones,
     resolution as libresolution)
 
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly, Appender
 from pandas.errors import PerformanceWarning
 from pandas import compat
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     is_object_dtype,
+    is_int64_dtype,
     is_datetime64tz_dtype,
-    is_datetime64_dtype,
-    ensure_int64)
+    is_datetime64_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -233,9 +233,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         result = cls._simple_new(values, freq=freq, tz=tz)
         if freq_infer:
-            inferred = result.inferred_freq
-            if inferred:
-                result.freq = to_offset(inferred)
+            result.freq = to_offset(result.inferred_freq)
 
         # NB: Among other things not yet ported from the DatetimeIndex
         # constructor, this does not call _deepcopy_if_needed
@@ -295,7 +293,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
             if tz is not None and index.tz is None:
                 arr = conversion.tz_localize_to_utc(
-                    ensure_int64(index.values),
+                    index.asi8,
                     tz, ambiguous=ambiguous)
 
                 index = cls(arr)
@@ -318,7 +316,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
 
-        return cls._simple_new(index.values, freq=freq, tz=tz)
+        return cls._simple_new(index.asi8, freq=freq, tz=tz)
 
     # -----------------------------------------------------------------
     # Descriptive Properties
@@ -386,7 +384,16 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         return libresolution.resolution(self.asi8, self.tz)
 
     # ----------------------------------------------------------------
-    # Array-like Methods
+    # Array-Like / EA-Interface Methods
+
+    def __array__(self, dtype=None):
+        if is_object_dtype(dtype):
+            return np.array(list(self), dtype=object)
+        elif is_int64_dtype(dtype):
+            return self.asi8
+
+        # TODO: warn that conversion may be lossy?
+        return self._data.view(np.ndarray)  # follow Index.__array__
 
     def __iter__(self):
         """
@@ -410,6 +417,25 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                                                  box="timestamp")
             for v in converted:
                 yield v
+
+    # ----------------------------------------------------------------
+    # ExtensionArray Interface
+
+    @property
+    def _ndarray_values(self):
+        return self._data
+
+    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
+    def _validate_fill_value(self, fill_value):
+        if isna(fill_value):
+            fill_value = iNaT
+        elif isinstance(fill_value, (datetime, np.datetime64)):
+            self._assert_tzawareness_compat(fill_value)
+            fill_value = Timestamp(fill_value).value
+        else:
+            raise ValueError("'fill_value' should be a Timestamp. "
+                             "Got '{got}'.".format(got=fill_value))
+        return fill_value
 
     # -----------------------------------------------------------------
     # Comparison Methods
@@ -558,7 +584,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         See Also
         --------
-        DatetimeIndex.tz : A timezone that has a variable offset from UTC
+        DatetimeIndex.tz : A timezone that has a variable offset from UTC.
         DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
             given time zone, or remove timezone from a tz-aware DatetimeIndex.
 
@@ -866,10 +892,10 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         PeriodIndex(['2017-01-01', '2017-01-02'],
                     dtype='period[D]', freq='D')
 
-        See also
+        See Also
         --------
-        pandas.PeriodIndex: Immutable ndarray holding ordinal values
-        pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
+        pandas.PeriodIndex: Immutable ndarray holding ordinal values.
+        pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object.
         """
         from pandas.core.arrays import PeriodArray
 

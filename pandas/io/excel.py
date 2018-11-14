@@ -17,8 +17,7 @@ import numpy as np
 import pandas._libs.json as json
 import pandas.compat as compat
 from pandas.compat import (
-    OrderedDict, add_metaclass, lrange, map, range, reduce, string_types, u,
-    zip)
+    OrderedDict, add_metaclass, lrange, map, range, string_types, u, zip)
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_kwarg
 
@@ -93,13 +92,26 @@ parse_cols : int or list, default None
     .. deprecated:: 0.21.0
        Pass in `usecols` instead.
 
-usecols : int or list, default None
-    * If None then parse all columns,
-    * If int then indicates last column to be parsed
-    * If list of ints then indicates list of column numbers to be parsed
-    * If string then indicates comma separated list of Excel column letters and
-      column ranges (e.g. "A:E" or "A,C,E:F").  Ranges are inclusive of
+usecols : int, str, list-like, or callable default None
+    * If None, then parse all columns,
+    * If int, then indicates last column to be parsed
+
+    .. deprecated:: 0.24.0
+       Pass in a list of ints instead from 0 to `usecols` inclusive.
+
+    * If string, then indicates comma separated list of Excel column letters
+      and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
       both sides.
+    * If list of ints, then indicates list of column numbers to be parsed.
+    * If list of strings, then indicates list of column names to be parsed.
+
+    .. versionadded:: 0.24.0
+
+    * If callable, then evaluate each column name against it and parse the
+      column if the callable returns ``True``.
+
+    .. versionadded:: 0.24.0
+
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 dtype : Type name or dict of column -> type, default None
@@ -163,12 +175,16 @@ convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally
+mangle_dupe_cols : boolean, default True
+    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
+    'X'...'X'. Passing in False will cause data to be overwritten if there
+    are duplicate names in the columns.
 
 Returns
 -------
 parsed : DataFrame or Dict of DataFrames
-    DataFrame from the passed in Excel file.  See notes in sheet_name
-    argument for more information on when a Dict of Dataframes is returned.
+    DataFrame from the passed in Excel file. See notes in sheet_name
+    argument for more information on when a dict of DataFrames is returned.
 
 Examples
 --------
@@ -302,6 +318,7 @@ def read_excel(io,
                comment=None,
                skipfooter=0,
                convert_float=True,
+               mangle_dupe_cols=True,
                **kwds):
 
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
@@ -337,6 +354,7 @@ def read_excel(io,
         comment=comment,
         skipfooter=skipfooter,
         convert_float=convert_float,
+        mangle_dupe_cols=mangle_dupe_cols,
         **kwds)
 
 
@@ -429,6 +447,7 @@ class ExcelFile(object):
               comment=None,
               skipfooter=0,
               convert_float=True,
+              mangle_dupe_cols=True,
               **kwds):
         """
         Parse specified sheet(s) into a DataFrame
@@ -464,40 +483,8 @@ class ExcelFile(object):
                                  comment=comment,
                                  skipfooter=skipfooter,
                                  convert_float=convert_float,
+                                 mangle_dupe_cols=mangle_dupe_cols,
                                  **kwds)
-
-    def _should_parse(self, i, usecols):
-
-        def _range2cols(areas):
-            """
-            Convert comma separated list of column names and column ranges to a
-            list of 0-based column indexes.
-
-            >>> _range2cols('A:E')
-            [0, 1, 2, 3, 4]
-            >>> _range2cols('A,C,Z:AB')
-            [0, 2, 25, 26, 27]
-            """
-            def _excel2num(x):
-                "Convert Excel column name like 'AB' to 0-based column index"
-                return reduce(lambda s, a: s * 26 + ord(a) - ord('A') + 1,
-                              x.upper().strip(), 0) - 1
-
-            cols = []
-            for rng in areas.split(','):
-                if ':' in rng:
-                    rng = rng.split(':')
-                    cols += lrange(_excel2num(rng[0]), _excel2num(rng[1]) + 1)
-                else:
-                    cols.append(_excel2num(rng))
-            return cols
-
-        if isinstance(usecols, int):
-            return i <= usecols
-        elif isinstance(usecols, compat.string_types):
-            return i in _range2cols(usecols)
-        else:
-            return i in usecols
 
     def _parse_excel(self,
                      sheet_name=0,
@@ -519,6 +506,7 @@ class ExcelFile(object):
                      comment=None,
                      skipfooter=0,
                      convert_float=True,
+                     mangle_dupe_cols=True,
                      **kwds):
 
         _validate_header_arg(header)
@@ -526,10 +514,6 @@ class ExcelFile(object):
         if 'chunksize' in kwds:
             raise NotImplementedError("chunksize keyword of read_excel "
                                       "is not implemented")
-
-        if parse_dates is True and index_col is None:
-            warnings.warn("The 'parse_dates=True' keyword of read_excel was "
-                          "provided without an 'index_col' keyword value.")
 
         import xlrd
         from xlrd import (xldate, XL_CELL_DATE,
@@ -620,17 +604,13 @@ class ExcelFile(object):
                 sheet = self.book.sheet_by_index(asheetname)
 
             data = []
-            should_parse = {}
+            usecols = _maybe_convert_usecols(usecols)
 
             for i in range(sheet.nrows):
                 row = []
                 for j, (value, typ) in enumerate(zip(sheet.row_values(i),
                                                      sheet.row_types(i))):
-                    if usecols is not None and j not in should_parse:
-                        should_parse[j] = self._should_parse(j, usecols)
-
-                    if usecols is None or should_parse[j]:
-                        row.append(_parse_cell(value, typ))
+                    row.append(_parse_cell(value, typ))
                 data.append(row)
 
             if sheet.nrows == 0:
@@ -642,42 +622,45 @@ class ExcelFile(object):
 
             # forward fill and pull out names for MultiIndex column
             header_names = None
-            if header is not None:
-                if is_list_like(header):
-                    header_names = []
-                    control_row = [True] * len(data[0])
-                    for row in header:
-                        if is_integer(skiprows):
-                            row += skiprows
+            if header is not None and is_list_like(header):
+                header_names = []
+                control_row = [True] * len(data[0])
 
-                        data[row], control_row = _fill_mi_header(
-                            data[row], control_row)
-                        header_name, data[row] = _pop_header_name(
-                            data[row], index_col)
-                        header_names.append(header_name)
-                else:
-                    data[header] = _trim_excel_header(data[header])
+                for row in header:
+                    if is_integer(skiprows):
+                        row += skiprows
+
+                    data[row], control_row = _fill_mi_header(
+                        data[row], control_row)
+                    header_name, _ = _pop_header_name(
+                        data[row], index_col)
+                    header_names.append(header_name)
 
             if is_list_like(index_col):
-                # forward fill values for MultiIndex index
+                # Forward fill values for MultiIndex index.
                 if not is_list_like(header):
                     offset = 1 + header
                 else:
                     offset = 1 + max(header)
 
-                for col in index_col:
-                    last = data[offset][col]
-                    for row in range(offset + 1, len(data)):
-                        if data[row][col] == '' or data[row][col] is None:
-                            data[row][col] = last
-                        else:
-                            last = data[row][col]
+                # Check if we have an empty dataset
+                # before trying to collect data.
+                if offset < len(data):
+                    for col in index_col:
+                        last = data[offset][col]
+
+                        for row in range(offset + 1, len(data)):
+                            if data[row][col] == '' or data[row][col] is None:
+                                data[row][col] = last
+                            else:
+                                last = data[row][col]
 
             has_index_names = is_list_like(header) and len(header) > 1
 
             # GH 12292 : error when read one empty column from excel file
             try:
                 parser = TextParser(data,
+                                    names=names,
                                     header=header,
                                     index_col=index_col,
                                     has_index_names=has_index_names,
@@ -693,11 +676,12 @@ class ExcelFile(object):
                                     thousands=thousands,
                                     comment=comment,
                                     skipfooter=skipfooter,
+                                    usecols=usecols,
+                                    mangle_dupe_cols=mangle_dupe_cols,
                                     **kwds)
 
                 output[asheetname] = parser.read(nrows=nrows)
-                if names is not None:
-                    output[asheetname].columns = names
+
                 if not squeeze or isinstance(output[asheetname], DataFrame):
                     output[asheetname].columns = output[
                         asheetname].columns.set_names(header_names)
@@ -724,6 +708,101 @@ class ExcelFile(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+
+
+def _excel2num(x):
+    """
+    Convert Excel column name like 'AB' to 0-based column index.
+
+    Parameters
+    ----------
+    x : str
+        The Excel column name to convert to a 0-based column index.
+
+    Returns
+    -------
+    num : int
+        The column index corresponding to the name.
+
+    Raises
+    ------
+    ValueError
+        Part of the Excel column name was invalid.
+    """
+    index = 0
+
+    for c in x.upper().strip():
+        cp = ord(c)
+
+        if cp < ord("A") or cp > ord("Z"):
+            raise ValueError("Invalid column name: {x}".format(x=x))
+
+        index = index * 26 + cp - ord("A") + 1
+
+    return index - 1
+
+
+def _range2cols(areas):
+    """
+    Convert comma separated list of column names and ranges to indices.
+
+    Parameters
+    ----------
+    areas : str
+        A string containing a sequence of column ranges (or areas).
+
+    Returns
+    -------
+    cols : list
+        A list of 0-based column indices.
+
+    Examples
+    --------
+    >>> _range2cols('A:E')
+    [0, 1, 2, 3, 4]
+    >>> _range2cols('A,C,Z:AB')
+    [0, 2, 25, 26, 27]
+    """
+    cols = []
+
+    for rng in areas.split(","):
+        if ":" in rng:
+            rng = rng.split(":")
+            cols.extend(lrange(_excel2num(rng[0]), _excel2num(rng[1]) + 1))
+        else:
+            cols.append(_excel2num(rng))
+
+    return cols
+
+
+def _maybe_convert_usecols(usecols):
+    """
+    Convert `usecols` into a compatible format for parsing in `parsers.py`.
+
+    Parameters
+    ----------
+    usecols : object
+        The use-columns object to potentially convert.
+
+    Returns
+    -------
+    converted : object
+        The compatible format of `usecols`.
+    """
+    if usecols is None:
+        return usecols
+
+    if is_integer(usecols):
+        warnings.warn(("Passing in an integer for `usecols` has been "
+                       "deprecated. Please pass in a list of ints from "
+                       "0 to `usecols` inclusive instead."),
+                      FutureWarning, stacklevel=2)
+        return lrange(usecols + 1)
+
+    if isinstance(usecols, compat.string_types):
+        return _range2cols(usecols)
+
+    return usecols
 
 
 def _validate_freeze_panes(freeze_panes):

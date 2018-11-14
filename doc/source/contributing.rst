@@ -170,7 +170,7 @@ We'll now kick off a three-step process:
 .. code-block:: none
 
    # Create and activate the build environment
-   conda env create -f ci/environment-dev.yaml
+   conda env create -f environment.yml
    conda activate pandas-dev
 
    # or with older versions of Anaconda:
@@ -179,9 +179,6 @@ We'll now kick off a three-step process:
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
    python -m pip install -e .
-
-   # Install the rest of the optional dependencies
-   conda install -c defaults -c conda-forge --file=ci/requirements-optional-conda.txt
 
 At this point you should be able to import pandas from your locally built version::
 
@@ -221,13 +218,11 @@ You'll need to have at least python3.5 installed on your system.
    . ~/virtualenvs/pandas-dev/bin/activate
 
    # Install the build dependencies
-   python -m pip install -r ci/requirements_dev.txt
+   python -m pip install -r requirements-dev.txt
+
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
    python -m pip install -e .
-
-   # Install additional dependencies
-   python -m pip install -r ci/requirements-optional-pip.txt
 
 Creating a branch
 -----------------
@@ -1108,7 +1103,7 @@ Information on how to write a benchmark and how to use asv can be found in the
 Documenting your code
 ---------------------
 
-Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.txt``.
+Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.rst``.
 This file contains an ongoing change log for each release.  Add an entry to this file to
 document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
 GitHub issue number when adding your entry (using ``:issue:`1234``` where ``1234`` is the
