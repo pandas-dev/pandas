@@ -1014,8 +1014,8 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        Series.count: number of non-NA elements in a Series
-        DataFrame.count: number of non-NA elements in a DataFrame
+        Series.count: Number of non-NA elements in a Series.
+        DataFrame.count: Number of non-NA elements in a DataFrame.
 
         Examples
         --------

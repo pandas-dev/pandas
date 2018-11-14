@@ -292,7 +292,7 @@ def parse_table_schema(json, precise_float):
 
     See Also
     --------
-    build_table_schema : inverse function
+    build_table_schema : Inverse function.
     pandas.read_json
     """
     table = loads(json, precise_float=precise_float)

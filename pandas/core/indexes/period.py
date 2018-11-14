@@ -165,10 +165,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     See Also
     ---------
-    Index : The base pandas Index type
-    Period : Represents a period of time
-    DatetimeIndex : Index with datetime64 data
-    TimedeltaIndex : Index of timedelta64 data
+    Index : The base pandas Index type.
+    Period : Represents a period of time.
+    DatetimeIndex : Index with datetime64 data.
+    TimedeltaIndex : Index of timedelta64 data.
     """
     _typ = 'periodindex'
     _attributes = ['name', 'freq']

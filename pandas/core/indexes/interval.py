@@ -1185,7 +1185,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
     See Also
     --------
-    IntervalIndex : an Index of intervals that are all closed on the same side.
+    IntervalIndex : An Index of intervals that are all closed on the same side.
     """
     start = com.maybe_box_datetimelike(start)
     end = com.maybe_box_datetimelike(end)
