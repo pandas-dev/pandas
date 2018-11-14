@@ -1580,11 +1580,18 @@ You can pass in a URL to a CSV file:
    df = pd.read_csv('https://download.bls.gov/pub/time.series/cu/cu.item',
                     sep='\t')
 
-S3 URLs are handled as well:
+S3 URLs are handled as well but require installing the `S3Fs
+<https://pypi.org/project/s3fs/>`_ library:
 
 .. code-block:: python
 
    df = pd.read_csv('s3://pandas-test/tips.csv')
+
+If your S3 bucket requires cedentials you will need to set them as environment
+variables or in the ``~/.aws/credentials`` config file, refer to the `S3Fs
+documentation on credentials
+<https://s3fs.readthedocs.io/en/latest/#credentials>`_.
+
 
 
 Writing out Data
