@@ -216,14 +216,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         ordinals = libperiod.extract_ordinals(periods, freq)
         return cls(ordinals, freq=freq)
 
-    def _values_for_factorize(self):
-        return self.asi8, iNaT
-
-    @classmethod
-    def _from_factorized(cls, values, original):
-        # type: (Sequence[Optional[Period]], PeriodArray) -> PeriodArray
-        return cls(values, freq=original.freq)
-
     @classmethod
     def _from_datetime64(cls, data, freq, tz=None):
         """Construct a PeriodArray from a datetime64 array
@@ -261,14 +253,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
                              'Period range')
 
         return subarr, freq
-
-    @classmethod
-    def _concat_same_type(cls, to_concat):
-        freq = {x.freq for x in to_concat}
-        assert len(freq) == 1
-        freq = list(freq)[0]
-        values = np.concatenate([x._data for x in to_concat])
-        return cls(values, freq=freq)
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -415,29 +399,20 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             raise TypeError(msg)
         self._data[key] = value
 
-    def take(self, indices, allow_fill=False, fill_value=None):
-        if allow_fill:
-            if isna(fill_value):
-                fill_value = iNaT
-            elif isinstance(fill_value, Period):
-                if self.freq != fill_value.freq:
-                    msg = DIFFERENT_FREQ_INDEX.format(
-                        self.freq.freqstr,
-                        fill_value.freqstr
-                    )
-                    raise IncompatibleFrequency(msg)
-
-                fill_value = fill_value.ordinal
-            else:
-                msg = "'fill_value' should be a Period. Got '{}'."
-                raise ValueError(msg.format(fill_value))
-
-        new_values = algos.take(self._data,
-                                indices,
-                                allow_fill=allow_fill,
-                                fill_value=fill_value)
-
-        return type(self)(new_values, self.freq)
+    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
+    def _validate_fill_value(self, fill_value):
+        if isna(fill_value):
+            fill_value = iNaT
+        elif isinstance(fill_value, Period):
+            if fill_value.freq != self.freq:
+                msg = DIFFERENT_FREQ_INDEX.format(self.freq.freqstr,
+                                                  fill_value.freqstr)
+                raise IncompatibleFrequency(msg)
+            fill_value = fill_value.ordinal
+        else:
+            raise ValueError("'fill_value' should be a Period. "
+                             "Got '{got}'.".format(got=fill_value))
+        return fill_value
 
     def fillna(self, value=None, method=None, limit=None):
         # TODO(#20300)
@@ -473,9 +448,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         else:
             new_values = self.copy()
         return new_values
-
-    def copy(self, deep=False):
-        return type(self)(self._data.copy(), freq=self.freq)
 
     def value_counts(self, dropna=False):
         from pandas import Series, PeriodIndex
