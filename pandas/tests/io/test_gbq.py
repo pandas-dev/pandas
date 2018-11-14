@@ -19,7 +19,7 @@ import pandas.util.testing as tm
 api_exceptions = pytest.importorskip("google.api_core.exceptions")
 bigquery = pytest.importorskip("google.cloud.bigquery")
 service_account = pytest.importorskip("google.oauth2.service_account")
-pandas_gbq = pytest.importorskip("pandas_gbq", minversion="0.8.0")
+pandas_gbq = pytest.importorskip("pandas_gbq")
 
 PROJECT_ID = None
 PRIVATE_KEY_JSON_PATH = None
