@@ -185,7 +185,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
     See Also
     --------
-    pandas.plotting.andrews_curves : Plot clustering visualization
+    pandas.plotting.andrews_curves : Plot clustering visualization.
 
     Examples
     --------
