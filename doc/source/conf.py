@@ -698,3 +698,4 @@ def setup(app):
     app.add_autodocumenter(AccessorMethodDocumenter)
     app.add_autodocumenter(AccessorCallableDocumenter)
     app.add_directive('autosummary', PandasAutosummary)
+    app.add_js('js/whatsnew_links.js')
