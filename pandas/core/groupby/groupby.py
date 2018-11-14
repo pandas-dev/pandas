@@ -216,8 +216,8 @@ Examples
 
 See Also
 --------
-pandas.Series.pipe : Apply a function with arguments to a series
-pandas.DataFrame.pipe: Apply a function with arguments to a dataframe
+pandas.Series.pipe : Apply a function with arguments to a series.
+pandas.DataFrame.pipe: Apply a function with arguments to a dataframe.
 apply : Apply function to each group instead of to the
     full %(klass)s object.
 """
