@@ -1496,12 +1496,10 @@ class TestDatetimeIndexArithmetic(object):
     def test_dti_add_sub_pi(self, dti_freq, pi_freq,
                             box_with_datetime, box_with_period):
         # GH#20049 subtracting PeriodIndex should raise TypeError
-        box = box_with_datetime
-
         dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
         pi = dti.to_period(pi_freq)
 
-        dtarr = tm.box_expected(dti, box)
+        dtarr = tm.box_expected(dti, box_with_datetime)
         parr = tm.box_expected(pi, box_with_period)
 
         with pytest.raises(TypeError):
