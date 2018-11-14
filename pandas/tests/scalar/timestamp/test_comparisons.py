@@ -86,10 +86,10 @@ class TestTimestampComparison(object):
         assert val != np.float64(1)
         assert val != np.int64(1)
 
-    def test_cant_compare_tz_naive_w_aware(self, utc_objs):
+    def test_cant_compare_tz_naive_w_aware(self, utc_fixture):
         # see GH#1404
         a = Timestamp('3/12/2012')
-        b = Timestamp('3/12/2012', tz=utc_objs)
+        b = Timestamp('3/12/2012', tz=utc_fixture)
 
         with pytest.raises(TypeError):
             a == b
