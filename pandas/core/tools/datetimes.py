@@ -302,9 +302,6 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         return result
 
     except ValueError as e:
-        if "unless utc=True" not in str(e):
-            # raised by array_to_datetime
-            raise e
         try:
             values, tz = conversion.datetime_to_datetime64(arg)
             return DatetimeIndex._simple_new(values, name=name, tz=tz)
