@@ -14,6 +14,7 @@ from pandas.compat.numpy import np_datetime64_compat
 from pandas._libs.tslibs import iNaT, period as libperiod
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas._libs.tslibs.parsing import DateParseError
+from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
 
 
 class TestPeriodConstruction(object):
@@ -538,8 +539,6 @@ class TestPeriodMethods(object):
                                        'dateutil/Asia/Tokyo',
                                        'dateutil/US/Pacific'])
     def test_to_timestamp_tz_arg_dateutil(self, tzstr):
-        from pandas._libs.tslibs.timezones import dateutil_gettz
-        from pandas._libs.tslibs.timezones import maybe_get_tz
         tz = maybe_get_tz(tzstr)
         p = Period('1/1/2005', freq='M').to_timestamp(tz=tz)
         exp = Timestamp('1/1/2005', tz='UTC').tz_convert(tzstr)
@@ -554,7 +553,6 @@ class TestPeriodMethods(object):
         assert p.tz == exp.tz
 
     def test_to_timestamp_tz_arg_dateutil_from_string(self):
-        from pandas._libs.tslibs.timezones import dateutil_gettz
         p = Period('1/1/2005',
                    freq='M').to_timestamp(tz='dateutil/Europe/Brussels')
         assert p.tz == dateutil_gettz('Europe/Brussels')
