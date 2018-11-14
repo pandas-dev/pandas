@@ -693,7 +693,7 @@ class TestTimestampSeriesArithmetic(object):
 
         delta_series = pd.Series([np.timedelta64(0, 'D'),
                                   np.timedelta64(1, 'D')])
-        expected = tm.box_expected(delta_series, box,  transpose=False)
+        expected = tm.box_expected(delta_series, box, transpose=False)
 
         tm.assert_equal(ser - ts, expected)
         tm.assert_equal(ts - ser, -expected)
