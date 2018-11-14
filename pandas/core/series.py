@@ -314,7 +314,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated :: 0.23.0
             Use pd.Series(..) constructor instead.
-
         """
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.Series(..) "
@@ -437,7 +436,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         array(['2013-01-01T05:00:00.000000000',
                '2013-01-02T05:00:00.000000000',
                '2013-01-03T05:00:00.000000000'], dtype='datetime64[ns]')
-
         """
         return self._data.external_values()
 
@@ -1824,7 +1822,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         numpy.around
         DataFrame.round
-
         """
         nv.validate_round(args, kwargs)
         result = com.values_from_object(self).round(decimals)
@@ -1905,7 +1902,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         min_periods : int, optional
             Minimum number of observations needed to have a valid result
-
 
         Returns
         -------
@@ -2230,8 +2226,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Traceback (most recent call last):
         ...
         ValueError: Indexes have overlapping values: [0, 1, 2]
-
-
         """
         from pandas.core.reshape.concat import concat
 
@@ -2436,7 +2430,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         1    2
         2    6
         dtype: int64
-
         """
         other = other.reindex_like(self)
         mask = notna(other)
@@ -3011,7 +3004,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
            The indexes ``i`` and ``j`` are now optional, and default to
            the two innermost levels of the index.
-
         """
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index,
@@ -3336,8 +3328,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         New York    3.044522
         Helsinki    2.484907
         dtype: float64
-
-
         """
         if len(self) == 0:
             return self._constructor(dtype=self.dtype,
