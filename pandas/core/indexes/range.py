@@ -416,13 +416,6 @@ class RangeIndex(Int64Index):
             old_t, t = t, old_t - quotient * t
         return old_r, old_s, old_t
 
-
-    def _is_compatible_with_other(self, other):
-        is_compat = super(RangeIndex, self)._is_compatible_with_other(other)
-        if not is_compat:
-            is_compat = type(other) is Int64Index
-        return is_compat
-
     def union(self, other):
         """
         Form the union of two Index objects and sorts if possible

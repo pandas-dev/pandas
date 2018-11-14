@@ -2811,13 +2811,11 @@ class Index(IndexOpsMixin, PandasObject):
         Specific union logic should go here. In subclasses union behavior
         should be overwritten here rather than in `self.union`
         """
-
         if len(self) == 0:
             return other._get_reconciled_name_object(self)
         elif len(other) == 0:
             return self._get_reconciled_name_object(other)
-
-        if self.equals(other):
+        elif self.equals(other):
             return self._get_reconciled_name_object(other)
 
         # TODO(EA): setops-refactor, clean all this up

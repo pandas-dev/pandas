@@ -16,6 +16,7 @@ from pandas.core.dtypes.missing import isna
 from pandas import compat
 from pandas.core import algorithms
 import pandas.core.common as com
+from pandas.core.dtypes.generic import ABCRangeIndex
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
 from pandas.util._decorators import Appender, cache_readonly
@@ -229,14 +230,9 @@ class Int64Index(IntegerIndex):
                                 'explicitly cast')
 
     def _is_compatible_with_other(self, other):
-        from pandas.core.dtypes.generic import ABCRangeIndex
-        is_compat = super(Int64Index, self)._is_compatible_with_other(other)
-        if not is_compat:
-            is_compat = (type(self) is Int64Index 
-                         and isinstance(other, ABCRangeIndex))
-        return is_compat
-
-
+        return (super(Int64Index, self)._is_compatible_with_other(other)
+                and isinstance(self, (Int64Index, ABCRangeIndex))
+                and isintance(type(other), (Int64Index, ABCRangeIndex)))
 
 Int64Index._add_numeric_methods()
 Int64Index._add_logical_methods()
