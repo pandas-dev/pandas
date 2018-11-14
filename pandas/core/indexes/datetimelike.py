@@ -31,7 +31,6 @@ import pandas.io.formats.printing as printing
 
 from pandas.tseries.offsets import index_offsets_equal
 import pandas.tseries.frequencies as frequencies
-import pandas.core.indexes.api as _api
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -635,8 +634,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         self._assert_can_do_setop(other)
 
         if self.equals(other):
-            name = _api._get_consensus_names((self, other))[0]
-            return self._shallow_copy(self, name=name)
+            return self._get_reconciled_name_object(other)
 
         lengths = len(self), len(other)
         if lengths[0] == 0:
@@ -645,21 +643,25 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             return other
 
         if (not index_offsets_equal(self, other) or
+           not other.freq.isAnchored() or  # Fixes period intersections when freq is set
            (not self._is_strictly_monotonic or
                 not other._is_strictly_monotonic)):
             result = Index.intersection(self, other)
+            if result.empty:
+                result = result.astype(self.dtype)
             result = self._shallow_copy(result._values, name=result.name,
                                         freq=None
                                         )
             if result.freq is None:
                 result.offset = frequencies.to_offset(result.inferred_freq)
+                # attempt a naive guess at the freq.
+                result.freq = self.freq or other.freq
             return result
 
         # Conditions met!
         intersected_slice = self._fast_intersection(other)
-        name = _api._get_consensus_names((self, other))[0]
-        intersected = self._shallow_copy(intersected_slice, name=name)
-        return intersected
+        name = ops.get_op_result_name(self, other)
+        return self._shallow_copy(intersected_slice, name=name)
 
 def wrap_arithmetic_op(self, other, result):
     if result is NotImplemented:

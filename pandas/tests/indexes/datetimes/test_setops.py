@@ -133,7 +133,7 @@ class TestDatetimeIndexSetOps(object):
 
         third = Index(['a', 'b', 'c'])
         result = first.intersection(third)
-        expected = pd.Index([], dtype=object)
+        expected = DatetimeIndex([])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [None, 'Asia/Tokyo', 'US/Eastern',
@@ -151,7 +151,7 @@ class TestDatetimeIndexSetOps(object):
         expected3 = date_range('6/1/2000', '6/20/2000', freq='D', name=None)
 
         rng4 = date_range('7/1/2000', '7/31/2000', freq='D', name='idx')
-        expected4 = DatetimeIndex([], name='idx')
+        expected4 = DatetimeIndex([], name='idx', freq='D')
 
         for (rng, expected) in [(rng2, expected2), (rng3, expected3),
                                 (rng4, expected4)]:
@@ -181,14 +181,14 @@ class TestDatetimeIndexSetOps(object):
         # GH 7880
         rng4 = date_range('7/1/2000', '7/31/2000', freq='D', tz=tz,
                           name='idx')
-        expected4 = DatetimeIndex([], tz=tz, name='idx')
+        expected4 = DatetimeIndex([], tz=tz, name='idx', freq='D')
 
         for (rng, expected) in [(rng2, expected2), (rng3, expected3),
                                 (rng4, expected4)]:
             result = base.intersection(rng)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
-            assert result.freq is None
+            assert result.freq == expected.freq
             assert result.tz == expected.tz
 
     def test_intersection_empty(self):

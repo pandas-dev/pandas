@@ -723,7 +723,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index,
         Value of `side` parameter should be validated in caller.
 
         """
-        assert kind in ['ix', 'loc', 'getitem']
+        assert kind in ['ix', 'loc', 'getitem', None]
 
         if isinstance(label, datetime):
             return Period(label, freq=self.freq)
