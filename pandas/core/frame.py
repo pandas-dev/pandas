@@ -5247,7 +5247,8 @@ class DataFrame(NDFrame):
             both contain non-NA data in the same place.
 
             .. versionchanged :: 0.24.0
-               Changed from `raise_conflict=False|True` to `errors='ignore'|'raise'`.
+               Changed from `raise_conflict=False|True`
+               to `errors='ignore'|'raise'`.
 
         Returns
         -------

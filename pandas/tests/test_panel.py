@@ -2341,19 +2341,33 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
 
         assert_panel_equal(pan, expected)
 
-    def test_update_raise(self):
+    @pytest.mark.parametrize('bad_kwarg, exception, msg', [
+        # errors must be 'ignore' or 'raise'
+        ({'errors': 'something'}, ValueError, 'The parameter errors must.*'),
+        ({'join': 'inner'}, NotImplementedError, 'Only left join is supported')
+    ])
+    def test_update_raise_bad_parameter(self, bad_kwarg, exception, msg):
+        pan = Panel([[[1.5, np.nan, 3.]]])
+        with pytest.raises(exception, match=msg):
+            pan.update(pan, **bad_kwarg)
+
+    def test_update_raise_on_overlap(self):
         pan = Panel([[[1.5, np.nan, 3.], [1.5, np.nan, 3.],
                       [1.5, np.nan, 3.],
                       [1.5, np.nan, 3.]],
                      [[1.5, np.nan, 3.], [1.5, np.nan, 3.],
                       [1.5, np.nan, 3.],
                       [1.5, np.nan, 3.]]])
-        other = Panel([[[]]])
 
         with pytest.raises(ValueError, match='Data overlaps'):
             pan.update(pan, errors='raise')
+
+    @pytest.mark.parametrize('raise_conflict', [True, False])
+    def test_update_deprecation(self, raise_conflict):
+        pan = Panel([[[1.5, np.nan, 3.]]])
+        other = Panel([[[]]])
         with tm.assert_produces_warning(FutureWarning):
-            pan.update(other, raise_conflict=True)
+            pan.update(other, raise_conflict=raise_conflict)
 
     def test_all_any(self):
         assert (self.panel.all(axis=0).values == nanall(

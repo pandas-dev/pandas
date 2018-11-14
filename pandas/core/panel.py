@@ -1405,6 +1405,10 @@ class Panel(NDFrame):
         errors : {'raise', 'ignore'}, default 'ignore'
             If 'raise', will raise an error if a DataFrame and other both.
 
+            .. versionchanged :: 0.24.0
+               Changed from `raise_conflict=False|True`
+               to `errors='ignore'|'raise'`.
+
         See Also
         --------
         DataFrame.update : Similar method for DataFrames.
