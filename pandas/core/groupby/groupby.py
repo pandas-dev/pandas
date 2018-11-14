@@ -43,7 +43,7 @@ from pandas.core.sorting import get_group_index_sorter
 
 _doc_template = """
 
-        See also
+        See Also
         --------
         pandas.Series.%(name)s
         pandas.DataFrame.%(name)s
@@ -91,7 +91,7 @@ _apply_docs = dict(
     --------
     {examples}
 
-    See also
+    See Also
     --------
     pipe : Apply function to the full GroupBy object instead of to each
         group.
@@ -253,7 +253,7 @@ Returns
 -------
 %(klass)s
 
-See also
+See Also
 --------
 aggregate, transform
 
@@ -324,7 +324,7 @@ def _group_selection_context(groupby):
 
 class _GroupBy(PandasObject, SelectionMixin):
     _group_selection = None
-    _apply_whitelist = frozenset([])
+    _apply_whitelist = frozenset()
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
@@ -1624,7 +1624,7 @@ class GroupBy(_GroupBy):
         5    0
         dtype: int64
 
-        See also
+        See Also
         --------
         .cumcount : Number the rows in each group.
         """
@@ -1680,7 +1680,7 @@ class GroupBy(_GroupBy):
         5    0
         dtype: int64
 
-        See also
+        See Also
         --------
         .ngroup : Number the groups themselves.
         """
