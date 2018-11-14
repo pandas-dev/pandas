@@ -967,7 +967,10 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
         if isinstance(key, datetime):
             # needed to localize naive datetimes
-            key = Timestamp(key, tz=self.tz)
+            if key.tzinfo is None:
+                key = Timestamp(key, tz=self.tz)
+            else:
+                key = Timestamp(key).tz_convert(self.tz)
             return Index.get_loc(self, key, method, tolerance)
 
         elif isinstance(key, timedelta):
