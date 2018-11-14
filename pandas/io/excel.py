@@ -660,6 +660,7 @@ class ExcelFile(object):
             # GH 12292 : error when read one empty column from excel file
             try:
                 parser = TextParser(data,
+                                    names=names,
                                     header=header,
                                     index_col=index_col,
                                     has_index_names=has_index_names,
@@ -680,9 +681,6 @@ class ExcelFile(object):
                                     **kwds)
 
                 output[asheetname] = parser.read(nrows=nrows)
-
-                if names is not None:
-                    output[asheetname].columns = names
 
                 if not squeeze or isinstance(output[asheetname], DataFrame):
                     output[asheetname].columns = output[
