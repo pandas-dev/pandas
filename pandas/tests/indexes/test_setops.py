@@ -16,38 +16,9 @@ from pandas.core.dtypes.dtypes import (
 from pandas.tests.indexes.conftest import index_factory
 
 
-def makeEmptyIndex(_=None):
-    return pd.Index([])
-
-
-INDEXES = dict(
-    unicodeIndex=tm.makeUnicodeIndex,
-    strIndex=tm.makeStringIndex,
-    dateIndex=tm.makeDateIndex,
-    periodIndex=tm.makePeriodIndex,
-    tdIndex=tm.makeTimedeltaIndex,
-    intIndex=tm.makeIntIndex,
-    uintIndex=tm.makeUIntIndex,
-    rangeIndex=tm.makeRangeIndex,
-    floatIndex=tm.makeFloatIndex,
-    catIndex=tm.makeCategoricalIndex,
-    emptyIndex=makeEmptyIndex,
-    intervalIndex=tm.makeIntervalIndex,
-)
-
-
 COMPATIBLE_INCONSISTENT_PAIRS = {
     (Int64Index, RangeIndex): (tm.makeIntIndex, tm.makeRangeIndex)
 }
-
-
-# @pytest.mark.parametrize('idxType', INDEXES.keys())
-# def test_union_same_types(idxType):
-#     idx1 = INDEXES[idxType](10)
-#     idx2 = INDEXES[idxType](20)
-#     assert idx1.union(idx2).dtype == idx1.dtype
-
-#     # Note: catIndex reflects only left dtype, should it reflect both?
 
 
 def test_union_same_types(index_factory):
@@ -65,6 +36,7 @@ def test_union_same_types(index_factory):
     list(it.combinations(index_factory._pytestfixturefunction.params, 2))
 )
 def test_union_different_types(idxfactory1, idxfactory2):
+    # GH 23525
     idx1 = idxfactory1(10)
     idx2 = idxfactory2(20)
 
@@ -81,7 +53,7 @@ def test_union_different_types(idxfactory1, idxfactory2):
     # A union with a CategoricalIndex (even as dtype('O')) and a
     # non-CategoricalIndex can only be made if both indices are monotonic.
     # This is true before this PR as well.
-    #
+
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
     idx1 = idx1.sort_values()
@@ -94,6 +66,7 @@ def test_union_different_types(idxfactory1, idxfactory2):
 @pytest.mark.parametrize('idx_fact1,idx_fact2',
                          COMPATIBLE_INCONSISTENT_PAIRS.values())
 def test_compatible_inconsistent_pairs(idx_fact1, idx_fact2):
+    # GH 23525
     idx1 = idx_fact1(10)
     idx2 = idx_fact2(20)
 
