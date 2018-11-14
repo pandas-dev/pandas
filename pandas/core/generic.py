@@ -7938,8 +7938,7 @@ class NDFrame(PandasObject, SelectionMixin):
             * first: ranks assigned in order they appear in the array
             * dense: like 'min', but rank always increases by 1 between groups
         numeric_only : bool, optional
-            If True, rank only float, int and boolean data.
-            Valid only for DataFrame or Panel objects.
+            For DataFrame objects, rank only numeric columns if set to True.
         na_option : {'keep', 'top', 'bottom'}, default 'keep'
             How to rank NaN values:
 
