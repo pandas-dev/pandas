@@ -339,7 +339,7 @@ class TestDataFrameFormatting(object):
 
         assert df2.columns[0] in result.split('\n')[0]
 
-    def test_repr_truncates_terminal_size(self, mock):
+    def test_repr_truncates_terminal_size_full(self, mock):
         # GH 22984 ensure entire window is filled
         terminal_size = (80, 24)
         df = pd.DataFrame(np.random.rand(1, 7))
