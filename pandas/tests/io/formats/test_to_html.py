@@ -477,3 +477,57 @@ class TestToHTML(object):
         df = DataFrame({'x': [100.0]})
         expected = expected_html(datapath, 'gh22270_expected_output')
         assert df.to_html(float_format='%.0f') == expected
+
+    @pytest.mark.parametrize("render_links", [True, False])
+    def test_to_html_render_links(self, render_links):
+        # GH 2679
+
+        data = [
+            {
+                'foo': 0,
+                'bar': 'http://pandas.pydata.org/?q1=a&q2=b',
+                None: 'pydata.org',
+            },
+            {
+                'foo': 0,
+                'bar': 'www.pydata.org',
+                None: 'pydata.org',
+            },
+        ]
+        df = DataFrame(data, columns=['foo', 'bar', None],
+                       index=range(len(data)))
+
+        result = df.to_html(render_links=render_links)
+
+        open_tag = not render_links and '<td>' or\
+            ('<td><a href="http://pandas.pydata.org/?q1=a&q2=b"'
+             ' target="_blank">')
+        close_tag = not render_links and '</td>' or '</a></td>'
+
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <thead>
+            <tr style="text-align: right;">
+              <th></th>
+              <th>foo</th>
+              <th>bar</th>
+              <th>None</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>0</th>
+              <td>0</td>
+              {open_tag}http://pandas.pydata.org/?q1=a&amp;q2=b{close_tag}
+              <td>pydata.org</td>
+            </tr>
+            <tr>
+              <th>1</th>
+              <td>0</td>
+              <td>www.pydata.org</td>
+              <td>pydata.org</td>
+            </tr>
+          </tbody>
+        </table>""").format(open_tag=open_tag, close_tag=close_tag)
+
+        assert result == expected

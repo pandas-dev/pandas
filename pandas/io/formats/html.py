@@ -19,6 +19,7 @@ from pandas.core.config import get_option
 from pandas.io.formats.format import (
     TableFormatter, buffer_put_lines, get_level_lengths)
 from pandas.io.formats.printing import pprint_thing
+from pandas.io.common import _is_url
 
 
 class HTMLFormatter(TableFormatter):
@@ -26,7 +27,8 @@ class HTMLFormatter(TableFormatter):
     indent_delta = 2
 
     def __init__(self, formatter, classes=None, max_rows=None, max_cols=None,
-                 notebook=False, border=None, table_id=None):
+                 notebook=False, border=None, table_id=None,
+                 render_links=False):
         self.fmt = formatter
         self.classes = classes
 
@@ -46,6 +48,7 @@ class HTMLFormatter(TableFormatter):
             border = get_option('display.html.border')
         self.border = border
         self.table_id = table_id
+        self.render_links = render_links
 
     def write(self, s, indent=0):
         rs = pprint_thing(s)
@@ -74,9 +77,20 @@ class HTMLFormatter(TableFormatter):
                                ('>', r'&gt;')])
         else:
             esc = {}
+
         rs = pprint_thing(s, escape_chars=esc).strip()
-        self.write(u'{start}{rs}</{kind}>'
-                   .format(start=start_tag, rs=rs, kind=kind), indent)
+
+        if self.render_links and _is_url(rs):
+            rs_unescaped = pprint_thing(s, escape_chars={}).strip()
+            start_tag += '<a href="{url}" target="_blank">'\
+                .format(url=rs_unescaped)
+            end_a = '</a>'
+        else:
+            end_a = ''
+
+        self.write('{start}{rs}{end_a}</{kind}>'
+                   .format(start=start_tag, rs=rs, end_a=end_a, kind=kind),
+                   indent)
 
     def write_tr(self, line, indent=0, indent_delta=0, header=False,
                  align=None, tags=None, nindex_levels=0):
