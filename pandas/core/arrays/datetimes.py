@@ -111,7 +111,7 @@ def _dt_array_cmp(cls, op):
                 # string that cannot be parsed to Timestamp
                 return ops.invalid_comparison(self, other, op)
 
-            result = meth(self, other)
+            result = op(self.asi8, other.view('i8'))
             if isna(other):
                 result.fill(nat_result)
         elif lib.is_scalar(other):
@@ -221,6 +221,10 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
+
+        if isinstance(values, ABCSeries):
+            # extract to ndarray or DatetimeIndex
+            values = values._values
 
         if isinstance(values, DatetimeArrayMixin):
             # extract nanosecond unix timestamps
