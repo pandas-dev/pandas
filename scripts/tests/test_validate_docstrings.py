@@ -817,19 +817,19 @@ class TestValidator(object):
         for msg in msgs:
             assert msg in ' '.join(err[1] for err in result['errors'])
 
-    def test_validate_all_ignore_deprecated(self, monkeypatch):
-        monkeypatch.setattr(
-            validate_docstrings, 'validate_one', lambda func_name: {
-                'docstring': 'docstring1',
-                'errors': [('ER01', 'err desc'),
-                           ('ER02', 'err desc'),
-                           ('ER03', 'err desc')],
-                'warnings': [],
-                'examples_errors': '',
-                'deprecated': True})
-        result = validate_docstrings.validate_all(prefix=None,
-                                                  ignore_deprecated=True)
-        assert len(result) == 0
+    # def test_validate_all_ignore_deprecated(self, monkeypatch):
+    #     monkeypatch.setattr(
+    #         validate_docstrings, 'validate_one', lambda func_name: {
+    #             'docstring': 'docstring1',
+    #             'errors': [('ER01', 'err desc'),
+    #                        ('ER02', 'err desc'),
+    #                        ('ER03', 'err desc')],
+    #             'warnings': [],
+    #             'examples_errors': '',
+    #             'deprecated': True})
+    #     result = validate_docstrings.validate_all(prefix=None,
+    #                                               ignore_deprecated=True)
+    #     assert len(result) == 0
 
 
 class TestApiItems(object):
