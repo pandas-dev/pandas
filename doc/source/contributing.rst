@@ -1103,7 +1103,7 @@ Information on how to write a benchmark and how to use asv can be found in the
 Documenting your code
 ---------------------
 
-Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.txt``.
+Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.rst``.
 This file contains an ongoing change log for each release.  Add an entry to this file to
 document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
 GitHub issue number when adding your entry (using ``:issue:`1234``` where ``1234`` is the
