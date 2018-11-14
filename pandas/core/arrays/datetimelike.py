@@ -247,9 +247,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return cls(values, dtype=dtype)
 
     def copy(self, deep=False):
-        values = self.asi8
-        if deep:
-            values = values.copy()
+        values = self.asi8.copy()
         return type(self)(values, dtype=self.dtype, freq=self.freq)
 
     def _values_for_factorize(self):
