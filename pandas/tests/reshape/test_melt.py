@@ -244,17 +244,20 @@ class TestMelt(object):
         # Try to melt with missing `value_vars` column name
         msg = "The following '{Var}' are not present in the DataFrame: {Col}"
         with pytest.raises(KeyError,
-            match=msg.format(Var='value_vars', Col="\\['C'\\]")):
+                           match=msg.format(Var='value_vars',
+                            Col="\\['C'\\]")):
             df.melt(['a', 'b'], ['C', 'd'])
 
         # Try to melt with missing `id_vars` column name
         with pytest.raises(KeyError,
-            match=msg.format(Var='id_vars', Col="\\['A'\\]")):
+                           match=msg.format(Var='id_vars',
+                            Col="\\['A'\\]")):
             df.melt(['A', 'b'], ['c', 'd'])
 
         # Multiple missing
         with pytest.raises(KeyError,
-            match=msg.format(Var='id_vars', Col="\\['not_here', 'or_there'\\]")):
+                           match=msg.format(Var='id_vars',
+                            Col="\\['not_here', 'or_there'\\]")):
             df.melt(['a', 'b', 'not_here', 'or_there'], ['c', 'd'])
 
 class TestLreshape(object):
