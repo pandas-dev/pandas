@@ -37,11 +37,6 @@ cdef extern from "src/datetime/np_datetime_strings.h":
                                 npy_datetimestruct *out,
                                 int *out_local, int *out_tzoffset)
 
-# ----------------------------------------------------------------------
-# time constants
-
-cdef int64_t DAY_S = 86400
-
 
 # ----------------------------------------------------------------------
 # numpy object inspection

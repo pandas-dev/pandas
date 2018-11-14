@@ -49,6 +49,8 @@ DAYS_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday',
 int_to_weekday = {num: name for num, name in enumerate(DAYS)}
 weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
 
+DAY_SECONDS = 86400
+
 # ----------------------------------------------------------------------
 
 

@@ -21,6 +21,7 @@ from util cimport (is_datetime64_object, is_timedelta64_object,
                    is_offset_object)
 
 cimport ccalendar
+from ccalendar import DAY_SECONDS
 from conversion import tz_localize_to_utc, normalize_i8_timestamps
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
@@ -40,7 +41,6 @@ from timezones cimport (
 # Constants
 _zero_time = datetime_time(0, 0)
 _no_input = object()
-cdef int64_t DAY_NS = 86400000000000
 
 
 # ----------------------------------------------------------------------
@@ -1287,6 +1287,7 @@ class Timestamp(_Timestamp):
         tz information.
         """
         if self.tz is None:
+            DAY_NS = DAY_SECONDS * 1000000000
             return Timestamp(self.value - (self.value % DAY_NS))
         normalized_value = normalize_i8_timestamps(
             np.array([self.value], dtype='i8'), tz=self.tz)[0]

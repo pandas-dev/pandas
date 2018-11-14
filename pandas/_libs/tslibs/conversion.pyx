@@ -16,14 +16,15 @@ from cpython.datetime cimport (datetime, tzinfo,
                                PyDateTime_CheckExact, PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
+from ccalendar import DAY_SECONDS
+
 from np_datetime cimport (check_dts_bounds,
                           npy_datetimestruct,
                           pandas_datetime_to_datetimestruct, _string_to_dts,
                           npy_datetime,
                           dt64_to_dtstruct, dtstruct_to_dt64,
                           get_datetime64_unit, get_datetime64_value,
-                          pydatetime_to_dt64, NPY_DATETIMEUNIT, NPY_FR_ns,
-                          DAY_S)
+                          pydatetime_to_dt64, NPY_DATETIMEUNIT, NPY_FR_ns)
 from np_datetime import OutOfBoundsDatetime
 
 from util cimport (is_string_object,
@@ -931,10 +932,10 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     result_b[:] = NPY_NAT
 
     idx_shifted_left = (np.maximum(0, trans.searchsorted(
-        vals - DAY_S * 1000000000, side='right') - 1)).astype(np.int64)
+        vals - DAY_SECONDS * 1000000000, side='right') - 1)).astype(np.int64)
 
     idx_shifted_right = (np.maximum(0, trans.searchsorted(
-        vals + DAY_S * 1000000000, side='right') - 1)).astype(np.int64)
+        vals + DAY_SECONDS * 1000000000, side='right') - 1)).astype(np.int64)
 
     for i in range(n):
         val = vals[i]

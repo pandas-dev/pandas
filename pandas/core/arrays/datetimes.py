@@ -8,7 +8,7 @@ from pytz import utc
 from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timestamp, NaT, iNaT
 from pandas._libs.tslibs import (
-    normalize_date,
+    ccalendar, normalize_date,
     conversion, fields, timezones,
     resolution as libresolution)
 
@@ -852,7 +852,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         """
         if self.tz is None:
             not_null = self.notnull()
-            DAY_NS = 86400000000000
+            DAY_NS = ccalendar.DAY_SECONDS * 1000000000
             new_values = self.asi8.copy()
             adjustment = (new_values[not_null] % DAY_NS)
             new_values[not_null] = new_values[not_null] - adjustment
