@@ -787,6 +787,12 @@ class TextFileReader(BaseIterator):
                                   stacklevel=2)
                 kwds[param] = dialect_val
 
+        if kwds.get("skipfooter"):
+            if kwds.get("iterator") or kwds.get("chunksize"):
+                raise ValueError("'skipfooter' not supported for 'iteration'")
+            if kwds.get("nrows"):
+                raise ValueError("'skipfooter' not supported with 'nrows'")
+
         if kwds.get('header', 'infer') == 'infer':
             kwds['header'] = 0 if kwds.get('names') is None else None
 
@@ -1054,11 +1060,6 @@ class TextFileReader(BaseIterator):
 
     def read(self, nrows=None):
         nrows = _validate_integer('nrows', nrows)
-
-        if nrows is not None:
-            if self.options.get('skipfooter'):
-                raise ValueError('skipfooter not supported for iteration')
-
         ret = self._engine.read(nrows)
 
         # May alter columns / col_dict
