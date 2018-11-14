@@ -98,8 +98,8 @@ DataFrame or StataReader
 
 See Also
 --------
-pandas.io.stata.StataReader : low-level reader for Stata data files
-pandas.DataFrame.to_stata: export Stata data files
+pandas.io.stata.StataReader : Low-level reader for Stata data files.
+pandas.DataFrame.to_stata: Export Stata data files.
 
 Examples
 --------
@@ -2558,6 +2558,8 @@ class StataStrLWriter(object):
         for o, (idx, row) in enumerate(selected.iterrows()):
             for j, (col, v) in enumerate(col_index):
                 val = row[col]
+                # Allow columns with mixed str and None (GH 23633)
+                val = '' if val is None else val
                 key = gso_table.get(val, None)
                 if key is None:
                     # Stata prefers human numbers
