@@ -2385,14 +2385,35 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return this.where(notna(this), other)
 
-    def update(self, other):
+    def update(self, other, join='left', overwrite=True, filter_func=None,
+               raise_conflict=False):
         """
-        Modify Series in place using non-NA values from passed
-        Series. Aligns on index
+        Modify Series in place using non-NA values from passed Series.
+
+        Aligns on index.
 
         Parameters
         ----------
-        other : Series
+        other : Series, or object coercible into a Series
+            Should have at least one matching index label with the calling
+            Series.
+        join : {'left'}, default 'left'
+            Only left join is implemented, keeping the index and columns of the
+            original object.
+        overwrite : bool, default True
+            How to handle non-NA values for overlapping keys:
+
+            * True: overwrite original DataFrame's values
+              with values from `other`.
+            * False: only update values that are NA in
+              the original DataFrame.
+
+        filter_func : callable(1d-array) -> boolean 1d-array, optional
+            Can choose to replace values other than NA. Return True for values
+            that should be updated.
+        raise_conflict : bool, default False
+            If True, will raise a ValueError if the DataFrame and `other`
+            both contain non-NA data in the same place.
 
         Examples
         --------
@@ -2431,11 +2452,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    6
         dtype: int64
         """
-        other = other.reindex_like(self)
-        mask = notna(other)
-
-        self._data = self._data.putmask(mask=mask, new=other, inplace=True)
-        self._maybe_update_cacher()
+        super(Series, self).update(other, join=join, overwrite=overwrite,
+                                   filter_func=filter_func,
+                                   raise_conflict=raise_conflict)
 
     # ----------------------------------------------------------------------
     # Reindexing, sorting
