@@ -313,10 +313,10 @@ class Categorical(ExtensionArray, PandasObject):
     See the `user guide
     <http://pandas.pydata.org/pandas-docs/stable/categorical.html>`_ for more.
 
-    See also
+    See Also
     --------
-    pandas.api.types.CategoricalDtype : Type for categorical data
-    CategoricalIndex : An Index with an underlying ``Categorical``
+    pandas.api.types.CategoricalDtype : Type for categorical data.
+    CategoricalIndex : An Index with an underlying ``Categorical``.
     """
 
     # For comparisons, so that numpy uses our implementation if the compare
@@ -457,7 +457,7 @@ class Categorical(ExtensionArray, PandasObject):
             If the new categories do not validate as categories or if the
             number of new categories is unequal the number of old categories
 
-        See also
+        See Also
         --------
         rename_categories
         reorder_categories
@@ -823,7 +823,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         cat : Categorical with reordered categories or None if inplace.
 
-        See also
+        See Also
         --------
         rename_categories
         reorder_categories
@@ -894,7 +894,7 @@ class Categorical(ExtensionArray, PandasObject):
            With ``inplace=False``, the new categorical is returned.
            With ``inplace=True``, there is no return value.
 
-        See also
+        See Also
         --------
         reorder_categories
         add_categories
@@ -971,7 +971,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         cat : Categorical with reordered categories or None if inplace.
 
-        See also
+        See Also
         --------
         rename_categories
         add_categories
@@ -1010,7 +1010,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         cat : Categorical with new categories added or None if inplace.
 
-        See also
+        See Also
         --------
         rename_categories
         reorder_categories
@@ -1058,7 +1058,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         cat : Categorical with removed categories or None if inplace.
 
-        See also
+        See Also
         --------
         rename_categories
         reorder_categories
@@ -1100,7 +1100,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         cat : Categorical with unused categories dropped or None if inplace.
 
-        See also
+        See Also
         --------
         rename_categories
         reorder_categories
@@ -1364,11 +1364,11 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         a boolean array of whether my values are null
 
-        See also
+        See Also
         --------
-        isna : top-level isna
-        isnull : alias of isna
-        Categorical.notna : boolean inverse of Categorical.isna
+        isna : Top-level isna.
+        isnull : Alias of isna.
+        Categorical.notna : Boolean inverse of Categorical.isna.
 
         """
 
@@ -1387,11 +1387,11 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         a boolean array of whether my values are not null
 
-        See also
+        See Also
         --------
-        notna : top-level notna
-        notnull : alias of notna
-        Categorical.isna : boolean inverse of Categorical.notna
+        notna : Top-level notna.
+        notnull : Alias of notna.
+        Categorical.isna : Boolean inverse of Categorical.notna.
 
         """
         return ~self.isna()
@@ -1503,7 +1503,7 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         argsorted : numpy array
 
-        See also
+        See Also
         --------
         numpy.ndarray.argsort
 
@@ -2322,7 +2322,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Repeat elements of a Categorical.
 
-        See also
+        See Also
         --------
         numpy.ndarray.repeat
 
@@ -2371,7 +2371,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        pandas.Series.isin : equivalent method on Series
+        pandas.Series.isin : Equivalent method on Series.
 
         Examples
         --------

@@ -49,8 +49,8 @@ class RangeIndex(Int64Index):
 
     See Also
     --------
-    Index : The base pandas Index type
-    Int64Index : Index of int64 data
+    Index : The base pandas Index type.
+    Int64Index : Index of int64 data.
 
     Attributes
     ----------
@@ -305,7 +305,7 @@ class RangeIndex(Int64Index):
         -------
         argsorted : numpy array
 
-        See also
+        See Also
         --------
         numpy.ndarray.argsort
         """
