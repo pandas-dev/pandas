@@ -962,7 +962,7 @@ Other API Changes
 - :class:`DateOffset` attribute `_cacheable` and method `_should_cache` have been removed (:issue:`23118`)
 - Comparing :class:`Timedelta` to be less or greater than unknown types now raises a ``TypeError`` instead of returning ``False`` (:issue:`20829`)
 - :meth:`Index.hasnans` and :meth:`Series.hasnans` now always return a python boolean. Previously, a python or a numpy boolean could be returned, depending on circumstances (:issue:`23294`).
-- :func:The order of the arguments of `DataFrame.to_html` and `DataFrame.to_string` is rearranged to be consistent with each other. (:issue:`23614`)
+- The order of the arguments of :func:`DataFrame.to_html` and :func:`DataFrame.to_string` is rearranged to be consistent with each other. (:issue:`23614`)
 
 .. _whatsnew_0240.deprecations:
 
