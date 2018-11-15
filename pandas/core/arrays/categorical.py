@@ -2435,7 +2435,6 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     >>> s.cat.set_categories(list('abcde'))
     >>> s.cat.as_ordered()
     >>> s.cat.as_unordered()
-
     """
 
     def __init__(self, data):
