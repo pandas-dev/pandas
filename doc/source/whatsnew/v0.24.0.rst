@@ -1261,7 +1261,7 @@ Numeric
 Strings
 ^^^^^^^
 
-- BUG in :func:`Index.str.partition` is not nan-safe (:issue:`23558`)
+- BUG in :meth:`Index.str.partition` was not nan-safe (:issue:`23558`).
 -
 -
 
