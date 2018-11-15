@@ -5213,8 +5213,10 @@ class DataFrame(NDFrame):
 
         return self.combine(other, combiner, overwrite=False)
 
+    @deprecate_kwarg(old_arg_name='raise_conflict', new_arg_name='errors',
+                     mapping={False: 'ignore', True: 'raise'})
     def update(self, other, join='left', overwrite=True, filter_func=None,
-               raise_conflict=False):
+               errors='ignore'):
         """
         Modify in place using non-NA values from another DataFrame.
 
@@ -5238,17 +5240,28 @@ class DataFrame(NDFrame):
             * False: only update values that are NA in
               the original DataFrame.
 
-        filter_func : callable(1d-array) -> boolean 1d-array, optional
+        filter_func : callable(1d-array) -> bool 1d-array, optional
             Can choose to replace values other than NA. Return True for values
             that should be updated.
-        raise_conflict : bool, default False
-            If True, will raise a ValueError if the DataFrame and `other`
+        errors : {'raise', 'ignore'}, default 'ignore'
+            If 'raise', will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
+
+            .. versionchanged :: 0.24.0
+               Changed from `raise_conflict=False|True`
+               to `errors='ignore'|'raise'`.
+
+        Returns
+        -------
+        None : method directly changes calling object
 
         Raises
         ------
         ValueError
-            When `raise_conflict` is True and there's overlapping non-NA data.
+            * When `errors='raise'` and there's overlapping non-NA data.
+            * When `errors` is not either `'ignore'` or `'raise'`
+        NotImplementedError
+            * If `join != 'left'`
 
         See Also
         --------
@@ -5319,6 +5332,9 @@ class DataFrame(NDFrame):
         # TODO: Support other joins
         if join != 'left':  # pragma: no cover
             raise NotImplementedError("Only left join is supported")
+        if errors not in ['ignore', 'raise']:
+            raise ValueError("The parameter errors must be either "
+                             "'ignore' or 'raise'")
 
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
@@ -5332,7 +5348,7 @@ class DataFrame(NDFrame):
                 with np.errstate(all='ignore'):
                     mask = ~filter_func(this) | isna(that)
             else:
-                if raise_conflict:
+                if errors == 'raise':
                     mask_this = notna(that)
                     mask_that = notna(this)
                     if any(mask_this & mask_that):
