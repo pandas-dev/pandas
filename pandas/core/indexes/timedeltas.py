@@ -72,10 +72,10 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
     See Also
     ---------
-    Index : The base pandas Index type
+    Index : The base pandas Index type.
     Timedelta : Represents a duration between two dates or times.
-    DatetimeIndex : Index of datetime64 data
-    PeriodIndex : Index of Period data
+    DatetimeIndex : Index of datetime64 data.
+    PeriodIndex : Index of Period data.
 
     Attributes
     ----------

@@ -24,12 +24,11 @@ from pandas import (Series, DataFrame, Panel, Index, isna,
                     notna, Timestamp, Timedelta)
 
 from pandas.compat import range, lrange, zip, OrderedDict
-from pandas.errors import UnsupportedFunctionCall
+from pandas.errors import AbstractMethodError, UnsupportedFunctionCall
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import Minute, BDay
 
 from pandas.core.groupby.groupby import DataError
-import pandas.core.common as com
 
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import period_range, PeriodIndex, Period
@@ -599,7 +598,7 @@ class Base(object):
 
     @pytest.fixture
     def _series_name(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     @pytest.fixture
     def _static_values(self, index):
