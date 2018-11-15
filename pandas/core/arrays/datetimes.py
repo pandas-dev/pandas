@@ -209,9 +209,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         return result
 
     def __new__(cls, values, freq=None, tz=None, dtype=None):
-        if tz is None and hasattr(values, 'tz'):
-            # e.g. DatetimeIndex
-            tz = values.tz
 
         if freq is None and hasattr(values, "freq"):
             # i.e. DatetimeArray, DatetimeIndex
@@ -228,7 +225,10 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         if isinstance(values, DatetimeArrayMixin):
             # extract nanosecond unix timestamps
+            if tz is None:
+                tz = values.tz
             values = values.asi8
+
         if values.dtype == 'i8':
             values = values.view('M8[ns]')
 
