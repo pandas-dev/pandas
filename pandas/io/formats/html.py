@@ -305,6 +305,8 @@ class HTMLFormatter(TableFormatter):
             align = self.fmt.justify
 
             if truncate_h:
+                if not self.fmt.index:
+                    row_levels = 0
                 ins_col = row_levels + self.fmt.tr_col_num
                 col_row.insert(ins_col, '...')
 
@@ -336,15 +338,10 @@ class HTMLFormatter(TableFormatter):
             fmt_values[i] = self.fmt._format_col(i)
 
         # write values
-        if self.fmt.index:
-            if isinstance(self.frame.index, ABCMultiIndex):
-                self._write_hierarchical_rows(fmt_values, indent)
-            else:
-                self._write_regular_rows(fmt_values, indent)
+        if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
+            self._write_hierarchical_rows(fmt_values, indent)
         else:
-            for i in range(min(len(self.frame), self.max_rows)):
-                row = [fmt_values[j][i] for j in range(len(self.columns))]
-                self.write_tr(row, indent, self.indent_delta, tags=None)
+            self._write_regular_rows(fmt_values, indent)
 
         indent -= self.indent_delta
         self.write('</tbody>', indent)
@@ -358,11 +355,16 @@ class HTMLFormatter(TableFormatter):
 
         ncols = len(self.fmt.tr_frame.columns)
         nrows = len(self.fmt.tr_frame)
-        fmt = self.fmt._get_formatter('__index__')
-        if fmt is not None:
-            index_values = self.fmt.tr_frame.index.map(fmt)
+
+        if self.fmt.index:
+            fmt = self.fmt._get_formatter('__index__')
+            if fmt is not None:
+                index_values = self.fmt.tr_frame.index.map(fmt)
+            else:
+                index_values = self.fmt.tr_frame.index.format()
+            row_levels = 1
         else:
-            index_values = self.fmt.tr_frame.index.format()
+            row_levels = 0
 
         row = []
         for i in range(nrows):
@@ -370,17 +372,18 @@ class HTMLFormatter(TableFormatter):
             if truncate_v and i == (self.fmt.tr_row_num):
                 str_sep_row = ['...'] * len(row)
                 self.write_tr(str_sep_row, indent, self.indent_delta,
-                              tags=None, nindex_levels=1)
+                              tags=None, nindex_levels=row_levels)
 
             row = []
-            row.append(index_values[i])
+            if self.fmt.index:
+                row.append(index_values[i])
             row.extend(fmt_values[j][i] for j in range(ncols))
 
             if truncate_h:
-                dot_col_ix = self.fmt.tr_col_num + 1
+                dot_col_ix = self.fmt.tr_col_num + row_levels
                 row.insert(dot_col_ix, '...')
             self.write_tr(row, indent, self.indent_delta, tags=None,
-                          nindex_levels=1)
+                          nindex_levels=row_levels)
 
     def _write_hierarchical_rows(self, fmt_values, indent):
         template = 'rowspan="{span}" valign="top"'
