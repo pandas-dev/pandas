@@ -128,7 +128,7 @@ def test_is_level_reference_series_axis1_error(df):
     # Make series with L1 as index
     s = df.set_index('L1').L2
 
-    with tm.assert_raises_regex(ValueError, "No axis named 1"):
+    with pytest.raises(ValueError, match="No axis named 1"):
         s._is_level_reference('L1', axis=1)
 
 
@@ -138,7 +138,7 @@ def test_is_level_reference_panel_error(panel):
     msg = ("_is_level_reference is not implemented for {type}"
            .format(type=type(panel)))
 
-    with tm.assert_raises_regex(NotImplementedError, msg):
+    with pytest.raises(NotImplementedError, match=msg):
         panel._is_level_reference('L1', axis=0)
 
 
@@ -146,7 +146,7 @@ def test_is_label_reference_panel_error(panel):
     msg = ("_is_label_reference is not implemented for {type}"
            .format(type=type(panel)))
 
-    with tm.assert_raises_regex(NotImplementedError, msg):
+    with pytest.raises(NotImplementedError, match=msg):
         panel._is_label_reference('L1', axis=0)
 
 
@@ -154,7 +154,7 @@ def test_is_label_or_level_reference_panel_error(panel):
     msg = ("_is_label_or_level_reference is not implemented for {type}"
            .format(type=type(panel)))
 
-    with tm.assert_raises_regex(NotImplementedError, msg):
+    with pytest.raises(NotImplementedError, match=msg):
         panel._is_label_or_level_reference('L1', axis=0)
 
 
@@ -176,7 +176,7 @@ def test_check_label_or_level_ambiguity_df(df_ambig, axis):
 
     # df_ambig has both an on-axis level and off-axis label named L1
     # Therefore, L1 is ambiguous.
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         df_ambig._check_label_or_level_ambiguity("L1", axis=axis)
 
     # df_ambig has an on-axis level named L2,, and it is not ambiguous.
@@ -209,7 +209,7 @@ def test_check_label_or_level_ambiguity_series_axis1_error(df):
     # Make series with L1 as index
     s = df.set_index('L1').L2
 
-    with tm.assert_raises_regex(ValueError, "No axis named 1"):
+    with pytest.raises(ValueError, match="No axis named 1"):
         s._check_label_or_level_ambiguity('L1', axis=1)
 
 
@@ -219,7 +219,7 @@ def test_check_label_or_level_ambiguity_panel_error(panel):
     msg = ("_check_label_or_level_ambiguity is not implemented for {type}"
            .format(type=type(panel)))
 
-    with tm.assert_raises_regex(NotImplementedError, msg):
+    with pytest.raises(NotImplementedError, match=msg):
         panel._check_label_or_level_ambiguity("L1", axis=0)
 
 
@@ -294,7 +294,7 @@ def test_get_label_or_level_values_df_duplabels(df_duplabels, axis):
     else:
         expected_msg = "The index label 'L2' is not unique"
 
-    with tm.assert_raises_regex(ValueError, expected_msg):
+    with pytest.raises(ValueError, match=expected_msg):
         assert_label_values(df_duplabels, ['L2'], axis=axis)
 
 
@@ -316,7 +316,7 @@ def test_get_label_or_level_values_series_axis1_error(df):
     # Make series with L1 as index
     s = df.set_index('L1').L2
 
-    with tm.assert_raises_regex(ValueError, "No axis named 1"):
+    with pytest.raises(ValueError, match="No axis named 1"):
         s._get_label_or_level_values('L1', axis=1)
 
 
@@ -326,7 +326,7 @@ def test_get_label_or_level_values_panel_error(panel):
     msg = ("_get_label_or_level_values is not implemented for {type}"
            .format(type=type(panel)))
 
-    with tm.assert_raises_regex(NotImplementedError, msg):
+    with pytest.raises(NotImplementedError, match=msg):
         panel._get_label_or_level_values('L1', axis=0)
 
 
@@ -371,7 +371,7 @@ def test_drop_labels_or_levels_df(df_levels, axis):
     assert_labels_dropped(df_levels, expected_labels, axis=axis)
     assert_levels_dropped(df_levels, expected_levels, axis=axis)
 
-    with tm.assert_raises_regex(ValueError, "not valid labels or levels"):
+    with pytest.raises(ValueError, match="not valid labels or levels"):
         df_levels._drop_labels_or_levels('L4', axis=axis)
 
 
@@ -383,14 +383,14 @@ def test_drop_labels_or_levels_series(df):
     s = df.set_index('L1').L2
     assert_levels_dropped(s, ['L1'], axis=0)
 
-    with tm.assert_raises_regex(ValueError, "not valid labels or levels"):
+    with pytest.raises(ValueError, match="not valid labels or levels"):
         s._drop_labels_or_levels('L4', axis=0)
 
     # Make series with L1 and L2 as index
     s = df.set_index(['L1', 'L2']).L3
     assert_levels_dropped(s, ['L1', 'L2'], axis=0)
 
-    with tm.assert_raises_regex(ValueError, "not valid labels or levels"):
+    with pytest.raises(ValueError, match="not valid labels or levels"):
         s._drop_labels_or_levels('L4', axis=0)
 
 
@@ -400,5 +400,5 @@ def test_drop_labels_or_levels_panel_error(panel):
     msg = ("_drop_labels_or_levels is not implemented for {type}"
            .format(type=type(panel)))
 
-    with tm.assert_raises_regex(NotImplementedError, msg):
+    with pytest.raises(NotImplementedError, match=msg):
         panel._drop_labels_or_levels('L1', axis=0)

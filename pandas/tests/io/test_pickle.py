@@ -370,8 +370,7 @@ class TestCompression(object):
 
     @pytest.mark.parametrize('compression', ['', 'None', 'bad', '7z'])
     def test_write_explicit_bad(self, compression, get_random_path):
-        with tm.assert_raises_regex(ValueError,
-                                    "Unrecognized compression type"):
+        with pytest.raises(ValueError, match="Unrecognized compression type"):
             with tm.ensure_clean(get_random_path) as path:
                 df = tm.makeDataFrame()
                 df.to_pickle(path, compression=compression)
@@ -474,7 +473,7 @@ class TestProtocol(object):
         # For Python 2, HIGHEST_PROTOCOL should be 2.
         msg = ("pickle protocol {protocol} asked for; the highest available "
                "protocol is 2").format(protocol=protocol)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             with tm.ensure_clean(get_random_path) as path:
                 df = tm.makeDataFrame()
                 df.to_pickle(path, protocol=protocol)

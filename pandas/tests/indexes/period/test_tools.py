@@ -180,7 +180,7 @@ class TestPeriodIndex(object):
         assert prng.freq == 'M'
 
         msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             date_range('01-Jan-2012', periods=8, freq='EOM')
 
     def test_period_dt64_round_trip(self):
@@ -219,11 +219,11 @@ class TestPeriodIndex(object):
         assert pidx.searchsorted(p2) == 3
 
         msg = "Input has different freq=H from PeriodIndex"
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             pidx.searchsorted(pd.Period('2014-01-01', freq='H'))
 
         msg = "Input has different freq=5D from PeriodIndex"
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             pidx.searchsorted(pd.Period('2014-01-01', freq='5D'))
 
 
@@ -260,7 +260,7 @@ class TestPeriodIndexConversion(object):
 
         msg = ('Frequency must be positive, because it'
                ' represents span: -2A')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             result.to_period(freq='-2A')
 
     def test_to_timestamp_preserve_name(self):

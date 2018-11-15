@@ -1405,7 +1405,6 @@ class _IXIndexer(_NDFrameIndexer):
     usually better to be explicit and use ``.iloc`` or ``.loc``.
 
     See more at :ref:`Advanced Indexing <advanced>`.
-
     """
 
     def __init__(self, name, obj):
@@ -1569,11 +1568,11 @@ class _LocIndexer(_LocationIndexer):
 
     See Also
     --------
-    DataFrame.at : Access a single value for a row/column label pair
-    DataFrame.iloc : Access group of rows and columns by integer position(s)
+    DataFrame.at : Access a single value for a row/column label pair.
+    DataFrame.iloc : Access group of rows and columns by integer position(s).
     DataFrame.xs : Returns a cross-section (row(s) or column(s)) from the
         Series/DataFrame.
-    Series.loc : Access group of values using labels
+    Series.loc : Access group of values using labels.
 
     Examples
     --------
@@ -2302,9 +2301,9 @@ class _AtIndexer(_ScalarAccessIndexer):
     See Also
     --------
     DataFrame.iat : Access a single value for a row/column pair by integer
-        position
-    DataFrame.loc : Access a group of rows and columns by label(s)
-    Series.at : Access a single value using a label
+        position.
+    DataFrame.loc : Access a group of rows and columns by label(s).
+    Series.at : Access a single value using a label.
 
     Examples
     --------
@@ -2372,9 +2371,9 @@ class _iAtIndexer(_ScalarAccessIndexer):
 
     See Also
     --------
-    DataFrame.at : Access a single value for a row/column label pair
-    DataFrame.loc : Access a group of rows and columns by label(s)
-    DataFrame.iloc : Access a group of rows and columns by integer position(s)
+    DataFrame.at : Access a single value for a row/column label pair.
+    DataFrame.loc : Access a group of rows and columns by label(s).
+    DataFrame.iloc : Access a group of rows and columns by integer position(s).
 
     Examples
     --------

@@ -98,8 +98,8 @@ DataFrame or StataReader
 
 See Also
 --------
-pandas.io.stata.StataReader : low-level reader for Stata data files
-pandas.DataFrame.to_stata: export Stata data files
+pandas.io.stata.StataReader : Low-level reader for Stata data files.
+pandas.DataFrame.to_stata: Export Stata data files.
 
 Examples
 --------
@@ -461,7 +461,8 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
 
 excessive_string_length_error = """
 Fixed width strings in Stata .dta files are limited to 244 (or fewer)
-characters.  Column '%s' does not satisfy this restriction.
+characters.  Column '%s' does not satisfy this restriction. Use the
+'version=117' parameter to write the newer (Stata 13 and later) format.
 """
 
 
@@ -2557,6 +2558,8 @@ class StataStrLWriter(object):
         for o, (idx, row) in enumerate(selected.iterrows()):
             for j, (col, v) in enumerate(col_index):
                 val = row[col]
+                # Allow columns with mixed str and None (GH 23633)
+                val = '' if val is None else val
                 key = gso_table.get(val, None)
                 if key is None:
                     # Stata prefers human numbers

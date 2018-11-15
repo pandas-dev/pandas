@@ -744,7 +744,7 @@ XPORT is a relatively limited format and the parsing of it is not as
 optimized as some of the other pandas readers. An alternative way
 to interop data between SAS and pandas is to serialize to csv.
 
-.. code-block:: python
+.. code-block:: ipython
 
    # version 0.17, 10M rows
 

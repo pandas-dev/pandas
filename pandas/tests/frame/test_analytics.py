@@ -101,7 +101,8 @@ def assert_stat_op_calc(opname, alternative, frame, has_skipna=True,
         assert lcd_dtype == result1.dtype
 
     # bad axis
-    tm.assert_raises_regex(ValueError, 'No axis named 2', f, axis=2)
+    with pytest.raises(ValueError, match='No axis named 2'):
+        f(axis=2)
 
     # all NA case
     if has_skipna:
@@ -189,7 +190,8 @@ def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
                            check_dtype=False)
 
     # bad axis
-    tm.assert_raises_regex(ValueError, 'No axis named 2', f, axis=2)
+    with pytest.raises(ValueError, match='No axis named 2'):
+        f(axis=2)
 
     # all NA case
     if has_skipna:
@@ -343,7 +345,7 @@ class TestDataFrameAnalytics():
         df = pd.DataFrame(np.random.normal(size=(10, 2)))
         msg = ("method must be either 'pearson', 'spearman', "
                "or 'kendall'")
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df.corr(method="____")
 
     def test_cov(self, float_frame, float_string_frame):
@@ -1469,7 +1471,7 @@ class TestDataFrameAnalytics():
                                           names=['out', 'in'])
         )
         xpr = "Must specify 'axis' when aggregating by level."
-        with tm.assert_raises_regex(ValueError, xpr):
+        with pytest.raises(ValueError, match=xpr):
             getattr(df, method)(axis=None, level='out')
 
     # ----------------------------------------------------------------------
@@ -1757,7 +1759,7 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(out, expected)
 
         msg = "the 'out' parameter is not supported"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             np.round(df, decimals=0, out=df)
 
     def test_round_mixed_type(self):
@@ -1997,8 +1999,7 @@ class TestDataFrameAnalytics():
         expected = a.dot(a.iloc[0])
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_raises_regex(ValueError,
-                                    'Dot product shape mismatch'):
+        with pytest.raises(ValueError, match='Dot product shape mismatch'):
             a.dot(row[:-1])
 
         a = np.random.rand(1, 5)
@@ -2015,7 +2016,7 @@ class TestDataFrameAnalytics():
         df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
         df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
 
-        with tm.assert_raises_regex(ValueError, 'aligned'):
+        with pytest.raises(ValueError, match='aligned'):
             df.dot(df2)
 
     @pytest.mark.skipif(not PY35,
@@ -2075,7 +2076,7 @@ class TestDataFrameAnalytics():
         df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
         df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
 
-        with tm.assert_raises_regex(ValueError, 'aligned'):
+        with pytest.raises(ValueError, match='aligned'):
             operator.matmul(df, df2)
 
 
@@ -2144,7 +2145,7 @@ class TestNLargestNSmallest(object):
 
             error_msg = self.dtype_error_msg_template.format(
                 column='b', method=nselect_method, dtype='object')
-            with tm.assert_raises_regex(TypeError, error_msg):
+            with pytest.raises(TypeError, match=error_msg):
                 getattr(df, nselect_method)(n, order)
         else:
             ascending = nselect_method == 'nsmallest'
@@ -2162,7 +2163,7 @@ class TestNLargestNSmallest(object):
         # escape some characters that may be in the repr
         error_msg = (error_msg.replace('(', '\\(').replace(")", "\\)")
                               .replace("[", "\\[").replace("]", "\\]"))
-        with tm.assert_raises_regex(TypeError, error_msg):
+        with pytest.raises(TypeError, match=error_msg):
             getattr(df, nselect_method)(2, columns)
 
     def test_n_all_dtypes(self, df_main_dtypes):

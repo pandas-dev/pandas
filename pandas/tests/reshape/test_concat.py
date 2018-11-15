@@ -147,12 +147,10 @@ class TestConcatAppendCommon(ConcatenateBase):
             tm.assert_index_equal(res, exp)
 
             # cannot append non-index
-            with tm.assert_raises_regex(TypeError,
-                                        'all inputs must be Index'):
+            with pytest.raises(TypeError, match='all inputs must be Index'):
                 pd.Index(vals1).append(vals2)
 
-            with tm.assert_raises_regex(TypeError,
-                                        'all inputs must be Index'):
+            with pytest.raises(TypeError, match='all inputs must be Index'):
                 pd.Index(vals1).append([pd.Index(vals2), vals3])
 
             # ----- Series ----- #
@@ -202,16 +200,16 @@ class TestConcatAppendCommon(ConcatenateBase):
             msg = (r'cannot concatenate object of type \"(.+?)\";'
                    ' only pd.Series, pd.DataFrame, and pd.Panel'
                    r' \(deprecated\) objs are valid')
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 pd.Series(vals1).append(vals2)
 
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 pd.Series(vals1).append([pd.Series(vals2), vals3])
 
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 pd.concat([pd.Series(vals1), vals2])
 
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 pd.concat([pd.Series(vals1), pd.Series(vals2), vals3])
 
     def test_concatlike_dtypes_coercion(self):
@@ -1011,6 +1009,21 @@ class TestAppend(ConcatenateBase):
         appended = df1.append(df2, ignore_index=True, sort=sort)
         assert appended['A'].dtype == 'f8'
         assert appended['B'].dtype == 'O'
+
+    def test_append_empty_frame_to_series_with_dateutil_tz(self):
+        # GH 23682
+        date = Timestamp('2018-10-24 07:30:00', tz=dateutil.tz.tzutc())
+        s = Series({'date': date, 'a': 1.0, 'b': 2.0})
+        df = DataFrame(columns=['c', 'd'])
+        result = df.append(s, ignore_index=True)
+        expected = DataFrame([[np.nan, np.nan, 1., 2., date]],
+                             columns=['c', 'd', 'a', 'b', 'date'])
+        # These columns get cast to object after append
+        object_cols = ['c', 'd', 'date']
+        expected.loc[:, object_cols] = expected.loc[:, object_cols].astype(
+            object
+        )
+        assert_frame_equal(result, expected)
 
 
 class TestConcatenate(ConcatenateBase):
