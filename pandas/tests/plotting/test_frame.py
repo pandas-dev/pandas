@@ -2558,6 +2558,7 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
 
+    # This XPASSES when tested with mpl == 3.0.1
     @td.xfail_if_mpl_2_2
     def test_table(self):
         df = DataFrame(np.random.rand(10, 3),

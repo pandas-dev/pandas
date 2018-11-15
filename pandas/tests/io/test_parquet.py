@@ -404,7 +404,8 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     # TODO: This doesn't fail on all systems; track down which
-    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)")
+    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)",
+                       strict=False)
     def test_basic_subset_columns(self, pa, df_full):
         # GH18628
 
@@ -422,7 +423,6 @@ class TestParquetPyArrow(Base):
                           columns=list('aaa')).copy()
         self.check_error_on_write(df, pa, ValueError)
 
-    @pytest.mark.xfail(reason="failing for pyarrow < 0.11.0")
     def test_unsupported(self, pa):
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
