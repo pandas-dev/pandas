@@ -183,6 +183,47 @@ array, but rather an ``ExtensionArray``:
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
 
+.. _whatsnew_0240.enhancements.join_with_two_multiindexes:
+
+Joining with two multi-indexes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`Datafame.merge` and :func:`Dataframe.join` can now be used to join multi-indexed ``Dataframe`` instances on the overlaping index levels (:issue:`6360`)
+
+See the :ref:`Merge, join, and concatenate
+<merging.Join_with_two_multi_indexes>` documentation section.
+
+.. ipython:: python
+
+   index_left = pd.MultiIndex.from_tuples([('K0', 'X0'), ('K0', 'X1'),
+                                          ('K1', 'X2')],
+                                          names=['key', 'X'])
+
+
+   left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
+                        'B': ['B0', 'B1', 'B2']},
+                         index=index_left)
+
+
+   index_right = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
+                                           ('K2', 'Y2'), ('K2', 'Y3')],
+                                           names=['key', 'Y'])
+
+
+   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+                         'D': ['D0', 'D1', 'D2', 'D3']},
+                        index=index_right)
+
+
+    left.join(right)
+
+For earlier versions this can be done using the following.
+
+.. ipython:: python
+
+   pd.merge(left.reset_index(), right.reset_index(),
+            on=['key'], how='inner').set_index(['key', 'X', 'Y'])
+
 .. _whatsnew_0240.enhancements.rename_axis:
 
 Renaming names in a MultiIndex
