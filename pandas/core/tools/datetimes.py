@@ -183,6 +183,8 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         - ndarray of Timestamps if box=False
     """
     from pandas import DatetimeIndex
+    from pandas.core.arrays.datetimes import dtype_conversions
+
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype='O')
 
@@ -219,6 +221,10 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
     elif getattr(arg, 'ndim', 1) > 1:
         raise TypeError('arg must be a string, datetime, list, tuple, '
                         '1-d array, or Series')
+
+    # warn if passing timedelta64, raise for PeriodDtype
+    # NB: this must come after unit transformation
+    arg = dtype_conversions(arg, False, has_format=format is not None)[0]
 
     arg = ensure_object(arg)
     require_iso8601 = False

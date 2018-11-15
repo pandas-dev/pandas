@@ -27,7 +27,8 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.datetimes import (
-    DatetimeArrayMixin as DatetimeArray, _to_m8)
+    DatetimeArrayMixin as DatetimeArray, _from_objects, _to_m8,
+    dtype_conversions, maybe_infer_tz)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -265,32 +266,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
         # By this point we are assured to have either a numpy array or Index
 
-        if is_float_dtype(data):
-            # Note: we must cast to datetime64[ns] here in order to treat these
-            #  as wall-times instead of UTC timestamps.
-            data = data.astype(_NS_DTYPE)
-            copy = False
-            # TODO: Why do we treat this differently from integer dtypes?
-
-        elif is_timedelta64_dtype(data):
-            warnings.warn("Passing timedelta64-dtype data to {cls} is "
-                          "deprecated, will raise a TypeError in a future "
-                          "version".format(cls=cls.__name__),
-                          FutureWarning, stacklevel=2)
-            data = data.view(_NS_DTYPE)
-
-        elif is_period_dtype(data):
-            # Note: without explicitly raising here, PeriondIndex
-            #  test_setops.test_join_does_not_recur fails
-            raise TypeError("Passing PeriodDtype data to {cls} is invalid.  "
-                            "Use `data.to_timestamp()` instead"
-                            .format(cls=cls.__name__))
-
-        elif is_extension_type(data) and not is_datetime64tz_dtype(data):
-            # Includes categorical
-            # TODO: We have no tests for these
-            data = np.array(data, dtype=np.object_)
-            copy = False
+        data, copy = dtype_conversions(data, copy)
 
         if is_object_dtype(data) or is_string_dtype(data):
             # TODO: We do not have tests specific to string-dtypes,
@@ -299,36 +275,35 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             if lib.infer_dtype(data) == 'integer':
                 data = data.astype(np.int64)
             else:
-                data = tools.to_datetime(data, dayfirst=dayfirst,
-                                         yearfirst=yearfirst)
+                # data comes back here as either i8 to denote UTC timestamps
+                #  or M8[ns] to denote wall times
+                data, inferred_tz = _from_objects(data, dayfirst=dayfirst,
+                                                  yearfirst=yearfirst)
+                tz = maybe_infer_tz(tz, inferred_tz)
 
-        if isinstance(data, DatetimeArray):
-            if tz is None:
-                tz = data.tz
-            elif data.tz is None:
-                data = data.tz_localize(tz, ambiguous=ambiguous)
-            else:
-                # the tz's must match
-                if not timezones.tz_compare(tz, data.tz):
-                    msg = ('data is already tz-aware {0}, unable to '
-                           'set specified tz: {1}')
-                    raise TypeError(msg.format(data.tz, tz))
+        if freq is None and hasattr(data, "freq"):  #TODO: move earlier
+            # i.e. DatetimeArray/Index
+            # TODO: Should this be the stronger condition of `freq_infer`?
+            freq = data.freq
+            verify_integrity = False
 
+        if is_datetime64tz_dtype(data):
+            tz = maybe_infer_tz(tz, data.tz)
             subarr = data._data
 
-            if freq is None:
-                # TODO: Should this be the stronger condition of `freq_infer`?
-                freq = data.freq
-                verify_integrity = False
-        elif issubclass(data.dtype.type, np.datetime64):
+        elif is_datetime64_dtype(data):
+            # DatetimeIndex or ndarray[datetime64]
+            data = getattr(data, "_data", data)
             if data.dtype != _NS_DTYPE:
                 data = conversion.ensure_datetime64ns(data)
+
             if tz is not None:
                 # Convert tz-naive to UTC
                 tz = timezones.maybe_get_tz(tz)
                 data = conversion.tz_localize_to_utc(data.view('i8'), tz,
                                                      ambiguous=ambiguous)
             subarr = data.view(_NS_DTYPE)
+
         else:
             # must be integer dtype otherwise
             # assume this data are epoch timestamps
