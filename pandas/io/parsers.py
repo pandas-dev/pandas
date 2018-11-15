@@ -87,24 +87,24 @@ header : int or list of ints, default 'infer'
     e.g. [0,1,3]. Intervening rows that are not specified will be
     skipped (e.g. 2 in this example is skipped). Note that this
     parameter ignores commented lines and empty lines if
-    ``skip_blank_lines=True``, so header=0 denotes the first line of
+    ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
     data rather than the first line of the file.
 names : array-like, default None
     List of column names to use. If file contains no header row, then you
-    should explicitly pass header=None. Duplicates in this list will cause
+    should explicitly pass ``header=None``. Duplicates in this list will cause
     a ``UserWarning`` to be issued.
 index_col : int or sequence or False, default None
     Column to use as the row labels of the DataFrame. If a sequence is given, a
     MultiIndex is used. If you have a malformed file with delimiters at the end
-    of each line, you might consider index_col=False to force pandas to _not_
-    use the first column as the index (row names).
+    of each line, you might consider ``index_col=False`` to force pandas to
+    not use the first column as the index (row names).
 usecols : list-like or callable, default None
     Return a subset of the columns. If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in `names` or
     inferred from the document header row(s). For example, a valid list-like
-    `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
-    order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
+    `usecols` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
+    Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
     To instantiate a DataFrame from ``data`` with element order preserved use
     ``pd.read_csv(data, usecols=['foo', 'bar'])[['foo', 'bar']]`` for columns
     in ``['foo', 'bar']`` order or
@@ -357,6 +357,8 @@ delimiter : str, default ``'\t' + ' '``
     Characters to consider as filler characters in the fixed-width file.
     Can be used to specify the filler character of the fields
     if it is not spaces (e.g., '~').
+**kwds : optional
+    All the following keyword arguments can be passed.
 """
 
 
