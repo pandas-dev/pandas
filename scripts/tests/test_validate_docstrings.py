@@ -761,9 +761,8 @@ class TestValidator(object):
         ('BadParameters', 'missing_params',
          ('Parameters {**kwargs} not documented',)),
         ('BadParameters', 'bad_colon_spacing',
-         ('Parameters {kind} not documented',
-          'Unknown parameters {kind: str}',
-          'Parameter "kind: str" has no type')),
+         ('Parameter "kind" requires a space before the colon '
+          'separating the parameter name and type',)),
         ('BadParameters', 'no_description_period',
          ('Parameter "kind" description should finish with "."',)),
         ('BadParameters', 'no_description_period_with_directive',

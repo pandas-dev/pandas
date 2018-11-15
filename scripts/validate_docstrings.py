@@ -97,6 +97,8 @@ ERROR_MSGS = {
     'PR08': 'Parameter "{param_name}" description should start with a '
             'capital letter',
     'PR09': 'Parameter "{param_name}" description should finish with "."',
+    'PR10': 'Parameter "{param_name}" requires a space before the colon '
+            'separating the parameter name and type',
     'RT01': 'No Returns section found',
     'YD01': 'No Yields section found',
     'SA01': 'See Also section not found',
@@ -644,7 +646,11 @@ def validate_one(func_name):
     for param in doc.doc_parameters:
         if not param.startswith("*"):  # Check can ignore var / kwargs
             if not doc.parameter_type(param):
-                errs.append(error('PR04', param_name=param))
+                if ':' in param:
+                    errs.append(error('PR10',
+                                      param_name=param.split(':')[0]))
+                else:
+                    errs.append(error('PR04', param_name=param))
             else:
                 if doc.parameter_type(param)[-1] == '.':
                     errs.append(error('PR05', param_name=param))
