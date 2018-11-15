@@ -221,9 +221,9 @@ Support for merging named Series objects was added in version 0.24.0
 
 See Also
 --------
-merge_ordered : merge with optional filling/interpolation.
-merge_asof : merge on nearest keys.
-DataFrame.join : similar method using indices.
+merge_ordered : Merge with optional filling/interpolation.
+merge_asof : Merge on nearest keys.
+DataFrame.join : Similar method using indices.
 
 Examples
 --------
@@ -348,10 +348,10 @@ class DataFrame(NDFrame):
 
     See Also
     --------
-    DataFrame.from_records : constructor from tuples, also record arrays
-    DataFrame.from_dict : from dicts of Series, arrays, or dicts
-    DataFrame.from_items : from sequence of (key, value) pairs
-    pandas.read_csv, pandas.read_table, pandas.read_clipboard
+    DataFrame.from_records : Constructor from tuples, also record arrays.
+    DataFrame.from_dict : From dicts of Series, arrays, or dicts.
+    DataFrame.from_items : From sequence of (key, value) pairs
+        pandas.read_csv, pandas.read_table, pandas.read_clipboard.
     """
 
     @property
@@ -1066,8 +1066,8 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.from_records : DataFrame from ndarray (structured
-            dtype), list of tuples, dict, or DataFrame
-        DataFrame : DataFrame object creation using constructor
+            dtype), list of tuples, dict, or DataFrame.
+        DataFrame : DataFrame object creation using constructor.
 
         Examples
         --------
@@ -1484,9 +1484,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.from_records: convert structured or record ndarray
+        DataFrame.from_records: Convert structured or record ndarray
             to DataFrame.
-        numpy.recarray: ndarray that allows field access using
+        numpy.recarray: An ndarray that allows field access using
             attributes, analogous to typed columns in a
             spreadsheet.
 
@@ -1829,24 +1829,6 @@ class DataFrame(NDFrame):
 
         return self._constructor_expanddim(new_mgr)
 
-    @Appender(_shared_docs['to_excel'] % _shared_doc_kwargs)
-    def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
-                 float_format=None, columns=None, header=True, index=True,
-                 index_label=None, startrow=0, startcol=0, engine=None,
-                 merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
-                 freeze_panes=None):
-
-        from pandas.io.formats.excel import ExcelFormatter
-        formatter = ExcelFormatter(self, na_rep=na_rep, cols=columns,
-                                   header=header,
-                                   float_format=float_format, index=index,
-                                   index_label=index_label,
-                                   merge_cells=merge_cells,
-                                   inf_rep=inf_rep)
-        formatter.write(excel_writer, sheet_name=sheet_name, startrow=startrow,
-                        startcol=startcol, freeze_panes=freeze_panes,
-                        engine=engine)
-
     @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def to_stata(self, fname, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
@@ -1918,9 +1900,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.read_stata : Import Stata data files
-        pandas.io.stata.StataWriter : low-level writer for Stata data files
-        pandas.io.stata.StataWriter117 : low-level writer for version 117 files
+        pandas.read_stata : Import Stata data files.
+        pandas.io.stata.StataWriter : Low-level writer for Stata data files.
+        pandas.io.stata.StataWriter117 : Low-level writer for version 117
+            files.
 
         Examples
         --------
@@ -3747,9 +3730,9 @@ class DataFrame(NDFrame):
         --------
         DataFrame.loc : Label-location based indexer for selection by label.
         DataFrame.dropna : Return DataFrame with labels on given axis omitted
-            where (all or any) data are missing
+            where (all or any) data are missing.
         DataFrame.drop_duplicates : Return DataFrame with duplicate rows
-            removed, optionally only considering certain columns
+            removed, optionally only considering certain columns.
         Series.drop : Return Series with specified index labels removed.
 
         Raises
@@ -4701,7 +4684,7 @@ class DataFrame(NDFrame):
         --------
         DataFrame.nsmallest : Return the first `n` rows ordered by `columns` in
             ascending order.
-        DataFrame.sort_values : Sort DataFrame by the values
+        DataFrame.sort_values : Sort DataFrame by the values.
         DataFrame.head : Return the first `n` rows without re-ordering.
 
         Notes
@@ -5088,7 +5071,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.combine_first : Combine two DataFrame objects and default to
-            non-null values in frame calling the method
+            non-null values in frame calling the method.
         """
         other_idxlen = len(other.index)  # save for compare
 
@@ -5194,7 +5177,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.combine : Perform series-wise operation on two DataFrames
-            using a given function
+            using a given function.
         """
         import pandas.core.computation.expressions as expressions
 
@@ -5406,9 +5389,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.pivot_table : generalization of pivot that can handle
+        DataFrame.pivot_table : Generalization of pivot that can handle
             duplicate values for one index/column pair.
-        DataFrame.unstack : pivot based on the index values instead of a
+        DataFrame.unstack : Pivot based on the index values instead of a
             column.
 
         Notes
@@ -5594,8 +5577,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.pivot : pivot without aggregation that can handle
-            non-numeric data
+        DataFrame.pivot : Pivot without aggregation that can handle
+            non-numeric data.
         """
 
     @Substitution('')
@@ -6244,9 +6227,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.applymap: For elementwise operations
-        DataFrame.aggregate: only perform aggregating type operations
-        DataFrame.transform: only perform transforming type operations
+        DataFrame.applymap: For elementwise operations.
+        DataFrame.aggregate: Only perform aggregating type operations.
+        DataFrame.transform: Only perform transforming type operations.
 
         Examples
         --------
@@ -6353,7 +6336,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.apply : Apply a function along input axis of DataFrame
+        DataFrame.apply : Apply a function along input axis of DataFrame.
 
         Examples
         --------
@@ -6437,7 +6420,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.concat : General function to concatenate DataFrame, Series
-            or Panel objects
+            or Panel objects.
 
         Examples
         --------
@@ -6904,10 +6887,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.Series.cov : compute covariance with another Series
-        pandas.core.window.EWM.cov: exponential weighted sample covariance
-        pandas.core.window.Expanding.cov : expanding sample covariance
-        pandas.core.window.Rolling.cov : rolling sample covariance
+        pandas.Series.cov : Compute covariance with another Series.
+        pandas.core.window.EWM.cov: Exponential weighted sample covariance.
+        pandas.core.window.Expanding.cov : Expanding sample covariance.
+        pandas.core.window.Rolling.cov : Rolling sample covariance.
 
         Notes
         -----
@@ -7064,11 +7047,11 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.count: number of non-NA elements in a Series
-        DataFrame.shape: number of DataFrame rows and columns (including NA
-            elements)
-        DataFrame.isna: boolean same-sized DataFrame showing places of NA
-            elements
+        Series.count: Number of non-NA elements in a Series.
+        DataFrame.shape: Number of DataFrame rows and columns (including NA
+            elements).
+        DataFrame.isna: Boolean same-sized DataFrame showing places of NA
+            elements.
 
         Examples
         --------

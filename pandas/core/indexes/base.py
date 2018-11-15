@@ -212,10 +212,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     See Also
     ---------
-    RangeIndex : Index implementing a monotonic integer range
+    RangeIndex : Index implementing a monotonic integer range.
     CategoricalIndex : Index of :class:`Categorical` s.
-    MultiIndex : A multi-level, or hierarchical, Index
-    IntervalIndex : an Index of :class:`Interval` s.
+    MultiIndex : A multi-level, or hierarchical, Index.
+    IntervalIndex : An Index of :class:`Interval` s.
     DatetimeIndex, TimedeltaIndex, PeriodIndex
     Int64Index, UInt64Index,  Float64Index
     """
@@ -820,8 +820,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.repeat : Equivalent function for Series
-        numpy.repeat : Underlying implementation
+        Series.repeat : Equivalent function for Series.
+        numpy.repeat : Underlying implementation.
 
         Examples
         --------
@@ -1112,6 +1112,26 @@ class Index(IndexOpsMixin, PandasObject):
         Return a list of tuples of the (attr,formatted_value)
         """
         return format_object_attrs(self)
+
+    def to_flat_index(self):
+        """
+        Identity method.
+
+        .. versionadded:: 0.24.0
+
+        This is implemented for compatability with subclass implementations
+        when chaining.
+
+        Returns
+        -------
+        pd.Index
+            Caller.
+
+        See Also
+        --------
+        MultiIndex.to_flat_index : Subclass implementation.
+        """
+        return self
 
     def to_series(self, index=None, name=None):
         """
@@ -2249,10 +2269,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.notna : boolean inverse of isna.
-        pandas.Index.dropna : omit entries with missing values.
-        pandas.isna : top-level isna.
-        Series.isna : detect missing values in Series object.
+        pandas.Index.notna : Boolean inverse of isna.
+        pandas.Index.dropna : Omit entries with missing values.
+        pandas.isna : Top-level isna.
+        Series.isna : Detect missing values in Series object.
 
         Examples
         --------
@@ -2307,9 +2327,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.notnull : alias of notna
-        Index.isna: inverse of notna
-        pandas.notna : top-level notna
+        Index.notnull : Alias of notna.
+        Index.isna: Inverse of notna.
+        pandas.notna : Top-level notna.
 
         Examples
         --------
@@ -2486,7 +2506,7 @@ class Index(IndexOpsMixin, PandasObject):
             passed index.
         merge_asof : Perform an asof merge (similar to left join but it
             matches on nearest key rather than equal key).
-        Index.get_loc : `asof` is a thin wrapper around `get_loc`
+        Index.get_loc : An `asof` is a thin wrapper around `get_loc`
             with method='pad'.
 
         Examples
@@ -3204,7 +3224,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        MultiIndex.get_level_values : get values for a level of a MultiIndex
+        MultiIndex.get_level_values : Get values for a level of a MultiIndex.
 
         Notes
         -----
@@ -4409,7 +4429,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.get_loc : Get location for a single label
+        Index.get_loc : Get location for a single label.
         """
         inc = (step is None or step >= 0)
 
@@ -4561,9 +4581,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Series.drop_duplicates : equivalent method on Series
-        DataFrame.drop_duplicates : equivalent method on DataFrame
-        Index.duplicated : related method on Index, indicating duplicate
+        Series.drop_duplicates : Equivalent method on Series.
+        DataFrame.drop_duplicates : Equivalent method on DataFrame.
+        Index.duplicated : Related method on Index, indicating duplicate
             Index values.
 
         Examples
@@ -4642,9 +4662,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Series.duplicated : Equivalent method on pandas.Series
-        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame
-        pandas.Index.drop_duplicates : Remove duplicate values from Index
+        pandas.Series.duplicated : Equivalent method on pandas.Series.
+        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame.
+        pandas.Index.drop_duplicates : Remove duplicate values from Index.
         """
         return super(Index, self).duplicated(keep=keep)
 

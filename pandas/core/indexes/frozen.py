@@ -164,7 +164,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
 
         See Also
         --------
-        numpy.searchsorted : equivalent function
+        numpy.searchsorted : Equivalent function.
         """
 
         # We are much more performant if the searched

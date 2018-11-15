@@ -175,12 +175,16 @@ convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally
+mangle_dupe_cols : boolean, default True
+    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
+    'X'...'X'. Passing in False will cause data to be overwritten if there
+    are duplicate names in the columns.
 
 Returns
 -------
 parsed : DataFrame or Dict of DataFrames
-    DataFrame from the passed in Excel file.  See notes in sheet_name
-    argument for more information on when a Dict of Dataframes is returned.
+    DataFrame from the passed in Excel file. See notes in sheet_name
+    argument for more information on when a dict of DataFrames is returned.
 
 Examples
 --------
@@ -314,6 +318,7 @@ def read_excel(io,
                comment=None,
                skipfooter=0,
                convert_float=True,
+               mangle_dupe_cols=True,
                **kwds):
 
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
@@ -349,6 +354,7 @@ def read_excel(io,
         comment=comment,
         skipfooter=skipfooter,
         convert_float=convert_float,
+        mangle_dupe_cols=mangle_dupe_cols,
         **kwds)
 
 
@@ -441,6 +447,7 @@ class ExcelFile(object):
               comment=None,
               skipfooter=0,
               convert_float=True,
+              mangle_dupe_cols=True,
               **kwds):
         """
         Parse specified sheet(s) into a DataFrame
@@ -476,6 +483,7 @@ class ExcelFile(object):
                                  comment=comment,
                                  skipfooter=skipfooter,
                                  convert_float=convert_float,
+                                 mangle_dupe_cols=mangle_dupe_cols,
                                  **kwds)
 
     def _parse_excel(self,
@@ -498,6 +506,7 @@ class ExcelFile(object):
                      comment=None,
                      skipfooter=0,
                      convert_float=True,
+                     mangle_dupe_cols=True,
                      **kwds):
 
         _validate_header_arg(header)
@@ -634,20 +643,24 @@ class ExcelFile(object):
                 else:
                     offset = 1 + max(header)
 
-                for col in index_col:
-                    last = data[offset][col]
+                # Check if we have an empty dataset
+                # before trying to collect data.
+                if offset < len(data):
+                    for col in index_col:
+                        last = data[offset][col]
 
-                    for row in range(offset + 1, len(data)):
-                        if data[row][col] == '' or data[row][col] is None:
-                            data[row][col] = last
-                        else:
-                            last = data[row][col]
+                        for row in range(offset + 1, len(data)):
+                            if data[row][col] == '' or data[row][col] is None:
+                                data[row][col] = last
+                            else:
+                                last = data[row][col]
 
             has_index_names = is_list_like(header) and len(header) > 1
 
             # GH 12292 : error when read one empty column from excel file
             try:
                 parser = TextParser(data,
+                                    names=names,
                                     header=header,
                                     index_col=index_col,
                                     has_index_names=has_index_names,
@@ -664,12 +677,10 @@ class ExcelFile(object):
                                     comment=comment,
                                     skipfooter=skipfooter,
                                     usecols=usecols,
+                                    mangle_dupe_cols=mangle_dupe_cols,
                                     **kwds)
 
                 output[asheetname] = parser.read(nrows=nrows)
-
-                if names is not None:
-                    output[asheetname].columns = names
 
                 if not squeeze or isinstance(output[asheetname], DataFrame):
                     output[asheetname].columns = output[
