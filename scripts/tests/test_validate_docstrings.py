@@ -928,8 +928,7 @@ class TestMainFunction(object):
     def test_exit_status_errors_for_validate_all(self, monkeypatch):
         monkeypatch.setattr(
             validate_docstrings, 'validate_all',
-            lambda prefix, ignore_deprecated=None:
-            {
+            lambda prefix, ignore_deprecated=None: {
                 'docstring1': {'errors': [('ER01', 'err desc'),
                                           ('ER02', 'err desc'),
                                           ('ER03', 'err desc')],
