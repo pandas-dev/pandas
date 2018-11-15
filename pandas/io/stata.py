@@ -1868,7 +1868,12 @@ def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
         inferred_dtype = infer_dtype(column.dropna())
         if not (inferred_dtype in ('string', 'unicode') or
                 len(column) == 0):
-            raise ValueError('Writing general object arrays is not supported')
+            raise ValueError('Only string-like object arrays containing all '
+                             'strings or a mix of strings and None can be '
+                             'exported. Object arrays containing only null '
+                             'values are prohibited. Other object types'
+                             'cannot be exported and must first be converted '
+                             'to one of the supported types.')
         itemsize = max_len_string_array(ensure_object(column.values))
         if itemsize > max_str_len:
             if dta_version >= 117:
