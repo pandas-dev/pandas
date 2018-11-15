@@ -27,7 +27,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.datetimes import (
-    DatetimeArrayMixin as DatetimeArray, _from_objects, _to_m8,
+    DatetimeArrayMixin as DatetimeArray, _objects_to_datetime64ns, _to_m8,
     dtype_conversions, maybe_infer_tz)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
@@ -277,8 +277,8 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             else:
                 # data comes back here as either i8 to denote UTC timestamps
                 #  or M8[ns] to denote wall times
-                data, inferred_tz = _from_objects(data, dayfirst=dayfirst,
-                                                  yearfirst=yearfirst)
+                data, inferred_tz = _objects_to_datetime64ns(
+                    data, dayfirst=dayfirst, yearfirst=yearfirst)
                 tz = maybe_infer_tz(tz, inferred_tz)
 
         if freq is None and hasattr(data, "freq"):  #TODO: move earlier

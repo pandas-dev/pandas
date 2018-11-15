@@ -1497,7 +1497,7 @@ def dtype_conversions(data, copy, has_format=False):
     return data, copy
 
 
-def _from_objects(data, dayfirst, yearfirst):
+def _objects_to_datetime64ns(data, dayfirst, yearfirst):
     """
     Convert data to array of timestamps.
 
@@ -1506,6 +1506,13 @@ def _from_objects(data, dayfirst, yearfirst):
     data : np.ndarray[object]
     dayfirst : bool
     yearfirst : bool
+
+    Returns
+    -------
+    result : ndarray
+        np.int64 dtype if returned values represent UTC timestamps
+        np.datetime64[ns] if returned values represent wall times
+    inferred_tz : tzinfo or None
 
     Raises
     ------
