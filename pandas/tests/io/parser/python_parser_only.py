@@ -8,6 +8,7 @@ arguments when parsing.
 """
 
 import csv
+import sys
 
 import pytest
 
@@ -230,6 +231,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 self.read_csv(StringIO(data), sep=',,',
                               quoting=csv.QUOTE_NONE)
 
+    @tm.capture_stderr
     def test_none_delimiter(self):
         # see gh-13374 and gh-17465
 
@@ -246,6 +248,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                                error_bad_lines=False,
                                warn_bad_lines=True)
         tm.assert_frame_equal(result, expected)
+
+        warning = sys.stderr.getvalue()
+        assert 'Skipping line 3' in warning
 
     def test_skipfooter_bad_row(self):
         # see gh-13879
