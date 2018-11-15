@@ -928,7 +928,7 @@ class TestMainFunction(object):
     def test_exit_status_errors_for_validate_all(self, monkeypatch):
         monkeypatch.setattr(
             validate_docstrings, 'validate_all',
-            lambda prefix, ignore_deprecated=None: {
+            lambda prefix, ignore_deprecated: {
                 'docstring1': {'errors': [('ER01', 'err desc'),
                                           ('ER02', 'err desc'),
                                           ('ER03', 'err desc')],
@@ -948,7 +948,7 @@ class TestMainFunction(object):
     def test_no_exit_status_noerrors_for_validate_all(self, monkeypatch):
         monkeypatch.setattr(
             validate_docstrings, 'validate_all',
-            lambda prefix, ignore_deprecated=None: {
+            lambda prefix, ignore_deprecated: {
                 'docstring1': {'errors': [],
                                'warnings': [('WN01', 'warn desc')]},
                 'docstring2': {'errors': []}})
@@ -963,7 +963,7 @@ class TestMainFunction(object):
         print('EXECUTED')
         monkeypatch.setattr(
             validate_docstrings, 'validate_all',
-            lambda prefix, ignore_deprecated=None: {
+            lambda prefix, ignore_deprecated: {
                 'docstring1': {'errors': [('ER01', 'err desc'),
                                           ('ER02', 'err desc'),
                                           ('ER03', 'err desc')]},
@@ -979,7 +979,7 @@ class TestMainFunction(object):
     def test_errors_param_filters_errors(self, monkeypatch):
         monkeypatch.setattr(
             validate_docstrings, 'validate_all',
-            lambda prefix, ignore_deprecated=None: {
+            lambda prefix, ignore_deprecated: {
                 'Series.foo': {'errors': [('ER01', 'err desc'),
                                           ('ER02', 'err desc'),
                                           ('ER03', 'err desc')],
