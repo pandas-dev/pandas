@@ -165,10 +165,10 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
     See Also
     ---------
-    Index : The base pandas Index type
-    TimedeltaIndex : Index of timedelta64 data
-    PeriodIndex : Index of Period data
-    pandas.to_datetime : Convert argument to datetime
+    Index : The base pandas Index type.
+    TimedeltaIndex : Index of timedelta64 data.
+    PeriodIndex : Index of Period data.
+    pandas.to_datetime : Convert argument to datetime.
 
     """
     _typ = 'datetimeindex'
