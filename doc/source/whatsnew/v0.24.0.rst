@@ -282,7 +282,7 @@ Other Enhancements
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
 - New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295`).
 - :meth:`Series.update` now supports the same keywords and functionality as :meth:`DataFrame.update`.
-  In particular, it has gained the keywords ``overwrite``, ``filter_func`` and ``errors`` (:issue:`22358`)
+  In particular, it has gained the keywords ``overwrite``, ``filter_func`` and ``errors`` (:issue:`22358`, :issue:`23585`)
 - Compatibility with Matplotlib 3.0 (:issue:`22790`).
 - Added :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` for determining overlaps between interval-like objects (:issue:`21998`)
 - :func:`~DataFrame.to_parquet` now supports writing a ``DataFrame`` as a directory of parquet files partitioned by a subset of the columns when ``engine = 'pyarrow'`` (:issue:`23283`)
@@ -1026,7 +1026,7 @@ Deprecations
 - The ``fastpath`` keyword of the different Index constructors is deprecated (:issue:`23110`).
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have deprecated the ``errors`` argument in favor of the ``nonexistent`` argument (:issue:`8917`)
 - The class ``FrozenNDArray`` has been deprecated. When unpickling, ``FrozenNDArray`` will be unpickled to ``np.ndarray`` once this class is removed (:issue:`9031`)
-- The methods :meth:`DataFrame.update` and :meth:`Panel.update` have deprecated the ``raise_conflict=False|True`` keyword in favor of ``errors='ignore'|'raise'`` (:issue:`23585`)
+- The method :meth:`DataFrame.update` has deprecated the ``raise_conflict=False|True`` keyword in favor of ``errors='ignore'|'raise'`` (:issue:`23585`)
 - Deprecated the `nthreads` keyword of :func:`pandas.read_feather` in favor of
   `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
 - :func:`pandas.read_excel` has deprecated accepting ``usecols`` as an integer. Please pass in a list of ints from 0 to ``usecols`` inclusive instead (:issue:`23527`)
