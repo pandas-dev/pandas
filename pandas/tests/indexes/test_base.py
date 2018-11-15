@@ -504,6 +504,13 @@ class TestIndex(Base):
         with pytest.raises(ValueError, match=msg):
             Index(["a", "b", "c"], dtype=float)
 
+    def test_constructor_unwraps_index(self, indices):
+        if isinstance(indices, pd.MultiIndex):
+            raise pytest.skip("MultiIndex has no ._data")
+        a = indices
+        b = type(a)(a)
+        tm.assert_equal(a._data, b._data)
+
     def test_view_with_args(self):
 
         restricted = ['unicodeIndex', 'strIndex', 'catIndex', 'boolIndex',

@@ -19,7 +19,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,
     ABCPeriodIndex, ABCTimedeltaIndex, ABCDatetimeIndex,
-    ABCDateOffset)
+    ABCDateOffset, ABCIndexClass)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
 from pandas.core.dtypes.common import (
@@ -521,6 +521,12 @@ class Index(IndexOpsMixin, PandasObject):
                 if is_object_dtype(values):
                     values = cls(values, name=name, dtype=dtype,
                                  **kwargs)._ndarray_values
+
+        if isinstance(values, (ABCSeries, ABCIndexClass)):
+            # Index._data must always be an ndarray.
+            # This is no-copy for when _values is an ndarray,
+            # which should be always at this point.
+            values = np.asarray(values._values)
 
         result = object.__new__(cls)
         result._data = values
