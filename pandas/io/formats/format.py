@@ -88,6 +88,10 @@ common_docstring = """
             Maximum number of columns to display in the console.
         show_dimensions : bool, default False
             Display DataFrame dimensions (number of rows by number of columns).
+        decimal : str, default '.'
+            Character recognized as decimal separator, e.g. ',' in Europe.
+
+            .. versionadded:: 0.18.0
     """
 
 _VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
@@ -100,8 +104,6 @@ return_docstring = """
         str (or unicode, depending on data and options)
             String representation of the dataframe.
     """
-
-docstring_to_string = common_docstring + return_docstring
 
 
 class CategoricalFormatter(object):
