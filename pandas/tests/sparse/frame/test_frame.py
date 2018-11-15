@@ -1,6 +1,7 @@
 # pylint: disable-msg=E1101,W0612
 
 import operator
+from itertools import product
 
 import pytest
 from numpy import nan
@@ -1352,9 +1353,13 @@ class TestSparseDataFrameAnalytics(object):
             assert type(res[column]) is SparseSeries
 
     def test_dropna(self):
-        tm.assert_sp_frame_equal(
-            pd.SparseDataFrame({"F2": [0, 1]}),
-            pd.SparseDataFrame(
+        # Tests regression #21172.
+        expected = pd.SparseDataFrame({"F2": [0, 1]})
+        for inplace, how in product((True, False), ('all', 'any')):
+            input_df = pd.SparseDataFrame(
                 {"F1": [float('nan'), float('nan')], "F2": [0, 1]}
-            ).dropna(axis=1, inplace=False, how='all')
-        )
+            )
+            result_df = input_df.dropna(axis=1, inplace=inplace, how=how)
+            if inplace:
+                result_df = input_df
+            tm.assert_sp_frame_equal(expected, result_df)

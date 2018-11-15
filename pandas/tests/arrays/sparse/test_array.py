@@ -748,6 +748,7 @@ class TestSparseArray(object):
         tm.assert_sp_array_equal(res, exp)
 
     def test_nonzero(self):
+        # Tests regression #21172.
         sa = pd.SparseArray([
             float('nan'),
             float('nan'),
@@ -755,13 +756,13 @@ class TestSparseArray(object):
             2, 0, 0, 0,
             3, 0, 0
         ])
-        tm.assert_numpy_array_equal(np.array([2, 5, 9], dtype=np.int32),
-                                    sa.nonzero()[0])
+        expected = np.array([2, 5, 9], dtype=np.int32)
+        result, _ = sa.nonzero()
+        tm.assert_numpy_array_equal(expected, result)
 
-        sa = pd.SparseArray(
-            [0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
-        tm.assert_numpy_array_equal(np.array([2, 5, 9], dtype=np.int32),
-                                    sa.nonzero()[0])
+        sa = pd.SparseArray([0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
+        result, _ = sa.nonzero()
+        tm.assert_numpy_array_equal(expected, result)
 
 
 class TestSparseArrayAnalytics(object):
