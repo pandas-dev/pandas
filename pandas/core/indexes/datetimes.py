@@ -249,6 +249,11 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             name = data.name
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
+        if freq is None and hasattr(data, "freq"):
+            # i.e. DatetimeArray/Index
+            # TODO: Should this be the stronger condition of `freq_infer`?
+            freq = data.freq
+            verify_integrity = False
 
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
@@ -279,12 +284,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 data, inferred_tz = _objects_to_datetime64ns(
                     data, dayfirst=dayfirst, yearfirst=yearfirst)
                 tz = maybe_infer_tz(tz, inferred_tz)
-
-        if freq is None and hasattr(data, "freq"):
-            # i.e. DatetimeArray/Index
-            # TODO: Should this be the stronger condition of `freq_infer`?
-            freq = data.freq
-            verify_integrity = False
 
         if is_datetime64tz_dtype(data):
             tz = maybe_infer_tz(tz, data.tz)
