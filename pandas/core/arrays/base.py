@@ -675,37 +675,29 @@ class ExtensionArray(object):
                                length=len(self),
                                dtype=self.dtype)
 
-    def _formatter(self, formatter=None):
-        # type: (Optional[ExtensionArrayFormatter]) -> Callable[[Any], str]
+    def _formatter(self, boxed=False):
+        # type: (bool) -> Callable[[Any], str]
         """Formatting function for scalar values.
 
-        This is used in the default '__repr__'. The formatting function
-        receives instances of your scalar type.
+        This is used in the default '__repr__'. The returned formatting
+        function receives instances of your scalar type.
 
         Parameters
         ----------
-        formatter: GenericArrayFormatter, optional
-            The formatter this array is being rendered with. When the array
-            is being rendered inside an Index, Series, or DataFrame, a
-            formatter will be provided. So if you want your objects to
-            render differently inside a Series from on its own, checking
-            with ``formatter is None`` is an option.
-
-            The default behavior depends on whether `formatter` is passed.
-
-            * When `formatter` is None, :func:`repr` is returned.
-            * When `formatter` is passed, ``formatter.formatter`` is used,
-              which falls back to :func:`repr` if that isn't specified.
-
-            In general, just returning :func:`repr` should be fine.
+        boxed: bool, default False
+            An indicated for whether or not your array is being printed
+            within a Series, DataFrame, or Index (True), or just by
+            itself (False). This may be useful if you want scalar values
+            to appear differently within a Series versus on its own (e.g.
+            quoted or not).
 
         Returns
         -------
         Callable[[Any], str]
             A callable that gets instances of the scalar type and
-            returns a string.
+            returns a string. By defult, :func:`repr` is used.
         """
-        return getattr(formatter, 'formatter', None) or repr
+        return repr
 
     def _formatting_values(self):
         # type: () -> np.ndarray

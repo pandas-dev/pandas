@@ -350,9 +350,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     # --------------------------------------------------------------------
     # Array-like / EA-Interface Methods
 
-    def _formatter(self, formatter=None):
-        if formatter:
-            return formatter.formatter or str
+    def _formatter(self, boxed=False):
+        if boxed:
+            return str
         return "'{}'".format
 
     def __setitem__(
