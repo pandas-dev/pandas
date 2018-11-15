@@ -6,6 +6,7 @@ source activate pandas
 
 if [ -n "$LOCALE_OVERRIDE" ]; then
     export LC_ALL="$LOCALE_OVERRIDE";
+    export LANG="$LOCALE_OVERRIDE";
     echo "Setting LC_ALL to $LOCALE_OVERRIDE"
 
     pycmd='import pandas; print("pandas detected console encoding: %s" % pandas.get_option("display.encoding"))'
@@ -32,8 +33,8 @@ elif [ "$COVERAGE" ]; then
 
 elif [ "$SLOW" ]; then
     TEST_ARGS="--only-slow --skip-network"
-    echo pytest -m "not single and slow" -v --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
-    pytest      -m "not single and slow" -v --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
+    echo pytest -n 2 -m "not single" -v --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
+    pytest      -n 2 -m "not single" -v --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
 
 else
     echo pytest -n 2 -m "not single" --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas

@@ -18,7 +18,7 @@ dependencies:
   - pymysql
   - pytables
   - python-dateutil
-  - python=3.6*
+  - python=3.7*
   - pytz
   - s3fs
   - scipy
