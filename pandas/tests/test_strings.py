@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=E1101,W0612
 
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta, time
 import pytest
 import re
+from decimal import Decimal
 
 from numpy import nan as NA
 import numpy as np
 from numpy.random import randint
 
-from pandas.compat import range, u
+from pandas.compat import range, u, PY3
 import pandas.compat as compat
-from pandas import Index, Series, DataFrame, isna, MultiIndex, notna, concat
+from pandas import (Index, Series, DataFrame, isna, MultiIndex, notna, concat,
+                    Timestamp, Period, NaT, Interval)
+import pandas._libs.lib as lib
 
 from pandas.util.testing import assert_series_equal, assert_index_equal
 import pandas.util.testing as tm
@@ -26,6 +29,157 @@ def assert_series_or_index_equal(left, right):
         assert_index_equal(left, right)
 
 
+# method names plus minimal set of arguments to call
+_all_string_methods = [
+    ('get', [0]),
+    ('join', [',']),
+    ('contains', ['some_pattern']),
+    ('match', ['some_pattern']),
+    ('count', ['some_pattern']),
+    ('startswith', ['some_pattern']),
+    ('endswith', ['some_pattern']),
+    ('findall', ['some_pattern']),
+    ('find', ['some_pattern']),
+    ('rfind', ['some_pattern']),
+    # because "index"/"rindex" fail (intentionally) if the string is not found
+    # (and we're testing on generic data), search only for empty string
+    ('index', ['']),
+    ('rindex', ['']),
+    ('extract', [r'(some_pattern)']),
+    ('extractall', [r'(some_pattern)']),
+    ('replace', ['some_pattern', 'other_pattern']),
+    ('repeat', [10]),
+    ('pad', [10]),
+    ('center', [10]),
+    ('ljust', [10]),
+    ('rjust', [10]),
+    ('zfill', [10]),
+    ('wrap', [10]),
+    ('encode', ['utf8']),
+    ('decode', ['utf8']),
+    ('translate', [{97: 100}]),  # translating 'a' to 'd'
+    ('normalize', ['NFC'])
+] + list(zip([
+    # methods without positional arguments: zip with empty tuple
+    'cat', 'len', 'split', 'rsplit',
+    'partition', 'rpartition', 'get_dummies',
+    'slice', 'slice_replace',
+    'strip', 'lstrip', 'rstrip',
+    'lower', 'upper', 'capitalize',
+    'title', 'swapcase',
+    'isalpha', 'isnumeric', 'isalnum',
+    'isdigit', 'isdecimal', 'isspace',
+    'islower', 'isupper', 'istitle'
+], [tuple()] * 100))
+ids, _ = zip(*_all_string_methods)  # use method name as fixture-id
+
+
+@pytest.fixture(params=_all_string_methods, ids=ids)
+def all_string_methods(request):
+    """
+    Fixture for all public methods of `StringMethods`
+
+    This fixture returns a tuple of the method name and a list of sample values
+    for the required positional arguments of that method.
+    """
+    return request.param
+
+
+_all_allowed_skipna_inferred_dtypes = [
+    ('string', ['a', np.nan, 'c']),
+    ('unicode' if not PY3 else 'string', [u('a'), np.nan, u('c')]),
+    ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
+    ('empty', [np.nan, np.nan, np.nan]),
+    ('empty', []),
+    ('mixed-integer', ['a', np.nan, 2]),
+    ('mixed', ['a', np.nan, 2.0])]
+ids, _ = zip(*_all_allowed_skipna_inferred_dtypes)  # use inferred type as id
+
+
+@pytest.fixture(params=_all_allowed_skipna_inferred_dtypes, ids=ids)
+def all_allowed_skipna_inferred_dtypes(request):
+    """
+    Fixture for all (inferred) dtypes allowed in StringMethods.__init__
+
+    Returns an np.ndarray that will be inferred to have the given dtype (when
+    skipping missing values).
+
+    The allowed (inferred) types are:
+    * 'string'
+    * 'unicode' (if PY2)
+    * 'empty'
+    * 'bytes' (if PY3)
+    * 'mixed'
+    * 'mixed-integer'
+    """
+    inferred_dtype, values = request.param
+    values = np.array(values, dtype=object)  # object dtype to avoid casting
+
+    # make sure the inferred dtype of the fixture is as requested
+    assert inferred_dtype == lib.infer_dtype(values, skipna=True)
+
+    return inferred_dtype, values
+
+
+# categoricals are handled separately
+_all_skipna_inferred_dtypes = _all_allowed_skipna_inferred_dtypes + [
+    ('floating', [1.0, np.nan, 2.0]),
+    ('integer', [1, np.nan, 2]),
+    ('mixed-integer-float', [1, np.nan, 2.0]),
+    ('decimal', [Decimal(1), np.nan, Decimal(2)]),
+    ('boolean', [True, np.nan, False]),
+    ('datetime64', [np.datetime64('2013-01-01'), np.nan,
+                    np.datetime64('2018-01-01')]),
+    ('datetime', [Timestamp('20130101'), np.nan, Timestamp('20180101')]),
+    ('date', [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
+    # The following two dtypes are commented out due to GH 23554
+    # ('complex', [1 + 1j, np.nan, 2 + 2j]),
+    # ('timedelta64', [np.timedelta64(1, 'D'),
+    #                  np.nan, np.timedelta64(2, 'D')]),
+    ('timedelta', [timedelta(1), np.nan, timedelta(2)]),
+    ('time', [time(1), np.nan, time(2)]),
+    ('period', [Period(2013), NaT, Period(2018)]),
+    ('interval', [Interval(0, 1), np.nan, Interval(0, 2)])]
+ids, _ = zip(*_all_skipna_inferred_dtypes)  # use inferred type as fixture-id
+
+
+@pytest.fixture(params=_all_skipna_inferred_dtypes, ids=ids)
+def all_skipna_inferred_dtypes(request):
+    """
+    Fixture for all inferred dtypes from _libs.lib.infer_dtype
+
+    Returns an np.ndarray that will be inferred to have the given dtype (when
+    skipping missing values).
+
+    The covered (inferred) types are:
+    * 'string'
+    * 'unicode' (if PY2)
+    * 'empty'
+    * 'bytes' (if PY3)
+    * 'mixed'
+    * 'mixed-integer'
+    * 'mixed-integer-float'
+    * 'floating'
+    * 'integer'
+    * 'decimal'
+    * 'boolean'
+    * 'datetime64'
+    * 'datetime'
+    * 'date'
+    * 'timedelta'
+    * 'time'
+    * 'period'
+    * 'interval'
+    """
+    inferred_dtype, values = request.param
+    values = np.array(values, dtype=object)  # object dtype to avoid casting
+
+    # make sure the inferred dtype of the fixture is as requested
+    assert inferred_dtype == lib.infer_dtype(values, skipna=True)
+
+    return inferred_dtype, values
+
+
 class TestStringMethods(object):
 
     def test_api(self):
@@ -34,11 +188,115 @@ class TestStringMethods(object):
         assert Series.str is strings.StringMethods
         assert isinstance(Series(['']).str, strings.StringMethods)
 
-        # GH 9184
-        invalid = Series([1])
-        with pytest.raises(AttributeError, match="only use .str accessor"):
-            invalid.str
-        assert not hasattr(invalid, 'str')
+    @pytest.mark.parametrize('dtype', [object, 'category'])
+    @pytest.mark.parametrize('box', [Series, Index])
+    def test_api_per_dtype(self, box, dtype, all_skipna_inferred_dtypes):
+        # one instance of parametrized fixture
+        inferred_dtype, values = all_skipna_inferred_dtypes
+
+        t = box(values, dtype=dtype)  # explicit dtype to avoid casting
+
+        # TODO: get rid of these xfails
+        if dtype == 'category' and inferred_dtype in ['period', 'interval']:
+            pytest.xfail(reason='Conversion to numpy array fails because '
+                         'the ._values-attribute is not a numpy array for '
+                         'PeriodArray/IntervalArray; see GH 23553')
+        if box == Index and inferred_dtype in ['empty', 'bytes']:
+            pytest.xfail(reason='Raising too restrictively; '
+                         'solved by GH 23167')
+        if (box == Index and dtype == object
+                and inferred_dtype in ['boolean', 'date', 'time']):
+            pytest.xfail(reason='Inferring incorrectly because of NaNs; '
+                         'solved by GH 23167')
+        if (box == Series
+                and (dtype == object and inferred_dtype not in [
+                    'string', 'unicode', 'empty',
+                    'bytes', 'mixed', 'mixed-integer'])
+                or (dtype == 'category'
+                    and inferred_dtype in ['decimal', 'boolean', 'time'])):
+            pytest.xfail(reason='Not raising correctly; solved by GH 23167')
+
+        types_passing_constructor = ['string', 'unicode', 'empty',
+                                     'bytes', 'mixed', 'mixed-integer']
+        if inferred_dtype in types_passing_constructor:
+            # GH 6106
+            assert isinstance(t.str, strings.StringMethods)
+        else:
+            # GH 9184, GH 23011, GH 23163
+            with tm.assert_raises_regex(AttributeError, 'Can only use .str '
+                                        'accessor with string values.*'):
+                t.str
+            assert not hasattr(t, 'str')
+
+    @pytest.mark.xfail(reason='not correctly raising on master; '
+                       'solved by GH 23167')
+    def test_api_mi_raises(self):
+        mi = MultiIndex.from_arrays([['a', 'b', 'c']])
+        with tm.assert_raises_regex(AttributeError, 'Can only use .str '
+                                    'accessor with Index, not MultiIndex'):
+            mi.str
+        assert not hasattr(mi, 'str')
+
+    @pytest.mark.parametrize('dtype', [object, 'category'])
+    @pytest.mark.parametrize('box', [Series, Index])
+    def test_api_per_method(self, box, dtype,
+                            all_allowed_skipna_inferred_dtypes,
+                            all_string_methods):
+        # this test does not check correctness of the different methods,
+        # just that the methods work on the specified (inferred) dtypes,
+        # and raise on all others
+
+        # one instance of each parametrized fixture
+        inferred_dtype, values = all_allowed_skipna_inferred_dtypes
+        method_name, minimal_args = all_string_methods
+
+        # TODO: get rid of these xfails
+        if (method_name not in ['encode', 'decode', 'len']
+                and inferred_dtype == 'bytes'):
+            pytest.xfail(reason='Not raising for "bytes", see GH 23011;'
+                         'Also: malformed method names, see GH 23551; '
+                         'solved by GH 23167')
+        if (method_name == 'cat'
+                and inferred_dtype in ['mixed', 'mixed-integer']):
+            pytest.xfail(reason='Bad error message; should raise better; '
+                         'solved by GH 23167')
+        if box == Index and inferred_dtype in ['empty', 'bytes']:
+            pytest.xfail(reason='Raising too restrictively; '
+                         'solved by GH 23167')
+        if (box == Index and dtype == object
+                and inferred_dtype in ['boolean', 'date', 'time']):
+            pytest.xfail(reason='Inferring incorrectly because of NaNs; '
+                         'solved by GH 23167')
+        if box == Index and dtype == 'category':
+            pytest.xfail(reason='Broken methods on CategoricalIndex; '
+                         'see GH 23556')
+        if (method_name in ['partition', 'rpartition'] and box == Index
+                and inferred_dtype != 'bytes'):
+            pytest.xfail(reason='Method not nan-safe on Index; see GH 23558')
+
+        t = box(values, dtype=dtype)  # explicit dtype to avoid casting
+        method = getattr(t.str, method_name)
+
+        bytes_allowed = method_name in ['encode', 'decode', 'len']
+        # as of v0.23.4, all methods except 'cat' are very lenient with the
+        # allowed data types, just returning NaN for entries that error.
+        # This could be changed with an 'errors'-kwarg to the `str`-accessor,
+        # see discussion in GH 13877
+        mixed_allowed = method_name not in ['cat']
+
+        allowed_types = (['string', 'unicode', 'empty']
+                         + ['bytes'] * bytes_allowed
+                         + ['mixed', 'mixed-integer'] * mixed_allowed)
+
+        if inferred_dtype in allowed_types:
+            method(*minimal_args)  # works!
+        else:
+            # GH 23011, GH 23163
+            msg = ('Cannot use .str.{name} with values of inferred dtype '
+                   '{inferred_dtype!r}.'.format(name=method_name,
+                                                inferred_dtype=inferred_dtype))
+            with tm.assert_raises_regex(TypeError, msg):
+                method(*minimal_args)
 
     def test_iter(self):
         # GH3638
