@@ -255,38 +255,13 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
             )
 
     except ValueError as e:
-        return _parse_fallback(arg, name, tz, e)
+        try:
+            values, tz = conversion.datetime_to_datetime64(data)
+            return DatetimeIndex._simple_new(values, name=name, tz=tz)
+        except (ValueError, TypeError):
+            raise e
     else:
         return _maybe_box_date_results(result, box, tz, name, tz_parsed)
-
-
-def _parse_fallback(data, name, tz, err):
-    """
-    If a ValueError is raised by either _parse_with_format or
-    array_to_datetime, try to interpret the data as datetime objects.
-
-    Parameters
-    ----------
-    data : np.ndarray[object]
-    name : object
-        Name to attach to returned DatetimeIndex
-    tz : None, str, or tzinfo object
-    err : ValueError instance
-
-    Returns
-    -------
-    DatetimeIndex
-
-    Raises
-    ------
-    ValueError : if data cannot be interpreted as datetime objects.
-    """
-    from pandas import DatetimeIndex
-    try:
-        values, tz = conversion.datetime_to_datetime64(data)
-        return DatetimeIndex._simple_new(values, name=name, tz=tz)
-    except (ValueError, TypeError):
-        raise err
 
 
 def _parse_with_format(data, tz, name, box, fmt,
