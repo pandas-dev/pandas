@@ -597,7 +597,7 @@ behaviour as follows::
 
     for /f %i in ('git diff upstream/master --name-only -- "pandas/*.py"') do flake8 %i
 
-This will get all the files being changed by the PR (with are also within the
+This will get all the files being changed by the PR (which are also within the
 ``pandas/`` folder and ending with ``.py``), and run ``flake8`` on them,
 one after the other.
 
