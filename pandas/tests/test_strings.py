@@ -207,19 +207,10 @@ class TestStringMethods(object):
             assert isinstance(t.str, strings.StringMethods)
         else:
             # GH 9184, GH 23011, GH 23163
-            with tm.assert_raises_regex(AttributeError, 'Can only use .str '
-                                        'accessor with string values.*'):
+            with pytest.raises(AttributeError, match='Can only use .str '
+                               'accessor with string values.*'):
                 t.str
             assert not hasattr(t, 'str')
-
-    @pytest.mark.xfail(reason='not correctly raising on master; '
-                       'solved by GH 23167')
-    def test_api_mi_raises(self):
-        mi = MultiIndex.from_arrays([['a', 'b', 'c']])
-        with tm.assert_raises_regex(AttributeError, 'Can only use .str '
-                                    'accessor with Index, not MultiIndex'):
-            mi.str
-        assert not hasattr(mi, 'str')
 
     @pytest.mark.parametrize('dtype', [object, 'category'])
     @pytest.mark.parametrize('box', [Series, Index])
@@ -259,7 +250,7 @@ class TestStringMethods(object):
             pytest.xfail(reason='Method not nan-safe on Index; see GH 23558')
         if (method_name == 'split' and box == Index
                 and inferred_dtype in ['unicode', 'mixed', 'mixed-integer']
-                and dtype == object and kwargs.get('expand', None) == True):
+                and dtype == object and kwargs.get('expand', None) is True):
             pytest.xfail(reason='Method not nan-safe on Index; see GH 23677')
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
