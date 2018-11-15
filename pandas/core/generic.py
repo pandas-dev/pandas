@@ -730,7 +730,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         axis : {0 or 'index', 1 or 'columns'}, default 0
 
-
         Returns
         -------
         DataFrame.droplevel()
@@ -769,7 +768,6 @@ class NDFrame(PandasObject, SelectionMixin):
         1 2      3   4
         5 6      7   8
         9 10    11  12
-
         """
         labels = self._get_axis(axis)
         new_labels = labels.droplevel(level)
@@ -1233,7 +1231,6 @@ class NDFrame(PandasObject, SelectionMixin):
             2    3  30
         c   1    4  40
             2    5  50
-
         """
         axes, kwargs = self._construct_axes_from_arguments((), kwargs)
         copy = kwargs.pop('copy', True)
@@ -2075,7 +2072,6 @@ class NDFrame(PandasObject, SelectionMixin):
     automatically chosen depending on the file extension):
 
     >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')
-
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
@@ -2324,7 +2320,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> import os
         >>> os.remove('data.h5')
-
         """
         from pandas.io import pytables
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
@@ -3324,7 +3319,6 @@ class NDFrame(PandasObject, SelectionMixin):
         MultiIndex Slicers is a generic way to get/set values on any level or
         levels.  It is a superset of xs functionality, see
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
-
         """
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
@@ -4885,7 +4879,6 @@ class NDFrame(PandasObject, SelectionMixin):
         values : ndarray
             If the caller is heterogeneous and contains booleans or objects,
             the result will be of dtype=object. See Notes.
-
 
         Notes
         -----
@@ -8954,7 +8947,6 @@ class NDFrame(PandasObject, SelectionMixin):
         2018-10-28 02:36:00+02:00    1
         2018-10-28 03:46:00+01:00    2
         dtype: int64
-
         """
         if nonexistent not in ('raise', 'NaT', 'shift'):
             raise ValueError("The nonexistent argument must be one of 'raise',"
@@ -9651,7 +9643,7 @@ class NDFrame(PandasObject, SelectionMixin):
             cls, 'kurt', name, name2, axis_descr,
             "Return unbiased kurtosis over requested axis using Fisher's "
             "definition of\nkurtosis (kurtosis of normal == 0.0). Normalized "
-            "by N-1\n",
+            "by N-1",
             nanops.nankurt)
         cls.kurtosis = cls.kurt
         cls.prod = _make_min_count_stat_function(
@@ -9699,8 +9691,7 @@ class NDFrame(PandasObject, SelectionMixin):
             ``numpy.ndarray`` method ``ptp``.
 
             .. deprecated:: 0.24.0
-                Use numpy.ptp instead
-            """,
+                Use numpy.ptp instead""",
             nanptp)
 
     @classmethod
@@ -9983,7 +9974,6 @@ def _doc_parms(cls):
 
 
 _num_doc = """
-
 %(desc)s
 
 Parameters
@@ -10001,12 +9991,11 @@ numeric_only : boolean, default None
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)
+%(outname)s : %(name1)s or %(name2)s (if level specified)\
 
 %(examples)s"""
 
 _num_ddof_doc = """
-
 %(desc)s
 
 Parameters
