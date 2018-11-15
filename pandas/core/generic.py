@@ -4294,6 +4294,9 @@ class NDFrame(PandasObject, SelectionMixin):
         # TODO: Support other joins
         if join != 'left':  # pragma: no cover
             raise NotImplementedError("Only left join is supported")
+        if errors not in ['ignore', 'raise']:
+            raise ValueError("The parameter errors must be either "
+                             "'ignore' or 'raise'")
 
         if isinstance(self, ABCSeries):
             if not isinstance(other, ABCSeries):
