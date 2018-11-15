@@ -238,28 +238,31 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
 
     result = None
     tz_parsed = None
-    try:
-        if format is not None:
+
+    if format is not None:
+        try:
             result = _parse_with_format(arg, tz, name, box, format,
                                         errors, exact, infer_datetime_format)
+        except ValueError as e:
+            return _parse_fallback(arg, name, tz, e)
 
-        if result is None:
-            assert format is None or infer_datetime_format
-            result, tz_parsed = tslib.array_to_datetime(
-                arg,
-                errors=errors,
-                utc=tz == 'utc',
-                dayfirst=dayfirst,
-                yearfirst=yearfirst,
-                require_iso8601=require_iso8601
-            )
+        if result is not None:
+           return _maybe_box_date_results(result, box, tz, name, tz_parsed)
 
+    assert result is None
+    assert format is None or infer_datetime_format
+
+    try:
+        result, tz_parsed = tslib.array_to_datetime(
+            arg,
+            errors=errors,
+            utc=tz == 'utc',
+            dayfirst=dayfirst,
+            yearfirst=yearfirst,
+            require_iso8601=require_iso8601
+        )
     except ValueError as e:
-        try:
-            values, tz = conversion.datetime_to_datetime64(data)
-            return DatetimeIndex._simple_new(values, name=name, tz=tz)
-        except (ValueError, TypeError):
-            raise e
+        return _parse_fallback(arg, name, tz, e)
     else:
         return _maybe_box_date_results(result, box, tz, name, tz_parsed)
 
@@ -327,6 +330,35 @@ def _parse_with_format(data, tz, name, box, fmt,
                 result = data
 
     return result
+
+
+def _parse_fallback(data, name, tz, err):
+    """
+    If a ValueError is raised by either _parse_with_format or
+    array_to_datetime, try to interpret the data as datetime objects.
+
+    Parameters
+    ----------
+    data : np.ndarray[object]
+    name : object
+        Name to attach to returned DatetimeIndex
+    tz : None, str, or tzinfo object
+    err : ValueError instance
+
+    Returns
+    -------
+    DatetimeIndex
+
+    Raises
+    ------
+    ValueError : if data cannot be interpreted as datetime objects.
+    """
+    from pandas import DatetimeIndex
+    try:
+        values, tz = conversion.datetime_to_datetime64(data)
+        return DatetimeIndex._simple_new(values, name=name, tz=tz)
+    except (ValueError, TypeError):
+        raise err
 
 
 def _maybe_box_date_results(result, box, tz, name, tz_parsed=None):
