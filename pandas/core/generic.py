@@ -657,17 +657,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        keys : column label or list of column labels / arrays
-            Either a Series, Index, MultiIndex, list, np.ndarray or a list
-            containing only Series, Index, MultiIndex, list, np.ndarray.
-
-            For DataFrame, additionally column labels may be used.
-        drop : boolean, default True
-            Delete columns to be used as the new index (only for DataFrame).
+        %(params)s
         append : boolean, default False
             Whether to append columns to existing index.
         inplace : boolean, default False
-            Modify the Series/DataFrame in place (do not create a new object).
+            Modify the %(klass)s in place (do not create a new object).
         verify_integrity : boolean, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
@@ -675,54 +669,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        reindexed : Series/DataFrame if inplace is False, else None
+        reindexed : %(klass)s if inplace is False, else None
 
         See Also
         --------
-        DataFrame.set_index: method adapted for DataFrame
-        Series.set_index: method adapted for Series
+        %(other_klass)s.set_index: method adapted for %(other_klass)s
 
         Examples
         --------
-        >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
-        ...                    'year': [2012, 2014, 2013, 2014],
-        ...                    'sale': [55, 40, 84, 31]})
-        >>> df
-           month  year  sale
-        0      1  2012    55
-        1      4  2014    40
-        2      7  2013    84
-        3     10  2014    31
-
-        Set the index to become the 'month' column:
-
-        >>> df.set_index('month')
-               year  sale
-        month
-        1      2012    55
-        4      2014    40
-        7      2013    84
-        10     2014    31
-
-        Create a MultiIndex using columns 'year' and 'month':
-
-        >>> df.set_index(['year', 'month'])
-                    sale
-        year  month
-        2012  1     55
-        2014  4     40
-        2013  7     84
-        2014  10    31
-
-        Create a MultiIndex using a set of values and a column:
-
-        >>> df.set_index([[1, 2, 3, 4], 'year'])
-                 month  sale
-           year
-        1  2012  1      55
-        2  2014  4      40
-        3  2013  7      84
-        4  2014  10     31
+        %(examples)s
         """
         # parameter keys is checked in Series.set_index / DataFrame.set_index!
         inplace = validate_bool_kwarg(inplace, 'inplace')

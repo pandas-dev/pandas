@@ -3911,82 +3911,62 @@ class DataFrame(NDFrame):
         return super(DataFrame, self).shift(periods=periods, freq=freq,
                                             axis=axis)
 
+    @Substitution(
+        klass='DataFrame', other_klass='Series',
+        params="""
+keys : column label or list of column labels / arrays
+    Either a column label, Series, Index, MultiIndex, list, np.ndarray
+    or a list containing only column labels, Series, Index, MultiIndex,
+    list np.ndarray.
+drop : boolean, default True
+    Delete columns to be used as the new index.
+""".strip(),  # remove linebreaks at beginning/end
+        examples="""
+>>> df = pd.DataFrame({'month': [1, 4, 7, 10],
+...                    'year': [2012, 2014, 2013, 2014],
+...                    'sale': [55, 40, 84, 31]})
+>>> df
+   month  year  sale
+0      1  2012    55
+1      4  2014    40
+2      7  2013    84
+3     10  2014    31
+
+Set the index to become the 'month' column:
+
+>>> df.set_index('month')
+       year  sale
+month
+1      2012    55
+4      2014    40
+7      2013    84
+10     2014    31
+
+Create a MultiIndex using columns 'year' and 'month':
+
+>>> df.set_index(['year', 'month'])
+            sale
+year  month
+2012  1     55
+2014  4     40
+2013  7     84
+2014  10    31
+
+Create a MultiIndex using a set of values and a column:
+
+>>> df.set_index([[1, 2, 3, 4], 'year'])
+         month  sale
+   year
+1  2012  1      55
+2  2014  4      40
+3  2013  7      84
+4  2014  10     31
+""".strip()  # remove linebreaks at beginning/end
+    )
+    @Appender(NDFrame.set_index.__doc__)
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
-        """
-        Set the DataFrame index (row labels) using one or more columns.
 
-        Parameters
-        ----------
-        keys : column label or list of column labels / arrays
-            Either a column label, Series, Index, MultiIndex, list,
-            np.ndarray or a list containing only column labels, Series, Index,
-            MultiIndex, list, np.ndarray.
-        drop : boolean, default True
-            Delete columns to be used as the new index.
-        append : boolean, default False
-            Whether to append columns to existing index.
-        inplace : boolean, default False
-            Modify the DataFrame in place (do not create a new object).
-        verify_integrity : boolean, default False
-            Check the new index for duplicates. Otherwise defer the check until
-            necessary. Setting to False will improve the performance of this
-            method.
-
-        Returns
-        -------
-        reindexed : DataFrame if inplace is False, else None
-
-        See Also
-        --------
-        Series.set_index: Corresponding method for Series
-
-        Returns
-        -------
-        DataFrame
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
-        ...                    'year': [2012, 2014, 2013, 2014],
-        ...                    'sale': [55, 40, 84, 31]})
-        >>> df
-           month  year  sale
-        0      1  2012    55
-        1      4  2014    40
-        2      7  2013    84
-        3     10  2014    31
-
-        Set the index to become the 'month' column:
-
-        >>> df.set_index('month')
-               year  sale
-        month
-        1      2012    55
-        4      2014    40
-        7      2013    84
-        10     2014    31
-
-        Create a MultiIndex using columns 'year' and 'month':
-
-        >>> df.set_index(['year', 'month'])
-                    sale
-        year  month
-        2012  1     55
-        2014  4     40
-        2013  7     84
-        2014  10    31
-
-        Create a MultiIndex using a set of values and a column:
-
-        >>> df.set_index([[1, 2, 3, 4], 'year'])
-                 month  sale
-           year
-        1  2012  1      55
-        2  2014  4      40
-        3  2013  7      84
-        4  2014  10     31
-        """
         if not isinstance(keys, list):
             keys = [keys]
 
