@@ -15,7 +15,7 @@ import pytz
 import pytest
 
 import pandas as pd
-from pandas._libs import tslib, lib, missing as libmissing
+from pandas._libs import lib, iNaT, missing as libmissing
 from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
                     Panel, Period, Categorical, isna, Interval,
@@ -59,7 +59,7 @@ ll_params = [
     ({'a', 1},                  'set', 'set'),                  # noqa: E241
     (set(),                     'set', 'set-empty'),            # noqa: E241
     (frozenset({'a', 1}),       'set', 'frozenset'),            # noqa: E241
-    (frozenset([]),             'set', 'frozenset-empty'),      # noqa: E241
+    (frozenset(),               'set', 'frozenset-empty'),      # noqa: E241
     (iter([1, 2]),              True,  'iterator'),             # noqa: E241
     (iter([]),                  True,  'iterator-empty'),       # noqa: E241
     ((x for x in [1, 2]),       True,  'generator'),            # noqa: E241
@@ -371,7 +371,7 @@ class TestInference(object):
                 tm.assert_numpy_array_equal(out, pos)
 
                 # too many characters
-                with tm.assert_raises_regex(ValueError, msg):
+                with pytest.raises(ValueError, match=msg):
                     lib.maybe_convert_numeric(
                         np.array(['foo_' + infinity], dtype=object),
                         na_values, maybe_int)
@@ -1263,7 +1263,7 @@ def test_nan_to_nat_conversions():
     }))
     df.iloc[3:6, :] = np.nan
     result = df.loc[4, 'B'].value
-    assert (result == tslib.iNaT)
+    assert (result == iNaT)
 
     s = df['B'].copy()
     s._data = s._data.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)

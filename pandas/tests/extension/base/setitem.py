@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -34,12 +33,12 @@ class BaseSetitemTests(BaseExtensionTests):
             value = data._from_sequence(value)
 
         xpr = 'cannot set using a {} indexer with a different length'
-        with tm.assert_raises_regex(ValueError, xpr.format('list-like')):
+        with pytest.raises(ValueError, match=xpr.format('list-like')):
             ser[[0, 1]] = value
         # Ensure no modifications made before the exception
         self.assert_series_equal(ser, original)
 
-        with tm.assert_raises_regex(ValueError, xpr.format('slice')):
+        with pytest.raises(ValueError, match=xpr.format('slice')):
             ser[slice(3)] = value
         self.assert_series_equal(ser, original)
 
@@ -164,7 +163,7 @@ class BaseSetitemTests(BaseExtensionTests):
     def test_setitem_frame_invalid_length(self, data):
         df = pd.DataFrame({"A": [1] * len(data)})
         xpr = "Length of values does not match length of index"
-        with tm.assert_raises_regex(ValueError, xpr):
+        with pytest.raises(ValueError, match=xpr):
             df['B'] = data[:5]
 
     @pytest.mark.xfail(reason="GH#20441: setitem on extension types.",

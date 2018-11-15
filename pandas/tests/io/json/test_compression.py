@@ -3,7 +3,7 @@ import pytest
 import pandas as pd
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
-from pandas.util.testing import assert_frame_equal, assert_raises_regex
+from pandas.util.testing import assert_frame_equal
 
 
 def test_compression_roundtrip(compression):
@@ -81,15 +81,15 @@ def test_write_unsupported_compression_type():
     df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
     with tm.ensure_clean() as path:
         msg = "Unrecognized compression type: unsupported"
-        assert_raises_regex(ValueError, msg, df.to_json,
-                            path, compression="unsupported")
+        with pytest.raises(ValueError, match=msg):
+            df.to_json(path, compression="unsupported")
 
 
 def test_read_unsupported_compression_type():
     with tm.ensure_clean() as path:
         msg = "Unrecognized compression type: unsupported"
-        assert_raises_regex(ValueError, msg, pd.read_json,
-                            path, compression="unsupported")
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(path, compression="unsupported")
 
 
 @pytest.mark.parametrize("to_infer", [True, False])

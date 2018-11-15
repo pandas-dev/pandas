@@ -290,9 +290,9 @@ def parse_table_schema(json, precise_float):
         :class:`Index` name of 'index'  and :class:`MultiIndex` names starting
         with 'level_' are not supported.
 
-    See also
+    See Also
     --------
-    build_table_schema : inverse function
+    build_table_schema : Inverse function.
     pandas.read_json
     """
     table = loads(json, precise_float=precise_float)

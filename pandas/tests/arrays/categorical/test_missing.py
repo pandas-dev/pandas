@@ -70,7 +70,7 @@ class TestCategoricalMissing(object):
         # https://github.com/pandas-dev/pandas/issues/19682
         cat = Categorical([1, 2, 3])
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             cat.fillna(**fillna_kwargs)
 
     @pytest.mark.parametrize("named", [True, False])

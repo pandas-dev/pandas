@@ -38,7 +38,7 @@ class RangeIndex(Int64Index):
 
     Parameters
     ----------
-    start : int (default: 0), or other RangeIndex instance.
+    start : int (default: 0), or other RangeIndex instance
         If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
     step : int (default: 1)
@@ -49,8 +49,8 @@ class RangeIndex(Int64Index):
 
     See Also
     --------
-    Index : The base pandas Index type
-    Int64Index : Index of int64 data
+    Index : The base pandas Index type.
+    Int64Index : Index of int64 data.
 
     Attributes
     ----------
@@ -305,7 +305,7 @@ class RangeIndex(Int64Index):
         -------
         argsorted : numpy array
 
-        See also
+        See Also
         --------
         numpy.ndarray.argsort
         """

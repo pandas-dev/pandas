@@ -32,6 +32,15 @@ try:
     from io import StringIO
 except ImportError:
     from cStringIO import StringIO
+
+# Template backend makes matplotlib to not plot anything. This is useful
+# to avoid that plot windows are open from the doctests while running the
+# script. Setting here before matplotlib is loaded.
+# We don't warn for the number of open plots, as none is actually being opened
+os.environ['MPLBACKEND'] = 'Template'
+import matplotlib
+matplotlib.rc('figure', max_open_warning=10000)
+
 import numpy
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -47,6 +56,9 @@ from pandas.io.formats.printing import pprint_thing
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
 DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
+ALLOWED_SECTIONS = ['Parameters', 'Attributes', 'Methods', 'Returns', 'Yields',
+                    'Other Parameters', 'Raises', 'Warns', 'See Also', 'Notes',
+                    'References', 'Examples']
 ERROR_MSGS = {
     'GL01': 'Docstring text (summary) should start in the line immediately '
             'after the opening quotes (not in the same line, or leaving a '
@@ -60,6 +72,10 @@ ERROR_MSGS = {
             'mentioned in public docstrings',
     'GL05': 'Tabs found at the start of line "{line_with_tabs}", please use '
             'whitespace only',
+    'GL06': 'Found unknown section "{section}". Allowed sections are: '
+            '{allowed_sections}',
+    'GL07': 'Wrong order of sections. "{wrong_section}" should be located '
+            'before "{goes_before}", the right order is: {sorted_sections}',
     'SS01': 'No summary found (a short summary in a single line should be '
             'present at the beginning of the docstring)',
     'SS02': 'Summary does not start with a capital letter',
@@ -81,6 +97,8 @@ ERROR_MSGS = {
     'PR08': 'Parameter "{param_name}" description should start with a '
             'capital letter',
     'PR09': 'Parameter "{param_name}" description should finish with "."',
+    'PR10': 'Parameter "{param_name}" requires a space before the colon '
+            'separating the parameter name and type',
     'RT01': 'No Returns section found',
     'YD01': 'No Yields section found',
     'SA01': 'See Also section not found',
@@ -345,6 +363,18 @@ class Docstring(object):
         return False
 
     @property
+    def section_titles(self):
+        sections = []
+        self.doc._doc.reset()
+        while not self.doc._doc.eof():
+            content = self.doc._read_to_next_section()
+            if (len(content) > 1
+                    and len(content[0]) == len(content[1])
+                    and set(content[1]) == {'-'}):
+                sections.append(content[0])
+        return sections
+
+    @property
     def summary(self):
         return ' '.join(self.doc['Summary'])
 
@@ -505,6 +535,9 @@ class Docstring(object):
             file.flush()
             application.run_checks([file.name])
 
+        # We need this to avoid flake8 printing the names of the files to
+        # the standard output
+        application.formatter.write = lambda line, source: None
         application.report()
 
         yield from application.guide.stats.statistics_for('')
@@ -568,6 +601,25 @@ def validate_one(func_name):
         if re.match("^ *\t", line):
             errs.append(error('GL05', line_with_tabs=line.lstrip()))
 
+    unseen_sections = list(ALLOWED_SECTIONS)
+    for section in doc.section_titles:
+        if section not in ALLOWED_SECTIONS:
+            errs.append(error('GL06',
+                              section=section,
+                              allowed_sections=', '.join(ALLOWED_SECTIONS)))
+        else:
+            if section in unseen_sections:
+                section_idx = unseen_sections.index(section)
+                unseen_sections = unseen_sections[section_idx + 1:]
+            else:
+                section_idx = ALLOWED_SECTIONS.index(section)
+                goes_before = ALLOWED_SECTIONS[section_idx + 1]
+                errs.append(error('GL07',
+                                  sorted_sections=' > '.join(ALLOWED_SECTIONS),
+                                  wrong_section=section,
+                                  goes_before=goes_before))
+                break
+
     if not doc.summary:
         errs.append(error('SS01'))
     else:
@@ -594,7 +646,11 @@ def validate_one(func_name):
     for param in doc.doc_parameters:
         if not param.startswith("*"):  # Check can ignore var / kwargs
             if not doc.parameter_type(param):
-                errs.append(error('PR04', param_name=param))
+                if ':' in param:
+                    errs.append(error('PR10',
+                                      param_name=param.split(':')[0]))
+                else:
+                    errs.append(error('PR04', param_name=param))
             else:
                 if doc.parameter_type(param)[-1] == '.':
                     errs.append(error('PR05', param_name=param))
@@ -733,6 +789,7 @@ def main(func_name, prefix, errors, output_format):
         return '\n{full_line}\n{title_line}\n{full_line}\n\n'.format(
             full_line=full_line, title_line=title_line)
 
+    exit_status = 0
     if func_name is None:
         result = validate_all(prefix)
 
@@ -751,7 +808,7 @@ def main(func_name, prefix, errors, output_format):
                 raise ValueError('Unknown output_format "{}"'.format(
                     output_format))
 
-            num_errors, output = 0, ''
+            output = ''
             for name, res in result.items():
                 for err_code, err_desc in res['errors']:
                     # The script would be faster if instead of filtering the
@@ -759,7 +816,7 @@ def main(func_name, prefix, errors, output_format):
                     # initially. But that would complicate the code too much
                     if errors and err_code not in errors:
                         continue
-                    num_errors += 1
+                    exit_status += 1
                     output += output_format.format(
                         name=name,
                         path=res['file'],
@@ -767,12 +824,10 @@ def main(func_name, prefix, errors, output_format):
                         code=err_code,
                         text='{}: {}'.format(name, err_desc))
 
-        sys.stderr.write(output)
+        sys.stdout.write(output)
 
     else:
         result = validate_one(func_name)
-        num_errors = len(result['errors'])
-
         sys.stderr.write(header('Docstring ({})'.format(func_name)))
         sys.stderr.write('{}\n'.format(result['docstring']))
         sys.stderr.write(header('Validation'))
@@ -799,7 +854,7 @@ def main(func_name, prefix, errors, output_format):
             sys.stderr.write(header('Doctests'))
             sys.stderr.write(result['examples_errors'])
 
-    return num_errors
+    return exit_status
 
 
 if __name__ == '__main__':
