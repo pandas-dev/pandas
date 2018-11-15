@@ -306,21 +306,24 @@ The same alignment can be used when ``others`` is a ``DataFrame``:
 Concatenating a Series and many objects into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-All one-dimensional list-likes can be combined in a list-like container (including iterators, ``dict``-views, etc.):
+Several items can be combined a list-like container (including iterators, ``dict``-views, etc.), which may contain ``Series``, ``Index`` and ``np.ndarray``.
+Note that ``Index`` will align as well, so we change the indexes of ``s`` and ``u`` to strings for the purpose of this example:
 
 .. ipython:: python
 
-    s
-    u
-    s.str.cat([u.values,
-               u.index.astype(str).values], na_rep='-')
+    s2 = s.set_axis(['a', 'b', 'c', 'd'], inplace=False)
+    s2
+    u2 = u.set_axis(['b', 'd', 'a', 'c'], inplace=False)
+    u2
+    s2.str.cat([pd.Index(['d', 'c', 'b', 'a']), u2, u2.values], na_rep='-', join='left')
 
-All elements must match in length to the calling ``Series`` (or ``Index``), except those having an index if ``join`` is not None:
+All ``np.ndarrays`` within the passed list-like must match in length to the calling ``Series`` (or ``Index``),
+but ``Series`` and ``Index`` may have arbitrary length (as long as alignment is not disabled with ``join is not None``):
 
 .. ipython:: python
 
     v
-    s.str.cat([u, v], join='outer', na_rep='-')
+    s.str.cat([v, u, u.values], join='outer', na_rep='-')
 
 If using ``join='right'`` on a list of ``others`` that contains different indexes,
 the union of these indexes will be used as the basis for the final concatenation:
