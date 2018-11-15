@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
     ensure_float64)
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna, notna
 
 
 def mask_missing(arr, values_to_mask):
@@ -73,6 +73,70 @@ def mask_missing(arr, values_to_mask):
         mask = np.zeros(arr.shape, dtype=bool)
 
     return mask
+
+
+def update_array(this, that, overwrite=True, filter_func=None,
+                 errors='ignore'):
+    """
+    Update one array with non-NA values from another array.
+
+    Parameters
+    ----------
+    this : np.ndarray (one-dimensional)
+        The array being updated.
+    that : np.ndarray (one-dimensional)
+        The array being used to update.
+    overwrite : bool, default True
+        How to handle non-NA values for overlapping keys:
+
+        * True: overwrite original array's values with values from `that`.
+        * False: only update values that are NA in `this`.
+
+    filter_func : callable(1d-array) -> boolean 1d-array, optional
+        Can choose to replace values other than NA. Return True for values
+        that should be updated.
+    errors : {'raise', 'ignore'}, default 'ignore'
+        If 'raise', will raise a ValueError if `this` and `that` both contain
+        non-NA data in the same place.
+
+    Raises
+    ------
+    ValueError
+        When `errors='raise'` and there's overlapping non-NA data.
+
+    Returns
+    -------
+    updated : np.ndarray (one-dimensional) or None
+        The updated array. Return None if `this` remains unchanged
+
+    See Also
+    --------
+    Series.update : Similar method for `Series`.
+    DataFrame.update : Similar method for `DataFrame`.
+    dict.update : Similar method for `dict`.
+    """
+    import pandas.core.computation.expressions as expressions
+
+    if filter_func is not None:
+        with np.errstate(all='ignore'):
+            mask = ~filter_func(this) | isna(that)
+    else:
+        if errors == 'raise':
+            mask_this = notna(that)
+            mask_that = notna(this)
+            if any(mask_this & mask_that):
+                raise ValueError("Data overlaps.")
+
+        if overwrite:
+            mask = isna(that)
+        else:
+            mask = notna(this)
+
+    # don't overwrite columns unnecessarily
+    if mask.all():
+        return None
+
+    return expressions.where(mask, this, that)
 
 
 def clean_fill_method(method, allow_nearest=False):

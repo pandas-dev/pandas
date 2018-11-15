@@ -2386,7 +2386,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return this.where(notna(this), other)
 
     def update(self, other, join='left', overwrite=True, filter_func=None,
-               raise_conflict=False):
+               errors='ignore'):
         """
         Modify Series in place using non-NA values from passed Series.
 
@@ -2400,6 +2400,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         join : {'left'}, default 'left'
             Only left join is implemented, keeping the index and columns of the
             original object.
+
+            .. versionadded:: 0.24.0
         overwrite : bool, default True
             How to handle non-NA values for overlapping keys:
 
@@ -2408,12 +2410,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             * False: only update values that are NA in
               the original DataFrame.
 
+            .. versionadded:: 0.24.0
         filter_func : callable(1d-array) -> boolean 1d-array, optional
             Can choose to replace values other than NA. Return True for values
             that should be updated.
-        raise_conflict : bool, default False
-            If True, will raise a ValueError if the DataFrame and `other`
+
+            .. versionadded:: 0.24.0
+        errors : {'raise', 'ignore'}, default 'ignore'
+            If 'raise', will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
+
+            .. versionadded:: 0.24.0
 
         See Also
         --------
@@ -2459,7 +2466,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         super(Series, self).update(other, join=join, overwrite=overwrite,
                                    filter_func=filter_func,
-                                   raise_conflict=raise_conflict)
+                                   errors=errors)
 
     # ----------------------------------------------------------------------
     # Reindexing, sorting

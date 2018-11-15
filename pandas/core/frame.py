@@ -5203,6 +5203,14 @@ class DataFrame(NDFrame):
 
         return self.combine(other, combiner, overwrite=False)
 
+    @Appender(NDFrame.update.__doc__)
+    @deprecate_kwarg(old_arg_name='raise_conflict', new_arg_name='errors',
+                     mapping={False: 'ignore', True: 'raise'})
+    def update(self, other, join='left', overwrite=True, filter_func=None,
+               errors='ignore'):
+        super(DataFrame, self).update(other, join=join, overwrite=overwrite,
+                                      filter_func=filter_func, errors=errors)
+
     # ----------------------------------------------------------------------
     # Data reshaping
 

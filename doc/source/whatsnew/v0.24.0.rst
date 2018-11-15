@@ -281,7 +281,8 @@ Other Enhancements
   all instances of ``set`` will not be considered "list-like" anymore (:issue:`23061`)
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
 - New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295`).
-- :meth:`Series.update` now supports the same keywords and functionality as :meth:`DataFrame.update` (:issue:`22358`)
+- :meth:`Series.update` now supports the same keywords and functionality as :meth:`DataFrame.update`.
+  In particular, it has gained the keywords ``overwrite``, ``filter_func`` and ``errors`` (:issue:`22358`)
 - Compatibility with Matplotlib 3.0 (:issue:`22790`).
 - Added :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` for determining overlaps between interval-like objects (:issue:`21998`)
 - :func:`~DataFrame.to_parquet` now supports writing a ``DataFrame`` as a directory of parquet files partitioned by a subset of the columns when ``engine = 'pyarrow'`` (:issue:`23283`)

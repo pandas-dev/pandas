@@ -101,32 +101,6 @@ def _single_replace(self, to_replace, method, inplace, limit):
     return result
 
 
-def _update_column(this, that, overwrite=True, filter_func=None,
-                   raise_conflict=False):
-    import pandas.core.computation.expressions as expressions
-
-    if filter_func is not None:
-        with np.errstate(all='ignore'):
-            mask = ~filter_func(this) | isna(that)
-    else:
-        if raise_conflict:
-            mask_this = notna(that)
-            mask_that = notna(this)
-            if any(mask_this & mask_that):
-                raise ValueError("Data overlaps.")
-
-        if overwrite:
-            mask = isna(that)
-        else:
-            mask = notna(this)
-
-    # don't overwrite columns unnecessarily
-    if mask.all():
-        return None
-
-    return expressions.where(mask, this, that)
-
-
 class NDFrame(PandasObject, SelectionMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
@@ -4200,7 +4174,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._constructor(new_data).__finalize__(self)
 
     def update(self, other, join='left', overwrite=True, filter_func=None,
-               raise_conflict=False):
+               errors='ignore'):
         """
         Modify in place using non-NA values from another DataFrame.
 
@@ -4227,8 +4201,8 @@ class NDFrame(PandasObject, SelectionMixin):
         filter_func : callable(1d-array) -> boolean 1d-array, optional
             Can choose to replace values other than NA. Return True for values
             that should be updated.
-        raise_conflict : bool, default False
-            If True, will raise a ValueError if the DataFrame and `other`
+        errors : {'raise', 'ignore'}, default 'ignore'
+            If 'raise', will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
 
         Raises
@@ -4317,13 +4291,15 @@ class NDFrame(PandasObject, SelectionMixin):
             other = other.reindex_like(self)
             this = self.values
             that = other.values
-            updated = _update_column(this, that, overwrite=overwrite,
-                                     filter_func=filter_func,
-                                     raise_conflict=raise_conflict)
-            if updated is None:
-                # don't overwrite Series unnecessarily
-                return
-            self._data._block.values = updated
+
+            # missing.update_array returns an np.ndarray
+            updated_values = missing.update_array(this, that,
+                                                  overwrite=overwrite,
+                                                  filter_func=filter_func,
+                                                  errors=errors)
+            # don't overwrite unnecessarily
+            if updated_values is not None:
+                self._update_inplace(Series(updated_values, index=self.index))
         else:  # DataFrame
             if not isinstance(other, ABCDataFrame):
                 other = DataFrame(other)
@@ -4334,13 +4310,12 @@ class NDFrame(PandasObject, SelectionMixin):
                 this = self[col].values
                 that = other[col].values
 
-                updated = _update_column(this, that, overwrite=overwrite,
-                                         filter_func=filter_func,
-                                         raise_conflict=raise_conflict)
-                # don't overwrite columns unnecessarily
-                if updated is None:
-                    continue
-                self[col] = updated
+                updated = missing.update_array(this, that, overwrite=overwrite,
+                                           filter_func=filter_func,
+                                           errors=errors)
+                # don't overwrite unnecessarily
+                if updated is not None:
+                    self[col] = updated
 
     def filter(self, items=None, like=None, regex=None, axis=None):
         """
