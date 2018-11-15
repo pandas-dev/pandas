@@ -344,6 +344,10 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             return type(self)(-self._data, freq=-self.freq)
         return type(self)(-self._data)
 
+    def __abs__(self):
+        # Note: freq is not preserved
+        return type(self)(np.abs(self._data))
+
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timedelta methods
 
