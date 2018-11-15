@@ -19,6 +19,7 @@ import pandas.util.testing as tm
 import pandas.conftest as top_level_conftest
 import pandas.core.strings as strings
 
+
 def assert_series_or_index_equal(left, right):
     if isinstance(left, Series):
         assert_series_equal(left, right)
@@ -26,38 +27,50 @@ def assert_series_or_index_equal(left, right):
         assert_index_equal(left, right)
 
 
-# method names plus minimal set of arguments to call
-_all_string_methods = [
-    ('get', [0]),
-    ('join', [',']),
-    ('contains', ['some_pattern']),
-    ('match', ['some_pattern']),
-    ('count', ['some_pattern']),
-    ('startswith', ['some_pattern']),
-    ('endswith', ['some_pattern']),
-    ('findall', ['some_pattern']),
-    ('find', ['some_pattern']),
-    ('rfind', ['some_pattern']),
-    # because "index"/"rindex" fail (intentionally) if the string is not found
-    # (and we're testing on generic data), search only for empty string
-    ('index', ['']),
-    ('rindex', ['']),
-    ('extract', [r'(some_pattern)']),
-    ('extractall', [r'(some_pattern)']),
-    ('replace', ['some_pattern', 'other_pattern']),
-    ('repeat', [10]),
-    ('pad', [10]),
-    ('center', [10]),
-    ('ljust', [10]),
-    ('rjust', [10]),
-    ('zfill', [10]),
-    ('wrap', [10]),
-    ('encode', ['utf8']),
-    ('decode', ['utf8']),
-    ('translate', [{97: 100}]),  # translating 'a' to 'd'
-    ('normalize', ['NFC'])
+_any_string_method = [
+    ('cat',           (),                     {'sep': ','}),       # noqa: E241
+    ('cat',           (Series(list('zyx')),), {'sep': ',',         # noqa: E241
+                                               'join': 'left'}),
+    ('center',        (10,),                  {}),                 # noqa: E241
+    ('contains',      ('a',),                 {}),                 # noqa: E241
+    ('count',         ('a',),                 {}),                 # noqa: E241
+    ('decode',        ('UTF-8',),             {}),                 # noqa: E241
+    ('encode',        ('UTF-8',),             {}),                 # noqa: E241
+    ('endswith',      ('a',),                 {}),                 # noqa: E241
+    ('extract',       ('([a-z]*)',),          {'expand': False}),  # noqa: E241
+    ('extract',       ('([a-z]*)',),          {'expand': True}),   # noqa: E241
+    ('extractall',    ('([a-z]*)',),          {}),                 # noqa: E241
+    ('find',          ('a',),                 {}),                 # noqa: E241
+    ('findall',       ('a',),                 {}),                 # noqa: E241
+    ('get',           (0,),                   {}),                 # noqa: E241
+    # because "index" (and "rindex") fail intentionally
+    # if the string is not found, search only for empty string
+    ('index',         ('',),                  {}),                 # noqa: E241
+    ('join',          (',',),                 {}),                 # noqa: E241
+    ('ljust',         (10,),                  {}),                 # noqa: E241
+    ('match',         ('a',),                 {}),                 # noqa: E241
+    ('normalize',     ('NFC',),               {}),                 # noqa: E241
+    ('pad',           (10,),                  {}),                 # noqa: E241
+    ('partition',     (' ',),                 {'expand': False}),  # noqa: E241
+    ('partition',     (' ',),                 {'expand': True}),   # noqa: E241
+    ('repeat',        (3,),                   {}),                 # noqa: E241
+    ('replace',       ('a', 'z',),            {}),                 # noqa: E241
+    ('rfind',         ('a',),                 {}),                 # noqa: E241
+    ('rindex',        ('',),                  {}),                 # noqa: E241
+    ('rjust',         (10,),                  {}),                 # noqa: E241
+    ('rpartition',    (' ',),                 {'expand': False}),  # noqa: E241
+    ('rpartition',    (' ',),                 {'expand': True}),   # noqa: E241
+    ('slice',         (0, 1,),                {}),                 # noqa: E241
+    ('slice_replace', (0, 1, 'z',),           {}),                 # noqa: E241
+    ('split',         (' ',),                 {'expand': False}),  # noqa: E241
+    ('split',         (' ',),                 {'expand': True}),   # noqa: E241
+    ('startswith',    ('a',),                 {}),                 # noqa: E241
+    # translating unicode points of "a" to "d"
+    ('translate',     ({97: 100},),           {}),                 # noqa: E241
+    ('wrap',          (2,),                   {}),                 # noqa: E241
+    ('zfill',         (10,),                  {})                  # noqa: E241
 ] + list(zip([
-    # methods without positional arguments: zip with empty tuple
+    # methods without positional arguments: zip with empty tuple and empty dict
     'cat', 'len', 'split', 'rsplit',
     'partition', 'rpartition', 'get_dummies',
     'slice', 'slice_replace',
@@ -67,17 +80,42 @@ _all_string_methods = [
     'isalpha', 'isnumeric', 'isalnum',
     'isdigit', 'isdecimal', 'isspace',
     'islower', 'isupper', 'istitle'
-], [tuple()] * 100))
-ids, _ = zip(*_all_string_methods)  # use method name as fixture-id
+], [()] * 100, [{}] * 100))
+ids, _, _ = zip(*_any_string_method)  # use method name as fixture-id
 
 
-@pytest.fixture(params=_all_string_methods, ids=ids)
-def all_string_methods(request):
+# test that the above list captures all methods of StringMethods
+missing_methods = {f for f in dir(strings.StringMethods)
+                   if not f.startswith('_')} - set(ids)
+assert not missing_methods
+
+
+@pytest.fixture(params=_any_string_method, ids=ids)
+def any_string_method(request):
     """
     Fixture for all public methods of `StringMethods`
 
-    This fixture returns a tuple of the method name and a list of sample values
-    for the required positional arguments of that method.
+    This fixture returns a tuple of the method name and sample arguments
+    necessary to call the method.
+
+    Returns
+    -------
+    method_name : str
+        The name of the method in `StringMethods`
+    args : tuple
+        Sample values for the positional arguments
+    kwargs : dict
+        Sample values for the keyword arguments
+
+    Examples
+    --------
+    >>> def test_something(any_string_method):
+    ...     s = pd.Series(['a', 'b', np.nan, 'd'])
+    ...
+    ...     method_name, args, kwargs = any_string_method
+    ...     method = getattr(s.str, method_name)
+    ...     # will not raise
+    ...     method(*args, **kwargs)
     """
     return request.param
 
@@ -188,14 +226,14 @@ class TestStringMethods(object):
     @pytest.mark.parametrize('box', [Series, Index])
     def test_api_per_method(self, box, dtype,
                             any_allowed_skipna_inferred_dtype,
-                            all_string_methods):
+                            any_string_method):
         # this test does not check correctness of the different methods,
         # just that the methods work on the specified (inferred) dtypes,
         # and raise on all others
 
         # one instance of each parametrized fixture
         inferred_dtype, values = any_allowed_skipna_inferred_dtype
-        method_name, minimal_args = all_string_methods
+        method_name, args, kwargs = any_string_method
 
         # TODO: get rid of these xfails
         if (method_name not in ['encode', 'decode', 'len']
@@ -220,6 +258,10 @@ class TestStringMethods(object):
         if (method_name in ['partition', 'rpartition'] and box == Index
                 and inferred_dtype != 'bytes'):
             pytest.xfail(reason='Method not nan-safe on Index; see GH 23558')
+        if (method_name == 'split' and box == Index
+                and inferred_dtype in ['mixed', 'mixed-integer']
+                and dtype == object and kwargs.get('expand', None) == True):
+            pytest.xfail(reason='Method not nan-safe on Index; see GH 23677')
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
         method = getattr(t.str, method_name)
@@ -236,14 +278,34 @@ class TestStringMethods(object):
                          + ['mixed', 'mixed-integer'] * mixed_allowed)
 
         if inferred_dtype in allowed_types:
-            method(*minimal_args)  # works!
+            method(*args, **kwargs)  # works!
         else:
             # GH 23011, GH 23163
             msg = ('Cannot use .str.{name} with values of inferred dtype '
                    '{inferred_dtype!r}.'.format(name=method_name,
                                                 inferred_dtype=inferred_dtype))
-            with tm.assert_raises_regex(TypeError, msg):
-                method(*minimal_args)
+            with pytest.raises(TypeError, match=msg):
+                method(*args, **kwargs)
+
+    def test_api_for_categorical(self, any_string_method):
+        # https://github.com/pandas-dev/pandas/issues/10661
+        s = Series(list('aabb'))
+        s = s + " " + s
+        c = s.astype('category')
+        assert isinstance(c.str, strings.StringMethods)
+
+        method_name, args, kwargs = any_string_method
+
+        result = getattr(c.str, method_name)(*args, **kwargs)
+        expected = getattr(s.str, method_name)(*args, **kwargs)
+
+        if isinstance(result, DataFrame):
+            tm.assert_frame_equal(result, expected)
+        elif isinstance(result, Series):
+            tm.assert_series_equal(result, expected)
+        else:
+            # str.cat(others=None) returns string, for example
+            assert result == expected
 
     def test_iter(self):
         # GH3638
