@@ -732,8 +732,7 @@ def validate_all(prefix, ignore_deprecated=False):
     prefix : str or None
         If provided, only the docstrings that start with this pattern will be
         validated. If None, all docstrings will be validated.
-
-    ignore_deprecated: Boolean variable
+    ignore_deprecated: bool, default False
         If True, deprecated objects are ignored when validating docstrings.
 
     Returns
