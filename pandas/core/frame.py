@@ -2035,24 +2035,21 @@ class DataFrame(NDFrame):
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
                   sparsify=None, index_names=True, justify=None,
-                  line_width=None, max_rows=None, max_cols=None,
-                  show_dimensions=False):
+                  max_rows=None, max_cols=None, show_dimensions=False,
+                  decimal='.', line_width=None):
         """
         Render a DataFrame to a console-friendly tabular output.
-
         %(shared_params)s
         line_width : int, optional
             Width to wrap a line in characters.
-
         %(returns)s
-
         See Also
         --------
         to_html : Convert DataFrame to HTML.
 
         Examples
         --------
-        >>> d = {'col1' : [1, 2, 3], 'col2' : [4, 5, 6]}
+        >>> d = {'col1': [1, 2, 3], 'col2': [4, 5, 6]}
         >>> df = pd.DataFrame(d)
         >>> print(df.to_string())
            col1  col2
@@ -2068,42 +2065,37 @@ class DataFrame(NDFrame):
                                            sparsify=sparsify, justify=justify,
                                            index_names=index_names,
                                            header=header, index=index,
-                                           line_width=line_width,
                                            max_rows=max_rows,
                                            max_cols=max_cols,
-                                           show_dimensions=show_dimensions)
+                                           show_dimensions=show_dimensions,
+                                           decimal=decimal,
+                                           line_width=line_width)
         formatter.to_string()
 
         if buf is None:
             result = formatter.buf.getvalue()
             return result
 
-    @Substitution(header='whether to print column labels, default True')
+    @Substitution(header='Whether to print column labels, default True')
     @Substitution(shared_params=fmt.common_docstring,
                   returns=fmt.return_docstring)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
                 index=True, na_rep='NaN', formatters=None, float_format=None,
-                sparsify=None, index_names=True, justify=None, bold_rows=True,
-                classes=None, escape=True, max_rows=None, max_cols=None,
-                show_dimensions=False, notebook=False, decimal='.',
-                border=None, table_id=None):
+                sparsify=None, index_names=True, justify=None, max_rows=None,
+                max_cols=None, show_dimensions=False, decimal='.',
+                bold_rows=True, classes=None, escape=True,
+                notebook=False, border=None, table_id=None):
         """
         Render a DataFrame as an HTML table.
-
         %(shared_params)s
-        bold_rows : boolean, default True
-            Make the row labels bold in the output
+        bold_rows : bool, default True
+            Make the row labels bold in the output.
         classes : str or list or tuple, default None
-            CSS class(es) to apply to the resulting html table
-        escape : boolean, default True
+            CSS class(es) to apply to the resulting html table.
+        escape : bool, default True
             Convert the characters <, >, and & to HTML-safe sequences.
         notebook : {True, False}, default False
             Whether the generated HTML is for IPython Notebook.
-        decimal : string, default '.'
-            Character recognized as decimal separator, e.g. ',' in Europe
-
-            .. versionadded:: 0.18.0
-
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.html.border``.
@@ -2114,9 +2106,7 @@ class DataFrame(NDFrame):
             A css id is included in the opening `<table>` tag if specified.
 
             .. versionadded:: 0.23.0
-
         %(returns)s
-
         See Also
         --------
         to_string : Convert DataFrame to a string.
