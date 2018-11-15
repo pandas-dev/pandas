@@ -16,11 +16,10 @@ import pandas.compat as compat
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
-    _INT64_DTYPE, _NS_DTYPE, ensure_int64, is_datetime64_ns_dtype,
-    is_datetime64tz_dtype, is_dtype_equal, is_extension_type, is_float,
-    is_float_dtype, is_integer, is_list_like, is_object_dtype, is_period_dtype,
-    is_scalar, is_string_dtype, is_string_like, is_timedelta64_dtype,
-    pandas_dtype)
+    _INT64_DTYPE, _NS_DTYPE, ensure_int64, is_datetime64_dtype,
+    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_dtype_equal, is_float,
+    is_integer, is_list_like, is_object_dtype, is_period_dtype, is_scalar,
+    is_string_dtype, is_string_like, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -281,7 +280,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                     data, dayfirst=dayfirst, yearfirst=yearfirst)
                 tz = maybe_infer_tz(tz, inferred_tz)
 
-        if freq is None and hasattr(data, "freq"):  #TODO: move earlier
+        if freq is None and hasattr(data, "freq"):
             # i.e. DatetimeArray/Index
             # TODO: Should this be the stronger condition of `freq_infer`?
             freq = data.freq
