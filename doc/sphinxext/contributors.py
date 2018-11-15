@@ -8,10 +8,10 @@ This will be replaced with a message indicating the number of
 code contributors and commits, and then list each contributor
 individually.
 """
+from announce import build_components
 from docutils import nodes
 from docutils.parsers.rst import Directive
-
-from announce import build_components
+import git
 
 
 class ContributorsDirective(Directive):
@@ -19,17 +19,25 @@ class ContributorsDirective(Directive):
     name = 'contributors'
 
     def run(self):
-        components = build_components(self.arguments[0])
+        range_ = self.arguments[0]
+        try:
+            components = build_components(range_)
+        except git.GitCommandError:
+            return [
+                self.state.document.reporter.warning(
+                    "Cannot find contributors for range '{}'".format(range_),
+                    line=self.lineno)
+            ]
+        else:
+            message = nodes.paragraph()
+            message += nodes.Text(components['author_message'])
 
-        message = nodes.paragraph()
-        message += nodes.Text(components['author_message'])
+            listnode = nodes.bullet_list()
 
-        listnode = nodes.bullet_list()
-
-        for author in components['authors']:
-            para = nodes.paragraph()
-            para += nodes.Text(author)
-            listnode += nodes.list_item('', para)
+            for author in components['authors']:
+                para = nodes.paragraph()
+                para += nodes.Text(author)
+                listnode += nodes.list_item('', para)
 
         return [message, listnode]
 
