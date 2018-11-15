@@ -88,6 +88,10 @@ common_docstring = """
             Maximum number of columns to display in the console.
         show_dimensions : bool, default False
             Display DataFrame dimensions (number of rows by number of columns).
+        decimal : str, default '.'
+            Character recognized as decimal separator, e.g. ',' in Europe.
+
+            .. versionadded:: 0.18.0
     """
 
 _VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
@@ -100,8 +104,6 @@ return_docstring = """
         str (or unicode, depending on data and options)
             String representation of the dataframe.
     """
-
-docstring_to_string = common_docstring + return_docstring
 
 
 class CategoricalFormatter(object):
@@ -608,11 +610,6 @@ class DataFrameFormatter(TableFormatter):
             else:  # max_cols == 0. Try to fit frame to terminal
                 text = self.adj.adjoin(1, *strcols).split('\n')
                 max_len = Series(text).str.len().max()
-                headers = [ele[0] for ele in strcols]
-                # Size of last col determines dot col size. See
-                # `self._to_str_columns
-                size_tr_col = len(headers[self.tr_size_col])
-                max_len += size_tr_col  # Need to make space for largest row
                 # plus truncate dot col
                 dif = max_len - self.w
                 # '+ 1' to avoid too wide repr (GH PR #17023)
