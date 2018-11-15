@@ -2358,6 +2358,7 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
                      [[1.5, np.nan, 3.], [1.5, np.nan, 3.],
                       [1.5, np.nan, 3.],
                       [1.5, np.nan, 3.]]])
+        other = Panel([[[]]])
 
         with pytest.raises(ValueError, match='Data overlaps'):
             pan.update(pan, errors='raise')
