@@ -236,40 +236,15 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
             require_iso8601 = not infer_datetime_format
             format = None
 
+    result = None
+    tz_parsed = None
     try:
-        result = None
-
         if format is not None:
-            # shortcut formatting here
-            if format == '%Y%m%d':
-                try:
-                    result = _attempt_YYYYMMDD(arg, errors=errors)
-                except (ValueError, TypeError, tslibs.OutOfBoundsDatetime):
-                    raise ValueError("cannot convert the input to "
-                                     "'%Y%m%d' date format")
+            result = _parse_with_format(arg, tz, name, box, format,
+                                        errors, exact, infer_datetime_format)
 
-            # fallback
-            if result is None:
-                try:
-                    result, timezones = array_strptime(
-                        arg, format, exact=exact, errors=errors)
-                    if '%Z' in format or '%z' in format:
-                        return _return_parsed_timezone_results(
-                            result, timezones, box, tz, name)
-                except tslibs.OutOfBoundsDatetime:
-                    if errors == 'raise':
-                        raise
-                    result = arg
-                except ValueError:
-                    # if format was inferred, try falling back
-                    # to array_to_datetime - terminate here
-                    # for specified formats
-                    if not infer_datetime_format:
-                        if errors == 'raise':
-                            raise
-                        result = arg
-
-        if result is None and (format is None or infer_datetime_format):
+        if result is None:
+            assert format is None or infer_datetime_format
             result, tz_parsed = tslib.array_to_datetime(
                 arg,
                 errors=errors,
@@ -278,35 +253,152 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                 yearfirst=yearfirst,
                 require_iso8601=require_iso8601
             )
-            if tz_parsed is not None:
-                if box:
-                    # We can take a shortcut since the datetime64 numpy array
-                    # is in UTC
-                    return DatetimeIndex._simple_new(result, name=name,
-                                                     tz=tz_parsed)
-                else:
-                    # Convert the datetime64 numpy array to an numpy array
-                    # of datetime objects
-                    result = [Timestamp(ts, tz=tz_parsed).to_pydatetime()
-                              for ts in result]
-                    return np.array(result, dtype=object)
-
-        if box:
-            # Ensure we return an Index in all cases where box=True
-            if is_datetime64_dtype(result):
-                return DatetimeIndex(result, tz=tz, name=name)
-            elif is_object_dtype(result):
-                # e.g. an Index of datetime objects
-                from pandas import Index
-                return Index(result, name=name)
-        return result
 
     except ValueError as e:
+        return _parse_fallback(arg, name, tz, e)
+    else:
+        return _maybe_box_date_results(result, box, tz, name, tz_parsed)
+
+
+def _parse_fallback(data, name, tz, err):
+    """
+    If a ValueError is raised by either _parse_with_format or
+    array_to_datetime, try to interpret the data as datetime objects.
+
+    Parameters
+    ----------
+    data : np.ndarray[object]
+    name : object
+        Name to attach to returned DatetimeIndex
+    tz : None, str, or tzinfo object
+    err : ValueError instance
+
+    Returns
+    -------
+    DatetimeIndex
+
+    Raises
+    ------
+    ValueError : if data cannot be interpreted as datetime objects.
+    """
+    from pandas import DatetimeIndex
+    try:
+        values, tz = conversion.datetime_to_datetime64(data)
+        return DatetimeIndex._simple_new(values, name=name, tz=tz)
+    except (ValueError, TypeError):
+        raise err
+
+
+def _parse_with_format(data, tz, name, box, fmt,
+                       errors, exact, infer_datetime_format):
+    """
+    Parse the given data using a user-provided string format.
+
+    Parameters
+    ----------
+    data : np.ndarray[object]
+    tz : {None, 'utc'}
+    box : bool
+        Whether to wrap the results in an Index
+    fmt : str
+        strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
+        all the way up to nanoseconds.
+    errors : {'ignore', 'raise', 'coerce'}
+        - If 'raise', then invalid parsing will raise an exception
+        - If 'coerce', then invalid parsing will be set as NaT
+        - If 'ignore', then invalid parsing will return the input
+    exact : bool
+        - If True, require an exact format match.
+        - If False, allow the format to match anywhere in the target string.
+    infer_datetime_format : bool
+
+    Returns
+    -------
+    result : np.ndarray[object] or Index, depending on `box` argument
+
+    Raises
+    ------
+    ValueError : Data cannot be parsed using the given format.
+    """
+    result = None
+
+    if fmt == '%Y%m%d':
+        # shortcut formatting here
         try:
-            values, tz = conversion.datetime_to_datetime64(arg)
-            return DatetimeIndex._simple_new(values, name=name, tz=tz)
-        except (ValueError, TypeError):
-            raise e
+            result = _attempt_YYYYMMDD(data, errors=errors)
+        except (ValueError, TypeError, tslibs.OutOfBoundsDatetime):
+            raise ValueError("cannot convert the input to "
+                             "'%Y%m%d' date format")
+
+    if result is None:
+        # fallback
+        try:
+            result, timezones = array_strptime(data, fmt,
+                                               exact=exact, errors=errors)
+            if '%Z' in fmt or '%z' in fmt:
+                return _return_parsed_timezone_results(result, timezones,
+                                                       box, tz, name)
+        except tslibs.OutOfBoundsDatetime:
+            if errors == 'raise':
+                raise
+            result = data
+        except ValueError:
+            # if format was inferred, try falling back
+            # to array_to_datetime - terminate here
+            # for specified formats
+            if not infer_datetime_format:
+                if errors == 'raise':
+                    raise
+                result = data
+
+    return result
+
+
+def _maybe_box_date_results(result, box, tz, name, tz_parsed=None):
+    """
+    If requested, wrap the parsing results in an Index object, DatetimeIndex
+    if possible.
+
+    Parameters
+    ----------
+    result : np.ndarray[object], np.ndarray[int64], or Index
+    box : bool
+    tz : {None, 'utc'}
+    name : str
+    tz_parsed : None or tzinfo
+        pytz tzinfo object inferred during parsing
+
+    Returns
+    -------
+    result : np.ndarray, Index, or DatetimeIndex
+    """
+    from pandas import Index, DatetimeIndex
+
+    if isinstance(result, Index):
+        # already boxed by e.g. _return_parsed_timezone_results
+        return result
+
+    if tz_parsed is not None:
+        if box:
+            # We can take a shortcut since the datetime64 numpy array
+            # is in UTC
+            return DatetimeIndex._simple_new(result, name=name,
+                                             tz=tz_parsed)
+        else:
+            # Convert the datetime64 numpy array to an numpy array
+            # of datetime objects
+            result = [Timestamp(ts, tz=tz_parsed).to_pydatetime()
+                      for ts in result]
+            return np.array(result, dtype=object)
+
+    if box:
+        # Ensure we return an Index in all cases where box=True
+        if is_datetime64_dtype(result):
+            return DatetimeIndex(result, tz=tz, name=name)
+        elif is_object_dtype(result):
+            # e.g. an Index of datetime objects
+            return Index(result, name=name)
+    return result
 
 
 def _adjust_to_origin(arg, origin, unit):

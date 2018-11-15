@@ -246,6 +246,27 @@ class TestTimeConversionFormats(object):
 
 
 class TestToDatetime(object):
+    def test_to_datetime_format_typeerror_fallback(self):
+        # GH#23702 pass format and non-string inputs, fallback
+        now = Timestamp.now()
+        values = np.array([now.tz_localize('Asia/Tokyo')], dtype=np.object_)
+        result = to_datetime(values, format="%Y%m%d")
+
+        expected = DatetimeIndex([now], tz='Asia/Tokyo')
+        tm.assert_index_equal(result, expected)
+
+        # FIXME: flaky test; this does NOT raise on OSX py27
+        values = np.array([now, "2018-11-12"], dtype=np.object_)
+        with pytest.raises(ValueError):
+            result = to_datetime(values, format="%Y%m%d",
+                                 infer_datetime_format=True)
+
+        with pytest.raises(ValueError):
+            # without infer_datetime_format, we fall back to
+            #  datetime_to_datetime64 but not array_to_datetime,
+            #  and so raise on seeing a string
+            to_datetime(values, format="%Y%m%d")
+
     def test_to_datetime_pydatetime(self):
         actual = pd.to_datetime(datetime(2008, 1, 15))
         assert actual == datetime(2008, 1, 15)
