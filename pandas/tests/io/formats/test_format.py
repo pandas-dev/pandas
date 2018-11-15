@@ -305,14 +305,10 @@ class TestDataFrameFormatting(object):
             assert not has_truncated_repr(df)
             assert not has_expanded_repr(df)
 
-    def test_repr_truncates_terminal_size(self):
+    def test_repr_truncates_terminal_size(self, mock):
         # https://github.com/pandas-dev/pandas/issues/21180
         # TODO: use mock fixutre.
         # This is being backported, so doing it directly here.
-        try:
-            from unittest import mock
-        except ImportError:
-            mock = pytest.importorskip("mock")
 
         terminal_size = (118, 96)
         p1 = mock.patch('pandas.io.formats.console.get_terminal_size',
@@ -342,6 +338,17 @@ class TestDataFrameFormatting(object):
             result = repr(df2)
 
         assert df2.columns[0] in result.split('\n')[0]
+
+    def test_repr_truncates_terminal_size_full(self, mock):
+        # GH 22984 ensure entire window is filled
+        terminal_size = (80, 24)
+        df = pd.DataFrame(np.random.rand(1, 7))
+        p1 = mock.patch('pandas.io.formats.console.get_terminal_size',
+                        return_value=terminal_size)
+        p2 = mock.patch('pandas.io.formats.format.get_terminal_size',
+                        return_value=terminal_size)
+        with p1, p2:
+            assert "..." not in str(df)
 
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
