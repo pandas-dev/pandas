@@ -140,7 +140,7 @@ class TestSeriesCombine(object):
             expected = Series(expected_values, dtype=caller_dtype)
         except ValueError:
             expected = Series(expected_values)
-        print(s, expected)
+
         assert_series_equal(s, expected)
 
     def test_concat_empty_series_dtypes_roundtrips(self):
