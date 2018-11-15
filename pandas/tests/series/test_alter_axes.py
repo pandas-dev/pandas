@@ -19,7 +19,7 @@ class TestSeriesAlterAxes(object):
 
         string_series.index = idx
         tm.assert_index_equal(string_series.index, idx)
-        with tm.assert_raises_regex(ValueError, 'Length mismatch'):
+        with pytest.raises(ValueError, match='Length mismatch'):
             string_series.index = idx[::2]
 
     # MultiIndex constructor does not work directly on Series -> lambda
@@ -39,7 +39,7 @@ class TestSeriesAlterAxes(object):
             result = string_series.set_index(idx)
 
         tm.assert_index_equal(result.index, expected)
-        with tm.assert_raises_regex(ValueError, 'Length mismatch'):
+        with pytest.raises(ValueError, match='Length mismatch'):
             string_series.set_index(string_series.index[::2], inplace=inplace)
 
     def test_set_index_cast(self):
@@ -130,21 +130,21 @@ class TestSeriesAlterAxes(object):
     def test_set_index_verify_integrity(self, string_series):
         idx = np.zeros(len(string_series))
 
-        with tm.assert_raises_regex(ValueError, 'Index has duplicate keys'):
+        with pytest.raises(ValueError, match='Index has duplicate keys'):
             string_series.set_index(idx, verify_integrity=True)
         # with MultiIndex
-        with tm.assert_raises_regex(ValueError, 'Index has duplicate keys'):
+        with pytest.raises(ValueError, match='Index has duplicate keys'):
             string_series.set_index([idx, idx], verify_integrity=True)
 
     def test_set_index_raise(self, string_series):
         msg = 'The parameter "arrays" may only contain one-dimensional.*'
         # forbidden type, e.g. set
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             string_series.set_index(set(string_series.index),
                                     verify_integrity=True)
 
         # wrong type in list with arrays
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             string_series.set_index([string_series.index, 'X'],
                                     verify_integrity=True)
 
