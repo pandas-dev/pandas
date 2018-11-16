@@ -2330,6 +2330,8 @@ class TestStringMethods(object):
             s.str.split('_', expand="not_a_boolean")
 
     def test_split_to_multiindex_expand(self):
+        # https://github.com/pandas-dev/pandas/issues/23677
+
         idx = Index(['nosplit', 'alsonosplit', np.nan])
         result = idx.str.split('_', expand=True)
         exp = idx
@@ -2450,6 +2452,8 @@ class TestStringMethods(object):
         tm.assert_index_equal(res, exp)
 
     def test_partition_series(self):
+        # https://github.com/pandas-dev/pandas/issues/23558
+        
         values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h', None])
 
         result = values.str.partition('_', expand=False)
@@ -2519,6 +2523,8 @@ class TestStringMethods(object):
         assert result == [v.rpartition('_') for v in values]
 
     def test_partition_index(self):
+        # https://github.com/pandas-dev/pandas/issues/23558
+
         values = Index(['a_b_c', 'c_d_e', 'f_g_h', np.nan, None])
 
         result = values.str.partition('_', expand=False)
@@ -2550,6 +2556,8 @@ class TestStringMethods(object):
         assert result.nlevels == 3
 
     def test_partition_to_dataframe(self):
+        # https://github.com/pandas-dev/pandas/issues/23558
+
         values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h', None])
         result = values.str.partition('_')
         exp = DataFrame({0: ['a', 'c', np.nan, 'f', None],
