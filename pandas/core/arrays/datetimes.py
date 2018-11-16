@@ -45,7 +45,12 @@ def _to_m8(key, tz=None):
     """
     if not isinstance(key, Timestamp):
         # this also converts strings
-        key = Timestamp(key, tz=tz)
+        key = Timestamp(key)
+        if key.tz is not None and tz is not None:
+            # Don't tz_localize(None) if key is already tz-aware
+            key = key.tz_convert(tz)
+        else:
+            key = key.tz_localize(tz)
 
     return np.int64(conversion.pydt_to_i8(key)).view(_NS_DTYPE)
 
