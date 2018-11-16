@@ -241,3 +241,8 @@ def box5_and_tz(request):
     DataFrame
     """
     return request.param
+
+
+# aliases so we can use the same fixture twice in a test
+box4b = box4
+box5b = box5

@@ -159,16 +159,14 @@ class TestDatetime64SeriesComparison(object):
         assert "a TypeError will be raised" in str(m[0].message)
 
     @pytest.mark.skip(reason="GH#21359")
-    def test_dt64ser_cmp_date_invalid(self, box_with_datetime):
+    def test_dt64ser_cmp_date_invalid(self, box5):
         # GH#19800 datetime.date comparison raises to
         # match DatetimeIndex/Timestamp.  This also matches the behavior
         # of stdlib datetime.datetime
-        box = box_with_datetime
-
         ser = pd.date_range('20010101', periods=10)
         date = ser.iloc[0].to_pydatetime().date()
 
-        ser = tm.box_expected(ser, box)
+        ser = tm.box_expected(ser, box5)
         assert not (ser == date).any()
         assert (ser != date).all()
         with pytest.raises(TypeError):
@@ -230,13 +228,12 @@ class TestDatetime64SeriesComparison(object):
         result = right_f(pd.Timestamp("nat"), s_nat)
         tm.assert_series_equal(result, expected)
 
-    def test_dt64arr_timestamp_equality(self, box_with_datetime):
+    def test_dt64arr_timestamp_equality(self, box4):
         # GH#11034
-        box = box_with_datetime
-        xbox = box if box not in [pd.Index, DatetimeArray] else np.ndarray
+        xbox = box4 if box4 not in [pd.Index, DatetimeArray] else np.ndarray
 
         ser = pd.Series([pd.Timestamp('2000-01-29 01:59:00'), 'NaT'])
-        ser = tm.box_expected(ser, box)
+        ser = tm.box_expected(ser, box4)
 
         result = ser != ser
         expected = tm.box_expected([False, True], xbox)
@@ -1486,14 +1483,13 @@ class TestDatetimeIndexArithmetic(object):
 
     @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
     @pytest.mark.parametrize('dti_freq', [None, 'D'])
-    def test_dti_add_sub_pi(self, dti_freq, pi_freq,
-                            box_with_datetime, box_with_period):
+    def test_dti_add_sub_pi(self, dti_freq, pi_freq, box4, box4b):
         # GH#20049 subtracting PeriodIndex should raise TypeError
         dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
         pi = dti.to_period(pi_freq)
 
-        dtarr = tm.box_expected(dti, box_with_datetime)
-        parr = tm.box_expected(pi, box_with_period)
+        dtarr = tm.box_expected(dti, box4)
+        parr = tm.box_expected(pi, box4b)
 
         with pytest.raises(TypeError):
             dtarr + parr
