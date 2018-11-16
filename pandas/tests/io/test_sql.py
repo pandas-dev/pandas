@@ -18,7 +18,6 @@ The SQL tests are broken down in different classes:
 """
 
 from __future__ import print_function
-from warnings import catch_warnings
 import pytest
 import sqlite3
 import csv
@@ -582,11 +581,11 @@ class _TestSQLApi(PandasSQLTest):
         s2 = sql.read_sql_query("SELECT * FROM test_series", self.conn)
         tm.assert_frame_equal(s.to_frame(), s2)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_to_sql_panel(self):
-        with catch_warnings(record=True):
-            panel = tm.makePanel()
-            pytest.raises(NotImplementedError, sql.to_sql, panel,
-                          'test_panel', self.conn)
+        panel = tm.makePanel()
+        pytest.raises(NotImplementedError, sql.to_sql, panel,
+                      'test_panel', self.conn)
 
     def test_roundtrip(self):
         sql.to_sql(self.test_frame1, 'test_frame_roundtrip',
@@ -962,7 +961,8 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
                                             utc=True)})
         db = sql.SQLDatabase(self.conn)
         table = sql.SQLTable("test_type", db, frame=df)
-        assert isinstance(table.table.c['time'].type, sqltypes.DateTime)
+        # GH 9086: TIMESTAMP is the suggested type for datetimes with timezones
+        assert isinstance(table.table.c['time'].type, sqltypes.TIMESTAMP)
 
     def test_database_uri_string(self):
 
@@ -993,7 +993,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
             pass
 
         db_uri = "postgresql+pg8000://user:pass@host/dbname"
-        with tm.assert_raises_regex(ImportError, "pg8000"):
+        with pytest.raises(ImportError, match="pg8000"):
             sql.read_sql("select * from table", db_uri)
 
     def _make_iris_table_metadata(self):
@@ -1362,9 +1362,51 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = sql.read_sql_table("types_test_data", self.conn)
         check(df.DateColWithTz)
 
+    def test_datetime_with_timezone_roundtrip(self):
+        # GH 9086
+        # Write datetimetz data to a db and read it back
+        # For dbs that support timestamps with timezones, should get back UTC
+        # otherwise naive data should be returned
+        expected = DataFrame({'A': date_range(
+            '2013-01-01 09:00:00', periods=3, tz='US/Pacific'
+        )})
+        expected.to_sql('test_datetime_tz', self.conn, index=False)
+
+        if self.flavor == 'postgresql':
+            # SQLAlchemy "timezones" (i.e. offsets) are coerced to UTC
+            expected['A'] = expected['A'].dt.tz_convert('UTC')
+        else:
+            # Otherwise, timestamps are returned as local, naive
+            expected['A'] = expected['A'].dt.tz_localize(None)
+
+        result = sql.read_sql_table('test_datetime_tz', self.conn)
+        tm.assert_frame_equal(result, expected)
+
+        result = sql.read_sql_query(
+            'SELECT * FROM test_datetime_tz', self.conn
+        )
+        if self.flavor == 'sqlite':
+            # read_sql_query does not return datetime type like read_sql_table
+            assert isinstance(result.loc[0, 'A'], string_types)
+            result['A'] = to_datetime(result['A'])
+        tm.assert_frame_equal(result, expected)
+
+    def test_naive_datetimeindex_roundtrip(self):
+        # GH 23510
+        # Ensure that a naive DatetimeIndex isn't converted to UTC
+        dates = date_range('2018-01-01', periods=5, freq='6H')
+        expected = DataFrame({'nums': range(5)}, index=dates)
+        expected.to_sql('foo_table', self.conn, index_label='info_date')
+        result = sql.read_sql_table('foo_table', self.conn,
+                                    index_col='info_date')
+        # result index with gain a name from a set_index operation; expected
+        tm.assert_frame_equal(result, expected, check_names=False)
+
     def test_date_parsing(self):
         # No Parsing
         df = sql.read_sql_table("types_test_data", self.conn)
+        expected_type = object if self.flavor == 'sqlite' else np.datetime64
+        assert issubclass(df.DateCol.dtype.type, expected_type)
 
         df = sql.read_sql_table("types_test_data", self.conn,
                                 parse_dates=['DateCol'])

@@ -35,15 +35,6 @@ def _index_init_params(index):
             _has_names(index))
 
 
-@pytest.fixture
-def expected_html(read_file):
-    def _expected_html(name):
-        filename = '.'.join([name, 'html'])
-        html = read_file(filename)
-        return html.rstrip()
-    return _expected_html
-
-
 @pytest.fixture(params=[True, False], ids=['index_true', 'index_false'])
 def index(request):
     # to_html() parameter values for index
@@ -102,7 +93,7 @@ def col_idx_type(request):
 
 
 @pytest.fixture
-def expected_output(expected_html):
+def expected_output(datapath):
     def _expected_output(idx_type, col_idx_type,
                          index=True, header=True, index_names=True):
 
@@ -119,15 +110,39 @@ def expected_output(expected_html):
 
             return idx_type_ids[(is_named and index_names, is_multi)]
 
-        return expected_html(
-            '_'.join([
-                'index',
-                _expected_output_name(idx_type, index, index_names),
-                'columns',
-                _expected_output_name(col_idx_type, header, index_names)
-            ])
-        )
+        return expected_html(datapath,
+                             '_'.join([
+                                 'index',
+                                 _expected_output_name(
+                                     idx_type, index, index_names),
+                                 'columns',
+                                 _expected_output_name(
+                                     col_idx_type, header, index_names)
+                             ])
+                             )
     return _expected_output
+
+
+def expected_html(datapath, name):
+    """
+    Read HTML file from formats data directory.
+
+    Parameters
+    ----------
+    datapath : pytest fixture
+        The datapath fixture injected into a test by pytest.
+    name : str
+        The name of the HTML file without the suffix.
+
+    Returns
+    -------
+    str : contents of HTML file.
+    """
+    filename = '.'.join([name, 'html'])
+    filepath = datapath('io', 'formats', 'data', filename)
+    with open(filepath) as f:
+        html = f.read()
+    return html.rstrip()
 
 
 class TestToHTML(object):
@@ -1174,14 +1189,10 @@ class TestToHTML(object):
         df.pivot_table(index=[u('clé1')], columns=[u('clé2')])._repr_html_()
 
     def test_to_html_truncate(self):
-        pytest.skip("unreliable on travis")
         index = pd.DatetimeIndex(start='20010101', freq='D', periods=20)
         df = DataFrame(index=index, columns=range(20))
-        fmt.set_option('display.max_rows', 8)
-        fmt.set_option('display.max_columns', 4)
-        result = df._repr_html_()
+        result = df.to_html(max_rows=8, max_cols=4)
         expected = '''\
-<div{0}>
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -1267,23 +1278,15 @@ class TestToHTML(object):
       <td>NaN</td>
     </tr>
   </tbody>
-</table>
-<p>20 rows × 20 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
+</table>'''
         assert result == expected
 
     def test_to_html_truncate_multi_index(self):
-        pytest.skip("unreliable on travis")
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         df = DataFrame(index=arrays, columns=arrays)
-        fmt.set_option('display.max_rows', 7)
-        fmt.set_option('display.max_columns', 7)
-        result = df._repr_html_()
+        result = df.to_html(max_rows=7, max_cols=7)
         expected = '''\
-<div{0}>
 <table border="1" class="dataframe">
   <thead>
     <tr>
@@ -1384,24 +1387,16 @@ class TestToHTML(object):
       <td>NaN</td>
     </tr>
   </tbody>
-</table>
-<p>8 rows × 8 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
+</table>'''
         assert result == expected
 
+    @pytest.mark.xfail(reason='GH22887 TypeError', strict=True)
     def test_to_html_truncate_multi_index_sparse_off(self):
-        pytest.skip("unreliable on travis")
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
                   ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
         df = DataFrame(index=arrays, columns=arrays)
-        fmt.set_option('display.max_rows', 7)
-        fmt.set_option('display.max_columns', 7)
-        fmt.set_option('display.multi_sparse', False)
-        result = df._repr_html_()
+        result = df.to_html(max_rows=7, max_cols=7, sparsify=False)
         expected = '''\
-<div{0}>
 <table border="1" class="dataframe">
   <thead>
     <tr>
@@ -1495,11 +1490,7 @@ class TestToHTML(object):
       <td>NaN</td>
     </tr>
   </tbody>
-</table>
-<p>8 rows × 8 columns</p>
-</div>'''.format(div_style)
-        if compat.PY2:
-            expected = expected.decode('utf-8')
+</table>'''
         assert result == expected
 
     def test_to_html_border(self):
@@ -1712,7 +1703,7 @@ class TestToHTML(object):
         df = DataFrame()
         msg = "Invalid value for justify parameter"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df.to_html(justify=justify)
 
     def test_to_html_index(self):
@@ -2013,7 +2004,7 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
-    def test_to_html_multi_indexes_index_false(self, expected_html):
+    def test_to_html_multi_indexes_index_false(self, datapath):
         # GH 22579
         df = pd.DataFrame({'a': range(10), 'b': range(
             10, 20), 'c': range(10, 20), 'd': range(10, 20)})
@@ -2021,7 +2012,7 @@ class TestToHTML(object):
         df.index = pd.MultiIndex.from_product(
             [['a', 'b'], ['c', 'd', 'e', 'f', 'g']])
         result = df.to_html(index=False)
-        expected = expected_html('gh22579_expected_output')
+        expected = expected_html(datapath, 'gh22579_expected_output')
         assert result == expected
 
     @pytest.mark.parametrize('header', [True])
@@ -2035,6 +2026,29 @@ class TestToHTML(object):
         expected = expected_output(idx_type, col_idx_type,
                                    index=index, header=header,
                                    index_names=index_names)
+        assert result == expected
+
+    @pytest.mark.parametrize('index', [False, 0])
+    def test_to_html_truncation_index_false_max_rows(self, datapath, index):
+        # GH 15019
+        data = [[1.764052, 0.400157],
+                [0.978738, 2.240893],
+                [1.867558, -0.977278],
+                [0.950088, -0.151357],
+                [-0.103219, 0.410599]]
+        df = pd.DataFrame(data)
+        result = df.to_html(max_rows=4, index=index)
+        expected = expected_html(datapath, 'gh15019_expected_output')
+        assert result == expected
+
+    @pytest.mark.parametrize('index', [False, 0])
+    def test_to_html_truncation_index_false_max_cols(self, datapath, index):
+        # GH 22783
+        data = [[1.764052, 0.400157, 0.978738, 2.240893, 1.867558],
+                [-0.977278, 0.950088, -0.151357, -0.103219, 0.410599]]
+        df = pd.DataFrame(data)
+        result = df.to_html(max_cols=4, index=index)
+        expected = expected_html(datapath, 'gh22783_expected_output')
         assert result == expected
 
     def test_to_html_notebook_has_style(self):

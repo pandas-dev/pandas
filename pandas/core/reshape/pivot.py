@@ -1,28 +1,25 @@
 # pylint: disable=E1103
-
-
-from pandas.core.dtypes.common import (
-    is_list_like, is_scalar, is_integer_dtype)
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
-
-from pandas.core.reshape.concat import concat
-from pandas.core.series import Series
-from pandas.core.groupby import Grouper
-from pandas.core.reshape.util import cartesian_product
-from pandas.core.index import Index, MultiIndex, _get_objs_combined_axis
-from pandas.compat import range, lrange, zip
-from pandas import compat
-import pandas.core.common as com
-from pandas.util._decorators import Appender, Substitution
-
-from pandas.core.frame import _shared_docs
-# Note: We need to make sure `frame` is imported before `pivot`, otherwise
-# _shared_docs['pivot_table'] will not yet exist.  TODO: Fix this dependency
-
 import numpy as np
 
+from pandas.compat import lrange, range, zip
+from pandas.util._decorators import Appender, Substitution
 
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+
+from pandas import compat
+import pandas.core.common as com
+from pandas.core.frame import _shared_docs
+from pandas.core.groupby import Grouper
+from pandas.core.index import Index, MultiIndex, _get_objs_combined_axis
+from pandas.core.reshape.concat import concat
+from pandas.core.reshape.util import cartesian_product
+from pandas.core.series import Series
+
+
+# Note: We need to make sure `frame` is imported before `pivot`, otherwise
+# _shared_docs['pivot_table'] will not yet exist.  TODO: Fix this dependency
 @Substitution('\ndata : DataFrame')
 @Appender(_shared_docs['pivot_table'], indents=1)
 def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
@@ -140,8 +137,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                              margins_name=margins_name, fill_value=fill_value)
 
     # discard the top level
-    if values_passed and not values_multi and not table.empty and \
-       (table.columns.nlevels > 1):
+    if (values_passed and not values_multi and not table.empty and
+            (table.columns.nlevels > 1)):
         table = table[values[0]]
 
     if len(index) == 0 and len(columns) > 0:
@@ -410,12 +407,12 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     values : array-like, optional
         Array of values to aggregate according to the factors.
         Requires `aggfunc` be specified.
-    aggfunc : function, optional
-        If specified, requires `values` be specified as well
     rownames : sequence, default None
         If passed, must match number of row arrays passed
     colnames : sequence, default None
         If passed, must match number of column arrays passed
+    aggfunc : function, optional
+        If specified, requires `values` be specified as well
     margins : boolean, default False
         Add row/column margins (subtotals)
     margins_name : string, default 'All'

@@ -5,25 +5,26 @@ Tests date parsing functionality for all of the
 parsers defined in parsers.py
 """
 
+from datetime import date, datetime
 from distutils.version import LooseVersion
-from datetime import datetime, date
 
-import pytest
 import numpy as np
-from pandas._libs.tslibs import parsing
-from pandas._libs.tslib import Timestamp
-
+import pytest
 import pytz
+
+from pandas._libs.tslib import Timestamp
+from pandas._libs.tslibs import parsing
+import pandas.compat as compat
+from pandas.compat import StringIO, lrange, parse_date
+from pandas.compat.numpy import np_array_datetime64_compat
+
 import pandas as pd
-import pandas.io.parsers as parsers
+from pandas import DataFrame, DatetimeIndex, Index, MultiIndex, Series
+from pandas.core.indexes.datetimes import date_range
 import pandas.util.testing as tm
 
 import pandas.io.date_converters as conv
-from pandas import DataFrame, Series, Index, DatetimeIndex, MultiIndex
-from pandas import compat
-from pandas.compat import parse_date, StringIO, lrange
-from pandas.compat.numpy import np_array_datetime64_compat
-from pandas.core.indexes.datetimes import date_range
+import pandas.io.parsers as parsers
 
 
 class ParseDatesTests(object):
@@ -428,11 +429,10 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         data = """A,B,C
         1,2,2003-11-1"""
 
-        tm.assert_raises_regex(TypeError, errmsg, self.read_csv,
-                               StringIO(data), parse_dates="C")
-        tm.assert_raises_regex(TypeError, errmsg, self.read_csv,
-                               StringIO(data), parse_dates="C",
-                               index_col="C")
+        with pytest.raises(TypeError, match=errmsg):
+            self.read_csv(StringIO(data), parse_dates="C")
+        with pytest.raises(TypeError, match=errmsg):
+            self.read_csv(StringIO(data), parse_dates="C", index_col="C")
 
     def test_read_with_parse_dates_invalid_type(self):
         errmsg = ("Only booleans, lists, and "
@@ -441,13 +441,12 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         data = """A,B,C
         1,2,2003-11-1"""
 
-        tm.assert_raises_regex(TypeError, errmsg, self.read_csv,
-                               StringIO(data), parse_dates=(1,))
-        tm.assert_raises_regex(TypeError, errmsg,
-                               self.read_csv, StringIO(data),
-                               parse_dates=np.array([4, 5]))
-        tm.assert_raises_regex(TypeError, errmsg, self.read_csv,
-                               StringIO(data), parse_dates={1, 3, 3})
+        with pytest.raises(TypeError, match=errmsg):
+            self.read_csv(StringIO(data), parse_dates=(1,))
+        with pytest.raises(TypeError, match=errmsg):
+            self.read_csv(StringIO(data), parse_dates=np.array([4, 5]))
+        with pytest.raises(TypeError, match=errmsg):
+            self.read_csv(StringIO(data), parse_dates={1, 3, 3})
 
     def test_parse_dates_empty_string(self):
         # see gh-2263

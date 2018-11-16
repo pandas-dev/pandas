@@ -6,7 +6,6 @@ from datetime import datetime, time
 
 import pytest
 
-from numpy import nan
 from numpy.random import randn
 import numpy as np
 
@@ -18,8 +17,7 @@ import pandas.tseries.offsets as offsets
 
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
-                                 assert_index_equal,
-                                 assert_raises_regex)
+                                 assert_index_equal)
 
 import pandas.util.testing as tm
 from pandas.compat import product
@@ -182,7 +180,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         df = DataFrame({'A': np.random.randn(len(rng)), 'B': dates})
         assert np.issubdtype(df['B'].dtype, np.dtype('M8[ns]'))
 
-    def test_frame_add_datetime64_column(self):
+    def test_frame_append_datetime64_column(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50', freq='10s')
         df = DataFrame(index=np.arange(len(rng)))
 
@@ -195,7 +193,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         # it works!
         repr(df)
 
-    def test_frame_add_datetime64_col_other_units(self):
+    def test_frame_append_datetime64_col_other_units(self):
         n = 100
 
         units = ['h', 'm', 's', 'ms', 'D', 'M', 'Y']
@@ -276,9 +274,9 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert_frame_equal(shifted2, shifted3)
         assert_frame_equal(ps, shifted2.shift(-1, 'B'))
 
-        tm.assert_raises_regex(ValueError,
-                               'does not match PeriodIndex freq',
-                               ps.shift, freq='D')
+        msg = 'does not match PeriodIndex freq'
+        with pytest.raises(ValueError, match=msg):
+            ps.shift(freq='D')
 
         # shift other axis
         # GH 6371
@@ -360,8 +358,8 @@ class TestDataFrameTimeSeriesMethods(TestData):
         shifted3 = ps.tshift(freq=offsets.BDay())
         assert_frame_equal(shifted, shifted3)
 
-        tm.assert_raises_regex(
-            ValueError, 'does not match', ps.tshift, freq='M')
+        with pytest.raises(ValueError, match='does not match'):
+            ps.tshift(freq='M')
 
         # DatetimeIndex
         shifted = self.tsframe.tshift(1)
@@ -423,8 +421,8 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert_frame_equal(truncated, expected)
 
         pytest.raises(ValueError, ts.truncate,
-                      before=ts.index[-1] - 1,
-                      after=ts.index[0] + 1)
+                      before=ts.index[-1] - ts.index.freq,
+                      after=ts.index[0] + ts.index.freq)
 
     def test_truncate_copy(self):
         index = self.tsframe.index
@@ -437,16 +435,16 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
         df = pd.DataFrame({'A': ['a', 'b', 'c', 'd', 'e']},
                           index=[5, 3, 2, 9, 0])
-        with tm.assert_raises_regex(ValueError,
-                                    'truncate requires a sorted index'):
+        msg = 'truncate requires a sorted index'
+        with pytest.raises(ValueError, match=msg):
             df.truncate(before=3, after=9)
 
         rng = pd.date_range('2011-01-01', '2012-01-01', freq='W')
         ts = pd.DataFrame({'A': np.random.randn(len(rng)),
                            'B': np.random.randn(len(rng))},
                           index=rng)
-        with tm.assert_raises_regex(ValueError,
-                                    'truncate requires a sorted index'):
+        msg = 'truncate requires a sorted index'
+        with pytest.raises(ValueError, match=msg):
             ts.sort_values('A', ascending=False).truncate(before='2011-11',
                                                           after='2011-12')
 
@@ -455,8 +453,8 @@ class TestDataFrameTimeSeriesMethods(TestData):
                            2: np.random.randn(5),
                            0: np.random.randn(5)},
                           columns=[3, 20, 2, 0])
-        with tm.assert_raises_regex(ValueError,
-                                    'truncate requires a sorted index'):
+        msg = 'truncate requires a sorted index'
+        with pytest.raises(ValueError, match=msg):
             df.truncate(before=2, after=20, axis=1)
 
     def test_asfreq(self):
@@ -517,8 +515,8 @@ class TestDataFrameTimeSeriesMethods(TestData):
                               expected_first, expected_last):
         N = len(self.frame.index)
         mat = randn(N)
-        mat[:5] = nan
-        mat[-5:] = nan
+        mat[:5] = np.nan
+        mat[-5:] = np.nan
 
         frame = DataFrame({'foo': mat}, index=self.frame.index)
         index = frame.first_valid_index()
@@ -534,7 +532,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert empty.first_valid_index() is None
 
         # GH17400: no valid entries
-        frame[:] = nan
+        frame[:] = np.nan
         assert frame.last_valid_index() is None
         assert frame.first_valid_index() is None
 
@@ -822,17 +820,17 @@ class TestDataFrameTimeSeriesMethods(TestData):
         # Bad Inputs
 
         # Not DatetimeIndex / PeriodIndex
-        with assert_raises_regex(TypeError, 'DatetimeIndex'):
+        with pytest.raises(TypeError, match='DatetimeIndex'):
             df = DataFrame(index=int_idx)
             df = getattr(df, fn)('US/Pacific')
 
         # Not DatetimeIndex / PeriodIndex
-        with assert_raises_regex(TypeError, 'DatetimeIndex'):
+        with pytest.raises(TypeError, match='DatetimeIndex'):
             df = DataFrame(np.ones(5),
                            MultiIndex.from_arrays([int_idx, l0]))
             df = getattr(df, fn)('US/Pacific', level=0)
 
         # Invalid level
-        with assert_raises_regex(ValueError, 'not valid'):
+        with pytest.raises(ValueError, match='not valid'):
             df = DataFrame(index=l0)
             df = getattr(df, fn)('US/Pacific', level=1)

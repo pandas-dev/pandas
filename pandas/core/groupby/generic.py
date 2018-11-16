@@ -7,46 +7,40 @@ which here returns a DataFrameGroupBy object.
 """
 
 import collections
-import warnings
 import copy
-from textwrap import dedent
 from functools import partial
+from textwrap import dedent
+import warnings
 
 import numpy as np
 
-from pandas._libs import lib, Timestamp
-from pandas.util._decorators import Substitution, Appender
-from pandas import compat
-
-import pandas.core.indexes.base as ibase
-import pandas.core.common as com
-from pandas.core.panel import Panel
+from pandas._libs import Timestamp, lib
+import pandas.compat as compat
 from pandas.compat import lzip, map
+from pandas.compat.numpy import _np_version_under1p13
+from pandas.errors import AbstractMethodError
+from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.series import Series
-from pandas.core.generic import _shared_docs
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.common import (
+    ensure_int64, ensure_platform_int, is_bool, is_datetimelike,
+    is_integer_dtype, is_interval_dtype, is_numeric_dtype, is_scalar)
+from pandas.core.dtypes.missing import isna, notna
+
+import pandas.core.algorithms as algorithms
+from pandas.core.arrays import Categorical
+from pandas.core.base import DataError, SpecificationError
+import pandas.core.common as com
+from pandas.core.frame import DataFrame
+from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy, _apply_docs, _transform_template)
-from pandas.core.generic import NDFrame
-from pandas.core.groupby import base
-from pandas.core.dtypes.common import (
-    is_scalar,
-    is_bool,
-    is_datetimelike,
-    is_numeric_dtype,
-    is_integer_dtype,
-    is_interval_dtype,
-    ensure_platform_int,
-    ensure_int64)
-from pandas.core.dtypes.missing import isna, notna
-import pandas.core.algorithms as algorithms
-from pandas.core.frame import DataFrame
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
-from pandas.core.base import SpecificationError, DataError
-from pandas.core.index import Index, MultiIndex, CategoricalIndex
-from pandas.core.arrays.categorical import Categorical
+from pandas.core.index import CategoricalIndex, Index, MultiIndex
+import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager, make_block
-from pandas.compat.numpy import _np_version_under1p13
+from pandas.core.panel import Panel
+from pandas.core.series import Series
 
 from pandas.plotting._core import boxplot_frame_groupby
 
@@ -247,7 +241,7 @@ class NDFrameGroupBy(GroupBy):
         return self._wrap_generic_output(result, obj)
 
     def _wrap_aggregated_output(self, output, names=None):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _aggregate_item_by_item(self, func, *args, **kwargs):
         # only for axis==0
@@ -417,7 +411,9 @@ class NDFrameGroupBy(GroupBy):
                         if (isinstance(v.index, MultiIndex) or
                                 key_index is None or
                                 isinstance(key_index, MultiIndex)):
-                            stacked_values = np.vstack(map(np.asarray, values))
+                            stacked_values = np.vstack([
+                                np.asarray(v) for v in values
+                            ])
                             result = DataFrame(stacked_values, index=key_index,
                                                columns=index)
                         else:
@@ -429,7 +425,8 @@ class NDFrameGroupBy(GroupBy):
                                             axis=self.axis).unstack()
                             result.columns = index
                     else:
-                        stacked_values = np.vstack(map(np.asarray, values))
+                        stacked_values = np.vstack([np.asarray(v)
+                                                    for v in values])
                         result = DataFrame(stacked_values.T, index=v.index,
                                            columns=key_index)
 
@@ -590,14 +587,17 @@ class NDFrameGroupBy(GroupBy):
         try:
             res_fast = fast_path(group)
 
-            # compare that we get the same results
+            # verify fast path does not change columns (and names), otherwise
+            # its results cannot be joined with those of the slow path
+            if res_fast.columns != group.columns:
+                return path, res
+            # verify numerical equality with the slow path
             if res.shape == res_fast.shape:
                 res_r = res.values.ravel()
                 res_fast_r = res_fast.values.ravel()
                 mask = notna(res_r)
-            if (res_r[mask] == res_fast_r[mask]).all():
-                path = fast_path
-
+                if (res_r[mask] == res_fast_r[mask]).all():
+                    path = fast_path
         except Exception:
             pass
         return path, res
@@ -734,7 +734,7 @@ class SeriesGroupBy(GroupBy):
     1    1    2
     2    3    4
 
-    See also
+    See Also
     --------
     pandas.Series.groupby.apply
     pandas.Series.groupby.transform
@@ -758,7 +758,7 @@ class SeriesGroupBy(GroupBy):
         if isinstance(func_or_funcs, compat.string_types):
             return getattr(self, func_or_funcs)(*args, **kwargs)
 
-        if isinstance(func_or_funcs, collections.Iterable):
+        if isinstance(func_or_funcs, compat.Iterable):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             ret = self._aggregate_multiple_funcs(func_or_funcs,
@@ -1027,8 +1027,9 @@ class SeriesGroupBy(GroupBy):
         try:
             sorter = np.lexsort((val, ids))
         except TypeError:  # catches object dtypes
-            assert val.dtype == object, \
-                'val.dtype must be object, got %s' % val.dtype
+            msg = ('val.dtype must be object, got {dtype}'
+                   .format(dtype=val.dtype))
+            assert val.dtype == object, msg
             val, _ = algorithms.factorize(val, sort=False)
             sorter = np.lexsort((val, ids))
             _isna = lambda a: a == -1
@@ -1288,7 +1289,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
     1   1   2  0.590716
     2   3   4  0.704907
 
-    See also
+    See Also
     --------
     pandas.DataFrame.groupby.apply
     pandas.DataFrame.groupby.transform
@@ -1659,4 +1660,4 @@ class PanelGroupBy(NDFrameGroupBy):
             raise ValueError("axis value must be greater than 0")
 
     def _wrap_aggregated_output(self, output, names=None):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)

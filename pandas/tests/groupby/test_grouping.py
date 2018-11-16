@@ -4,7 +4,6 @@
 
 import pytest
 
-from warnings import catch_warnings
 from pandas import (date_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series, CategoricalIndex)
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
@@ -22,7 +21,7 @@ import pandas as pd
 # selection
 # --------------------------------
 
-class TestSelection():
+class TestSelection(object):
 
     def test_select_bad_cols(self):
         df = DataFrame([[1, 2]], columns=['A', 'B'])
@@ -30,7 +29,7 @@ class TestSelection():
         pytest.raises(KeyError, g.__getitem__, ['C'])  # g[['C']]
 
         pytest.raises(KeyError, g.__getitem__, ['A', 'C'])  # g[['A', 'C']]
-        with tm.assert_raises_regex(KeyError, '^[^A]+$'):
+        with pytest.raises(KeyError, match='^[^A]+$'):
             # A should not be referenced as a bad column...
             # will have to rethink regex if you change message!
             g[['A', 'C']]
@@ -507,17 +506,13 @@ class TestGrouping():
         # PR8618 and issue 8015
         frame = mframe
 
-        def j():
+        msg = "You have to supply one of 'by' and 'level'"
+        with pytest.raises(TypeError, match=msg):
             frame.groupby()
 
-        tm.assert_raises_regex(TypeError, "You have to supply one of "
-                               "'by' and 'level'", j)
-
-        def k():
+        msg = "You have to supply one of 'by' and 'level'"
+        with pytest.raises(TypeError, match=msg):
             frame.groupby(by=None, level=None)
-
-        tm.assert_raises_regex(TypeError, "You have to supply one of "
-                               "'by' and 'level'", k)
 
     @pytest.mark.parametrize('sort,labels', [
         [True, [2, 2, 2, 0, 0, 1, 1, 3, 3, 3]],
@@ -557,15 +552,15 @@ class TestGrouping():
 
 class TestGetGroup():
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_get_group(self):
-        with catch_warnings(record=True):
-            wp = tm.makePanel()
-            grouped = wp.groupby(lambda x: x.month, axis='major')
+        wp = tm.makePanel()
+        grouped = wp.groupby(lambda x: x.month, axis='major')
 
-            gp = grouped.get_group(1)
-            expected = wp.reindex(
-                major=[x for x in wp.major_axis if x.month == 1])
-            assert_panel_equal(gp, expected)
+        gp = grouped.get_group(1)
+        expected = wp.reindex(
+            major=[x for x in wp.major_axis if x.month == 1])
+        assert_panel_equal(gp, expected)
 
         # GH 5267
         # be datelike friendly
@@ -743,18 +738,18 @@ class TestIteration():
         for key, group in grouped:
             pass
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_multi_iter_panel(self):
-        with catch_warnings(record=True):
-            wp = tm.makePanel()
-            grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
-                                 axis=1)
+        wp = tm.makePanel()
+        grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
+                             axis=1)
 
-            for (month, wd), group in grouped:
-                exp_axis = [x
-                            for x in wp.major_axis
-                            if x.month == month and x.weekday() == wd]
-                expected = wp.reindex(major=exp_axis)
-                assert_panel_equal(group, expected)
+        for (month, wd), group in grouped:
+            exp_axis = [x
+                        for x in wp.major_axis
+                        if x.month == month and x.weekday() == wd]
+            expected = wp.reindex(major=exp_axis)
+            assert_panel_equal(group, expected)
 
     def test_dictify(self, df):
         dict(iter(df.groupby('A')))

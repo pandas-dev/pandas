@@ -1,10 +1,9 @@
 # coding=utf-8
 
+import numpy as np
 import pytest
 
-import numpy as np
-
-from pandas import Series, Categorical
+from pandas import Categorical, Series
 import pandas.util.testing as tm
 
 
@@ -63,9 +62,9 @@ def test_unique_data_ownership():
 def test_is_unique():
     # GH11946
     s = Series(np.random.randint(0, 10, size=1000))
-    assert not s.is_unique
+    assert s.is_unique is False
     s = Series(np.arange(1000))
-    assert s.is_unique
+    assert s.is_unique is True
 
 
 def test_is_unique_class_ne(capsys):

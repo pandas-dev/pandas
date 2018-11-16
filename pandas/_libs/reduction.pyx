@@ -153,7 +153,7 @@ cdef class Reducer:
                     result = _get_result_array(res,
                                                self.nresults,
                                                len(self.dummy))
-                    it = <flatiter> PyArray_IterNew(result)
+                    it = <flatiter>PyArray_IterNew(result)
 
                 PyArray_SETITEM(result, PyArray_ITER_DATA(it), res)
                 chunk.data = chunk.data + self.increment
@@ -438,6 +438,7 @@ cdef inline _extract_result(object res):
                 res = res[0]
     return res
 
+
 cdef class Slider:
     """
     Only handles contiguous data for now
@@ -466,7 +467,7 @@ cdef class Slider:
         self.buf.strides[0] = self.stride
 
     cpdef advance(self, Py_ssize_t k):
-        self.buf.data = <char*> self.buf.data + self.stride * k
+        self.buf.data = <char*>self.buf.data + self.stride * k
 
     cdef move(self, int start, int end):
         """
@@ -571,9 +572,9 @@ cdef class BlockSlider:
         self.idx_slider = Slider(
             self.frame.index.values, self.dummy.index.values)
 
-        self.base_ptrs = <char**> malloc(sizeof(char*) * len(self.blocks))
+        self.base_ptrs = <char**>malloc(sizeof(char*) * len(self.blocks))
         for i, block in enumerate(self.blocks):
-            self.base_ptrs[i] = (<ndarray> block).data
+            self.base_ptrs[i] = (<ndarray>block).data
 
     def __dealloc__(self):
         free(self.base_ptrs)

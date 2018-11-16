@@ -4,30 +4,26 @@ split-apply-combine paradigm.
 """
 
 import warnings
+
 import numpy as np
 
+import pandas.compat as compat
+from pandas.compat import callable, zip
 from pandas.util._decorators import cache_readonly
 
-from pandas import compat
-from pandas.compat import zip, callable
-
-from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.arrays import ExtensionArray, Categorical
-from pandas.core.index import (
-    Index, MultiIndex, CategoricalIndex)
 from pandas.core.dtypes.common import (
-    ensure_categorical,
-    is_hashable,
-    is_list_like,
-    is_timedelta64_dtype,
-    is_datetime64_dtype,
-    is_categorical_dtype,
-    is_scalar)
-from pandas.core.series import Series
-from pandas.core.frame import DataFrame
-import pandas.core.common as com
-from pandas.core.groupby.ops import BaseGrouper
+    ensure_categorical, is_categorical_dtype, is_datetime64_dtype, is_hashable,
+    is_list_like, is_scalar, is_timedelta64_dtype)
+from pandas.core.dtypes.generic import ABCSeries
+
 import pandas.core.algorithms as algorithms
+from pandas.core.arrays import Categorical, ExtensionArray
+import pandas.core.common as com
+from pandas.core.frame import DataFrame
+from pandas.core.groupby.ops import BaseGrouper
+from pandas.core.index import CategoricalIndex, Index, MultiIndex
+from pandas.core.series import Series
+
 from pandas.io.formats.printing import pprint_thing
 
 
@@ -157,8 +153,8 @@ class Grouper(object):
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
-            if getattr(self.grouper, 'name', None) == key and \
-                    isinstance(obj, ABCSeries):
+            if (getattr(self.grouper, 'name', None) == key and
+                    isinstance(obj, ABCSeries)):
                 ax = self._grouper.take(obj.index)
             else:
                 if key not in obj._info_axis:
@@ -530,9 +526,9 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     except Exception:
         all_in_columns_index = False
 
-    if not any_callable and not all_in_columns_index and \
-       not any_arraylike and not any_groupers and \
-       match_axis_length and level is None:
+    if (not any_callable and not all_in_columns_index and
+            not any_arraylike and not any_groupers and
+            match_axis_length and level is None):
         keys = [com.asarray_tuplesafe(keys)]
 
     if isinstance(level, (tuple, list)):
@@ -593,15 +589,15 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
         # create the Grouping
         # allow us to passing the actual Grouping as the gpr
-        ping = Grouping(group_axis,
-                        gpr,
-                        obj=obj,
-                        name=name,
-                        level=level,
-                        sort=sort,
-                        observed=observed,
-                        in_axis=in_axis) \
-            if not isinstance(gpr, Grouping) else gpr
+        ping = (Grouping(group_axis,
+                         gpr,
+                         obj=obj,
+                         name=name,
+                         level=level,
+                         sort=sort,
+                         observed=observed,
+                         in_axis=in_axis)
+                if not isinstance(gpr, Grouping) else gpr)
 
         groupings.append(ping)
 

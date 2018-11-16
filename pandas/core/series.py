@@ -3,96 +3,69 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import division
 
-# pylint: disable=E1101,E1103
-# pylint: disable=W0703,W0622,W0613,W0201
-
-import collections
-import warnings
 from textwrap import dedent
+import warnings
 
 import numpy as np
 import numpy.ma as ma
 
-from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_string_like,
-    is_bool,
-    is_integer, is_integer_dtype,
-    is_float_dtype,
-    is_extension_type,
-    is_extension_array_dtype,
-    is_datetimelike,
-    is_datetime64tz_dtype,
-    is_timedelta64_dtype,
-    is_object_dtype,
-    is_list_like,
-    is_hashable,
-    is_iterator,
-    is_dict_like,
-    is_scalar,
-    _is_unorderable_exception,
-    ensure_platform_int,
-    pandas_dtype)
-from pandas.core.dtypes.generic import (
-    ABCSparseArray, ABCDataFrame, ABCIndexClass)
-from pandas.core.dtypes.cast import (
-    maybe_upcast, infer_dtype_from_scalar,
-    maybe_convert_platform,
-    maybe_cast_to_datetime, maybe_castable,
-    construct_1d_arraylike_from_scalar,
-    construct_1d_ndarray_preserving_na,
-    construct_1d_object_array_from_listlike,
-    maybe_cast_to_integer_array)
-from pandas.core.dtypes.missing import (
-    isna,
-    notna,
-    remove_na_arraylike,
-    na_value_for_dtype)
-
-from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
-                               Float64Index, ensure_index)
-from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
-from pandas.core import generic, base
-from pandas.core.internals import SingleBlockManager
-from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
-from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.indexes.period import PeriodIndex
-from pandas import compat
-from pandas.io.formats.terminal import get_terminal_size
+from pandas._libs import iNaT, index as libindex, lib, tslibs
+import pandas.compat as compat
 from pandas.compat import (
-    zip, u, OrderedDict, StringIO, range, get_range_parameters, PY36)
+    PY36, OrderedDict, StringIO, get_range_parameters, range, u, zip)
 from pandas.compat.numpy import function as nv
-
-import pandas.core.ops as ops
-import pandas.core.algorithms as algorithms
-
-import pandas.core.common as com
-import pandas.core.nanops as nanops
-import pandas.core.indexes.base as ibase
-
-import pandas.io.formats.format as fmt
-from pandas.util._decorators import Appender, deprecate, Substitution
+from pandas.util._decorators import Appender, Substitution, deprecate
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas._libs import index as libindex, tslibs, lib, iNaT
+from pandas.core.dtypes.cast import (
+    construct_1d_arraylike_from_scalar, construct_1d_ndarray_preserving_na,
+    construct_1d_object_array_from_listlike, infer_dtype_from_scalar,
+    maybe_cast_to_datetime, maybe_cast_to_integer_array, maybe_castable,
+    maybe_convert_platform, maybe_upcast)
+from pandas.core.dtypes.common import (
+    _is_unorderable_exception, ensure_platform_int, is_bool,
+    is_categorical_dtype, is_datetime64tz_dtype, is_datetimelike, is_dict_like,
+    is_extension_array_dtype, is_extension_type, is_float_dtype, is_hashable,
+    is_integer, is_integer_dtype, is_iterator, is_list_like, is_object_dtype,
+    is_scalar, is_string_like, is_timedelta64_dtype, pandas_dtype)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
+from pandas.core.dtypes.missing import (
+    isna, na_value_for_dtype, notna, remove_na_arraylike)
+
+from pandas.core import algorithms, base, generic, nanops, ops
+from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray, SparseArray, period_array
+from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
+from pandas.core.arrays.sparse import SparseAccessor
+import pandas.core.common as com
 from pandas.core.config import get_option
+from pandas.core.index import (
+    Float64Index, Index, InvalidIndexError, MultiIndex, ensure_index)
+from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
+import pandas.core.indexes.base as ibase
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
+from pandas.core.internals import SingleBlockManager
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
+import pandas.io.formats.format as fmt
+from pandas.io.formats.terminal import get_terminal_size
 import pandas.plotting._core as gfx
+
+# pylint: disable=E1101,E1103
+# pylint: disable=W0703,W0622,W0613,W0201
+
 
 __all__ = ['Series']
 
 _shared_doc_kwargs = dict(
     axes='index', klass='Series', axes_single_arg="{0 or 'index'}",
-    axis="""
-    axis : {0 or 'index'}
-        Parameter needed for compatibility with DataFrame.
-    """,
+    axis="""axis : {0 or 'index'}
+        Parameter needed for compatibility with DataFrame.""",
     inplace="""inplace : boolean, default False
         If True, performs operation inplace and returns None.""",
     unique='np.ndarray', duplicated='Series',
@@ -157,15 +130,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         RangeIndex (0, 1, 2, ..., n) if not provided. If both a dict and index
         sequence are used, the index will override the keys found in the
         dict.
-    dtype : numpy.dtype or None
-        If None, dtype will be inferred
+    dtype : str, numpy.dtype, or ExtensionDtype, optional
+        dtype for the output Series. If not specified, this will be
+        inferred from `data`.
     copy : boolean, default False
         Copy input data
     """
     _metadata = ['name']
-    _accessors = {'dt', 'cat', 'str'}
+    _accessors = {'dt', 'cat', 'str', 'sparse'}
     _deprecations = generic.NDFrame._deprecations | frozenset(
-        ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
+        ['asobject', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
 
     # Override cache_readonly bc Series is mutable
@@ -213,7 +187,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             elif isinstance(data, np.ndarray):
                 pass
-            elif isinstance(data, Series):
+            elif isinstance(data, (ABCSeries, ABCSparseSeries)):
                 if name is None:
                     name = data.name
                 if index is None:
@@ -242,8 +216,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
             # If data is Iterable but not list-like, consume into list.
-            elif (isinstance(data, collections.Iterable)
-                  and not isinstance(data, collections.Sized)):
+            elif (isinstance(data, compat.Iterable)
+                  and not isinstance(data, compat.Sized)):
                 data = list(data)
             else:
 
@@ -340,7 +314,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated :: 0.23.0
             Use pd.Series(..) constructor instead.
-
         """
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.Series(..) "
@@ -463,7 +436,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         array(['2013-01-01T05:00:00.000000000',
                '2013-01-02T05:00:00.000000000',
                '2013-01-03T05:00:00.000000000'], dtype='datetime64[ns]')
-
         """
         return self._data.external_values()
 
@@ -501,7 +473,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return the flattened underlying data as an ndarray
 
-        See also
+        See Also
         --------
         numpy.ndarray.ravel
         """
@@ -513,7 +485,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated:: 0.24.0
 
-        See also
+        See Also
         --------
         numpy.ndarray.compress
         """
@@ -564,7 +536,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Applies the `put` method to its `values` attribute
         if it has one.
 
-        See also
+        See Also
         --------
         numpy.ndarray.put
         """
@@ -664,7 +636,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
 
         # nice error message for non-ufunc types
-        if context is not None and not isinstance(self._values, np.ndarray):
+        if (context is not None and
+                (not isinstance(self._values, (np.ndarray, ExtensionArray))
+                 or isinstance(self._values, Categorical))):
             obj = context[1][0]
             raise TypeError("{obj} with dtype {dtype} cannot perform "
                             "the numpy op {op}".format(
@@ -971,7 +945,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 except Exception:
                     pass
 
-            if not isinstance(key, (list, Series, np.ndarray, Series)):
+            if is_scalar(key):
+                key = [key]
+            elif not isinstance(key, (list, Series, np.ndarray)):
                 try:
                     key = list(key)
                 except Exception:
@@ -1014,7 +990,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
         for more information about the `repeats` argument.
 
-        See also
+        See Also
         --------
         numpy.ndarray.repeat
         """
@@ -1383,9 +1359,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         sp : SparseSeries
         """
+        # TODO: deprecate
         from pandas.core.sparse.series import SparseSeries
-        return SparseSeries(self, kind=kind,
-                            fill_value=fill_value).__finalize__(self)
+
+        values = SparseArray(self, kind=kind, fill_value=fill_value)
+        return SparseSeries(
+            values, index=self.index, name=self.name
+        ).__finalize__(self)
 
     def _set_name(self, name, inplace=False):
         """
@@ -1474,8 +1454,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.unique : top-level unique method for any 1-d array-like object.
-        Index.unique : return Index with unique values from an Index object.
+        pandas.unique : Top-level unique method for any 1-d array-like object.
+        Index.unique : Return Index with unique values from an Index object.
 
         Examples
         --------
@@ -1534,9 +1514,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Index.drop_duplicates : equivalent method on Index
-        DataFrame.drop_duplicates : equivalent method on DataFrame
-        Series.duplicated : related method on Series, indicating duplicate
+        Index.drop_duplicates : Equivalent method on Index.
+        DataFrame.drop_duplicates : Equivalent method on DataFrame.
+        Series.duplicated : Related method on Series, indicating duplicate
             Series values.
 
         Examples
@@ -1656,9 +1636,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.Index.duplicated : Equivalent method on pandas.Index
-        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame
-        pandas.Series.drop_duplicates : Remove duplicate values from Series
+        pandas.Index.duplicated : Equivalent method on pandas.Index.
+        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame.
+        pandas.Series.drop_duplicates : Remove duplicate values from Series.
         """
         return super(Series, self).duplicated(keep=keep)
 
@@ -1842,7 +1822,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         numpy.around
         DataFrame.round
-
         """
         nv.validate_round(args, kwargs)
         result = com.values_from_object(self).round(decimals)
@@ -1913,23 +1892,35 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         other : Series
-        method : {'pearson', 'kendall', 'spearman'}
+        method : {'pearson', 'kendall', 'spearman'} or callable
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
+            * callable: callable with input two 1d ndarray
+                and returning a float
+                .. versionadded:: 0.24.0
+
         min_periods : int, optional
             Minimum number of observations needed to have a valid result
-
 
         Returns
         -------
         correlation : float
+
+        Examples
+        --------
+        >>> histogram_intersection = lambda a, b: np.minimum(a, b
+        ... ).sum().round(decimals=1)
+        >>> s1 = pd.Series([.2, .0, .6, .2])
+        >>> s2 = pd.Series([.3, .6, .0, .1])
+        >>> s1.corr(s2, method=histogram_intersection)
+        0.3
         """
         this, other = self.align(other, join='inner', copy=False)
         if len(this) == 0:
             return np.nan
 
-        if method in ['pearson', 'spearman', 'kendall']:
+        if method in ['pearson', 'spearman', 'kendall'] or callable(method):
             return nanops.nancorr(this.values, other.values, method=method,
                                   min_periods=min_periods)
 
@@ -1981,7 +1972,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series.pct_change: Percent change over given number of periods.
         Series.shift: Shift index by desired number of periods with an
             optional time freq.
-        DataFrame.diff: First discrete difference of object
+        DataFrame.diff: First discrete difference of object.
 
         Examples
         --------
@@ -2024,7 +2015,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def autocorr(self, lag=1):
         """
-        Lag-N autocorrelation
+        Compute the lag-N autocorrelation.
+
+        This method computes the Pearson correlation between
+        the Series and its shifted self.
 
         Parameters
         ----------
@@ -2033,22 +2027,86 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        autocorr : float
+        float
+            The Pearson correlation between self and self.shift(lag).
+
+        See Also
+        --------
+        Series.corr : Compute the correlation between two Series.
+        Series.shift : Shift index by desired number of periods.
+        DataFrame.corr : Compute pairwise correlation of columns.
+        DataFrame.corrwith : Compute pairwise correlation between rows or
+            columns of two DataFrame objects.
+
+        Notes
+        -----
+        If the Pearson correlation is not well defined return 'NaN'.
+
+        Examples
+        --------
+        >>> s = pd.Series([0.25, 0.5, 0.2, -0.05])
+        >>> s.autocorr()  # doctest: +ELLIPSIS
+        0.10355...
+        >>> s.autocorr(lag=2)  # doctest: +ELLIPSIS
+        -0.99999...
+
+        If the Pearson correlation is not well defined, then 'NaN' is returned.
+
+        >>> s = pd.Series([1, 0, 0, 0])
+        >>> s.autocorr()
+        nan
         """
         return self.corr(self.shift(lag))
 
     def dot(self, other):
         """
-        Matrix multiplication with DataFrame or inner-product with Series
-        objects. Can also be called using `self @ other` in Python >= 3.5.
+        Compute the dot product between the Series and the columns of other.
+
+        This method computes the dot product between the Series and another
+        one, or the Series and each columns of a DataFrame, or the Series and
+        each columns of an array.
+
+        It can also be called using `self @ other` in Python >= 3.5.
 
         Parameters
         ----------
-        other : Series or DataFrame
+        other : Series, DataFrame or array-like
+            The other object to compute the dot product with its columns.
 
         Returns
         -------
-        dot_product : scalar or Series
+        scalar, Series or numpy.ndarray
+            Return the dot product of the Series and other if other is a
+            Series, the Series of the dot product of Series and each rows of
+            other if other is a DataFrame or a numpy.ndarray between the Series
+            and each columns of the numpy array.
+
+        See Also
+        --------
+        DataFrame.dot: Compute the matrix product with the DataFrame.
+        Series.mul: Multiplication of series and other, element-wise.
+
+        Notes
+        -----
+        The Series and other has to share the same index if other is a Series
+        or a DataFrame.
+
+        Examples
+        --------
+        >>> s = pd.Series([0, 1, 2, 3])
+        >>> other = pd.Series([-1, 2, -3, 4])
+        >>> s.dot(other)
+        8
+        >>> s @ other
+        8
+        >>> df = pd.DataFrame([[0 ,1], [-2, 3], [4, -5], [6, 7]])
+        >>> s.dot(df)
+        0    24
+        1    14
+        dtype: int64
+        >>> arr = np.array([[0, 1], [-2, 3], [4, -5], [6, 7]])
+        >>> s.dot(arr)
+        array([24, 14])
         """
         from pandas.core.frame import DataFrame
         if isinstance(other, (Series, DataFrame)):
@@ -2119,10 +2177,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         list and then concatenate the list with the original Series all at
         once.
 
-        See also
+        See Also
         --------
         pandas.concat : General function to concatenate DataFrame, Series
-            or Panel objects
+            or Panel objects.
 
         Returns
         -------
@@ -2168,8 +2226,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Traceback (most recent call last):
         ...
         ValueError: Indexes have overlapping values: [0, 1, 2]
-
-
         """
         from pandas.core.reshape.concat import concat
 
@@ -2254,7 +2310,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.combine_first : Combine Series values, choosing the calling
-            Series's values first
+            Series's values first.
         """
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
@@ -2282,10 +2338,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             pass
         elif is_extension_array_dtype(self.values):
             # The function can return something of any type, so check
-            # if the type is compatible with the calling EA
+            # if the type is compatible with the calling EA.
             try:
                 new_values = self._values._from_sequence(new_values)
-            except TypeError:
+            except Exception:
+                # https://github.com/pandas-dev/pandas/issues/22850
+                # pandas has no control over what 3rd-party ExtensionArrays
+                # do in _values_from_sequence. We still want ops to work
+                # though, so we catch any regular Exception.
                 pass
 
         return self._constructor(new_values, index=new_index, name=new_name)
@@ -2315,7 +2375,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.combine : Perform elementwise operation on two Series
-            using a given function
+            using a given function.
         """
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
@@ -2370,7 +2430,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         1    2
         2    6
         dtype: int64
-
         """
         other = other.reindex_like(self)
         mask = notna(other)
@@ -2583,9 +2642,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.sort_index: Sort DataFrame by the index
-        DataFrame.sort_values: Sort DataFrame by the value
-        Series.sort_values : Sort Series by the value
+        DataFrame.sort_index: Sort DataFrame by the index.
+        DataFrame.sort_values: Sort DataFrame by the value.
+        Series.sort_values : Sort Series by the value.
 
         Examples
         --------
@@ -2718,7 +2777,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         argsorted : Series, with -1 indicated where nan values are present
 
-        See also
+        See Also
         --------
         numpy.ndarray.argsort
         """
@@ -2743,17 +2802,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        n : int
-            Return this many descending sorted values
-        keep : {'first', 'last'}, default 'first'
-            Where there are duplicate values:
-            - ``first`` : take the first occurrence.
-            - ``last`` : take the last occurrence.
+        n : int, default 5
+            Return this many descending sorted values.
+        keep : {'first', 'last', 'all'}, default 'first'
+            When there are duplicate values that cannot all fit in a
+            Series of `n` elements:
+
+            - ``first`` : take the first occurrences based on the index order
+            - ``last`` : take the last occurrences based on the index order
+            - ``all`` : keep all occurrences. This can result in a Series of
+                size larger than `n`.
 
         Returns
         -------
-        top_n : Series
-            The n largest values in the Series, in sorted order
+        Series
+            The `n` largest values in the Series, sorted in decreasing order.
 
         Notes
         -----
@@ -2762,23 +2825,70 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.nsmallest
+        Series.nsmallest: Get the `n` smallest elements.
+        Series.sort_values: Sort Series by values.
+        Series.head: Return the first `n` rows.
 
         Examples
         --------
-        >>> s = pd.Series(np.random.randn(10**6))
-        >>> s.nlargest(10)  # only sorts up to the N requested
-        219921    4.644710
-        82124     4.608745
-        421689    4.564644
-        425277    4.447014
-        718691    4.414137
-        43154     4.403520
-        283187    4.313922
-        595519    4.273635
-        503969    4.250236
-        121637    4.240952
-        dtype: float64
+        >>> countries_population = {"Italy": 59000000, "France": 65000000,
+        ...                         "Malta": 434000, "Maldives": 434000,
+        ...                         "Brunei": 434000, "Iceland": 337000,
+        ...                         "Nauru": 11300, "Tuvalu": 11300,
+        ...                         "Anguilla": 11300, "Monserat": 5200}
+        >>> s = pd.Series(countries_population)
+        >>> s
+        Italy       59000000
+        France      65000000
+        Malta         434000
+        Maldives      434000
+        Brunei        434000
+        Iceland       337000
+        Nauru          11300
+        Tuvalu         11300
+        Anguilla       11300
+        Monserat        5200
+        dtype: int64
+
+        The `n` largest elements where ``n=5`` by default.
+
+        >>> s.nlargest()
+        France      65000000
+        Italy       59000000
+        Malta         434000
+        Maldives      434000
+        Brunei        434000
+        dtype: int64
+
+        The `n` largest elements where ``n=3``. Default `keep` value is 'first'
+        so Malta will be kept.
+
+        >>> s.nlargest(3)
+        France    65000000
+        Italy     59000000
+        Malta       434000
+        dtype: int64
+
+        The `n` largest elements where ``n=3`` and keeping the last duplicates.
+        Brunei will be kept since it is the last with value 434000 based on
+        the index order.
+
+        >>> s.nlargest(3, keep='last')
+        France      65000000
+        Italy       59000000
+        Brunei        434000
+        dtype: int64
+
+        The `n` largest elements where ``n=3`` with all duplicates kept. Note
+        that the returned Series has five elements due to the three duplicates.
+
+        >>> s.nlargest(3, keep='all')
+        France      65000000
+        Italy       59000000
+        Malta         434000
+        Maldives      434000
+        Brunei        434000
+        dtype: int64
         """
         return algorithms.SelectNSeries(self, n=n, keep=keep).nlargest()
 
@@ -2788,17 +2898,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        n : int
-            Return this many ascending sorted values
-        keep : {'first', 'last'}, default 'first'
-            Where there are duplicate values:
-            - ``first`` : take the first occurrence.
-            - ``last`` : take the last occurrence.
+        n : int, default 5
+            Return this many ascending sorted values.
+        keep : {'first', 'last', 'all'}, default 'first'
+            When there are duplicate values that cannot all fit in a
+            Series of `n` elements:
+
+            - ``first`` : take the first occurrences based on the index order
+            - ``last`` : take the last occurrences based on the index order
+            - ``all`` : keep all occurrences. This can result in a Series of
+                size larger than `n`.
 
         Returns
         -------
-        bottom_n : Series
-            The n smallest values in the Series, in sorted order
+        Series
+            The `n` smallest values in the Series, sorted in increasing order.
 
         Notes
         -----
@@ -2807,52 +2921,71 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.nlargest
+        Series.nlargest: Get the `n` largest elements.
+        Series.sort_values: Sort Series by values.
+        Series.head: Return the first `n` rows.
 
         Examples
         --------
-        >>> s = pd.Series(np.random.randn(10**6))
-        >>> s.nsmallest(10)  # only sorts up to the N requested
-        288532   -4.954580
-        732345   -4.835960
-        64803    -4.812550
-        446457   -4.609998
-        501225   -4.483945
-        669476   -4.472935
-        973615   -4.401699
-        621279   -4.355126
-        773916   -4.347355
-        359919   -4.331927
-        dtype: float64
+        >>> countries_population = {"Italy": 59000000, "France": 65000000,
+        ...                         "Brunei": 434000, "Malta": 434000,
+        ...                         "Maldives": 434000, "Iceland": 337000,
+        ...                         "Nauru": 11300, "Tuvalu": 11300,
+        ...                         "Anguilla": 11300, "Monserat": 5200}
+        >>> s = pd.Series(countries_population)
+        >>> s
+        Italy       59000000
+        France      65000000
+        Brunei        434000
+        Malta         434000
+        Maldives      434000
+        Iceland       337000
+        Nauru          11300
+        Tuvalu         11300
+        Anguilla       11300
+        Monserat        5200
+        dtype: int64
+
+        The `n` largest elements where ``n=5`` by default.
+
+        >>> s.nsmallest()
+        Monserat      5200
+        Nauru        11300
+        Tuvalu       11300
+        Anguilla     11300
+        Iceland     337000
+        dtype: int64
+
+        The `n` smallest elements where ``n=3``. Default `keep` value is
+        'first' so Nauru and Tuvalu will be kept.
+
+        >>> s.nsmallest(3)
+        Monserat     5200
+        Nauru       11300
+        Tuvalu      11300
+        dtype: int64
+
+        The `n` smallest elements where ``n=3`` and keeping the last
+        duplicates. Anguilla and Tuvalu will be kept since they are the last
+        with value 11300 based on the index order.
+
+        >>> s.nsmallest(3, keep='last')
+        Monserat     5200
+        Anguilla    11300
+        Tuvalu      11300
+        dtype: int64
+
+        The `n` smallest elements where ``n=3`` with all duplicates kept. Note
+        that the returned Series has four elements due to the three duplicates.
+
+        >>> s.nsmallest(3, keep='all')
+        Monserat     5200
+        Nauru       11300
+        Tuvalu      11300
+        Anguilla    11300
+        dtype: int64
         """
         return algorithms.SelectNSeries(self, n=n, keep=keep).nsmallest()
-
-    def sortlevel(self, level=0, ascending=True, sort_remaining=True):
-        """Sort Series with MultiIndex by chosen level. Data will be
-        lexicographically sorted by the chosen level followed by the other
-        levels (in order),
-
-        .. deprecated:: 0.20.0
-            Use :meth:`Series.sort_index`
-
-        Parameters
-        ----------
-        level : int or level name, default None
-        ascending : bool, default True
-
-        Returns
-        -------
-        sorted : Series
-
-        See Also
-        --------
-        Series.sort_index(level=...)
-
-        """
-        warnings.warn("sortlevel is deprecated, use sort_index(level=...)",
-                      FutureWarning, stacklevel=2)
-        return self.sort_index(level=level, ascending=ascending,
-                               sort_remaining=sort_remaining)
 
     def swaplevel(self, i=-2, j=-1, copy=True):
         """
@@ -2871,7 +3004,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
            The indexes ``i`` and ``j`` are now optional, and default to
            the two innermost levels of the index.
-
         """
         new_index = self.index.swaplevel(i, j)
         return self._constructor(self._values, index=new_index,
@@ -2884,9 +3016,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        order : list of int representing new level order.
+        order : list of int representing new level order
                (reference level by number or key)
-        axis : where to reorder levels
 
         Returns
         -------
@@ -3059,7 +3190,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     max   4
     dtype: int64
 
-    See also
+    See Also
     --------
     pandas.Series.apply : Invoke function on a Series.
     pandas.Series.transform : Transform function producing
@@ -3098,6 +3229,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     agg = aggregate
 
+    @Appender(generic._shared_docs['transform'] % _shared_doc_kwargs)
+    def transform(self, func, axis=0, *args, **kwargs):
+        # Validate the axis parameter
+        self._get_axis_number(axis)
+        return super(Series, self).transform(func, *args, **kwargs)
+
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """
         Invoke function on values of Series. Can be ufunc (a NumPy function
@@ -3118,11 +3255,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         y : Series or DataFrame if func returns a Series
 
-        See also
+        See Also
         --------
-        Series.map: For element-wise operations
-        Series.agg: only perform aggregating type operations
-        Series.transform: only perform transforming type operations
+        Series.map: For element-wise operations.
+        Series.agg: Only perform aggregating type operations.
+        Series.transform: Only perform transforming type operations.
 
         Examples
         --------
@@ -3191,8 +3328,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         New York    3.044522
         Helsinki    2.484907
         dtype: float64
-
-
         """
         if len(self) == 0:
             return self._constructor(dtype=self.dtype,
@@ -3241,16 +3376,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         """
         delegate = self._values
-        if isinstance(delegate, np.ndarray):
-            # Validate that 'axis' is consistent with Series's single axis.
-            if axis is not None:
-                self._get_axis_number(axis)
+
+        if axis is not None:
+            self._get_axis_number(axis)
+
+        # dispatch to ExtensionArray interface
+        if isinstance(delegate, ExtensionArray):
+            return delegate._reduce(name, skipna=skipna, **kwds)
+
+        # dispatch to numpy arrays
+        elif isinstance(delegate, np.ndarray):
             if numeric_only:
                 raise NotImplementedError('Series.{0} does not implement '
                                           'numeric_only.'.format(name))
             with np.errstate(all='ignore'):
                 return op(delegate, skipna=skipna, **kwds)
 
+        # TODO(EA) dispatch to Index
+        # remove once all internals extension types are
+        # moved to ExtensionArrays
         return delegate._reduce(op=op, name=name, axis=axis, skipna=skipna,
                                 numeric_only=numeric_only,
                                 filter_type=filter_type, **kwds)
@@ -3349,7 +3493,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self._set_name(index, inplace=kwargs.get('inplace'))
         return super(Series, self).rename(index=index, **kwargs)
 
-    @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(generic.NDFrame.reindex.__doc__)
     def reindex(self, index=None, **kwargs):
         return super(Series, self).reindex(index=index, **kwargs)
 
@@ -3533,7 +3678,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             v += self.index.memory_usage(deep=deep)
         return v
 
-    @Appender(generic._shared_docs['_take'])
+    @Appender(generic.NDFrame._take.__doc__)
     def _take(self, indices, axis=0, is_copy=False):
 
         indices = ensure_platform_int(indices)
@@ -3587,7 +3732,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.DataFrame.isin : equivalent method on DataFrame
+        pandas.DataFrame.isin : Equivalent method on DataFrame.
 
         Examples
         --------
@@ -3645,8 +3790,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.Series.gt : Greater than of series and other
-        pandas.Series.lt : Less than of series and other
+        pandas.Series.gt : Greater than of series and other.
+        pandas.Series.lt : Less than of series and other.
 
         Examples
         --------
@@ -3736,7 +3881,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.
 
-        See also
+        See Also
         --------
         pandas.read_csv
 
@@ -3814,19 +3959,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                           stacklevel=2)
             kwargs["header"] = False  # Backwards compatibility.
         return self.to_frame().to_csv(**kwargs)
-
-    @Appender(generic._shared_docs['to_excel'] % _shared_doc_kwargs)
-    def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
-                 float_format=None, columns=None, header=True, index=True,
-                 index_label=None, startrow=0, startcol=0, engine=None,
-                 merge_cells=True, encoding=None, inf_rep='inf', verbose=True):
-        df = self.to_frame()
-        df.to_excel(excel_writer=excel_writer, sheet_name=sheet_name,
-                    na_rep=na_rep, float_format=float_format, columns=columns,
-                    header=header, index=index, index_label=index_label,
-                    startrow=startrow, startcol=startcol, engine=engine,
-                    merge_cells=merge_cells, encoding=encoding,
-                    inf_rep=inf_rep, verbose=verbose)
 
     @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
     def isna(self):
@@ -4001,6 +4133,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
     cat = CachedAccessor("cat", CategoricalAccessor)
     plot = CachedAccessor("plot", gfx.SeriesPlotMethods)
+    sparse = CachedAccessor("sparse", SparseAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
@@ -4076,7 +4209,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         try:
             # gh-15832: Check if we are requesting a numeric dype and
             # that we can convert the data to the requested dtype.
-            if is_float_dtype(dtype) or is_integer_dtype(dtype):
+            if is_integer_dtype(dtype):
                 subarr = maybe_cast_to_integer_array(arr, dtype)
 
             subarr = maybe_cast_to_datetime(arr, dtype)
@@ -4098,8 +4231,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             elif is_extension_array_dtype(dtype):
                 # create an extension array from its dtype
                 array_type = dtype.construct_array_type()._from_sequence
-                subarr = array_type(subarr, dtype=dtype, copy=copy)
-
+                subarr = array_type(arr, dtype=dtype, copy=copy)
             elif dtype is not None and raise_cast_failure:
                 raise
             else:
@@ -4209,5 +4341,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             if not np.all(isna(data)):
                 data = np.array(data, dtype=dtype, copy=False)
             subarr = np.array(data, dtype=object, copy=copy)
+
+    if is_object_dtype(subarr.dtype) and dtype != 'object':
+        inferred = lib.infer_dtype(subarr)
+        if inferred == 'period':
+            try:
+                subarr = period_array(subarr)
+            except tslibs.period.IncompatibleFrequency:
+                pass
 
     return subarr

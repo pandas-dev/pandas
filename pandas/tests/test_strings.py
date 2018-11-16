@@ -36,8 +36,7 @@ class TestStringMethods(object):
 
         # GH 9184
         invalid = Series([1])
-        with tm.assert_raises_regex(AttributeError,
-                                    "only use .str accessor"):
+        with pytest.raises(AttributeError, match="only use .str accessor"):
             invalid.str
         assert not hasattr(invalid, 'str')
 
@@ -97,53 +96,6 @@ class TestStringMethods(object):
         assert i == 100
         assert s == 'h'
 
-    def test_cat(self):
-        one = np.array(['a', 'a', 'b', 'b', 'c', NA], dtype=np.object_)
-        two = np.array(['a', NA, 'b', 'd', 'foo', NA], dtype=np.object_)
-
-        # single array
-        result = strings.str_cat(one)
-        exp = 'aabbc'
-        assert result == exp
-
-        result = strings.str_cat(one, na_rep='NA')
-        exp = 'aabbcNA'
-        assert result == exp
-
-        result = strings.str_cat(one, na_rep='-')
-        exp = 'aabbc-'
-        assert result == exp
-
-        result = strings.str_cat(one, sep='_', na_rep='NA')
-        exp = 'a_a_b_b_c_NA'
-        assert result == exp
-
-        result = strings.str_cat(two, sep='-')
-        exp = 'a-b-d-foo'
-        assert result == exp
-
-        # Multiple arrays
-        result = strings.str_cat(one, [two], na_rep='NA')
-        exp = np.array(['aa', 'aNA', 'bb', 'bd', 'cfoo', 'NANA'],
-                       dtype=np.object_)
-        tm.assert_numpy_array_equal(result, exp)
-
-        result = strings.str_cat(one, two)
-        exp = np.array(['aa', NA, 'bb', 'bd', 'cfoo', NA], dtype=np.object_)
-        tm.assert_almost_equal(result, exp)
-
-        # error for incorrect lengths
-        rgx = 'All arrays must be same length'
-        three = Series(['1', '2', '3'])
-
-        with tm.assert_raises_regex(ValueError, rgx):
-            strings.str_cat(one, three)
-
-        # error for incorrect type
-        rgx = "Must pass arrays containing strings to str_cat"
-        with tm.assert_raises_regex(ValueError, rgx):
-            strings.str_cat(one, 'three')
-
     @pytest.mark.parametrize('box', [Series, Index])
     @pytest.mark.parametrize('other', [None, Series, Index])
     def test_str_cat_name(self, box, other):
@@ -190,13 +142,13 @@ class TestStringMethods(object):
         rgx = 'All arrays must be same length, except those having an index.*'
         z = Series(['1', '2', '3'])
 
-        with tm.assert_raises_regex(ValueError, rgx):
+        with pytest.raises(ValueError, match=rgx):
             s.str.cat(z)
 
-        with tm.assert_raises_regex(ValueError, rgx):
+        with pytest.raises(ValueError, match=rgx):
             s.str.cat(z.values)
 
-        with tm.assert_raises_regex(ValueError, rgx):
+        with pytest.raises(ValueError, match=rgx):
             s.str.cat(list(z))
 
     @pytest.mark.parametrize('box', [Series, Index])
@@ -204,15 +156,16 @@ class TestStringMethods(object):
         # GH 11334
         s = box(['a', 'b', 'c', 'd'])
         message = "Did you mean to supply a `sep` keyword?"
-        with tm.assert_raises_regex(ValueError, message):
+        with pytest.raises(ValueError, match=message):
             s.str.cat('|')
-        with tm.assert_raises_regex(ValueError, message):
+        with pytest.raises(ValueError, match=message):
             s.str.cat('    ')
 
+    @pytest.mark.parametrize('sep', ['', None])
     @pytest.mark.parametrize('dtype_target', ['object', 'category'])
     @pytest.mark.parametrize('dtype_caller', ['object', 'category'])
     @pytest.mark.parametrize('box', [Series, Index])
-    def test_str_cat_categorical(self, box, dtype_caller, dtype_target):
+    def test_str_cat_categorical(self, box, dtype_caller, dtype_target, sep):
         s = Index(['a', 'a', 'b', 'a'], dtype=dtype_caller)
         s = s if box == Index else Series(s, index=s)
         t = Index(['b', 'a', 'b', 'c'], dtype=dtype_target)
@@ -223,23 +176,23 @@ class TestStringMethods(object):
         # Series/Index with unaligned Index
         with tm.assert_produces_warning(expected_warning=FutureWarning):
             # FutureWarning to switch to alignment by default
-            result = s.str.cat(t)
+            result = s.str.cat(t, sep=sep)
             assert_series_or_index_equal(result, expected)
 
         # Series/Index with Series having matching Index
         t = Series(t, index=s)
-        result = s.str.cat(t)
+        result = s.str.cat(t, sep=sep)
         assert_series_or_index_equal(result, expected)
 
         # Series/Index with Series.values
-        result = s.str.cat(t.values)
+        result = s.str.cat(t.values, sep=sep)
         assert_series_or_index_equal(result, expected)
 
         # Series/Index with Series having different Index
         t = Series(t.values, index=t)
         with tm.assert_produces_warning(expected_warning=FutureWarning):
             # FutureWarning to switch to alignment by default
-            result = s.str.cat(t)
+            result = s.str.cat(t, sep=sep)
             assert_series_or_index_equal(result, expected)
 
     @pytest.mark.parametrize('box', [Series, Index])
@@ -308,23 +261,23 @@ class TestStringMethods(object):
         e = concat([z, z], axis=1)
 
         # DataFrame
-        with tm.assert_raises_regex(ValueError, rgx):
+        with pytest.raises(ValueError, match=rgx):
             s.str.cat(e)
 
         # two-dimensional ndarray
-        with tm.assert_raises_regex(ValueError, rgx):
+        with pytest.raises(ValueError, match=rgx):
             s.str.cat(e.values)
 
         # list of Series
-        with tm.assert_raises_regex(ValueError, rgx):
+        with pytest.raises(ValueError, match=rgx):
             s.str.cat([z, s])
 
         # list of list-likes
-        with tm.assert_raises_regex(ValueError, rgx):
+        with pytest.raises(ValueError, match=rgx):
             s.str.cat([z.values, s.values])
 
         # mixed list of Series/list-like
-        with tm.assert_raises_regex(ValueError, rgx):
+        with pytest.raises(ValueError, match=rgx):
             s.str.cat([z.values, s])
 
         # errors for incorrect arguments in list-like
@@ -333,23 +286,33 @@ class TestStringMethods(object):
         u = Series(['a', np.nan, 'c', None])
 
         # mix of string and Series
-        with tm.assert_raises_regex(TypeError, rgx):
+        with pytest.raises(TypeError, match=rgx):
             s.str.cat([u, 'u'])
 
         # DataFrame in list
-        with tm.assert_raises_regex(TypeError, rgx):
+        with pytest.raises(TypeError, match=rgx):
             s.str.cat([u, d])
 
         # 2-dim ndarray in list
-        with tm.assert_raises_regex(TypeError, rgx):
+        with pytest.raises(TypeError, match=rgx):
             s.str.cat([u, d.values])
 
         # nested lists
-        with tm.assert_raises_regex(TypeError, rgx):
+        with pytest.raises(TypeError, match=rgx):
             s.str.cat([u, [u, d]])
 
-        # forbidden input type, e.g. int
-        with tm.assert_raises_regex(TypeError, rgx):
+        # forbidden input type: set
+        # GH 23009
+        with pytest.raises(TypeError, match=rgx):
+            s.str.cat(set(u))
+
+        # forbidden input type: set in list
+        # GH 23009
+        with pytest.raises(TypeError, match=rgx):
+            s.str.cat([u, set(u)])
+
+        # other forbidden input type, e.g. int
+        with pytest.raises(TypeError, match=rgx):
             s.str.cat(1)
 
     @pytest.mark.parametrize('join', ['left', 'outer', 'inner', 'right'])
@@ -407,12 +370,18 @@ class TestStringMethods(object):
         z = Series(['1', '2', '3']).values
 
         # unindexed object of wrong length
-        with tm.assert_raises_regex(ValueError, rgx):
+        with pytest.raises(ValueError, match=rgx):
             s.str.cat(z, join=join)
 
         # unindexed object of wrong length in list
-        with tm.assert_raises_regex(ValueError, rgx):
+        with pytest.raises(ValueError, match=rgx):
             s.str.cat([t, z], join=join)
+
+    def test_str_cat_raises(self):
+        # non-strings hiding behind object dtype
+        s = Series([1, 2, 3, 4], dtype='object')
+        with pytest.raises(TypeError, match="unsupported operand type.*"):
+            s.str.cat(s)
 
     def test_str_cat_special_cases(self):
         s = Series(['a', 'b', 'c', 'd'])
@@ -769,15 +738,15 @@ class TestStringMethods(object):
                      r'(?(3)required )positional arguments?')
 
         repl = lambda: None
-        with tm.assert_raises_regex(TypeError, p_err):
+        with pytest.raises(TypeError, match=p_err):
             values.str.replace('a', repl)
 
         repl = lambda m, x: None
-        with tm.assert_raises_regex(TypeError, p_err):
+        with pytest.raises(TypeError, match=p_err):
             values.str.replace('a', repl)
 
         repl = lambda m, x, y=None: None
-        with tm.assert_raises_regex(TypeError, p_err):
+        with pytest.raises(TypeError, match=p_err):
             values.str.replace('a', repl)
 
         # test regex named groups
@@ -830,16 +799,16 @@ class TestStringMethods(object):
         values = Series(['fooBAD__barBAD__bad', NA])
         pat = re.compile(r'BAD[_]*')
 
-        with tm.assert_raises_regex(ValueError,
-                                    "case and flags cannot be"):
+        with pytest.raises(ValueError,
+                           match="case and flags cannot be"):
             result = values.str.replace(pat, '', flags=re.IGNORECASE)
 
-        with tm.assert_raises_regex(ValueError,
-                                    "case and flags cannot be"):
+        with pytest.raises(ValueError,
+                           match="case and flags cannot be"):
             result = values.str.replace(pat, '', case=False)
 
-        with tm.assert_raises_regex(ValueError,
-                                    "case and flags cannot be"):
+        with pytest.raises(ValueError,
+                           match="case and flags cannot be"):
             result = values.str.replace(pat, '', case=True)
 
         # test with callable
@@ -938,8 +907,8 @@ class TestStringMethods(object):
 
     def test_extract_expand_None(self):
         values = Series(['fooBAD__barBAD', NA, 'foo'])
-        with tm.assert_raises_regex(ValueError,
-                                    'expand must be True or False'):
+        with pytest.raises(ValueError,
+                           match='expand must be True or False'):
             values.str.extract('.*(BAD[_]+).*(BAD)', expand=None)
 
     def test_extract_expand_unspecified(self):
@@ -978,7 +947,7 @@ class TestStringMethods(object):
         # Index only works with one regex group since
         # multi-group would expand to a frame
         idx = Index(['A1', 'A2', 'A3', 'A4', 'B5'])
-        with tm.assert_raises_regex(ValueError, "supported"):
+        with pytest.raises(ValueError, match="supported"):
             idx.str.extract('([AB])([123])', expand=False)
 
         # these should work for both Series and Index
@@ -1476,7 +1445,7 @@ class TestStringMethods(object):
         # no capture groups. (it returns DataFrame with one column for
         # each capture group)
         s = Series(['a3', 'b3', 'd4c2'], name='series_name')
-        with tm.assert_raises_regex(ValueError, "no capture groups"):
+        with pytest.raises(ValueError, match="no capture groups"):
             s.str.extractall(r'[a-z]')
 
     def test_extract_index_one_two_groups(self):
@@ -1847,12 +1816,12 @@ class TestStringMethods(object):
                             dtype=np.int64)
         tm.assert_numpy_array_equal(result.values, expected)
 
-        with tm.assert_raises_regex(TypeError,
-                                    "expected a string object, not int"):
+        with pytest.raises(TypeError,
+                           match="expected a string object, not int"):
             result = values.str.find(0)
 
-        with tm.assert_raises_regex(TypeError,
-                                    "expected a string object, not int"):
+        with pytest.raises(TypeError,
+                           match="expected a string object, not int"):
             result = values.str.rfind(0)
 
     def test_find_nan(self):
@@ -1922,13 +1891,11 @@ class TestStringMethods(object):
                                 dtype=np.int64)
             tm.assert_numpy_array_equal(result.values, expected)
 
-            with tm.assert_raises_regex(ValueError,
-                                        "substring not found"):
+            with pytest.raises(ValueError, match="substring not found"):
                 result = s.str.index('DE')
 
-            with tm.assert_raises_regex(TypeError,
-                                        "expected a string "
-                                        "object, not int"):
+            msg = "expected a string object, not int"
+            with pytest.raises(TypeError, match=msg):
                 result = s.str.index(0)
 
         # test with nan
@@ -2012,25 +1979,22 @@ class TestStringMethods(object):
         exp = Series(['XXaXX', 'XXbXX', NA, 'XXcXX', NA, 'eeeeee'])
         tm.assert_almost_equal(result, exp)
 
-        with tm.assert_raises_regex(TypeError,
-                                    "fillchar must be a "
-                                    "character, not str"):
+        msg = "fillchar must be a character, not str"
+        with pytest.raises(TypeError, match=msg):
             result = values.str.pad(5, fillchar='XY')
 
-        with tm.assert_raises_regex(TypeError,
-                                    "fillchar must be a "
-                                    "character, not int"):
+        msg = "fillchar must be a character, not int"
+        with pytest.raises(TypeError, match=msg):
             result = values.str.pad(5, fillchar=5)
 
-    def test_pad_width(self):
-        # GH 13598
+    @pytest.mark.parametrize("f", ['center', 'ljust', 'rjust', 'zfill', 'pad'])
+    def test_pad_width(self, f):
+        # see gh-13598
         s = Series(['1', '22', 'a', 'bb'])
+        msg = "width must be of integer type, not*"
 
-        for f in ['center', 'ljust', 'rjust', 'zfill', 'pad']:
-            with tm.assert_raises_regex(TypeError,
-                                        "width must be of "
-                                        "integer type, not*"):
-                getattr(s.str, f)('f')
+        with pytest.raises(TypeError, match=msg):
+            getattr(s.str, f)('f')
 
     def test_translate(self):
 
@@ -2061,8 +2025,8 @@ class TestStringMethods(object):
                 expected = klass(['abcde', 'abcc', 'cddd', 'cde'])
                 _check(result, expected)
             else:
-                with tm.assert_raises_regex(
-                        ValueError, "deletechars is not a valid argument"):
+                msg = "deletechars is not a valid argument"
+                with pytest.raises(ValueError, match=msg):
                     result = s.str.translate(table, deletechars='fg')
 
         # Series with non-string values
@@ -2150,35 +2114,25 @@ class TestStringMethods(object):
         # If fillchar is not a charatter, normal str raises TypeError
         # 'aaa'.ljust(5, 'XY')
         # TypeError: must be char, not str
-        with tm.assert_raises_regex(TypeError,
-                                    "fillchar must be a "
-                                    "character, not str"):
-            result = values.str.center(5, fillchar='XY')
+        template = "fillchar must be a character, not {dtype}"
 
-        with tm.assert_raises_regex(TypeError,
-                                    "fillchar must be a "
-                                    "character, not str"):
-            result = values.str.ljust(5, fillchar='XY')
+        with pytest.raises(TypeError, match=template.format(dtype="str")):
+            values.str.center(5, fillchar='XY')
 
-        with tm.assert_raises_regex(TypeError,
-                                    "fillchar must be a "
-                                    "character, not str"):
-            result = values.str.rjust(5, fillchar='XY')
+        with pytest.raises(TypeError, match=template.format(dtype="str")):
+            values.str.ljust(5, fillchar='XY')
 
-        with tm.assert_raises_regex(TypeError,
-                                    "fillchar must be a "
-                                    "character, not int"):
-            result = values.str.center(5, fillchar=1)
+        with pytest.raises(TypeError, match=template.format(dtype="str")):
+            values.str.rjust(5, fillchar='XY')
 
-        with tm.assert_raises_regex(TypeError,
-                                    "fillchar must be a "
-                                    "character, not int"):
-            result = values.str.ljust(5, fillchar=1)
+        with pytest.raises(TypeError, match=template.format(dtype="int")):
+            values.str.center(5, fillchar=1)
 
-        with tm.assert_raises_regex(TypeError,
-                                    "fillchar must be a "
-                                    "character, not int"):
-            result = values.str.rjust(5, fillchar=1)
+        with pytest.raises(TypeError, match=template.format(dtype="int")):
+            values.str.ljust(5, fillchar=1)
+
+        with pytest.raises(TypeError, match=template.format(dtype="int")):
+            values.str.rjust(5, fillchar=1)
 
     def test_zfill(self):
         values = Series(['1', '22', 'aaa', '333', '45678'])
@@ -2372,7 +2326,7 @@ class TestStringMethods(object):
                         index=['preserve', 'me'])
         tm.assert_frame_equal(result, exp)
 
-        with tm.assert_raises_regex(ValueError, "expand must be"):
+        with pytest.raises(ValueError, match="expand must be"):
             s.str.split('_', expand="not_a_boolean")
 
     def test_split_to_multiindex_expand(self):
@@ -2397,7 +2351,7 @@ class TestStringMethods(object):
         tm.assert_index_equal(result, exp)
         assert result.nlevels == 6
 
-        with tm.assert_raises_regex(ValueError, "expand must be"):
+        with pytest.raises(ValueError, match="expand must be"):
             idx.str.split('_', expand="not_a_boolean")
 
     def test_rsplit_to_dataframe_expand(self):
@@ -3068,8 +3022,7 @@ class TestStringMethods(object):
         result = s.str.normalize('NFC')
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_raises_regex(ValueError,
-                                    "invalid normalization form"):
+        with pytest.raises(ValueError, match="invalid normalization form"):
             s.str.normalize('xxx')
 
         s = Index([u'ＡＢＣ', u'１２３', u'ｱｲｴ'])
@@ -3112,9 +3065,9 @@ class TestStringMethods(object):
         for values, tp in cases:
             idx = Index(values)
             message = 'Can only use .str accessor with string values'
-            with tm.assert_raises_regex(AttributeError, message):
+            with pytest.raises(AttributeError, match=message):
                 Series(values).str
-            with tm.assert_raises_regex(AttributeError, message):
+            with pytest.raises(AttributeError, match=message):
                 idx.str
             assert idx.inferred_type == tp
 
@@ -3122,14 +3075,14 @@ class TestStringMethods(object):
         idx = MultiIndex.from_tuples([('a', 'b'), ('a', 'b')])
         assert idx.inferred_type == 'mixed'
         message = 'Can only use .str accessor with Index, not MultiIndex'
-        with tm.assert_raises_regex(AttributeError, message):
+        with pytest.raises(AttributeError, match=message):
             idx.str
 
     def test_str_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         s = Series(list('aabbcde'))
-        with tm.assert_raises_regex(AttributeError,
-                                    "You cannot add any new attribute"):
+        with pytest.raises(AttributeError,
+                           match="You cannot add any new attribute"):
             s.str.xlabel = "a"
 
     def test_method_on_bytes(self):

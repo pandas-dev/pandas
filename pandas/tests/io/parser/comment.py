@@ -6,10 +6,11 @@ for all of the parsers defined in parsers.py
 """
 
 import numpy as np
-import pandas.util.testing as tm
+
+from pandas.compat import StringIO
 
 from pandas import DataFrame
-from pandas.compat import StringIO
+import pandas.util.testing as tm
 
 
 class CommentTests(object):
