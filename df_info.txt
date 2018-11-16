@@ -1,8 +1,0 @@
-<class 'pandas.core.frame.DataFrame'>
-RangeIndex: 5 entries, 0 to 4
-Data columns (total 3 columns):
-int_col      5 non-null int64
-text_col     5 non-null object
-float_col    5 non-null float64
-dtypes: float64(1), int64(1), object(1)
-memory usage: 200.0+ bytes
