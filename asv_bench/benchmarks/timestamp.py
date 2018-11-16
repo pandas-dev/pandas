@@ -87,7 +87,7 @@ class TimestampProperties(object):
 
 
 class TimestampOps(object):
-    params = [None, 'US/Eastern']
+    params = [None, 'US/Eastern', 'UTC']
     param_names = ['tz']
 
     def setup(self, tz):

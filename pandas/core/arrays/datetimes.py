@@ -853,7 +853,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
-        if self.tz is None:
+        if self.tz is None or timezones.is_utc(self.tz):
             not_null = self.notnull()
             DAY_NS = ccalendar.DAY_SECONDS * 1000000000
             new_values = self.asi8.copy()

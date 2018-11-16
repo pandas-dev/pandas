@@ -1134,7 +1134,7 @@ Performance Improvements
 - Improved performance of :func:`IndexEngine.get_indexer_non_unique` for sorted, non-unique indexes (:issue:`9466`)
 - Improved performance of :func:`PeriodIndex.unique` (:issue:`23083`)
 - Improved performance of :func:`pd.concat` for `Series` objects (:issue:`23404`)
-- Improved performance of :meth:`DatetimeIndex.normalize` and :meth:`Timestamp.normalize` for timezone naive datetimes (:issue:`23634`)
+- Improved performance of :meth:`DatetimeIndex.normalize` and :meth:`Timestamp.normalize` for timezone naive or UTC datetimes (:issue:`23634`)
 
 
 .. _whatsnew_0240.docs:

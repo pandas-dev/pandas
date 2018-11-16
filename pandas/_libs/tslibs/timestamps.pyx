@@ -1286,9 +1286,10 @@ class Timestamp(_Timestamp):
         Normalize Timestamp to midnight, preserving
         tz information.
         """
-        if self.tz is None:
+        if self.tz is None or is_utc(self.tz):
             DAY_NS = DAY_SECONDS * 1000000000
-            return Timestamp(self.value - (self.value % DAY_NS))
+            normalized_value = self.value - (self.value % DAY_NS)
+            return Timestamp(normalized_value).tz_localize(self.tz)
         normalized_value = normalize_i8_timestamps(
             np.array([self.value], dtype='i8'), tz=self.tz)[0]
         return Timestamp(normalized_value).tz_localize(self.tz)
