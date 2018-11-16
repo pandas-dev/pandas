@@ -794,11 +794,11 @@ class TestSparseArray(object):
             3, 0, 0
         ])
         expected = np.array([2, 5, 9], dtype=np.int32)
-        result, _ = sa.nonzero()
+        result, = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
 
         sa = pd.SparseArray([0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
-        result, _ = sa.nonzero()
+        result, = sa.nonzero()
         tm.assert_numpy_array_equal(expected, result)
 
 
