@@ -29,7 +29,7 @@ def expected_html(datapath, name):
     """
     filename = '.'.join([name, 'html'])
     filepath = datapath('io', 'formats', 'data', filename)
-    with open(filepath) as f:
+    with open(filepath, encoding='utf-8') as f:
         html = f.read()
     return html.rstrip()
 
@@ -59,12 +59,12 @@ class TestToHTML(object):
         result = df.to_html()
         assert "rowspan" not in result
 
-    def test_to_html_unicode(self):
+    def test_to_html_unicode(self, datapath):
         df = DataFrame({u('\u03c3'): np.arange(10.)})
-        expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>\u03c3</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>0.0</td>\n    </tr>\n    <tr>\n      <th>1</th>\n      <td>1.0</td>\n    </tr>\n    <tr>\n      <th>2</th>\n      <td>2.0</td>\n    </tr>\n    <tr>\n      <th>3</th>\n      <td>3.0</td>\n    </tr>\n    <tr>\n      <th>4</th>\n      <td>4.0</td>\n    </tr>\n    <tr>\n      <th>5</th>\n      <td>5.0</td>\n    </tr>\n    <tr>\n      <th>6</th>\n      <td>6.0</td>\n    </tr>\n    <tr>\n      <th>7</th>\n      <td>7.0</td>\n    </tr>\n    <tr>\n      <th>8</th>\n      <td>8.0</td>\n    </tr>\n    <tr>\n      <th>9</th>\n      <td>9.0</td>\n    </tr>\n  </tbody>\n</table>'  # noqa
+        expected = expected_html(datapath, 'unicode_1')
         assert df.to_html() == expected
         df = DataFrame({'A': [u('\u03c3')]})
-        expected = u'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>A</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>\u03c3</td>\n    </tr>\n  </tbody>\n</table>'  # noqa
+        expected = expected_html(datapath, 'unicode_2')
         assert df.to_html() == expected
 
     def test_to_html_decimal(self, datapath):
