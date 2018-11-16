@@ -1,7 +1,6 @@
 # pylint: disable-msg=E1101,W0612
 
 import operator
-from itertools import product
 
 import pytest
 from numpy import nan
