@@ -36,10 +36,19 @@ def conda_package_to_pip(package):
     if package in EXCLUDE:
         return
 
-    if package in RENAME:
-        return RENAME[package]
+    package = re.sub('(?<=[^<>])=', '==', package).strip()
+    for compare in ('<=', '>=', '=='):
+        if compare not in package:
+            continue
 
-    return re.sub('(?<=[^<>])=', '==', package).strip()
+        pkg, version = package.split(compare)
+
+        if pkg in RENAME:
+            return ''.join((RENAME[pkg], compare, version))
+
+        break
+
+    return package
 
 
 def main(conda_fname, pip_fname, compare=False):
