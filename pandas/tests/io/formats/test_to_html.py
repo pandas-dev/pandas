@@ -2,7 +2,6 @@
 
 import re
 from datetime import datetime
-from distutils.version import LooseVersion
 
 import pytest
 import numpy as np
@@ -11,14 +10,6 @@ from pandas import compat, DataFrame, MultiIndex, option_context, Index
 from pandas.compat import u, lrange, StringIO
 from pandas.util import testing as tm
 import pandas.io.formats.format as fmt
-
-div_style = ''
-try:
-    import IPython
-    if LooseVersion(IPython.__version__) < LooseVersion('3.0.0'):
-        div_style = ' style="max-width:1500px;overflow:auto;"'
-except (ImportError, AttributeError):
-    pass
 
 
 def expected_html(datapath, name):
