@@ -16,7 +16,7 @@ from cpython.datetime cimport (datetime, tzinfo,
                                PyDateTime_CheckExact, PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from ccalendar import DAY_SECONDS
+from ccalendar import DAY_SECONDS, HOUR_SECONDS
 
 from np_datetime cimport (check_dts_bounds,
                           npy_datetimestruct,
@@ -43,7 +43,6 @@ from nattype cimport NPY_NAT, checknull_with_nat
 # ----------------------------------------------------------------------
 # Constants
 
-cdef int64_t HOURS_NS = 3600000000000
 NS_DTYPE = np.dtype('M8[ns]')
 TD_DTYPE = np.dtype('m8[ns]')
 
@@ -876,6 +875,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         Py_ssize_t delta_idx_offset, delta_idx, pos_left, pos_right
         int64_t *tdata
         int64_t v, left, right, val, v_left, v_right, new_local, remaining_mins
+        int64_t HOURS_NS = HOUR_SECONDS * 1000000000
         ndarray[int64_t] result, result_a, result_b, dst_hours
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
