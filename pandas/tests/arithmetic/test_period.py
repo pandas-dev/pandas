@@ -553,18 +553,16 @@ class TestPeriodIndexArithmetic(object):
         rng -= pd.offsets.MonthEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_offset_n_gt1(self, box_transpose_fail):
+    def test_pi_add_offset_n_gt1(self, box5_tfail):
         # GH#23215
         # add offset to PeriodIndex with freq.n > 1
-        box, transpose = box_transpose_fail
-
         per = pd.Period('2016-01', freq='2M')
         pi = pd.PeriodIndex([per])
 
         expected = pd.PeriodIndex(['2016-03'], freq='2M')
 
-        pi = tm.box_expected(pi, box, transpose=transpose)
-        expected = tm.box_expected(expected, box, transpose=transpose)
+        pi = tm.box_expected(pi, box5_tfail)
+        expected = tm.box_expected(expected, box5_tfail)
 
         result = pi + per.freq
         tm.assert_equal(result, expected)
@@ -572,17 +570,14 @@ class TestPeriodIndexArithmetic(object):
         result = per.freq + pi
         tm.assert_equal(result, expected)
 
-    def test_pi_add_offset_n_gt1_not_divisible(self, box_with_period):
+    def test_pi_add_offset_n_gt1_not_divisible(self, box5_tfail):
         # GH#23215
         # PeriodIndex with freq.n > 1 add offset with offset.n % freq.n != 0
-        box = box_with_period
-
         pi = pd.PeriodIndex(['2016-01'], freq='2M')
         expected = pd.PeriodIndex(['2016-04'], freq='2M')
 
-        # FIXME: with transposing these tests fail
-        pi = tm.box_expected(pi, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        pi = tm.box_expected(pi, box5_tfail)
+        expected = tm.box_expected(expected, box5_tfail)
 
         result = pi + to_offset('3M')
         tm.assert_equal(result, expected)
@@ -796,16 +791,14 @@ class TestPeriodIndexArithmetic(object):
         with pytest.raises(period.IncompatibleFrequency, match=msg):
             rng -= other
 
-    def test_parr_add_sub_td64_nat(self, box_transpose_fail):
+    def test_parr_add_sub_td64_nat(self, box5_tfail):
         # GH#23320 special handling for timedelta64("NaT")
-        box, transpose = box_transpose_fail
-
         pi = pd.period_range("1994-04-01", periods=9, freq="19D")
         other = np.timedelta64("NaT")
         expected = pd.PeriodIndex(["NaT"] * 9, freq="19D")
 
-        obj = tm.box_expected(pi, box, transpose=transpose)
-        expected = tm.box_expected(expected, box, transpose=transpose)
+        obj = tm.box_expected(pi, box5_tfail)
+        expected = tm.box_expected(expected, box5_tfail)
 
         result = obj + other
         tm.assert_equal(result, expected)
@@ -898,10 +891,10 @@ class TestPeriodIndexSeriesMethods(object):
         tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize('ng', ["str", 1.5])
-    def test_pi_ops_errors(self, ng, box_with_period):
+    def test_pi_ops_errors(self, ng, box4):
         idx = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                           freq='M', name='idx')
-        obj = tm.box_expected(idx, box_with_period)
+        obj = tm.box_expected(idx, box4)
 
         msg = r"unsupported operand type\(s\)"
         with pytest.raises(TypeError, match=msg):

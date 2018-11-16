@@ -413,19 +413,18 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with pytest.raises(TypeError, match=msg):
             idx - Timestamp('2011-01-01')
 
-    def test_td64arr_add_timestamp(self, box, tz_naive_fixture):
+    def test_td64arr_add_timestamp(self, box5_and_tz):
         # GH#23215
         # TODO: parametrize over scalar datetime types?
-        tz = tz_naive_fixture
+        box, tz = box5_and_tz
+
         other = Timestamp('2011-01-01', tz=tz)
 
         idx = TimedeltaIndex(['1 day', '2 day'])
         expected = DatetimeIndex(['2011-01-02', '2011-01-03'], tz=tz)
 
-        # FIXME: fails with transpose=True because of tz-aware DataFrame
-        #  transpose bug
-        idx = tm.box_expected(idx, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        idx = tm.box_expected(idx, box)
+        expected = tm.box_expected(expected, box)
 
         result = idx + other
         tm.assert_equal(result, expected)

@@ -5,8 +5,21 @@ import numpy as np
 import pandas as pd
 
 from pandas.compat import long
-from pandas.core.arrays import PeriodArray, DatetimeArrayMixin as DatetimeArray
+import pandas.util.testing as tm
 
+
+# ------------------------------------------------------------------
+# Helper Functions
+
+def id_func(x):
+    if isinstance(x, tuple):
+        assert len(x) == 2
+        return x[0].__name__ + '-' + str(x[1])
+    else:
+        return x.__name__
+
+
+# ------------------------------------------------------------------
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
 def one(request):
@@ -137,7 +150,7 @@ def mismatched_freq(request):
 # ------------------------------------------------------------------
 
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame],
-                ids=lambda x: x.__name__)
+                ids=id_func)
 def box(request):
     """
     Several array-like containers that should have effectively identical
@@ -150,7 +163,7 @@ def box(request):
                         pd.Series,
                         pytest.param(pd.DataFrame,
                                      marks=pytest.mark.xfail(strict=True))],
-                ids=lambda x: x.__name__)
+                ids=id_func)
 def box_df_fail(request):
     """
     Fixture equivalent to `box` fixture but xfailing the DataFrame case.
@@ -158,34 +171,73 @@ def box_df_fail(request):
     return request.param
 
 
-@pytest.fixture(params=[(pd.Index, False),
-                        (pd.Series, False),
-                        (pd.DataFrame, False),
-                        pytest.param((pd.DataFrame, True),
-                                     marks=pytest.mark.xfail(strict=True))],
-                ids=lambda x: x[0].__name__ + '-' + str(x[1]))
-def box_transpose_fail(request):
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array],
+                ids=id_func)
+def box4(request):
     """
-    Fixture similar to `box` but testing both transpose cases for DataFrame,
-    with the tranpose=True case xfailed.
+    Fixture to test on each of Index, Series, DataFrame, and pandas Array
+    classes.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[pd.Index,
+                        pd.Series,
+                        (pd.DataFrame, False),
+                        (pd.DataFrame, True),
+                        tm.to_array],
+                ids=id_func)
+def box5(request):
+    """
+    Like `box4`, but the DataFrame case with box transpose=True and
+    transpose=False
     """
     # GH#23620
     return request.param
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, PeriodArray],
-                ids=lambda x: x.__name__)
-def box_with_period(request):
+@pytest.fixture(params=[pd.Index,
+                        pd.Series,
+                        (pd.DataFrame, False),
+                        pytest.param((pd.DataFrame, True),
+                                     marks=pytest.mark.xfail(strict=True)),
+                        tm.to_array],
+                ids=id_func)
+def box5_tfail(request):
     """
-    Like `box`, but specific to PeriodDtype for also testing PeriodArray
+    Like `box5`, but xfailing the transposed DataFrame case
     """
+    # GH#23620
     return request.param
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, DatetimeArray],
-                ids=lambda x: x.__name__)
-def box_with_datetime(request):
+# Construct tuples of the form (box, tz) over all our box classes and
+#  the timezones in tz_naive_fixture.  We then xfail the cases where the box
+#  is a DataFrame-with-transpose and the timezone is not tz-naive (i.e. None)
+boxes = [pd.Index,
+         pd.Series,
+         (pd.DataFrame, False),
+         (pd.DataFrame, True),
+         tm.to_array]
+
+# copied from pandas.conftest tz_naive_fixture
+TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
+             'dateutil/Asia/Singapore']
+
+params = [(x, y) for x in boxes for y in TIMEZONES]
+for n in range(len(params)):
+    tup = params[n]
+    if isinstance(tup[0], tuple) and tup[0][1] is True and tup[1] is not None:
+        # i.e. (DataFrame, True, tzinfo) excluding the no-tzinfo case
+        param = pytest.param(tup, marks=pytest.mark.xfail(strict=True))
+        params[n] = param
+
+
+@pytest.fixture(params=params)
+def box5_and_tz(request):
     """
-    Like `box`, but specific to datetime64 for also testing DatetimeArray
+    Fixture to test over Index, Series, DataFrame, and pandas Array, also
+    providing timezones, xfailing timezone-aware cases with transposed
+    DataFrame
     """
     return request.param
