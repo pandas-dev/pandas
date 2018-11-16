@@ -11,12 +11,12 @@
 	const links = Array.from(document.getElementsByTagName("a"));
 	links.forEach((link) => {
 		const re = /(whatsnew.html)#(whatsnew)-[\d]+(-\w+)+/g;
-		let linkElements = link.href.split("/");		
+		let linkElements = link.href.split("/");
 		if (re.test(linkElements.slice(-1)[0])) {
 			let whatsNew = linkElements.slice(-1)[0].split("#");
 			whatsNew = generateWhatsNew(whatsNew);
 			linkElements[linkElements.length - 1] = whatsNew;
-			link.href = linkElements.join("/")
+			link.href = linkElements.join("/");
 		}
 	});
 })();
