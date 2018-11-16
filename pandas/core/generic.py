@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
     is_integer, is_bool,
     is_bool_dtype,
     is_numeric_dtype,
+    is_datetime64_dtype,
     is_datetime64_any_dtype,
     is_timedelta64_dtype,
     is_datetime64tz_dtype,
@@ -34,7 +35,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCPanel, ABCDataFrame, ABCDatetimeIndex)
 
 from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, ensure_index,
@@ -683,11 +685,52 @@ class NDFrame(PandasObject, SelectionMixin):
 
         new_axes = self._construct_axes_dict_from(self, [self._get_axis(x)
                                                          for x in axes_names])
-        new_values = self.values.transpose(axes_numbers)
-        if kwargs.pop('copy', None) or (len(args) and args[-1]):
-            new_values = new_values.copy()
 
+        copy = kwargs.pop('copy', None) or (len(args) and args[-1])
         nv.validate_transpose_for_generic(self, kwargs)
+
+        values = self.values
+        if (isinstance(values, ABCDatetimeIndex) and
+                values.tz is not None and self.ndim > 1):
+            # transpose is a no-op, and passing axes would raise ValueError
+            #  as the DatetimeIndex.transpose method does not accept that kwarg
+            tz = values.tz
+            utc_values = values.asi8.reshape(self.shape)
+            utc_values = utc_values.transpose(axes_numbers)
+            if copy:
+                utc_values = utc_values.copy()
+            result = self._constructor(utc_values, **new_axes)
+            if self.ndim > 2:
+                # We're assuming DataFrame from here on
+                raise NotImplementedError
+
+            for col in result.columns:
+                result[col] = pd.DatetimeIndex(result[col], tz=tz)
+            return result.__finalize__(self)
+
+        else:
+            new_values = values.transpose(axes_numbers)
+            if copy:
+                new_values = new_values.copy()
+
+            if is_datetime64_dtype(new_values):
+                # case where we have multiple columns with identical
+                #  datetime64tz dtypes; the dtype will be lost in the call
+                #  to `self.values`, so we need to restore it.
+                dtypes = self.dtypes
+                if (any(is_datetime64tz_dtype(d) for d in dtypes) and
+                        all(d == dtypes[0] for d in dtypes)):
+                    # these values represent UTC timestamps
+                    new_values = new_values.view('i8')
+                    result = self._constructor(new_values, **new_axes)
+                    if self.ndim != 2:
+                        # assuming DataFrame from here on out
+                        raise NotImplementedError
+                    tz = self.dtypes[0].tz
+                    for col in result.columns:
+                        result[col] = pd.DatetimeIndex(result[col], tz=tz)
+                    return result.__finalize__(self)
+
         return self._constructor(new_values, **new_axes).__finalize__(self)
 
     def swapaxes(self, axis1, axis2, copy=True):

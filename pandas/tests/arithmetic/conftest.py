@@ -161,6 +161,19 @@ def box_df_fail(request):
 @pytest.fixture(params=[(pd.Index, False),
                         (pd.Series, False),
                         (pd.DataFrame, False),
+                        (pd.DataFrame, True)],
+                ids=lambda x: x[0].__name__ + '-' + str(x[1]))
+def box_with_transpose(request):
+    """
+    Fixture similar to `box` but testing both transpose cases for DataFrame
+    """
+    # GH#23620
+    return request.param
+
+
+@pytest.fixture(params=[(pd.Index, False),
+                        (pd.Series, False),
+                        (pd.DataFrame, False),
                         pytest.param((pd.DataFrame, True),
                                      marks=pytest.mark.xfail(strict=True))],
                 ids=lambda x: x[0].__name__ + '-' + str(x[1]))
@@ -187,5 +200,19 @@ def box_with_period(request):
 def box_with_datetime(request):
     """
     Like `box`, but specific to datetime64 for also testing DatetimeArray
+    """
+    return request.param
+
+
+@pytest.fixture(params=[(pd.Index, False),
+                        (pd.Series, False),
+                        (pd.DataFrame, False),
+                        (pd.DataFrame, True),
+                        (DatetimeArray, False)],
+                ids=lambda x: x[0].__name__ + '-' + str(x[1]))
+def box_T_with_datetime(request):
+    """
+    Like `box`, but specific to datetime64 for also testing DatetimeArray,
+    and both transpose cases for DataFrame
     """
     return request.param

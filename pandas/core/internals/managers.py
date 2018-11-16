@@ -14,6 +14,7 @@ from pandas.compat import range, map, zip
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
+    is_datetime64tz_dtype,
     is_datetimelike_v_numeric,
     is_numeric_v_string_like, is_extension_type,
     is_extension_array_dtype,
@@ -781,6 +782,9 @@ class BlockManager(PandasObject):
             dtype = dtype.subtype
         elif is_extension_array_dtype(dtype):
             dtype = 'object'
+        elif is_datetime64tz_dtype(dtype):
+            # TODO: we shouldn't be temporarily-dropping dtype information
+            dtype = 'M8[ns]'
 
         result = np.empty(self.shape, dtype=dtype)
 

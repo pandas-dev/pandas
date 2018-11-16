@@ -939,3 +939,34 @@ def test_unstack_fill_frame_object():
         index=list('xyz')
     )
     assert_frame_equal(result, expected)
+
+
+def test_transpose_dt64tz():
+    # GH#???? transposing a DataFrame with a single datetime64tz column should
+    #  not raise ValueError
+
+    dti = pd.date_range('1977-04-15', periods=3, freq='MS', tz='US/Hawaii')
+
+    # For reasons unknown this error shows up differently depending on how the
+    #  DataFrame was constructed, so we do this several different ways.
+
+    df1 = dti.to_series(keep_tz=True).to_frame()
+    df2 = pd.DataFrame(dti, index=dti)
+    df3 = pd.Series(dti, index=dti).to_frame()
+
+    tm.assert_frame_equal(df1, df2)
+    tm.assert_frame_equal(df2, df3)
+
+    for frame in [df1, df2, df3]:
+        frame.T
+        tm.assert_frame_equal(frame.T.T, frame)
+
+    # Now going the other direction, we have to manually construct the
+    #  transposed dataframe
+    df = pd.DataFrame(np.arange(9).reshape(3, 3))
+    df[0] = dti[0]
+    df[1] = dti[1]
+    df[2] = dti[2]
+
+    df.T
+    tm.assert_frame_equal(df.T.T, df)
