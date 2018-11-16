@@ -1061,6 +1061,14 @@ class IntervalIndex(IntervalMixin, Index):
                                           name=result_name)
         return func
 
+    @property
+    def is_all_dates(self):
+        """
+        This is False even when left/right contain datetime-like objects,
+        as the check is done on the Interval itself
+        """
+        return False
+
     union = _setop('union')
     intersection = _setop('intersection')
     difference = _setop('difference')
@@ -1177,7 +1185,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
     See Also
     --------
-    IntervalIndex : an Index of intervals that are all closed on the same side.
+    IntervalIndex : An Index of intervals that are all closed on the same side.
     """
     start = com.maybe_box_datetimelike(start)
     end = com.maybe_box_datetimelike(end)

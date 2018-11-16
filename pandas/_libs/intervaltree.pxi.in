@@ -4,21 +4,6 @@ Template for intervaltree
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-from numpy cimport (
-    int64_t, int32_t, float64_t, float32_t, uint64_t,
-    ndarray,
-    PyArray_ArgSort, NPY_QUICKSORT, PyArray_Take)
-import numpy as np
-
-cimport cython
-from cython cimport Py_ssize_t
-
-cimport numpy as cnp
-cnp.import_array()
-
-from hashtable cimport Int64Vector, Int64VectorData
-
-
 ctypedef fused scalar_t:
     float64_t
     float32_t
@@ -26,10 +11,9 @@ ctypedef fused scalar_t:
     int32_t
     uint64_t
 
-
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # IntervalTree
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 cdef class IntervalTree(IntervalMixin):
     """A centered interval tree
@@ -132,7 +116,7 @@ cdef class IntervalTree(IntervalMixin):
         enclosing = self.get_loc(0.5 * (key_left + key_right))
         combined = np.concatenate([left_overlap, right_overlap, enclosing])
         uniques = pd.unique(combined)
-        return uniques
+        return uniques.astype('intp')
 
     def get_indexer(self, scalar_t[:] target):
         """Return the positions corresponding to unique intervals that overlap
@@ -203,9 +187,10 @@ cdef sort_values_and_indices(all_values, all_indices, subset):
     sorted_indices = take(indices, sorter)
     return sorted_values, sorted_indices
 
-#----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # Nodes
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 # we need specialized nodes and leaves to optimize for different dtype and
 # closed values

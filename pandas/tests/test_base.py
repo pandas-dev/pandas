@@ -47,9 +47,9 @@ class CheckImmutable(object):
     mutable_regex = re.compile('does not support mutable operations')
 
     def check_mutable_error(self, *args, **kwargs):
-        # Pass whatever function you normally would to assert_raises_regex
+        # Pass whatever function you normally would to pytest.raises
         # (after the Exception kind).
-        tm.assert_raises_regex(
+        pytest.raises(
             TypeError, self.mutable_regex, *args, **kwargs)
 
     def test_no_mutable_funcs(self):
@@ -848,9 +848,9 @@ class TestIndexOps(Ops):
                 result = idx.drop_duplicates(keep=False)
                 tm.assert_index_equal(result, idx[~expected])
 
-                with tm.assert_raises_regex(
-                        TypeError, r"drop_duplicates\(\) got an unexpected "
-                        "keyword argument"):
+                with pytest.raises(TypeError,
+                                   match=(r"drop_duplicates\(\) got an "
+                                          r"unexpected keyword argument")):
                     idx.drop_duplicates(inplace=True)
 
             else:
@@ -1036,10 +1036,10 @@ class TestTranspose(Ops):
 
     def test_transpose_non_default_axes(self):
         for obj in self.objs:
-            tm.assert_raises_regex(ValueError, self.errmsg,
-                                   obj.transpose, 1)
-            tm.assert_raises_regex(ValueError, self.errmsg,
-                                   obj.transpose, axes=1)
+            with pytest.raises(ValueError, match=self.errmsg):
+                obj.transpose(1)
+            with pytest.raises(ValueError, match=self.errmsg):
+                obj.transpose(axes=1)
 
     def test_numpy_transpose(self):
         for obj in self.objs:
@@ -1048,8 +1048,8 @@ class TestTranspose(Ops):
             else:
                 tm.assert_series_equal(np.transpose(obj), obj)
 
-            tm.assert_raises_regex(ValueError, self.errmsg,
-                                   np.transpose, obj, axes=1)
+            with pytest.raises(ValueError, match=self.errmsg):
+                np.transpose(obj, axes=1)
 
 
 class TestNoNewAttributesMixin(object):

@@ -88,7 +88,7 @@ def _maybe_match_name(a, b):
     -------
     name : str or None
 
-    See also
+    See Also
     --------
     pandas.core.common.consensus_name_attr
     """
@@ -609,7 +609,7 @@ d    1.0
 e    NaN
 dtype: float64
 
-See also
+See Also
 --------
 Series.{reverse}
 """
@@ -673,7 +673,7 @@ Examples
 --------
 {df_examples}
 
-See also
+See Also
 --------
 DataFrame.{reverse}
 """
@@ -692,7 +692,7 @@ Returns
 -------
 Panel
 
-See also
+See Also
 --------
 Panel.{reverse}
 """

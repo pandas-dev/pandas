@@ -64,14 +64,14 @@ class TestTimestampTZOperations(object):
             ts.tz_localize('US/Eastern', ambiguous='infer')
 
         # GH#8025
-        with tm.assert_raises_regex(TypeError,
-                                    'Cannot localize tz-aware Timestamp, '
-                                    'use tz_convert for conversions'):
+        msg = ('Cannot localize tz-aware Timestamp, '
+               'use tz_convert for conversions')
+        with pytest.raises(TypeError, match=msg):
             Timestamp('2011-01-01', tz='US/Eastern').tz_localize('Asia/Tokyo')
 
-        with tm.assert_raises_regex(TypeError,
-                                    'Cannot convert tz-naive Timestamp, '
-                                    'use tz_localize to localize'):
+        msg = ('Cannot convert tz-naive Timestamp, '
+               'use tz_localize to localize')
+        with pytest.raises(TypeError, match=msg):
             Timestamp('2011-01-01').tz_convert('Asia/Tokyo')
 
     @pytest.mark.parametrize('stamp, tz', [
