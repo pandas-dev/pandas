@@ -1498,7 +1498,9 @@ def dtype_conversions(data, copy, has_format=False):
     return data, copy
 
 
-def _objects_to_datetime64ns(data, dayfirst, yearfirst):
+def objects_to_datetime64ns(data, dayfirst, yearfirst,
+                            tz=None, errors="raise",
+                            require_iso8601=False, allow_object=False):
     """
     Convert data to array of timestamps.
 
@@ -1507,21 +1509,24 @@ def _objects_to_datetime64ns(data, dayfirst, yearfirst):
     data : np.ndarray[object]
     dayfirst : bool
     yearfirst : bool
+    tz : {None, 'utc'}
+    errors : {'raise', 'ignore', 'coerce'}
+    allow_object : bool
 
     Returns
     -------
     result : ndarray
         np.int64 dtype if returned values represent UTC timestamps
         np.datetime64[ns] if returned values represent wall times
+        object if mixed timezones
     inferred_tz : tzinfo or None
 
     Raises
     ------
     ValueError : if data cannot be converted to datetimes
     """
-    errors = "raise"
-    tz = None
-    require_iso8601 = False
+    assert errors in ["raise", "ignore", "coerce"]
+    assert tz is None or tz == "utc"
 
     # if str-dtype, convert
     data = np.array(data, copy=False, dtype=np.object_)
@@ -1537,10 +1542,10 @@ def _objects_to_datetime64ns(data, dayfirst, yearfirst):
         )
     except ValueError as e:
         try:
-            values, tz = conversion.datetime_to_datetime64(data)
+            values, tz_parsed = conversion.datetime_to_datetime64(data)
             # If tzaware, these values represent unix timestamps, so we
             #  return them as i8 to distinguish from wall times
-            return values.view('i8'), tz
+            return values.view('i8'), tz_parsed
         except (ValueError, TypeError):
             raise e
 
@@ -1552,11 +1557,12 @@ def _objects_to_datetime64ns(data, dayfirst, yearfirst):
     elif is_datetime64_dtype(result):
         # returning M8[ns] denotes wall-times; since tz is None
         #  the distinction is a thin one
-        return result, tz
+        return result, tz_parsed
     elif is_object_dtype(result):
-        # e.g. an Index of datetime objects; raise and let the
-        #  calling function salvage the result if desired
-        raise ValueError(result)
+        if allow_object:
+            # allowed by to_datetime, not by DatetimeIndex constructor
+            return result, tz_parsed
+        raise TypeError(result)
     else:  # pragma: no cover
         raise TypeError(result)
 

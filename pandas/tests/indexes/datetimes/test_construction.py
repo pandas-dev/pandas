@@ -13,25 +13,27 @@ import pandas as pd
 from pandas import (
     DatetimeIndex, Index, Timestamp, date_range, datetime, offsets,
     to_datetime)
+from pandas.core.arrays import period_array
 import pandas.util.testing as tm
 
 
 class TestDatetimeIndex(object):
 
     def test_dti_with_period_data_raises(self):
-        data = pd.PeriodIndex(['2016Q1', '2017Q1'])
+        # GH#23675
+        data = pd.PeriodIndex(['2016Q1', '2016Q2'], freq='Q')
 
         with pytest.raises(TypeError, match="PeriodDtype data is invalid"):
-            result = DatetimeIndex(data)
+            DatetimeIndex(data)
 
         with pytest.raises(TypeError, match="PeriodDtype data is invalid"):
-            result = to_datetime(data)
+            to_datetime(data)
 
         with pytest.raises(TypeError, match="PeriodDtype data is invalid"):
-            result = DatetimeIndex(pd.period_array(data))
+            DatetimeIndex(period_array(data))
 
         with pytest.raises(TypeError, match="PeriodDtype data is invalid"):
-            result = to_datetime(pd.period_array(data))
+            to_datetime(period_array(data))
 
     def test_dti_with_timedelta64_data_deprecation(self):
         # GH#23675
@@ -41,7 +43,7 @@ class TestDatetimeIndex(object):
 
         assert result[0] == Timestamp('1970-01-01')
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = to_datetime(data)
 
         assert result[0] == Timestamp('1970-01-01')
@@ -51,7 +53,7 @@ class TestDatetimeIndex(object):
 
         assert result[0] == Timestamp('1970-01-01')
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = to_datetime(pd.TimedeltaIndex(data))
 
         assert result[0] == Timestamp('1970-01-01')
