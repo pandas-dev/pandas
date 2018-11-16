@@ -537,12 +537,21 @@ baz,7,8,9
         assert len(result) == 3
         tm.assert_frame_equal(pd.concat(result), expected)
 
-        # skipfooter is not supported with the C parser yet
-        if self.engine == 'python':
-            # test bad parameter (skipfooter)
-            reader = self.read_csv(StringIO(self.data1), index_col=0,
-                                   iterator=True, skipfooter=1)
-            pytest.raises(ValueError, reader.read, 3)
+    @pytest.mark.parametrize("kwargs", [
+        dict(iterator=True,
+             chunksize=1),
+        dict(iterator=True),
+        dict(chunksize=1)
+    ])
+    def test_iterator_skipfooter_errors(self, kwargs):
+        msg = "'skipfooter' not supported for 'iteration'"
+        with pytest.raises(ValueError, match=msg):
+            self.read_csv(StringIO(self.data1), skipfooter=1, **kwargs)
+
+    def test_nrows_skipfooter_errors(self):
+        msg = "'skipfooter' not supported with 'nrows'"
+        with pytest.raises(ValueError, match=msg):
+            self.read_csv(StringIO(self.data1), skipfooter=1, nrows=5)
 
     def test_pass_names_with_index(self):
         lines = self.data1.split('\n')

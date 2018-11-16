@@ -1029,6 +1029,8 @@ Deprecations
   `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
 - :func:`pandas.read_excel` has deprecated accepting ``usecols`` as an integer. Please pass in a list of ints from 0 to ``usecols`` inclusive instead (:issue:`23527`)
 - Constructing a :class:`TimedeltaIndex` from data with ``datetime64``-dtyped data is deprecated, will raise ``TypeError`` in a future version (:issue:`23539`)
+- The ``keep_tz=False`` option (the default) of the ``keep_tz`` keyword of
+  :meth:`DatetimeIndex.to_series` is deprecated (:issue:`17832`).
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
@@ -1360,6 +1362,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - :func:`read_csv()` and func:`read_table()` will throw ``UnicodeError`` and not coredump on badly encoded strings (:issue:`22748`)
 - :func:`read_csv()` will correctly parse timezone-aware datetimes (:issue:`22256`)
 - Bug in :func:`read_csv()` in which memory management was prematurely optimized for the C engine when the data was being read in chunks (:issue:`23509`)
+- Bug in :func:`read_csv()` in unnamed columns were being improperly identified when extracting a multi-index (:issue:`23687`)
 - :func:`read_sas()` will parse numbers in sas7bdat-files that have width less than 8 bytes correctly. (:issue:`21616`)
 - :func:`read_sas()` will correctly parse sas7bdat files with many columns (:issue:`22628`)
 - :func:`read_sas()` will correctly parse sas7bdat files with data page types having also bit 7 set (so page type is 128 + 256 = 384) (:issue:`16615`)
@@ -1369,6 +1372,7 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :func:`DataFrame.to_string()` that caused representations of :class:`DataFrame` to not take up the whole window (:issue:`22984`)
 - Bug in :func:`DataFrame.to_csv` where a single level MultiIndex incorrectly wrote a tuple. Now just the value of the index is written (:issue:`19589`).
 - Bug in :meth:`HDFStore.append` when appending a :class:`DataFrame` with an empty string column and ``min_itemsize`` < 8 (:issue:`12242`)
+- Bug in :func:`read_csv()` in which incorrect error messages were being raised when ``skipfooter`` was passed in along with ``nrows``, ``iterator``, or ``chunksize`` (:issue:`23711`)
 - Bug in :meth:`read_csv()` in which :class:`MultiIndex` index names were being improperly handled in the cases when they were not provided (:issue:`23484`)
 - Bug in :meth:`read_html()` in which the error message was not displaying the valid flavors when an invalid one was provided (:issue:`23549`)
 - Bug in :meth:`read_excel()` in which ``index_col=None`` was not being respected and parsing index columns anyway (:issue:`20480`)

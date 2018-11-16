@@ -787,6 +787,12 @@ class TextFileReader(BaseIterator):
                                   stacklevel=2)
                 kwds[param] = dialect_val
 
+        if kwds.get("skipfooter"):
+            if kwds.get("iterator") or kwds.get("chunksize"):
+                raise ValueError("'skipfooter' not supported for 'iteration'")
+            if kwds.get("nrows"):
+                raise ValueError("'skipfooter' not supported with 'nrows'")
+
         if kwds.get('header', 'infer') == 'infer':
             kwds['header'] = 0 if kwds.get('names') is None else None
 
@@ -1054,11 +1060,6 @@ class TextFileReader(BaseIterator):
 
     def read(self, nrows=None):
         nrows = _validate_integer('nrows', nrows)
-
-        if nrows is not None:
-            if self.options.get('skipfooter'):
-                raise ValueError('skipfooter not supported for iteration')
-
         ret = self._engine.read(nrows)
 
         # May alter columns / col_dict
@@ -1387,22 +1388,20 @@ class ParserBase(object):
         columns = lzip(*[extract(r) for r in header])
         names = ic + columns
 
-        def tostr(x):
-            return str(x) if not isinstance(x, compat.string_types) else x
-
-        # if we find 'Unnamed' all of a single level, then our header was too
-        # long
+        # If we find unnamed columns all in a single
+        # level, then our header was too long.
         for n in range(len(columns[0])):
-            if all('Unnamed' in tostr(c[n]) for c in columns):
+            if all(compat.to_str(c[n]) in self.unnamed_cols for c in columns):
                 raise ParserError(
                     "Passed header=[%s] are too many rows for this "
                     "multi_index of columns"
                     % ','.join(str(x) for x in self.header)
                 )
 
-        # clean the column names (if we have an index_col)
+        # Clean the column names (if we have an index_col).
         if len(ic):
-            col_names = [r[0] if len(r[0]) and 'Unnamed' not in r[0] else None
+            col_names = [r[0] if (len(r[0]) and
+                                  r[0] not in self.unnamed_cols) else None
                          for r in header]
         else:
             col_names = [None] * len(header)
