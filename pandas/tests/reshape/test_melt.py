@@ -269,6 +269,7 @@ class TestMelt(object):
                                  Col="\\['not_here', 'or_there'\\]")):
             df.melt(['a', 'b', 'not_here', 'or_there'], ['c', 'd'])
 
+
 class TestLreshape(object):
 
     def test_pairs(self):
@@ -339,6 +340,7 @@ class TestLreshape(object):
         spec = {'visitdt': ['visitdt%d' % i for i in range(1, 3)],
                 'wt': ['wt%d' % i for i in range(1, 4)]}
         pytest.raises(ValueError, lreshape, df, spec)
+
 
 class TestWideToLong(object):
 

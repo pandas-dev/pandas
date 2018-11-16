@@ -12,8 +12,8 @@ from pandas.core.dtypes.missing import notna
 
 from pandas import compat
 from pandas.core.arrays import Categorical
-from pandas.core.indexes.base import Index
 from pandas.core.frame import _shared_docs
+from pandas.core.indexes.base import Index
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
 
