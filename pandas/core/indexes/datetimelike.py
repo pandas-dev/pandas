@@ -18,7 +18,6 @@ from pandas.core.dtypes.common import (
     is_datetime_or_timedelta_dtype, is_dtype_equal, is_float, is_float_dtype,
     is_integer, is_integer_dtype, is_list_like, is_object_dtype,
     is_period_dtype, is_scalar, is_string_dtype)
-import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -59,7 +58,7 @@ class DatelikeOps(object):
 
     See Also
     --------
-    pandas.to_datetime : Convert the given argument to datetime
+    pandas.to_datetime : Convert the given argument to datetime.
     DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
     DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
     DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
@@ -214,6 +213,11 @@ class TimelikeOps(object):
 
 class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     """ common ops mixin to support a unified interface datetimelike Index """
+
+    # override DatetimeLikeArrayMixin method
+    copy = Index.copy
+    unique = Index.unique
+    take = Index.take
 
     # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
     # properties there.  They can be made into cache_readonly for Index
@@ -685,17 +689,21 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         """
         attribs = self._get_attributes_dict()
         attribs['name'] = name
+        # do not pass tz to set because tzlocal cannot be hashed
+        if len({str(x.dtype) for x in to_concat}) != 1:
+            raise ValueError('to_concat must have the same tz')
 
         if not is_period_dtype(self):
             # reset freq
             attribs['freq'] = None
-
-        if getattr(self, 'tz', None) is not None:
-            return _concat._concat_datetimetz(to_concat, name)
+            # TODO(DatetimeArray)
+            # - remove the .asi8 here
+            # - remove the _maybe_box_as_values
+            # - combine with the `else` block
+            new_data = self._concat_same_type(to_concat).asi8
         else:
-            new_data = np.concatenate([c.asi8 for c in to_concat])
+            new_data = type(self._values)._concat_same_type(to_concat)
 
-        new_data = self._maybe_box_as_values(new_data, **attribs)
         return self._simple_new(new_data, **attribs)
 
     def _maybe_box_as_values(self, values, **attribs):
@@ -704,7 +712,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         # but others are not. When everyone is an ExtensionArray, this can
         # be removed. Currently used in
         # - sort_values
-        # - _concat_same_dtype
         return values
 
     def astype(self, dtype, copy=True):
@@ -761,7 +768,7 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
         try:
             return np.array(other, copy=False).view('i8')
         except TypeError:
-            # period array cannot be coerces to int
+            # period array cannot be coerced to int
             other = Index(other)
     return other.asi8
 
