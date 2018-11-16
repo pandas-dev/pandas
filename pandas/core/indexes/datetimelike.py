@@ -230,7 +230,11 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     def __array__(self, dtype=None):
         # TODO properly dispatch to EA
-        return Index.__array__(self)
+        if is_period_dtype(self):
+            return self._data.__array__(dtype=dtype)
+        if is_object_dtype(dtype):
+            return np.array(list(self), dtype=object)
+        return self._data
 
     def equals(self, other):
         """

@@ -168,7 +168,6 @@ class TestDatetimeArray(SharedTests):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_array_i8_dtype(self, tz_naive_fixture):
-        # GH#23524
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
         arr = DatetimeArray(dti)
@@ -180,10 +179,10 @@ class TestDatetimeArray(SharedTests):
         result = np.array(arr, dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
 
-        # check that we are not making copies when setting copy=False
+        # check that we are still making copies when setting copy=False
         result = np.array(arr, dtype='i8', copy=False)
-        assert result.base is expected.base
-        assert result.base is not None
+        assert result.base is not expected.base
+        assert result.base is None
 
     def test_from_dti(self, tz_naive_fixture):
         tz = tz_naive_fixture
