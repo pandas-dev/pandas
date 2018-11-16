@@ -23,18 +23,6 @@ except (ImportError, AttributeError):
     pass
 
 
-def _has_names(index):
-    if index.nlevels > 1:
-        return com._any_not_none(*index.names)
-    else:
-        return index.name is not None
-
-
-def _index_init_params(index):
-    return (index.nlevels > 1,
-            _has_names(index))
-
-
 @pytest.fixture(params=[True, False], ids=['index_true', 'index_false'])
 def index(request):
     # to_html() parameter values for index
@@ -90,37 +78,6 @@ def col_idx_type(request):
     # standard and multiIndex columns index, named and unnamed
     # used for basic table alignment tests
     return request.param
-
-
-@pytest.fixture
-def expected_output(datapath):
-    def _expected_output(idx_type, col_idx_type,
-                         index=True, header=True, index_names=True):
-
-        def _expected_output_name(idx_type, index, index_names):
-            is_multi, is_named = _index_init_params(idx_type)
-            if index is False:
-                return 'none'
-
-            idx_type_ids = {
-                (False, False): 'unnamed_standard',
-                (True, False): 'named_standard',
-                (False, True): 'unnamed_multi',
-                (True, True): 'named_multi'}
-
-            return idx_type_ids[(is_named and index_names, is_multi)]
-
-        return expected_html(datapath,
-                             '_'.join([
-                                 'index',
-                                 _expected_output_name(
-                                     idx_type, index, index_names),
-                                 'columns',
-                                 _expected_output_name(
-                                     col_idx_type, header, index_names)
-                             ])
-                             )
-    return _expected_output
 
 
 def expected_html(datapath, name):
@@ -2016,16 +1973,37 @@ class TestToHTML(object):
         assert result == expected
 
     @pytest.mark.parametrize('header', [True])
-    def test_to_html_index_names(self, expected_output,
-                                 idx_type, col_idx_type, index, header,
-                                 index_names):
+    def test_to_html_basic_alignment(self, datapath, idx_type, col_idx_type,
+                                     index, header, index_names):
+
+        def _exp_name(idx_type, index, index_names):
+            idx_type_ids = {
+                (False, False): 'unnamed_standard',
+                (True, False): 'named_standard',
+                (False, True): 'unnamed_multi',
+                (True, True): 'named_multi'
+            }
+
+            if index:
+                if idx_type.nlevels > 1:
+                    has_names = com._any_not_none(*idx_type.names)
+                else:
+                    has_names = idx_type.name is not None
+                return idx_type_ids[(has_names and index_names,
+                                     idx_type.nlevels > 1)]
+            else:
+                return 'none'
+
         df = DataFrame(np.zeros((2, 2), dtype=int),
                        index=idx_type, columns=col_idx_type)
         result = df.to_html(index=index, header=header,
                             index_names=index_names)
-        expected = expected_output(idx_type, col_idx_type,
-                                   index=index, header=header,
-                                   index_names=index_names)
+        filename = '_'.join(['index',
+                             _exp_name(idx_type, index, index_names),
+                             'columns',
+                             _exp_name(col_idx_type, header, index_names)
+                             ])
+        expected = expected_html(datapath, filename)
         assert result == expected
 
     @pytest.mark.parametrize('index', [False, 0])
