@@ -53,7 +53,7 @@ class TestToHTML(object):
         check_with_width(df, 50)
 
     def test_to_html_with_empty_string_label(self):
-        # GH3547, to_html regards empty string labels as repeated labels
+        # GH 3547, to_html regards empty string labels as repeated labels
         data = {'c1': ['a', 'b'], 'c2': ['a', ''], 'data': [1, 2]}
         df = DataFrame(data).set_index(['c1', 'c2'])
         result = df.to_html()
@@ -235,7 +235,7 @@ class TestToHTML(object):
 
     def test_to_html_border_option(self):
         df = DataFrame({'A': [1, 2]})
-        with pd.option_context('display.html.border', 0):
+        with option_context('display.html.border', 0):
             result = df.to_html()
             assert 'border="0"' in result
             assert 'border="0"' in df._repr_html_()
@@ -339,7 +339,7 @@ class TestToHTML(object):
     @pytest.mark.parametrize("justify", ["super-right", "small-left",
                                          "noinherit", "tiny", "pandas"])
     def test_to_html_invalid_justify(self, justify):
-        # see gh-17527
+        # GH 17527
         df = DataFrame()
         msg = "Invalid value for justify parameter"
 
@@ -422,7 +422,7 @@ class TestToHTML(object):
                 [1.867558, -0.977278],
                 [0.950088, -0.151357],
                 [-0.103219, 0.410599]]
-        df = pd.DataFrame(data)
+        df = DataFrame(data)
         result = df.to_html(max_rows=4, index=index)
         expected = expected_html(datapath, 'gh15019_expected_output')
         assert result == expected
@@ -432,35 +432,35 @@ class TestToHTML(object):
         # GH 22783
         data = [[1.764052, 0.400157, 0.978738, 2.240893, 1.867558],
                 [-0.977278, 0.950088, -0.151357, -0.103219, 0.410599]]
-        df = pd.DataFrame(data)
+        df = DataFrame(data)
         result = df.to_html(max_cols=4, index=index)
         expected = expected_html(datapath, 'gh22783_expected_output')
         assert result == expected
 
     def test_to_html_notebook_has_style(self):
-        df = pd.DataFrame({"A": [1, 2, 3]})
+        df = DataFrame({"A": [1, 2, 3]})
         result = df.to_html(notebook=True)
         assert "tbody tr th:only-of-type" in result
         assert "vertical-align: middle;" in result
         assert "thead th" in result
 
     def test_to_html_notebook_has_no_style(self):
-        df = pd.DataFrame({"A": [1, 2, 3]})
+        df = DataFrame({"A": [1, 2, 3]})
         result = df.to_html()
         assert "tbody tr th:only-of-type" not in result
         assert "vertical-align: middle;" not in result
         assert "thead th" not in result
 
     def test_to_html_with_index_names_false(self):
-        # gh-16493
-        df = pd.DataFrame({"A": [1, 2]}, index=pd.Index(['a', 'b'],
-                                                        name='myindexname'))
+        # GH 16493
+        df = DataFrame({"A": [1, 2]}, index=Index(['a', 'b'],
+                                                  name='myindexname'))
         result = df.to_html(index_names=False)
         assert 'myindexname' not in result
 
     def test_to_html_with_id(self):
-        # gh-8496
-        df = pd.DataFrame({"A": [1, 2]}, index=pd.Index(['a', 'b'],
-                                                        name='myindexname'))
+        # GH 8496
+        df = DataFrame({"A": [1, 2]}, index=Index(['a', 'b'],
+                                                  name='myindexname'))
         result = df.to_html(index_names=False, table_id="TEST_ID")
         assert ' id="TEST_ID"' in result
