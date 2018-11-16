@@ -589,7 +589,7 @@ run this command, though it will take longer::
 Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
-   git diff upstream/master --name-only -- ".py" | xargs flake8
+   git diff upstream/master --name-only -- "*.py" | xargs flake8
 
 Windows does not support the ``xargs`` command (unless installed for example
 via the `MinGW <http://www.mingw.org/>`__ toolchain), but one can imitate the
