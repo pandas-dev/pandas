@@ -1475,18 +1475,16 @@ def dtype_conversions(data, copy, has_format=False):
         # TODO: Why do we treat this differently from integer dtypes?
 
     elif is_timedelta64_dtype(data):
-        warnings.warn("Passing timedelta64-dtype data to {cls} is "
-                      "deprecated, will raise a TypeError in a future "
-                      "version".format(cls="TimedeltaIndex/Array"),
+        warnings.warn("Passing timedelta64-dtype data is deprecated, will "
+                      "raise a TypeError in a future version",
                       FutureWarning, stacklevel=3)
         data = data.view(_NS_DTYPE)
 
     elif is_period_dtype(data):
         # Note: without explicitly raising here, PeriondIndex
         #  test_setops.test_join_does_not_recur fails
-        raise TypeError("Passing PeriodDtype data to {cls} is invalid.  "
-                        "Use `data.to_timestamp()` instead"
-                        .format(cls="TimedeltaIndex/Array"))
+        raise TypeError("Passing PeriodDtype data is invalid.  "
+                        "Use `data.to_timestamp()` instead")
 
     elif is_extension_type(data) and not is_datetime64tz_dtype(data):
         # Includes categorical

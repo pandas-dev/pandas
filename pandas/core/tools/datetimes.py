@@ -224,7 +224,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
 
     # warn if passing timedelta64, raise for PeriodDtype
     # NB: this must come after unit transformation
-    arg = dtype_conversions(arg, False, has_format=format is not None)[0]
+    arg = dtype_conversions(arg, copy=False, has_format=format is not None)[0]
 
     arg = ensure_object(arg)
     require_iso8601 = False
