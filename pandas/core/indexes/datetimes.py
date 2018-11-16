@@ -529,7 +529,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                           "'keep_tz=True' to obtain the future behaviour and "
                           "silence this warning.", FutureWarning, stacklevel=2)
             keep_tz = False
-        elif not keep_tz:
+        elif keep_tz is False:
             warnings.warn("Specifying 'keep_tz=False' is deprecated and this "
                           "option will be removed in a future release. If "
                           "you want to remove the timezone information, you "
