@@ -9337,7 +9337,7 @@ class NDFrame(PandasObject, SelectionMixin):
                     tz = data.dt.tz
                     asint = data.dropna().values.view('i8')
                     top = Timestamp(top)
-                    if top.tz is not None and tz is not None:
+                    if top.tzinfo is not None and tz is not None:
                         # Don't tz_localize(None) if key is already tz-aware
                         top = top.tz_convert(tz)
                     else:

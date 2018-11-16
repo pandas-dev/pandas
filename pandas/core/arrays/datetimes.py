@@ -46,7 +46,7 @@ def _to_m8(key, tz=None):
     if not isinstance(key, Timestamp):
         # this also converts strings
         key = Timestamp(key)
-        if key.tz is not None and tz is not None:
+        if key.tzinfo is not None and tz is not None:
             # Don't tz_localize(None) if key is already tz-aware
             key = key.tz_convert(tz)
         else:
@@ -115,7 +115,7 @@ def _dt_array_cmp(cls, op):
                 # string that cannot be parsed to Timestamp
                 return ops.invalid_comparison(self, other, op)
 
-            result = meth(self, other)
+            result = op(self.asi8, other.view('i8'))
             if isna(other):
                 result.fill(nat_result)
         elif lib.is_scalar(other):
@@ -213,9 +213,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         return result
 
     def __new__(cls, values, freq=None, tz=None, dtype=None):
-        if tz is None and hasattr(values, 'tz'):
-            # e.g. DatetimeIndex
-            tz = values.tz
 
         if freq is None and hasattr(values, "freq"):
             # i.e. DatetimeArray, DatetimeIndex
@@ -226,9 +223,16 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
 
+        if isinstance(values, ABCSeries):
+            # extract to ndarray or DatetimeIndex
+            values = values._values
+
         if isinstance(values, DatetimeArrayMixin):
             # extract nanosecond unix timestamps
+            if tz is None:
+                tz = values.tz
             values = values.asi8
+
         if values.dtype == 'i8':
             values = values.view('M8[ns]')
 
