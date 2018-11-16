@@ -942,7 +942,7 @@ def test_unstack_fill_frame_object():
 
 
 def test_transpose_dt64tz():
-    # GH#???? transposing a DataFrame with a single datetime64tz column should
+    # GH#23730 transposing a DataFrame with a single datetime64tz column should
     #  not raise ValueError
 
     dti = pd.date_range('1977-04-15', periods=3, freq='MS', tz='US/Hawaii')
@@ -970,3 +970,24 @@ def test_transpose_dt64tz():
 
     df.T
     tm.assert_frame_equal(df.T.T, df)
+
+
+def test_transpose_dt64tz_mixed_tz():
+    # GH#23730 transposing two datetimetz columns with different tzs
+    dti = pd.date_range('1977-04-15', periods=3, freq='MS', tz='US/Hawaii')
+    dti2 = pd.date_range('1977-04-15', periods=3, freq='MS', tz='UTC')
+
+    df = pd.DataFrame({"A": dti, "B": dti2}, columns=["A", "B"])
+    df.T
+    tm.assert_frame_equal(df.T.T, df.astype(object))
+
+
+def test_transpose_dt64tz_mixed():
+    # GH#23730 transposing with datetimetz column and numeric column,
+    #  did not raise before but covering our bases
+
+    dti = pd.date_range('1977-04-15', periods=3, freq='MS', tz='US/Hawaii')
+    df = pd.DataFrame({"A": dti, "B": [3, 4, 5]}, columns=["A", "B"])
+
+    df.T
+    tm.assert_frame_equal(df.T.T, df.astype(object))
