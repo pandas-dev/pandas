@@ -647,7 +647,12 @@ class TestDatetimeIndexComparisons(object):
 # ------------------------------------------------------------------
 # Arithmetic
 
-class TestFrameArithmetic(object):
+class TestDatetime64Arithmetic(object):
+    # This class is intended for "finished" tests that are fully parametrized
+    #  over DataFrame/Series/Index/DatetimeArray
+
+    # -----------------------------------------------------------------
+    # Subtraction of datetime-like scalars
 
     @pytest.mark.parametrize('ts', [
         pd.Timestamp('2013-01-01'),
@@ -667,12 +672,11 @@ class TestFrameArithmetic(object):
     def test_dt64arr_sub_datetime64_not_ns(self, box):
         # GH#7996, GH#22163 ensure non-nano datetime64 is converted to nano
         #  for DataFrame operation
+        dt64 = np.datetime64('2013-01-01')
+        assert dt64.dtype == 'datetime64[D]'
 
         dti = pd.date_range('20130101', periods=3)
         dtarr = tm.box_expected(dti, box)
-
-        dt64 = np.datetime64('2013-01-01')
-        assert dt64.dtype == 'datetime64[D]'
 
         expected = pd.TimedeltaIndex(['0 Days', '1 Day', '2 Days'])
         expected = tm.box_expected(expected, box)
@@ -680,8 +684,8 @@ class TestFrameArithmetic(object):
         result = dtarr - dt64
         tm.assert_equal(result, expected)
 
-
-class TestTimestampSeriesArithmetic(object):
+        result = dt64 - dtarr
+        tm.assert_equal(result, -expected)
 
     def test_dt64arr_sub_timestamp(self, box):
         ser = pd.date_range('2014-03-17', periods=2, freq='D',
@@ -697,6 +701,38 @@ class TestTimestampSeriesArithmetic(object):
 
         tm.assert_equal(ser - ts, expected)
         tm.assert_equal(ts - ser, -expected)
+
+    # -------------------------------------------------------------
+    # Addition of datetime-like others (invalid)
+
+    def test_dt64arr_add_timestamp_raises(self, box_with_datetime):
+        # GH#22163 ensure DataFrame doesn't cast Timestamp to i8
+        idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
+        idx = tm.box_expected(idx, box_with_datetime)
+        msg = "cannot add"
+        with pytest.raises(TypeError, match=msg):
+            idx + Timestamp('2011-01-01')
+        with pytest.raises(TypeError, match=msg):
+            Timestamp('2011-01-01') + idx
+
+    # -------------------------------------------------------------
+    # Other Invalid Addition/Subtraction
+
+    @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
+    def test_dt64arr_add_sub_float(self, other, box_with_datetime):
+        dti = DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
+        dtarr = tm.box_expected(dti, box_with_datetime)
+        with pytest.raises(TypeError):
+            dtarr + other
+        with pytest.raises(TypeError):
+            other + dtarr
+        with pytest.raises(TypeError):
+            dtarr - other
+        with pytest.raises(TypeError):
+            other - dtarr
+
+
+class TestTimestampSeriesArithmetic(object):
 
     def test_dt64ser_sub_datetime_dtype(self):
         ts = Timestamp(datetime(1993, 1, 7, 13, 30, 00))
@@ -753,24 +789,6 @@ class TestTimestampSeriesArithmetic(object):
 
         if op_str not in ['__add__', '__radd__', '__sub__', '__rsub__']:
             check(dt2, td2)
-
-    def test_sub_datetime64_not_ns(self, box):
-        # GH#7996 operation with non-nano datetime64 scalar
-        dt64 = np.datetime64('2013-01-01')
-        assert dt64.dtype == 'datetime64[D]'
-
-        obj = date_range('20130101', periods=3)
-        obj = tm.box_expected(obj, box)
-
-        expected = TimedeltaIndex([Timedelta(days=0), Timedelta(days=1),
-                                   Timedelta(days=2)])
-        expected = tm.box_expected(expected, box)
-
-        result = obj - dt64
-        tm.assert_equal(result, expected)
-
-        result = dt64 - obj
-        tm.assert_equal(result, -expected)
 
     def test_sub_single_tz(self):
         # GH#12290
@@ -1069,23 +1087,6 @@ class TestDatetimeIndexArithmetic(object):
     # -------------------------------------------------------------
     # Invalid Operations
 
-    @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
-    @pytest.mark.parametrize('op', [operator.add, ops.radd,
-                                    operator.sub, ops.rsub])
-    def test_dti_add_sub_float(self, op, other):
-        dti = DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
-        with pytest.raises(TypeError):
-            op(dti, other)
-
-    def test_dti_add_timestamp_raises(self, box_with_datetime):
-        # GH#22163 ensure DataFrame doesn't cast Timestamp to i8
-        idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
-        idx = tm.box_expected(idx, box_with_datetime)
-        msg = "cannot add"
-        with pytest.raises(TypeError, match=msg):
-            idx + Timestamp('2011-01-01')
-        with pytest.raises(TypeError, match=msg):
-            Timestamp('2011-01-01') + idx
 
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and int
