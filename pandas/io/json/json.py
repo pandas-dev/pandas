@@ -320,7 +320,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         .. versionadded:: 0.19.0
 
-    chunksize: integer, default None
+    chunksize : integer, default None
         Return JsonReader object for iteration.
         See the `line-delimted json docs
         <http://pandas.pydata.org/pandas-docs/stable/io.html#io-jsonl>`_

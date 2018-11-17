@@ -925,7 +925,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         Parameters
         ----------
-        freq: Period frequency
+        freq : Period frequency
 
         Returns
         -------

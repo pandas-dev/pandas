@@ -77,7 +77,7 @@ _shared_doc_kwargs = dict(
 def remove_na(arr):
     """Remove null values from array like structure.
 
-    .. deprecated:: 0.21.0
+    .. deprecated :: 0.21.0
         Use s[s.notnull()] instead.
     """
 
@@ -1235,7 +1235,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         float_format : one-parameter function, optional
             formatter function to apply to columns' elements if they are floats
             default None
-        header: boolean, default True
+        header : boolean, default True
             Add the Series header (index name)
         index : bool, optional
             Add index (row) labels, default True
@@ -3876,7 +3876,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         encoding : string, optional
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
-        infer_datetime_format: boolean, default False
+        infer_datetime_format : boolean, default False
             If True and `parse_dates` is True for a column, try to infer the
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.

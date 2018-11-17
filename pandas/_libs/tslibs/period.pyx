@@ -1777,7 +1777,7 @@ cdef class _Period(object):
         freq : string or DateOffset
             Target frequency. Default is 'D' if self.freq is week or
             longer and 'S' otherwise
-        how: str, default 'S' (start)
+        how : str, default 'S' (start)
             'S', 'E'. Can be aliased as case insensitive
             'Start', 'Finish', 'Begin', 'End'
 

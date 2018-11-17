@@ -98,7 +98,7 @@ def read_feather(path, use_threads=True):
 
        .. versionadded 0.21.0
        .. deprecated 0.24.0
-    use_threads: bool, default True
+    use_threads : bool, default True
         Whether to parallelize reading using multiple threads
 
        .. versionadded 0.24.0

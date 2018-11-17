@@ -122,7 +122,7 @@ dtype : Type name or dict of column -> type, default None
 
     .. versionadded:: 0.20.0
 
-engine: string, default None
+engine : string, default None
     If io is not a buffer or path, this must be set to identify io.
     Acceptable values are None or xlrd
 converters : dict, default None
@@ -368,7 +368,7 @@ class ExcelFile(object):
     io : string, path object (pathlib.Path or py._path.local.LocalPath),
         file-like object or xlrd workbook
         If a string or path object, expected to be a path to xls or xlsx file
-    engine: string, default None
+    engine : string, default None
         If io is not a buffer or path, this must be set to identify io.
         Acceptable values are None or xlrd
     """
@@ -1011,8 +1011,8 @@ class ExcelWriter(object):
             cell of formatted data to save to Excel sheet
         sheet_name : string, default None
             Name of Excel sheet, if None, then use self.cur_sheet
-        startrow: upper left cell row to dump data frame
-        startcol: upper left cell column to dump data frame
+        startrow : upper left cell row to dump data frame
+        startcol : upper left cell column to dump data frame
         freeze_panes: integer tuple of length 2
             contains the bottom-most row and right-most column to freeze
         """
@@ -1159,7 +1159,7 @@ class _OpenpyxlWriter(ExcelWriter):
         converts a style_dict to an openpyxl style object
         Parameters
         ----------
-        style_dict: style dictionary to convert
+        style_dict : style dictionary to convert
         """
 
         from openpyxl.style import Style
@@ -1652,15 +1652,15 @@ class _XlwtWriter(ExcelWriter):
         for example:
 
             hstyle = {"font": {"bold": True},
-            "border": {"top": "thin",
-                    "right": "thin",
-                    "bottom": "thin",
-                    "left": "thin"},
-            "align": {"horiz": "center"}}
+            "border" : {"top": "thin",
+                        "right": "thin",
+                        "bottom": "thin",
+                        "left": "thin"},
+            "align" : {"horiz": "center"}}
             will be converted to
-            font: bold on; \
-                    border: top thin, right thin, bottom thin, left thin; \
-                    align: horiz center;
+            font : bold on; \
+                    border : top thin, right thin, bottom thin, left thin; \
+                    align : horiz center;
         """
         if hasattr(item, 'items'):
             if firstlevel:
@@ -1687,8 +1687,8 @@ class _XlwtWriter(ExcelWriter):
         converts a style_dict to an xlwt style object
         Parameters
         ----------
-        style_dict: style dictionary to convert
-        num_format_str: optional number format string
+        style_dict : style dictionary to convert
+        num_format_str : optional number format string
         """
         import xlwt
 
@@ -1790,8 +1790,8 @@ class _XlsxStyler(object):
 
         Parameters
         ----------
-        style_dict: style dictionary to convert
-        num_format_str: optional number format string
+        style_dict : style dictionary to convert
+        num_format_str : optional number format string
         """
 
         # Create a XlsxWriter format object.

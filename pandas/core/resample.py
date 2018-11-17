@@ -725,7 +725,7 @@ one pass, you can do
 
         Parameters
         ----------
-        fill_value: scalar, optional
+        fill_value : scalar, optional
             Value to use for missing values, applied during upsampling (note
             this does not fill NaNs that already were present).
 

@@ -1482,14 +1482,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        key: str
+        key : str
             Potential level name for the given axis
-        axis: int, default 0
+        axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
 
         Returns
         -------
-        is_level: bool
+        is_level : bool
         """
         axis = self._get_axis_number(axis)
 
@@ -4871,7 +4871,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        columns: list, optional, default:None
+        columns : list, optional, default:None
             If None, return all columns, otherwise, returns specified columns.
 
         Returns
@@ -7307,7 +7307,7 @@ class NDFrame(PandasObject, SelectionMixin):
             For PeriodIndex only, see PeriodIndex.asfreq
         normalize : bool, default False
             Whether to reset output index to midnight
-        fill_value: scalar, optional
+        fill_value : scalar, optional
             Value to use for missing values, applied during upsampling (note
             this does not fill NaNs that already were present).
 

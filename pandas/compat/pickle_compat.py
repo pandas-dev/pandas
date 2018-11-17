@@ -210,10 +210,10 @@ def load(fh, encoding=None, compat=False, is_verbose=False):
 
     Parameters
     ----------
-    fh: a filelike object
-    encoding: an optional encoding
-    compat: provide Series compatibility mode, boolean, default False
-    is_verbose: show exception output
+    fh : a filelike object
+    encoding : an optional encoding
+    compat : provide Series compatibility mode, boolean, default False
+    is_verbose : show exception output
     """
 
     try:
