@@ -4756,24 +4756,26 @@ class TestHDFStore(Base):
             tm.assert_series_equal(s, result)
 
             _maybe_remove(store, 'df')
-
             df = DataFrame({"s": s, "vals": [1, 2, 3, 4, 5, 6]})
             store.append('df', df, format='table')
             result = store.select('df')
             tm.assert_frame_equal(result, df)
 
             # Dtypes
+            _maybe_remove(store, 'si')
             s = Series([1, 1, 2, 2, 3, 4, 5]).astype('category')
             store.append('si', s)
             result = store.select('si')
             tm.assert_series_equal(result, s)
 
+            _maybe_remove(store, 'si2')
             s = Series([1, 1, np.nan, 2, 3, 4, 5]).astype('category')
             store.append('si2', s)
             result = store.select('si2')
             tm.assert_series_equal(result, s)
 
             # Multiple
+            _maybe_remove(store, 'df2')
             df2 = df.copy()
             df2['s2'] = Series(list('abcdefg')).astype('category')
             store.append('df2', df2)
@@ -4787,6 +4789,7 @@ class TestHDFStore(Base):
             assert '/df2/meta/values_block_1/meta' in info
 
             # unordered
+            _maybe_remove(store, 's2')
             s = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c'], categories=[
                        'a', 'b', 'c', 'd'], ordered=False))
             store.append('s2', s, format='table')
@@ -4794,6 +4797,7 @@ class TestHDFStore(Base):
             tm.assert_series_equal(result, s)
 
             # Query
+            _maybe_remove(store, 'df3')
             store.append('df3', df, data_columns=['s'])
             expected = df[df.s.isin(['b', 'c'])]
             result = store.select('df3', where=['s in ["b","c"]'])
