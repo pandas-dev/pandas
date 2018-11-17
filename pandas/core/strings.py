@@ -475,7 +475,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
         A copy of the object with all matching occurrences of `pat` replaced by
         `repl`.
 
-
     Raises
     ------
     ValueError
@@ -549,7 +548,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     1    bar
     2    NaN
     dtype: object
-
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
@@ -667,10 +665,9 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
 
     See Also
     --------
-    contains : Analogous, but less strict, relying on re.search instead of
-        re.match.
-    extract : Extract matched groups.
-
+    contains : analogous, but less strict, relying on re.search instead of
+        re.match
+    extract : extract matched groups
     """
     if not case:
         flags |= re.IGNORECASE
@@ -1177,7 +1174,6 @@ def str_findall(arr, pat, flags=0):
     1        []
     2    [b, b]
     dtype: object
-
     """
     regex = re.compile(pat, flags=flags)
     return _na_map(regex.findall, arr)
@@ -2432,7 +2428,6 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-
 
     >>> s = pd.Series(['Linda van der Berg', 'George Pitt-Rivers'])
     >>> s
