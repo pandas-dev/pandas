@@ -29,6 +29,27 @@ class TestPeriodIndexComparisons(object):
         exp = idx.values < idx.values[10]
         tm.assert_numpy_array_equal(result, exp)
 
+    # TODO: moved from test_datetime64; de-duplicate with version below
+    def test_parr_cmp_period_scalar2(self, box):
+        xbox = box if box is not pd.Index else np.ndarray
+
+        pi = pd.period_range('2000-01-01', periods=10, freq='D')
+
+        val = Period('2000-01-04', freq='D')
+        expected = [x > val for x in pi]
+
+        ser = tm.box_expected(pi, box)
+        expected = tm.box_expected(expected, xbox)
+        result = ser > val
+        tm.assert_equal(result, expected)
+
+        val = pi[5]
+        result = ser > val
+        expected = [x > val for x in pi]
+        expected = tm.box_expected(expected, xbox)
+        tm.assert_equal(result, expected)
+
+
     @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
     def test_parr_cmp_period_scalar(self, freq, box):
         # GH#13200
