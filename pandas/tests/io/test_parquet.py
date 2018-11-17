@@ -201,8 +201,7 @@ def test_options_get_engine(fp, pa):
 
 
 @pytest.mark.xfail(is_platform_windows() or is_platform_mac(),
-                   reason="reading pa metadata failing on Windows/mac",
-                   strict=True)
+                   reason="reading pa metadata failing on Windows/mac")
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 

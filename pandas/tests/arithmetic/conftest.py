@@ -165,7 +165,7 @@ def box(request):
 @pytest.fixture(params=[pd.Index,
                         pd.Series,
                         pytest.param(pd.DataFrame,
-                                     marks=pytest.mark.xfail(strict=True))],
+                                     marks=pytest.mark.xfail)],
                 ids=id_func)
 def box_df_fail(request):
     """
@@ -178,7 +178,7 @@ def box_df_fail(request):
                         (pd.Series, False),
                         (pd.DataFrame, False),
                         pytest.param((pd.DataFrame, True),
-                                     marks=pytest.mark.xfail(strict=True))],
+                                     marks=pytest.mark.xfail)],
                 ids=id_func)
 def box_transpose_fail(request):
     """
