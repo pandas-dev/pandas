@@ -1378,57 +1378,85 @@ class TestDatetimeIndexArithmetic(object):
     # -------------------------------------------------------------
     # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
 
-    def test_dti_add_dt64_array_raises(self, tz_naive_fixture):
+    def test_dti_add_dt64_array_raises(self, tz_naive_fixture,
+                                       box_with_datetime):
+        if box_with_datetime is pd.DataFrame:
+            pytest.xfail("FIXME: ValueError with transpose; "
+                         "alignment error without")
+
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
         dtarr = dti.values
+
+        dti = tm.box_expected(dti, box_with_datetime)
 
         with pytest.raises(TypeError):
             dti + dtarr
         with pytest.raises(TypeError):
             dtarr + dti
 
-    def test_dti_sub_dt64_array_naive(self):
+    def test_dti_sub_dt64_array_naive(self, box_with_datetime):
         dti = pd.date_range('2016-01-01', periods=3, tz=None)
         dtarr = dti.values
 
+        dti = tm.box_expected(dti, box_with_datetime)
+
         expected = dti - dti
         result = dti - dtarr
-        tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)
         result = dtarr - dti
-        tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)
 
-    def test_dti_sub_dt64_array_aware_raises(self, tz_aware_fixture):
+    def test_dti_sub_dt64_array_aware_raises(self, tz_aware_fixture,
+                                             box_with_datetime):
+        if box_with_datetime is pd.DataFrame:
+            pytest.xfail("FIXME: ValueError with transpose; "
+                         "alignment error without")
+
         tz = tz_aware_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
         dtarr = dti.values
+
+        dti = tm.box_expected(dti, box_with_datetime)
 
         with pytest.raises(TypeError):
             dti - dtarr
         with pytest.raises(TypeError):
             dtarr - dti
 
-    def test_dti_add_td64_array(self, tz_naive_fixture):
+    def test_dti_add_td64_array(self, tz_naive_fixture, box_with_datetime):
+        if box_with_datetime is pd.DataFrame:
+            pytest.xfail("FIXME: ValueError with transpose; "
+                         "alignment error without")
+
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
         tdi = pd.TimedeltaIndex(['-1 Day', '-1 Day', '-1 Day'])
         tdarr = tdi.values
+
+        dti = tm.box_expected(dti, box_with_datetime)
 
         expected = dti + tdi
         result = dti + tdarr
-        tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)
         result = tdarr + dti
-        tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)
 
-    def test_dti_sub_td64_array(self, tz_naive_fixture):
+    def test_dti_sub_td64_array(self, tz_naive_fixture, box_with_datetime):
+        if box_with_datetime is pd.DataFrame:
+            pytest.xfail("FIXME: ValueError with transpose; "
+                         "alignment error without")
+
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
         tdi = pd.TimedeltaIndex(['-1 Day', '-1 Day', '-1 Day'])
         tdarr = tdi.values
 
+        dti = tm.box_expected(dti, box_with_datetime)
+
         expected = dti - tdi
         result = dti - tdarr
-        tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError):
             tdarr - dti
@@ -1496,8 +1524,8 @@ class TestDatetimeIndexArithmetic(object):
 
     @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
     @pytest.mark.parametrize('dti_freq', [None, 'D'])
-    def test_dti_add_sub_pi(self, dti_freq, pi_freq,
-                            box_with_datetime, box_with_period):
+    def test_dt64arr_add_sub_parr(self, dti_freq, pi_freq,
+                                  box_with_datetime, box_with_period):
         # GH#20049 subtracting PeriodIndex should raise TypeError
         dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
         pi = dti.to_period(pi_freq)
