@@ -273,6 +273,21 @@ class TestTableOrient(object):
         expected = OrderedDict([('schema', schema), ('data', data)])
         assert result == expected
 
+    def test_to_json_orient(self):
+        s1 = pd.Series([1, 2, 3], name='a')
+        df1 = pd.DataFrame(s1)
+
+        result_series = s1.to_json(orient='records')
+        result_df = df1.to_json(orient='records')
+        assert result_df == result_series
+
+        s2 = pd.Series([1, 2, 3])
+        df2 = pd.DataFrame(s2)
+
+        result_series = s2.to_json(orient='records')
+        result_df = df2.to_json(orient='records')
+        assert result_df == result_series
+
     def test_to_json_float_index(self):
         data = pd.Series(1, index=[1., 2.])
         result = data.to_json(orient='table', date_format='iso')
