@@ -7,6 +7,7 @@ import pytest
 from datetime import datetime, timedelta
 import itertools
 
+from numpy import nan
 import numpy as np
 
 from pandas import (DataFrame, Series, Timestamp, date_range, compat,
@@ -201,7 +202,7 @@ class TestDataFrameBlockInternals():
         # test construction edge cases with mixed types
 
         # f7u12, this does not work without extensive workaround
-        data = [[datetime(2001, 1, 5), np.nan, datetime(2001, 1, 2)],
+        data = [[datetime(2001, 1, 5), nan, datetime(2001, 1, 2)],
                 [datetime(2000, 1, 2), datetime(2000, 1, 3),
                  datetime(2000, 1, 1)]]
         df = DataFrame(data)
@@ -543,7 +544,7 @@ starting,ending,measure
     def test_strange_column_corruption_issue(self):
         # (wesm) Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
-        df[0] = np.nan
+        df[0] = nan
         wasCol = {}
         # uncommenting these makes the results match
         # for col in xrange(100, 200):
@@ -554,7 +555,7 @@ starting,ending,measure
             for col in range(100, 200):
                 if col not in wasCol:
                     wasCol[col] = 1
-                    df[col] = np.nan
+                    df[col] = nan
                 df[col][dt] = i
 
         myid = 100

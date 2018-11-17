@@ -6,6 +6,7 @@ from itertools import product
 import operator
 
 import numpy as np
+from numpy import nan
 import pytest
 
 from pandas.compat import PY35, lrange, range
@@ -14,8 +15,10 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, Series, bdate_range, compat,
-    date_range, isna, notna, MultiIndex, Timedelta, Timestamp)
-
+    date_range, isna, notna)
+from pandas.core.index import MultiIndex
+from pandas.core.indexes.datetimes import Timestamp
+from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 from pandas.util.testing import (
@@ -502,7 +505,7 @@ class TestSeriesAnalytics(object):
         s = Series(np.arange(5))
 
         r = np.diff(s)
-        assert_series_equal(Series([np.nan, 0, 0, 0, np.nan]), r)
+        assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
     def _check_stat_op(self, name, alternate, string_series_,
                        check_objects=False, check_allna=False):
@@ -527,7 +530,7 @@ class TestSeriesAnalytics(object):
             assert_almost_equal(f(nona), alternate(nona.values))
             assert_almost_equal(f(string_series_), alternate(nona.values))
 
-            allna = string_series_ * np.nan
+            allna = string_series_ * nan
 
             if check_allna:
                 assert np.isnan(f(allna))
@@ -703,15 +706,15 @@ class TestSeriesAnalytics(object):
             result2 = p['second'] % p['first']
             assert not result.equals(result2)
 
-            # GH#9144
+            # GH 9144
             s = Series([0, 1])
 
             result = s % 0
-            expected = Series([np.nan, np.nan])
+            expected = Series([nan, nan])
             assert_series_equal(result, expected)
 
             result = 0 % s
-            expected = Series([np.nan, 0.0])
+            expected = Series([nan, 0.0])
             assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
@@ -853,14 +856,14 @@ class TestSeriesAnalytics(object):
 
         assert datetime_series.count() == np.isfinite(datetime_series).sum()
 
-        mi = MultiIndex.from_arrays([list('aabbcc'), [1, 2, 2, np.nan, 1, 2]])
+        mi = MultiIndex.from_arrays([list('aabbcc'), [1, 2, 2, nan, 1, 2]])
         ts = Series(np.arange(len(mi)), index=mi)
 
         left = ts.count(level=1)
-        right = Series([2, 3, 1], index=[1, 2, np.nan])
+        right = Series([2, 3, 1], index=[1, 2, nan])
         assert_series_equal(left, right)
 
-        ts.iloc[[0, 3, 5]] = np.nan
+        ts.iloc[[0, 3, 5]] = nan
         assert_series_equal(ts.count(level=1), right - 1)
 
     def test_dot(self):
@@ -1069,11 +1072,11 @@ class TestSeriesAnalytics(object):
             result = getattr(s, method)()
             assert_series_equal(result, expected)
 
-        e = pd.Series([False, True, np.nan, False])
-        cse = pd.Series([0, 1, np.nan, 1], dtype=object)
-        cpe = pd.Series([False, 0, np.nan, 0])
-        cmin = pd.Series([False, False, np.nan, False])
-        cmax = pd.Series([False, True, np.nan, True])
+        e = pd.Series([False, True, nan, False])
+        cse = pd.Series([0, 1, nan, 1], dtype=object)
+        cpe = pd.Series([False, 0, nan, 0])
+        cmin = pd.Series([False, False, nan, False])
+        cmax = pd.Series([False, True, nan, True])
         expecteds = {'cumsum': cse,
                      'cumprod': cpe,
                      'cummin': cmin,
@@ -1216,7 +1219,7 @@ class TestSeriesAnalytics(object):
                 nona.values.argmin())
 
         # all NaNs
-        allna = string_series * np.nan
+        allna = string_series * nan
         assert isna(allna.idxmin())
 
         # datetime64[ns]
@@ -1272,7 +1275,7 @@ class TestSeriesAnalytics(object):
                 nona.values.argmax())
 
         # all NaNs
-        allna = string_series * np.nan
+        allna = string_series * nan
         assert isna(allna.idxmax())
 
         from pandas import date_range
@@ -1498,7 +1501,7 @@ class TestSeriesAnalytics(object):
         assert_series_equal(shifted, expected)
 
     def test_shift_categorical(self):
-        # GH#9416
+        # GH 9416
         s = pd.Series(['a', 'b', 'c', 'd'], dtype='category')
 
         assert_series_equal(s.iloc[:-1], s.shift(1).shift(-1).dropna())
@@ -1517,13 +1520,15 @@ class TestSeriesAnalytics(object):
         assert_index_equal(s.values.categories, sn2.values.categories)
 
     def test_unstack(self):
+        from numpy import nan
+
         index = MultiIndex(levels=[['bar', 'foo'], ['one', 'three', 'two']],
                            labels=[[1, 1, 0, 0], [0, 1, 0, 2]])
 
         s = Series(np.arange(4.), index=index)
         unstacked = s.unstack()
 
-        expected = DataFrame([[2., np.nan, 3.], [0., 1., np.nan]],
+        expected = DataFrame([[2., nan, 3.], [0., 1., nan]],
                              index=['bar', 'foo'],
                              columns=['one', 'three', 'two'])
 
@@ -1547,18 +1552,17 @@ class TestSeriesAnalytics(object):
         idx = pd.MultiIndex.from_arrays([[101, 102], [3.5, np.nan]])
         ts = pd.Series([1, 2], index=idx)
         left = ts.unstack()
-        right = DataFrame([[np.nan, 1], [2, np.nan]], index=[101, 102],
-                          columns=[np.nan, 3.5])
+        right = DataFrame([[nan, 1], [2, nan]], index=[101, 102],
+                          columns=[nan, 3.5])
         assert_frame_equal(left, right)
 
         idx = pd.MultiIndex.from_arrays([['cat', 'cat', 'cat', 'dog', 'dog'
                                           ], ['a', 'a', 'b', 'a', 'b'],
                                          [1, 2, 1, 1, np.nan]])
         ts = pd.Series([1.0, 1.1, 1.2, 1.3, 1.4], index=idx)
-        right = DataFrame([[1.0, 1.3], [1.1, np.nan],
-                           [np.nan, 1.4], [1.2, np.nan]],
+        right = DataFrame([[1.0, 1.3], [1.1, nan], [nan, 1.4], [1.2, nan]],
                           columns=['cat', 'dog'])
-        tpls = [('a', 1), ('a', 2), ('b', np.nan), ('b', 1)]
+        tpls = [('a', 1), ('a', 2), ('b', nan), ('b', 1)]
         right.index = pd.MultiIndex.from_tuples(tpls)
         assert_frame_equal(ts.unstack(level=0), right)
 

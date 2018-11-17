@@ -2058,20 +2058,21 @@ Thur,Lunch,Yes,51.51,17"""
     def test_multiindex_na_repr(self):
         # only an issue with long columns
 
+        from numpy import nan
         df3 = DataFrame({
             'A' * 30: {('A', 'A0006000', 'nuit'): 'A0006000'},
-            'B' * 30: {('A', 'A0006000', 'nuit'): np.nan},
-            'C' * 30: {('A', 'A0006000', 'nuit'): np.nan},
-            'D' * 30: {('A', 'A0006000', 'nuit'): np.nan},
+            'B' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'C' * 30: {('A', 'A0006000', 'nuit'): nan},
+            'D' * 30: {('A', 'A0006000', 'nuit'): nan},
             'E' * 30: {('A', 'A0006000', 'nuit'): 'A'},
-            'F' * 30: {('A', 'A0006000', 'nuit'): np.nan},
+            'F' * 30: {('A', 'A0006000', 'nuit'): nan},
         })
 
         idf = df3.set_index(['A' * 30, 'C' * 30])
         repr(idf)
 
     def test_assign_index_sequences(self):
-        # GH#2200
+        # #2200
         df = DataFrame({"a": [1, 2, 3],
                         "b": [4, 5, 6],
                         "c": [7, 8, 9]}).set_index(["a", "b"])

@@ -19,14 +19,15 @@ from pandas.tests.frame.common import TestData
 class TestDataFrameQuantile(TestData):
 
     def test_quantile(self):
+        from numpy import percentile
 
         q = self.tsframe.quantile(0.1, axis=0)
-        assert q['A'] == np.percentile(self.tsframe['A'], 10)
+        assert q['A'] == percentile(self.tsframe['A'], 10)
         tm.assert_index_equal(q.index, self.tsframe.columns)
 
         q = self.tsframe.quantile(0.9, axis=1)
         assert (q['2000-01-17'] ==
-                np.percentile(self.tsframe.loc['2000-01-17'], 90))
+                percentile(self.tsframe.loc['2000-01-17'], 90))
         tm.assert_index_equal(q.index, self.tsframe.index)
 
         # test degenerate case
@@ -52,7 +53,7 @@ class TestDataFrameQuantile(TestData):
 
         # We may want to break API in the future to change this
         # so that we exclude non-numeric along the same axis
-        # See GH#7312
+        # See GH #7312
         df = DataFrame([[1, 2, 3],
                         ['a', 'b', 4]])
         result = df.quantile(.5, axis=1)
@@ -100,13 +101,14 @@ class TestDataFrameQuantile(TestData):
         pytest.raises(ValueError, df.quantile, 0.1, axis="column")
 
     def test_quantile_interpolation(self):
-        # see GH#10174
+        # see gh-10174
+        from numpy import percentile
 
         # interpolation = linear (default case)
         q = self.tsframe.quantile(0.1, axis=0, interpolation='linear')
-        assert q['A'] == np.percentile(self.tsframe['A'], 10)
+        assert q['A'] == percentile(self.tsframe['A'], 10)
         q = self.intframe.quantile(0.1)
-        assert q['A'] == np.percentile(self.intframe['A'], 10)
+        assert q['A'] == percentile(self.intframe['A'], 10)
 
         # test with and without interpolation keyword
         q1 = self.intframe.quantile(0.1)

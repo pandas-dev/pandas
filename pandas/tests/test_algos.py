@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from numpy.random import RandomState
-
+from numpy import nan
 from datetime import datetime
 from itertools import permutations
 import struct
@@ -1435,11 +1435,11 @@ class TestRank(object):
             result = libalgos.rank_1d_float64(arr)
             arr[mask] = np.inf
             exp = rankdata(arr)
-            exp[mask] = np.nan
+            exp[mask] = nan
             assert_almost_equal(result, exp)
 
-        _check(np.array([np.nan, np.nan, 5., 5., 5., np.nan, 1, 2, 3, np.nan]))
-        _check(np.array([4., np.nan, 5., 5., 5., np.nan, 1, 2, 4., np.nan]))
+        _check(np.array([nan, nan, 5., 5., 5., nan, 1, 2, 3, nan]))
+        _check(np.array([4., nan, 5., 5., 5., nan, 1, 2, 4., nan]))
 
     def test_basic(self):
         exp = np.array([1, 2], dtype=np.float64)

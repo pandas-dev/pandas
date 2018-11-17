@@ -9,6 +9,7 @@ import os
 import sys
 
 import numpy as np
+from numpy import nan
 import pytest
 
 import pandas._libs.parsers as parser
@@ -316,12 +317,12 @@ a,b,c
         assert_array_dicts_equal(result, expected)
 
         # GH5664
-        a = DataFrame([['b'], [np.nan]], columns=['a'], index=['a', 'c'])
+        a = DataFrame([['b'], [nan]], columns=['a'], index=['a', 'c'])
         b = DataFrame([[1, 1, 1, 0], [1, 1, 1, 0]],
                       columns=list('abcd'),
                       index=[1, 1])
-        c = DataFrame([[1, 2, 3, 4], [6, np.nan, np.nan, np.nan],
-                       [8, 9, 10, 11], [13, 14, np.nan, np.nan]],
+        c = DataFrame([[1, 2, 3, 4], [6, nan, nan, nan],
+                       [8, 9, 10, 11], [13, 14, nan, nan]],
                       columns=list('abcd'),
                       index=[0, 5, 7, 12])
 
