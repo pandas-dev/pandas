@@ -7,7 +7,8 @@ from pandas.core.dtypes.common import (
     is_extension_type,
     is_dict_like,
     is_list_like,
-    is_sequence)
+    is_sequence,
+    is_sparse)
 from pandas.util._decorators import cache_readonly
 
 from pandas.io.formats.printing import pprint_thing
@@ -133,8 +134,14 @@ class FrameApply(object):
         elif isinstance(self.f, np.ufunc):
             with np.errstate(all='ignore'):
                 results = self.f(self.values)
-            return self.obj._constructor(data=results, index=self.index,
-                                         columns=self.columns, copy=False)
+            result = self.obj._constructor(data=results, index=self.index,
+                                           columns=self.columns, copy=False)
+            for col in range(self.obj.shape[1]):
+                if is_sparse(self.obj.dtypes.values[col]):
+                    fill = self.f(self.obj.dtypes.values[col].fill_value)
+                    sparse_col = result.iloc[:, col].to_sparse(fill_value=fill)
+                    result.iloc[:, col] = sparse_col
+            return result
 
         # broadcasting
         if self.result_type == 'broadcast':
