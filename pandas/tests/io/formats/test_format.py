@@ -1458,6 +1458,12 @@ c  10  11  12  13  14\
                     '4  4.0     bar')
         assert result == expected
 
+    def test_to_string_decimal(self):
+        # Issue #23614
+        df = DataFrame({'A': [6.0, 3.1, 2.2]})
+        expected = '     A\n0  6,0\n1  3,1\n2  2,2'
+        assert df.to_string(decimal=',') == expected
+
     def test_to_string_line_width(self):
         df = DataFrame(123, lrange(10, 15), lrange(30))
         s = df.to_string(line_width=80)
