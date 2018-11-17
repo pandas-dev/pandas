@@ -1514,11 +1514,35 @@ class TestStata(object):
             {'mixed': None,
              'number': 1}
         ]
-
         output = pd.DataFrame(output)
+        output.number = output.number.astype('int32')
+
         with tm.ensure_clean() as path:
             output.to_stata(path, write_index=False, version=117)
             reread = read_stata(path)
             expected = output.fillna('')
-            expected.number = expected.number.astype('int32')
             tm.assert_frame_equal(reread, expected)
+
+            # Check strl supports all None (null)
+            output.loc[:, 'mixed'] = None
+            output.to_stata(path, write_index=False, convert_strl=['mixed'],
+                            version=117)
+            reread = read_stata(path)
+            expected = output.fillna('')
+            tm.assert_frame_equal(reread, expected)
+
+    @pytest.mark.parametrize('version', [114, 117])
+    def test_all_none_exception(self, version):
+        output = [
+            {'none': 'none',
+             'number': 0},
+            {'none': None,
+             'number': 1}
+        ]
+        output = pd.DataFrame(output)
+        output.loc[:, 'none'] = None
+        with tm.ensure_clean() as path:
+            with pytest.raises(ValueError) as excinfo:
+                output.to_stata(path, version=version)
+        assert 'Only string-like' in excinfo.value.args[0]
+        assert 'Column `none`' in excinfo.value.args[0]
