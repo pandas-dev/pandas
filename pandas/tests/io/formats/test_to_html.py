@@ -2,6 +2,7 @@
 
 import re
 from datetime import datetime
+from io import open
 
 import pytest
 import numpy as np
