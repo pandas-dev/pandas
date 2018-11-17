@@ -32,6 +32,10 @@ import pandas.util.testing as tm
     ([1, None], 'Int16', integer_array([1, None], dtype='Int16')),
     (pd.Series([1, 2]), None, np.array([1, 2], dtype=np.int64)),
     (pd.Index([1, 2]), None, np.array([1, 2], dtype=np.int64)),
+    # Series[EA] returns the EA
+    (pd.Series(pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])),
+     None,
+     pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])),
     # "3rd party" EAs work
     ([decimal.Decimal(0), decimal.Decimal(1)], 'decimal', to_decimal([0, 1])),
     # 2D ndarrays pass through

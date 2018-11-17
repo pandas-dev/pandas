@@ -6,6 +6,8 @@ from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import registry
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
+from pandas import compat
+
 
 def array(data, dtype=None, copy=False):
     """
@@ -90,7 +92,7 @@ def array(data, dtype=None, copy=False):
         dtype = data.dtype
 
     # this returns None for not-found dtypes.
-    if dtype is not None:
+    if isinstance(dtype, compat.string_types):
         dtype = registry.find(dtype) or dtype
 
     if is_extension_array_dtype(dtype):
