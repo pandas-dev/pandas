@@ -652,6 +652,96 @@ class TestDatetime64Arithmetic(object):
     # -------------------------------------------------------------
     # Addition/Subtraction of timedelta-like
 
+    def test_dt64arr_add_timedeltalike_scalar(self, tz_naive_fixture,
+                                              two_hours, box_with_datetime):
+        # GH#22005, GH#22163 check DataFrame doesn't raise TypeError
+        box = box_with_datetime
+        tz = tz_naive_fixture
+
+        rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
+        expected = pd.date_range('2000-01-01 02:00',
+                                 '2000-02-01 02:00', tz=tz)
+
+        # FIXME: calling with transpose=True raises ValueError
+        rng = tm.box_expected(rng, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
+
+        result = rng + two_hours
+        tm.assert_equal(result, expected)
+
+    def test_dt64arr_iadd_timedeltalike_scalar(self, tz_naive_fixture,
+                                               two_hours, box_with_datetime):
+        box = box_with_datetime
+        tz = tz_naive_fixture
+
+        rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
+        expected = pd.date_range('2000-01-01 02:00',
+                                 '2000-02-01 02:00', tz=tz)
+
+        # FIXME: calling with transpose=True raises ValueError
+        rng = tm.box_expected(rng, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
+
+        rng += two_hours
+        tm.assert_equal(rng, expected)
+
+    def test_dt64arr_sub_timedeltalike_scalar(self, tz_naive_fixture,
+                                              two_hours, box_with_datetime):
+        box = box_with_datetime
+        tz = tz_naive_fixture
+
+        rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
+        expected = pd.date_range('1999-12-31 22:00',
+                                 '2000-01-31 22:00', tz=tz)
+
+        # FIXME: calling with transpose=True raises ValueError
+        rng = tm.box_expected(rng, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
+
+        result = rng - two_hours
+        tm.assert_equal(result, expected)
+
+    def test_dt64arr_isub_timedeltalike_scalar(self, tz_naive_fixture,
+                                               two_hours, box_with_datetime):
+        box = box_with_datetime
+        tz = tz_naive_fixture
+
+        rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
+        expected = pd.date_range('1999-12-31 22:00',
+                                 '2000-01-31 22:00', tz=tz)
+
+        # FIXME: calling with transpose=True raises ValueError
+        rng = tm.box_expected(rng, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
+
+        rng -= two_hours
+        tm.assert_equal(rng, expected)
+
+    def test_dt64arr_add_td64_scalar(self, box_with_datetime):
+        # scalar timedeltas/np.timedelta64 objects
+        # operate with np.timedelta64 correctly
+        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
+
+        expected = Series([Timestamp('20130101 9:01:01'),
+                           Timestamp('20130101 9:02:01')])
+
+        dtarr = tm.box_expected(ser, box_with_datetime)
+        expected = tm.box_expected(expected, box_with_datetime)
+
+        result = dtarr + np.timedelta64(1, 's')
+        tm.assert_equal(result, expected)
+        result = np.timedelta64(1, 's') + dtarr
+        tm.assert_equal(result, expected)
+
+        expected = Series([Timestamp('20130101 9:01:00.005'),
+                           Timestamp('20130101 9:02:00.005')])
+        expected = tm.box_expected(expected, box_with_datetime)
+
+        result = dtarr + np.timedelta64(5, 'ms')
+        tm.assert_equal(result, expected)
+        result2 = np.timedelta64(5, 'ms') + dtarr
+        tm.assert_equal(result, expected)
+
     def test_dt64arr_add_sub_td64_nat(self, box_with_datetime,
                                       tz_naive_fixture):
         # GH#23320 special handling for timedelta64("NaT")
@@ -982,25 +1072,6 @@ class TestTimestampSeriesArithmetic(object):
         tm.assert_series_equal(s - dt, exp)
         tm.assert_series_equal(s - Timestamp(dt), exp)
 
-    def test_dt64_series_addsub_timedelta(self):
-        # scalar timedeltas/np.timedelta64 objects
-        # operate with np.timedelta64 correctly
-        s = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
-
-        result = s + np.timedelta64(1, 's')
-        result2 = np.timedelta64(1, 's') + s
-        expected = Series([Timestamp('20130101 9:01:01'),
-                           Timestamp('20130101 9:02:01')])
-        tm.assert_series_equal(result, expected)
-        tm.assert_series_equal(result2, expected)
-
-        result = s + np.timedelta64(5, 'ms')
-        result2 = np.timedelta64(5, 'ms') + s
-        expected = Series([Timestamp('20130101 9:01:00.005'),
-                           Timestamp('20130101 9:02:00.005')])
-        tm.assert_series_equal(result, expected)
-        tm.assert_series_equal(result2, expected)
-
     def test_dt64_series_add_tick_DateOffset(self):
         # GH#4532
         # operate with pd.offsets
@@ -1327,74 +1398,6 @@ class TestDatetimeIndexArithmetic(object):
             dti - other
         with pytest.raises(TypeError):
             other - dti
-
-    # -------------------------------------------------------------
-    # Binary operations DatetimeIndex and timedelta-like
-
-    def test_dti_add_timedeltalike(self, tz_naive_fixture, two_hours,
-                                   box_with_datetime):
-        # GH#22005, GH#22163 check DataFrame doesn't raise TypeError
-        box = box_with_datetime
-        tz = tz_naive_fixture
-
-        rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
-        expected = pd.date_range('2000-01-01 02:00',
-                                 '2000-02-01 02:00', tz=tz)
-
-        # FIXME: calling with transpose=True raises ValueError
-        rng = tm.box_expected(rng, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
-
-        result = rng + two_hours
-        tm.assert_equal(result, expected)
-
-    def test_dti_iadd_timedeltalike(self, tz_naive_fixture, two_hours,
-                                    box_with_datetime):
-        box = box_with_datetime
-        tz = tz_naive_fixture
-
-        rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
-        expected = pd.date_range('2000-01-01 02:00',
-                                 '2000-02-01 02:00', tz=tz)
-
-        # FIXME: calling with transpose=True raises ValueError
-        rng = tm.box_expected(rng, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
-
-        rng += two_hours
-        tm.assert_equal(rng, expected)
-
-    def test_dti_sub_timedeltalike(self, tz_naive_fixture, two_hours,
-                                   box_with_datetime):
-        box = box_with_datetime
-        tz = tz_naive_fixture
-
-        rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
-        expected = pd.date_range('1999-12-31 22:00',
-                                 '2000-01-31 22:00', tz=tz)
-
-        # FIXME: calling with transpose=True raises ValueError
-        rng = tm.box_expected(rng, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
-
-        result = rng - two_hours
-        tm.assert_equal(result, expected)
-
-    def test_dti_isub_timedeltalike(self, tz_naive_fixture, two_hours,
-                                    box_with_datetime):
-        box = box_with_datetime
-        tz = tz_naive_fixture
-
-        rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
-        expected = pd.date_range('1999-12-31 22:00',
-                                 '2000-01-31 22:00', tz=tz)
-
-        # FIXME: calling with transpose=True raises ValueError
-        rng = tm.box_expected(rng, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
-
-        rng -= two_hours
-        tm.assert_equal(rng, expected)
 
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and TimedeltaIndex/array
