@@ -11,7 +11,6 @@ from pandas.errors import AbstractMethodError
 from pandas import DataFrame, read_csv, read_table
 import pandas.util.testing as tm
 
-from .c_parser_only import CParserTests
 from .comment import CommentTests
 from .common import ParserTests
 from .compression import CompressionTests
@@ -57,7 +56,7 @@ class BaseParser(CommentTests, CompressionTests,
         self.csv_shiftjs = os.path.join(self.dirpath, 'sauron.SHIFT_JIS.csv')
 
 
-class TestCParserHighMemory(BaseParser, CParserTests):
+class TestCParserHighMemory(BaseParser):
     engine = 'c'
     low_memory = False
     float_precision_choices = [None, 'high', 'round_trip']
@@ -77,7 +76,7 @@ class TestCParserHighMemory(BaseParser, CParserTests):
         return df
 
 
-class TestCParserLowMemory(BaseParser, CParserTests):
+class TestCParserLowMemory(BaseParser):
     engine = 'c'
     low_memory = True
     float_precision_choices = [None, 'high', 'round_trip']
