@@ -46,7 +46,6 @@ class HTMLFormatter(TableFormatter):
             border = get_option('display.html.border')
         self.border = border
         self.table_id = table_id
-        # GH 22579
         self.show_col_idx_names = all((self.fmt.has_column_names,
                                       self.fmt.show_index_names,
                                       self.fmt.header))
@@ -199,10 +198,14 @@ class HTMLFormatter(TableFormatter):
 
     def _write_header(self, indent):
         truncate_h = self.fmt.truncate_h
-        row_levels = self.frame.index.nlevels
-# GH 22579 TODO:additional tests for effect of changing row_levels
-        if self.show_col_idx_names and not self.fmt.index:
+
+        if self.fmt.index:
+            row_levels = self.frame.index.nlevels
+        elif self.show_col_idx_names:
             row_levels = 1
+        else:
+            row_levels = 0
+
         if not self.fmt.header:
             # write nothing
             return indent
@@ -223,9 +226,10 @@ class HTMLFormatter(TableFormatter):
                             for c in self.columns])
             else:
                 if self.fmt.index or self.show_col_idx_names:
-                    row.append(self.columns.name or '')
-                    if self.show_col_idx_names is False:
-                        row[-1] = ''
+                    if self.fmt.show_index_names:
+                        row.append(self.columns.name or '')
+                    else:
+                        row.append('')
                 row.extend(self.columns)
             return row
 
@@ -290,14 +294,15 @@ class HTMLFormatter(TableFormatter):
                         values = (values[:ins_col] + [u('...')] +
                                   values[ins_col:])
 
-                if self.show_col_idx_names:
+                if self.fmt.show_index_names:
                     name = self.columns.names[lnum]
                 else:
                     name = None
-                row = [''] * (row_levels - 1) + ['' if name is None else
-                                                 pprint_thing(name)]
 
-                if not (self.show_col_idx_names or self.fmt.index):
+                if self.fmt.index or self.show_col_idx_names:
+                    row = [''] * (row_levels - 1) + ['' if name is None else
+                                                     pprint_thing(name)]
+                else:
                     row = []
 
                 tags = {}
@@ -316,10 +321,7 @@ class HTMLFormatter(TableFormatter):
             col_row = _column_header()
             align = self.fmt.justify
 
-# GH 22579 TODO:additional tests for effect of changing row_levels
             if truncate_h:
-                if not self.fmt.index:
-                    row_levels = 0
                 ins_col = row_levels + self.fmt.tr_col_num
                 col_row.insert(ins_col, '...')
 
@@ -332,7 +334,6 @@ class HTMLFormatter(TableFormatter):
             row = ([x if x is not None else ''
                     for x in self.frame.index.names] +
                    [''] * min(len(self.columns), self.max_cols))
-# GH 22579 TODO:additional tests for effect of changing row_levels
             if truncate_h:
                 ins_col = row_levels + self.fmt.tr_col_num
                 row.insert(ins_col, '')
