@@ -20,8 +20,6 @@ from pandas.errors import PerformanceWarning, NullFrequencyError
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
 
-from pandas.core import ops
-
 from pandas import (
     Timestamp, Timedelta, Period, Series, date_range, NaT,
     DatetimeIndex, TimedeltaIndex)
@@ -651,6 +649,9 @@ class TestDatetime64Arithmetic(object):
     # This class is intended for "finished" tests that are fully parametrized
     #  over DataFrame/Series/Index/DatetimeArray
 
+    # -------------------------------------------------------------
+    # Addition/Subtraction of timedelta-like
+
     # -----------------------------------------------------------------
     # Subtraction of datetime-like scalars
 
@@ -703,6 +704,21 @@ class TestDatetime64Arithmetic(object):
         tm.assert_equal(ts - ser, -expected)
 
     # -------------------------------------------------------------
+    # Subtraction of datetime-like array-like
+
+    def test_dt64arr_sub_dt64ndarray_naive(self, box_with_datetime):
+        dti = pd.date_range('2016-01-01', periods=3, tz=None)
+        dt64vals = dti.values
+
+        dtarr = tm.box_expected(dti, box_with_datetime)
+
+        expected = dtarr - dtarr
+        result = dtarr - dt64vals
+        tm.assert_equal(result, expected)
+        result = dt64vals - dtarr
+        tm.assert_equal(result, expected)
+
+    # -------------------------------------------------------------
     # Addition of datetime-like others (invalid)
 
     def test_dt64arr_add_timestamp_raises(self, box_with_datetime):
@@ -730,6 +746,44 @@ class TestDatetime64Arithmetic(object):
             dtarr - other
         with pytest.raises(TypeError):
             other - dtarr
+
+    @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
+    @pytest.mark.parametrize('dti_freq', [None, 'D'])
+    def test_dt64arr_add_sub_parr(self, dti_freq, pi_freq,
+                                  box_with_datetime, box_with_period):
+        # GH#20049 subtracting PeriodIndex should raise TypeError
+        dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
+        pi = dti.to_period(pi_freq)
+
+        dtarr = tm.box_expected(dti, box_with_datetime)
+        parr = tm.box_expected(pi, box_with_period)
+
+        with pytest.raises(TypeError):
+            dtarr + parr
+        with pytest.raises(TypeError):
+            parr + dtarr
+        with pytest.raises(TypeError):
+            dtarr - parr
+        with pytest.raises(TypeError):
+            parr - dtarr
+
+    @pytest.mark.parametrize('dti_freq', [None, 'D'])
+    def test_dt64arr_add_sub_period_scalar(self, dti_freq, box_with_datetime):
+        # GH#13078
+        # not supported, check TypeError
+        per = pd.Period('2011-01-01', freq='D')
+
+        idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
+        dtarr = tm.box_expected(idx, box_with_datetime)
+
+        with pytest.raises(TypeError):
+            dtarr + per
+        with pytest.raises(TypeError):
+            per + dtarr
+        with pytest.raises(TypeError):
+            dtarr - per
+        with pytest.raises(TypeError):
+            per - dtarr
 
 
 class TestTimestampSeriesArithmetic(object):
@@ -1085,10 +1139,6 @@ class TestTimestampSeriesArithmetic(object):
 class TestDatetimeIndexArithmetic(object):
 
     # -------------------------------------------------------------
-    # Invalid Operations
-
-
-    # -------------------------------------------------------------
     # Binary operations DatetimeIndex and int
 
     def test_dti_add_int(self, tz_naive_fixture, one):
@@ -1258,6 +1308,7 @@ class TestDatetimeIndexArithmetic(object):
 
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and TimedeltaIndex/array
+
     def test_dti_add_tdi(self, tz_naive_fixture):
         # GH#17558
         tz = tz_naive_fixture
@@ -1396,18 +1447,6 @@ class TestDatetimeIndexArithmetic(object):
         with pytest.raises(TypeError):
             dtarr + dti
 
-    def test_dti_sub_dt64_array_naive(self, box_with_datetime):
-        dti = pd.date_range('2016-01-01', periods=3, tz=None)
-        dtarr = dti.values
-
-        dti = tm.box_expected(dti, box_with_datetime)
-
-        expected = dti - dti
-        result = dti - dtarr
-        tm.assert_equal(result, expected)
-        result = dtarr - dti
-        tm.assert_equal(result, expected)
-
     def test_dti_sub_dt64_array_aware_raises(self, tz_aware_fixture,
                                              box_with_datetime):
         if box_with_datetime is pd.DataFrame:
@@ -1504,44 +1543,6 @@ class TestDatetimeIndexArithmetic(object):
         expected = TimedeltaIndex(['1 days', np.nan, np.nan])
         result = dti2 - dti1
         tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize('dti_freq', [None, 'D'])
-    def test_dt64arr_add_sub_period(self, dti_freq, box_with_datetime):
-        # GH#13078
-        # not supported, check TypeError
-        p = pd.Period('2011-01-01', freq='D')
-
-        idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
-        idx = tm.box_expected(idx, box_with_datetime)
-
-        with pytest.raises(TypeError):
-            idx + p
-        with pytest.raises(TypeError):
-            p + idx
-        with pytest.raises(TypeError):
-            idx - p
-        with pytest.raises(TypeError):
-            p - idx
-
-    @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
-    @pytest.mark.parametrize('dti_freq', [None, 'D'])
-    def test_dt64arr_add_sub_parr(self, dti_freq, pi_freq,
-                                  box_with_datetime, box_with_period):
-        # GH#20049 subtracting PeriodIndex should raise TypeError
-        dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
-        pi = dti.to_period(pi_freq)
-
-        dtarr = tm.box_expected(dti, box_with_datetime)
-        parr = tm.box_expected(pi, box_with_period)
-
-        with pytest.raises(TypeError):
-            dtarr + parr
-        with pytest.raises(TypeError):
-            parr + dtarr
-        with pytest.raises(TypeError):
-            dtarr - parr
-        with pytest.raises(TypeError):
-            parr - dtarr
 
     # -------------------------------------------------------------------
     # TODO: Most of this block is moved from series or frame tests, needs
