@@ -897,8 +897,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         See Also
         --------
-        pandas.PeriodIndex: Immutable ndarray holding ordinal values.
-        pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object.
+        PeriodIndex: Immutable ndarray holding ordinal values.
+        DatetimeIndex.to_pydatetime: Return DatetimeIndex as object.
         """
         from pandas.core.arrays import PeriodArray
 

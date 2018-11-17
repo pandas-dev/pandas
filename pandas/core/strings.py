@@ -999,7 +999,7 @@ def str_get_dummies(arr, sep='|'):
 
     See Also
     --------
-    pandas.get_dummies
+    get_dummies
     """
     arr = arr.fillna('')
     try:
