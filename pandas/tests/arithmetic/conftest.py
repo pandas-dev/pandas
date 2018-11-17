@@ -218,7 +218,7 @@ def box_with_timedelta(request):
 
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array],
                 ids=id_func)
-def box4(request):
+def box_with_array(request):
     """
     Fixture to test behavior for Index, Series, DataFrame, and pandas Array
     classes
