@@ -1072,31 +1072,37 @@ class TestTimestampSeriesArithmetic(object):
         tm.assert_series_equal(s - dt, exp)
         tm.assert_series_equal(s - Timestamp(dt), exp)
 
-    def test_dt64_series_add_tick_DateOffset(self):
+    def test_dt64_series_add_tick_DateOffset(self, box_with_datetime):
         # GH#4532
         # operate with pd.offsets
         ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
         expected = Series([Timestamp('20130101 9:01:05'),
                            Timestamp('20130101 9:02:05')])
 
+        ser = tm.box_expected(ser, box_with_datetime)
+        expected = tm.box_expected(expected, box_with_datetime)
+
         result = ser + pd.offsets.Second(5)
-        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         result2 = pd.offsets.Second(5) + ser
-        tm.assert_series_equal(result2, expected)
+        tm.assert_equal(result2, expected)
 
-    def test_dt64_series_sub_tick_DateOffset(self):
+    def test_dt64_series_sub_tick_DateOffset(self, box_with_datetime):
         # GH#4532
         # operate with pd.offsets
         ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
         expected = Series([Timestamp('20130101 9:00:55'),
                            Timestamp('20130101 9:01:55')])
 
+        ser = tm.box_expected(ser, box_with_datetime)
+        expected = tm.box_expected(expected, box_with_datetime)
+
         result = ser - pd.offsets.Second(5)
-        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         result2 = -pd.offsets.Second(5) + ser
-        tm.assert_series_equal(result2, expected)
+        tm.assert_equal(result2, expected)
 
         with pytest.raises(TypeError):
             pd.offsets.Second(5) - ser
