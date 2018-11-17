@@ -891,10 +891,10 @@ class TestPeriodIndexSeriesMethods(object):
         tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize('ng', ["str", 1.5])
-    def test_pi_ops_errors(self, ng, box4):
+    def test_pi_ops_errors(self, ng, box_with_array):
         idx = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                           freq='M', name='idx')
-        obj = tm.box_expected(idx, box4)
+        obj = tm.box_expected(idx, box_with_array)
 
         msg = r"unsupported operand type\(s\)"
         with pytest.raises(TypeError, match=msg):

@@ -1632,6 +1632,8 @@ def box_expected(expected, box_cls, transpose=True):
         expected = period_array(expected)
     elif box_cls is DatetimeArray:
         expected = DatetimeArray(expected)
+    elif box_cls is TimedeltaArray:
+        expected = TimedeltaArray(expected)
     elif box_cls is np.ndarray:
         expected = np.array(expected)
     elif box_cls is to_array:

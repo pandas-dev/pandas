@@ -228,12 +228,12 @@ class TestDatetime64SeriesComparison(object):
         result = right_f(pd.Timestamp("nat"), s_nat)
         tm.assert_series_equal(result, expected)
 
-    def test_dt64arr_timestamp_equality(self, box4):
+    def test_dt64arr_timestamp_equality(self, box_with_array):
         # GH#11034
-        xbox = box4 if box4 not in [pd.Index, DatetimeArray] else np.ndarray
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
 
         ser = pd.Series([pd.Timestamp('2000-01-29 01:59:00'), 'NaT'])
-        ser = tm.box_expected(ser, box4)
+        ser = tm.box_expected(ser, box_with_array)
 
         result = ser != ser
         expected = tm.box_expected([False, True], xbox)
@@ -1068,10 +1068,10 @@ class TestDatetimeIndexArithmetic(object):
         with pytest.raises(TypeError):
             op(dti, other)
 
-    def test_dti_add_timestamp_raises(self, box4):
+    def test_dti_add_timestamp_raises(self, box_with_array):
         # GH#22163 ensure DataFrame doesn't cast Timestamp to i8
         idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
-        idx = tm.box_expected(idx, box4)
+        idx = tm.box_expected(idx, box_with_array)
         msg = "cannot add"
         with pytest.raises(TypeError, match=msg):
             idx + Timestamp('2011-01-01')
@@ -1483,13 +1483,14 @@ class TestDatetimeIndexArithmetic(object):
 
     @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
     @pytest.mark.parametrize('dti_freq', [None, 'D'])
-    def test_dti_add_sub_pi(self, dti_freq, pi_freq, box4, box4b):
+    def test_dti_add_sub_pi(self, dti_freq, pi_freq,
+                            box_with_array, box_with_arrayb):
         # GH#20049 subtracting PeriodIndex should raise TypeError
         dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
         pi = dti.to_period(pi_freq)
 
-        dtarr = tm.box_expected(dti, box4)
-        parr = tm.box_expected(pi, box4b)
+        dtarr = tm.box_expected(dti, box_with_array)
+        parr = tm.box_expected(pi, box_with_arrayb)
 
         with pytest.raises(TypeError):
             dtarr + parr

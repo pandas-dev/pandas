@@ -171,16 +171,6 @@ def box_df_fail(request):
     return request.param
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array],
-                ids=id_func)
-def box4(request):
-    """
-    Fixture to test on each of Index, Series, DataFrame, and pandas Array
-    classes.
-    """
-    return request.param
-
-
 @pytest.fixture(params=[pd.Index,
                         pd.Series,
                         (pd.DataFrame, False),
@@ -243,6 +233,16 @@ def box5_and_tz(request):
     return request.param
 
 
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array],
+                ids=id_func)
+def box_with_array(request):
+    """
+    Fixture to test behavior for Index, Series, DataFrame, and pandas Array
+    classes
+    """
+    return request.param
+
+
 # aliases so we can use the same fixture twice in a test
-box4b = box4
+box_with_arrayb = box_with_array
 box5b = box5
