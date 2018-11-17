@@ -676,6 +676,36 @@ class TestDatetime64Arithmetic(object):
         with pytest.raises(TypeError):
             other - obj
 
+    def test_dt64arr_add_sub_td64ndarray(self, tz_naive_fixture,
+                                         box_with_datetime):
+        if box_with_datetime is pd.DataFrame:
+            pytest.xfail("FIXME: ValueError with transpose; "
+                         "alignment error without")
+
+        tz = tz_naive_fixture
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        tdi = pd.TimedeltaIndex(['-1 Day', '-1 Day', '-1 Day'])
+        tdarr = tdi.values
+
+        expected = pd.date_range('2015-12-31', periods=3, tz=tz)
+
+        dtarr = tm.box_expected(dti, box_with_datetime)
+        expected = tm.box_expected(expected, box_with_datetime)
+
+        result = dtarr + tdarr
+        tm.assert_equal(result, expected)
+        result = tdarr + dtarr
+        tm.assert_equal(result, expected)
+
+        expected = pd.date_range('2016-01-02', periods=3, tz=tz)
+        expected = tm.box_expected(expected, box_with_datetime)
+
+        result = dtarr - tdarr
+        tm.assert_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            tdarr - dtarr
+
     # -----------------------------------------------------------------
     # Subtraction of datetime-like scalars
 
@@ -727,10 +757,29 @@ class TestDatetime64Arithmetic(object):
         tm.assert_equal(ser - ts, expected)
         tm.assert_equal(ts - ser, -expected)
 
+    def test_dt64arr_sub_NaT(self, box):
+        # GH#18808
+        dti = pd.DatetimeIndex([pd.NaT, pd.Timestamp('19900315')])
+        ser = tm.box_expected(dti, box, transpose=False)
+
+        result = ser - pd.NaT
+        expected = pd.Series([pd.NaT, pd.NaT], dtype='timedelta64[ns]')
+        # FIXME: raises ValueError with transpose
+        expected = tm.box_expected(expected, box, transpose=False)
+        tm.assert_equal(result, expected)
+
+        dti_tz = dti.tz_localize('Asia/Tokyo')
+        ser_tz = tm.box_expected(dti_tz, box, transpose=False)
+
+        result = ser_tz - pd.NaT
+        expected = pd.Series([pd.NaT, pd.NaT], dtype='timedelta64[ns]')
+        expected = tm.box_expected(expected, box, transpose=False)
+        tm.assert_equal(result, expected)
+
     # -------------------------------------------------------------
     # Subtraction of datetime-like array-like
 
-    def test_dt64arr_sub_dt64ndarray_naive(self, box_with_datetime):
+    def test_dt64arr_naive_sub_dt64ndarray(self, box_with_datetime):
         dti = pd.date_range('2016-01-01', periods=3, tz=None)
         dt64vals = dti.values
 
@@ -742,8 +791,42 @@ class TestDatetime64Arithmetic(object):
         result = dt64vals - dtarr
         tm.assert_equal(result, expected)
 
+    def test_dt64arr_aware_sub_dt64ndarray_raises(self, tz_aware_fixture,
+                                                  box_with_datetime):
+        if box_with_datetime is pd.DataFrame:
+            pytest.xfail("FIXME: ValueError with transpose; "
+                         "alignment error without")
+
+        tz = tz_aware_fixture
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        dt64vals = dti.values
+
+        dtarr = tm.box_expected(dti, box_with_datetime)
+
+        with pytest.raises(TypeError):
+            dtarr - dt64vals
+        with pytest.raises(TypeError):
+            dt64vals - dtarr
+
     # -------------------------------------------------------------
     # Addition of datetime-like others (invalid)
+
+    def test_dt64arr_add_dt64ndarray_raises(self, tz_naive_fixture,
+                                            box_with_datetime):
+        if box_with_datetime is pd.DataFrame:
+            pytest.xfail("FIXME: ValueError with transpose; "
+                         "alignment error without")
+
+        tz = tz_naive_fixture
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        dt64vals = dti.values
+
+        dtarr = tm.box_expected(dti, box_with_datetime)
+
+        with pytest.raises(TypeError):
+            dtarr + dt64vals
+        with pytest.raises(TypeError):
+            dt64vals + dtarr
 
     def test_dt64arr_add_timestamp_raises(self, box_with_datetime):
         # GH#22163 ensure DataFrame doesn't cast Timestamp to i8
@@ -974,25 +1057,6 @@ class TestTimestampSeriesArithmetic(object):
         expected = Series([Timestamp('20130101 9:06:00.005'),
                            Timestamp('20130101 9:07:00.005')])
         tm.assert_series_equal(result, expected)
-
-    def test_dt64arr_sub_NaT(self, box):
-        # GH#18808
-        dti = pd.DatetimeIndex([pd.NaT, pd.Timestamp('19900315')])
-        ser = tm.box_expected(dti, box, transpose=False)
-
-        result = ser - pd.NaT
-        expected = pd.Series([pd.NaT, pd.NaT], dtype='timedelta64[ns]')
-        # FIXME: raises ValueError with ranspose
-        expected = tm.box_expected(expected, box, transpose=False)
-        tm.assert_equal(result, expected)
-
-        dti_tz = dti.tz_localize('Asia/Tokyo')
-        ser_tz = tm.box_expected(dti_tz, box, transpose=False)
-
-        result = ser_tz - pd.NaT
-        expected = pd.Series([pd.NaT, pd.NaT], dtype='timedelta64[ns]')
-        expected = tm.box_expected(expected, box, transpose=False)
-        tm.assert_equal(result, expected)
 
     def test_dt64_series_arith_overflow(self):
         # GH#12534, fixed by GH#19024
@@ -1271,42 +1335,66 @@ class TestDatetimeIndexArithmetic(object):
                                    box_with_datetime):
         # GH#22005, GH#22163 check DataFrame doesn't raise TypeError
         box = box_with_datetime
-
         tz = tz_naive_fixture
+
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
+        expected = pd.date_range('2000-01-01 02:00',
+                                 '2000-02-01 02:00', tz=tz)
 
         # FIXME: calling with transpose=True raises ValueError
         rng = tm.box_expected(rng, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
 
         result = rng + two_hours
-        expected = pd.date_range('2000-01-01 02:00',
-                                 '2000-02-01 02:00', tz=tz)
-        expected = tm.box_expected(expected, box, transpose=False)
         tm.assert_equal(result, expected)
 
-    def test_dti_iadd_timedeltalike(self, tz_naive_fixture, two_hours):
+    def test_dti_iadd_timedeltalike(self, tz_naive_fixture, two_hours,
+                                    box_with_datetime):
+        box = box_with_datetime
         tz = tz_naive_fixture
+
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         expected = pd.date_range('2000-01-01 02:00',
                                  '2000-02-01 02:00', tz=tz)
+
+        # FIXME: calling with transpose=True raises ValueError
+        rng = tm.box_expected(rng, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
+
         rng += two_hours
-        tm.assert_index_equal(rng, expected)
+        tm.assert_equal(rng, expected)
 
-    def test_dti_sub_timedeltalike(self, tz_naive_fixture, two_hours):
+    def test_dti_sub_timedeltalike(self, tz_naive_fixture, two_hours,
+                                   box_with_datetime):
+        box = box_with_datetime
         tz = tz_naive_fixture
+
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         expected = pd.date_range('1999-12-31 22:00',
                                  '2000-01-31 22:00', tz=tz)
+
+        # FIXME: calling with transpose=True raises ValueError
+        rng = tm.box_expected(rng, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
+
         result = rng - two_hours
-        tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)
 
-    def test_dti_isub_timedeltalike(self, tz_naive_fixture, two_hours):
+    def test_dti_isub_timedeltalike(self, tz_naive_fixture, two_hours,
+                                    box_with_datetime):
+        box = box_with_datetime
         tz = tz_naive_fixture
+
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         expected = pd.date_range('1999-12-31 22:00',
                                  '2000-01-31 22:00', tz=tz)
+
+        # FIXME: calling with transpose=True raises ValueError
+        rng = tm.box_expected(rng, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
+
         rng -= two_hours
-        tm.assert_index_equal(rng, expected)
+        tm.assert_equal(rng, expected)
 
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and TimedeltaIndex/array
@@ -1428,86 +1516,6 @@ class TestDatetimeIndexArithmetic(object):
             dti + addend
         with pytest.raises(TypeError, match=msg):
             addend + dti
-
-    # -------------------------------------------------------------
-    # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
-
-    def test_dt64arr_add_dt64ndarray_raises(self, tz_naive_fixture,
-                                            box_with_datetime):
-        if box_with_datetime is pd.DataFrame:
-            pytest.xfail("FIXME: ValueError with transpose; "
-                         "alignment error without")
-
-        tz = tz_naive_fixture
-        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
-        dt64vals = dti.values
-
-        dtarr = tm.box_expected(dti, box_with_datetime)
-
-        with pytest.raises(TypeError):
-            dtarr + dt64vals
-        with pytest.raises(TypeError):
-            dt64vals + dtarr
-
-    def test_dt64arr_aware_sub_dt64ndarray_raises(self, tz_aware_fixture,
-                                                  box_with_datetime):
-        if box_with_datetime is pd.DataFrame:
-            pytest.xfail("FIXME: ValueError with transpose; "
-                         "alignment error without")
-
-        tz = tz_aware_fixture
-        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
-        dt64vals = dti.values
-
-        dtarr = tm.box_expected(dti, box_with_datetime)
-
-        with pytest.raises(TypeError):
-            dtarr - dt64vals
-        with pytest.raises(TypeError):
-            dt64vals - dtarr
-
-    def test_dt64arr_add_td64ndarray(self, tz_naive_fixture,
-                                     box_with_datetime):
-        if box_with_datetime is pd.DataFrame:
-            pytest.xfail("FIXME: ValueError with transpose; "
-                         "alignment error without")
-
-        tz = tz_naive_fixture
-        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
-        tdi = pd.TimedeltaIndex(['-1 Day', '-1 Day', '-1 Day'])
-        tdarr = tdi.values
-
-        expected = pd.date_range('2015-12-31', periods=3, tz=tz)
-
-        dtarr = tm.box_expected(dti, box_with_datetime)
-        expected = tm.box_expected(expected, box_with_datetime)
-
-        result = dtarr + tdarr
-        tm.assert_equal(result, expected)
-        result = tdarr + dtarr
-        tm.assert_equal(result, expected)
-
-    def test_dt64arr_sub_td64ndarray(self, tz_naive_fixture,
-                                     box_with_datetime):
-        if box_with_datetime is pd.DataFrame:
-            pytest.xfail("FIXME: ValueError with transpose; "
-                         "alignment error without")
-
-        tz = tz_naive_fixture
-        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
-        tdi = pd.TimedeltaIndex(['-1 Day', '-1 Day', '-1 Day'])
-        tdarr = tdi.values
-
-        expected = pd.date_range('2016-01-02', periods=3, tz=tz)
-
-        dtarr = tm.box_expected(dti, box_with_datetime)
-        expected = tm.box_expected(expected, box_with_datetime)
-
-        result = dtarr - tdarr
-        tm.assert_equal(result, expected)
-
-        with pytest.raises(TypeError):
-            tdarr - dtarr
 
     # -------------------------------------------------------------
 
