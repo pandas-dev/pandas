@@ -319,12 +319,12 @@ class TestPeriodIndexArithmetic(object):
     # PeriodIndex - other is defined for integers, timedelta-like others,
     #   and PeriodIndex (with matching freq)
 
-    def test_parr_add_iadd_parr_raises(self, box_with_period):
+    def test_parr_add_iadd_parr_raises(self, box_with_array):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
         # TODO: parametrize over boxes for other?
 
-        rng = tm.box_expected(rng, box_with_period)
+        rng = tm.box_expected(rng, box_with_array)
         # An earlier implementation of PeriodIndex addition performed
         # a set operation (union).  This has since been changed to
         # raise a TypeError. See GH#14164 and GH#13077 for historical
@@ -361,12 +361,12 @@ class TestPeriodIndexArithmetic(object):
         expected = pd.Index([pd.NaT, 0 * off, 0 * off, 0 * off, 0 * off])
         tm.assert_index_equal(result, expected)
 
-    def test_parr_sub_pi_mismatched_freq(self, box_with_period):
+    def test_parr_sub_pi_mismatched_freq(self, box_with_array):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='H', periods=5)
         # TODO: parametrize over boxes for other?
 
-        rng = tm.box_expected(rng, box_with_period)
+        rng = tm.box_expected(rng, box_with_array)
         with pytest.raises(IncompatibleFrequency):
             rng - other
 
@@ -376,20 +376,20 @@ class TestPeriodIndexArithmetic(object):
     @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
     @pytest.mark.parametrize('op', [operator.add, ops.radd,
                                     operator.sub, ops.rsub])
-    def test_parr_add_sub_float_raises(self, op, other, box_with_period):
+    def test_parr_add_sub_float_raises(self, op, other, box_with_array):
         dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
         pi = dti.to_period('D')
-        pi = tm.box_expected(pi, box_with_period)
+        pi = tm.box_expected(pi, box_with_array)
         with pytest.raises(TypeError):
             op(pi, other)
 
     @pytest.mark.parametrize('other', [pd.Timestamp.now(),
                                        pd.Timestamp.now().to_pydatetime(),
                                        pd.Timestamp.now().to_datetime64()])
-    def test_parr_add_sub_datetime_scalar(self, other, box_with_period):
+    def test_parr_add_sub_datetime_scalar(self, other, box_with_array):
         # GH#23215
         rng = pd.period_range('1/1/2000', freq='D', periods=3)
-        rng = tm.box_expected(rng, box_with_period)
+        rng = tm.box_expected(rng, box_with_array)
 
         with pytest.raises(TypeError):
             rng + other
@@ -403,12 +403,12 @@ class TestPeriodIndexArithmetic(object):
     # -----------------------------------------------------------------
     # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
 
-    def test_parr_add_sub_dt64_array_raises(self, box_with_period):
+    def test_parr_add_sub_dt64_array_raises(self, box_with_array):
         rng = pd.period_range('1/1/2000', freq='D', periods=3)
         dti = pd.date_range('2016-01-01', periods=3)
         dtarr = dti.values
 
-        rng = tm.box_expected(rng, box_with_period)
+        rng = tm.box_expected(rng, box_with_array)
 
         with pytest.raises(TypeError):
             rng + dtarr
@@ -595,10 +595,10 @@ class TestPeriodIndexArithmetic(object):
         result = per.freq + pi
         tm.assert_equal(result, expected)
 
-    def test_pi_add_offset_n_gt1_not_divisible(self, box_with_period):
+    def test_pi_add_offset_n_gt1_not_divisible(self, box_with_array):
         # GH#23215
         # PeriodIndex with freq.n > 1 add offset with offset.n % freq.n != 0
-        box = box_with_period
+        box = box_with_array
 
         pi = pd.PeriodIndex(['2016-01'], freq='2M')
         expected = pd.PeriodIndex(['2016-04'], freq='2M')
@@ -921,10 +921,10 @@ class TestPeriodIndexSeriesMethods(object):
         tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize('ng', ["str", 1.5])
-    def test_parr_ops_errors(self, ng, box_with_period):
+    def test_parr_ops_errors(self, ng, box_with_array):
         idx = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                           freq='M', name='idx')
-        obj = tm.box_expected(idx, box_with_period)
+        obj = tm.box_expected(idx, box_with_array)
 
         msg = r"unsupported operand type\(s\)"
         with pytest.raises(TypeError, match=msg):
