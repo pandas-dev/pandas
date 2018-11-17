@@ -19,7 +19,7 @@ import pandas.util.testing as tm
 api_exceptions = pytest.importorskip("google.api_core.exceptions")
 bigquery = pytest.importorskip("google.cloud.bigquery")
 service_account = pytest.importorskip("google.oauth2.service_account")
-pandas_gbq = pytest.importorskip('pandas_gbq')
+pandas_gbq = pytest.importorskip("pandas_gbq")
 
 PROJECT_ID = None
 PRIVATE_KEY_JSON_PATH = None
@@ -70,15 +70,16 @@ def _get_private_key_path():
     return private_key_path
 
 
-def _get_client():
-    project_id = _get_project_id()
-    credentials = None
-
+def _get_credentials():
     private_key_path = _get_private_key_path()
     if private_key_path:
-        credentials = service_account.Credentials.from_service_account_file(
+        return service_account.Credentials.from_service_account_file(
             private_key_path)
 
+
+def _get_client():
+    project_id = _get_project_id()
+    credentials = _get_credentials()
     return bigquery.Client(project=project_id, credentials=credentials)
 
 
@@ -144,11 +145,11 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         df = make_mixed_dataframe_v2(test_size)
 
         df.to_gbq(destination_table, _get_project_id(), chunksize=None,
-                  private_key=_get_private_key_path())
+                  credentials=_get_credentials())
 
         result = pd.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                              .format(destination_table),
                              project_id=_get_project_id(),
-                             private_key=_get_private_key_path(),
+                             credentials=_get_credentials(),
                              dialect="standard")
         assert result['num_rows'][0] == test_size

@@ -260,9 +260,12 @@ Other Enhancements
 - :meth:`Series.droplevel` and :meth:`DataFrame.droplevel` are now implemented (:issue:`20342`)
 - Added support for reading from/writing to Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`, :issue:`23094`)
 - :func:`to_gbq` and :func:`read_gbq` signature and documentation updated to
-  reflect changes from the `Pandas-GBQ library version 0.6.0
-  <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-6-0>`__.
-  (:issue:`21627`, :issue:`22557`)
+  reflect changes from the `Pandas-GBQ library version 0.8.0
+  <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0>`__.
+  Adds a ``credentials`` argument, which enables the use of any kind of
+  `google-auth credentials
+  <https://google-auth.readthedocs.io/en/latest/>`__. (:issue:`21627`,
+  :issue:`22557`, :issue:`23662`)
 - New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
 - :func:`read_html` copies cell data across ``colspan`` and ``rowspan``, and it treats all-``th`` table rows as headers if ``header`` kwarg is not given and there is no ``thead`` (:issue:`17054`)
 - :meth:`Series.nlargest`, :meth:`Series.nsmallest`, :meth:`DataFrame.nlargest`, and :meth:`DataFrame.nsmallest` now accept the value ``"all"`` for the ``keep`` argument. This keeps all ties for the nth largest/smallest value (:issue:`16818`)
@@ -313,17 +316,19 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | bottleneck      | 1.2.0           |          |
 +-----------------+-----------------+----------+
+| fastparquet     | 0.1.2           |          |
++-----------------+-----------------+----------+
 | matplotlib      | 2.0.0           |          |
 +-----------------+-----------------+----------+
 | numexpr         | 2.6.1           |          |
 +-----------------+-----------------+----------+
-| pytables        | 3.4.2           |          |
-+-----------------+-----------------+----------+
-| scipy           | 0.18.1          |          |
+| pandas-gbq      | 0.8.0           |          |
 +-----------------+-----------------+----------+
 | pyarrow         | 0.7.0           |          |
 +-----------------+-----------------+----------+
-| fastparquet     | 0.1.2           |          |
+| pytables        | 3.4.2           |          |
++-----------------+-----------------+----------+
+| scipy           | 0.18.1          |          |
 +-----------------+-----------------+----------+
 
 Additionally we no longer depend on `feather-format` for feather based storage
