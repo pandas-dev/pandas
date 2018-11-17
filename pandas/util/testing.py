@@ -24,9 +24,10 @@ from pandas.compat import (
     map, raise_with_traceback, range, string_types, u, unichr, zip)
 
 from pandas.core.dtypes.common import (
-    is_bool, is_categorical_dtype, is_datetimelike_v_numeric,
-    is_datetimelike_v_object, is_extension_array_dtype, is_interval_dtype,
-    is_list_like, is_number, is_sequence, needs_i8_conversion)
+    is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
+    is_datetimelike_v_numeric, is_datetimelike_v_object,
+    is_extension_array_dtype, is_interval_dtype, is_list_like, is_number,
+    is_period_dtype, is_sequence, is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import array_equivalent
 
 import pandas as pd
@@ -1082,7 +1083,6 @@ def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
 
 def assert_timedelta_array_equal(left, right, obj='TimedeltaArray'):
     _check_isinstance(left, right, TimedeltaArray)
-
     assert_numpy_array_equal(left._data, right._data,
                              obj='{obj}._data'.format(obj=obj))
     assert_attr_equal('freq', left, right, obj=obj)
@@ -1630,9 +1630,23 @@ def box_expected(expected, box_cls, transpose=True):
         expected = TimedeltaArray(expected)
     elif box_cls is np.ndarray:
         expected = np.array(expected)
+    elif box_cls is to_array:
+        expected = to_array(expected)
     else:
         raise NotImplementedError(box_cls)
     return expected
+
+
+def to_array(obj):
+    # temporary implementation until we get pd.array in place
+    if is_period_dtype(obj):
+        return period_array(obj)
+    elif is_datetime64_dtype(obj) or is_datetime64tz_dtype(obj):
+        return DatetimeArray(obj)
+    elif is_timedelta64_dtype(obj):
+        return TimedeltaArray(obj)
+    else:
+        return np.array(obj)
 
 
 # -----------------------------------------------------------------------------
