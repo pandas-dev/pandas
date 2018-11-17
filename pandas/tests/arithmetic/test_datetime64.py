@@ -1392,10 +1392,8 @@ class TestDatetimeIndexArithmetic(object):
         result = dtarr - dti
         tm.assert_index_equal(result, expected)
 
-    def test_dti_sub_dt64_array_aware_raises(self, tz_naive_fixture):
+    def test_dti_sub_dt64_array_aware_raises(self, tz_aware_fixture):
         tz = tz_naive_fixture
-        if tz is None:
-            return
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
         dtarr = dti.values
 

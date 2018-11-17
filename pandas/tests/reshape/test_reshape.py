@@ -8,7 +8,6 @@ from pandas import DataFrame, Series
 from pandas.core.sparse.api import SparseDtype, SparseArray
 import pandas as pd
 
-from numpy import nan
 import numpy as np
 
 from pandas.util.testing import assert_frame_equal
@@ -149,18 +148,18 @@ class TestGetDummies(object):
 
         # Sparse dataframes do not allow nan labelled columns, see #GH8822
         res_na = get_dummies(s, dummy_na=True, sparse=sparse, dtype=dtype)
-        exp_na = DataFrame({nan: [0, 0, 1],
+        exp_na = DataFrame({np.nan: [0, 0, 1],
                             'a': [1, 0, 0],
                             'b': [0, 1, 0]},
                            dtype=self.effective_dtype(dtype))
-        exp_na = exp_na.reindex(['a', 'b', nan], axis=1)
+        exp_na = exp_na.reindex(['a', 'b', np.nan], axis=1)
         # hack (NaN handling in assert_index_equal)
         exp_na.columns = res_na.columns
         assert_frame_equal(res_na, exp_na)
 
-        res_just_na = get_dummies([nan], dummy_na=True,
+        res_just_na = get_dummies([np.nan], dummy_na=True,
                                   sparse=sparse, dtype=dtype)
-        exp_just_na = DataFrame(Series(1, index=[0]), columns=[nan],
+        exp_just_na = DataFrame(Series(1, index=[0]), columns=[np.nan],
                                 dtype=self.effective_dtype(dtype))
         tm.assert_numpy_array_equal(res_just_na.values, exp_just_na.values)
 
@@ -444,13 +443,13 @@ class TestGetDummies(object):
                              sparse=sparse)
         exp_na = DataFrame(
             {'b': [0, 1, 0],
-             nan: [0, 0, 1]},
-            dtype=np.uint8).reindex(['b', nan], axis=1)
+             np.nan: [0, 0, 1]},
+            dtype=np.uint8).reindex(['b', np.nan], axis=1)
         if sparse:
             exp_na = exp_na.to_sparse(fill_value=0, kind='integer')
         assert_frame_equal(res_na, exp_na)
 
-        res_just_na = get_dummies([nan], dummy_na=True, drop_first=True,
+        res_just_na = get_dummies([np.nan], dummy_na=True, drop_first=True,
                                   sparse=sparse)
         exp_just_na = DataFrame(index=np.arange(1))
         assert_frame_equal(res_just_na, exp_just_na)

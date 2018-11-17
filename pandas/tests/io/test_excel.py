@@ -9,7 +9,6 @@ from collections import OrderedDict
 
 import numpy as np
 import pytest
-from numpy import nan
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -1205,7 +1204,7 @@ class TestExcelWriter(_WriterBase):
             tm.assert_frame_equal(found_df2, self.frame2)
 
     def test_roundtrip(self, merge_cells, engine, ext):
-        self.frame['A'][:5] = nan
+        self.frame['A'][:5] = np.nan
 
         self.frame.to_excel(self.path, 'test1')
         self.frame.to_excel(self.path, 'test1', columns=['A', 'B'])
@@ -1267,7 +1266,7 @@ class TestExcelWriter(_WriterBase):
         tm.assert_frame_equal(df, recons)
 
     def test_basics_with_nan(self, merge_cells, engine, ext):
-        self.frame['A'][:5] = nan
+        self.frame['A'][:5] = np.nan
         self.frame.to_excel(self.path, 'test1')
         self.frame.to_excel(self.path, 'test1', columns=['A', 'B'])
         self.frame.to_excel(self.path, 'test1', header=False)
@@ -1332,7 +1331,7 @@ class TestExcelWriter(_WriterBase):
         tm.assert_frame_equal(frame, recons)
 
     def test_sheets(self, merge_cells, engine, ext):
-        self.frame['A'][:5] = nan
+        self.frame['A'][:5] = np.nan
 
         self.frame.to_excel(self.path, 'test1')
         self.frame.to_excel(self.path, 'test1', columns=['A', 'B'])
@@ -1354,7 +1353,7 @@ class TestExcelWriter(_WriterBase):
         assert 'test2' == reader.sheet_names[1]
 
     def test_colaliases(self, merge_cells, engine, ext):
-        self.frame['A'][:5] = nan
+        self.frame['A'][:5] = np.nan
 
         self.frame.to_excel(self.path, 'test1')
         self.frame.to_excel(self.path, 'test1', columns=['A', 'B'])
@@ -1371,7 +1370,7 @@ class TestExcelWriter(_WriterBase):
         tm.assert_frame_equal(xp, rs)
 
     def test_roundtrip_indexlabels(self, merge_cells, engine, ext):
-        self.frame['A'][:5] = nan
+        self.frame['A'][:5] = np.nan
 
         self.frame.to_excel(self.path, 'test1')
         self.frame.to_excel(self.path, 'test1', columns=['A', 'B'])

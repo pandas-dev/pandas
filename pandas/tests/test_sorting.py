@@ -5,7 +5,7 @@ import warnings
 from datetime import datetime
 
 import numpy as np
-from numpy import nan
+
 from pandas.core import common as com
 from pandas import DataFrame, MultiIndex, merge, concat, Series, compat
 from pandas.util import testing as tm
@@ -100,7 +100,7 @@ class TestSorting(object):
         assert_frame_equal(gr.median(), aggr(np.median))
 
     def test_lexsort_indexer(self):
-        keys = [[nan] * 5 + list(range(100)) + [nan] * 5]
+        keys = [[np.nan] * 5 + list(range(100)) + [np.nan] * 5]
         # orders=True, na_position='last'
         result = lexsort_indexer(keys, orders=True, na_position='last')
         exp = list(range(5, 105)) + list(range(5)) + list(range(105, 110))
@@ -123,7 +123,7 @@ class TestSorting(object):
 
     def test_nargsort(self):
         # np.argsort(items) places NaNs last
-        items = [nan] * 5 + list(range(100)) + [nan] * 5
+        items = [np.nan] * 5 + list(range(100)) + [np.nan] * 5
         # np.argsort(items2) may not place NaNs first
         items2 = np.array(items, dtype='O')
 

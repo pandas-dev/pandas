@@ -5,7 +5,6 @@ from collections import OrderedDict
 from datetime import datetime, timedelta
 
 import numpy as np
-from numpy import nan
 import numpy.ma as ma
 import pytest
 
@@ -372,14 +371,14 @@ class TestSeriesConstructors():
     def test_constructor_maskedarray(self):
         data = ma.masked_all((3, ), dtype=float)
         result = Series(data)
-        expected = Series([nan, nan, nan])
+        expected = Series([np.nan, np.nan, np.nan])
         assert_series_equal(result, expected)
 
         data[0] = 0.0
         data[2] = 2.0
         index = ['a', 'b', 'c']
         result = Series(data, index=index)
-        expected = Series([0.0, nan, 2.0], index=index)
+        expected = Series([0.0, np.nan, 2.0], index=index)
         assert_series_equal(result, expected)
 
         data[1] = 1.0
@@ -389,14 +388,14 @@ class TestSeriesConstructors():
 
         data = ma.masked_all((3, ), dtype=int)
         result = Series(data)
-        expected = Series([nan, nan, nan], dtype=float)
+        expected = Series([np.nan, np.nan, np.nan], dtype=float)
         assert_series_equal(result, expected)
 
         data[0] = 0
         data[2] = 2
         index = ['a', 'b', 'c']
         result = Series(data, index=index)
-        expected = Series([0, nan, 2], index=index, dtype=float)
+        expected = Series([0, np.nan, 2], index=index, dtype=float)
         assert_series_equal(result, expected)
 
         data[1] = 1
@@ -406,14 +405,14 @@ class TestSeriesConstructors():
 
         data = ma.masked_all((3, ), dtype=bool)
         result = Series(data)
-        expected = Series([nan, nan, nan], dtype=object)
+        expected = Series([np.nan, np.nan, np.nan], dtype=object)
         assert_series_equal(result, expected)
 
         data[0] = True
         data[2] = False
         index = ['a', 'b', 'c']
         result = Series(data, index=index)
-        expected = Series([True, nan, False], index=index, dtype=object)
+        expected = Series([True, np.nan, False], index=index, dtype=object)
         assert_series_equal(result, expected)
 
         data[1] = True
@@ -632,14 +631,14 @@ class TestSeriesConstructors():
         s = Series(iNaT, index=lrange(5))
         assert not isna(s).all()
 
-        s = Series(nan, dtype='M8[ns]', index=lrange(5))
+        s = Series(np.nan, dtype='M8[ns]', index=lrange(5))
         assert isna(s).all()
 
         s = Series([datetime(2001, 1, 2, 0, 0), iNaT], dtype='M8[ns]')
         assert isna(s[1])
         assert s.dtype == 'M8[ns]'
 
-        s = Series([datetime(2001, 1, 2, 0, 0), nan], dtype='M8[ns]')
+        s = Series([datetime(2001, 1, 2, 0, 0), np.nan], dtype='M8[ns]')
         assert isna(s[1])
         assert s.dtype == 'M8[ns]'
 
@@ -885,7 +884,7 @@ class TestSeriesConstructors():
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}
         result = Series(d, index=['b', 'c', 'd', 'a'])
-        expected = Series([1, 2, nan, 0], index=['b', 'c', 'd', 'a'])
+        expected = Series([1, 2, np.nan, 0], index=['b', 'c', 'd', 'a'])
         assert_series_equal(result, expected)
 
         pidx = tm.makePeriodIndex(100)
