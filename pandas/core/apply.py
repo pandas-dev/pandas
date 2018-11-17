@@ -133,7 +133,8 @@ class FrameApply(object):
         elif isinstance(self.f, np.ufunc):
             result = self.obj._constructor(index=self.index, copy=False)
             for col in self.columns:
-                result[col] = self.f(self.obj[col].values)
+                with np.errstate(all='ignore'):
+                    result[col] = self.f(self.obj[col].values)
             return result
 
         # broadcasting
