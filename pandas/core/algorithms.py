@@ -509,8 +509,8 @@ _shared_docs['factorize'] = """
 
     See Also
     --------
-    pandas.cut : Discretize continuous-valued array.
-    pandas.unique : Find the unique value in an array.
+    cut : Discretize continuous-valued array.
+    unique : Find the unique value in an array.
 
     Examples
     --------
