@@ -26,8 +26,8 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.datetimes import (
-    DatetimeArrayMixin as DatetimeArray, objects_to_datetime64ns, _to_m8,
-    dtype_conversions, maybe_infer_tz)
+    DatetimeArrayMixin as DatetimeArray, _to_m8, dtype_conversions,
+    maybe_infer_tz, objects_to_datetime64ns)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
