@@ -2362,8 +2362,7 @@ class TestExcelWriterEngineTests(object):
     pytest.param('xlwt',
                  marks=pytest.mark.xfail(reason='xlwt does not support '
                                                 'openpyxl-compatible '
-                                                'style dicts',
-                                         strict=True)),
+                                                'style dicts')),
     'xlsxwriter',
     'openpyxl',
 ])
