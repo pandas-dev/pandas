@@ -2826,7 +2826,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        bins: integer, default 10
+        bins : integer, default 10
             Number of histogram bins to be used
         `**kwds` : optional
             Additional keyword arguments are documented in
