@@ -1172,7 +1172,7 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
     join_index = _convert_to_mulitindex(join_index)
 
     join_levels = join_index.levels
-    join_labels = join_index.labels
+    join_codes = join_index.codes
     join_names = join_index.names
 
     # lindexer and rindexer hold the indexes where the join occurred
@@ -1197,16 +1197,16 @@ def _restore_dropped_levels_multijoin(left, right, dropped_level_names,
         name_idx = idx.names.index(dropped_level_name)
 
         restore_levels = idx.levels[name_idx]
-        # Inject -1 in the labels list where a join was not possible
+        # Inject -1 in the codes list where a join was not possible
         # IOW indexer[i]=-1
-        labels = idx.labels[name_idx]
-        restore_labels = algos.take_nd(labels, indexer, fill_value=-1)
+        codes = idx.codes[name_idx]
+        restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
         join_levels = join_levels + [restore_levels]
-        join_labels = join_labels + [restore_labels]
+        join_codes = join_codes + [restore_codes]
         join_names = join_names + [dropped_level_name]
 
-    return join_levels, join_labels, join_names
+    return join_levels, join_codes, join_names
 
 
 class _OrderedMerge(_MergeOperation):

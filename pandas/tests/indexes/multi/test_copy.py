@@ -37,6 +37,12 @@ def test_shallow_copy(idx):
     assert_multiindex_copied(i_copy, idx)
 
 
+def test_labels_deprecated(idx):
+    # GH23752
+    codes = idx.codes
+    with tm.assert_produces_warning(FutureWarning):
+        idx.copy(labels=codes)
+
 def test_view(idx):
     i_view = idx.view()
     assert_multiindex_copied(i_view, idx)
@@ -70,7 +76,7 @@ def test_copy_method(deep):
 @pytest.mark.parametrize('kwarg, value', [
     ('names', ['thrid', 'fourth']),
     ('levels', [['foo2', 'bar2'], ['fizz2', 'buzz2']]),
-    ('labels', [[1, 0, 0, 0], [1, 1, 0, 0]])
+    ('codes', [[1, 0, 0, 0], [1, 1, 0, 0]])
 ])
 def test_copy_method_kwargs(deep, kwarg, value):
     # gh-12309: Check that the "name" argument as well other kwargs are honored

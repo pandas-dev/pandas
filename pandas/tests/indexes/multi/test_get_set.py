@@ -323,6 +323,7 @@ def test_set_codes(idx):
 
 
 def test_set_labels_deprecated():
+    # GH23752
     ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
     new_labels = range(129, -1, -1)
     expected = pd.MultiIndex.from_tuples(

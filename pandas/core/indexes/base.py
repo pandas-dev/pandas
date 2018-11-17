@@ -4103,12 +4103,24 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
+<<<<<<< HEAD
     def sort_values(self, return_indexer=False, ascending=True):
         """
         Return a sorted copy of the index.
 
         Return a sorted copy of the index, and optionally return the indices
         that sorted the index itself.
+=======
+            levels, codes, names = (
+                _restore_dropped_levels_multijoin(self, other,
+                                                  dropped_names,
+                                                  join_idx,
+                                                  lidx, ridx))
+
+            # Re-create the multi-index
+            multi_join_idx = MultiIndex(levels=levels, codes=codes,
+                                        names=names, verify_integrity=False)
+>>>>>>> various changes
 
         Parameters
         ----------
@@ -4466,15 +4478,24 @@ class Index(IndexOpsMixin, PandasObject):
         passed set of values. The length of the returned boolean array matches
         the length of the index.
 
+<<<<<<< HEAD
         Parameters
         ----------
         values : set or list-like
             Sought values.
 
             .. versionadded:: 0.18.1
+=======
+            new_level_codes = algos.take_nd(rev_indexer, left.codes[level],
+                                            allow_fill=False)
+
+            new_codes = list(left.codes)
+            new_codes[level] = new_level_codes
+>>>>>>> various changes
 
                Support for values as a set.
 
+<<<<<<< HEAD
         level : str or int, optional
             Name or position of the index level to use (if the index is a
             `MultiIndex`).
@@ -4483,18 +4504,40 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         is_contained : ndarray
             NumPy array of boolean values.
+=======
+            if keep_order:  # just drop missing values. o.w. keep order
+                left_indexer = np.arange(len(left), dtype=np.intp)
+                mask = new_level_codes != -1
+                if not mask.all():
+                    new_codes = [codes_[mask] for codes_ in new_codes]
+                    left_indexer = left_indexer[mask]
+
+            else:  # tie out the order with other
+                if level == 0:  # outer most level, take the fast route
+                    ngroups = 1 + new_level_codes.max()
+                    left_indexer, counts = libalgos.groupsort_indexer(
+                        new_level_codes, ngroups)
+>>>>>>> various changes
 
         See Also
         --------
         Series.isin : Same for Series.
         DataFrame.isin : Same method for DataFrames.
 
+<<<<<<< HEAD
         Notes
         -----
         In the case of `MultiIndex` you must either specify `values` as a
         list-like object containing tuples that are the same length as the
         number of levels, or specify `level`. Otherwise it will raise a
         ``ValueError``.
+=======
+                else:  # sort the leaves
+                    mask = new_level_codes != -1
+                    mask_all = mask.all()
+                    if not mask_all:
+                        new_codes = [lab[mask] for lab in new_codes]
+>>>>>>> various changes
 
         If `level` is specified:
 

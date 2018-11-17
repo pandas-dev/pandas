@@ -59,7 +59,7 @@ def test_repr_with_unicode_data():
         assert "\\u" not in repr(index)  # we don't want unicode-escaped
 
 
-@pytest.mark.xfail(raises=TypeError)
+@pytest.mark.skip(reason="#22511 will remove this test")
 def test_repr_roundtrip():
 
     mi = MultiIndex.from_product([list('ab'), range(3)],
