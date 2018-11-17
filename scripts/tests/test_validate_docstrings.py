@@ -738,8 +738,8 @@ class TestValidator(object):
         ('BadGenericDocStrings', 'unknown_section',
          ('Found unknown section "Unknown Section".',)),
         ('BadGenericDocStrings', 'sections_in_wrong_order',
-         ('Wrong order of sections. "See Also" should be located before '
-          '"Notes"',)),
+         ('Sections are in the wrong order. Correct order is: Parameters, '
+          'See Also, Examples',)),
         ('BadSeeAlso', 'desc_no_period',
          ('Missing period at end of description for See Also "Series.iloc"',)),
         ('BadSeeAlso', 'desc_first_letter_lowercase',
