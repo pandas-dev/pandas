@@ -1117,6 +1117,43 @@ class DataFrame(NDFrame):
 
         return cls(data, index=index, columns=columns, dtype=dtype)
 
+    def to_numpy(self):
+        """
+        Convert the DataFrame to a NumPy array.
+
+        The dtype of the returned array will be the common NumPy
+        dtype of all types in the DataFrame. This may require copying
+        data and coercing values, which may be expensive.
+
+        Returns
+        -------
+        array : numpy.ndarray
+
+        See Also
+        --------
+        Series.to_nummpy
+        Series.array
+
+        Examples
+        --------
+        >>> pd.DataFrame({"A": [1, 2], "B": [3, 4]}).to_numpy()
+
+        With heterogenous data, the lowest common type will have to
+        be used.
+
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3.0, 4.5]})
+        >>> df.to_numpy()
+
+        When numeric and non-numeric types, the output array will
+        have object dtype.
+
+        >>> df['C'] = pd.date_range('2000', periods=2)
+        >>> df.to_numpy()
+        array([[1, 3.0, Timestamp('2000-01-01 00:00:00')],
+               [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
+        """
+        return self.values
+
     def to_dict(self, orient='dict', into=dict):
         """
         Convert the DataFrame to a dictionary.

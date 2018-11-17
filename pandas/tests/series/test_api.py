@@ -305,6 +305,9 @@ class TestSeriesMisc(TestData, SharedWithSparse):
     def test_values(self):
         tm.assert_almost_equal(self.ts.values, self.ts, check_dtype=False)
 
+    def test_to_numpy(self):
+        pass
+
     def test_iteritems(self):
         for idx, val in compat.iteritems(self.series):
             assert val == self.series[idx]
