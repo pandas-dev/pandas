@@ -34,6 +34,9 @@ import pandas.util.testing as tm
     (pd.Index([1, 2]), None, np.array([1, 2], dtype=np.int64)),
     # "3rd party" EAs work
     ([decimal.Decimal(0), decimal.Decimal(1)], 'decimal', to_decimal([0, 1])),
+    # 2D ndarrays pass through
+    (np.array([[1, 2], [3, 4]]), None, np.array([[1, 2], [3, 4]])),
+    ([[1, 2], [3, 4]], None, np.array([[1, 2, ], [3, 4]])),
 ])
 def test_array(data, dtype, expected):
     result = pd.array(data, dtype=dtype)
