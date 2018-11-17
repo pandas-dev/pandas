@@ -416,10 +416,10 @@ class _Window(PandasObject, SelectionMixin):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data
-    DataFrame.%(name)s : Calling object with DataFrames
-    Series.mean : Equivalent method for Series
-    DataFrame.mean : Equivalent method for DataFrame
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.mean : Equivalent method for Series.
+    DataFrame.mean : Equivalent method for DataFrame.
 
     Examples
     --------
@@ -547,7 +547,6 @@ class Window(_Window):
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
 
-
     Contrasting to an integer rolling window, this will roll a variable
     length window corresponding to the time period.
     The default for min_periods is 1.
@@ -592,7 +591,7 @@ class Window(_Window):
     See Also
     --------
     expanding : Provides expanding transformations.
-    ewm : Provides exponential weighted functions
+    ewm : Provides exponential weighted functions.
     """
 
     def validate(self):
@@ -903,9 +902,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    pandas.Series.%(name)s : Calling object with Series data
-    pandas.DataFrame.%(name)s : Calling object with DataFrames
-    pandas.DataFrame.count : Count of the full DataFrame
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.DataFrame.count : Count of the full DataFrame.
 
     Examples
     --------
@@ -1031,10 +1030,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with a Series
-    DataFrame.%(name)s : Calling object with a DataFrame
-    Series.min : Similar method for Series
-    DataFrame.min : Similar method for DataFrame
+    Series.%(name)s : Calling object with a Series.
+    DataFrame.%(name)s : Calling object with a DataFrame.
+    Series.min : Similar method for Series.
+    DataFrame.min : Similar method for DataFrame.
 
     Examples
     --------
@@ -1074,10 +1073,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data
-    DataFrame.%(name)s : Calling object with DataFrames
-    Series.median : Equivalent method for Series
-    DataFrame.median : Equivalent method for DataFrame
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.median : Equivalent method for Series.
+    DataFrame.median : Equivalent method for DataFrame.
 
     Examples
     --------
@@ -1117,11 +1116,11 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data
-    DataFrame.%(name)s : Calling object with DataFrames
-    Series.std : Equivalent method for Series
-    DataFrame.std : Equivalent method for DataFrame
-    numpy.std : Equivalent method for Numpy array
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.std : Equivalent method for Series.
+    DataFrame.std : Equivalent method for DataFrame.
+    numpy.std : Equivalent method for Numpy array.
 
     Notes
     -----
@@ -1188,11 +1187,11 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data
-    DataFrame.%(name)s : Calling object with DataFrames
-    Series.var : Equivalent method for Series
-    DataFrame.var : Equivalent method for DataFrame
-    numpy.var : Equivalent method for Numpy array
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.var : Equivalent method for Series.
+    DataFrame.var : Equivalent method for DataFrame.
+    numpy.var : Equivalent method for Numpy array.
 
     Notes
     -----
@@ -1255,12 +1254,12 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data
-    DataFrame.%(name)s : Calling object with DataFrames
-    Series.kurt : Equivalent method for Series
-    DataFrame.kurt : Equivalent method for DataFrame
-    scipy.stats.skew : Third moment of a probability density
-    scipy.stats.kurtosis : Reference SciPy method
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.kurt : Equivalent method for Series.
+    DataFrame.kurt : Equivalent method for DataFrame.
+    scipy.stats.skew : Third moment of a probability density.
+    scipy.stats.kurtosis : Reference SciPy method.
 
     Notes
     -----
@@ -1414,12 +1413,12 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data
-    DataFrame.%(name)s : Calling object with DataFrames
-    Series.corr : Equivalent method for Series
-    DataFrame.corr : Equivalent method for DataFrame
-    %(name)s.cov : Similar method to calculate covariance
-    numpy.corrcoef : NumPy Pearson's correlation calculation
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.corr : Equivalent method for Series.
+    DataFrame.corr : Equivalent method for DataFrame.
+    %(name)s.cov : Similar method to calculate covariance.
+    numpy.corrcoef : NumPy Pearson's correlation calculation.
 
     Notes
     -----
@@ -1849,8 +1848,8 @@ class Expanding(_Rolling_and_Expanding):
 
     See Also
     --------
-    rolling : Provides rolling window calculations
-    ewm : Provides exponential weighted functions
+    rolling : Provides rolling window calculations.
+    ewm : Provides exponential weighted functions.
     """
 
     _attributes = ['min_periods', 'center', 'axis']
@@ -2168,7 +2167,7 @@ class EWM(_Rolling):
 
     See Also
     --------
-    rolling : Provides rolling window calculations
+    rolling : Provides rolling window calculations.
     expanding : Provides expanding transformations.
     """
     _attributes = ['com', 'min_periods', 'adjust', 'ignore_na', 'axis']

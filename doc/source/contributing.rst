@@ -591,21 +591,14 @@ run this slightly modified command::
 
    git diff master --name-only -- "*.py" | grep "pandas/" | xargs flake8
 
-Note that on Windows, these commands are unfortunately not possible because
-commands like ``grep`` and ``xargs`` are not available natively. To imitate the
-behavior with the commands above, you should run::
+Windows does not support the ``grep`` and ``xargs`` commands (unless installed
+for example via the `MinGW <http://www.mingw.org/>`__ toolchain), but one can
+imitate the behaviour as follows::
 
-    git diff master --name-only -- "*.py"
+    for /f %i in ('git diff upstream/master --name-only ^| findstr pandas/') do flake8 %i
 
-This will list all of the Python files that have been modified. The only ones
-that matter during linting are any whose directory filepath begins with "pandas."
-For each filepath, copy and paste it after the ``flake8`` command as shown below:
-
-    flake8 <python-filepath>
-
-Alternatively, you can install the ``grep`` and ``xargs`` commands via the
-`MinGW <http://www.mingw.org/>`__ toolchain, and it will allow you to run the
-commands above.
+This will also get all the files being changed by the PR (and within the
+``pandas/`` folder), and run ``flake8`` on them one after the other.
 
 .. _contributing.import-formatting:
 
@@ -1103,7 +1096,7 @@ Information on how to write a benchmark and how to use asv can be found in the
 Documenting your code
 ---------------------
 
-Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.txt``.
+Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.rst``.
 This file contains an ongoing change log for each release.  Add an entry to this file to
 document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
 GitHub issue number when adding your entry (using ``:issue:`1234``` where ``1234`` is the

@@ -504,11 +504,12 @@ class TestIndex(Base):
         with pytest.raises(ValueError, match=msg):
             Index(["a", "b", "c"], dtype=float)
 
-    def test_constructor_unwraps_index(self):
-        a = pd.Index([True, False])
-        b = pd.Index(a)
-        expected = np.array([True, False], dtype=object)
-        tm.assert_numpy_array_equal(b._data, expected)
+    def test_constructor_unwraps_index(self, indices):
+        if isinstance(indices, pd.MultiIndex):
+            raise pytest.skip("MultiIndex has no ._data")
+        a = indices
+        b = type(a)(a)
+        tm.assert_equal(a._data, b._data)
 
     def test_view_with_args(self):
 
@@ -2271,6 +2272,14 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
         with tm.assert_produces_warning(None):
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('idx.', 4))
+
+    def test_to_flat_index(self, indices):
+        # 22866
+        if isinstance(indices, MultiIndex):
+            pytest.skip("Separate expectation for MultiIndex")
+
+        result = indices.to_flat_index()
+        tm.assert_index_equal(result, indices)
 
 
 class TestMixedIntIndex(Base):

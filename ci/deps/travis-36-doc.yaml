@@ -8,6 +8,7 @@ dependencies:
   - bottleneck
   - cython>=0.28.2
   - fastparquet
+  - gitpython
   - html5lib
   - hypothesis>=3.58.0
   - ipykernel

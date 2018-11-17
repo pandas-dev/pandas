@@ -59,7 +59,7 @@ ll_params = [
     ({'a', 1},                  'set', 'set'),                  # noqa: E241
     (set(),                     'set', 'set-empty'),            # noqa: E241
     (frozenset({'a', 1}),       'set', 'frozenset'),            # noqa: E241
-    (frozenset([]),             'set', 'frozenset-empty'),      # noqa: E241
+    (frozenset(),               'set', 'frozenset-empty'),      # noqa: E241
     (iter([1, 2]),              True,  'iterator'),             # noqa: E241
     (iter([]),                  True,  'iterator-empty'),       # noqa: E241
     ((x for x in [1, 2]),       True,  'generator'),            # noqa: E241

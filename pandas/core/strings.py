@@ -205,7 +205,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
     See Also
     --------
-    match : analogous, but stricter, relying on re.match instead of re.search
+    match : Analogous, but stricter, relying on re.match instead of re.search.
     Series.str.startswith : Test if the start of each string element matches a
         pattern.
     Series.str.endswith : Same as startswith, but tests the end of string.
@@ -475,7 +475,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
         A copy of the object with all matching occurrences of `pat` replaced by
         `repl`.
 
-
     Raises
     ------
     ValueError
@@ -549,7 +548,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     1    bar
     2    NaN
     dtype: object
-
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
@@ -670,7 +668,6 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
     contains : analogous, but less strict, relying on re.search instead of
         re.match
     extract : extract matched groups
-
     """
     if not case:
         flags |= re.IGNORECASE
@@ -803,7 +800,7 @@ def str_extract(arr, pat, flags=0, expand=True):
 
     See Also
     --------
-    extractall : returns all matches (not just the first match)
+    extractall : Returns all matches (not just the first match).
 
     Examples
     --------
@@ -890,7 +887,7 @@ def str_extractall(arr, pat, flags=0):
 
     See Also
     --------
-    extract : returns first match only (not all matches)
+    extract : Returns first match only (not all matches).
 
     Examples
     --------
@@ -1177,7 +1174,6 @@ def str_findall(arr, pat, flags=0):
     1        []
     2    [b, b]
     dtype: object
-
     """
     regex = re.compile(pat, flags=flags)
     return _na_map(regex.findall, arr)
@@ -2104,8 +2100,8 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        split : Split each string in the Series/Index
-        join : Join lists contained as elements in the Series/Index
+        split : Split each string in the Series/Index.
+        join : Join lists contained as elements in the Series/Index.
 
         Examples
         --------
@@ -2433,7 +2429,6 @@ class StringMethods(NoNewAttributesMixin):
     Examples
     --------
 
-
     >>> s = pd.Series(['Linda van der Berg', 'George Pitt-Rivers'])
     >>> s
     0    Linda van der Berg
@@ -2676,9 +2671,9 @@ class StringMethods(NoNewAttributesMixin):
 
     See Also
     --------
-    Series.str.strip : Remove leading and trailing characters in Series/Index
-    Series.str.lstrip : Remove leading characters in Series/Index
-    Series.str.rstrip : Remove trailing characters in Series/Index
+    Series.str.strip : Remove leading and trailing characters in Series/Index.
+    Series.str.lstrip : Remove leading characters in Series/Index.
+    Series.str.rstrip : Remove trailing characters in Series/Index.
 
     Examples
     --------

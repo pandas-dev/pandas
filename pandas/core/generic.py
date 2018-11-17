@@ -117,7 +117,7 @@ class NDFrame(PandasObject, SelectionMixin):
                        '_default_fill_value', '_metadata', '__array_struct__',
                        '__array_interface__']
     _internal_names_set = set(_internal_names)
-    _accessors = frozenset([])
+    _accessors = frozenset()
     _deprecations = frozenset(['as_blocks', 'blocks',
                                'convert_objects', 'is_copy'])
     _metadata = []
@@ -730,7 +730,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         axis : {0 or 'index', 1 or 'columns'}, default 0
 
-
         Returns
         -------
         DataFrame.droplevel()
@@ -769,7 +768,6 @@ class NDFrame(PandasObject, SelectionMixin):
         1 2      3   4
         5 6      7   8
         9 10    11  12
-
         """
         labels = self._get_axis(axis)
         new_labels = labels.droplevel(level)
@@ -854,8 +852,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        Series.iloc : Integer-location based indexing for selecting scalars
-        DataFrame.iloc : Integer-location based indexing for selecting Series
+        Series.iloc : Integer-location based indexing for selecting scalars.
+        DataFrame.iloc : Integer-location based indexing for selecting Series.
         Series.to_frame : Inverse of DataFrame.squeeze for a
             single-column DataFrame.
 
@@ -1166,9 +1164,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.Series.rename : Alter Series index labels or name
-        pandas.DataFrame.rename : Alter DataFrame index labels or name
-        pandas.Index.rename : Set new names on index
+        pandas.Series.rename : Alter Series index labels or name.
+        pandas.DataFrame.rename : Alter DataFrame index labels or name.
+        pandas.Index.rename : Set new names on index.
 
         Examples
         --------
@@ -1233,7 +1231,6 @@ class NDFrame(PandasObject, SelectionMixin):
             2    3  30
         c   1    4  40
             2    5  50
-
         """
         axes, kwargs = self._construct_axes_from_arguments((), kwargs)
         copy = kwargs.pop('copy', True)
@@ -2075,7 +2072,6 @@ class NDFrame(PandasObject, SelectionMixin):
     automatically chosen depending on the file extension):
 
     >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')
-
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
@@ -2324,7 +2320,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> import os
         >>> os.remove('data.h5')
-
         """
         from pandas.io import pytables
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
@@ -2398,7 +2393,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.read_sql : read a DataFrame from a table
+        pandas.read_sql : Read a DataFrame from a table.
 
         Notes
         -----
@@ -3324,7 +3319,6 @@ class NDFrame(PandasObject, SelectionMixin):
         MultiIndex Slicers is a generic way to get/set values on any level or
         levels.  It is a superset of xs functionality, see
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
-
         """
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
@@ -4886,7 +4880,6 @@ class NDFrame(PandasObject, SelectionMixin):
             If the caller is heterogeneous and contains booleans or objects,
             the result will be of dtype=object. See Notes.
 
-
         Notes
         -----
         Return is NOT a Numpy-matrix, rather, a Numpy-array.
@@ -4980,8 +4973,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.index : Retrieve the index labels
-        pandas.DataFrame.columns : Retrieving the column names
+        pandas.DataFrame.index : Retrieve the index labels.
+        pandas.DataFrame.columns : Retrieving the column names.
         """
         self._consolidate_inplace()
         return self._data.as_array(transpose=self._AXIS_REVERSED)
@@ -5133,7 +5126,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.ftypes : dtype and sparsity information.
+        pandas.DataFrame.ftypes : Dtype and sparsity information.
 
         Examples
         --------
@@ -5894,8 +5887,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        %(klass)s.fillna : Fill NA values
-        %(klass)s.where : Replace values based on boolean condition
+        %(klass)s.fillna : Fill NA values.
+        %(klass)s.where : Replace values based on boolean condition.
         Series.str.replace : Simple string replacement.
 
         Returns
@@ -6694,10 +6687,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        %(klass)s.isnull : alias of isna
-        %(klass)s.notna : boolean inverse of isna
-        %(klass)s.dropna : omit axes labels with missing values
-        isna : top-level isna
+        %(klass)s.isnull : Alias of isna.
+        %(klass)s.notna : Boolean inverse of isna.
+        %(klass)s.dropna : Omit axes labels with missing values.
+        isna : Top-level isna.
 
         Examples
         --------
@@ -6762,10 +6755,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        %(klass)s.notnull : alias of notna
-        %(klass)s.isna : boolean inverse of notna
-        %(klass)s.dropna : omit axes labels with missing values
-        notna : top-level notna
+        %(klass)s.notnull : Alias of notna.
+        %(klass)s.isna : Boolean inverse of notna.
+        %(klass)s.dropna : Omit axes labels with missing values.
+        notna : Top-level notna.
 
         Examples
         --------
@@ -7015,12 +7008,12 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         DataFrame.clip : General purpose method to trim DataFrame values to
-            given threshold(s)
+            given threshold(s).
         DataFrame.clip_lower : Trim DataFrame values below given
-            threshold(s)
+            threshold(s).
         Series.clip : General purpose method to trim Series values to given
-            threshold(s)
-        Series.clip_lower : Trim Series values below given threshold(s)
+            threshold(s).
+        Series.clip_lower : Trim Series values below given threshold(s).
 
         Examples
         --------
@@ -7093,12 +7086,12 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         DataFrame.clip : General purpose method to trim DataFrame values to
-            given threshold(s)
+            given threshold(s).
         DataFrame.clip_upper : Trim DataFrame values above given
-            threshold(s)
+            threshold(s).
         Series.clip : General purpose method to trim Series values to given
-            threshold(s)
-        Series.clip_upper : Trim Series values above given threshold(s)
+            threshold(s).
+        Series.clip_upper : Trim Series values above given threshold(s).
 
         Examples
         --------
@@ -7423,11 +7416,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        between_time : Select values between particular times of the day
-        first : Select initial periods of time series based on a date offset
-        last : Select final periods of time series based on a date offset
+        between_time : Select values between particular times of the day.
+        first : Select initial periods of time series based on a date offset.
+        last : Select final periods of time series based on a date offset.
         DatetimeIndex.indexer_at_time : Get just the index locations for
-            values at particular time of the day
+            values at particular time of the day.
         """
         try:
             indexer = self.index.indexer_at_time(time, asof=asof)
@@ -7485,11 +7478,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        at_time : Select values at a particular time of the day
-        first : Select initial periods of time series based on a date offset
-        last : Select final periods of time series based on a date offset
+        at_time : Select values at a particular time of the day.
+        first : Select initial periods of time series based on a date offset.
+        last : Select final periods of time series based on a date offset.
         DatetimeIndex.indexer_between_time : Get just the index locations for
-            values between particular times of the day
+            values between particular times of the day.
         """
         try:
             indexer = self.index.indexer_between_time(
@@ -7840,9 +7833,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        last : Select final periods of time series based on a date offset
-        at_time : Select values at a particular time of the day
-        between_time : Select values between particular times of the day
+        last : Select final periods of time series based on a date offset.
+        at_time : Select values at a particular time of the day.
+        between_time : Select values between particular times of the day.
         """
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'first' only supports a DatetimeIndex index")
@@ -7903,9 +7896,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        first : Select initial periods of time series based on a date offset
-        at_time : Select values at a particular time of the day
-        between_time : Select values between particular times of the day
+        first : Select initial periods of time series based on a date offset.
+        at_time : Select values at a particular time of the day.
+        between_time : Select values between particular times of the day.
         """
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'last' only supports a DatetimeIndex index")
@@ -8389,7 +8382,7 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         :func:`DataFrame.%(name_other)s` : Return an object of same shape as
-            self
+            self.
 
         Examples
         --------
@@ -8954,7 +8947,6 @@ class NDFrame(PandasObject, SelectionMixin):
         2018-10-28 02:36:00+02:00    1
         2018-10-28 03:46:00+01:00    2
         dtype: int64
-
         """
         if nonexistent not in ('raise', 'NaT', 'shift'):
             raise ValueError("The nonexistent argument must be one of 'raise',"
@@ -9061,7 +9053,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        numpy.absolute : calculate the absolute value element-wise.
+        numpy.absolute : Calculate the absolute value element-wise.
         """
         return np.abs(self)
 
@@ -9651,7 +9643,7 @@ class NDFrame(PandasObject, SelectionMixin):
             cls, 'kurt', name, name2, axis_descr,
             "Return unbiased kurtosis over requested axis using Fisher's "
             "definition of\nkurtosis (kurtosis of normal == 0.0). Normalized "
-            "by N-1\n",
+            "by N-1",
             nanops.nankurt)
         cls.kurtosis = cls.kurt
         cls.prod = _make_min_count_stat_function(
@@ -9699,8 +9691,7 @@ class NDFrame(PandasObject, SelectionMixin):
             ``numpy.ndarray`` method ``ptp``.
 
             .. deprecated:: 0.24.0
-                Use numpy.ptp instead
-            """,
+                Use numpy.ptp instead""",
             nanptp)
 
     @classmethod
@@ -9983,7 +9974,6 @@ def _doc_parms(cls):
 
 
 _num_doc = """
-
 %(desc)s
 
 Parameters
@@ -10001,12 +9991,11 @@ numeric_only : boolean, default None
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)
+%(outname)s : %(name1)s or %(name2)s (if level specified)\
 
 %(examples)s"""
 
 _num_ddof_doc = """
-
 %(desc)s
 
 Parameters
@@ -10112,8 +10101,8 @@ False
 _all_see_also = """\
 See Also
 --------
-pandas.Series.all : Return True if all elements are True
-pandas.DataFrame.any : Return True if one (or more) elements are True
+pandas.Series.all : Return True if all elements are True.
+pandas.DataFrame.any : Return True if one (or more) elements are True.
 """
 
 _cnum_doc = """
