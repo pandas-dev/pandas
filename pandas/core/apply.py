@@ -134,10 +134,7 @@ class FrameApply(object):
         elif isinstance(self.f, np.ufunc):
             result = self.obj._constructor(index=self.index, copy=False)
             for col in self.columns:
-                if is_sparse(self.obj.dtypes[col]):
-                    result[col] = self.f(self.obj[col].values)
-                else:
-                    result[col] = self.f(self.obj[col])
+                result[col] = self.f(self.obj[col].values)
             return result
 
         # broadcasting
