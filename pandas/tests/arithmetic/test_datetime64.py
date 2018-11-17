@@ -1065,7 +1065,7 @@ class TestTimestampSeriesArithmetic(object):
         tm.assert_series_equal(res, expected)
 
     def test_sub_datetime_compat(self):
-        # see gh-14088
+        # see GH#14088
         s = Series([datetime(2016, 8, 23, 12, tzinfo=pytz.utc), pd.NaT])
         dt = datetime(2016, 8, 22, 12, tzinfo=pytz.utc)
         exp = Series([Timedelta('1 days'), pd.NaT])

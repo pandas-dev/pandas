@@ -1063,7 +1063,7 @@ class TestPeriodIndexSeriesMethods(object):
         tm.assert_index_equal(pd.Period('NaT', freq='M') - idx, exp)
 
     def test_pi_sub_pdnat(self):
-        # GH 13071
+        # GH#13071
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-04'],
                           freq='M', name='idx')
         exp = pd.TimedeltaIndex([pd.NaT] * 4, name='idx')
@@ -1071,7 +1071,7 @@ class TestPeriodIndexSeriesMethods(object):
         tm.assert_index_equal(idx - pd.NaT, exp)
 
     def test_pi_sub_period_nat(self):
-        # GH 13071
+        # GH#13071
         idx = PeriodIndex(['2011-01', 'NaT', '2011-03', '2011-04'],
                           freq='M', name='idx')
 
