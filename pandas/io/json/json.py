@@ -129,6 +129,10 @@ class SeriesWriter(Writer):
                date_unit, iso_dates, default_handler):
         if not self.index and orient == 'split':
             obj = {"name": obj.name, "data": obj.values}
+        if orient == 'records':
+            if not obj.name:
+                obj.name = 0
+            obj = [{obj.name: v} for v in obj.values]
         return super(SeriesWriter, self)._write(obj, orient,
                                                 double_precision,
                                                 ensure_ascii, date_unit,
