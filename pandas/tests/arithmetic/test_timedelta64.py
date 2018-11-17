@@ -413,10 +413,10 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with pytest.raises(TypeError, match=msg):
             idx - Timestamp('2011-01-01')
 
-    def test_td64arr_add_timestamp(self, box5_and_tz):
+    def test_td64arr_add_timestamp(self, box_transpose_and_tz):
         # GH#23215
         # TODO: parametrize over scalar datetime types?
-        box, tz = box5_and_tz
+        box, tz = box_transpose_and_tz
 
         other = Timestamp('2011-01-01', tz=tz)
 

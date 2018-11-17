@@ -177,7 +177,7 @@ def box_df_fail(request):
                         (pd.DataFrame, True),
                         tm.to_array],
                 ids=id_func)
-def box5(request):
+def box_and_transpose(request):
     """
     Like `box4`, but the DataFrame case with box transpose=True and
     transpose=False
@@ -193,9 +193,9 @@ def box5(request):
                                      marks=pytest.mark.xfail(strict=True)),
                         tm.to_array],
                 ids=id_func)
-def box5_tfail(request):
+def box_transpose_fail(request):
     """
-    Like `box5`, but xfailing the transposed DataFrame case
+    Like `box_and_transpose`, but xfailing the transposed DataFrame case
     """
     # GH#23620
     return request.param
@@ -224,7 +224,7 @@ for n in range(len(params)):
 
 
 @pytest.fixture(params=params)
-def box5_and_tz(request):
+def box_transpose_and_tz(request):
     """
     Fixture to test over Index, Series, DataFrame, and pandas Array, also
     providing timezones, xfailing timezone-aware cases with transposed
@@ -244,5 +244,5 @@ def box_with_array(request):
 
 
 # aliases so we can use the same fixture twice in a test
-box_with_arrayb = box_with_array
-box5b = box5
+box_with_array2 = box_with_array
+box_and_transpose2 = box_and_transpose
