@@ -1036,6 +1036,7 @@ Deprecations
 - Constructing a :class:`TimedeltaIndex` from data with ``datetime64``-dtyped data is deprecated, will raise ``TypeError`` in a future version (:issue:`23539`)
 - The ``keep_tz=False`` option (the default) of the ``keep_tz`` keyword of
   :meth:`DatetimeIndex.to_series` is deprecated (:issue:`17832`).
+- Timezone converting a tz-aware ``datetime.datetime`` or :class:`Timestamp` with :class:`Timestamp` and the ``tz`` argument is now deprecated. Instead, use :meth:`Timestamp.tz_convert` (:issue:`23579`)
 
 .. _whatsnew_0240.deprecations.datetimelike_int_ops:
 
@@ -1139,6 +1140,7 @@ Performance Improvements
 - Improved performance of :func:`IndexEngine.get_indexer_non_unique` for sorted, non-unique indexes (:issue:`9466`)
 - Improved performance of :func:`PeriodIndex.unique` (:issue:`23083`)
 - Improved performance of :func:`pd.concat` for `Series` objects (:issue:`23404`)
+- Improved performance of :meth:`DatetimeIndex.normalize` and :meth:`Timestamp.normalize` for timezone naive or UTC datetimes (:issue:`23634`)
 
 
 .. _whatsnew_0240.docs:

@@ -102,6 +102,9 @@ class TimestampOps(object):
     def time_to_pydatetime(self, tz):
         self.ts.to_pydatetime()
 
+    def time_normalize(self, tz):
+        self.ts.normalize()
+
     def time_tz_convert(self, tz):
         self.ts.tz_convert(tz)
 
