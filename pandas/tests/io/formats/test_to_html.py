@@ -495,22 +495,17 @@ class TestToHTML(object):
                                      index, header, index_names):
 
         def _exp_name(idx_type, index, index_names):
-            idx_type_ids = {
-                (False, False): 'unnamed_standard',
-                (True, False): 'named_standard',
-                (False, True): 'unnamed_multi',
-                (True, True): 'named_multi'
-            }
-
-            if index:
-                if idx_type.nlevels > 1:
-                    has_names = com._any_not_none(*idx_type.names)
-                else:
-                    has_names = idx_type.name is not None
-                return idx_type_ids[(has_names and index_names,
-                                     idx_type.nlevels > 1)]
-            else:
+            # helper function to map test parameters to expected output
+            if not index:
                 return 'none'
+            is_multi_index = idx_type.nlevels > 1
+            if is_multi_index:
+                has_names = com._any_not_none(*idx_type.names)
+            else:
+                has_names = idx_type.name is not None
+            return '_'.join([
+                'named' if (has_names and index_names) else 'unnamed',
+                'multi' if is_multi_index else 'standard'])
 
         df = DataFrame(np.zeros((2, 2), dtype=int),
                        index=idx_type, columns=col_idx_type)
