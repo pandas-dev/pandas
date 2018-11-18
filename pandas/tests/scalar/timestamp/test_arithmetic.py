@@ -7,11 +7,12 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas.compat import long
 from pandas.tseries import offsets
+from pandas.tseries.frequencies import to_offset
 from pandas import Timestamp, Timedelta
 
 
 class TestTimestampArithmetic(object):
-    def test_overflow_offset(self):
+    def test_overflow_offset1(self):
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         # ends up multiplying really large numbers which overflow
 
@@ -26,6 +27,30 @@ class TestTimestampArithmetic(object):
 
         with pytest.raises(OverflowError):
             stamp - offset
+
+    def test_overflow_offset2(self):
+        # xref https://github.com/pandas-dev/pandas/issues/14080
+
+        stamp = Timestamp("2000/1/1")
+        offset_overflow = to_offset("D")*100**25
+        offset_no_overflow = to_offset("D")*100
+
+        with pytest.raises(OverflowError):
+            stamp + offset_overflow
+
+        with pytest.raises(OverflowError):
+            offset_overflow + stamp
+
+        with pytest.raises(OverflowError):
+            stamp - offset_overflow
+
+        expected = Timestamp("2000/04/10")
+        assert stamp + offset_no_overflow == expected
+
+        assert offset_no_overflow + stamp == expected
+
+        expected = Timestamp("1999/09/23")
+        assert stamp - offset_no_overflow == expected
 
     def test_delta_preserve_nanos(self):
         val = Timestamp(long(1337299200000000123))
