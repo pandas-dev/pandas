@@ -74,8 +74,8 @@ ERROR_MSGS = {
             'whitespace only',
     'GL06': 'Found unknown section "{section}". Allowed sections are: '
             '{allowed_sections}',
-    'GL07': 'Wrong order of sections. "{wrong_section}" should be located '
-            'before "{goes_before}", the right order is: {sorted_sections}',
+    'GL07': 'Sections are in the wrong order. Correct order is: '
+            '{correct_sections}',
     'SS01': 'No summary found (a short summary in a single line should be '
             'present at the beginning of the docstring)',
     'SS02': 'Summary does not start with a capital letter',
@@ -601,24 +601,18 @@ def validate_one(func_name):
         if re.match("^ *\t", line):
             errs.append(error('GL05', line_with_tabs=line.lstrip()))
 
-    unseen_sections = list(ALLOWED_SECTIONS)
-    for section in doc.section_titles:
-        if section not in ALLOWED_SECTIONS:
-            errs.append(error('GL06',
-                              section=section,
-                              allowed_sections=', '.join(ALLOWED_SECTIONS)))
-        else:
-            if section in unseen_sections:
-                section_idx = unseen_sections.index(section)
-                unseen_sections = unseen_sections[section_idx + 1:]
-            else:
-                section_idx = ALLOWED_SECTIONS.index(section)
-                goes_before = ALLOWED_SECTIONS[section_idx + 1]
-                errs.append(error('GL07',
-                                  sorted_sections=' > '.join(ALLOWED_SECTIONS),
-                                  wrong_section=section,
-                                  goes_before=goes_before))
-                break
+    unexpected_sections = [section for section in doc.section_titles
+                           if section not in ALLOWED_SECTIONS]
+    for section in unexpected_sections:
+        errs.append(error('GL06',
+                          section=section,
+                          allowed_sections=', '.join(ALLOWED_SECTIONS)))
+
+    correct_order = [section for section in ALLOWED_SECTIONS
+                     if section in doc.section_titles]
+    if correct_order != doc.section_titles:
+        errs.append(error('GL07',
+                          correct_sections=', '.join(correct_order)))
 
     if not doc.summary:
         errs.append(error('SS01'))
@@ -722,7 +716,7 @@ def validate_one(func_name):
             'examples_errors': examples_errs}
 
 
-def validate_all(prefix):
+def validate_all(prefix, ignore_deprecated=False):
     """
     Execute the validation of all docstrings, and return a dict with the
     results.
@@ -732,6 +726,8 @@ def validate_all(prefix):
     prefix : str or None
         If provided, only the docstrings that start with this pattern will be
         validated. If None, all docstrings will be validated.
+    ignore_deprecated: bool, default False
+        If True, deprecated objects are ignored when validating docstrings.
 
     Returns
     -------
@@ -750,6 +746,8 @@ def validate_all(prefix):
         if prefix and not func_name.startswith(prefix):
             continue
         doc_info = validate_one(func_name)
+        if ignore_deprecated and doc_info['deprecated']:
+            continue
         result[func_name] = doc_info
 
         shared_code_key = doc_info['file'], doc_info['file_line']
@@ -771,13 +769,15 @@ def validate_all(prefix):
                 if prefix and not func_name.startswith(prefix):
                     continue
                 doc_info = validate_one(func_name)
+                if ignore_deprecated and doc_info['deprecated']:
+                    continue
                 result[func_name] = doc_info
                 result[func_name]['in_api'] = False
 
     return result
 
 
-def main(func_name, prefix, errors, output_format):
+def main(func_name, prefix, errors, output_format, ignore_deprecated):
     def header(title, width=80, char='#'):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
@@ -791,7 +791,7 @@ def main(func_name, prefix, errors, output_format):
 
     exit_status = 0
     if func_name is None:
-        result = validate_all(prefix)
+        result = validate_all(prefix, ignore_deprecated)
 
         if output_format == 'json':
             output = json.dumps(result)
@@ -882,8 +882,13 @@ if __name__ == '__main__':
                            'list of error codes to validate. By default it '
                            'validates all errors (ignored when validating '
                            'a single docstring)')
+    argparser.add_argument('--ignore_deprecated', default=False,
+                           action='store_true', help='if this flag is set, '
+                           'deprecated objects are ignored when validating '
+                           'all docstrings')
 
     args = argparser.parse_args()
     sys.exit(main(args.function, args.prefix,
                   args.errors.split(',') if args.errors else None,
-                  args.format))
+                  args.format,
+                  args.ignore_deprecated))
