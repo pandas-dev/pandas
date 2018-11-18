@@ -111,11 +111,6 @@ def apply_index_wraps(func):
         result = func(self, other)
         if self.normalize:
             result = result.to_period('D').to_timestamp()
-
-        if hasattr(other, 'name'):
-            # only relevant for datetimeindex
-            result.name = other.name
-
         return result
 
     # do @functools.wraps(func) manually since it doesn't work on cdef funcs

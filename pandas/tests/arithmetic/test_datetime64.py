@@ -1954,6 +1954,9 @@ def test_dt64_with_offset_array(box_with_array):
 
 def test_dt64_with_DateOffsets_relativedelta(box_with_array):
     # GH#10699
+    if box_with_array is tm.to_array:
+        pytest.xfail("apply_index implementations are Index-specific")
+
     vec = DatetimeIndex([Timestamp('2000-01-05 00:15:00'),
                          Timestamp('2000-01-31 00:23:00'),
                          Timestamp('2000-01-01'),
@@ -2073,6 +2076,9 @@ def test_dt64_with_DateOffsets(box_with_array, normalize, cls_and_kwargs):
 
 def test_datetime64_with_DateOffset(box_with_array):
     # GH#10699
+    if box_with_array is tm.to_array:
+        pytest.xfail("DateOffset.apply_index uses _shallow_copy")
+
     s = date_range('2000-01-01', '2000-01-31', name='a')
     s = tm.box_expected(s, box_with_array)
     result = s + pd.DateOffset(years=1)

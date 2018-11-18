@@ -284,7 +284,7 @@ class DateOffset(BaseOffset):
                        kwds.get('months', 0)) * self.n)
             if months:
                 shifted = liboffsets.shift_months(i.asi8, months)
-                i = type(i)(shifted, freq=i.freq, dtype=i.dtype)
+                i = i._shallow_copy(shifted)
 
             weeks = (kwds.get('weeks', 0)) * self.n
             if weeks:
@@ -923,7 +923,7 @@ class MonthOffset(SingleConstructorOffset):
     @apply_index_wraps
     def apply_index(self, i):
         shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
-        return type(i)(shifted, freq=i.freq, dtype=i.dtype)
+        return i._shallow_copy(shifted)
 
 
 class MonthEnd(MonthOffset):
@@ -1591,7 +1591,7 @@ class QuarterOffset(DateOffset):
     def apply_index(self, dtindex):
         shifted = liboffsets.shift_quarters(dtindex.asi8, self.n,
                                             self.startingMonth, self._day_opt)
-        return type(dtindex)(shifted, freq=dtindex.freq, dtype=dtindex.dtype)
+        return dtindex._shallow_copy(shifted)
 
 
 class BQuarterEnd(QuarterOffset):
@@ -1662,7 +1662,7 @@ class YearOffset(DateOffset):
         shifted = liboffsets.shift_quarters(dtindex.asi8, self.n,
                                             self.month, self._day_opt,
                                             modby=12)
-        return type(dtindex)(shifted, freq=dtindex.freq, dtype=dtindex.dtype)
+        return dtindex._shallow_copy(shifted)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
