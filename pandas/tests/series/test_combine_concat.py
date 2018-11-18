@@ -127,7 +127,8 @@ class TestSeriesCombine(object):
         [61.1, 63.1],   # float, cannot be cast to int
         [(61,), (63,)]  # object
     ], ids=['int', 'float_castable', 'float', 'object'])
-    @pytest.mark.parametrize('caller_dtype', ['int', 'float', object])
+    @pytest.mark.parametrize('caller_dtype', ['int32', 'int64',
+                                              'float32', 'float64', object])
     def test_update_dtypes(self, caller_dtype, other_values):
         caller_values = [10, 11, 12]
         s = Series(caller_values, dtype=caller_dtype)
