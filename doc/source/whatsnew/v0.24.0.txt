@@ -187,18 +187,17 @@ New ``Styler.pipe()`` method
 The :class:`~pandas.io.formats.style.Styler` class has gained a
 :meth:`~pandas.io.formats.style.Styler.pipe` method (:issue:`23229`).  This provides a
 convenient way to apply users' predefined styling functions, and can help reduce
-"boilerplate" when using DataFrame styling functionality repeatedly within
-a notebook.
+"boilerplate" when using DataFrame styling functionality repeatedly within a notebook.
 
 .. ipython:: python
 
-    def set_summary_style(styler):
+    df = pandas.DataFrame({'N': [1250, 1500, 1750], 'X': [0.25, 0.35, 0.50]})
+
+    def format_and_align(styler):
         return (styler.format({'N': '{:,}', 'X': '{:.1%}'})
                       .set_properties(**{'text-align': 'right'}))
 
-    (df.style.set_precision(1)
-       .pipe(set_summary_style)
-       .set_caption('Summary of results.'))
+    df.style.pipe(format_and_align).set_caption('Summary of results.')
 
 Similar methods already exist for other classes in pandas, including :meth:`DataFrame.pipe`,
 :meth:`Groupby.pipe`, and :meth:`Resampler.pipe`.
