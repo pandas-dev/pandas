@@ -172,12 +172,11 @@ class TestDatetime64SeriesComparison(object):
         # GH#19800 datetime.date comparison raises to
         # match DatetimeIndex/Timestamp.  This also matches the behavior
         # of stdlib datetime.datetime
-        box = box_with_array
 
         ser = pd.date_range('20010101', periods=10)
         date = ser.iloc[0].to_pydatetime().date()
 
-        ser = tm.box_expected(ser, box)
+        ser = tm.box_expected(ser, box_with_array)
         assert not (ser == date).any()
         assert (ser != date).all()
         with pytest.raises(TypeError):
@@ -655,7 +654,6 @@ class TestDatetime64Arithmetic(object):
     def test_dt64arr_add_timedeltalike_scalar(self, tz_naive_fixture,
                                               two_hours, box_with_array):
         # GH#22005, GH#22163 check DataFrame doesn't raise TypeError
-        box = box_with_array
         tz = tz_naive_fixture
 
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
@@ -663,15 +661,14 @@ class TestDatetime64Arithmetic(object):
                                  '2000-02-01 02:00', tz=tz)
 
         # FIXME: calling with transpose=True raises ValueError
-        rng = tm.box_expected(rng, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        rng = tm.box_expected(rng, box_with_array, transpose=False)
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
 
         result = rng + two_hours
         tm.assert_equal(result, expected)
 
     def test_dt64arr_iadd_timedeltalike_scalar(self, tz_naive_fixture,
                                                two_hours, box_with_array):
-        box = box_with_array
         tz = tz_naive_fixture
 
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
@@ -679,15 +676,14 @@ class TestDatetime64Arithmetic(object):
                                  '2000-02-01 02:00', tz=tz)
 
         # FIXME: calling with transpose=True raises ValueError
-        rng = tm.box_expected(rng, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        rng = tm.box_expected(rng, box_with_array, transpose=False)
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
 
         rng += two_hours
         tm.assert_equal(rng, expected)
 
     def test_dt64arr_sub_timedeltalike_scalar(self, tz_naive_fixture,
                                               two_hours, box_with_array):
-        box = box_with_array
         tz = tz_naive_fixture
 
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
@@ -695,15 +691,14 @@ class TestDatetime64Arithmetic(object):
                                  '2000-01-31 22:00', tz=tz)
 
         # FIXME: calling with transpose=True raises ValueError
-        rng = tm.box_expected(rng, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        rng = tm.box_expected(rng, box_with_array, transpose=False)
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
 
         result = rng - two_hours
         tm.assert_equal(result, expected)
 
     def test_dt64arr_isub_timedeltalike_scalar(self, tz_naive_fixture,
                                                two_hours, box_with_array):
-        box = box_with_array
         tz = tz_naive_fixture
 
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
@@ -711,8 +706,8 @@ class TestDatetime64Arithmetic(object):
                                  '2000-01-31 22:00', tz=tz)
 
         # FIXME: calling with transpose=True raises ValueError
-        rng = tm.box_expected(rng, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        rng = tm.box_expected(rng, box_with_array, transpose=False)
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
 
         rng -= two_hours
         tm.assert_equal(rng, expected)
@@ -745,7 +740,6 @@ class TestDatetime64Arithmetic(object):
     def test_dt64arr_add_sub_td64_nat(self, box_with_array, tz_naive_fixture):
         # GH#23320 special handling for timedelta64("NaT")
         tz = tz_naive_fixture
-        box = box_with_array
 
         dti = pd.date_range("1994-04-01", periods=9, tz=tz, freq="QS")
         other = np.timedelta64("NaT")
@@ -753,8 +747,8 @@ class TestDatetime64Arithmetic(object):
 
         # FIXME: fails with transpose=True due to tz-aware DataFrame
         #  transpose bug
-        obj = tm.box_expected(dti, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        obj = tm.box_expected(dti, box_with_array, transpose=False)
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
 
         result = obj + other
         tm.assert_equal(result, expected)
@@ -1888,8 +1882,6 @@ class TestDatetimeIndexArithmetic(object):
 
     def test_dti_add_offset_tzaware(self, tz_aware_fixture, box_with_array):
         # GH#21610, GH#22163 ensure DataFrame doesn't return object-dtype
-        box = box_with_array
-
         timezone = tz_aware_fixture
         if timezone == 'US/Pacific':
             dates = date_range('2012-11-01', periods=3, tz=timezone)
@@ -1902,8 +1894,8 @@ class TestDatetimeIndexArithmetic(object):
                                   '2010-11-01 07:00'], freq='H', tz=timezone)
 
         # FIXME: these raise ValueError with transpose=True
-        dates = tm.box_expected(dates, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        dates = tm.box_expected(dates, box_with_array, transpose=False)
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
 
         # TODO: parametrize over the scalar being added?  radd?  sub?
         offset = dates + pd.offsets.Hour(5)
