@@ -43,6 +43,7 @@ def test_labels_deprecated(idx):
     with tm.assert_produces_warning(FutureWarning):
         idx.copy(labels=codes)
 
+
 def test_view(idx):
     i_view = idx.view()
     assert_multiindex_copied(i_view, idx)

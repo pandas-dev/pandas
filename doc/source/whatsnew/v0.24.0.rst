@@ -1104,8 +1104,8 @@ Deprecations
   The functionality is unchanged. This new name better reflects the natures of
   these codes and makes the API more similar to the API for
   :class:`CategoricalIndex`(:issue:`13443`).
-  As a concequence, other uses of the name ``labels`` have also been deprecated in ``MultiIndex`` and replaced with ``codes``:
-  - You should initialize a MultiIndex instance using a parameter named ``codes`` rather than ``labels``.
+  As a consequence, other uses of the name ``labels`` have also been deprecated in ``MultiIndex`` and replaced with ``codes``:
+  - You should initialize a ``MultiIndex`` instance using a parameter named ``codes`` rather than ``labels``.
   - :meth:`MultiIndex.set_labels` has been deprecated in favor of :meth:`MultiIndex.set_codes`
   - for method :meth:`MultiIndex.copy`, the ``labels`` parameter has been deprecated and replaced by a ``codes`` parameter.
 - :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument. The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`)

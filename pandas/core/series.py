@@ -3663,8 +3663,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> midx = pd.MultiIndex(levels=[['lama', 'cow', 'falcon'],
         ...                              ['speed', 'weight', 'length']],
-        ...                      labels=[[0, 0, 0, 1, 1, 1, 2, 2, 2],
-        ...                              [0, 1, 2, 0, 1, 2, 0, 1, 2]])
+        ...                      codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2],
+        ...                             [0, 1, 2, 0, 1, 2, 0, 1, 2]])
         >>> s = pd.Series([45, 200, 1.2, 30, 250, 1.5, 320, 1, 0.3],
         ...               index=midx)
         >>> s

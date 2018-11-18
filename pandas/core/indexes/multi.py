@@ -587,7 +587,7 @@ class MultiIndex(Index):
 
     @property
     def labels(self):
-        warnings.warn(("labels was deprecated in version 0.24.0. "
+        warnings.warn((".labels was deprecated in version 0.24.0. "
                        "Use .codes instead."),
                       FutureWarning, stacklevel=2)
         return self.codes
@@ -622,7 +622,7 @@ class MultiIndex(Index):
 
     def set_labels(self, labels, level=None, inplace=False,
                    verify_integrity=True):
-        warnings.warn(("set_labels was deprecated in version 0.24.0. "
+        warnings.warn((".set_labels was deprecated in version 0.24.0. "
                        "Use .set_codes instead."),
                       FutureWarning, stacklevel=2)
         return self.set_codes(codes=labels, level=level, inplace=inplace,
@@ -1512,7 +1512,7 @@ class MultiIndex(Index):
         --------
 
         >>> i = pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
-                              labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+                              codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         >>> i
         MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
@@ -1885,7 +1885,7 @@ class MultiIndex(Index):
         Examples
         --------
         >>> mi = pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
-        ...                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        ...                    codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         >>> mi
         MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
            labels=[[0, 0, 1, 1], [0, 1, 0, 1]])

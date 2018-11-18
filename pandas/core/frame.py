@@ -3736,8 +3736,8 @@ class DataFrame(NDFrame):
 
         >>> midx = pd.MultiIndex(levels=[['lama', 'cow', 'falcon'],
         ...                              ['speed', 'weight', 'length']],
-        ...                      labels=[[0, 0, 0, 1, 1, 1, 2, 2, 2],
-        ...                              [0, 1, 2, 0, 1, 2, 0, 1, 2]])
+        ...                      codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2],
+        ...                             [0, 1, 2, 0, 1, 2, 0, 1, 2]])
         >>> df = pd.DataFrame(index=midx, columns=['big', 'small'],
         ...                   data=[[45, 30], [200, 100], [1.5, 1], [30, 20],
         ...                         [250, 150], [1.5, 0.8], [320, 250],

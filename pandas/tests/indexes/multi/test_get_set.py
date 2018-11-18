@@ -348,7 +348,7 @@ def test_set_levels_codes_names_bad_input(idx):
     with pytest.raises(ValueError, match='Length of levels'):
         idx.set_levels([levels[0]])
 
-    with tm.assert_raises_regex(ValueError, 'Length of codes'):
+    with pytest.raises(ValueError, match='Length of codes'):
         idx.set_codes([codes[0]])
 
     with pytest.raises(ValueError, match='Length of names'):
@@ -359,7 +359,7 @@ def test_set_levels_codes_names_bad_input(idx):
         idx.set_levels(levels[0])
 
     # shouldn't scalar data error, instead should demand list-like
-    with tm.assert_raises_regex(TypeError, 'list of lists-like'):
+    with pytest.raises(TypeError, match='list of lists-like'):
         idx.set_codes(codes[0])
 
     # shouldn't scalar data error, instead should demand list-like
