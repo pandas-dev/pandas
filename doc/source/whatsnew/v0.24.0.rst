@@ -1270,8 +1270,8 @@ Numeric
 Strings
 ^^^^^^^
 
--
--
+- Bug in :meth:`Index.str.partition` was not nan-safe (:issue:`23558`).
+- Bug in :meth:`Index.str.split` was not nan-safe (:issue:`23677`).
 -
 
 Interval
