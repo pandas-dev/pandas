@@ -7056,11 +7056,6 @@ class DataFrame(NDFrame):
         -------
         DataFrame.corr
         """
-        if method not in ['pearson', 'spearman', 'kendall']:
-            raise ValueError("method must be either 'pearson', "
-                             "'spearman', or 'kendall', '{method}' "
-                             "was supplied".format(method=method))
-
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data()
 
@@ -7080,10 +7075,6 @@ class DataFrame(NDFrame):
             left = left + right * 0
             right = right + left * 0
 
-            if axis == 1:
-                left = left.T
-                right = right.T
-
             # demeaned data
             ldem = left - left.mean()
             rdem = right - right.mean()
@@ -7092,12 +7083,6 @@ class DataFrame(NDFrame):
             dom = (left.count() - 1) * left.std() * right.std()
 
             correl = num / dom
-
-            if not drop:
-                raxis = 1 if axis == 0 else 0
-                result_index = (this._get_axis(raxis).
-                                union(other._get_axis(raxis)))
-                correl = correl.reindex(result_index)
 
         else:
             def c(x):
@@ -7108,8 +7093,11 @@ class DataFrame(NDFrame):
                                 zip(left.values.T, right.values.T)),
                             index=left.columns)
 
-            if drop:
-                correl.dropna(inplace=True)
+        if not drop:
+            raxis = 1 if axis == 0 else 0
+            result_index = (this._get_axis(raxis).
+                            union(other._get_axis(raxis)))
+            correl = correl.reindex(result_index)
 
         return correl
 

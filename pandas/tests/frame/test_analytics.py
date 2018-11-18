@@ -466,6 +466,7 @@ class TestDataFrameAnalytics():
         expected = pd.Series(data=corrs, index=['a', 'b'])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail
     def test_corrwith_dup_cols(self):
         # GH 21925
         df1 = pd.DataFrame(np.vstack([np.arange(10)] * 3).T)
