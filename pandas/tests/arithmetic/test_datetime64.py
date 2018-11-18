@@ -23,7 +23,6 @@ from pandas._libs.tslibs.offsets import shift_months
 from pandas import (
     Timestamp, Timedelta, Period, Series, date_range, NaT,
     DatetimeIndex, TimedeltaIndex)
-from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 
 
 # ------------------------------------------------------------------
@@ -1929,15 +1928,11 @@ class TestDatetimeIndexArithmetic(object):
 def test_dt64_with_offset_array(box_with_array):
     # GH#10699
     # array of offsets
-    if box_with_array is tm.to_array:
-        pytest.xfail("Constructor does not understand object-dtype values")
-    if box_with_array is pd.DataFrame:
-        pytest.xfail("dispatches to numpy instead of DateOffset, raising")
-
     s = DatetimeIndex([Timestamp('2000-1-1'), Timestamp('2000-2-1')])
     s = tm.box_expected(s, box_with_array)
 
-    with tm.assert_produces_warning(PerformanceWarning,
+    warn = PerformanceWarning if box_with_array is not pd.DataFrame else None
+    with tm.assert_produces_warning(warn,
                                     clear=[pd.core.arrays.datetimelike]):
         other = pd.Index([pd.offsets.DateOffset(years=1),
                           pd.offsets.MonthEnd()])
@@ -1959,11 +1954,6 @@ def test_dt64_with_offset_array(box_with_array):
 
 def test_dt64_with_DateOffsets_relativedelta(box_with_array):
     # GH#10699
-    if box_with_array is tm.to_array:
-        pytest.xfail("Constructor does not understand object-dtype values")
-    if box_with_array is pd.DataFrame:
-        pytest.xfail("DataFrame op casts to integer-dtype (?)")
-
     vec = DatetimeIndex([Timestamp('2000-01-05 00:15:00'),
                          Timestamp('2000-01-31 00:23:00'),
                          Timestamp('2000-01-01'),
@@ -1973,6 +1963,7 @@ def test_dt64_with_DateOffsets_relativedelta(box_with_array):
                          Timestamp('2000-05-15'),
                          Timestamp('2001-06-15')])
     vec = tm.box_expected(vec, box_with_array)
+    vec_items = vec.squeeze() if box_with_array is pd.DataFrame else vec
 
     # DateOffset relativedelta fastpath
     relative_kwargs = [('years', 2), ('months', 5), ('days', 3),
@@ -1981,21 +1972,21 @@ def test_dt64_with_DateOffsets_relativedelta(box_with_array):
     for i, kwd in enumerate(relative_kwargs):
         off = pd.DateOffset(**dict([kwd]))
 
-        expected = DatetimeIndex([x + off for x in vec])
+        expected = DatetimeIndex([x + off for x in vec_items])
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(expected, vec + off)
 
-        expected = DatetimeIndex([x - off for x in vec])
+        expected = DatetimeIndex([x - off for x in vec_items])
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(expected, vec - off)
 
         off = pd.DateOffset(**dict(relative_kwargs[:i + 1]))
 
-        expected = DatetimeIndex([x + off for x in vec])
+        expected = DatetimeIndex([x + off for x in vec_items])
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(expected, vec + off)
 
-        expected = DatetimeIndex([x - off for x in vec])
+        expected = DatetimeIndex([x - off for x in vec_items])
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(expected, vec - off)
 
@@ -2028,9 +2019,7 @@ def test_dt64_with_DateOffsets(box_with_array, normalize, cls_and_kwargs):
     # GH#10699
     # assert these are equal on a piecewise basis
     if box_with_array is tm.to_array:
-        pytest.xfail("Constructor does not understand object-dtype values")
-    if box_with_array is pd.DataFrame:
-        pytest.xfail("DataFrame op casts to integer-dtype (?)")
+        pytest.xfail("apply_index implementations are Index-specific")
 
     vec = DatetimeIndex([Timestamp('2000-01-05 00:15:00'),
                          Timestamp('2000-01-31 00:23:00'),
@@ -2041,6 +2030,7 @@ def test_dt64_with_DateOffsets(box_with_array, normalize, cls_and_kwargs):
                          Timestamp('2000-05-15'),
                          Timestamp('2001-06-15')])
     vec = tm.box_expected(vec, box_with_array)
+    vec_items = vec.squeeze() if box_with_array is pd.DataFrame else vec
 
     if isinstance(cls_and_kwargs, tuple):
         # If cls_name param is a tuple, then 2nd entry is kwargs for
@@ -2065,15 +2055,15 @@ def test_dt64_with_DateOffsets(box_with_array, normalize, cls_and_kwargs):
 
             offset = offset_cls(n, normalize=normalize, **kwargs)
 
-            expected = DatetimeIndex([x + offset for x in vec])
+            expected = DatetimeIndex([x + offset for x in vec_items])
             expected = tm.box_expected(expected, box_with_array)
             tm.assert_equal(expected, vec + offset)
 
-            expected = DatetimeIndex([x - offset for x in vec])
+            expected = DatetimeIndex([x - offset for x in vec_items])
             expected = tm.box_expected(expected, box_with_array)
             tm.assert_equal(expected, vec - offset)
 
-            expected = DatetimeIndex([offset + x for x in vec])
+            expected = DatetimeIndex([offset + x for x in vec_items])
             expected = tm.box_expected(expected, box_with_array)
             tm.assert_equal(expected, offset + vec)
 
@@ -2083,9 +2073,6 @@ def test_dt64_with_DateOffsets(box_with_array, normalize, cls_and_kwargs):
 
 def test_datetime64_with_DateOffset(box_with_array):
     # GH#10699
-    if box_with_array is tm.to_array:
-        pytest.xfail("DateOffset.apply_index calls _shallow_copy")
-
     s = date_range('2000-01-01', '2000-01-31', name='a')
     s = tm.box_expected(s, box_with_array)
     result = s + pd.DateOffset(years=1)
