@@ -74,8 +74,8 @@ ERROR_MSGS = {
             'whitespace only',
     'GL06': 'Found unknown section "{section}". Allowed sections are: '
             '{allowed_sections}',
-    'GL07': 'Wrong order of sections. "{wrong_section}" should be located '
-            'before "{goes_before}", the right order is: {sorted_sections}',
+    'GL07': 'Sections are in the wrong order. Correct order is: '
+            '{correct_sections}',
     'SS01': 'No summary found (a short summary in a single line should be '
             'present at the beginning of the docstring)',
     'SS02': 'Summary does not start with a capital letter',
@@ -601,24 +601,18 @@ def validate_one(func_name):
         if re.match("^ *\t", line):
             errs.append(error('GL05', line_with_tabs=line.lstrip()))
 
-    unseen_sections = list(ALLOWED_SECTIONS)
-    for section in doc.section_titles:
-        if section not in ALLOWED_SECTIONS:
-            errs.append(error('GL06',
-                              section=section,
-                              allowed_sections=', '.join(ALLOWED_SECTIONS)))
-        else:
-            if section in unseen_sections:
-                section_idx = unseen_sections.index(section)
-                unseen_sections = unseen_sections[section_idx + 1:]
-            else:
-                section_idx = ALLOWED_SECTIONS.index(section)
-                goes_before = ALLOWED_SECTIONS[section_idx + 1]
-                errs.append(error('GL07',
-                                  sorted_sections=' > '.join(ALLOWED_SECTIONS),
-                                  wrong_section=section,
-                                  goes_before=goes_before))
-                break
+    unexpected_sections = [section for section in doc.section_titles
+                           if section not in ALLOWED_SECTIONS]
+    for section in unexpected_sections:
+        errs.append(error('GL06',
+                          section=section,
+                          allowed_sections=', '.join(ALLOWED_SECTIONS)))
+
+    correct_order = [section for section in ALLOWED_SECTIONS
+                     if section in doc.section_titles]
+    if correct_order != doc.section_titles:
+        errs.append(error('GL07',
+                          correct_sections=', '.join(correct_order)))
 
     if not doc.summary:
         errs.append(error('SS01'))
