@@ -796,28 +796,28 @@ class TestDatetime64Arithmetic(object):
         pd.Timestamp('2013-01-01'),
         pd.Timestamp('2013-01-01').to_pydatetime(),
         pd.Timestamp('2013-01-01').to_datetime64()])
-    def test_dt64arr_sub_dtscalar(self, box, ts):
+    def test_dt64arr_sub_dtscalar(self, box_with_array, ts):
         # GH#8554, GH#22163 DataFrame op should _not_ return dt64 dtype
         idx = pd.date_range('2013-01-01', periods=3)
-        idx = tm.box_expected(idx, box)
+        idx = tm.box_expected(idx, box_with_array)
 
         expected = pd.TimedeltaIndex(['0 Days', '1 Day', '2 Days'])
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = idx - ts
         tm.assert_equal(result, expected)
 
-    def test_dt64arr_sub_datetime64_not_ns(self, box):
+    def test_dt64arr_sub_datetime64_not_ns(self, box_with_array):
         # GH#7996, GH#22163 ensure non-nano datetime64 is converted to nano
         #  for DataFrame operation
         dt64 = np.datetime64('2013-01-01')
         assert dt64.dtype == 'datetime64[D]'
 
         dti = pd.date_range('20130101', periods=3)
-        dtarr = tm.box_expected(dti, box)
+        dtarr = tm.box_expected(dti, box_with_array)
 
         expected = pd.TimedeltaIndex(['0 Days', '1 Day', '2 Days'])
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = dtarr - dt64
         tm.assert_equal(result, expected)
@@ -825,38 +825,39 @@ class TestDatetime64Arithmetic(object):
         result = dt64 - dtarr
         tm.assert_equal(result, -expected)
 
-    def test_dt64arr_sub_timestamp(self, box):
+    def test_dt64arr_sub_timestamp(self, box_with_array):
         ser = pd.date_range('2014-03-17', periods=2, freq='D',
                             tz='US/Eastern')
         ts = ser[0]
 
         # FIXME: transpose raises ValueError
-        ser = tm.box_expected(ser, box, transpose=False)
+        ser = tm.box_expected(ser, box_with_array, transpose=False)
 
         delta_series = pd.Series([np.timedelta64(0, 'D'),
                                   np.timedelta64(1, 'D')])
-        expected = tm.box_expected(delta_series, box, transpose=False)
+        expected = tm.box_expected(delta_series, box_with_array,
+                                   transpose=False)
 
         tm.assert_equal(ser - ts, expected)
         tm.assert_equal(ts - ser, -expected)
 
-    def test_dt64arr_sub_NaT(self, box):
+    def test_dt64arr_sub_NaT(self, box_with_array):
         # GH#18808
         dti = pd.DatetimeIndex([pd.NaT, pd.Timestamp('19900315')])
-        ser = tm.box_expected(dti, box, transpose=False)
+        ser = tm.box_expected(dti, box_with_array, transpose=False)
 
         result = ser - pd.NaT
         expected = pd.Series([pd.NaT, pd.NaT], dtype='timedelta64[ns]')
         # FIXME: raises ValueError with transpose
-        expected = tm.box_expected(expected, box, transpose=False)
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
         tm.assert_equal(result, expected)
 
         dti_tz = dti.tz_localize('Asia/Tokyo')
-        ser_tz = tm.box_expected(dti_tz, box, transpose=False)
+        ser_tz = tm.box_expected(dti_tz, box_with_array, transpose=False)
 
         result = ser_tz - pd.NaT
         expected = pd.Series([pd.NaT, pd.NaT], dtype='timedelta64[ns]')
-        expected = tm.box_expected(expected, box, transpose=False)
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
         tm.assert_equal(result, expected)
 
     # -------------------------------------------------------------
