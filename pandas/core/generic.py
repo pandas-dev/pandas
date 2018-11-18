@@ -7393,7 +7393,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         time : datetime.time or string
-        axis : int or string axis name, optional
+        axis : {0 or 'index', 1 or 'columns'}, default 0
 
             .. versionadded:: 0.24.0
 
@@ -7457,7 +7457,7 @@ class NDFrame(PandasObject, SelectionMixin):
         end_time : datetime.time or string
         include_start : boolean, default True
         include_end : boolean, default True
-        axis : int or string axis name, optional
+        axis : {0 or 'index', 1 or 'columns'}, default 0
 
             .. versionadded:: 0.24.0
 
