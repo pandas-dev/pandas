@@ -820,7 +820,7 @@ class IndexOpsMixin(object):
         """
         return a ndarray of the maximum argument indexer
 
-        See also
+        See Also
         --------
         numpy.ndarray.argmax
         """
@@ -863,7 +863,7 @@ class IndexOpsMixin(object):
         """
         return a ndarray of the minimum argument indexer
 
-        See also
+        See Also
         --------
         numpy.ndarray.argmin
         """
@@ -1014,8 +1014,8 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        Series.count: number of non-NA elements in a Series
-        DataFrame.count: number of non-NA elements in a DataFrame
+        Series.count: Number of non-NA elements in a Series.
+        DataFrame.count: Number of non-NA elements in a DataFrame.
 
         Examples
         --------

@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 import operator
 
 import numpy as np
-from numpy import nan
 import pytest
 
 import pandas.compat as compat
@@ -190,20 +189,7 @@ class TestSeriesLogicalOps(object):
         operator.and_,
         operator.or_,
         operator.xor,
-        pytest.param(ops.rand_,
-                     marks=pytest.mark.xfail(reason="GH#22092 Index "
-                                                    "implementation returns "
-                                                    "Index",
-                                             raises=AssertionError,
-                                             strict=True)),
-        pytest.param(ops.ror_,
-                     marks=pytest.mark.xfail(reason="GH#22092 Index "
-                                                    "implementation raises",
-                                             raises=ValueError, strict=True)),
-        pytest.param(ops.rxor,
-                     marks=pytest.mark.xfail(reason="GH#22092 Index "
-                                                    "implementation raises",
-                                             raises=TypeError, strict=True))
+
     ])
     def test_logical_ops_with_index(self, op):
         # GH#22092, GH#19792
@@ -221,6 +207,19 @@ class TestSeriesLogicalOps(object):
 
         result = op(ser, idx2)
         assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("op, expected", [
+        (ops.rand_, pd.Index([False, True])),
+        (ops.ror_, pd.Index([False, True])),
+        (ops.rxor, pd.Index([])),
+    ])
+    def test_reverse_ops_with_index(self, op, expected):
+        # https://github.com/pandas-dev/pandas/pull/23628
+        # multi-set Index ops are buggy, so let's avoid duplicates...
+        ser = Series([True, False])
+        idx = Index([False, True])
+        result = op(ser, idx)
+        tm.assert_index_equal(result, expected)
 
     def test_logical_ops_label_based(self):
         # GH#4947
@@ -750,12 +749,12 @@ class TestSeriesOperators(TestData):
                 with np.errstate(all='ignore'):
                     if amask[i]:
                         if bmask[i]:
-                            exp_values.append(nan)
+                            exp_values.append(np.nan)
                             continue
                         exp_values.append(op(fill_value, b[i]))
                     elif bmask[i]:
                         if amask[i]:
-                            exp_values.append(nan)
+                            exp_values.append(np.nan)
                             continue
                         exp_values.append(op(a[i], fill_value))
                     else:
@@ -765,8 +764,8 @@ class TestSeriesOperators(TestData):
             expected = Series(exp_values, exp_index)
             assert_series_equal(result, expected)
 
-        a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
-        b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
+        a = Series([np.nan, 1., 2., 3., np.nan], index=np.arange(5))
+        b = Series([np.nan, 1, np.nan, 3, np.nan, 4.], index=np.arange(6))
 
         result = op(a, b)
         exp = equiv_op(a, b)

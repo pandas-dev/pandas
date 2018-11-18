@@ -3,7 +3,6 @@ import re
 import warnings
 
 import numpy as np
-from numpy import nan
 import pytest
 
 from pandas._libs.sparse import IntIndex
@@ -24,7 +23,8 @@ def kind(request):
 class TestSparseArray(object):
 
     def setup_method(self, method):
-        self.arr_data = np.array([nan, nan, 1, 2, 3, nan, 4, 5, nan, 6])
+        self.arr_data = np.array([np.nan, np.nan, 1, 2, 3,
+                                  np.nan, 4, 5, np.nan, 6])
         self.arr = SparseArray(self.arr_data)
         self.zarr = SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
 
@@ -477,6 +477,34 @@ class TestSparseArray(object):
         tm.assert_numpy_array_equal(np.asarray(res.values),
                                     vals.astype(typ))
 
+    @pytest.mark.parametrize('array, dtype, expected', [
+        (SparseArray([0, 1]), 'float',
+         SparseArray([0., 1.], dtype=SparseDtype(float, 0.0))),
+        (SparseArray([0, 1]), bool, SparseArray([False, True])),
+        (SparseArray([0, 1], fill_value=1), bool,
+         SparseArray([False, True], dtype=SparseDtype(bool, True))),
+        pytest.param(
+            SparseArray([0, 1]), 'datetime64[ns]',
+            SparseArray(np.array([0, 1], dtype='datetime64[ns]'),
+                        dtype=SparseDtype('datetime64[ns]',
+                                          pd.Timestamp('1970'))),
+            marks=[pytest.mark.xfail(reason="NumPy-7619", strict=True)],
+        ),
+        (SparseArray([0, 1, 10]), str,
+         SparseArray(['0', '1', '10'], dtype=SparseDtype(str, '0'))),
+        (SparseArray(['10', '20']), float, SparseArray([10.0, 20.0])),
+        (SparseArray([0, 1, 0]), object,
+         SparseArray([0, 1, 0], dtype=SparseDtype(object, 0))),
+    ])
+    def test_astype_more(self, array, dtype, expected):
+        result = array.astype(dtype)
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_astype_nan_raises(self):
+        arr = SparseArray([1.0, np.nan])
+        with pytest.raises(ValueError, match='Cannot convert non-finite'):
+            arr.astype(int)
+
     def test_set_fill_value(self):
         arr = SparseArray([1., np.nan, 2.], fill_value=np.nan)
         arr.fill_value = 2
@@ -755,6 +783,23 @@ class TestSparseArray(object):
         res = s.fillna(3)
         exp = SparseArray([1, 3, 3, 3, 3], fill_value=0, dtype=np.float64)
         tm.assert_sp_array_equal(res, exp)
+
+    def test_nonzero(self):
+        # Tests regression #21172.
+        sa = pd.SparseArray([
+            float('nan'),
+            float('nan'),
+            1, 0, 0,
+            2, 0, 0, 0,
+            3, 0, 0
+        ])
+        expected = np.array([2, 5, 9], dtype=np.int32)
+        result, = sa.nonzero()
+        tm.assert_numpy_array_equal(expected, result)
+
+        sa = pd.SparseArray([0, 0, 1, 0, 0, 2, 0, 0, 0, 3, 0, 0])
+        result, = sa.nonzero()
+        tm.assert_numpy_array_equal(expected, result)
 
 
 class TestSparseArrayAnalytics(object):

@@ -7,25 +7,58 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas.compat import long
 from pandas.tseries import offsets
+from pandas.tseries.frequencies import to_offset
 from pandas import Timestamp, Timedelta
 
 
 class TestTimestampArithmetic(object):
     def test_overflow_offset(self):
+        # no overflow expected
+
+        stamp = Timestamp("2000/1/1")
+        offset_no_overflow = to_offset("D") * 100
+
+        expected = Timestamp("2000/04/10")
+        assert stamp + offset_no_overflow == expected
+
+        assert offset_no_overflow + stamp == expected
+
+        expected = Timestamp("1999/09/23")
+        assert stamp - offset_no_overflow == expected
+
+    def test_overflow_offset_raises(self):
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         # ends up multiplying really large numbers which overflow
 
         stamp = Timestamp('2017-01-13 00:00:00', freq='D')
-        offset = 20169940 * offsets.Day(1)
+        offset_overflow = 20169940 * offsets.Day(1)
+        msg = ("the add operation between "
+               r"\<-?\d+ \* Days\> and \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} "
+               "will overflow")
 
-        with pytest.raises(OverflowError):
-            stamp + offset
+        with pytest.raises(OverflowError, match=msg):
+            stamp + offset_overflow
 
-        with pytest.raises(OverflowError):
-            offset + stamp
+        with pytest.raises(OverflowError, match=msg):
+            offset_overflow + stamp
 
-        with pytest.raises(OverflowError):
-            stamp - offset
+        with pytest.raises(OverflowError, match=msg):
+            stamp - offset_overflow
+
+        # xref https://github.com/pandas-dev/pandas/issues/14080
+        # used to crash, so check for proper overflow exception
+
+        stamp = Timestamp("2000/1/1")
+        offset_overflow = to_offset("D") * 100 ** 25
+
+        with pytest.raises(OverflowError, match=msg):
+            stamp + offset_overflow
+
+        with pytest.raises(OverflowError, match=msg):
+            offset_overflow + stamp
+
+        with pytest.raises(OverflowError, match=msg):
+            stamp - offset_overflow
 
     def test_delta_preserve_nanos(self):
         val = Timestamp(long(1337299200000000123))

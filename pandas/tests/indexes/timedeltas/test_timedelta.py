@@ -132,7 +132,6 @@ class TestTimedeltaIndex(DatetimeLike):
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
 
-
     def test_join_self(self, join_type):
         index = timedelta_range('1 day', periods=10)
         joined = index.join(index, how=join_type)
