@@ -1030,6 +1030,7 @@ Deprecations
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have deprecated the ``errors`` argument in favor of the ``nonexistent`` argument (:issue:`8917`)
 - The class ``FrozenNDArray`` has been deprecated. When unpickling, ``FrozenNDArray`` will be unpickled to ``np.ndarray`` once this class is removed (:issue:`9031`)
 - The methods :meth:`DataFrame.update` and :meth:`Panel.update` have deprecated the ``raise_conflict=False|True`` keyword in favor of ``errors='ignore'|'raise'`` (:issue:`23585`)
+- The methods :meth:`Series.str.partition` and :meth:`Series.str.rpartition` have deprecated the ``pat`` keyword in favor of ``sep`` (:issue:`22676`)
 - Deprecated the `nthreads` keyword of :func:`pandas.read_feather` in favor of
   `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
 - :func:`pandas.read_excel` has deprecated accepting ``usecols`` as an integer. Please pass in a list of ints from 0 to ``usecols`` inclusive instead (:issue:`23527`)
