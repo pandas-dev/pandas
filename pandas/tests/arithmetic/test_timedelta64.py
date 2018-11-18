@@ -909,7 +909,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box_with_array is not pd.DataFrame else None
+        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
         with tm.assert_produces_warning(warn):
             res = tdi - other
         tm.assert_equal(res, expected)
