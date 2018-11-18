@@ -8,7 +8,7 @@ from pytz import utc
 from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timestamp, NaT, iNaT
 from pandas._libs.tslibs import (
-    normalize_date,
+    ccalendar, normalize_date,
     conversion, fields, timezones,
     resolution as libresolution)
 
@@ -853,7 +853,14 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
-        new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
+        if self.tz is None or timezones.is_utc(self.tz):
+            not_null = self.notna()
+            DAY_NS = ccalendar.DAY_SECONDS * 1000000000
+            new_values = self.asi8.copy()
+            adjustment = (new_values[not_null] % DAY_NS)
+            new_values[not_null] = new_values[not_null] - adjustment
+        else:
+            new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
         return type(self)(new_values, freq='infer').tz_localize(self.tz)
 
     def to_period(self, freq=None):
