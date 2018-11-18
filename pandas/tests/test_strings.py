@@ -2453,7 +2453,7 @@ class TestStringMethods(object):
 
     def test_partition_series(self):
         # https://github.com/pandas-dev/pandas/issues/23558
-        
+
         values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h', None])
 
         result = values.str.partition('_', expand=False)
