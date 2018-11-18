@@ -783,8 +783,8 @@ class BlockManager(PandasObject):
         elif is_extension_array_dtype(dtype):
             dtype = 'object'
         elif is_datetime64tz_dtype(dtype):
-            # TODO: we shouldn't be temporarily-dropping dtype information
-            dtype = 'M8[ns]'
+            # TODO: avoid this conversion by allowing 2D DatetimeArray
+            dtype = 'object'
 
         result = np.empty(self.shape, dtype=dtype)
 

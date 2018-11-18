@@ -21,10 +21,10 @@ from pandas.core.dtypes.common import (
     is_integer, is_bool,
     is_bool_dtype,
     is_numeric_dtype,
-    is_datetime64_dtype,
     is_datetime64_any_dtype,
-    is_timedelta64_dtype,
+    is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_timedelta64_dtype,
     is_list_like,
     is_dict_like,
     is_re_compilable,
@@ -32,7 +32,8 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_extension_array_dtype,
     pandas_dtype)
-from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
+from pandas.core.dtypes.cast import (
+    maybe_promote, maybe_upcast_putmask, maybe_infer_to_datetimelike)
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import (
@@ -685,53 +686,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
         new_axes = self._construct_axes_dict_from(self, [self._get_axis(x)
                                                          for x in axes_names])
-
-        copy = kwargs.pop('copy', None) or (len(args) and args[-1])
-        nv.validate_transpose_for_generic(self, kwargs)
-
         values = self.values
-        if (isinstance(values, ABCDatetimeIndex) and
-                values.tz is not None and self.ndim > 1):
-            # transpose is a no-op, and passing axes would raise ValueError
-            #  as the DatetimeIndex.transpose method does not accept that kwarg
-            tz = values.tz
-            utc_values = values.asi8.reshape(self.shape)
-            utc_values = utc_values.transpose(axes_numbers)
-            if copy:
-                utc_values = utc_values.copy()
-            result = self._constructor(utc_values, **new_axes)
-            if self.ndim > 2:
-                # We're assuming DataFrame from here on
-                raise NotImplementedError
+        if isinstance(values, ABCDatetimeIndex):
+            # we must case to numpy array otherwise transpose raises ValueError
+            values = np.array(values.astype(np.object)).reshape(self.shape)
 
-            for col in result.columns:
-                result[col] = pd.DatetimeIndex(result[col], tz=tz)
-            return result.__finalize__(self)
+        new_values = values.transpose(axes_numbers)
+        if kwargs.pop('copy', None) or (len(args) and args[-1]):
+            new_values = new_values.copy()
 
-        else:
-            new_values = values.transpose(axes_numbers)
-            if copy:
-                new_values = new_values.copy()
+        nv.validate_transpose_for_generic(self, kwargs)
+        result = self._constructor(new_values, **new_axes)
 
-            if is_datetime64_dtype(new_values):
-                # case where we have multiple columns with identical
-                #  datetime64tz dtypes; the dtype will be lost in the call
-                #  to `self.values`, so we need to restore it.
-                dtypes = self.dtypes
-                if (any(is_datetime64tz_dtype(d) for d in dtypes) and
-                        all(d == dtypes[0] for d in dtypes)):
-                    # these values represent UTC timestamps
-                    new_values = new_values.view('i8')
-                    result = self._constructor(new_values, **new_axes)
-                    if self.ndim != 2:
-                        # assuming DataFrame from here on out
-                        raise NotImplementedError
-                    tz = self.dtypes[0].tz
-                    for col in result.columns:
-                        result[col] = pd.DatetimeIndex(result[col], tz=tz)
-                    return result.__finalize__(self)
-
-        return self._constructor(new_values, **new_axes).__finalize__(self)
+        result = maybe_restore_dtypes(result, self)
+        return result.__finalize__(self)
 
     def swapaxes(self, axis1, axis2, copy=True):
         """
@@ -10769,6 +10737,35 @@ def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
                             numeric_only=bool_only, filter_type='bool')
 
     return set_function_name(logical_func, name, cls)
+
+
+def maybe_restore_dtypes(result, orig):
+    # GH#23730
+    if orig.ndim != 2:
+        return result
+
+    if orig.size == 0:
+        # ensure both orig.dtypes and result.dtypes have length >= 1
+        return result
+
+    if ((result.dtypes == np.object_).all() and
+            not (orig.dtypes == np.object_).any()):
+        # the transpose was lossy
+        if (orig.dtypes == orig.dtypes[0]).all():
+            if is_datetime64tz_dtype(orig.dtypes[0]):
+                tz = orig.dtypes[0].tz
+                for col in result.columns:
+                    result[col] = maybe_infer_to_datetimelike(result[col])
+                    if (is_datetime64_dtype(result[col]) and
+                            isna(result[col]).all()):
+                        # all-NaT gets inferred as tz-naive
+                        result[col] = pd.DatetimeIndex(result[col], tz=tz)
+
+            else:
+                # TODO: consider doing something useful in this case?
+                pass
+
+    return result
 
 
 # install the indexes

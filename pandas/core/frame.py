@@ -568,7 +568,9 @@ class DataFrame(NDFrame):
         # if we don't have a dtype specified, then try to convert objects
         # on the entire block; this is to convert if we have datetimelike's
         # embedded in an object type
-        if dtype is None and is_object_dtype(values):
+        if dtype is None and is_object_dtype(values) and values.shape[0] == 1:
+            # only do this inference for single-column DataFrame, otherwise
+            #  create_block_manager_from_blocks will raise a ValueError
             values = maybe_infer_to_datetimelike(values)
 
         return create_block_manager_from_blocks([values], [columns, index])
