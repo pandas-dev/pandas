@@ -132,7 +132,7 @@ class SeriesWriter(Writer):
         if orient == 'records':
             if not obj.name:
                 obj.name = 0
-            obj = [{obj.name: v} for v in obj.values]
+            obj = [{obj.name: v[0]} for v in compat.product(obj.values)]
         return super(SeriesWriter, self)._write(obj, orient,
                                                 double_precision,
                                                 ensure_ascii, date_unit,
@@ -628,7 +628,7 @@ class Parser(object):
         self.obj = None
 
     def check_keys_split(self, decoded):
-        "checks that dict has only the appropriate keys for orient='split'"
+        """checks that dict has only the appropriate keys for orient='split'"""
         bad_keys = set(decoded.keys()).difference(set(self._split_keys))
         if bad_keys:
             bad_keys = ", ".join(bad_keys)
@@ -791,6 +791,10 @@ class SeriesParser(Parser):
                 loads(json, precise_float=self.precise_float))}
             self.check_keys_split(decoded)
             self.obj = Series(dtype=None, **decoded)
+        elif orient == "records":
+            decoded = loads(json, precise_float=self.precise_float)
+            decoded_values = [list(d.values())[0] for d in decoded]
+            self.obj = Series(decoded_values)
         else:
             self.obj = Series(
                 loads(json, precise_float=self.precise_float), dtype=None)
@@ -805,6 +809,11 @@ class SeriesParser(Parser):
             decoded = {str(k): v for k, v in compat.iteritems(decoded)}
             self.check_keys_split(decoded)
             self.obj = Series(**decoded)
+        elif orient == "records":
+            decoded = loads(json, dtype=None, numpy=True,
+                            precise_float=self.precise_float)
+            decoded_list = [list(d.values())[0] for d in decoded]
+            self.obj = Series(decoded_list)
         elif orient == "columns" or orient == "index":
             self.obj = Series(*loads(json, dtype=None, numpy=True,
                                      labelled=True,
