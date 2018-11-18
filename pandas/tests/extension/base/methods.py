@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -105,6 +105,30 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(l1, l2)
         self.assert_extension_array_equal(u1, u2)
 
+    def test_fillna_copy_frame(self, data_missing):
+        arr = data_missing.take([1, 1])
+        df = pd.DataFrame({"A": arr})
+
+        filled_val = df.iloc[0, 0]
+        result = df.fillna(filled_val)
+
+        assert df.A.values is not result.A.values
+
+    def test_fillna_copy_series(self, data_missing):
+        arr = data_missing.take([1, 1])
+        ser = pd.Series(arr)
+
+        filled_val = ser[0]
+        result = ser.fillna(filled_val)
+
+        assert ser._values is not result._values
+        assert ser._values is arr
+
+    def test_fillna_length_mismatch(self, data_missing):
+        msg = "Length of 'value' does not match."
+        with pytest.raises(ValueError, match=msg):
+            data_missing.fillna(data_missing.take([1]))
+
     def test_combine_le(self, data_repeated):
         # GH 20825
         # Test that combine works when doing a <= (le) comparison
@@ -127,10 +151,11 @@ class BaseMethodsTests(BaseExtensionTests):
         s1 = pd.Series(orig_data1)
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 + x2)
-        expected = pd.Series(
-            orig_data1._from_sequence([a + b for (a, b) in
-                                       zip(list(orig_data1),
-                                           list(orig_data2))]))
+        with np.errstate(over='ignore'):
+            expected = pd.Series(
+                orig_data1._from_sequence([a + b for (a, b) in
+                                           zip(list(orig_data1),
+                                               list(orig_data2))]))
         self.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
@@ -138,3 +163,38 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.Series(
             orig_data1._from_sequence([a + val for a in list(orig_data1)]))
         self.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('frame', [True, False])
+    @pytest.mark.parametrize('periods, indices', [
+        (-2, [2, 3, 4, -1, -1]),
+        (0, [0, 1, 2, 3, 4]),
+        (2, [-1, -1, 0, 1, 2]),
+    ])
+    def test_container_shift(self, data, frame, periods, indices):
+        # https://github.com/pandas-dev/pandas/issues/22386
+        subset = data[:5]
+        data = pd.Series(subset, name='A')
+        expected = pd.Series(subset.take(indices, allow_fill=True), name='A')
+
+        if frame:
+            result = data.to_frame(name='A').assign(B=1).shift(periods)
+            expected = pd.concat([
+                expected,
+                pd.Series([1] * 5, name='B').shift(periods)
+            ], axis=1)
+            compare = self.assert_frame_equal
+        else:
+            result = data.shift(periods)
+            compare = self.assert_series_equal
+
+        compare(result, expected)
+
+    @pytest.mark.parametrize("as_frame", [True, False])
+    def test_hash_pandas_object_works(self, data, as_frame):
+        # https://github.com/pandas-dev/pandas/issues/23066
+        data = pd.Series(data)
+        if as_frame:
+            data = data.to_frame()
+        a = pd.util.hash_pandas_object(data)
+        b = pd.util.hash_pandas_object(data)
+        self.assert_equal(a, b)

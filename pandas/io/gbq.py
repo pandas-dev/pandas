@@ -1,5 +1,7 @@
 """ Google BigQuery support """
 
+import warnings
+
 
 def _try_import():
     # since pandas is a dependency of pandas-gbq
@@ -22,9 +24,9 @@ def _try_import():
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, private_key=None, auth_local_webserver=False,
-             dialect='legacy', location=None, configuration=None,
-             verbose=None):
+             reauth=False, auth_local_webserver=False, dialect=None,
+             location=None, configuration=None, credentials=None,
+             private_key=None, verbose=None):
     """
     Load data from Google BigQuery.
 
@@ -65,6 +67,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
         *New in version 0.2.0 of pandas-gbq*.
     dialect : str, default 'legacy'
+        Note: The default value is changing to 'standard' in a future verion.
+
         SQL syntax dialect to use. Value can be one of:
 
         ``'legacy'``
@@ -76,6 +80,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             compliant with the SQL 2011 standard. For more information
             see `BigQuery Standard SQL Reference
             <https://cloud.google.com/bigquery/docs/reference/standard-sql/>`__.
+
+        .. versionchanged:: 0.24.0
     location : str, optional
         Location where the query job should run. See the `BigQuery locations
         documentation
@@ -92,10 +98,30 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
         For more information see `BigQuery REST API Reference
         <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`__.
+    credentials : google.auth.credentials.Credentials, optional
+        Credentials for accessing Google APIs. Use this parameter to override
+        default credentials, such as to use Compute Engine
+        :class:`google.auth.compute_engine.Credentials` or Service Account
+        :class:`google.oauth2.service_account.Credentials` directly.
+
+        *New in version 0.8.0 of pandas-gbq*.
+
+        .. versionadded:: 0.24.0
     verbose : None, deprecated
-        Deprecated in Pandas-GBQ 0.4.0. Use the `logging module
-        to adjust verbosity instead
+        Deprecated in pandas-gbq version 0.4.0. Use the `logging module to
+        adjust verbosity instead
         <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
+    private_key : str, deprecated
+        Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
+        parameter and
+        :func:`google.oauth2.service_account.Credentials.from_service_account_info`
+        or
+        :func:`google.oauth2.service_account.Credentials.from_service_account_file`
+        instead.
+
+        Service account private key in JSON format. Can be file path
+        or string contents. This is useful for remote server
+        authentication (eg. Jupyter/IPython notebook on remote host).
 
     Returns
     -------
@@ -108,22 +134,33 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     pandas.DataFrame.to_gbq : Write a DataFrame to Google BigQuery.
     """
     pandas_gbq = _try_import()
+
+    if dialect is None:
+        dialect = "legacy"
+        warnings.warn(
+            'The default value for dialect is changing to "standard" in a '
+            'future version of pandas-gbq. Pass in dialect="legacy" to '
+            "disable this warning.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
     return pandas_gbq.read_gbq(
         query, project_id=project_id, index_col=index_col,
-        col_order=col_order, reauth=reauth, verbose=verbose,
-        private_key=private_key, auth_local_webserver=auth_local_webserver,
-        dialect=dialect, location=location, configuration=configuration)
+        col_order=col_order, reauth=reauth,
+        auth_local_webserver=auth_local_webserver, dialect=dialect,
+        location=location, configuration=configuration,
+        credentials=credentials, verbose=verbose, private_key=private_key)
 
 
 def to_gbq(dataframe, destination_table, project_id=None, chunksize=None,
-           verbose=None, reauth=False, if_exists='fail', private_key=None,
-           auth_local_webserver=False, table_schema=None, location=None,
-           progress_bar=True):
+           reauth=False, if_exists='fail', auth_local_webserver=False,
+           table_schema=None, location=None, progress_bar=True,
+           credentials=None, verbose=None, private_key=None):
     pandas_gbq = _try_import()
     return pandas_gbq.to_gbq(
         dataframe, destination_table, project_id=project_id,
-        chunksize=chunksize, verbose=verbose, reauth=reauth,
-        if_exists=if_exists, private_key=private_key,
-        auth_local_webserver=auth_local_webserver,
-        table_schema=table_schema, location=location,
-        progress_bar=progress_bar)
+        chunksize=chunksize, reauth=reauth, if_exists=if_exists,
+        auth_local_webserver=auth_local_webserver, table_schema=table_schema,
+        location=location, progress_bar=progress_bar,
+        credentials=credentials, verbose=verbose, private_key=private_key)

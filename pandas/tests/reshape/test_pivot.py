@@ -596,52 +596,6 @@ class TestPivotTable(object):
             totals = table.loc[('All', ''), item]
             assert totals == self.data[item].mean()
 
-        # issue number #8349: pivot_table with margins and dictionary aggfunc
-        data = [
-            {'JOB': 'Worker', 'NAME': 'Bob', 'YEAR': 2013,
-             'MONTH': 12, 'DAYS': 3, 'SALARY': 17},
-            {'JOB': 'Employ', 'NAME':
-             'Mary', 'YEAR': 2013, 'MONTH': 12, 'DAYS': 5, 'SALARY': 23},
-            {'JOB': 'Worker', 'NAME': 'Bob', 'YEAR': 2014,
-             'MONTH': 1, 'DAYS': 10, 'SALARY': 100},
-            {'JOB': 'Worker', 'NAME': 'Bob', 'YEAR': 2014,
-             'MONTH': 1, 'DAYS': 11, 'SALARY': 110},
-            {'JOB': 'Employ', 'NAME': 'Mary', 'YEAR': 2014,
-             'MONTH': 1, 'DAYS': 15, 'SALARY': 200},
-            {'JOB': 'Worker', 'NAME': 'Bob', 'YEAR': 2014,
-             'MONTH': 2, 'DAYS': 8, 'SALARY': 80},
-            {'JOB': 'Employ', 'NAME': 'Mary', 'YEAR': 2014,
-             'MONTH': 2, 'DAYS': 5, 'SALARY': 190},
-        ]
-
-        df = DataFrame(data)
-
-        df = df.set_index(['JOB', 'NAME', 'YEAR', 'MONTH'], drop=False,
-                          append=False)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.pivot_table(index=['JOB', 'NAME'],
-                                    columns=['YEAR', 'MONTH'],
-                                    values=['DAYS', 'SALARY'],
-                                    aggfunc={'DAYS': 'mean', 'SALARY': 'sum'},
-                                    margins=True)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            expected = df.pivot_table(index=['JOB', 'NAME'],
-                                      columns=['YEAR', 'MONTH'],
-                                      values=['DAYS'],
-                                      aggfunc='mean', margins=True)
-
-        tm.assert_frame_equal(result['DAYS'], expected['DAYS'])
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            expected = df.pivot_table(index=['JOB', 'NAME'],
-                                      columns=['YEAR', 'MONTH'],
-                                      values=['SALARY'],
-                                      aggfunc='sum', margins=True)
-
-        tm.assert_frame_equal(result['SALARY'], expected['SALARY'])
-
     def test_margins_dtype(self):
         # GH 17013
 
@@ -1612,8 +1566,9 @@ class TestCrosstab(object):
                               full_normal)
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='index'),
                               row_normal)
-        tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='columns'),
-                              col_normal)
+        tm.assert_frame_equal(
+            pd.crosstab(df.a, df.b, normalize='columns').astype('f8'),
+            col_normal)
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize=1),
                               pd.crosstab(df.a, df.b, normalize='columns'))
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize=0),
@@ -1646,7 +1601,8 @@ class TestCrosstab(object):
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='index',
                                           margins=True), row_normal_margins)
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='columns',
-                                          margins=True), col_normal_margins)
+                                          margins=True).astype('f8'),
+                              col_normal_margins)
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize=True,
                                           margins=True), all_normal_margins)
 
@@ -1718,22 +1674,22 @@ class TestCrosstab(object):
                            'c': [1, 1, np.nan, 1, 1]})
 
         error = 'values cannot be used without an aggfunc.'
-        with tm.assert_raises_regex(ValueError, error):
+        with pytest.raises(ValueError, match=error):
             pd.crosstab(df.a, df.b, values=df.c)
 
         error = 'aggfunc cannot be used without values'
-        with tm.assert_raises_regex(ValueError, error):
+        with pytest.raises(ValueError, match=error):
             pd.crosstab(df.a, df.b, aggfunc=np.mean)
 
         error = 'Not a valid normalize argument'
-        with tm.assert_raises_regex(ValueError, error):
+        with pytest.raises(ValueError, match=error):
             pd.crosstab(df.a, df.b, normalize='42')
 
-        with tm.assert_raises_regex(ValueError, error):
+        with pytest.raises(ValueError, match=error):
             pd.crosstab(df.a, df.b, normalize=42)
 
         error = 'Not a valid margins argument'
-        with tm.assert_raises_regex(ValueError, error):
+        with pytest.raises(ValueError, match=error):
             pd.crosstab(df.a, df.b, normalize='all', margins=42)
 
     def test_crosstab_with_categorial_columns(self):

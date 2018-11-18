@@ -6,8 +6,8 @@ ExcelFormatter is tested implicitly in pandas/tests/io/test_excel.py
 import pytest
 import pandas.util.testing as tm
 
-from warnings import catch_warnings
 from pandas.io.formats.excel import CSSToExcelConverter
+from pandas.io.formats.css import CSSWarning
 
 
 @pytest.mark.parametrize('css,expected', [
@@ -272,6 +272,6 @@ def test_css_to_excel_bad_colors(input_color):
             "patternType": "solid"
         }
 
-    with catch_warnings(record=True):
+    with tm.assert_produces_warning(CSSWarning):
         convert = CSSToExcelConverter()
         assert expected == convert(css)

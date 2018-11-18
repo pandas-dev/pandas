@@ -1,14 +1,17 @@
 from __future__ import division
 
-import pytest
-import numpy as np
 from datetime import timedelta
+
+import numpy as np
+import pytest
+
+import pandas.util.testing as tm
 from pandas import (
-    Interval, IntervalIndex, Timestamp, Timedelta, DateOffset,
-    interval_range, date_range, timedelta_range)
+    DateOffset, Interval, IntervalIndex, Timedelta, Timestamp, date_range,
+    interval_range, timedelta_range
+)
 from pandas.core.dtypes.common import is_integer
 from pandas.tseries.offsets import Day
-import pandas.util.testing as tm
 
 
 @pytest.fixture(scope='class', params=[None, 'foo'])
@@ -229,84 +232,84 @@ class TestIntervalRange(object):
         msg = ('Of the four parameters: start, end, periods, and freq, '
                'exactly three must be specified')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             interval_range(start=0)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             interval_range(end=5)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             interval_range(periods=2)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             interval_range()
 
         # too many params
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             interval_range(start=0, end=5, periods=6, freq=1.5)
 
         # mixed units
         msg = 'start, end, freq need to be type compatible'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval_range(start=0, end=Timestamp('20130101'), freq=2)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval_range(start=0, end=Timedelta('1 day'), freq=2)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval_range(start=0, end=10, freq='D')
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval_range(start=Timestamp('20130101'), end=10, freq='D')
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval_range(start=Timestamp('20130101'),
                            end=Timedelta('1 day'), freq='D')
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval_range(start=Timestamp('20130101'),
                            end=Timestamp('20130110'), freq=2)
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval_range(start=Timedelta('1 day'), end=10, freq='D')
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval_range(start=Timedelta('1 day'),
                            end=Timestamp('20130110'), freq='D')
 
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval_range(start=Timedelta('1 day'),
                            end=Timedelta('10 days'), freq=2)
 
         # invalid periods
         msg = 'periods must be a number, got foo'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval_range(start=0, periods='foo')
 
         # invalid start
         msg = 'start must be numeric or datetime-like, got foo'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             interval_range(start='foo', periods=10)
 
         # invalid end
         msg = r'end must be numeric or datetime-like, got \(0, 1\]'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             interval_range(end=Interval(0, 1), periods=10)
 
         # invalid freq for datetime-like
         msg = 'freq must be numeric or convertible to DateOffset, got foo'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             interval_range(start=0, end=10, freq='foo')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             interval_range(start=Timestamp('20130101'), periods=10, freq='foo')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             interval_range(end=Timedelta('1 day'), periods=10, freq='foo')
 
         # mixed tz
         start = Timestamp('2017-01-01', tz='US/Eastern')
         end = Timestamp('2017-01-07', tz='US/Pacific')
         msg = 'Start and end cannot both be tz-aware with different timezones'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             interval_range(start=start, end=end)

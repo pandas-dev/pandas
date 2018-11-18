@@ -11,7 +11,7 @@ from pandas.util._decorators import Appender
 
 
 class DirNamesMixin(object):
-    _accessors = frozenset([])
+    _accessors = frozenset()
     _deprecations = frozenset(
         ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides'])
 
@@ -105,6 +105,41 @@ class PandasDelegate(object):
                 setattr(cls, name, f)
 
 
+def delegate_names(delegate, accessors, typ, overwrite=False):
+    """
+    Add delegated names to a class using a class decorator.  This provides
+    an alternative usage to directly calling `_add_delegate_accessors`
+    below a class definition.
+
+    Parameters
+    ----------
+    delegate : object
+        the class to get methods/properties & doc-strings
+    acccessors : Sequence[str]
+        List of accessor to add
+    typ : {'property', 'method'}
+    overwrite : boolean, default False
+       overwrite the method/property in the target class if it exists
+
+    Returns
+    -------
+    callable
+        A class decorator.
+
+    Examples
+    --------
+    @delegate_names(Categorical, ["categories", "ordered"], "property")
+    class CategoricalAccessor(PandasDelegate):
+        [...]
+    """
+    def add_delegate_accessors(cls):
+        cls._add_delegate_accessors(delegate, accessors, typ,
+                                    overwrite=overwrite)
+        return cls
+
+    return add_delegate_accessors
+
+
 # Ported with modifications from xarray
 # https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
 # 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
@@ -169,7 +204,8 @@ the user is interacting with. So the signature must be
 
 .. code-block:: python
 
-    def __init__(self, pandas_object):
+    def __init__(self, pandas_object):  # noqa: E999
+        ...
 
 For consistency with pandas methods, you should raise an ``AttributeError``
 if the data passed to your accessor has an incorrect dtype.
@@ -211,7 +247,7 @@ Back in an interactive IPython session:
     >>> ds.geo.plot()
     # plots data on a map
 
-See also
+See Also
 --------
 %(others)s
 """

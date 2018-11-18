@@ -12,6 +12,7 @@ import numpy as np
 from pandas.util._decorators import cache_readonly, Appender
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
+from pandas.errors import AbstractMethodError
 
 import pandas.core.common as com
 from pandas.core.base import PandasObject
@@ -30,9 +31,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.io.formats.printing import pprint_thing
 
-from pandas.plotting._compat import (_mpl_ge_1_3_1,
-                                     _mpl_ge_1_5_0,
-                                     _mpl_ge_2_0_0)
+from pandas.plotting._compat import _mpl_ge_3_0_0
 from pandas.plotting._style import (plot_params,
                                     _get_standard_colors)
 from pandas.plotting._tools import (_subplots, _flatten, table,
@@ -375,7 +374,7 @@ class MPLPlot(object):
         self.data = numeric_data
 
     def _make_plot(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _add_table(self):
         if self.table is False:
@@ -550,14 +549,6 @@ class MPLPlot(object):
         import matplotlib.pyplot as plt
         return plt
 
-    @staticmethod
-    def mpl_ge_1_3_1():
-        return _mpl_ge_1_3_1()
-
-    @staticmethod
-    def mpl_ge_1_5_0():
-        return _mpl_ge_1_5_0()
-
     _need_to_set_index = False
 
     def _get_xticks(self, convert_period=False):
@@ -694,12 +685,12 @@ class MPLPlot(object):
         or return the error DataFrame/dict
 
         Error bars can be specified in several ways:
-            Series: the user provides a pandas.Series object of the same
+            Series : the user provides a pandas.Series object of the same
                     length as the data
-            ndarray: provides a np.ndarray of the same length as the data
-            DataFrame/dict: error values are paired with keys matching the
+            ndarray : provides a np.ndarray of the same length as the data
+            DataFrame/dict : error values are paired with keys matching the
                     key in the plotted DataFrame
-            str: the name of the column within the plotted DataFrame
+            str : the name of the column within the plotted DataFrame
         """
 
         if err is None:
@@ -843,11 +834,16 @@ class PlanePlot(MPLPlot):
         # For a more detailed description of the issue
         # see the following link:
         # https://github.com/ipython/ipython/issues/11215
-
         img = ax.collections[0]
         cbar = self.fig.colorbar(img, ax=ax, **kwds)
+
+        if _mpl_ge_3_0_0():
+            # The workaround below is no longer necessary.
+            return
+
         points = ax.get_position().get_points()
         cbar_points = cbar.ax.get_position().get_points()
+
         cbar.ax.set_position([cbar_points[0, 0],
                               points[0, 1],
                               cbar_points[1, 0] - cbar_points[0, 0],
@@ -902,8 +898,7 @@ class ScatterPlot(PlanePlot):
         scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
                              label=label, cmap=cmap, **self.kwds)
         if cb:
-            if self.mpl_ge_1_3_1():
-                cbar_label = c if c_is_column else ''
+            cbar_label = c if c_is_column else ''
             self._plot_colorbar(ax, label=cbar_label)
 
         if label is not None:
@@ -1006,10 +1001,9 @@ class LinePlot(MPLPlot):
                              **kwds)
             self._add_legend_handle(newlines[0], label, index=i)
 
-            if not _mpl_ge_2_0_0():
-                lines = _get_all_lines(ax)
-                left, right = _get_xlim(lines)
-                ax.set_xlim(left, right)
+            lines = _get_all_lines(ax)
+            left, right = _get_xlim(lines)
+            ax.set_xlim(left, right)
 
     @classmethod
     def _plot(cls, ax, x, y, style=None, column_num=None,
@@ -1135,8 +1129,7 @@ class AreaPlot(LinePlot):
 
         # need to remove label, because subplots uses mpl legend as it is
         line_kwds = kwds.copy()
-        if cls.mpl_ge_1_5_0():
-            line_kwds.pop('label')
+        line_kwds.pop('label')
         lines = MPLPlot._plot(ax, x, y_values, style=style, **line_kwds)
 
         # get data from the line to get coordinates for fill_between
@@ -1159,18 +1152,8 @@ class AreaPlot(LinePlot):
         cls._update_stacker(ax, stacking_id, y)
 
         # LinePlot expects list of artists
-        res = [rect] if cls.mpl_ge_1_5_0() else lines
+        res = [rect]
         return res
-
-    def _add_legend_handle(self, handle, label, index=None):
-        if not self.mpl_ge_1_5_0():
-            from matplotlib.patches import Rectangle
-            # Because fill_between isn't supported in legend,
-            # specifically add Rectangle handle here
-            alpha = self.kwds.get('alpha', None)
-            handle = Rectangle((0, 0), 1, 1, fc=handle.get_color(),
-                               alpha=alpha)
-        LinePlot._add_legend_handle(self, handle, label, index=index)
 
     def _post_plot_logic(self, ax, data):
         LinePlot._post_plot_logic(self, ax, data)
@@ -2470,7 +2453,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    bins: integer, default 10
+    bins : integer, default 10
         Number of histogram bins to be used
     `**kwds` : keywords
         To be passed to the actual plotting function
@@ -2478,7 +2461,6 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     See Also
     --------
     matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
-
     """
     import matplotlib.pyplot as plt
 
@@ -2529,22 +2511,22 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
 
     Parameters
     ----------
-    data: Series/DataFrame
-    column: object, optional
-    by: object, optional
-    ax: axes, optional
-    bins: int, default 50
-    figsize: tuple, optional
-    layout: optional
-    sharex: boolean, default False
-    sharey: boolean, default False
-    rot: int, default 90
-    grid: bool, default True
-    kwargs: dict, keyword arguments passed to matplotlib.Axes.hist
+    data : Series/DataFrame
+    column : object, optional
+    by : object, optional
+    ax : axes, optional
+    bins : int, default 50
+    figsize : tuple, optional
+    layout : optional
+    sharex : boolean, default False
+    sharey : boolean, default False
+    rot : int, default 90
+    grid : bool, default True
+    kwargs : dict, keyword arguments passed to matplotlib.Axes.hist
 
     Returns
     -------
-    axes: collection of Matplotlib Axes
+    axes : collection of Matplotlib Axes
     """
     _raise_if_no_mpl()
     _converter._WARN = False
@@ -2844,7 +2826,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        bins: integer, default 10
+        bins : integer, default 10
             Number of histogram bins to be used
         `**kwds` : optional
             Additional keyword arguments are documented in
@@ -3337,19 +3319,74 @@ class FramePlotMethods(BasePlotMethods):
 
     def area(self, x=None, y=None, **kwds):
         """
-        Area plot
+        Draw a stacked area plot.
+
+        An area plot displays quantitative data visually.
+        This function wraps the matplotlib area function.
 
         Parameters
         ----------
-        x, y : label or position, optional
-            Coordinates for each point.
-        `**kwds` : optional
+        x : label or position, optional
+            Coordinates for the X axis. By default uses the index.
+        y : label or position, optional
+            Column to plot. By default uses all columns.
+        stacked : bool, default True
+            Area plots are stacked by default. Set to False to create a
+            unstacked plot.
+        **kwds : optional
             Additional keyword arguments are documented in
             :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray
+            Area plot, or array of area plots if subplots is True
+
+        See Also
+        --------
+        DataFrame.plot : Make plots of DataFrame using matplotlib / pylab.
+
+        Examples
+        --------
+        Draw an area plot based on basic business metrics:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({
+            ...     'sales': [3, 2, 3, 9, 10, 6],
+            ...     'signups': [5, 5, 6, 12, 14, 13],
+            ...     'visits': [20, 42, 28, 62, 81, 50],
+            ... }, index=pd.date_range(start='2018/01/01', end='2018/07/01',
+            ...                        freq='M'))
+            >>> ax = df.plot.area()
+
+        Area plots are stacked by default. To produce an unstacked plot,
+        pass ``stacked=False``:
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = df.plot.area(stacked=False)
+
+        Draw an area plot for a single column:
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = df.plot.area(y='sales')
+
+        Draw with a different `x`:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({
+            ...     'sales': [3, 2, 3],
+            ...     'visits': [20, 42, 28],
+            ...     'day': [1, 2, 3],
+            ... })
+            >>> ax = df.plot.area(x='day')
         """
         return self(kind='area', x=x, y=y, **kwds)
 
@@ -3454,7 +3491,7 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        matplotlib.pyplot.scatter : scatter plot using multiple input data
+        matplotlib.pyplot.scatter : Scatter plot using multiple input data
             formats.
 
         Examples
@@ -3530,7 +3567,7 @@ class FramePlotMethods(BasePlotMethods):
         See Also
         --------
         DataFrame.plot : Make plots of a DataFrame.
-        matplotlib.pyplot.hexbin : hexagonal binning plot using matplotlib,
+        matplotlib.pyplot.hexbin : Hexagonal binning plot using matplotlib,
             the matplotlib function that is used under the hood.
 
         Examples

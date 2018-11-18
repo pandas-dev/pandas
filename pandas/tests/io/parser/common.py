@@ -1,26 +1,25 @@
 # -*- coding: utf-8 -*-
 
+import codecs
+from collections import OrderedDict
 import csv
+from datetime import datetime
 import os
 import platform
-import codecs
-
 import re
 import sys
-from datetime import datetime
-from collections import OrderedDict
 
-import pytest
 import numpy as np
+import pytest
+
 from pandas._libs.tslib import Timestamp
+from pandas.compat import PY3, BytesIO, StringIO, lrange, range, u
+from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 
 import pandas as pd
+from pandas import DataFrame, Index, MultiIndex, Series, compat
 import pandas.util.testing as tm
-from pandas import DataFrame, Series, Index, MultiIndex
-from pandas import compat
-from pandas.compat import (StringIO, BytesIO, PY3,
-                           range, lrange, u)
-from pandas.errors import DtypeWarning, EmptyDataError, ParserError
+
 from pandas.io.common import URLError
 from pandas.io.parsers import TextFileReader, TextParser
 
@@ -45,7 +44,7 @@ bar2,12,13,14,15
 """
         # Parsers support only length-1 decimals
         msg = 'Only length-1 decimal markers supported'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(data), decimal='')
 
     def test_bad_stream_exception(self):
@@ -67,7 +66,7 @@ bar2,12,13,14,15
                 handle, utf8.encode, utf8.decode, codec.streamreader,
                 codec.streamwriter) as stream:
 
-            with tm.assert_raises_regex(UnicodeDecodeError, msg):
+            with pytest.raises(UnicodeDecodeError, match=msg):
                 self.read_csv(stream)
 
     def test_read_csv(self):
@@ -128,7 +127,7 @@ A,B,C
 2,3,4
 """
         msg = 'Expected 3 fields in line 4, saw 5'
-        with tm.assert_raises_regex(Exception, msg):
+        with pytest.raises(Exception, match=msg):
             self.read_table(StringIO(data), sep=',',
                             header=1, comment='#')
 
@@ -142,7 +141,7 @@ skip
 2,3,4
 """
         msg = 'Expected 3 fields in line 6, saw 5'
-        with tm.assert_raises_regex(Exception, msg):
+        with pytest.raises(Exception, match=msg):
             it = self.read_table(StringIO(data), sep=',',
                                  header=1, comment='#',
                                  iterator=True, chunksize=1,
@@ -159,7 +158,7 @@ skip
 2,3,4
 """
         msg = 'Expected 3 fields in line 6, saw 5'
-        with tm.assert_raises_regex(Exception, msg):
+        with pytest.raises(Exception, match=msg):
             it = self.read_table(StringIO(data), sep=',', header=1,
                                  comment='#', iterator=True, chunksize=1,
                                  skiprows=[2])
@@ -175,7 +174,7 @@ skip
 2,3,4
 """
         msg = 'Expected 3 fields in line 6, saw 5'
-        with tm.assert_raises_regex(Exception, msg):
+        with pytest.raises(Exception, match=msg):
             it = self.read_table(StringIO(data), sep=',', header=1,
                                  comment='#', iterator=True, chunksize=1,
                                  skiprows=[2])
@@ -192,24 +191,10 @@ A,B,C
 footer
 """
             msg = 'Expected 3 fields in line 4, saw 5'
-            with tm.assert_raises_regex(Exception, msg):
+            with pytest.raises(Exception, match=msg):
                 self.read_table(StringIO(data), sep=',',
                                 header=1, comment='#',
                                 skipfooter=1)
-
-    def test_quoting(self):
-        bad_line_small = """printer\tresult\tvariant_name
-Klosterdruckerei\tKlosterdruckerei <Salem> (1611-1804)\tMuller, Jacob
-Klosterdruckerei\tKlosterdruckerei <Salem> (1611-1804)\tMuller, Jakob
-Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\t"Furststiftische Hofdruckerei,  <Kempten""
-Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tGaller, Alois
-Klosterdruckerei\tKlosterdruckerei <Kempten> (1609-1805)\tHochfurstliche Buchhandlung <Kempten>"""  # noqa
-        pytest.raises(Exception, self.read_table, StringIO(bad_line_small),
-                      sep='\t')
-
-        good_line_small = bad_line_small + '"'
-        df = self.read_table(StringIO(good_line_small), sep='\t')
-        assert len(df) == 3
 
     def test_unnamed_columns(self):
         data = """A,B,C,,
@@ -381,13 +366,13 @@ bar,foo"""
 
         msg = r"'nrows' must be an integer >=0"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(self.data1), nrows=1.2)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(self.data1), nrows='foo')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(self.data1), nrows=-1)
 
     def test_read_chunksize(self):
@@ -403,13 +388,13 @@ bar,foo"""
         # with invalid chunksize value:
         msg = r"'chunksize' must be an integer >=1"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(self.data1), chunksize=1.3)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(self.data1), chunksize='foo')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(self.data1), chunksize=0)
 
     def test_read_chunksize_and_nrows(self):
@@ -472,6 +457,22 @@ bar,foo"""
         df = self.read_csv(StringIO(self.data1), index_col=0)
 
         tm.assert_frame_equal(pd.concat(reader), df)
+
+    def test_read_chunksize_jagged_names(self):
+        # see gh-23509
+        data = "\n".join(["0"] * 7 + [",".join(["0"] * 10)])
+        reader = self.read_csv(StringIO(data), names=range(10), chunksize=4)
+
+        expected = DataFrame()
+
+        for i in range(10):
+            if i == 0:
+                expected[i] = [0] * 8
+            else:
+                expected[i] = [np.nan] * 7 + [0]
+
+        result = pd.concat(reader)
+        tm.assert_frame_equal(result, expected)
 
     def test_read_text_list(self):
         data = """A,B,C\nfoo,1,2,3\nbar,4,5,6"""
@@ -536,12 +537,21 @@ baz,7,8,9
         assert len(result) == 3
         tm.assert_frame_equal(pd.concat(result), expected)
 
-        # skipfooter is not supported with the C parser yet
-        if self.engine == 'python':
-            # test bad parameter (skipfooter)
-            reader = self.read_csv(StringIO(self.data1), index_col=0,
-                                   iterator=True, skipfooter=1)
-            pytest.raises(ValueError, reader.read, 3)
+    @pytest.mark.parametrize("kwargs", [
+        dict(iterator=True,
+             chunksize=1),
+        dict(iterator=True),
+        dict(chunksize=1)
+    ])
+    def test_iterator_skipfooter_errors(self, kwargs):
+        msg = "'skipfooter' not supported for 'iteration'"
+        with pytest.raises(ValueError, match=msg):
+            self.read_csv(StringIO(self.data1), skipfooter=1, **kwargs)
+
+    def test_nrows_skipfooter_errors(self):
+        msg = "'skipfooter' not supported with 'nrows'"
+        with pytest.raises(ValueError, match=msg):
+            self.read_csv(StringIO(self.data1), skipfooter=1, nrows=5)
 
     def test_pass_names_with_index(self):
         lines = self.data1.split('\n')
@@ -1095,7 +1105,7 @@ A,B,C
         # make sure that an error is still thrown
         # when the 'usecols' parameter is not provided
         msg = r"Expected \d+ fields in line \d+, saw \d+"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             df = self.read_csv(StringIO(csv))
 
         expected = DataFrame({
@@ -1121,10 +1131,10 @@ A,B,C
         # throws the correct error, with or without usecols
         errmsg = "No columns to parse from file"
 
-        with tm.assert_raises_regex(EmptyDataError, errmsg):
+        with pytest.raises(EmptyDataError, match=errmsg):
             self.read_csv(StringIO(''))
 
-        with tm.assert_raises_regex(EmptyDataError, errmsg):
+        with pytest.raises(EmptyDataError, match=errmsg):
             self.read_csv(StringIO(''), usecols=usecols)
 
         expected = DataFrame(columns=usecols, index=[0], dtype=np.float64)
@@ -1163,8 +1173,7 @@ A,B,C
     def test_raise_on_sep_with_delim_whitespace(self):
         # see gh-6607
         data = 'a b c\n1 2 3'
-        with tm.assert_raises_regex(ValueError,
-                                    'you can only specify one'):
+        with pytest.raises(ValueError, match='you can only specify one'):
             self.read_table(StringIO(data), sep=r'\s', delim_whitespace=True)
 
     def test_single_char_leading_whitespace(self):
@@ -1409,7 +1418,7 @@ j,-inF"""
             tm.assert_frame_equal(out, expected)
         else:
             msg = "NULL byte detected"
-            with tm.assert_raises_regex(ParserError, msg):
+            with pytest.raises(ParserError, match=msg):
                 self.read_csv(StringIO(data), names=cols)
 
     def test_utf8_bom(self):
@@ -1551,7 +1560,7 @@ j,-inF"""
 
         msg = "Invalid file path or buffer object type"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(InvalidBuffer())
 
         # gh-16135: we want to ensure that "tell" and "seek"
@@ -1574,7 +1583,7 @@ j,-inF"""
 
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(mock.Mock())
 
     @tm.capture_stderr

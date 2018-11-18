@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from cpython.datetime cimport date, datetime
 
@@ -46,7 +45,7 @@ cdef extern from "numpy/ndarraytypes.h":
         NPY_FR_fs
         NPY_FR_as
 
-cdef extern from "../src/datetime/np_datetime.h":
+cdef extern from "src/datetime/np_datetime.h":
     ctypedef struct pandas_timedeltastruct:
         int64_t days
         int32_t hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds

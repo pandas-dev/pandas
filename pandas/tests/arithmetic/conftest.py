@@ -5,7 +5,21 @@ import numpy as np
 import pandas as pd
 
 from pandas.compat import long
+import pandas.util.testing as tm
 
+
+# ------------------------------------------------------------------
+# Helper Functions
+
+def id_func(x):
+    if isinstance(x, tuple):
+        assert len(x) == 2
+        return x[0].__name__ + '-' + str(x[1])
+    else:
+        return x.__name__
+
+
+# ------------------------------------------------------------------
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
 def one(request):
@@ -28,13 +42,31 @@ def zero(request):
     return request.param
 
 
+# ------------------------------------------------------------------
+# Vector Fixtures
+
 @pytest.fixture(params=[pd.Float64Index(np.arange(5, dtype='float64')),
                         pd.Int64Index(np.arange(5, dtype='int64')),
-                        pd.UInt64Index(np.arange(5, dtype='uint64'))],
+                        pd.UInt64Index(np.arange(5, dtype='uint64')),
+                        pd.RangeIndex(5)],
                 ids=lambda x: type(x).__name__)
-def idx(request):
+def numeric_idx(request):
+    """
+    Several types of numeric-dtypes Index objects
+    """
     return request.param
 
+
+@pytest.fixture
+def tdser():
+    """
+    Return a Series with dtype='timedelta64[ns]', including a NaT.
+    """
+    return pd.Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
+
+
+# ------------------------------------------------------------------
+# Scalar Fixtures
 
 @pytest.fixture(params=[pd.Timedelta('5m4s').to_pytimedelta(),
                         pd.Timedelta('5m4s'),
@@ -47,10 +79,78 @@ def scalar_td(request):
     return request.param
 
 
+@pytest.fixture(params=[pd.offsets.Day(3),
+                        pd.offsets.Hour(72),
+                        pd.Timedelta(days=3).to_pytimedelta(),
+                        pd.Timedelta('72:00:00'),
+                        np.timedelta64(3, 'D'),
+                        np.timedelta64(72, 'h')],
+                ids=lambda x: type(x).__name__)
+def three_days(request):
+    """
+    Several timedelta-like and DateOffset objects that each represent
+    a 3-day timedelta
+    """
+    return request.param
+
+
+@pytest.fixture(params=[pd.offsets.Hour(2),
+                        pd.offsets.Minute(120),
+                        pd.Timedelta(hours=2).to_pytimedelta(),
+                        pd.Timedelta(seconds=2 * 3600),
+                        np.timedelta64(2, 'h'),
+                        np.timedelta64(120, 'm')],
+                ids=lambda x: type(x).__name__)
+def two_hours(request):
+    """
+    Several timedelta-like and DateOffset objects that each represent
+    a 2-hour timedelta
+    """
+    return request.param
+
+
+_common_mismatch = [pd.offsets.YearBegin(2),
+                    pd.offsets.MonthBegin(1),
+                    pd.offsets.Minute()]
+
+
+@pytest.fixture(params=[pd.Timedelta(minutes=30).to_pytimedelta(),
+                        np.timedelta64(30, 's'),
+                        pd.Timedelta(seconds=30)] + _common_mismatch)
+def not_hourly(request):
+    """
+    Several timedelta-like and DateOffset instances that are _not_
+    compatible with Hourly frequencies.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[np.timedelta64(4, 'h'),
+                        pd.Timedelta(hours=23).to_pytimedelta(),
+                        pd.Timedelta('23:00:00')] + _common_mismatch)
+def not_daily(request):
+    """
+    Several timedelta-like and DateOffset instances that are _not_
+    compatible with Daily frequencies.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[np.timedelta64(365, 'D'),
+                        pd.Timedelta(days=365).to_pytimedelta(),
+                        pd.Timedelta(days=365)] + _common_mismatch)
+def mismatched_freq(request):
+    """
+    Several timedelta-like and DateOffset instances that are _not_
+    compatible with Monthly or Annual frequencies.
+    """
+    return request.param
+
+
 # ------------------------------------------------------------------
 
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame],
-                ids=lambda x: x.__name__)
+                ids=id_func)
 def box(request):
     """
     Several array-like containers that should have effectively identical
@@ -59,17 +159,42 @@ def box(request):
     return request.param
 
 
-@pytest.fixture(params=[
-    pd.Index,
-    pd.Series,
-    pytest.param(pd.DataFrame,
-                 marks=pytest.mark.xfail(reason="Tries to broadcast "
-                                                "incorrectly",
-                                         strict=True, raises=ValueError))
-], ids=lambda x: x.__name__)
-def box_df_broadcast_failure(request):
+@pytest.fixture(params=[pd.Index,
+                        pd.Series,
+                        pytest.param(pd.DataFrame,
+                                     marks=pytest.mark.xfail(strict=True))],
+                ids=id_func)
+def box_df_fail(request):
     """
-    Fixture equivalent to `box` but with the common failing case where
-    the DataFrame operation tries to broadcast incorrectly.
+    Fixture equivalent to `box` fixture but xfailing the DataFrame case.
     """
     return request.param
+
+
+@pytest.fixture(params=[(pd.Index, False),
+                        (pd.Series, False),
+                        (pd.DataFrame, False),
+                        pytest.param((pd.DataFrame, True),
+                                     marks=pytest.mark.xfail(strict=True))],
+                ids=id_func)
+def box_transpose_fail(request):
+    """
+    Fixture similar to `box` but testing both transpose cases for DataFrame,
+    with the tranpose=True case xfailed.
+    """
+    # GH#23620
+    return request.param
+
+
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array],
+                ids=id_func)
+def box_with_array(request):
+    """
+    Fixture to test behavior for Index, Series, DataFrame, and pandas Array
+    classes
+    """
+    return request.param
+
+
+# alias so we can use the same fixture for multiple parameters in a test
+box_with_array2 = box_with_array

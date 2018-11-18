@@ -2,6 +2,7 @@ from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
 
 import pytest
+import pytz
 from pandas.compat import range
 from pandas import compat
 
@@ -14,10 +15,9 @@ from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
                                              INVALID_FREQ_ERR_MSG)
 from pandas.tseries.frequencies import _offset_map, get_offset
-from pandas.core.indexes.datetimes import (
-    _to_m8, DatetimeIndex, _daterange_cache)
+from pandas.core.indexes.datetimes import _to_m8, DatetimeIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import WeekDay, CacheableOffset
 from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     BusinessHour, WeekOfMonth, CBMonthEnd,
                                     CustomBusinessHour,
@@ -26,18 +26,31 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     BYearBegin, QuarterBegin, BQuarterBegin,
                                     BMonthBegin, DateOffset, Week, YearBegin,
                                     YearEnd, Day,
-                                    QuarterEnd, BusinessMonthEnd, FY5253,
+                                    QuarterEnd, FY5253,
                                     Nano, Easter, FY5253Quarter,
-                                    LastWeekOfMonth, Tick)
+                                    LastWeekOfMonth, Tick, CalendarDay)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslibs import timezones
 from pandas._libs.tslib import NaT, Timestamp
+from pandas._libs.tslibs.timedeltas import Timedelta
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 from .common import assert_offset_equal, assert_onOffset
+
+
+class WeekDay(object):
+    # TODO: Remove: This is not used outside of tests
+    MON = 0
+    TUE = 1
+    WED = 2
+    THU = 3
+    FRI = 4
+    SAT = 5
+    SUN = 6
+
 
 ####
 # Misc function tests
@@ -174,12 +187,26 @@ class Base(object):
         assert self.d + (-5 * self._offset(-10)) == self.d + self._offset(50)
         assert self.d + (-3 * self._offset(-2)) == self.d + self._offset(6)
 
+    def test_compare_str(self):
+        # GH#23524
+        # comparing to strings that cannot be cast to DateOffsets should
+        #  not raise for __eq__ or __ne__
+        if self._offset is None:
+            return
+        off = self._get_offset(self._offset)
+
+        assert not off == "infer"
+        assert off != "foo"
+        # Note: inequalities are only implemented for Tick subclasses;
+        #  tests for this are in test_ticks
+
 
 class TestCommon(Base):
     # exected value created by Base._get_offset
     # are applied to 2011/01/01 09:00 (Saturday)
     # used for .apply and .rollforward
     expecteds = {'Day': Timestamp('2011-01-02 09:00:00'),
+                 'CalendarDay': Timestamp('2011-01-02 09:00:00'),
                  'DateOffset': Timestamp('2011-01-02 09:00:00'),
                  'BusinessDay': Timestamp('2011-01-03 09:00:00'),
                  'CustomBusinessDay': Timestamp('2011-01-03 09:00:00'),
@@ -348,7 +375,7 @@ class TestCommon(Base):
         # result will not be changed if the target is on the offset
         no_changes = ['Day', 'MonthBegin', 'SemiMonthBegin', 'YearBegin',
                       'Week', 'Hour', 'Minute', 'Second', 'Milli', 'Micro',
-                      'Nano', 'DateOffset']
+                      'Nano', 'DateOffset', 'CalendarDay']
         for n in no_changes:
             expecteds[n] = Timestamp('2011/01/01 09:00')
 
@@ -361,6 +388,7 @@ class TestCommon(Base):
             norm_expected[k] = Timestamp(norm_expected[k].date())
 
         normalized = {'Day': Timestamp('2011-01-02 00:00:00'),
+                      'CalendarDay': Timestamp('2011-01-02 00:00:00'),
                       'DateOffset': Timestamp('2011-01-02 00:00:00'),
                       'MonthBegin': Timestamp('2011-02-01 00:00:00'),
                       'SemiMonthBegin': Timestamp('2011-01-15 00:00:00'),
@@ -413,7 +441,7 @@ class TestCommon(Base):
         # result will not be changed if the target is on the offset
         for n in ['Day', 'MonthBegin', 'SemiMonthBegin', 'YearBegin', 'Week',
                   'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano',
-                  'DateOffset']:
+                  'DateOffset', 'CalendarDay']:
             expecteds[n] = Timestamp('2011/01/01 09:00')
 
         # but be changed when normalize=True
@@ -422,6 +450,7 @@ class TestCommon(Base):
             norm_expected[k] = Timestamp(norm_expected[k].date())
 
         normalized = {'Day': Timestamp('2010-12-31 00:00:00'),
+                      'CalendarDay': Timestamp('2010-12-31 00:00:00'),
                       'DateOffset': Timestamp('2010-12-31 00:00:00'),
                       'MonthBegin': Timestamp('2010-12-01 00:00:00'),
                       'SemiMonthBegin': Timestamp('2010-12-15 00:00:00'),
@@ -1807,6 +1836,7 @@ class TestCustomBusinessDay(Base):
         xp_egypt = datetime(2013, 5, 5)
         assert xp_egypt == dt + 2 * bday_egypt
 
+    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_calendar(self):
         calendar = USFederalHolidayCalendar()
         dt = datetime(2014, 1, 17)
@@ -1969,6 +1999,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         assert dt + bm_offset == datetime(2012, 1, 30)
         assert dt + 2 * bm_offset == datetime(2012, 2, 27)
 
+    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_datetimeindex(self):
         from pandas.tseries.holiday import USFederalHolidayCalendar
         hcal = USFederalHolidayCalendar()
@@ -2087,6 +2118,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         assert dt + bm_offset == datetime(2012, 1, 2)
         assert dt + 2 * bm_offset == datetime(2012, 2, 3)
 
+    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_datetimeindex(self):
         hcal = USFederalHolidayCalendar()
         cbmb = CBMonthBegin(calendar=hcal)
@@ -2384,7 +2416,11 @@ class TestSemiMonthEnd(Base):
 
         # ensure .apply_index works as expected
         s = DatetimeIndex(dates[:-1])
-        result = SemiMonthEnd().apply_index(s)
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
+            result = SemiMonthEnd().apply_index(s)
+
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
 
@@ -2480,7 +2516,11 @@ class TestSemiMonthEnd(Base):
     def test_apply_index(self, case):
         offset, cases = case
         s = DatetimeIndex(cases.keys())
-        result = offset.apply_index(s)
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
+            result = offset.apply_index(s)
+
         exp = DatetimeIndex(cases.values())
         tm.assert_index_equal(result, exp)
 
@@ -2495,28 +2535,35 @@ class TestSemiMonthEnd(Base):
         dt, expected = case
         assert_onOffset(SemiMonthEnd(), dt, expected)
 
-    @pytest.mark.parametrize('klass,assert_func',
-                             [(Series, tm.assert_series_equal),
-                              (DatetimeIndex, tm.assert_index_equal)])
-    def test_vectorized_offset_addition(self, klass, assert_func):
+    @pytest.mark.parametrize('klass', [Series, DatetimeIndex])
+    def test_vectorized_offset_addition(self, klass):
         s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-15', tz='US/Central')], name='a')
 
-        result = s + SemiMonthEnd()
-        result2 = SemiMonthEnd() + s
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
+            result = s + SemiMonthEnd()
+            result2 = SemiMonthEnd() + s
+
         exp = klass([Timestamp('2000-01-31 00:15:00', tz='US/Central'),
                      Timestamp('2000-02-29', tz='US/Central')], name='a')
-        assert_func(result, exp)
-        assert_func(result2, exp)
+        tm.assert_equal(result, exp)
+        tm.assert_equal(result2, exp)
 
         s = klass([Timestamp('2000-01-01 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-01', tz='US/Central')], name='a')
-        result = s + SemiMonthEnd()
-        result2 = SemiMonthEnd() + s
+
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
+            result = s + SemiMonthEnd()
+            result2 = SemiMonthEnd() + s
+
         exp = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                      Timestamp('2000-02-15', tz='US/Central')], name='a')
-        assert_func(result, exp)
-        assert_func(result2, exp)
+        tm.assert_equal(result, exp)
+        tm.assert_equal(result2, exp)
 
 
 class TestSemiMonthBegin(Base):
@@ -2556,7 +2603,11 @@ class TestSemiMonthBegin(Base):
 
         # ensure .apply_index works as expected
         s = DatetimeIndex(dates[:-1])
-        result = SemiMonthBegin().apply_index(s)
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
+            result = SemiMonthBegin().apply_index(s)
+
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
 
@@ -2656,7 +2707,12 @@ class TestSemiMonthBegin(Base):
     def test_apply_index(self, case):
         offset, cases = case
         s = DatetimeIndex(cases.keys())
-        result = offset.apply_index(s)
+
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
+            result = offset.apply_index(s)
+
         exp = DatetimeIndex(cases.values())
         tm.assert_index_equal(result, exp)
 
@@ -2671,27 +2727,33 @@ class TestSemiMonthBegin(Base):
         dt, expected = case
         assert_onOffset(SemiMonthBegin(), dt, expected)
 
-    @pytest.mark.parametrize('klass,assert_func',
-                             [(Series, tm.assert_series_equal),
-                              (DatetimeIndex, tm.assert_index_equal)])
-    def test_vectorized_offset_addition(self, klass, assert_func):
+    @pytest.mark.parametrize('klass', [Series, DatetimeIndex])
+    def test_vectorized_offset_addition(self, klass):
         s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-15', tz='US/Central')], name='a')
-        result = s + SemiMonthBegin()
-        result2 = SemiMonthBegin() + s
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
+            result = s + SemiMonthBegin()
+            result2 = SemiMonthBegin() + s
+
         exp = klass([Timestamp('2000-02-01 00:15:00', tz='US/Central'),
                      Timestamp('2000-03-01', tz='US/Central')], name='a')
-        assert_func(result, exp)
-        assert_func(result2, exp)
+        tm.assert_equal(result, exp)
+        tm.assert_equal(result2, exp)
 
         s = klass([Timestamp('2000-01-01 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-01', tz='US/Central')], name='a')
-        result = s + SemiMonthBegin()
-        result2 = SemiMonthBegin() + s
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
+            result = s + SemiMonthBegin()
+            result2 = SemiMonthBegin() + s
+
         exp = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                      Timestamp('2000-02-15', tz='US/Central')], name='a')
-        assert_func(result, exp)
-        assert_func(result2, exp)
+        tm.assert_equal(result, exp)
+        tm.assert_equal(result2, exp)
 
 
 def test_Easter():
@@ -2811,70 +2873,6 @@ def test_freq_offsets():
 
     off = BDay(1, offset=timedelta(0, -1800))
     assert (off.freqstr == 'B-30Min')
-
-
-def get_all_subclasses(cls):
-    ret = set()
-    this_subclasses = cls.__subclasses__()
-    ret = ret | set(this_subclasses)
-    for this_subclass in this_subclasses:
-        ret | get_all_subclasses(this_subclass)
-    return ret
-
-
-class TestCaching(object):
-
-    # as of GH 6479 (in 0.14.0), offset caching is turned off
-    # as of v0.12.0 only BusinessMonth/Quarter were actually caching
-
-    def setup_method(self, method):
-        _daterange_cache.clear()
-        _offset_map.clear()
-
-    def run_X_index_creation(self, cls):
-        inst1 = cls()
-        if not inst1.isAnchored():
-            assert not inst1._should_cache(), cls
-            return
-
-        assert inst1._should_cache(), cls
-
-        DatetimeIndex(start=datetime(2013, 1, 31), end=datetime(2013, 3, 31),
-                      freq=inst1, normalize=True)
-        assert cls() in _daterange_cache, cls
-
-    def test_should_cache_month_end(self):
-        assert not MonthEnd()._should_cache()
-
-    def test_should_cache_bmonth_end(self):
-        assert not BusinessMonthEnd()._should_cache()
-
-    def test_should_cache_week_month(self):
-        assert not WeekOfMonth(weekday=1, week=2)._should_cache()
-
-    def test_all_cacheableoffsets(self):
-        for subclass in get_all_subclasses(CacheableOffset):
-            if subclass.__name__[0] == "_" \
-                    or subclass in TestCaching.no_simple_ctr:
-                continue
-            self.run_X_index_creation(subclass)
-
-    def test_month_end_index_creation(self):
-        DatetimeIndex(start=datetime(2013, 1, 31), end=datetime(2013, 3, 31),
-                      freq=MonthEnd(), normalize=True)
-        assert not MonthEnd() in _daterange_cache
-
-    def test_bmonth_end_index_creation(self):
-        DatetimeIndex(start=datetime(2013, 1, 31), end=datetime(2013, 3, 29),
-                      freq=BusinessMonthEnd(), normalize=True)
-        assert not BusinessMonthEnd() in _daterange_cache
-
-    def test_week_of_month_index_creation(self):
-        inst1 = WeekOfMonth(weekday=1, week=2)
-        DatetimeIndex(start=datetime(2013, 1, 31), end=datetime(2013, 3, 29),
-                      freq=inst1, normalize=True)
-        inst2 = WeekOfMonth(weekday=1, week=2)
-        assert inst2 not in _daterange_cache
 
 
 class TestReprNames(object):
@@ -3162,3 +3160,71 @@ def test_last_week_of_month_on_offset():
     slow = (ts + offset) - offset == ts
     fast = offset.onOffset(ts)
     assert fast == slow
+
+
+class TestCalendarDay(object):
+
+    def test_add_across_dst_scalar(self):
+        # GH 22274
+        ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+        expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
+        result = ts + CalendarDay(1)
+        assert result == expected
+
+        result = result - CalendarDay(1)
+        assert result == ts
+
+    @pytest.mark.parametrize('box', [DatetimeIndex, Series])
+    def test_add_across_dst_array(self, box):
+        # GH 22274
+        ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+        expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
+        arr = box([ts])
+        expected = box([expected])
+        result = arr + CalendarDay(1)
+        tm.assert_equal(result, expected)
+
+        result = result - CalendarDay(1)
+        tm.assert_equal(arr, result)
+
+    @pytest.mark.parametrize('arg', [
+        Timestamp("2018-11-03 01:00:00", tz='US/Pacific'),
+        DatetimeIndex([Timestamp("2018-11-03 01:00:00", tz='US/Pacific')])
+    ])
+    def test_raises_AmbiguousTimeError(self, arg):
+        # GH 22274
+        with pytest.raises(pytz.AmbiguousTimeError):
+            arg + CalendarDay(1)
+
+    @pytest.mark.parametrize('arg', [
+        Timestamp("2019-03-09 02:00:00", tz='US/Pacific'),
+        DatetimeIndex([Timestamp("2019-03-09 02:00:00", tz='US/Pacific')])
+    ])
+    def test_raises_NonExistentTimeError(self, arg):
+        # GH 22274
+        with pytest.raises(pytz.NonExistentTimeError):
+            arg + CalendarDay(1)
+
+    @pytest.mark.parametrize('arg, exp', [
+        [1, 2],
+        [-1, 0],
+        [-5, -4]
+    ])
+    def test_arithmetic(self, arg, exp):
+        # GH 22274
+        result = CalendarDay(1) + CalendarDay(arg)
+        expected = CalendarDay(exp)
+        assert result == expected
+
+    @pytest.mark.parametrize('arg', [
+        timedelta(1),
+        Day(1),
+        Timedelta(1),
+        TimedeltaIndex([timedelta(1)])
+    ])
+    def test_invalid_arithmetic(self, arg):
+        # GH 22274
+        # CalendarDay (relative time) cannot be added to Timedelta-like objects
+        # (absolute time)
+        with pytest.raises(TypeError):
+            CalendarDay(1) + arg

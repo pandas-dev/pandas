@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
-from cython cimport Py_ssize_t
+from cython import Py_ssize_t
 
 # dateutil compat
 from dateutil.tz import (
@@ -28,7 +27,7 @@ cdef int64_t NPY_NAT = get_nat()
 
 # ----------------------------------------------------------------------
 
-cdef inline bint is_utc(object tz):
+cpdef inline bint is_utc(object tz):
     return tz is UTC or isinstance(tz, _dateutil_tzutc)
 
 
@@ -37,8 +36,8 @@ cdef inline bint is_tzlocal(object tz):
 
 
 cdef inline bint treat_tz_as_pytz(object tz):
-    return hasattr(tz, '_utc_transition_times') and hasattr(
-        tz, '_transition_info')
+    return (hasattr(tz, '_utc_transition_times') and
+            hasattr(tz, '_transition_info'))
 
 
 cdef inline bint treat_tz_as_dateutil(object tz):
@@ -150,7 +149,7 @@ cdef inline object tz_cache_key(object tz):
 # UTC Offsets
 
 
-cpdef get_utcoffset(tzinfo, obj):
+cdef get_utcoffset(tzinfo, obj):
     try:
         return tzinfo._utcoffset
     except AttributeError:
@@ -187,7 +186,7 @@ cdef object get_utc_trans_times_from_dateutil_tz(object tz):
     return new_trans
 
 
-cpdef int64_t[:] unbox_utcoffsets(object transinfo):
+cdef int64_t[:] unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i, sz
         int64_t[:] arr
@@ -323,7 +322,7 @@ cpdef bint tz_compare(object start, object end):
     return get_timezone(start) == get_timezone(end)
 
 
-cpdef tz_standardize(object tz):
+def tz_standardize(tz: object):
     """
     If the passed tz is a pytz timezone object, "normalize" it to the a
     consistent version

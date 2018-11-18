@@ -197,6 +197,7 @@ int parser_init(parser_t *self) {
     sz = sz ? sz : 1;
     self->words = (char **)malloc(sz * sizeof(char *));
     self->word_starts = (int64_t *)malloc(sz * sizeof(int64_t));
+    self->max_words_cap = sz;
     self->words_cap = sz;
     self->words_len = 0;
 
@@ -247,7 +248,7 @@ void parser_del(parser_t *self) {
 }
 
 static int make_stream_space(parser_t *self, size_t nbytes) {
-    int64_t i, cap;
+    int64_t i, cap, length;
     int status;
     void *orig_ptr, *newptr;
 
@@ -287,8 +288,23 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     */
 
     cap = self->words_cap;
+
+    /**
+     * If we are reading in chunks, we need to be aware of the maximum number
+     * of words we have seen in previous chunks (self->max_words_cap), so
+     * that way, we can properly allocate when reading subsequent ones.
+     *
+     * Otherwise, we risk a buffer overflow if we mistakenly under-allocate
+     * just because a recent chunk did not have as many words.
+     */
+    if (self->words_len + nbytes < self->max_words_cap) {
+        length = self->max_words_cap - nbytes;
+    } else {
+        length = self->words_len;
+    }
+
     self->words =
-        (char **)grow_buffer((void *)self->words, self->words_len,
+        (char **)grow_buffer((void *)self->words, length,
                              (int64_t*)&self->words_cap, nbytes,
                              sizeof(char *), &status);
     TRACE(
@@ -363,7 +379,7 @@ static int push_char(parser_t *self, char c) {
     return 0;
 }
 
-int P_INLINE end_field(parser_t *self) {
+int PANDAS_INLINE end_field(parser_t *self) {
     // XXX cruft
     if (self->words_len >= self->words_cap) {
         TRACE(
@@ -1150,7 +1166,7 @@ static int parser_handle_eof(parser_t *self) {
         case IN_QUOTED_FIELD:
             self->error_msg = (char *)malloc(bufsize);
             snprintf(self->error_msg, bufsize,
-                    "EOF inside string starting at line %lld",
+                    "EOF inside string starting at row %lld",
                     (long long)self->file_lines);
             return -1;
 
@@ -1240,6 +1256,19 @@ int parser_trim_buffers(parser_t *self) {
     void *newptr;
 
     int64_t i;
+
+    /**
+     * Before we free up space and trim, we should
+     * save how many words we saw when parsing, if
+     * it exceeds the maximum number we saw before.
+     *
+     * This is important for when we read in chunks,
+     * so that we can inform subsequent chunk parsing
+     * as to how many words we could possibly see.
+     */
+    if (self->words_cap > self->max_words_cap) {
+        self->max_words_cap = self->words_cap;
+    }
 
     /* trim words, word_starts */
     new_cap = _next_pow2(self->words_len) + 1;
@@ -1381,11 +1410,11 @@ int tokenize_all_rows(parser_t *self) {
     return status;
 }
 
-P_INLINE void uppercase(char *p) {
+PANDAS_INLINE void uppercase(char *p) {
     for (; *p; ++p) *p = toupper(*p);
 }
 
-int P_INLINE to_longlong(char *item, long long *p_value) {
+int PANDAS_INLINE to_longlong(char *item, long long *p_value) {
     char *p_end;
 
     // Try integer conversion.  We explicitly give the base to be 10. If

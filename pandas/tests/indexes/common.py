@@ -1,24 +1,23 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 import pytest
 
-from pandas import compat
+from pandas._libs.tslib import iNaT
+import pandas.compat as compat
 from pandas.compat import PY3
 
-import numpy as np
-
-from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
-                    RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, IntervalIndex, isna)
-from pandas.core.indexes.base import InvalidIndexError
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas._libs.tslib import iNaT
-
-import pandas.util.testing as tm
 
 import pandas as pd
+from pandas import (
+    CategoricalIndex, DatetimeIndex, Float64Index, Index, Int64Index,
+    IntervalIndex, MultiIndex, PeriodIndex, RangeIndex, Series, TimedeltaIndex,
+    UInt64Index, isna)
+from pandas.core.indexes.base import InvalidIndexError
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+import pandas.util.testing as tm
 
 
 class Base(object):
@@ -35,10 +34,6 @@ class Base(object):
         assert indices.equals(unpickled)
 
     def test_pickle_compat_construction(self):
-        # this is testing for pickle compat
-        if self._holder is None:
-            return
-
         # need an object to create with
         pytest.raises(TypeError, self._holder)
 
@@ -70,19 +65,24 @@ class Base(object):
         assert s.index is not idx
         assert s.name != idx.name
 
-    def test_to_frame(self):
-        # see gh-15230
+    @pytest.mark.parametrize("name", [None, "new_name"])
+    def test_to_frame(self, name):
+        # see GH-15230, GH-22580
         idx = self.create_index()
-        name = idx.name or 0
 
-        df = idx.to_frame()
+        if name:
+            idx_name = name
+        else:
+            idx_name = idx.name or 0
+
+        df = idx.to_frame(name=idx_name)
 
         assert df.index is idx
         assert len(df.columns) == 1
-        assert df.columns[0] == name
-        assert df[name].values is not idx.values
+        assert df.columns[0] == idx_name
+        assert df[idx_name].values is not idx.values
 
-        df = idx.to_frame(index=False)
+        df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
 
     def test_shift(self):
@@ -125,38 +125,39 @@ class Base(object):
     def test_numeric_compat(self):
 
         idx = self.create_index()
-        tm.assert_raises_regex(TypeError, "cannot perform __mul__",
-                               lambda: idx * 1)
-        tm.assert_raises_regex(TypeError, "cannot perform __rmul__",
-                               lambda: 1 * idx)
+        with pytest.raises(TypeError, match="cannot perform __mul__"):
+            idx * 1
+        with pytest.raises(TypeError, match="cannot perform __rmul__"):
+            1 * idx
 
-        div_err = "cannot perform __truediv__" if PY3 \
-            else "cannot perform __div__"
-        tm.assert_raises_regex(TypeError, div_err, lambda: idx / 1)
+        div_err = ("cannot perform __truediv__" if PY3
+                   else "cannot perform __div__")
+        with pytest.raises(TypeError, match=div_err):
+            idx / 1
+
         div_err = div_err.replace(' __', ' __r')
-        tm.assert_raises_regex(TypeError, div_err, lambda: 1 / idx)
-        tm.assert_raises_regex(TypeError, "cannot perform __floordiv__",
-                               lambda: idx // 1)
-        tm.assert_raises_regex(TypeError, "cannot perform __rfloordiv__",
-                               lambda: 1 // idx)
+        with pytest.raises(TypeError, match=div_err):
+            1 / idx
+        with pytest.raises(TypeError, match="cannot perform __floordiv__"):
+            idx // 1
+        with pytest.raises(TypeError, match="cannot perform __rfloordiv__"):
+            1 // idx
 
     def test_logical_compat(self):
         idx = self.create_index()
-        tm.assert_raises_regex(TypeError, 'cannot perform all',
-                               lambda: idx.all())
-        tm.assert_raises_regex(TypeError, 'cannot perform any',
-                               lambda: idx.any())
+        with pytest.raises(TypeError, match='cannot perform all'):
+            idx.all()
+        with pytest.raises(TypeError, match='cannot perform any'):
+            idx.any()
 
     def test_boolean_context_compat(self):
 
         # boolean context compat
         idx = self.create_index()
 
-        def f():
+        with pytest.raises(ValueError, match='The truth value of a'):
             if idx:
                 pass
-
-        tm.assert_raises_regex(ValueError, 'The truth value of a', f)
 
     def test_reindex_base(self):
         idx = self.create_index()
@@ -165,7 +166,7 @@ class Base(object):
         actual = idx.get_indexer(idx)
         tm.assert_numpy_array_equal(expected, actual)
 
-        with tm.assert_raises_regex(ValueError, 'Invalid fill method'):
+        with pytest.raises(ValueError, match='Invalid fill method'):
             idx.get_indexer(idx, method='invalid')
 
     def test_get_indexer_consistency(self):
@@ -180,8 +181,8 @@ class Base(object):
                 assert indexer.dtype == np.intp
             else:
                 e = "Reindexing only valid with uniquely valued Index objects"
-                with tm.assert_raises_regex(InvalidIndexError, e):
-                    indexer = index.get_indexer(index[0:2])
+                with pytest.raises(InvalidIndexError, match=e):
+                    index.get_indexer(index[0:2])
 
             indexer, _ = index.get_indexer_non_unique(index[0:2])
             assert isinstance(indexer, np.ndarray)
@@ -227,16 +228,15 @@ class Base(object):
             assert '...' not in str(idx)
 
     def test_wrong_number_names(self, indices):
-        def testit(ind):
-            ind.names = ["apple", "banana", "carrot"]
-        tm.assert_raises_regex(ValueError, "^Length", testit, indices)
+        with pytest.raises(ValueError, match="^Length"):
+            indices.names = ["apple", "banana", "carrot"]
 
     def test_set_name_methods(self, indices):
         new_name = "This is the new name for this index"
 
         # don't tests a MultiIndex here (as its tested separated)
         if isinstance(indices, MultiIndex):
-            return
+            pytest.skip('Skip check for MultiIndex')
         original_name = indices.name
         new_ind = indices.set_names([new_name])
         assert new_ind.name == new_name
@@ -247,10 +247,10 @@ class Base(object):
         assert res is None
         assert indices.name == new_name
         assert indices.names == [new_name]
-        # with tm.assert_raises_regex(TypeError, "list-like"):
+        # with pytest.raises(TypeError, match="list-like"):
         #    # should still fail even if it would be the right length
         #    ind.set_names("a")
-        with tm.assert_raises_regex(ValueError, "Level must be None"):
+        with pytest.raises(ValueError, match="Level must be None"):
             indices.set_names("a", level=0)
 
         # rename in place just leaves tuples and other containers alone
@@ -261,8 +261,9 @@ class Base(object):
 
     def test_hash_error(self, indices):
         index = indices
-        tm.assert_raises_regex(TypeError, "unhashable type: %r" %
-                               type(index).__name__, hash, indices)
+        with pytest.raises(TypeError, match=("unhashable type: %r" %
+                                             type(index).__name__)):
+            hash(indices)
 
     def test_copy_name(self):
         # gh-12309: Check that the "name" argument
@@ -308,7 +309,8 @@ class Base(object):
             index_type = index.__class__
             result = index_type(index.values, copy=True, **init_kwargs)
             tm.assert_index_equal(index, result)
-            tm.assert_numpy_array_equal(index.values, result.values,
+            tm.assert_numpy_array_equal(index._ndarray_values,
+                                        result._ndarray_values,
                                         check_same='copy')
 
             if isinstance(index, PeriodIndex):
@@ -333,7 +335,8 @@ class Base(object):
         from copy import copy, deepcopy
 
         if isinstance(indices, MultiIndex):
-            return
+            pytest.skip('Skip check for MultiIndex')
+
         for func in (copy, deepcopy):
             idx_copy = func(indices)
             assert idx_copy is not indices
@@ -342,20 +345,50 @@ class Base(object):
         new_copy = indices.copy(deep=True, name="banana")
         assert new_copy.name == "banana"
 
-    def test_duplicates(self, indices):
+    def test_has_duplicates(self, indices):
         if type(indices) is not self._holder:
-            return
+            pytest.skip('Can only check if we have the correct type')
         if not len(indices) or isinstance(indices, MultiIndex):
-            return
+            # MultiIndex tested separately in:
+            # tests/indexes/multi/test_unique_and_duplicates
+            pytest.skip('Skip check for empty Index and MultiIndex')
+
         idx = self._holder([indices[0]] * 5)
-        assert not idx.is_unique
-        assert idx.has_duplicates
+        assert idx.is_unique is False
+        assert idx.has_duplicates is True
+
+    @pytest.mark.parametrize('keep', ['first', 'last', False])
+    def test_duplicated(self, indices, keep):
+        if type(indices) is not self._holder:
+            pytest.skip('Can only check if we know the index type')
+        if not len(indices) or isinstance(indices, (MultiIndex, RangeIndex)):
+            # MultiIndex tested separately in:
+            # tests/indexes/multi/test_unique_and_duplicates
+            pytest.skip('Skip check for empty Index, MultiIndex, RangeIndex')
+
+        idx = self._holder(indices)
+        if idx.has_duplicates:
+            # We are testing the duplicated-method here, so we need to know
+            # exactly which indices are duplicate and how (for the result).
+            # This is not possible if "idx" has duplicates already, which we
+            # therefore remove. This is seemingly circular, as drop_duplicates
+            # invokes duplicated, but in the end, it all works out because we
+            # cross-check with Series.duplicated, which is tested separately.
+            idx = idx.drop_duplicates()
+
+        n, k = len(idx), 10
+        duplicated_selection = np.random.choice(n, k * n)
+        expected = pd.Series(duplicated_selection).duplicated(keep=keep).values
+        idx = self._holder(idx.values[duplicated_selection])
+
+        result = idx.duplicated(keep=keep)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_unique(self, indices):
         # don't test a MultiIndex here (as its tested separated)
         # don't test a CategoricalIndex because categories change (GH 18291)
         if isinstance(indices, (MultiIndex, CategoricalIndex)):
-            return
+            pytest.skip('Skip check for MultiIndex/CategoricalIndex')
 
         # GH 17896
         expected = indices.drop_duplicates()
@@ -375,16 +408,16 @@ class Base(object):
     def test_get_unique_index(self, indices):
         # MultiIndex tested separately
         if not len(indices) or isinstance(indices, MultiIndex):
-            return
+            pytest.skip('Skip check for empty Index and MultiIndex')
 
         idx = indices[[0] * 5]
         idx_unique = indices[[0]]
 
         # We test against `idx_unique`, so first we make sure it's unique
         # and doesn't contain nans.
-        assert idx_unique.is_unique
+        assert idx_unique.is_unique is True
         try:
-            assert not idx_unique.hasnans
+            assert idx_unique.hasnans is False
         except NotImplementedError:
             pass
 
@@ -394,7 +427,7 @@ class Base(object):
 
         # nans:
         if not indices._can_hold_na:
-            return
+            pytest.skip('Skip na-check if index cannot hold na')
 
         if needs_i8_conversion(indices):
             vals = indices.asi8[[0] * 5]
@@ -406,7 +439,7 @@ class Base(object):
         vals_unique = vals[:2]
         idx_nan = indices._shallow_copy(vals)
         idx_unique_nan = indices._shallow_copy(vals_unique)
-        assert idx_unique_nan.is_unique
+        assert idx_unique_nan.is_unique is True
 
         assert idx_nan.dtype == indices.dtype
         assert idx_unique_nan.dtype == indices.dtype
@@ -423,7 +456,7 @@ class Base(object):
 
     def test_mutability(self, indices):
         if not len(indices):
-            return
+            pytest.skip('Skip check for empty Index')
         pytest.raises(TypeError, indices.__setitem__, 0, indices[0])
 
     def test_view(self, indices):
@@ -479,16 +512,16 @@ class Base(object):
             # backwards compatibility concerns
             if isinstance(type(ind), (CategoricalIndex, RangeIndex)):
                 msg = "the 'axis' parameter is not supported"
-                tm.assert_raises_regex(ValueError, msg,
-                                       np.argsort, ind, axis=1)
+                with pytest.raises(ValueError, match=msg):
+                    np.argsort(ind, axis=1)
 
                 msg = "the 'kind' parameter is not supported"
-                tm.assert_raises_regex(ValueError, msg, np.argsort,
-                                       ind, kind='mergesort')
+                with pytest.raises(ValueError, match=msg):
+                    np.argsort(ind, kind='mergesort')
 
                 msg = "the 'order' parameter is not supported"
-                tm.assert_raises_regex(ValueError, msg, np.argsort,
-                                       ind, order=('a', 'b'))
+                with pytest.raises(ValueError, match=msg):
+                    np.argsort(ind, order=('a', 'b'))
 
     def test_pickle(self, indices):
         self.verify_pickle(indices)
@@ -519,16 +552,16 @@ class Base(object):
         indices = [1, 2]
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        tm.assert_raises_regex(TypeError, msg, idx.take,
-                               indices, foo=2)
+        with pytest.raises(TypeError, match=msg):
+            idx.take(indices, foo=2)
 
         msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, idx.take,
-                               indices, out=indices)
+        with pytest.raises(ValueError, match=msg):
+            idx.take(indices, out=indices)
 
         msg = "the 'mode' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, idx.take,
-                               indices, mode='clip')
+        with pytest.raises(ValueError, match=msg):
+            idx.take(indices, mode='clip')
 
     def test_repeat(self):
         rep = 2
@@ -548,8 +581,8 @@ class Base(object):
         tm.assert_index_equal(np.repeat(i, rep), expected)
 
         msg = "the 'axis' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.repeat,
-                               i, rep, axis=0)
+        with pytest.raises(ValueError, match=msg):
+            np.repeat(i, rep, axis=0)
 
     @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
     def test_where(self, klass):
@@ -565,19 +598,16 @@ class Base(object):
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
-    def test_setops_errorcases(self):
+    @pytest.mark.parametrize("case", [0.5, "xxx"])
+    @pytest.mark.parametrize("method", ["intersection", "union",
+                                        "difference", "symmetric_difference"])
+    def test_set_ops_error_cases(self, case, method):
         for name, idx in compat.iteritems(self.indices):
-            # # non-iterable input
-            cases = [0.5, 'xxx']
-            methods = [idx.intersection, idx.union, idx.difference,
-                       idx.symmetric_difference]
+            # non-iterable input
 
-            for method in methods:
-                for case in cases:
-                    tm.assert_raises_regex(TypeError,
-                                           "Input must be Index "
-                                           "or array-like",
-                                           method, case)
+            msg = "Input must be Index or array-like"
+            with pytest.raises(TypeError, match=msg):
+                getattr(idx, method)(case)
 
     def test_intersection_base(self):
         for name, idx in compat.iteritems(self.indices):
@@ -596,8 +626,8 @@ class Base(object):
             for case in cases:
                 if isinstance(idx, PeriodIndex):
                     msg = "can only call with other PeriodIndex-ed objects"
-                    with tm.assert_raises_regex(ValueError, msg):
-                        result = first.intersection(case)
+                    with pytest.raises(ValueError, match=msg):
+                        first.intersection(case)
                 elif isinstance(idx, CategoricalIndex):
                     pass
                 else:
@@ -606,8 +636,8 @@ class Base(object):
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
-                with tm.assert_raises_regex(TypeError, msg):
-                    result = first.intersection([1, 2, 3])
+                with pytest.raises(TypeError, match=msg):
+                    first.intersection([1, 2, 3])
 
     def test_union_base(self):
         for name, idx in compat.iteritems(self.indices):
@@ -623,8 +653,8 @@ class Base(object):
             for case in cases:
                 if isinstance(idx, PeriodIndex):
                     msg = "can only call with other PeriodIndex-ed objects"
-                    with tm.assert_raises_regex(ValueError, msg):
-                        result = first.union(case)
+                    with pytest.raises(ValueError, match=msg):
+                        first.union(case)
                 elif isinstance(idx, CategoricalIndex):
                     pass
                 else:
@@ -633,8 +663,8 @@ class Base(object):
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
-                with tm.assert_raises_regex(TypeError, msg):
-                    result = first.union([1, 2, 3])
+                with pytest.raises(TypeError, match=msg):
+                    first.union([1, 2, 3])
 
     def test_difference_base(self):
         for name, idx in compat.iteritems(self.indices):
@@ -654,8 +684,8 @@ class Base(object):
             for case in cases:
                 if isinstance(idx, PeriodIndex):
                     msg = "can only call with other PeriodIndex-ed objects"
-                    with tm.assert_raises_regex(ValueError, msg):
-                        result = first.difference(case)
+                    with pytest.raises(ValueError, match=msg):
+                        first.difference(case)
                 elif isinstance(idx, CategoricalIndex):
                     pass
                 elif isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
@@ -668,8 +698,8 @@ class Base(object):
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
-                with tm.assert_raises_regex(TypeError, msg):
-                    result = first.difference([1, 2, 3])
+                with pytest.raises(TypeError, match=msg):
+                    first.difference([1, 2, 3])
 
     def test_symmetric_difference(self):
         for name, idx in compat.iteritems(self.indices):
@@ -688,8 +718,8 @@ class Base(object):
             for case in cases:
                 if isinstance(idx, PeriodIndex):
                     msg = "can only call with other PeriodIndex-ed objects"
-                    with tm.assert_raises_regex(ValueError, msg):
-                        result = first.symmetric_difference(case)
+                    with pytest.raises(ValueError, match=msg):
+                        first.symmetric_difference(case)
                 elif isinstance(idx, CategoricalIndex):
                     pass
                 else:
@@ -698,7 +728,7 @@ class Base(object):
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
-                with tm.assert_raises_regex(TypeError, msg):
+                with pytest.raises(TypeError, match=msg):
                     first.symmetric_difference([1, 2, 3])
 
     def test_insert_base(self):
@@ -735,7 +765,7 @@ class Base(object):
 
             with pytest.raises((IndexError, ValueError)):
                 # either depending on numpy version
-                result = idx.delete(len(idx))
+                idx.delete(len(idx))
 
     def test_equals(self):
 
@@ -761,13 +791,13 @@ class Base(object):
         # GH9947, GH10637
         index_a = self.create_index()
         if isinstance(index_a, PeriodIndex):
-            return
+            pytest.skip('Skip check for PeriodIndex')
 
         n = len(index_a)
         index_b = index_a[0:-1]
         index_c = index_a[0:-1].append(index_a[-2:-1])
         index_d = index_a[0:1]
-        with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        with pytest.raises(ValueError, match="Lengths must match"):
             index_a == index_b
         expected1 = np.array([True] * n)
         expected2 = np.array([True] * (n - 1) + [False])
@@ -779,7 +809,7 @@ class Base(object):
         array_b = np.array(index_a[0:-1])
         array_c = np.array(index_a[0:-1].append(index_a[-2:-1]))
         array_d = np.array(index_a[0:1])
-        with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        with pytest.raises(ValueError, match="Lengths must match"):
             index_a == array_b
         tm.assert_numpy_array_equal(index_a == array_a, expected1)
         tm.assert_numpy_array_equal(index_a == array_c, expected2)
@@ -789,23 +819,23 @@ class Base(object):
         series_b = Series(array_b)
         series_c = Series(array_c)
         series_d = Series(array_d)
-        with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        with pytest.raises(ValueError, match="Lengths must match"):
             index_a == series_b
 
         tm.assert_numpy_array_equal(index_a == series_a, expected1)
         tm.assert_numpy_array_equal(index_a == series_c, expected2)
 
         # cases where length is 1 for one of them
-        with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        with pytest.raises(ValueError, match="Lengths must match"):
             index_a == index_d
-        with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        with pytest.raises(ValueError, match="Lengths must match"):
             index_a == series_d
-        with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        with pytest.raises(ValueError, match="Lengths must match"):
             index_a == array_d
         msg = "Can only compare identically-labeled Series objects"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             series_a == series_d
-        with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        with pytest.raises(ValueError, match="Lengths must match"):
             series_a == array_d
 
         # comparing with a scalar should broadcast; note that we are excluding
@@ -883,7 +913,7 @@ class Base(object):
                 # cases in indices doesn't include NaN
                 expected = np.array([False] * len(idx), dtype=bool)
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                assert not idx.hasnans
+                assert idx.hasnans is False
 
                 idx = index.copy()
                 values = np.asarray(idx.values)
@@ -905,7 +935,7 @@ class Base(object):
                 expected = np.array([False] * len(idx), dtype=bool)
                 expected[1] = True
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                assert idx.hasnans
+                assert idx.hasnans is True
 
     def test_fillna(self):
         # GH 11343
@@ -915,7 +945,7 @@ class Base(object):
             elif isinstance(index, MultiIndex):
                 idx = index.copy()
                 msg = "isna is not defined for MultiIndex"
-                with tm.assert_raises_regex(NotImplementedError, msg):
+                with pytest.raises(NotImplementedError, match=msg):
                     idx.fillna(idx[0])
             else:
                 idx = index.copy()
@@ -924,7 +954,7 @@ class Base(object):
                 assert result is not idx
 
                 msg = "'value' must be a scalar, passed: "
-                with tm.assert_raises_regex(TypeError, msg):
+                with pytest.raises(TypeError, match=msg):
                     idx.fillna([idx[0]])
 
                 idx = index.copy()
@@ -945,7 +975,7 @@ class Base(object):
                 expected = np.array([False] * len(idx), dtype=bool)
                 expected[1] = True
                 tm.assert_numpy_array_equal(idx._isnan, expected)
-                assert idx.hasnans
+                assert idx.hasnans is True
 
     def test_nulls(self):
         # this is really a smoke test for the methods
@@ -958,7 +988,7 @@ class Base(object):
             elif isinstance(index, MultiIndex):
                 idx = index.copy()
                 msg = "isna is not defined for MultiIndex"
-                with tm.assert_raises_regex(NotImplementedError, msg):
+                with pytest.raises(NotImplementedError, match=msg):
                     idx.isna()
             else:
 
@@ -989,11 +1019,11 @@ class Base(object):
         # not implemented for tuple searches in MultiIndex
         # or Intervals searches in IntervalIndex
         if isinstance(indices, (MultiIndex, IntervalIndex)):
-            return
+            pytest.skip('Skip check for MultiIndex/IntervalIndex')
 
         # nothing to test if the index is empty
         if indices.empty:
-            return
+            pytest.skip('Skip check for empty Index')
         value = indices[0]
 
         # determine the expected results (handle dupes for 'right')

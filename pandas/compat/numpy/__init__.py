@@ -9,18 +9,16 @@ from pandas.compat import string_types, string_and_binary_types
 # numpy versioning
 _np_version = np.__version__
 _nlv = LooseVersion(_np_version)
-_np_version_under1p10 = _nlv < LooseVersion('1.10')
-_np_version_under1p11 = _nlv < LooseVersion('1.11')
-_np_version_under1p12 = _nlv < LooseVersion('1.12')
 _np_version_under1p13 = _nlv < LooseVersion('1.13')
 _np_version_under1p14 = _nlv < LooseVersion('1.14')
 _np_version_under1p15 = _nlv < LooseVersion('1.15')
 
-if _nlv < '1.9':
+
+if _nlv < '1.12':
     raise ImportError('this version of pandas is incompatible with '
-                      'numpy < 1.9.0\n'
+                      'numpy < 1.12.0\n'
                       'your numpy version is {0}.\n'
-                      'Please upgrade numpy to >= 1.9.0 to use '
+                      'Please upgrade numpy to >= 1.12.0 to use '
                       'this pandas version'.format(_np_version))
 
 
@@ -42,9 +40,7 @@ def np_datetime64_compat(s, *args, **kwargs):
     tz-changes in 1.11 that make '2015-01-01 09:00:00Z' show a deprecation
     warning, when need to pass '2015-01-01 09:00:00'
     """
-
-    if not _np_version_under1p11:
-        s = tz_replacer(s)
+    s = tz_replacer(s)
     return np.datetime64(s, *args, **kwargs)
 
 
@@ -55,23 +51,17 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
     tz-changes in 1.11 that make '2015-01-01 09:00:00Z' show a deprecation
     warning, when need to pass '2015-01-01 09:00:00'
     """
-
-    if not _np_version_under1p11:
-
-        # is_list_like
-        if hasattr(arr, '__iter__') and not \
-           isinstance(arr, string_and_binary_types):
-            arr = [tz_replacer(s) for s in arr]
-        else:
-            arr = tz_replacer(arr)
+    # is_list_like
+    if (hasattr(arr, '__iter__')
+            and not isinstance(arr, string_and_binary_types)):
+        arr = [tz_replacer(s) for s in arr]
+    else:
+        arr = tz_replacer(arr)
 
     return np.array(arr, *args, **kwargs)
 
 
 __all__ = ['np',
-           '_np_version_under1p10',
-           '_np_version_under1p11',
-           '_np_version_under1p12',
            '_np_version_under1p13',
            '_np_version_under1p14',
            '_np_version_under1p15'
