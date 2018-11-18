@@ -1246,7 +1246,10 @@ def _format_datetime64(x, tz=None, nat_rep='NaT'):
         return nat_rep
 
     if tz is not None or not isinstance(x, Timestamp):
-        x = Timestamp(x, tz=tz)
+        if getattr(x, 'tzinfo', None) is not None:
+            x = Timestamp(x).tz_convert(tz)
+        else:
+            x = Timestamp(x).tz_localize(tz)
 
     return str(x)
 
