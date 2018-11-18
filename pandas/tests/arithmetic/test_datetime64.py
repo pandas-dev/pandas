@@ -824,6 +824,9 @@ class TestDatetime64Arithmetic(object):
 
     def test_dt64arr_sub_timestamp(self, box_T_with_array):
         box, transpose = box_T_with_array
+        if box is tm.to_array:
+            pytest.xfail("DatetimeArray.__sub__ returns ndarray instead "
+                         "of TimedeltaArray")
 
         ser = pd.date_range('2014-03-17', periods=2, freq='D',
                             tz='US/Eastern')
@@ -841,6 +844,9 @@ class TestDatetime64Arithmetic(object):
     def test_dt64arr_sub_NaT(self, box_T_with_array):
         # GH#18808
         box, transpose = box_T_with_array
+        if box is tm.to_array:
+            pytest.xfail("DatetimeArray.__sub__ returns ndarray instead "
+                         "of TimedeltaArray")
 
         dti = pd.DatetimeIndex([pd.NaT, pd.Timestamp('19900315')])
         ser = tm.box_expected(dti, box, transpose=transpose)
