@@ -9347,8 +9347,14 @@ class NDFrame(PandasObject, SelectionMixin):
                 if is_datetime64_any_dtype(data):
                     tz = data.dt.tz
                     asint = data.dropna().values.view('i8')
+                    top = Timestamp(top)
+                    if top.tzinfo is not None and tz is not None:
+                        # Don't tz_localize(None) if key is already tz-aware
+                        top = top.tz_convert(tz)
+                    else:
+                        top = top.tz_localize(tz)
                     names += ['top', 'freq', 'first', 'last']
-                    result += [Timestamp(top, tz=tz), freq,
+                    result += [top, freq,
                                Timestamp(asint.min(), tz=tz),
                                Timestamp(asint.max(), tz=tz)]
                 else:
