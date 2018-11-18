@@ -503,7 +503,8 @@ class TestTimedeltaArraylikeAddSubOps(object):
     # ------------------------------------------------------------------
     # Operations with int-like others
 
-    def test_td64arr_add_int_series_invalid(self, box, tdser):
+    def test_td64arr_add_int_series_invalid(self, box):
+        tdser = pd.Series(['59 Days', '59 Days', 'NaT'], dtype='m8[ns]')
         tdser = tm.box_expected(tdser, box)
         err = TypeError if box is not pd.Index else NullFrequencyError
         int_ser = Series([2, 3, 4])
@@ -547,7 +548,8 @@ class TestTimedeltaArraylikeAddSubOps(object):
             ser - pd.Index(other)
 
     @pytest.mark.parametrize('scalar', [1, 1.5, np.array(2)])
-    def test_td64arr_add_sub_numeric_scalar_invalid(self, box, scalar, tdser):
+    def test_td64arr_add_sub_numeric_scalar_invalid(self, box, scalar):
+        tdser = pd.Series(['59 Days', '59 Days', 'NaT'], dtype='m8[ns]')
         tdser = tm.box_expected(tdser, box)
         err = TypeError
         if box is pd.Index and not isinstance(scalar, float):
@@ -571,7 +573,8 @@ class TestTimedeltaArraylikeAddSubOps(object):
         Series([1, 2, 3])
         # TODO: Add DataFrame in here?
     ], ids=lambda x: type(x).__name__)
-    def test_td64arr_add_sub_numeric_arr_invalid(self, box, vec, dtype, tdser):
+    def test_td64arr_add_sub_numeric_arr_invalid(self, box, vec, dtype):
+        tdser = pd.Series(['59 Days', '59 Days', 'NaT'], dtype='m8[ns]')
         tdser = tm.box_expected(tdser, box)
         err = TypeError
         if box is pd.Index and not dtype.startswith('float'):
@@ -1237,9 +1240,10 @@ class TestTimedeltaArraylikeMulDivOps(object):
     # Operations with numeric others
 
     @pytest.mark.parametrize('one', [1, np.array(1), 1.0, np.array(1.0)])
-    def test_td64arr_mul_numeric_scalar(self, box, one, tdser):
+    def test_td64arr_mul_numeric_scalar(self, box, one):
         # GH#4521
         # divide/multiply by integers
+        tdser = pd.Series(['59 Days', '59 Days', 'NaT'], dtype='m8[ns]')
         expected = Series(['-59 Days', '-59 Days', 'NaT'],
                           dtype='timedelta64[ns]')
 
@@ -1261,9 +1265,10 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize('two', [2, 2.0, np.array(2), np.array(2.0)])
-    def test_td64arr_div_numeric_scalar(self, box, two, tdser):
+    def test_td64arr_div_numeric_scalar(self, box, two):
         # GH#4521
         # divide/multiply by integers
+        tdser = pd.Series(['59 Days', '59 Days', 'NaT'], dtype='m8[ns]')
         expected = Series(['29.5D', '29.5D', 'NaT'], dtype='timedelta64[ns]')
 
         tdser = tm.box_expected(tdser, box)
@@ -1280,10 +1285,10 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                         Series([20, 30, 40])],
                              ids=lambda x: type(x).__name__)
     @pytest.mark.parametrize('op', [operator.mul, ops.rmul])
-    def test_td64arr_rmul_numeric_array(self, op, box,
-                                        vector, dtype, tdser):
+    def test_td64arr_rmul_numeric_array(self, op, box, vector, dtype):
         # GH#4521
         # divide/multiply by integers
+        tdser = pd.Series(['59 Days', '59 Days', 'NaT'], dtype='m8[ns]')
         vector = vector.astype(dtype)
 
         expected = Series(['1180 Days', '1770 Days', 'NaT'],
@@ -1304,9 +1309,10 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                         pd.Index([20, 30, 40]),
                                         Series([20, 30, 40])],
                              ids=lambda x: type(x).__name__)
-    def test_td64arr_div_numeric_array(self, box, vector, dtype, tdser):
+    def test_td64arr_div_numeric_array(self, box, vector, dtype):
         # GH#4521
         # divide/multiply by integers
+        tdser = pd.Series(['59 Days', '59 Days', 'NaT'], dtype='m8[ns]')
         vector = vector.astype(dtype)
         expected = Series(['2.95D', '1D 23H 12m', 'NaT'],
                           dtype='timedelta64[ns]')

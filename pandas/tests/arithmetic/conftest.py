@@ -60,14 +60,6 @@ def numeric_idx(request):
     return request.param
 
 
-@pytest.fixture
-def tdser():
-    """
-    Return a Series with dtype='timedelta64[ns]', including a NaT.
-    """
-    return pd.Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
-
-
 # ------------------------------------------------------------------
 # Scalar Fixtures
 
