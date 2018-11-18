@@ -106,7 +106,7 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 def is_scalar(val: object) -> bool:
     """
     Return True if given value is scalar.
-    
+
     Parameters
     ----------
     val : object
@@ -129,7 +129,7 @@ def is_scalar(val: object) -> bool:
     -------
     bool
         Return True if given object is scalar, False otherwise
-    
+
     Examples
     --------
     >>> dt = pd.datetime.datetime(2018, 10, 3)
@@ -138,15 +138,15 @@ def is_scalar(val: object) -> bool:
 
     >>> pd.api.types.is_scalar([2, 3])
     False
-    
+
     >>> pd.api.types.is_scalar({0: 1, 2: 3})
     False
-    
+
     >>> pd.api.types.is_scalar((0, 2))
     False
-    
+
     pandas supports PEP 3141 numbers:
-    
+
     >>> from fractions import Fraction
     >>> pd.api.types.is_scalar(Fraction(3, 5))
     True
