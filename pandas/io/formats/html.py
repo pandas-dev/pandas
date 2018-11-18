@@ -198,13 +198,10 @@ class HTMLFormatter(TableFormatter):
 
     def _write_header(self, indent):
         truncate_h = self.fmt.truncate_h
-
         if self.fmt.index:
             row_levels = self.frame.index.nlevels
-        elif self.show_col_idx_names:
-            row_levels = 1
         else:
-            row_levels = 0
+            row_levels = 1 if self.show_col_idx_names else 0
 
         if not self.fmt.header:
             # write nothing
@@ -294,16 +291,13 @@ class HTMLFormatter(TableFormatter):
                         values = (values[:ins_col] + [u('...')] +
                                   values[ins_col:])
 
-                if self.fmt.show_index_names:
-                    name = self.columns.names[lnum]
-                else:
-                    name = None
-
+                row = [''] * (row_levels - 1)
                 if self.fmt.index or self.show_col_idx_names:
-                    row = [''] * (row_levels - 1) + ['' if name is None else
-                                                     pprint_thing(name)]
-                else:
-                    row = []
+                    if self.fmt.show_index_names:
+                        name = self.columns.names[lnum]
+                        row.append(pprint_thing(name or ''))
+                    else:
+                        row.append('')
 
                 tags = {}
                 j = len(row)
@@ -377,10 +371,9 @@ class HTMLFormatter(TableFormatter):
                 index_values = self.fmt.tr_frame.index.map(fmt)
             else:
                 index_values = self.fmt.tr_frame.index.format()
-
-        row_levels = 0
-        if self.fmt.index or self.show_col_idx_names:
             row_levels = 1
+        else:
+            row_levels = 1 if self.show_col_idx_names else 0
 
         row = []
         for i in range(nrows):
