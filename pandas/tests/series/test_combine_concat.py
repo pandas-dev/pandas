@@ -160,7 +160,7 @@ class TestSeriesCombine(object):
         # other_values is object, cannot be cast
         ([(61,), (63,)], 'int64', pd.Series([10, (61,), 12])),
         ([(61,), (63,)], float, pd.Series([10., (61,), 12.])),
-        ([(61,), (63,)], object, pd.Series([10, (61,), 12]))    
+        ([(61,), (63,)], object, pd.Series([10, (61,), 12]))
     ])
     def test_update_dtypes_no_try_catch(self, other_values,
                                         caller_dtype, expected):
