@@ -630,11 +630,12 @@ class ExcelFile(object):
                     if is_integer(skiprows):
                         row += skiprows
 
-                    data[row], control_row = _fill_mi_header(
-                        data[row], control_row)
-                    header_name, _ = _pop_header_name(
-                        data[row], index_col)
-                    header_names.append(header_name)
+                    data[row], control_row = _fill_mi_header(data[row],
+                                                             control_row)
+
+                    if index_col is not None:
+                        header_name, _ = _pop_header_name(data[row], index_col)
+                        header_names.append(header_name)
 
             if is_list_like(index_col):
                 # Forward fill values for MultiIndex index.
@@ -682,7 +683,8 @@ class ExcelFile(object):
 
                 output[asheetname] = parser.read(nrows=nrows)
 
-                if not squeeze or isinstance(output[asheetname], DataFrame):
+                if ((not squeeze or isinstance(output[asheetname], DataFrame))
+                        and header_names):
                     output[asheetname].columns = output[
                         asheetname].columns.set_names(header_names)
             except EmptyDataError:
@@ -863,16 +865,30 @@ def _fill_mi_header(row, control_row):
 
 
 def _pop_header_name(row, index_col):
-    """ (header, new_data) for header rows in MultiIndex parsing"""
-    none_fill = lambda x: None if x == '' else x
+    """
+    Pop the header name for MultiIndex parsing.
 
-    if index_col is None:
-        # no index col specified, trim data for inference path
-        return none_fill(row[0]), row[1:]
-    else:
-        # pop out header name and fill w/ blank
-        i = index_col if not is_list_like(index_col) else max(index_col)
-        return none_fill(row[i]), row[:i] + [''] + row[i + 1:]
+    Parameters
+    ----------
+    row : list
+        The data row to parse for the header name.
+    index_col : int, list
+        The index columns for our data. Assumed to be non-null.
+
+    Returns
+    -------
+    header_name : str
+        The extracted header name.
+    trimmed_row : list
+        The original data row with the header name removed.
+    """
+    # Pop out header name and fill w/blank.
+    i = index_col if not is_list_like(index_col) else max(index_col)
+
+    header_name = row[i]
+    header_name = None if header_name == "" else header_name
+
+    return header_name, row[:i] + [''] + row[i + 1:]
 
 
 @add_metaclass(abc.ABCMeta)
