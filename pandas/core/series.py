@@ -181,9 +181,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # astype copies
                     data = data.astype(dtype)
                 else:
-                    # need to copy to avoid aliasing issues
                     # GH21907
-                    if isinstance(data, DatetimeIndex):
+                    if isinstance(data._values, DatetimeIndex):
                         data = data.copy(deep=True)
                     else:
                         data = data._values.copy()
