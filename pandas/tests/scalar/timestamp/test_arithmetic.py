@@ -33,8 +33,8 @@ class TestTimestampArithmetic(object):
         # used to crash, so check for proper overflow exception
 
         stamp = Timestamp("2000/1/1")
-        offset_overflow = to_offset("D")*100**25
-        offset_no_overflow = to_offset("D")*100
+        offset_overflow = to_offset("D") * 100 ** 25
+        offset_no_overflow = to_offset("D") * 100
 
         # overflow expected
         with pytest.raises(OverflowError):
