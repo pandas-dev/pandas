@@ -387,8 +387,8 @@ def isin(comps, values):
 
     Parameters
     ----------
-    comps: array-like
-    values: array-like
+    comps : array-like
+    values : array-like
 
     Returns
     -------
@@ -509,8 +509,8 @@ _shared_docs['factorize'] = """
 
     See Also
     --------
-    pandas.cut : Discretize continuous-valued array.
-    pandas.unique : Find the unique value in an array.
+    cut : Discretize continuous-valued array.
+    unique : Find the unique value in an array.
 
     Examples
     --------
@@ -856,8 +856,8 @@ def rank(values, axis=0, method='average', na_option='keep',
         The method by which tiebreaks are broken during the ranking.
     na_option : {'keep', 'top'}, default 'keep'
         The method by which NaNs are placed in the ranking.
-        - ``keep``: rank each NaN value with a NaN ranking
-        - ``top``: replace each NaN with either +/- inf so that they
+        - ``keep`` : rank each NaN value with a NaN ranking
+        - ``top`` : replace each NaN with either +/- inf so that they
                    there are ranked at the top
     ascending : boolean, default True
         Whether or not the elements should be ranked in ascending order.
@@ -1473,10 +1473,10 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
     allow_fill : bool, default False
         How to handle negative values in `indices`.
 
-        * False: negative values in `indices` indicate positional indices
+        * False : negative values in `indices` indicate positional indices
           from the right (the default). This is similar to :func:`numpy.take`.
 
-        * True: negative values in `indices` indicate
+        * True : negative values in `indices` indicate
           missing values. These values are set to `fill_value`. Any other
           other negative values raise a ``ValueError``.
 

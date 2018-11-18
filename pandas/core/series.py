@@ -77,7 +77,7 @@ _shared_doc_kwargs = dict(
 def remove_na(arr):
     """Remove null values from array like structure.
 
-    .. deprecated:: 0.21.0
+    .. deprecated :: 0.21.0
         Use s[s.notnull()] instead.
     """
 
@@ -1235,7 +1235,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         float_format : one-parameter function, optional
             formatter function to apply to columns' elements if they are floats
             default None
-        header: boolean, default True
+        header : boolean, default True
             Add the Series header (index name)
         index : bool, optional
             Add index (row) labels, default True
@@ -1454,7 +1454,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.unique : Top-level unique method for any 1-d array-like object.
+        unique : Top-level unique method for any 1-d array-like object.
         Index.unique : Return Index with unique values from an Index object.
 
         Examples
@@ -1636,9 +1636,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.Index.duplicated : Equivalent method on pandas.Index.
-        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame.
-        pandas.Series.drop_duplicates : Remove duplicate values from Series.
+        Index.duplicated : Equivalent method on pandas.Index.
+        DataFrame.duplicated : Equivalent method on pandas.DataFrame.
+        Series.drop_duplicates : Remove duplicate values from Series.
         """
         return super(Series, self).duplicated(keep=keep)
 
@@ -1869,7 +1869,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.core.window.Rolling.quantile
+        core.window.Rolling.quantile
         numpy.percentile
         """
 
@@ -2179,7 +2179,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.concat : General function to concatenate DataFrame, Series
+        concat : General function to concatenate DataFrame, Series
             or Panel objects.
 
         Returns
@@ -3192,8 +3192,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     See Also
     --------
-    pandas.Series.apply : Invoke function on a Series.
-    pandas.Series.transform : Transform function producing
+    Series.apply : Invoke function on a Series.
+    Series.transform : Transform function producing
         a Series with like indexes.
     """)
 
@@ -3458,7 +3458,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.Series.rename_axis
+        Series.rename_axis
 
         Examples
         --------
@@ -3732,7 +3732,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.DataFrame.isin : Equivalent method on DataFrame.
+        DataFrame.isin : Equivalent method on DataFrame.
 
         Examples
         --------
@@ -3790,8 +3790,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.Series.gt : Greater than of series and other.
-        pandas.Series.lt : Less than of series and other.
+        Series.gt : Greater than of series and other.
+        Series.lt : Less than of series and other.
 
         Examples
         --------
@@ -3876,14 +3876,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         encoding : string, optional
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
-        infer_datetime_format: boolean, default False
+        infer_datetime_format : boolean, default False
             If True and `parse_dates` is True for a column, try to infer the
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.
 
         See Also
         --------
-        pandas.read_csv
+        read_csv
 
         Returns
         -------

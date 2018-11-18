@@ -565,7 +565,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.rename_axis : Alter the name of the index or columns.
+        DataFrame.rename_axis : Alter the name of the index or columns.
 
         Examples
         --------
@@ -1164,9 +1164,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.Series.rename : Alter Series index labels or name.
-        pandas.DataFrame.rename : Alter DataFrame index labels or name.
-        pandas.Index.rename : Set new names on index.
+        Series.rename : Alter Series index labels or name.
+        DataFrame.rename : Alter DataFrame index labels or name.
+        Index.rename : Set new names on index.
 
         Examples
         --------
@@ -1482,14 +1482,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        key: str
+        key : str
             Potential level name for the given axis
-        axis: int, default 0
+        axis : int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
 
         Returns
         -------
-        is_level: bool
+        is_level : bool
         """
         axis = self._get_axis_number(axis)
 
@@ -2042,8 +2042,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     See Also
     --------
-    pandas.read_excel
-    pandas.ExcelWriter
+    read_excel
+    ExcelWriter
 
     Examples
     --------
@@ -2161,7 +2161,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.read_json
+        read_json
 
         Examples
         --------
@@ -2393,7 +2393,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.read_sql : Read a DataFrame from a table.
+        read_sql : Read a DataFrame from a table.
 
         Notes
         -----
@@ -4216,7 +4216,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.loc
+        DataFrame.loc
 
         Notes
         -----
@@ -4275,7 +4275,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.tail: Returns the last `n` rows.
+        DataFrame.tail: Returns the last `n` rows.
 
         Examples
         --------
@@ -4334,7 +4334,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.head : The first `n` rows of the caller object.
+        DataFrame.head : The first `n` rows of the caller object.
 
         Examples
         --------
@@ -4584,9 +4584,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.apply
-        pandas.DataFrame.applymap
-        pandas.Series.map
+        DataFrame.apply
+        DataFrame.applymap
+        Series.map
     """)
 
     @Appender(_shared_docs['pipe'] % _shared_doc_kwargs)
@@ -4871,7 +4871,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        columns: list, optional, default:None
+        columns : list, optional, default:None
             If None, return all columns, otherwise, returns specified columns.
 
         Returns
@@ -4899,7 +4899,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.values
+        DataFrame.values
         """
         warnings.warn("Method .as_matrix will be removed in a future version. "
                       "Use .values instead.", FutureWarning, stacklevel=2)
@@ -5305,9 +5305,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.to_datetime : Convert argument to datetime.
-        pandas.to_timedelta : Convert argument to timedelta.
-        pandas.to_numeric : Convert argument to a numeric type.
+        to_datetime : Convert argument to datetime.
+        to_timedelta : Convert argument to timedelta.
+        to_numeric : Convert argument to a numeric type.
         numpy.ndarray.astype : Cast a numpy array to a specified type.
         """
         if is_dict_like(dtype):
@@ -5527,9 +5527,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.to_datetime : Convert argument to datetime.
-        pandas.to_timedelta : Convert argument to timedelta.
-        pandas.to_numeric : Convert argument to numeric type.
+        to_datetime : Convert argument to datetime.
+        to_timedelta : Convert argument to timedelta.
+        to_numeric : Convert argument to numeric type.
 
         Returns
         -------
@@ -5561,9 +5561,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.to_datetime : Convert argument to datetime.
-        pandas.to_timedelta : Convert argument to timedelta.
-        pandas.to_numeric : Convert argument to numeric type.
+        to_datetime : Convert argument to datetime.
+        to_timedelta : Convert argument to timedelta.
+        to_numeric : Convert argument to numeric type.
 
         Returns
         -------
@@ -7307,7 +7307,7 @@ class NDFrame(PandasObject, SelectionMixin):
             For PeriodIndex only, see PeriodIndex.asfreq
         normalize : bool, default False
             Whether to reset output index to midnight
-        fill_value: scalar, optional
+        fill_value : scalar, optional
             Value to use for missing values, applied during upsampling (note
             this does not fill NaNs that already were present).
 
@@ -9910,8 +9910,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.read_csv : Load a CSV file into a DataFrame.
-        pandas.to_excel : Load an Excel file into a DataFrame.
+        read_csv : Load a CSV file into a DataFrame.
+        to_excel : Load an Excel file into a DataFrame.
 
         Examples
         --------
@@ -10107,8 +10107,8 @@ False
 _all_see_also = """\
 See Also
 --------
-pandas.Series.all : Return True if all elements are True.
-pandas.DataFrame.any : Return True if one (or more) elements are True.
+Series.all : Return True if all elements are True.
+DataFrame.any : Return True if one (or more) elements are True.
 """
 
 _cnum_doc = """
@@ -10134,7 +10134,7 @@ Returns
 %(examples)s
 See Also
 --------
-pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
+core.window.Expanding.%(accum_func_name)s : Similar functionality
     but ignores ``NaN`` values.
 %(name2)s.%(accum_func_name)s : Return the %(desc)s over
     %(name2)s axis.
