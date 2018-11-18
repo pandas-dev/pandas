@@ -3,10 +3,12 @@ from decimal import Decimal
 import importlib
 import os
 
+from dateutil.tz import tzutc
 import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
+from pytz import utc
 
 from pandas.compat import PY3, u
 import pandas.util._test_decorators as td
@@ -243,6 +245,20 @@ def writable(request):
 def datetime_tz_utc():
     from datetime import timezone
     return timezone.utc
+
+
+utc_objs = ['utc', utc, tzutc()]
+if PY3:
+    from datetime import timezone
+    utc_objs.append(timezone.utc)
+
+
+@pytest.fixture(params=utc_objs)
+def utc_fixture(request):
+    """
+    Fixture to provide variants of UTC timezone strings and tzinfo objects
+    """
+    return request.param
 
 
 @pytest.fixture(params=['inner', 'outer', 'left', 'right'])
