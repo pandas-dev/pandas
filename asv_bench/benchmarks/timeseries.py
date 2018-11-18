@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import dateutil
 import numpy as np
 from pandas import to_datetime, date_range, Series, DataFrame, period_range
 from pandas.tseries.frequencies import infer_freq
@@ -57,7 +58,7 @@ class DatetimeIndex(object):
 
 class TzLocalize(object):
 
-    params = [None, 'US/Eastern', 'UTC', 'dateutil/UTC']
+    params = [None, 'US/Eastern', 'UTC', dateutil.tz.tzutc()]
     param_names = 'tz'
 
     def setup(self, tz):
@@ -380,7 +381,7 @@ class ToDatetimeCache(object):
 
 class DatetimeAccessor(object):
 
-    params = [None, 'US/Eastern', 'UTC', 'dateutil/UTC']
+    params = [None, 'US/Eastern', 'UTC', dateutil.tz.tzutc()]
     param_names = 'tz'
 
     def setup(self, tz):
