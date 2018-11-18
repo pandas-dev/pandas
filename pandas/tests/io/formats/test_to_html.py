@@ -21,13 +21,6 @@ def index(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False], ids=['header_true', 'header_false'])
-def header(request):
-    # to_html() parameter values for header
-    # whether to print column labels, default True
-    return request.param
-
-
 @pytest.fixture(params=[True, False], ids=['index_names_true',
                                            'index_names_false'])
 def index_names(request):
@@ -490,10 +483,8 @@ class TestToHTML(object):
                                   'index_named_standard',
                                   'index_unnamed_multi',
                                   'index_named_multi'])
-    @pytest.mark.parametrize('header', [True], ids=['header_true'])
     def test_to_html_basic_alignment(self, datapath, idx_type, col_idx_type,
-                                     index, header, index_names):
-
+                                     index, index_names):
         def _exp_name(idx_type, index, index_names):
             # helper function to map test parameters to expected output
             if not index:
@@ -509,12 +500,11 @@ class TestToHTML(object):
 
         df = DataFrame(np.zeros((2, 2), dtype=int),
                        index=idx_type, columns=col_idx_type)
-        result = df.to_html(index=index, header=header,
-                            index_names=index_names)
+        result = df.to_html(index=index, index_names=index_names)
         filename = '_'.join(['index',
                              _exp_name(idx_type, index, index_names),
                              'columns',
-                             _exp_name(col_idx_type, header, index_names)
+                             _exp_name(col_idx_type, True, index_names)
                              ])
         expected = expected_html(datapath, filename)
         assert result == expected
