@@ -614,23 +614,23 @@ class TestPeriodIndexArithmetic(object):
     # ---------------------------------------------------------------
     # __add__/__sub__ with integer arrays
 
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    @pytest.mark.parametrize('int_holder', [np.array, pd.Index])
     @pytest.mark.parametrize('op', [operator.add, ops.radd])
-    def test_pi_add_intarray(self, box, op):
+    def test_pi_add_intarray(self, int_holder, op):
         # GH#19959
         pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('NaT')])
-        other = box([4, -1])
+        other = int_holder([4, -1])
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False,
                                         clear=[pd.core.arrays.datetimelike]):
             result = op(pi, other)
         expected = pd.PeriodIndex([pd.Period('2016Q1'), pd.Period('NaT')])
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
-    def test_pi_sub_intarray(self, box):
+    @pytest.mark.parametrize('int_holder', [np.array, pd.Index])
+    def test_pi_sub_intarray(self, int_holder):
         # GH#19959
         pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('NaT')])
-        other = box([4, -1])
+        other = int_holder([4, -1])
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False,
                                         clear=[pd.core.arrays.datetimelike]):
             result = pi - other

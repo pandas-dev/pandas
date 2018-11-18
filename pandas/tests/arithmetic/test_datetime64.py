@@ -1457,11 +1457,11 @@ class TestDatetimeIndexArithmetic(object):
     # __add__/__sub__ with integer arrays
 
     @pytest.mark.parametrize('freq', ['H', 'D'])
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
-    def test_dti_add_intarray_tick(self, box, freq):
+    @pytest.mark.parametrize('int_holder', [np.array, pd.Index])
+    def test_dti_add_intarray_tick(self, int_holder, freq):
         # GH#19959
         dti = pd.date_range('2016-01-01', periods=2, freq=freq)
-        other = box([4, -1])
+        other = int_holder([4, -1])
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             expected = DatetimeIndex([dti[n] + other[n]
@@ -1474,11 +1474,11 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('freq', ['W', 'M', 'MS', 'Q'])
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
-    def test_dti_add_intarray_non_tick(self, box, freq):
+    @pytest.mark.parametrize('int_holder', [np.array, pd.Index])
+    def test_dti_add_intarray_non_tick(self, int_holder, freq):
         # GH#19959
         dti = pd.date_range('2016-01-01', periods=2, freq=freq)
-        other = box([4, -1])
+        other = int_holder([4, -1])
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             expected = DatetimeIndex([dti[n] + other[n]
@@ -1497,11 +1497,11 @@ class TestDatetimeIndexArithmetic(object):
             result = other + dti
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
-    def test_dti_add_intarray_no_freq(self, box):
+    @pytest.mark.parametrize('int_holder', [np.array, pd.Index])
+    def test_dti_add_intarray_no_freq(self, int_holder):
         # GH#19959
         dti = pd.DatetimeIndex(['2016-01-01', 'NaT', '2017-04-05 06:07:08'])
-        other = box([9, 4, -1])
+        other = int_holder([9, 4, -1])
         with pytest.raises(NullFrequencyError):
             dti + other
         with pytest.raises(NullFrequencyError):
