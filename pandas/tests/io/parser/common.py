@@ -458,6 +458,22 @@ bar,foo"""
 
         tm.assert_frame_equal(pd.concat(reader), df)
 
+    def test_read_chunksize_jagged_names(self):
+        # see gh-23509
+        data = "\n".join(["0"] * 7 + [",".join(["0"] * 10)])
+        reader = self.read_csv(StringIO(data), names=range(10), chunksize=4)
+
+        expected = DataFrame()
+
+        for i in range(10):
+            if i == 0:
+                expected[i] = [0] * 8
+            else:
+                expected[i] = [np.nan] * 7 + [0]
+
+        result = pd.concat(reader)
+        tm.assert_frame_equal(result, expected)
+
     def test_read_text_list(self):
         data = """A,B,C\nfoo,1,2,3\nbar,4,5,6"""
         as_list = [['A', 'B', 'C'], ['foo', '1', '2', '3'], ['bar',
@@ -521,12 +537,21 @@ baz,7,8,9
         assert len(result) == 3
         tm.assert_frame_equal(pd.concat(result), expected)
 
-        # skipfooter is not supported with the C parser yet
-        if self.engine == 'python':
-            # test bad parameter (skipfooter)
-            reader = self.read_csv(StringIO(self.data1), index_col=0,
-                                   iterator=True, skipfooter=1)
-            pytest.raises(ValueError, reader.read, 3)
+    @pytest.mark.parametrize("kwargs", [
+        dict(iterator=True,
+             chunksize=1),
+        dict(iterator=True),
+        dict(chunksize=1)
+    ])
+    def test_iterator_skipfooter_errors(self, kwargs):
+        msg = "'skipfooter' not supported for 'iteration'"
+        with pytest.raises(ValueError, match=msg):
+            self.read_csv(StringIO(self.data1), skipfooter=1, **kwargs)
+
+    def test_nrows_skipfooter_errors(self):
+        msg = "'skipfooter' not supported with 'nrows'"
+        with pytest.raises(ValueError, match=msg):
+            self.read_csv(StringIO(self.data1), skipfooter=1, nrows=5)
 
     def test_pass_names_with_index(self):
         lines = self.data1.split('\n')

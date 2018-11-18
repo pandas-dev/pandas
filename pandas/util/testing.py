@@ -24,9 +24,10 @@ from pandas.compat import (
     map, raise_with_traceback, range, string_types, u, unichr, zip)
 
 from pandas.core.dtypes.common import (
-    is_bool, is_categorical_dtype, is_datetimelike_v_numeric,
-    is_datetimelike_v_object, is_extension_array_dtype, is_interval_dtype,
-    is_list_like, is_number, is_sequence, needs_i8_conversion)
+    is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
+    is_datetimelike_v_numeric, is_datetimelike_v_object,
+    is_extension_array_dtype, is_interval_dtype, is_list_like, is_number,
+    is_period_dtype, is_sequence, is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.missing import array_equivalent
 
 import pandas as pd
@@ -37,7 +38,7 @@ from pandas import (
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays import (
     DatetimeArrayMixin as DatetimeArray, ExtensionArray, IntervalArray,
-    PeriodArray, period_array)
+    PeriodArray, TimedeltaArrayMixin as TimedeltaArray, period_array)
 import pandas.core.common as com
 
 from pandas.io.common import urlopen
@@ -1080,6 +1081,13 @@ def assert_datetime_array_equal(left, right, obj='DatetimeArray'):
     assert_attr_equal('tz', left, right, obj=obj)
 
 
+def assert_timedelta_array_equal(left, right, obj='TimedeltaArray'):
+    _check_isinstance(left, right, TimedeltaArray)
+    assert_numpy_array_equal(left._data, right._data,
+                             obj='{obj}._data'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
+
+
 def raise_assert_detail(obj, message, left, right, diff=None):
     __tracebackhide__ = True
 
@@ -1579,6 +1587,8 @@ def assert_equal(left, right, **kwargs):
         assert_period_array_equal(left, right, **kwargs)
     elif isinstance(left, DatetimeArray):
         assert_datetime_array_equal(left, right, **kwargs)
+    elif isinstance(left, TimedeltaArray):
+        assert_timedelta_array_equal(left, right, **kwargs)
     elif isinstance(left, ExtensionArray):
         assert_extension_array_equal(left, right, **kwargs)
     elif isinstance(left, np.ndarray):
@@ -1587,7 +1597,7 @@ def assert_equal(left, right, **kwargs):
         raise NotImplementedError(type(left))
 
 
-def box_expected(expected, box_cls):
+def box_expected(expected, box_cls, transpose=True):
     """
     Helper function to wrap the expected output of a test in a given box_class.
 
@@ -1606,16 +1616,37 @@ def box_expected(expected, box_cls):
         expected = pd.Series(expected)
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
+        if transpose:
+            # for vector operations, we we need a DataFrame to be a single-row,
+            #  not a single-column, in order to operate against non-DataFrame
+            #  vectors of the same length.
+            expected = expected.T
     elif box_cls is PeriodArray:
         # the PeriodArray constructor is not as flexible as period_array
         expected = period_array(expected)
     elif box_cls is DatetimeArray:
         expected = DatetimeArray(expected)
+    elif box_cls is TimedeltaArray:
+        expected = TimedeltaArray(expected)
     elif box_cls is np.ndarray:
         expected = np.array(expected)
+    elif box_cls is to_array:
+        expected = to_array(expected)
     else:
         raise NotImplementedError(box_cls)
     return expected
+
+
+def to_array(obj):
+    # temporary implementation until we get pd.array in place
+    if is_period_dtype(obj):
+        return period_array(obj)
+    elif is_datetime64_dtype(obj) or is_datetime64tz_dtype(obj):
+        return DatetimeArray(obj)
+    elif is_timedelta64_dtype(obj):
+        return TimedeltaArray(obj)
+    else:
+        return np.array(obj)
 
 
 # -----------------------------------------------------------------------------

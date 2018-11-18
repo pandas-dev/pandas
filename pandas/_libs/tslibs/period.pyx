@@ -1739,7 +1739,7 @@ cdef class _Period(object):
         -------
         Timestamp
 
-        See also
+        See Also
         --------
         Period.end_time : Return the end Timestamp.
         Period.dayofyear : Return the day of year.
@@ -1777,7 +1777,7 @@ cdef class _Period(object):
         freq : string or DateOffset
             Target frequency. Default is 'D' if self.freq is week or
             longer and 'S' otherwise
-        how: str, default 'S' (start)
+        how : str, default 'S' (start)
             'S', 'E'. Can be aliased as case insensitive
             'Start', 'Finish', 'Begin', 'End'
 

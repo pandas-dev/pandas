@@ -80,11 +80,6 @@ class TestTimedeltaAdditionSubtraction(object):
         result = op(td, NaT)
         assert result is NaT
 
-        with pytest.raises(TypeError):
-            op(td, 2)
-        with pytest.raises(TypeError):
-            op(td, 2.0)
-
     @pytest.mark.parametrize('op', [operator.add, ops.radd])
     def test_td_add_td(self, op):
         td = Timedelta(10, unit='d')
@@ -125,25 +120,41 @@ class TestTimedeltaAdditionSubtraction(object):
     def test_td_sub_pytimedelta(self):
         td = Timedelta(10, unit='d')
         expected = Timedelta(0, unit='ns')
+
         result = td - td.to_pytimedelta()
+        assert isinstance(result, Timedelta)
+        assert result == expected
+
+        result = td.to_pytimedelta() - td
         assert isinstance(result, Timedelta)
         assert result == expected
 
     def test_td_sub_timedelta64(self):
         td = Timedelta(10, unit='d')
         expected = Timedelta(0, unit='ns')
+
         result = td - td.to_timedelta64()
         assert isinstance(result, Timedelta)
         assert result == expected
 
+        result = td.to_timedelta64() - td
+        assert isinstance(result, Timedelta)
+        assert result == expected
+
     def test_td_sub_nat(self):
+        # In this context pd.NaT is treated as timedelta-like
         td = Timedelta(10, unit='d')
         result = td - NaT
         assert result is NaT
 
     def test_td_sub_td64_nat(self):
         td = Timedelta(10, unit='d')
-        result = td - np.timedelta64('NaT')
+        td_nat = np.timedelta64('NaT')
+
+        result = td - td_nat
+        assert result is NaT
+
+        result = td_nat - td
         assert result is NaT
 
     def test_td_sub_offset(self):
@@ -152,28 +163,17 @@ class TestTimedeltaAdditionSubtraction(object):
         assert isinstance(result, Timedelta)
         assert result == Timedelta(239, unit='h')
 
-    def test_td_sub_numeric_raises(self):
-        td = td = Timedelta(10, unit='d')
-        with pytest.raises(TypeError):
-            td - 2
-        with pytest.raises(TypeError):
-            td - 2.0
-
-    def test_td_rsub_pytimedelta(self):
+    def test_td_add_sub_numeric_raises(self):
         td = Timedelta(10, unit='d')
-        expected = Timedelta(0, unit='ns')
-
-        result = td.to_pytimedelta() - td
-        assert isinstance(result, Timedelta)
-        assert result == expected
-
-    def test_td_rsub_timedelta64(self):
-        td = Timedelta(10, unit='d')
-        expected = Timedelta(0, unit='ns')
-
-        result = td.to_timedelta64() - td
-        assert isinstance(result, Timedelta)
-        assert result == expected
+        for other in [2, 2.0, np.int64(2), np.float64(2)]:
+            with pytest.raises(TypeError):
+                td + other
+            with pytest.raises(TypeError):
+                other + td
+            with pytest.raises(TypeError):
+                td - other
+            with pytest.raises(TypeError):
+                other - td
 
     def test_td_rsub_nat(self):
         td = Timedelta(10, unit='d')
@@ -183,22 +183,10 @@ class TestTimedeltaAdditionSubtraction(object):
         result = np.datetime64('NaT') - td
         assert result is NaT
 
-    def test_td_rsub_td64_nat(self):
-        td = Timedelta(10, unit='d')
-        result = np.timedelta64('NaT') - td
-        assert result is NaT
-
     def test_td_rsub_offset(self):
         result = pd.offsets.Hour(1) - Timedelta(10, unit='d')
         assert isinstance(result, Timedelta)
         assert result == Timedelta(-239, unit='h')
-
-    def test_td_rsub_numeric_raises(self):
-        td = td = Timedelta(10, unit='d')
-        with pytest.raises(TypeError):
-            2 - td
-        with pytest.raises(TypeError):
-            2.0 - td
 
     def test_td_sub_timedeltalike_object_dtype_array(self):
         # GH 21980
@@ -506,6 +494,9 @@ class TestTimedeltaMultiplicationDivision(object):
             # TODO: GH-19761. Change to TypeError.
             ser // td
 
+    # ----------------------------------------------------------------
+    # Timedelta.__mod__, __rmod__
+
     def test_mod_timedeltalike(self):
         # GH#19365
         td = Timedelta(hours=37)
@@ -544,9 +535,6 @@ class TestTimedeltaMultiplicationDivision(object):
         result = td % pd.offsets.Hour(5)
         assert isinstance(result, Timedelta)
         assert result == Timedelta(hours=2)
-
-    # ----------------------------------------------------------------
-    # Timedelta.__mod__, __rmod__
 
     def test_mod_numeric(self):
         # GH#19365
@@ -685,6 +673,8 @@ class TestTimedeltaMultiplicationDivision(object):
 
         with pytest.raises(TypeError):
             divmod(np.array([22, 24]), td)
+
+    # ----------------------------------------------------------------
 
     @pytest.mark.parametrize('op', [
         operator.mul,

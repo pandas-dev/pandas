@@ -318,7 +318,8 @@ class TestDatetimeIndex(object):
         pytest.raises(ValueError, DatetimeIndex, start='1/1/2000',
                       end='1/10/2000')
 
-        pytest.raises(ValueError, DatetimeIndex, '1/1/2000')
+        with pytest.raises(TypeError):
+            DatetimeIndex('1/1/2000')
 
         # generator expression
         gen = (datetime(2000, 1, 1) + timedelta(i) for i in range(10))
@@ -519,6 +520,12 @@ class TestDatetimeIndex(object):
                                      '2005-06-01 00:00:00'],
                                     tz='Australia/Melbourne')
         tm.assert_index_equal(result, expected)
+
+    def test_construction_with_tz_and_tz_aware_dti(self):
+        # GH 23579
+        dti = date_range('2016-01-01', periods=3, tz='US/Central')
+        with pytest.raises(TypeError):
+            DatetimeIndex(dti, tz='Asia/Tokyo')
 
 
 class TestTimeSeries(object):
