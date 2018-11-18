@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import Timedelta

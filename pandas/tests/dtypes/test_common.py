@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
-import pandas as pd
+import pytest
 
-from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
-                                       CategoricalDtype, IntervalDtype)
-from pandas.core.sparse.api import SparseDtype
+import pandas.util._test_decorators as td
 
 import pandas.core.dtypes.common as com
-import pandas.util._test_decorators as td
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype, DatetimeTZDtype, IntervalDtype, PeriodDtype)
+
+import pandas as pd
+from pandas.core.sparse.api import SparseDtype
 
 
 class TestPandasDtype(object):

@@ -3,10 +3,11 @@
 
 import warnings
 
-import pandas as pd
-import pandas.util.testing as tm
-from pandas import MultiIndex, compat
 from pandas.compat import PY3, range, u
+
+import pandas as pd
+from pandas import MultiIndex, compat
+import pandas.util.testing as tm
 
 
 def test_dtype_str(indices):

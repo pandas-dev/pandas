@@ -1,6 +1,7 @@
-import pytest
 import numpy as np
-from pandas import SparseDataFrame, DataFrame, SparseSeries
+import pytest
+
+from pandas import DataFrame, SparseDataFrame, SparseSeries
 from pandas.util import testing as tm
 
 

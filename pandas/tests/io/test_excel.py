@@ -1,31 +1,31 @@
 # pylint: disable=E1101
-import os
-import warnings
-from datetime import datetime, date, time, timedelta
+from collections import OrderedDict
+from datetime import date, datetime, time, timedelta
 from distutils.version import LooseVersion
 from functools import partial
+import os
+import warnings
 from warnings import catch_warnings
-from collections import OrderedDict
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
+
+from pandas.compat import PY36, BytesIO, iteritems, map, range, u
+import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.compat import u, range, map, BytesIO, iteritems, PY36
-from pandas.core.config import set_option, get_option
-from pandas.io.common import URLError
-from pandas.io.excel import (
-    ExcelFile, ExcelWriter, read_excel, _XlwtWriter, _OpenpyxlWriter,
-    register_writer, _XlsxWriter
-)
-from pandas.io.formats.excel import ExcelFormatter
-from pandas.io.parsers import read_csv
+from pandas.core.config import get_option, set_option
+import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 
+from pandas.io.common import URLError
+from pandas.io.excel import (
+    ExcelFile, ExcelWriter, _OpenpyxlWriter, _XlsxWriter, _XlwtWriter,
+    read_excel, register_writer)
+from pandas.io.formats.excel import ExcelFormatter
+from pandas.io.parsers import read_csv
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()

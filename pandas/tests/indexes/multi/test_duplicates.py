@@ -5,10 +5,11 @@ from itertools import product
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
-from pandas import DatetimeIndex, MultiIndex
 from pandas._libs import hashtable
 from pandas.compat import range, u
+
+from pandas import DatetimeIndex, MultiIndex
+import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize('names', [None, ['first', 'second']])

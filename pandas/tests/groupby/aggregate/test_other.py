@@ -6,21 +6,21 @@ test all other .agg behavior
 
 from __future__ import print_function
 
-import pytest
 from collections import OrderedDict
-
 import datetime as dt
 from functools import partial
 
 import numpy as np
-import pandas as pd
+import pytest
 
+import pandas as pd
 from pandas import (
-    date_range, DataFrame, Index, MultiIndex, PeriodIndex, period_range, Series
-)
+    DataFrame, Index, MultiIndex, PeriodIndex, Series, date_range,
+    period_range)
 from pandas.core.groupby.groupby import SpecificationError
-from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
+
+from pandas.io.formats.printing import pprint_thing
 
 
 def test_agg_api():

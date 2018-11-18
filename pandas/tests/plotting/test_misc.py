@@ -2,19 +2,19 @@
 
 """ Test cases for misc plot functions """
 
-import pytest
-
-from pandas import DataFrame
-from pandas.compat import lmap
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-
 import numpy as np
 from numpy import random
 from numpy.random import randn
+import pytest
+
+from pandas.compat import lmap
+import pandas.util._test_decorators as td
+
+from pandas import DataFrame
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+import pandas.util.testing as tm
 
 import pandas.plotting as plotting
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 
 @td.skip_if_mpl

@@ -1,10 +1,10 @@
 # coding: utf-8
 
-from pandas import compat
-from pandas.io.msgpack import Unpacker, BufferFull
-from pandas.io.msgpack import OutOfData
-
 import pytest
+
+from pandas import compat
+
+from pandas.io.msgpack import BufferFull, OutOfData, Unpacker
 
 
 class TestPack(object):

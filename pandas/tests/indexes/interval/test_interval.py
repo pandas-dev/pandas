@@ -1,20 +1,20 @@
 from __future__ import division
 
-import re
 from itertools import permutations
+import re
 
 import numpy as np
 import pytest
 
+from pandas.compat import lzip
+
 import pandas as pd
-import pandas.core.common as com
-import pandas.util.testing as tm
 from pandas import (
     Index, Interval, IntervalIndex, Timedelta, Timestamp, date_range,
-    interval_range, isna, notna, timedelta_range
-)
-from pandas.compat import lzip
+    interval_range, isna, notna, timedelta_range)
+import pandas.core.common as com
 from pandas.tests.indexes.common import Base
+import pandas.util.testing as tm
 
 
 @pytest.fixture(scope='class', params=[None, 'foo'])

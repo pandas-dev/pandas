@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-from numpy.random import randint
 from textwrap import dedent
 
+import numpy as np
+from numpy.random import randint
 import pytest
-import pandas as pd
 
-from pandas import DataFrame
-from pandas import read_clipboard
-from pandas import get_option
 from pandas.compat import PY2
+
+import pandas as pd
+from pandas import DataFrame, get_option, read_clipboard
 from pandas.util import testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf
-from pandas.io.clipboard.exceptions import PyperclipException
 
+from pandas.io.clipboard.exceptions import PyperclipException
 
 try:
     DataFrame({'A': [1, 2]}).to_clipboard()

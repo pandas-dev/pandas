@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
+
 from pandas.util.testing import assert_copy
 
 

@@ -1,31 +1,27 @@
+import datetime
+from distutils.version import LooseVersion
+import glob
+import os
+from warnings import catch_warnings
+
+import numpy as np
 import pytest
 
-from warnings import catch_warnings
-import os
-import datetime
-import glob
-import numpy as np
-from distutils.version import LooseVersion
-
-from pandas import compat
-from pandas.compat import u, PY3
-from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
-                    date_range, period_range, Index, Categorical,
-                    Period, Interval)
+from pandas._libs.tslib import iNaT
+from pandas.compat import PY3, u
 from pandas.errors import PerformanceWarning
-from pandas.io.packers import to_msgpack, read_msgpack
-import pandas.util.testing as tm
-from pandas.util.testing import (ensure_clean,
-                                 assert_categorical_equal,
-                                 assert_frame_equal,
-                                 assert_index_equal,
-                                 assert_series_equal,
-                                 patch)
-from pandas.tests.test_panel import assert_panel_equal
 
 import pandas
-from pandas import Timestamp, NaT
-from pandas._libs.tslib import iNaT
+from pandas import (
+    Categorical, DataFrame, Index, Interval, MultiIndex, NaT, Panel, Period,
+    Series, Timestamp, bdate_range, compat, date_range, period_range)
+from pandas.tests.test_panel import assert_panel_equal
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_categorical_equal, assert_frame_equal, assert_index_equal,
+    assert_series_equal, ensure_clean, patch)
+
+from pandas.io.packers import read_msgpack, to_msgpack
 
 nan = np.nan
 

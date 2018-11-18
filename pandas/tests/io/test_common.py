@@ -6,15 +6,13 @@ import os
 
 import pytest
 
-import pandas as pd
-import pandas.io.common as icom
+from pandas.compat import FileNotFoundError, StringIO, is_platform_windows
 import pandas.util._test_decorators as td
+
+import pandas as pd
 import pandas.util.testing as tm
-from pandas.compat import (
-    is_platform_windows,
-    StringIO,
-    FileNotFoundError,
-)
+
+import pandas.io.common as icom
 
 
 class CustomFSPath(object):

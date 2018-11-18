@@ -1,7 +1,9 @@
 from io import BytesIO
 import sys
-from pandas.io.msgpack import Unpacker, packb, OutOfData, ExtType
+
 import pytest
+
+from pandas.io.msgpack import ExtType, OutOfData, Unpacker, packb
 
 
 class TestUnpack(object):

@@ -4,19 +4,17 @@
 from datetime import datetime, timedelta
 import operator
 
-import pytest
 import numpy as np
+import pytest
+
+from pandas.errors import NullFrequencyError, PerformanceWarning
 
 import pandas as pd
-import pandas.util.testing as tm
-
-from pandas.core import ops
-from pandas.errors import NullFrequencyError, PerformanceWarning
 from pandas import (
-    timedelta_range,
-    Timedelta, Timestamp, NaT, Series, TimedeltaIndex, DatetimeIndex,
-    DataFrame)
-
+    DataFrame, DatetimeIndex, NaT, Series, Timedelta, TimedeltaIndex,
+    Timestamp, timedelta_range)
+from pandas.core import ops
+import pandas.util.testing as tm
 
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Comparisons

@@ -1,20 +1,21 @@
 import os
-import pytest
 
 import numpy as np
+import pytest
+
 from pandas.compat import zip
 
 import pandas as pd
-from pandas import (DataFrame, Series, isna, to_datetime, DatetimeIndex, Index,
-                    Timestamp, Interval, IntervalIndex, Categorical,
-                    cut, qcut, date_range, timedelta_range, NaT,
-                    TimedeltaIndex)
-from pandas.tseries.offsets import Nano, Day
-import pandas.util.testing as tm
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, Interval, IntervalIndex, NaT,
+    Series, TimedeltaIndex, Timestamp, cut, date_range, isna, qcut,
+    timedelta_range, to_datetime)
 from pandas.api.types import CategoricalDtype as CDT
-
 from pandas.core.algorithms import quantile
 import pandas.core.reshape.tile as tmod
+import pandas.util.testing as tm
+
+from pandas.tseries.offsets import Day, Nano
 
 
 class TestCut(object):

@@ -1,25 +1,26 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101,W0141
-from warnings import catch_warnings, simplefilter
 import datetime
 import itertools
+from warnings import catch_warnings, simplefilter
+
+import numpy as np
+from numpy.random import randn
 import pytest
 import pytz
 
-from numpy.random import randn
-import numpy as np
-
-from pandas.core.index import Index, MultiIndex
-from pandas import (Panel, DataFrame, Series, notna, isna, Timestamp, concat,
-                    read_csv)
+import pandas._libs.index as _index
+from pandas.compat import (
+    StringIO, lrange, lzip, product as cart_product, range, u, zip)
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
-import pandas.core.common as com
-import pandas.util.testing as tm
-from pandas.compat import (range, lrange, StringIO, lzip, u, product as
-                           cart_product, zip)
+
 import pandas as pd
-import pandas._libs.index as _index
+from pandas import (
+    DataFrame, Panel, Series, Timestamp, concat, isna, notna, read_csv)
+import pandas.core.common as com
+from pandas.core.index import Index, MultiIndex
+import pandas.util.testing as tm
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
                  'std', 'var', 'sem']

@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
-import pytest
-from pandas.compat import (range, lrange, StringIO,
-                           OrderedDict, is_platform_32bit)
-import os
-import numpy as np
-from pandas import (Series, DataFrame, DatetimeIndex, Timestamp,
-                    read_json, compat)
 from datetime import timedelta
-import pandas as pd
 import json
+import os
 
-from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
-                                 assert_series_equal, network,
-                                 ensure_clean, assert_index_equal)
-import pandas.util.testing as tm
+import numpy as np
+import pytest
+
+from pandas.compat import (
+    OrderedDict, StringIO, is_platform_32bit, lrange, range)
 import pandas.util._test_decorators as td
+
+import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Series, Timestamp, compat, read_json)
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_index_equal,
+    assert_series_equal, ensure_clean, network)
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()

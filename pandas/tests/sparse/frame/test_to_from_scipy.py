@@ -1,12 +1,13 @@
-import pytest
+from distutils.version import LooseVersion
+
 import numpy as np
-from pandas.util import testing as tm
+import pytest
+
+from pandas.core.dtypes.common import is_bool_dtype
+
 from pandas import SparseDataFrame, SparseSeries
 from pandas.core.sparse.api import SparseDtype
-from distutils.version import LooseVersion
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-)
+from pandas.util import testing as tm
 
 scipy = pytest.importorskip('scipy')
 ignore_matrix_warning = pytest.mark.filterwarnings(

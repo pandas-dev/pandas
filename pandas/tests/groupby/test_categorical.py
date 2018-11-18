@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+
 from datetime import datetime
 
+import numpy as np
 import pytest
 
-import numpy as np
-import pandas as pd
 from pandas.compat import PY37
-from pandas import (Index, MultiIndex, CategoricalIndex,
-                    DataFrame, Categorical, Series, qcut)
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, Index, MultiIndex, Series, qcut)
 import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 def cartesian_product_for_groupers(result, args, names):

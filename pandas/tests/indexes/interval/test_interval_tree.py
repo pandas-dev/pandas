@@ -3,9 +3,10 @@ from __future__ import division
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
-from pandas import compat
 from pandas._libs.interval import IntervalTree
+
+from pandas import compat
+import pandas.util.testing as tm
 
 
 def skipif_32bit(param):

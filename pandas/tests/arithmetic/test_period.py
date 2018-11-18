@@ -7,16 +7,15 @@ import operator
 import numpy as np
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
-
 from pandas.errors import PerformanceWarning
 
-import pandas.core.indexes.period as period
+import pandas as pd
+from pandas import Period, PeriodIndex, Series, period_range
 from pandas.core import ops
-from pandas import Period, PeriodIndex, period_range, Series
-from pandas.tseries.frequencies import to_offset
+import pandas.core.indexes.period as period
+import pandas.util.testing as tm
 
+from pandas.tseries.frequencies import to_offset
 
 # ------------------------------------------------------------------
 # Comparisons

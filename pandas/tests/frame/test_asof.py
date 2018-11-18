@@ -2,9 +2,8 @@
 
 import numpy as np
 import pytest
-from pandas import (DataFrame, date_range, Timestamp, Series,
-                    to_datetime)
 
+from pandas import DataFrame, Series, Timestamp, date_range, to_datetime
 import pandas.util.testing as tm
 
 from .common import TestData

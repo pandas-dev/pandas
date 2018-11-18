@@ -2,14 +2,13 @@
 
 from __future__ import print_function
 
-import pytest
 import numpy as np
+import pytest
 
-from pandas import DataFrame, Series, MultiIndex, Panel, Index
 import pandas as pd
-import pandas.util.testing as tm
-
+from pandas import DataFrame, Index, MultiIndex, Panel, Series
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
 
 
 class TestDataFrameSubclassing(TestData):

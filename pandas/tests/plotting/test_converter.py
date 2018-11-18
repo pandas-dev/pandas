@@ -1,19 +1,22 @@
+from datetime import date, datetime
 import subprocess
 import sys
-import pytest
-from datetime import datetime, date
 
 import numpy as np
-from pandas import Timestamp, Period, Index, date_range, Series
+import pytest
+
 from pandas.compat import u
-import pandas.core.config as cf
-import pandas.util.testing as tm
-from pandas.tseries.offsets import Second, Milli, Micro, Day
 from pandas.compat.numpy import np_datetime64_compat
 
+from pandas import Index, Period, Series, Timestamp, date_range
+import pandas.core.config as cf
+import pandas.util.testing as tm
+
+from pandas.plotting import (
+    deregister_matplotlib_converters, register_matplotlib_converters)
+from pandas.tseries.offsets import Day, Micro, Milli, Second
+
 converter = pytest.importorskip('pandas.plotting._converter')
-from pandas.plotting import (register_matplotlib_converters,
-                             deregister_matplotlib_converters)
 
 
 def test_timtetonum_accepts_unicode():

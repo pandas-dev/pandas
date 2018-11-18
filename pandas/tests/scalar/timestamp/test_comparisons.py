@@ -2,10 +2,11 @@
 from datetime import datetime
 import operator
 
-import pytest
 import numpy as np
+import pytest
 
-from pandas.compat import long, PY2
+from pandas.compat import PY2, long
+
 from pandas import Timestamp
 
 

@@ -1,7 +1,8 @@
 # coding: utf-8
 
-from pandas.io.msgpack import packb
 from collections import namedtuple
+
+from pandas.io.msgpack import packb
 
 
 class MyList(list):

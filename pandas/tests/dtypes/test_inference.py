@@ -5,41 +5,32 @@ These the test the public routines exposed in types/common.py
 related to inference and not otherwise tested in types/test_common.py
 
 """
-from warnings import catch_warnings, simplefilter
 import collections
-import re
-from datetime import datetime, date, timedelta, time
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-import numpy as np
-import pytz
-import pytest
+import re
+from warnings import catch_warnings, simplefilter
 
-import pandas as pd
-from pandas._libs import lib, iNaT, missing as libmissing
-from pandas import (Series, Index, DataFrame, Timedelta,
-                    DatetimeIndex, TimedeltaIndex, Timestamp,
-                    Panel, Period, Categorical, isna, Interval,
-                    DateOffset)
-from pandas import compat
-from pandas.compat import u, PY2, StringIO, lrange
+import numpy as np
+import pytest
+import pytz
+
+from pandas._libs import iNaT, lib, missing as libmissing
+from pandas.compat import PY2, StringIO, lrange, u
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
-    is_timedelta64_dtype,
-    is_timedelta64_ns_dtype,
-    is_datetime64_dtype,
-    is_datetime64_ns_dtype,
-    is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
-    is_number,
-    is_integer,
-    is_float,
-    is_bool,
-    is_scalar,
-    is_scipy_sparse,
-    ensure_int32,
-    ensure_categorical)
+    ensure_categorical, ensure_int32, is_bool, is_datetime64_any_dtype,
+    is_datetime64_dtype, is_datetime64_ns_dtype, is_datetime64tz_dtype,
+    is_float, is_integer, is_number, is_scalar, is_scipy_sparse,
+    is_timedelta64_dtype, is_timedelta64_ns_dtype)
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, DateOffset, DatetimeIndex, Index, Interval, Panel,
+    Period, Series, Timedelta, TimedeltaIndex, Timestamp, compat, isna)
 from pandas.util import testing as tm
-import pandas.util._test_decorators as td
 
 
 @pytest.fixture(params=[True, False], ids=str)

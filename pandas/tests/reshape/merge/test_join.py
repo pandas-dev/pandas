@@ -1,20 +1,20 @@
 # pylint: disable=E1103
 
 from warnings import catch_warnings
-from numpy.random import randn
+
 import numpy as np
+from numpy.random import randn
 import pytest
 
-import pandas as pd
-from pandas.compat import lrange
-import pandas.compat as compat
-from pandas.util.testing import assert_frame_equal
-from pandas import DataFrame, MultiIndex, Series, Index, merge, concat
-
 from pandas._libs import join as libjoin
-import pandas.util.testing as tm
-from pandas.tests.reshape.merge.test_merge import get_test_data, N, NGROUPS
+import pandas.compat as compat
+from pandas.compat import lrange
 
+import pandas as pd
+from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
+from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal
 
 a_ = np.array
 

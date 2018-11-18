@@ -1,27 +1,29 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
+from datetime import datetime, timedelta
 import re
 import sys
-from datetime import datetime, timedelta
-import pytest
+
 import numpy as np
+import pytest
+
+from pandas._libs.tslib import iNaT
+import pandas.compat as compat
+from pandas.compat import PYPY, StringIO, long
+from pandas.compat.numpy import np_array_datetime64_compat
+
+from pandas.core.dtypes.common import (
+    is_datetime64_dtype, is_datetimetz, is_object_dtype, needs_i8_conversion)
 
 import pandas as pd
-import pandas.compat as compat
-from pandas.core.dtypes.common import (
-    is_object_dtype, is_datetimetz, is_datetime64_dtype,
-    needs_i8_conversion)
-import pandas.util.testing as tm
-from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
-                    PeriodIndex, Timedelta, IntervalIndex, Interval,
-                    CategoricalIndex, Timestamp)
-from pandas.compat import StringIO, PYPY, long
-from pandas.compat.numpy import np_array_datetime64_compat
+from pandas import (
+    CategoricalIndex, DatetimeIndex, Index, Interval, IntervalIndex,
+    PeriodIndex, Series, Timedelta, TimedeltaIndex, Timestamp)
 from pandas.core.accessor import PandasDelegate
-from pandas.core.base import PandasObject, NoNewAttributesMixin
+from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from pandas._libs.tslib import iNaT
+import pandas.util.testing as tm
 
 
 class CheckStringMixin(object):

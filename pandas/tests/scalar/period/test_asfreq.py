@@ -1,11 +1,11 @@
 import pytest
 
+from pandas._libs.tslibs.frequencies import _period_code_map
 from pandas.errors import OutOfBoundsDatetime
 
 import pandas as pd
 from pandas import Period, offsets
 from pandas.util import testing as tm
-from pandas._libs.tslibs.frequencies import _period_code_map
 
 
 class TestFreqConversion(object):

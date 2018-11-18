@@ -1,27 +1,29 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-import pytest
-
-from numpy.random import RandomState
-from numpy import nan
 from datetime import datetime
 from itertools import permutations
 import struct
-from pandas import (Series, Categorical, CategoricalIndex,
-                    Timestamp, DatetimeIndex, Index, IntervalIndex)
-import pandas as pd
 
-from pandas import compat
-from pandas._libs import (groupby as libgroupby, algos as libalgos,
-                          hashtable as ht)
+import numpy as np
+from numpy import nan
+from numpy.random import RandomState
+import pytest
+
+from pandas._libs import (
+    algos as libalgos, groupby as libgroupby, hashtable as ht)
 from pandas.compat import lrange, range
+from pandas.compat.numpy import np_array_datetime64_compat
+import pandas.util._test_decorators as td
+
+from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
+
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DatetimeIndex, Index, IntervalIndex, Series,
+    Timestamp, compat)
 import pandas.core.algorithms as algos
 import pandas.core.common as com
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
-from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.util.testing import assert_almost_equal
 
 

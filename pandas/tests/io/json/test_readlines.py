@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 import pytest
+
+from pandas.compat import StringIO
+
 import pandas as pd
 from pandas import DataFrame, read_json
-from pandas.compat import StringIO
-from pandas.io.json.json import JsonReader
 import pandas.util.testing as tm
-from pandas.util.testing import (assert_frame_equal, assert_series_equal,
-                                 ensure_clean)
+from pandas.util.testing import (
+    assert_frame_equal, assert_series_equal, ensure_clean)
+
+from pandas.io.json.json import JsonReader
 
 
 @pytest.fixture

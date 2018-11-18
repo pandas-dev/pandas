@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 
+from dateutil.tz import gettz
 import pytest
 import pytz
 from pytz import utc
-from dateutil.tz import gettz
 
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-
-from pandas.compat import PY3
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
-from pandas import Timestamp, NaT
+from pandas.compat import PY3
+import pandas.util._test_decorators as td
+
+from pandas import NaT, Timestamp
+import pandas.util.testing as tm
+
 from pandas.tseries.frequencies import to_offset
 
 

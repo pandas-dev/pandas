@@ -6,13 +6,13 @@ from distutils.version import LooseVersion
 import numpy as np
 import pytest
 
+from pandas.errors import NullFrequencyError
+
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import (
     DatetimeIndex, Int64Index, Series, Timedelta, TimedeltaIndex, Timestamp,
-    date_range, timedelta_range
-)
-from pandas.errors import NullFrequencyError
+    date_range, timedelta_range)
+import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[pd.offsets.Hour(2), timedelta(hours=2),

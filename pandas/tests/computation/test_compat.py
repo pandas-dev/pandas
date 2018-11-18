@@ -1,11 +1,11 @@
-import pytest
 from distutils.version import LooseVersion
 
-import pandas as pd
+import pytest
 
+import pandas as pd
+from pandas.core.computation.check import _MIN_NUMEXPR_VERSION
 from pandas.core.computation.engines import _engines
 import pandas.core.computation.expr as expr
-from pandas.core.computation.check import _MIN_NUMEXPR_VERSION
 
 
 def test_compat():

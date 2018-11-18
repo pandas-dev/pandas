@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas import DataFrame, MultiIndex, date_range
+import pandas.util.testing as tm
 
 
 def test_partial_string_timestamp_multiindex():

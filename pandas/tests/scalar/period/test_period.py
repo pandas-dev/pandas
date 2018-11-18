@@ -1,20 +1,20 @@
-import pytest
+from datetime import date, datetime, timedelta
 
-import pytz
 import numpy as np
-from datetime import datetime, date, timedelta
-
-import pandas as pd
-from pandas import Timedelta, NaT, Period, Timestamp, offsets
-import pandas.util.testing as tm
-import pandas.core.indexes.period as period
-from pandas.compat import text_type, iteritems
-from pandas.compat.numpy import np_datetime64_compat
+import pytest
+import pytz
 
 from pandas._libs.tslibs import iNaT, period as libperiod
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
+from pandas.compat import iteritems, text_type
+from pandas.compat.numpy import np_datetime64_compat
+
+import pandas as pd
+from pandas import NaT, Period, Timedelta, Timestamp, offsets
+import pandas.core.indexes.period as period
+import pandas.util.testing as tm
 
 
 class TestPeriodConstruction(object):

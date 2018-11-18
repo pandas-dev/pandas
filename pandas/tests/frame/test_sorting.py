@@ -2,21 +2,21 @@
 
 from __future__ import print_function
 
-import pytest
 import random
+
 import numpy as np
+import pytest
+
+from pandas.compat import lrange
 
 import pandas as pd
-from pandas.compat import lrange
+from pandas import (
+    Categorical, DataFrame, IntervalIndex, MultiIndex, NaT, Series, Timestamp,
+    date_range)
 from pandas.api.types import CategoricalDtype
-from pandas import (DataFrame, Series, MultiIndex, Timestamp,
-                    date_range, NaT, IntervalIndex, Categorical)
-
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-
-import pandas.util.testing as tm
-
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestDataFrameSorting(TestData):

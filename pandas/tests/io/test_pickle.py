@@ -12,20 +12,22 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+from distutils.version import LooseVersion
 import glob
-import pytest
+import os
+import shutil
 from warnings import catch_warnings, simplefilter
 
-import os
-from distutils.version import LooseVersion
+import pytest
+
+from pandas.compat import PY3, is_platform_little_endian
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import Index
-from pandas.compat import is_platform_little_endian, PY3
-import pandas
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
+
 from pandas.tseries.offsets import Day, MonthEnd
-import shutil
 
 
 @pytest.fixture(scope='module')

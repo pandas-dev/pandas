@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime
-
-import pytest
-import pytz
 import collections
 from collections import OrderedDict, defaultdict
+from datetime import datetime
+
 import numpy as np
+import pytest
+import pytz
 
-from pandas import compat
 from pandas.compat import long
-from pandas import (DataFrame, Series, MultiIndex, Timestamp,
-                    date_range)
 
-import pandas.util.testing as tm
+from pandas import DataFrame, MultiIndex, Series, Timestamp, compat, date_range
 from pandas.tests.frame.common import TestData
+import pandas.util.testing as tm
 
 
 class TestDataFrameConvertTo(TestData):

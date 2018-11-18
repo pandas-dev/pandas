@@ -4,26 +4,27 @@ try:
     import json
 except ImportError:
     import simplejson as json
-import math
-import pytz
-import locale
-import pytest
-import time
-import datetime
 import calendar
-import re
+import datetime
 import decimal
-import dateutil
 from functools import partial
-from pandas.compat import range, StringIO, u
-from pandas._libs.tslib import Timestamp
-import pandas._libs.json as ujson
-import pandas.compat as compat
+import locale
+import math
+import re
+import time
 
+import dateutil
 import numpy as np
-from pandas import DataFrame, Series, Index, NaT, DatetimeIndex, date_range
-import pandas.util.testing as tm
+import pytest
+import pytz
 
+import pandas._libs.json as ujson
+from pandas._libs.tslib import Timestamp
+import pandas.compat as compat
+from pandas.compat import StringIO, range, u
+
+from pandas import DataFrame, DatetimeIndex, Index, NaT, Series, date_range
+import pandas.util.testing as tm
 
 json_unicode = (json.dumps if compat.PY3
                 else partial(json.dumps, encoding="utf-8"))

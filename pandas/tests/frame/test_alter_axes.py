@@ -2,22 +2,20 @@
 
 from __future__ import print_function
 
-import inspect
-import pytest
-
 from datetime import datetime, timedelta
+import inspect
 
 import numpy as np
+import pytest
 
-from pandas.compat import lrange, PY2
-from pandas import (DataFrame, Series, Index, MultiIndex, RangeIndex,
-                    IntervalIndex, DatetimeIndex, Categorical, cut,
-                    Timestamp, date_range, to_datetime)
+from pandas.compat import PY2, lrange
+
 from pandas.core.dtypes.common import (
-    is_object_dtype,
-    is_categorical_dtype,
-    is_interval_dtype)
+    is_categorical_dtype, is_interval_dtype, is_object_dtype)
 
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, IntervalIndex, MultiIndex,
+    RangeIndex, Series, Timestamp, cut, date_range, to_datetime)
 import pandas.util.testing as tm
 
 

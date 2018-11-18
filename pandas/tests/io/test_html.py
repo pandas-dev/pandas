@@ -1,28 +1,27 @@
 from __future__ import print_function
 
+from functools import partial
 import os
 import re
 import threading
 
-from functools import partial
-
-import pytest
-
 import numpy as np
 from numpy.random import rand
+import pytest
 
-from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
-                    date_range, Series)
-from pandas.compat import (map, zip, StringIO, BytesIO,
-                           is_platform_windows, PY3, reload)
+from pandas.compat import (
+    PY3, BytesIO, StringIO, is_platform_windows, map, reload, zip)
 from pandas.errors import ParserError
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv)
+import pandas.util.testing as tm
+from pandas.util.testing import makeCustomDataframe as mkdf, network
+
 from pandas.io.common import URLError, file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
-
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from pandas.util.testing import makeCustomDataframe as mkdf, network
 
 HERE = os.path.dirname(__file__)
 

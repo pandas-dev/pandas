@@ -1,33 +1,33 @@
 # -*- coding: utf-8 -*-
 
-import math
-import operator
 from collections import defaultdict
 from datetime import datetime, timedelta
 from decimal import Decimal
+import math
+import operator
 
 import numpy as np
 import pytest
 
+from pandas._libs.tslib import Timestamp
+from pandas.compat import (
+    PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip)
+from pandas.compat.numpy import np_datetime64_compat
+
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
+from pandas.core.dtypes.generic import ABCIndex
+
 import pandas as pd
-import pandas.core.config as cf
-import pandas.util.testing as tm
 from pandas import (
     CategoricalIndex, DataFrame, DatetimeIndex, Float64Index, Int64Index,
     PeriodIndex, RangeIndex, Series, TimedeltaIndex, UInt64Index, date_range,
-    isna, period_range
-)
-from pandas._libs.tslib import Timestamp
-from pandas.compat import (
-    PY3, PY35, PY36, StringIO, lrange, lzip, range, text_type, u, zip
-)
-from pandas.compat.numpy import np_datetime64_compat
-from pandas.core.dtypes.common import is_unsigned_integer_dtype
-from pandas.core.dtypes.generic import ABCIndex
+    isna, period_range)
+import pandas.core.config as cf
 from pandas.core.index import _get_combined_index, ensure_index_from_sequences
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.indexes.datetimes import _to_m8
 from pandas.tests.indexes.common import Base
+import pandas.util.testing as tm
 from pandas.util.testing import assert_almost_equal
 
 

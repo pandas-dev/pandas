@@ -2,15 +2,16 @@
 from distutils.version import LooseVersion
 
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, ensure_clean
 
-import pytest
+from pandas.io.feather_format import read_feather, to_feather  # noqa:E402
+
 pyarrow = pytest.importorskip('pyarrow')
 
-from pandas.io.feather_format import to_feather, read_feather  # noqa:E402
 
 pyarrow_version = LooseVersion(pyarrow.__version__)
 

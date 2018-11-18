@@ -1,12 +1,13 @@
+import contextlib
 import os
 import warnings
-import contextlib
 
 import pytest
 
 import pandas as pd
-import pandas.io.common as icom
 import pandas.util.testing as tm
+
+import pandas.io.common as icom
 
 
 @contextlib.contextmanager

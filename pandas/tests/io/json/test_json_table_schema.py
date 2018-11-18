@@ -1,21 +1,20 @@
 """Tests for Table Schema integration."""
-import json
 from collections import OrderedDict
+import json
 
 import numpy as np
-import pandas as pd
 import pytest
 
-from pandas import DataFrame
 from pandas.core.dtypes.dtypes import (
-    PeriodDtype, CategoricalDtype, DatetimeTZDtype)
-from pandas.io.json.table_schema import (
-    as_json_table_type,
-    build_table_schema,
-    convert_pandas_type_to_json_field,
-    convert_json_field_to_pandas_type,
-    set_default_names)
+    CategoricalDtype, DatetimeTZDtype, PeriodDtype)
+
+import pandas as pd
+from pandas import DataFrame
 import pandas.util.testing as tm
+
+from pandas.io.json.table_schema import (
+    as_json_table_type, build_table_schema, convert_json_field_to_pandas_type,
+    convert_pandas_type_to_json_field, set_default_names)
 
 
 class TestBuildSchema(object):
