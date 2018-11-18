@@ -58,9 +58,8 @@ def _to_m8(key, tz=None):
 def _field_accessor(name, field, docstring=None):
     def f(self):
         values = self.asi8
-        if self.tz is not None:
-            if self.tz is not utc:
-                values = self._local_timestamps()
+        if self.tz is not None and not timezones.is_utc(self.tz):
+            values = self._local_timestamps()
 
         if field in self._bool_ops:
             if field.endswith(('start', 'end')):
@@ -978,7 +977,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         >>> idx.month_name()
         Index(['January', 'February', 'March'], dtype='object')
         """
-        if self.tz is not None and self.tz is not utc:
+        if self.tz is not None and not timezones.is_utc(self.tz):
             values = self._local_timestamps()
         else:
             values = self.asi8
@@ -1014,7 +1013,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         >>> idx.day_name()
         Index(['Monday', 'Tuesday', 'Wednesday'], dtype='object')
         """
-        if self.tz is not None and self.tz is not utc:
+        if self.tz is not None and not timezones.is_utc(self.tz):
             values = self._local_timestamps()
         else:
             values = self.asi8
@@ -1032,7 +1031,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # If the Timestamps have a timezone that is not UTC,
         # convert them into their i8 representation while
         # keeping their timezone and not using UTC
-        if self.tz is not None and self.tz is not utc:
+        if self.tz is not None and not timezones.is_utc(self.tz):
             timestamps = self._local_timestamps()
         else:
             timestamps = self.asi8
@@ -1056,7 +1055,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # If the Timestamps have a timezone that is not UTC,
         # convert them into their i8 representation while
         # keeping their timezone and not using UTC
-        if self.tz is not None and self.tz is not utc:
+        if self.tz is not None and not timezones.is_utc(self.tz):
             timestamps = self._local_timestamps()
         else:
             timestamps = self.asi8
