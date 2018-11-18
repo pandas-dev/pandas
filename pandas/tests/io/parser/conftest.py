@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from pandas import read_csv, read_table
@@ -47,6 +49,11 @@ class PythonParser(BaseParser):
 @pytest.fixture
 def csv_dir_path(datapath):
     return datapath("io", "parser", "data")
+
+
+@pytest.fixture
+def csv1(csv_dir_path):
+    return os.path.join(csv_dir_path, "test1.csv")
 
 
 _cParserHighMemory = CParserHighMemory()
