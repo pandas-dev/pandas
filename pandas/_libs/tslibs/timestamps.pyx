@@ -381,7 +381,8 @@ cdef class _Timestamp(datetime):
             return -other.__sub__(self)
 
         # a Timestamp-TimedeltaIndex -> yields a negative TimedeltaIndex
-        elif getattr(other, '_typ', None) == 'timedeltaindex':
+        elif getattr(other, '_typ', None) in ('timedeltaindex',
+                                              'timedeltaarray'):
             return (-other).__add__(self)
 
         elif other is NaT:

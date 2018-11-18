@@ -433,7 +433,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
         result = other + idx
         tm.assert_equal(result, expected)
 
-    def test_td64arr_add_sub_timestamp(self, box):
+    def test_td64arr_add_sub_timestamp(self, box_with_array):
         # GH#11925
         ts = Timestamp('2012-01-01')
         # TODO: parametrize over types of datetime scalar?
@@ -441,15 +441,15 @@ class TestTimedeltaArraylikeAddSubOps(object):
         tdser = Series(timedelta_range('1 day', periods=3))
         expected = Series(pd.date_range('2012-01-02', periods=3))
 
-        tdser = tm.box_expected(tdser, box)
-        expected = tm.box_expected(expected, box)
+        tdser = tm.box_expected(tdser, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         tm.assert_equal(ts + tdser, expected)
         tm.assert_equal(tdser + ts, expected)
 
         expected2 = Series(pd.date_range('2011-12-31',
                                          periods=3, freq='-1D'))
-        expected2 = tm.box_expected(expected2, box)
+        expected2 = tm.box_expected(expected2, box_with_array)
 
         tm.assert_equal(ts - tdser, expected2)
         tm.assert_equal(ts + (-tdser), expected2)
@@ -894,7 +894,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
             res = tdi - other
         tm.assert_equal(res, expected)
 
-    def test_td64arr_sub_offset_array(self, box):
+    def test_td64arr_sub_offset_array(self, box_with_array):
         # GH#18824
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
         other = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
@@ -902,12 +902,12 @@ class TestTimedeltaArraylikeAddSubOps(object):
         expected = TimedeltaIndex([tdi[n] - other[n] for n in range(len(tdi))],
                                   freq='infer')
 
-        tdi = tm.box_expected(tdi, box)
-        expected = tm.box_expected(expected, box)
+        tdi = tm.box_expected(tdi, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         # The DataFrame operation is transposed and so operates as separate
         #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box is not pd.DataFrame else None
+        warn = PerformanceWarning if box_with_array is not pd.DataFrame else None
         with tm.assert_produces_warning(warn):
             res = tdi - other
         tm.assert_equal(res, expected)
@@ -918,7 +918,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
     def test_td64arr_with_offset_series(self, names, box_df_fail):
         # GH#18849
         box = box_df_fail
-        box2 = Series if box is pd.Index else box
+        box2 = Series if box in [pd.Index, tm.to_array] else box
 
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
                              name=names[0])
