@@ -358,8 +358,7 @@ cdef class {{name}}HashTable(HashTable):
     @cython.wraparound(False)
     def _unique(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                 Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
-                object na_value=None, bint ignore_na=False,
-                bint return_inverse=False):
+                object na_value=None, bint ignore_na=False):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -382,15 +381,12 @@ cdef class {{name}}HashTable(HashTable):
             Whether NA-values should be ignored for calculating the uniques. If
             True, the labels corresponding to missing values will be set to
             na_sentinel.
-        return_inverse : boolean, default False
-            Whether the mapping of the original array values to their location
-            in the vector of uniques should be returned.
 
         Returns
         -------
         uniques : ndarray[{{dtype}}]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse=True)
+        labels : ndarray[int64]
             The labels from values to uniques
         """
         cdef:
@@ -402,8 +398,7 @@ cdef class {{name}}HashTable(HashTable):
             {{name}}VectorData *ud
             bint use_na_value
 
-        if return_inverse:
-            labels = np.empty(n, dtype=np.int64)
+        labels = np.empty(n, dtype=np.int64)
         ud = uniques.data
         use_na_value = na_value is not None
 
@@ -440,19 +435,15 @@ cdef class {{name}}HashTable(HashTable):
                                                  "Vector.resize() needed")
                             uniques.resize()
                     append_data_{{dtype}}(ud, val)
-                    if return_inverse:
-                        self.table.vals[k] = count
-                        labels[i] = count
-                        count += 1
-                elif return_inverse:
+                    self.table.vals[k] = count
+                    labels[i] = count
+                    count += 1
+                else:
                     # k falls into a previous bucket
-                    # only relevant in case we need to construct the inverse
                     idx = self.table.vals[k]
                     labels[i] = idx
 
-        if return_inverse:
-            return uniques.to_array(), np.asarray(labels)
-        return uniques.to_array()
+        return uniques.to_array(), np.asarray(labels)
 
     def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
         """
@@ -474,8 +465,10 @@ cdef class {{name}}HashTable(HashTable):
             The labels from values to uniques
         """
         uniques = {{name}}Vector()
-        return self._unique(values, uniques, ignore_na=False,
-                            return_inverse=return_inverse)
+        uniques, inverse =  self._unique(values, uniques, ignore_na=False)
+        if return_inverse:
+            return uniques, inverse
+        return uniques
 
     def factorize(self, const {{dtype}}_t[:] values, Py_ssize_t na_sentinel=-1,
                   object na_value=None):
@@ -507,8 +500,7 @@ cdef class {{name}}HashTable(HashTable):
         uniques_vector = {{name}}Vector()
         uniques, labels = self._unique(values, uniques_vector,
                                        na_sentinel=na_sentinel,
-                                       na_value=na_value, ignore_na=True,
-                                       return_inverse=True)
+                                       na_value=na_value, ignore_na=True)
         # factorize has reversed outputs compared to _unique
         return labels, uniques
 
@@ -517,7 +509,7 @@ cdef class {{name}}HashTable(HashTable):
                    object na_value=None):
         _, labels = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
-                                 ignore_na=True, return_inverse=True)
+                                 ignore_na=True)
         return labels
 
     @cython.boundscheck(False)
@@ -709,8 +701,7 @@ cdef class StringHashTable(HashTable):
     @cython.wraparound(False)
     def _unique(self, ndarray[object] values, ObjectVector uniques,
                 Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
-                object na_value=None, bint ignore_na=False,
-                bint return_inverse=False):
+                object na_value=None, bint ignore_na=False):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -733,15 +724,12 @@ cdef class StringHashTable(HashTable):
             Whether NA-values should be ignored for calculating the uniques. If
             True, the labels corresponding to missing values will be set to
             na_sentinel.
-        return_inverse : boolean, default False
-            Whether the mapping of the original array values to their location
-            in the vector of uniques should be returned.
 
         Returns
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse=True)
+        labels : ndarray[int64]
             The labels from values to uniques
         """
         cdef:
@@ -755,8 +743,7 @@ cdef class StringHashTable(HashTable):
             khiter_t k
             bint use_na_value
 
-        if return_inverse:
-            labels = np.zeros(n, dtype=np.int64)
+        labels = np.zeros(n, dtype=np.int64)
         uindexer = np.empty(n, dtype=np.int64)
         use_na_value = na_value is not None
 
@@ -787,13 +774,11 @@ cdef class StringHashTable(HashTable):
                     # k hasn't been seen yet
                     k = kh_put_str(self.table, v, &ret)
                     uindexer[count] = i
-                    if return_inverse:
-                        self.table.vals[k] = count
-                        labels[i] = <int64_t>count
+                    self.table.vals[k] = count
+                    labels[i] = <int64_t>count
                     count += 1
-                elif return_inverse:
+                else:
                     # k falls into a previous bucket
-                    # only relevant in case we need to construct the inverse
                     idx = self.table.vals[k]
                     labels[i] = <int64_t>idx
 
@@ -803,9 +788,7 @@ cdef class StringHashTable(HashTable):
         for i in range(count):
             uniques.append(values[uindexer[i]])
 
-        if return_inverse:
-            return uniques.to_array(), np.asarray(labels)
-        return uniques.to_array()
+        return uniques.to_array(), np.asarray(labels)
 
     def unique(self, ndarray[object] values, bint return_inverse=False):
         """
@@ -827,8 +810,10 @@ cdef class StringHashTable(HashTable):
             The labels from values to uniques
         """
         uniques = ObjectVector()
-        return self._unique(values, uniques, ignore_na=False,
-                            return_inverse=return_inverse)
+        uniques, inverse =  self._unique(values, uniques, ignore_na=False)
+        if return_inverse:
+            return uniques, inverse
+        return uniques
 
     def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel=-1,
                   object na_value=None):
@@ -860,8 +845,7 @@ cdef class StringHashTable(HashTable):
         uniques_vector = ObjectVector()
         uniques, labels = self._unique(values, uniques_vector,
                                        na_sentinel=na_sentinel,
-                                       na_value=na_value, ignore_na=True,
-                                       return_inverse=True)
+                                       na_value=na_value, ignore_na=True)
         # factorize has reversed outputs compared to _unique
         return labels, uniques
 
@@ -870,7 +854,7 @@ cdef class StringHashTable(HashTable):
                    object na_value=None):
         _, labels = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
-                                 ignore_na=True, return_inverse=True)
+                                 ignore_na=True)
         return labels
 
 
@@ -963,8 +947,7 @@ cdef class PyObjectHashTable(HashTable):
     @cython.wraparound(False)
     def _unique(self, ndarray[object] values, ObjectVector uniques,
                 Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
-                object na_value=None, bint ignore_na=False,
-                bint return_inverse=False):
+                object na_value=None, bint ignore_na=False):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -987,15 +970,12 @@ cdef class PyObjectHashTable(HashTable):
             Whether NA-values should be ignored for calculating the uniques. If
             True, the labels corresponding to missing values will be set to
             na_sentinel.
-        return_inverse : boolean, default False
-            Whether the mapping of the original array values to their location
-            in the vector of uniques should be returned.
 
         Returns
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse=True)
+        labels : ndarray[int64]
             The labels from values to uniques
         """
         cdef:
@@ -1006,8 +986,7 @@ cdef class PyObjectHashTable(HashTable):
             khiter_t k
             bint use_na_value
 
-        if return_inverse:
-            labels = np.empty(n, dtype=np.int64)
+        labels = np.empty(n, dtype=np.int64)
         use_na_value = na_value is not None
 
         for i in range(n):
@@ -1024,19 +1003,15 @@ cdef class PyObjectHashTable(HashTable):
                 # k hasn't been seen yet
                 k = kh_put_pymap(self.table, <PyObject*>val, &ret)
                 uniques.append(val)
-                if return_inverse:
-                    self.table.vals[k] = count
-                    labels[i] = count
-                    count += 1
-            elif return_inverse:
+                self.table.vals[k] = count
+                labels[i] = count
+                count += 1
+            else:
                 # k falls into a previous bucket
-                # only relevant in case we need to construct the inverse
                 idx = self.table.vals[k]
                 labels[i] = idx
 
-        if return_inverse:
-            return uniques.to_array(), np.asarray(labels)
-        return uniques.to_array()
+        return uniques.to_array(), np.asarray(labels)
 
     def unique(self, ndarray[object] values, bint return_inverse=False):
         """
@@ -1058,8 +1033,10 @@ cdef class PyObjectHashTable(HashTable):
             The labels from values to uniques
         """
         uniques = ObjectVector()
-        return self._unique(values, uniques, ignore_na=False,
-                            return_inverse=return_inverse)
+        uniques, inverse =  self._unique(values, uniques, ignore_na=False)
+        if return_inverse:
+            return uniques, inverse
+        return uniques
 
     def factorize(self, ndarray[object] values, Py_ssize_t na_sentinel=-1,
                   object na_value=None):
@@ -1091,8 +1068,7 @@ cdef class PyObjectHashTable(HashTable):
         uniques_vector = ObjectVector()
         uniques, labels = self._unique(values, uniques_vector,
                                        na_sentinel=na_sentinel,
-                                       na_value=na_value, ignore_na=True,
-                                       return_inverse=True)
+                                       na_value=na_value, ignore_na=True)
         # factorize has reversed outputs compared to _unique
         return labels, uniques
 
@@ -1101,5 +1077,5 @@ cdef class PyObjectHashTable(HashTable):
                    object na_value=None):
         _, labels = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
-                                 ignore_na=True, return_inverse=True)
+                                 ignore_na=True)
         return labels
