@@ -26,7 +26,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.datetimes import (
-    DatetimeArrayMixin as DatetimeArray, _to_m8, dtype_conversions,
+    DatetimeArrayMixin as DatetimeArray, _to_m8, maybe_convert_dtype,
     maybe_infer_tz, objects_to_datetime64ns)
 from pandas.core.base import _shared_docs
 import pandas.core.common as com
@@ -270,7 +270,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
         # By this point we are assured to have either a numpy array or Index
 
-        data, copy = dtype_conversions(data, copy)
+        data, copy = maybe_convert_dtype(data, copy)
 
         if is_object_dtype(data) or is_string_dtype(data):
             # TODO: We do not have tests specific to string-dtypes,

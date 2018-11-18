@@ -184,7 +184,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
     """
     from pandas import DatetimeIndex
     from pandas.core.arrays.datetimes import (
-        dtype_conversions, objects_to_datetime64ns)
+        maybe_convert_dtype, objects_to_datetime64ns)
 
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype='O')
@@ -225,7 +225,8 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
 
     # warn if passing timedelta64, raise for PeriodDtype
     # NB: this must come after unit transformation
-    arg = dtype_conversions(arg, copy=False, has_format=format is not None)[0]
+    arg, _ = maybe_convert_dtype(arg, copy=False,
+                                 has_format=format is not None)
 
     arg = ensure_object(arg)
     require_iso8601 = False
@@ -285,9 +286,10 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
 
     if result is None:
         assert format is None or infer_datetime_format
+        utc = tz == 'utc'
         result, tz_parsed = objects_to_datetime64ns(
             arg, dayfirst=dayfirst, yearfirst=yearfirst,
-            tz=tz, errors=errors, require_iso8601=require_iso8601,
+            utc=utc, errors=errors, require_iso8601=require_iso8601,
             allow_object=True)
 
     if tz_parsed is not None:
@@ -299,9 +301,8 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         else:
             # Convert the datetime64 numpy array to an numpy array
             # of datetime objects
-            result = [Timestamp(ts, tz=tz_parsed).to_pydatetime()
-                      for ts in result]
-            return np.array(result, dtype=object)
+            result = DatetimeIndex(result, tz=tz_parsed).to_pydatetime()
+            return result
 
     if box:
         # Ensure we return an Index in all cases where box=True

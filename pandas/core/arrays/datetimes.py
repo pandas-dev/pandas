@@ -1447,7 +1447,7 @@ def maybe_infer_tz(tz, inferred_tz):
     return tz
 
 
-def dtype_conversions(data, copy, has_format=False):
+def maybe_convert_dtype(data, copy, has_format=False):
     """
     Convert data based on dtype conventions, issuing deprecation warnings
     or errors where appropriate.
@@ -1499,7 +1499,7 @@ def dtype_conversions(data, copy, has_format=False):
 
 
 def objects_to_datetime64ns(data, dayfirst, yearfirst,
-                            tz=None, errors="raise",
+                            utc=False, errors="raise",
                             require_iso8601=False, allow_object=False):
     """
     Convert data to array of timestamps.
@@ -1509,7 +1509,8 @@ def objects_to_datetime64ns(data, dayfirst, yearfirst,
     data : np.ndarray[object]
     dayfirst : bool
     yearfirst : bool
-    tz : {None, 'utc'}
+    utc : bool, default False
+        Whether to convert timezone-aware timestamps to UTC
     errors : {'raise', 'ignore', 'coerce'}
     allow_object : bool
 
@@ -1526,7 +1527,6 @@ def objects_to_datetime64ns(data, dayfirst, yearfirst,
     ValueError : if data cannot be converted to datetimes
     """
     assert errors in ["raise", "ignore", "coerce"]
-    assert tz is None or tz == "utc"
 
     # if str-dtype, convert
     data = np.array(data, copy=False, dtype=np.object_)
@@ -1535,7 +1535,7 @@ def objects_to_datetime64ns(data, dayfirst, yearfirst,
         result, tz_parsed = tslib.array_to_datetime(
             data,
             errors=errors,
-            utc=tz == 'utc',
+            utc=utc,
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             require_iso8601=require_iso8601
