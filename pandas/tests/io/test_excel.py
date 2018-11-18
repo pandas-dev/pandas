@@ -896,6 +896,17 @@ class TestXlrdReader(ReadingTestsBase):
                             header=[0, 1], skiprows=2)
         tm.assert_frame_equal(actual, expected)
 
+    def test_read_excel_multiindex_header_only(self, ext):
+        # see gh-11733.
+        #
+        # Don't try to parse a header name if there isn't one.
+        mi_file = os.path.join(self.dirpath, "testmultiindex" + ext)
+        result = read_excel(mi_file, "index_col_none", header=[0, 1])
+
+        exp_columns = MultiIndex.from_product([("A", "B"), ("key", "val")])
+        expected = DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
+        tm.assert_frame_equal(result, expected)
+
     @td.skip_if_no("xlsxwriter")
     def test_read_excel_multiindex_empty_level(self, ext):
         # see gh-12453
