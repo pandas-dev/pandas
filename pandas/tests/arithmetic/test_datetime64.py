@@ -51,16 +51,16 @@ class TestDatetime64DataFrameComparison(object):
 
 class TestDatetime64SeriesComparison(object):
     # TODO: moved from tests.series.test_operators; needs cleanup
-    def test_comparison_invalid(self, box):
+    def test_comparison_invalid(self, box_with_array):
         # GH#4968
         # invalid date/int comparisons
-        xbox = box if box not in [pd.Index, DatetimeArray] else np.ndarray
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
 
         ser = Series(range(5))
         ser2 = Series(pd.date_range('20010101', periods=5))
 
-        ser = tm.box_expected(ser, box)
-        ser2 = tm.box_expected(ser2, box)
+        ser = tm.box_expected(ser, box_with_array)
+        ser2 = tm.box_expected(ser2, box_with_array)
 
         for (x, y) in [(ser, ser2), (ser2, ser)]:
 
@@ -228,11 +228,10 @@ class TestDatetime64SeriesComparison(object):
 
     def test_dt64arr_timestamp_equality(self, box_with_array):
         # GH#11034
-        box = box_with_array
-        xbox = box if box not in [pd.Index, DatetimeArray] else np.ndarray
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
 
         ser = pd.Series([pd.Timestamp('2000-01-29 01:59:00'), 'NaT'])
-        ser = tm.box_expected(ser, box)
+        ser = tm.box_expected(ser, box_with_array)
 
         result = ser != ser
         expected = tm.box_expected([False, True], xbox)
@@ -1065,6 +1064,8 @@ class TestDatetime64DateOffsetArithmetic(object):
 
 
 class TestDatetime64OverflowHandling(object):
+    # TODO: box + de-duplicate
+
     def test_dt64_series_arith_overflow(self):
         # GH#12534, fixed by GH#19024
         dt = pd.Timestamp('1700-01-31')
