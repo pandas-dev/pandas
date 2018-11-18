@@ -16,6 +16,8 @@ from cpython.datetime cimport (datetime, tzinfo,
                                PyDateTime_CheckExact, PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
+from ccalendar import DAY_SECONDS, HOUR_SECONDS
+
 from np_datetime cimport (check_dts_bounds,
                           npy_datetimestruct,
                           pandas_datetime_to_datetimestruct, _string_to_dts,
@@ -41,8 +43,6 @@ from nattype cimport NPY_NAT, checknull_with_nat
 # ----------------------------------------------------------------------
 # Constants
 
-cdef int64_t DAY_NS = 86400000000000LL
-cdef int64_t HOURS_NS = 3600000000000
 NS_DTYPE = np.dtype('M8[ns]')
 TD_DTYPE = np.dtype('m8[ns]')
 
@@ -869,12 +869,13 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     """
     cdef:
         ndarray[int64_t] trans
-        int64_t[:] deltas, idx_shifted
+        int64_t[:] deltas, idx_shifted, idx_shifted_left, idx_shifted_right
         ndarray ambiguous_array
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
-        Py_ssize_t delta_idx_offset, delta_idx
+        Py_ssize_t delta_idx_offset, delta_idx, pos_left, pos_right
         int64_t *tdata
         int64_t v, left, right, val, v_left, v_right, new_local, remaining_mins
+        int64_t HOURS_NS = HOUR_SECONDS * 1000000000
         ndarray[int64_t] result, result_a, result_b, dst_hours
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
@@ -920,21 +921,21 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
 
     trans, deltas, typ = get_dst_info(tz)
 
-    tdata = <int64_t*> cnp.PyArray_DATA(trans)
+    tdata = <int64_t*>cnp.PyArray_DATA(trans)
     ntrans = len(trans)
 
     # Determine whether each date lies left of the DST transition (store in
     # result_a) or right of the DST transition (store in result_b)
     result_a = np.empty(n, dtype=np.int64)
     result_b = np.empty(n, dtype=np.int64)
-    result_a.fill(NPY_NAT)
-    result_b.fill(NPY_NAT)
+    result_a[:] = NPY_NAT
+    result_b[:] = NPY_NAT
 
     idx_shifted_left = (np.maximum(0, trans.searchsorted(
-        vals - DAY_NS, side='right') - 1)).astype(np.int64)
+        vals - DAY_SECONDS * 1000000000, side='right') - 1)).astype(np.int64)
 
     idx_shifted_right = (np.maximum(0, trans.searchsorted(
-        vals + DAY_NS, side='right') - 1)).astype(np.int64)
+        vals + DAY_SECONDS * 1000000000, side='right') - 1)).astype(np.int64)
 
     for i in range(n):
         val = vals[i]
@@ -952,7 +953,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
 
     if infer_dst:
         dst_hours = np.empty(n, dtype=np.int64)
-        dst_hours.fill(NPY_NAT)
+        dst_hours[:] = NPY_NAT
 
         # Get the ambiguous hours (given the above, these are the hours
         # where result_a != result_b and neither of them are NAT)
@@ -1045,8 +1046,10 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     return result
 
 
-cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
-    cdef Py_ssize_t pivot, left = 0, right = n
+cdef inline Py_ssize_t bisect_right_i8(int64_t *data,
+                                       int64_t val, Py_ssize_t n):
+    cdef:
+        Py_ssize_t pivot, left = 0, right = n
 
     assert n >= 1
 
@@ -1114,9 +1117,9 @@ def normalize_date(dt: object) -> datetime:
 @cython.boundscheck(False)
 def normalize_i8_timestamps(int64_t[:] stamps, object tz=None):
     """
-    Normalize each of the (nanosecond) timestamps in the given array by
-    rounding down to the beginning of the day (i.e. midnight).  If `tz`
-    is not None, then this is midnight for this timezone.
+    Normalize each of the (nanosecond) timezone aware timestamps in the given
+    array by rounding down to the beginning of the day (i.e. midnight).
+    This is midnight for timezone, `tz`.
 
     Parameters
     ----------
@@ -1128,21 +1131,11 @@ def normalize_i8_timestamps(int64_t[:] stamps, object tz=None):
     result : int64 ndarray of converted of normalized nanosecond timestamps
     """
     cdef:
-        Py_ssize_t i, n = len(stamps)
-        npy_datetimestruct dts
+        Py_ssize_t n = len(stamps)
         int64_t[:] result = np.empty(n, dtype=np.int64)
 
-    if tz is not None:
-        tz = maybe_get_tz(tz)
-        result = _normalize_local(stamps, tz)
-    else:
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                dt64_to_dtstruct(stamps[i], &dts)
-                result[i] = _normalized_stamp(&dts)
+    tz = maybe_get_tz(tz)
+    result = _normalize_local(stamps, tz)
 
     return result.base  # .base to access underlying np.ndarray
 

@@ -76,7 +76,7 @@ class TestTimestampUnaryOps(object):
 
     def test_round_invalid_arg(self):
         stamp = Timestamp('2000-01-05 05:09:15.13')
-        with tm.assert_raises_regex(ValueError, INVALID_FREQ_ERR_MSG):
+        with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             stamp.round('foo')
 
     @pytest.mark.parametrize('test_input, rounder, freq, expected', [
@@ -326,6 +326,17 @@ class TestTimestampUnaryOps(object):
         t = Timestamp('2013-11-3', tz='America/Chicago')
         result = t.replace(hour=3)
         expected = Timestamp('2013-11-3 03:00:00', tz='America/Chicago')
+        assert result == expected
+
+    # --------------------------------------------------------------
+    # Timestamp.normalize
+
+    @pytest.mark.parametrize('arg', ['2013-11-30', '2013-11-30 12:00:00'])
+    def test_normalize(self, tz_naive_fixture, arg):
+        tz = tz_naive_fixture
+        ts = Timestamp(arg, tz=tz)
+        result = ts.normalize()
+        expected = Timestamp('2013-11-30', tz=tz)
         assert result == expected
 
     # --------------------------------------------------------------

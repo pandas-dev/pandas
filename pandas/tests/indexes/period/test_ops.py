@@ -2,10 +2,8 @@
 import numpy as np
 import pytest
 
-import pandas._libs.tslib as tslib
-
 import pandas as pd
-from pandas import DatetimeIndex, Index, Period, PeriodIndex, Series
+from pandas import DatetimeIndex, Index, NaT, Period, PeriodIndex, Series
 from pandas.core.arrays import PeriodArray
 from pandas.tests.test_base import Ops
 import pandas.util.testing as tm
@@ -29,13 +27,13 @@ class TestPeriodIndexOps(Ops):
     def test_minmax(self):
 
         # monotonic
-        idx1 = pd.PeriodIndex([pd.NaT, '2011-01-01', '2011-01-02',
+        idx1 = pd.PeriodIndex([NaT, '2011-01-01', '2011-01-02',
                                '2011-01-03'], freq='D')
         assert idx1.is_monotonic
 
         # non-monotonic
-        idx2 = pd.PeriodIndex(['2011-01-01', pd.NaT, '2011-01-03',
-                               '2011-01-02', pd.NaT], freq='D')
+        idx2 = pd.PeriodIndex(['2011-01-01', NaT, '2011-01-03',
+                               '2011-01-02', NaT], freq='D')
         assert not idx2.is_monotonic
 
         for idx in [idx1, idx2]:
@@ -50,15 +48,15 @@ class TestPeriodIndexOps(Ops):
             # Return NaT
             obj = PeriodIndex([], freq='M')
             result = getattr(obj, op)()
-            assert result is tslib.NaT
+            assert result is NaT
 
-            obj = PeriodIndex([pd.NaT], freq='M')
+            obj = PeriodIndex([NaT], freq='M')
             result = getattr(obj, op)()
-            assert result is tslib.NaT
+            assert result is NaT
 
-            obj = PeriodIndex([pd.NaT, pd.NaT, pd.NaT], freq='M')
+            obj = PeriodIndex([NaT, NaT, NaT], freq='M')
             result = getattr(obj, op)()
-            assert result is tslib.NaT
+            assert result is NaT
 
     def test_numpy_minmax(self):
         pr = pd.period_range(start='2016-01-15', end='2016-01-20')
@@ -67,17 +65,19 @@ class TestPeriodIndexOps(Ops):
         assert np.max(pr) == Period('2016-01-20', freq='D')
 
         errmsg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, errmsg, np.min, pr, out=0)
-        tm.assert_raises_regex(ValueError, errmsg, np.max, pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(pr, out=0)
 
         assert np.argmin(pr) == 0
         assert np.argmax(pr) == 5
 
         errmsg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(
-            ValueError, errmsg, np.argmin, pr, out=0)
-        tm.assert_raises_regex(
-            ValueError, errmsg, np.argmax, pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmin(pr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmax(pr, out=0)
 
     def test_resolution(self):
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H',
@@ -113,7 +113,7 @@ class TestPeriodIndexOps(Ops):
 
         idx = PeriodIndex(['2013-01-01 09:00', '2013-01-01 09:00',
                            '2013-01-01 09:00', '2013-01-01 08:00',
-                           '2013-01-01 08:00', pd.NaT], freq='H')
+                           '2013-01-01 08:00', NaT], freq='H')
 
         exp_idx = PeriodIndex(['2013-01-01 09:00', '2013-01-01 08:00'],
                               freq='H')
@@ -123,7 +123,7 @@ class TestPeriodIndexOps(Ops):
             tm.assert_series_equal(obj.value_counts(), expected)
 
         exp_idx = PeriodIndex(['2013-01-01 09:00', '2013-01-01 08:00',
-                               pd.NaT], freq='H')
+                               NaT], freq='H')
         expected = Series([3, 2, 1], index=exp_idx)
 
         for obj in [idx, Series(idx)]:
@@ -284,9 +284,9 @@ class TestPeriodIndexOps(Ops):
                             '2011-01-03', '2011-01-05'],
                            freq='D', name='idx2')
 
-        idx3 = PeriodIndex([pd.NaT, '2011-01-03', '2011-01-05',
-                            '2011-01-02', pd.NaT], freq='D', name='idx3')
-        exp3 = PeriodIndex([pd.NaT, pd.NaT, '2011-01-02', '2011-01-03',
+        idx3 = PeriodIndex([NaT, '2011-01-03', '2011-01-05',
+                            '2011-01-02', NaT], freq='D', name='idx3')
+        exp3 = PeriodIndex([NaT, NaT, '2011-01-02', '2011-01-03',
                             '2011-01-05'], freq='D', name='idx3')
 
         for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3)]:
@@ -338,8 +338,8 @@ class TestPeriodIndexOps(Ops):
             tm.assert_index_equal(res, exp)
 
     def test_nat(self):
-        assert pd.PeriodIndex._na_value is pd.NaT
-        assert pd.PeriodIndex([], freq='M')._na_value is pd.NaT
+        assert pd.PeriodIndex._na_value is NaT
+        assert pd.PeriodIndex([], freq='M')._na_value is NaT
 
         idx = pd.PeriodIndex(['2011-01-01', '2011-01-02'], freq='D')
         assert idx._can_hold_na
@@ -460,10 +460,10 @@ class TestPeriodIndexSeriesMethods(object):
         f = lambda x: pd.Period('2011-03', freq='M') == x
         self._check(idx, f, exp)
 
-        f = lambda x: x == tslib.NaT
+        f = lambda x: x == NaT
         exp = np.array([False, False, False, False], dtype=np.bool)
         self._check(idx, f, exp)
-        f = lambda x: tslib.NaT == x
+        f = lambda x: NaT == x
         self._check(idx, f, exp)
 
         f = lambda x: x != pd.Period('2011-03', freq='M')
@@ -472,10 +472,10 @@ class TestPeriodIndexSeriesMethods(object):
         f = lambda x: pd.Period('2011-03', freq='M') != x
         self._check(idx, f, exp)
 
-        f = lambda x: x != tslib.NaT
+        f = lambda x: x != NaT
         exp = np.array([True, True, True, True], dtype=np.bool)
         self._check(idx, f, exp)
-        f = lambda x: tslib.NaT != x
+        f = lambda x: NaT != x
         self._check(idx, f, exp)
 
         f = lambda x: pd.Period('2011-03', freq='M') >= x
@@ -486,11 +486,11 @@ class TestPeriodIndexSeriesMethods(object):
         exp = np.array([True, False, False, False], dtype=np.bool)
         self._check(idx, f, exp)
 
-        f = lambda x: x > tslib.NaT
+        f = lambda x: x > NaT
         exp = np.array([False, False, False, False], dtype=np.bool)
         self._check(idx, f, exp)
 
-        f = lambda x: tslib.NaT >= x
+        f = lambda x: NaT >= x
         exp = np.array([False, False, False, False], dtype=np.bool)
         self._check(idx, f, exp)
 

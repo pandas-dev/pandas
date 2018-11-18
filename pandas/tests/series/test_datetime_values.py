@@ -216,7 +216,7 @@ class TestSeriesDatetimeValues():
 
         # no setting allowed
         s = Series(date_range('20130101', periods=5, freq='D'), name='xxx')
-        with tm.assert_raises_regex(ValueError, "modifications"):
+        with pytest.raises(ValueError, match="modifications"):
             s.dt.hour = 5
 
         # trying to set a copy
@@ -314,8 +314,8 @@ class TestSeriesDatetimeValues():
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         s = Series(date_range('20130101', periods=5, freq='D'))
-        with tm.assert_raises_regex(AttributeError,
-                                    "You cannot add any new attribute"):
+        with pytest.raises(AttributeError,
+                           match="You cannot add any new attribute"):
             s.dt.xlabel = "a"
 
     @pytest.mark.parametrize('time_locale', [
@@ -481,7 +481,7 @@ class TestSeriesDatetimeValues():
                                      Series(np.random.randn(5))])
     def test_dt_accessor_invalid(self, ser):
         # GH#9322 check that series with incorrect dtypes don't have attr
-        with tm.assert_raises_regex(AttributeError, "only use .dt accessor"):
+        with pytest.raises(AttributeError, match="only use .dt accessor"):
             ser.dt
         assert not hasattr(ser, 'dt')
 
@@ -548,3 +548,10 @@ class TestSeriesDatetimeValues():
     def test_minmax_nat_dataframe(self, nat):
         assert nat.min()[0] is pd.NaT
         assert nat.max()[0] is pd.NaT
+
+    def test_setitem_with_string_index(self):
+        # GH 23451
+        x = pd.Series([1, 2, 3], index=['Date', 'b', 'other'])
+        x['Date'] = date.today()
+        assert x.Date == date.today()
+        assert x['Date'] == date.today()
