@@ -42,8 +42,10 @@ class TestTimedeltaArithmetic(object):
             with pytest.raises(TypeError):
                 left + right
 
-            with pytest.raises(TypeError):
-                left > right
+            # GH 20829: python 2 comparison naturally does not raise TypeError
+            if compat.PY3:
+                with pytest.raises(TypeError):
+                    left > right
 
             assert not left == right
             assert left != right
@@ -102,6 +104,55 @@ class TestTimedeltaComparison(object):
         result = arr[0] > arr
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_compare_custom_object(self):
+        """Make sure non supported operations on Timedelta returns NonImplemented
+        and yields to other operand (GH20829)."""
+        class CustomClass(object):
+
+            def __init__(self, cmp_result=None):
+                self.cmp_result = cmp_result
+
+            def generic_result(self):
+                if self.cmp_result is None:
+                    return NotImplemented
+                else:
+                    return self.cmp_result
+
+            def __eq__(self, other):
+                return self.generic_result()
+
+            def __gt__(self, other):
+                return self.generic_result()
+
+        t = Timedelta('1s')
+
+        assert not (t == "string")
+        assert not (t == 1)
+        assert not (t == CustomClass())
+        assert not (t == CustomClass(cmp_result=False))
+
+        assert t < CustomClass(cmp_result=True)
+        assert not (t < CustomClass(cmp_result=False))
+
+        assert t == CustomClass(cmp_result=True)
+
+    @pytest.mark.skipif(compat.PY2,
+                        reason="python 2 does not raise TypeError for \
+                               comparisons of different types")
+    @pytest.mark.parametrize("val", [
+        "string", 1])
+    def test_compare_unknown_type(self, val):
+        # GH20829
+        t = Timedelta('1s')
+        with pytest.raises(TypeError):
+            t >= val
+        with pytest.raises(TypeError):
+            t > val
+        with pytest.raises(TypeError):
+            t <= val
+        with pytest.raises(TypeError):
+            t < val
 
 
 class TestTimedeltas(object):
@@ -242,37 +293,64 @@ class TestTimedeltas(object):
         assert to_timedelta('nat', box=False).astype('int64') == iNaT
         assert to_timedelta('nan', box=False).astype('int64') == iNaT
 
-        def testit(unit, transform):
-
-            # array
-            result = to_timedelta(np.arange(5), unit=unit)
-            expected = TimedeltaIndex([np.timedelta64(i, transform(unit))
+    @pytest.mark.parametrize('units, np_unit',
+                             [(['Y', 'y'], 'Y'),
+                              (['M'], 'M'),
+                              (['W', 'w'], 'W'),
+                              (['D', 'd', 'days', 'day', 'Days', 'Day'], 'D'),
+                              (['m', 'minute', 'min', 'minutes', 't',
+                                'Minute', 'Min', 'Minutes', 'T'], 'm'),
+                              (['s', 'seconds', 'sec', 'second',
+                                'S', 'Seconds', 'Sec', 'Second'], 's'),
+                              (['ms', 'milliseconds', 'millisecond', 'milli',
+                                'millis', 'l', 'MS', 'Milliseconds',
+                                'Millisecond', 'Milli', 'Millis', 'L'], 'ms'),
+                              (['us', 'microseconds', 'microsecond', 'micro',
+                                'micros', 'u', 'US', 'Microseconds',
+                                'Microsecond', 'Micro', 'Micros', 'U'], 'us'),
+                              (['ns', 'nanoseconds', 'nanosecond', 'nano',
+                                'nanos', 'n', 'NS', 'Nanoseconds',
+                                'Nanosecond', 'Nano', 'Nanos', 'N'], 'ns')])
+    @pytest.mark.parametrize('wrapper', [np.array, list, pd.Index])
+    def test_unit_parser(self, units, np_unit, wrapper):
+        # validate all units, GH 6855, GH 21762
+        for unit in units:
+            # array-likes
+            expected = TimedeltaIndex([np.timedelta64(i, np_unit)
                                        for i in np.arange(5).tolist()])
+            result = to_timedelta(wrapper(range(5)), unit=unit)
+            tm.assert_index_equal(result, expected)
+            result = TimedeltaIndex(wrapper(range(5)), unit=unit)
+            tm.assert_index_equal(result, expected)
+
+            if unit == 'M':
+                # M is treated as minutes in string repr
+                expected = TimedeltaIndex([np.timedelta64(i, 'm')
+                                           for i in np.arange(5).tolist()])
+
+            str_repr = ['{}{}'.format(x, unit) for x in np.arange(5)]
+            result = to_timedelta(wrapper(str_repr))
+            tm.assert_index_equal(result, expected)
+            result = TimedeltaIndex(wrapper(str_repr))
             tm.assert_index_equal(result, expected)
 
             # scalar
-            result = to_timedelta(2, unit=unit)
-            expected = Timedelta(np.timedelta64(2, transform(unit)).astype(
+            expected = Timedelta(np.timedelta64(2, np_unit).astype(
                 'timedelta64[ns]'))
+
+            result = to_timedelta(2, unit=unit)
+            assert result == expected
+            result = Timedelta(2, unit=unit)
             assert result == expected
 
-        # validate all units
-        # GH 6855
-        for unit in ['Y', 'M', 'W', 'D', 'y', 'w', 'd']:
-            testit(unit, lambda x: x.upper())
-        for unit in ['days', 'day', 'Day', 'Days']:
-            testit(unit, lambda x: 'D')
-        for unit in ['h', 'm', 's', 'ms', 'us', 'ns', 'H', 'S', 'MS', 'US',
-                     'NS']:
-            testit(unit, lambda x: x.lower())
+            if unit == 'M':
+                expected = Timedelta(np.timedelta64(2, 'm').astype(
+                    'timedelta64[ns]'))
 
-        # offsets
-
-        # m
-        testit('T', lambda x: 'm')
-
-        # ms
-        testit('L', lambda x: 'ms')
+            result = to_timedelta('2{}'.format(unit))
+            assert result == expected
+            result = Timedelta('2{}'.format(unit))
+            assert result == expected
 
     def test_numeric_conversions(self):
         assert ct(0) == np.timedelta64(0, 'ns')

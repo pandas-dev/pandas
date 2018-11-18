@@ -44,18 +44,69 @@ __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
 
 
 def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
-    # Extract combined index: return intersection or union (depending on the
-    # value of "intersect") of indexes on given axis, or None if all objects
-    # lack indexes (e.g. they are numpy arrays)
+    """
+    Extract combined index: return intersection or union (depending on the
+    value of "intersect") of indexes on given axis, or None if all objects
+    lack indexes (e.g. they are numpy arrays).
+
+    Parameters
+    ----------
+    objs : list of objects
+        Each object will only be considered if it has a _get_axis
+        attribute.
+    intersect : bool, default False
+        If True, calculate the intersection between indexes. Otherwise,
+        calculate the union.
+    axis : {0 or 'index', 1 or 'outer'}, default 0
+        The axis to extract indexes from.
+    sort : bool, default True
+        Whether the result index should come out sorted or not.
+
+    Returns
+    -------
+    Index
+    """
     obs_idxes = [obj._get_axis(axis) for obj in objs
                  if hasattr(obj, '_get_axis')]
     if obs_idxes:
         return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
 
 
+def _get_distinct_objs(objs):
+    """
+    Return a list with distinct elements of "objs" (different ids).
+    Preserves order.
+    """
+    ids = set()
+    res = []
+    for obj in objs:
+        if not id(obj) in ids:
+            ids.add(id(obj))
+            res.append(obj)
+    return res
+
+
 def _get_combined_index(indexes, intersect=False, sort=False):
+    """
+    Return the union or intersection of indexes.
+
+    Parameters
+    ----------
+    indexes : list of Index or list objects
+        When intersect=True, do not accept list of lists.
+    intersect : bool, default False
+        If True, calculate the intersection between indexes. Otherwise,
+        calculate the union.
+    sort : bool, default False
+        Whether the result index should come out sorted or not.
+
+    Returns
+    -------
+    Index
+    """
+
     # TODO: handle index names!
-    indexes = com.get_distinct_objs(indexes)
+    indexes = _get_distinct_objs(indexes)
     if len(indexes) == 0:
         index = Index([])
     elif len(indexes) == 1:
@@ -77,6 +128,21 @@ def _get_combined_index(indexes, intersect=False, sort=False):
 
 
 def _union_indexes(indexes, sort=True):
+    """
+    Return the union of indexes.
+
+    The behavior of sort and names is not consistent.
+
+    Parameters
+    ----------
+    indexes : list of Index or list objects
+    sort : bool, default True
+        Whether the result index should come out sorted or not.
+
+    Returns
+    -------
+    Index
+    """
     if len(indexes) == 0:
         raise AssertionError('Must have at least 1 Index to union')
     if len(indexes) == 1:
@@ -88,6 +154,19 @@ def _union_indexes(indexes, sort=True):
     indexes, kind = _sanitize_and_check(indexes)
 
     def _unique_indices(inds):
+        """
+        Convert indexes to lists and concatenate them, removing duplicates.
+
+        The final dtype is inferred.
+
+        Parameters
+        ----------
+        inds : list of Index or list objects
+
+        Returns
+        -------
+        Index
+        """
         def conv(i):
             if isinstance(i, Index):
                 i = i.tolist()
@@ -126,6 +205,26 @@ def _union_indexes(indexes, sort=True):
 
 
 def _sanitize_and_check(indexes):
+    """
+    Verify the type of indexes and convert lists to Index.
+
+    Cases:
+
+    - [list, list, ...]: Return ([list, list, ...], 'list')
+    - [list, Index, ...]: Return _sanitize_and_check([Index, Index, ...])
+        Lists are sorted and converted to Index.
+    - [Index, Index, ...]: Return ([Index, Index, ...], TYPE)
+        TYPE = 'special' if at least one special type, 'array' otherwise.
+
+    Parameters
+    ----------
+    indexes : list of Index or list objects
+
+    Returns
+    -------
+    sanitized_indexes : list of Index or list objects
+    type : {'list', 'array', 'special'}
+    """
     kinds = list({type(index) for index in indexes})
 
     if list in kinds:
@@ -144,6 +243,21 @@ def _sanitize_and_check(indexes):
 
 
 def _get_consensus_names(indexes):
+    """
+    Give a consensus 'names' to indexes.
+
+    If there's exactly one non-empty 'names', return this,
+    otherwise, return empty.
+
+    Parameters
+    ----------
+    indexes : list of Index objects
+
+    Returns
+    -------
+    list
+        A list representing the consensus 'names' found.
+    """
 
     # find the non-none names, need to tupleify to make
     # the set hashable, then reverse on return
@@ -155,6 +269,18 @@ def _get_consensus_names(indexes):
 
 
 def _all_indexes_same(indexes):
+    """
+    Determine if all indexes contain the same elements.
+
+    Parameters
+    ----------
+    indexes : list of Index objects
+
+    Returns
+    -------
+    bool
+        True if all indexes contain the same elements, False otherwise.
+    """
     first = indexes[0]
     for index in indexes[1:]:
         if not first.equals(index):

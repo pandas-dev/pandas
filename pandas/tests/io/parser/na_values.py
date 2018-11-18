@@ -7,12 +7,14 @@ parsing for all of the parsers defined in parsers.py
 
 import numpy as np
 from numpy import nan
+import pytest
 
-import pandas.io.common as com
-import pandas.util.testing as tm
+from pandas.compat import StringIO, range
 
 from pandas import DataFrame, Index, MultiIndex
-from pandas.compat import StringIO, range
+import pandas.util.testing as tm
+
+import pandas.io.common as com
 
 
 class NAvaluesTests(object):
@@ -380,3 +382,18 @@ nan,B
         expected = DataFrame({"col1": [3, np.nan], "col2": [4, np.nan]},
                              index=Index([1, 2], name="idx"))
         tm.assert_frame_equal(out, expected)
+
+    @pytest.mark.parametrize("na_filter", [True, False])
+    def test_na_values_with_dtype_str_and_na_filter(self, na_filter):
+        # see gh-20377
+        data = "a,b,c\n1,,3\n4,5,6"
+
+        # na_filter=True --> missing value becomes NaN.
+        # na_filter=False --> missing value remains empty string.
+        empty = np.nan if na_filter else ""
+        expected = DataFrame({"a": ["1", "4"],
+                              "b": [empty, "5"],
+                              "c": ["3", "6"]})
+
+        result = self.read_csv(StringIO(data), na_filter=na_filter, dtype=str)
+        tm.assert_frame_equal(result, expected)

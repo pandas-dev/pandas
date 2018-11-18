@@ -517,18 +517,20 @@ def test_nsmallest():
     tm.assert_series_equal(gb.nsmallest(3, keep='last'), e)
 
 
-def test_numpy_compat():
+@pytest.mark.parametrize("func", [
+    'mean', 'var', 'std', 'cumprod', 'cumsum'
+])
+def test_numpy_compat(func):
     # see gh-12811
     df = pd.DataFrame({'A': [1, 2, 1], 'B': [1, 2, 3]})
     g = df.groupby('A')
 
     msg = "numpy operations are not valid with groupby"
 
-    for func in ('mean', 'var', 'std', 'cumprod', 'cumsum'):
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(g, func), 1, 2, 3)
-        tm.assert_raises_regex(UnsupportedFunctionCall, msg,
-                               getattr(g, func), foo=1)
+    with pytest.raises(UnsupportedFunctionCall, match=msg):
+        getattr(g, func)(1, 2, 3)
+    with pytest.raises(UnsupportedFunctionCall, match=msg):
+        getattr(g, func)(foo=1)
 
 
 def test_cummin_cummax():
@@ -1125,3 +1127,12 @@ def test_pipe_args():
     expected = pd.Series([4, 8, 12], index=pd.Int64Index([1, 2, 3]))
 
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_mean_no_overflow():
+    # Regression test for (#22487)
+    df = pd.DataFrame({
+        "user": ["A", "A", "A", "A", "A"],
+        "connections": [4970, 4749, 4719, 4704, 18446744073699999744]
+    })
+    assert df.groupby('user')['connections'].mean()['A'] == 3689348814740003840

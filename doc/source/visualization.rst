@@ -1437,7 +1437,7 @@ Here is an example of one way to easily plot group means with standard deviation
    # Plot
    fig, ax = plt.subplots()
    @savefig errorbar_example.png
-   means.plot.bar(yerr=errors, ax=ax)
+   means.plot.bar(yerr=errors, ax=ax, capsize=4)
 
 .. ipython:: python
    :suppress:

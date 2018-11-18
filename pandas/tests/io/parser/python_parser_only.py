@@ -8,13 +8,16 @@ arguments when parsing.
 """
 
 import csv
+import sys
+
 import pytest
 
-import pandas.util.testing as tm
-from pandas import DataFrame, Index
-from pandas import compat
+import pandas.compat as compat
+from pandas.compat import BytesIO, StringIO, u
 from pandas.errors import ParserError
-from pandas.compat import StringIO, BytesIO, u
+
+from pandas import DataFrame, Index
+import pandas.util.testing as tm
 
 
 class PythonParserTests(object):
@@ -34,17 +37,17 @@ class PythonParserTests(object):
 
         # see gh-15925 (comment)
         msg = "skipfooter must be an integer"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(text), skipfooter="foo")
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(text), skipfooter=1.5)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(text), skipfooter=True)
 
         msg = "skipfooter cannot be negative"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             self.read_csv(StringIO(text), skipfooter=-1)
 
     def test_sniff_delimiter(self):
@@ -218,16 +221,17 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         data = 'a,,b\n1,,a\n2,,"2,,b"'
         msg = 'ignored when a multi-char delimiter is used'
 
-        with tm.assert_raises_regex(ParserError, msg):
+        with pytest.raises(ParserError, match=msg):
             self.read_csv(StringIO(data), sep=',,')
 
         # We expect no match, so there should be an assertion
         # error out of the inner context manager.
         with pytest.raises(AssertionError):
-            with tm.assert_raises_regex(ParserError, msg):
+            with pytest.raises(ParserError, match=msg):
                 self.read_csv(StringIO(data), sep=',,',
                               quoting=csv.QUOTE_NONE)
 
+    @tm.capture_stderr
     def test_none_delimiter(self):
         # see gh-13374 and gh-17465
 
@@ -245,6 +249,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                                warn_bad_lines=True)
         tm.assert_frame_equal(result, expected)
 
+        warning = sys.stderr.getvalue()
+        assert 'Skipping line 3' in warning
+
     def test_skipfooter_bad_row(self):
         # see gh-13879
         # see gh-15910
@@ -253,11 +260,11 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         for data in ('a\n1\n"b"a',
                      'a,b,c\ncat,foo,bar\ndog,foo,"baz'):
-            with tm.assert_raises_regex(ParserError, msg):
+            with pytest.raises(ParserError, match=msg):
                 self.read_csv(StringIO(data), skipfooter=1)
 
             # We expect no match, so there should be an assertion
             # error out of the inner context manager.
             with pytest.raises(AssertionError):
-                with tm.assert_raises_regex(ParserError, msg):
+                with pytest.raises(ParserError, match=msg):
                     self.read_csv(StringIO(data))
