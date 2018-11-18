@@ -21,14 +21,14 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     Parameters
     ----------
     arg : string, timedelta, list, tuple, 1-d array, or Series
-    unit : string, {'Y', 'M', 'W', 'D', 'days', 'day',
-                    'hours', hour', 'hr', 'h', 'm', 'minute', 'min', 'minutes',
-                    'T', 'S', 'seconds', 'sec', 'second', 'ms',
-                    'milliseconds', 'millisecond', 'milli', 'millis', 'L',
-                    'us', 'microseconds', 'microsecond', 'micro', 'micros',
-                    'U', 'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond'
-                    'N'}, optional
+    unit : str, optional
         Denote the unit of the input, if input is an integer. Default 'ns'.
+        Possible values:
+        {'Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
+        'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds', 'sec', 'second',
+        'ms', 'milliseconds', 'millisecond', 'milli', 'millis', 'L',
+        'us', 'microseconds', 'microsecond', 'micro', 'micros', 'U',
+        'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond', 'N'}
     box : boolean, default True
         - If True returns a Timedelta/TimedeltaIndex of the results
         - if False returns a np.timedelta64 or ndarray of values of dtype
@@ -68,7 +68,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
 
-    See also
+    See Also
     --------
     pandas.DataFrame.astype : Cast argument to a specified dtype.
     pandas.to_datetime : Convert argument to datetime.

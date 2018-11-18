@@ -43,7 +43,7 @@ def isna(obj):
 
     See Also
     --------
-    notna : boolean inverse of pandas.isna.
+    notna : Boolean inverse of pandas.isna.
     Series.isna : Detect missing values in a Series.
     DataFrame.isna : Detect missing values in a DataFrame.
     Index.isna : Detect missing values in an Index.
@@ -274,7 +274,7 @@ def notna(obj):
 
     See Also
     --------
-    isna : boolean inverse of pandas.notna.
+    isna : Boolean inverse of pandas.notna.
     Series.notna : Detect valid values in a Series.
     DataFrame.notna : Detect valid values in a DataFrame.
     Index.notna : Detect valid values in an Index.

@@ -44,7 +44,7 @@ def is_number(obj):
 
     See Also
     --------
-    pandas.api.types.is_integer: checks a subgroup of numbers
+    pandas.api.types.is_integer: Checks a subgroup of numbers.
 
     Examples
     --------

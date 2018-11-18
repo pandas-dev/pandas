@@ -11,8 +11,6 @@ from pandas.core.arrays import PeriodArray
 from pandas.util import testing as tm
 from pandas._libs.tslib import iNaT
 
-from pandas.compat import callable
-
 
 @pytest.mark.parametrize('nat, idx', [(Timestamp('NaT'), DatetimeIndex),
                                       (Timedelta('NaT'), TimedeltaIndex),
