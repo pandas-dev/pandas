@@ -807,7 +807,7 @@ class TestDataFrameConstructors(TestData):
 
     @pytest.mark.parametrize("data, index, columns, dtype, expected", [
         (None, lrange(10), ['a', 'b'], object, np.object_),
-        (None, None, ['a', 'b'], 'int64', np.dtype('int64')),
+        (None, None, ['a', 'b'], 'int64', np.dtype('float64')),
         (None, lrange(10), ['a', 'b'], int, np.dtype('float64')),
         ({}, None, ['foo', 'bar'], None, np.object_),
         ({'b': 1}, lrange(10), list('abc'), int, np.dtype('float64'))
