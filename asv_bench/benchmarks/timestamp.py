@@ -29,7 +29,7 @@ class TimestampConstruction(object):
 
 
 class TimestampProperties(object):
-    _tzs = [None, pytz.timezone('Europe/Amsterdam')]
+    _tzs = [None, pytz.timezone('Europe/Amsterdam'), 'UTC', 'dateutil/UTC']
     _freqs = [None, 'B']
     params = [_tzs, _freqs]
     param_names = ['tz', 'freq']
@@ -87,7 +87,7 @@ class TimestampProperties(object):
 
 
 class TimestampOps(object):
-    params = [None, 'US/Eastern']
+    params = [None, 'US/Eastern', 'UTC', 'dateutil/UTC']
     param_names = ['tz']
 
     def setup(self, tz):
@@ -101,6 +101,13 @@ class TimestampOps(object):
 
     def time_to_pydatetime(self, tz):
         self.ts.to_pydatetime()
+
+    def time_tz_convert(self, tz):
+        self.ts.tz_convert(tz)
+
+    def time_tz_localize(self, tz):
+        if self.ts is None:
+            self.ts.tz_localize(tz)
 
 
 class TimestampAcrossDst(object):
