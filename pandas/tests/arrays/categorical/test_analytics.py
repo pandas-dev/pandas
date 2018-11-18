@@ -85,10 +85,10 @@ class TestCategoricalAnalytics(object):
 
         # Searching for single item argument, side='left' (default)
         res_cat = c1.searchsorted('apple')
+        assert res_cat == 2
+
         res_ser = s1.searchsorted('apple')
-        exp = np.array([2], dtype=np.intp)
-        tm.assert_numpy_array_equal(res_cat, exp)
-        tm.assert_numpy_array_equal(res_ser, exp)
+        assert res_ser == 2
 
         # Searching for single item array, side='left' (default)
         res_cat = c1.searchsorted(['bread'])
@@ -105,13 +105,13 @@ class TestCategoricalAnalytics(object):
         tm.assert_numpy_array_equal(res_ser, exp)
 
         # Searching for a single value that is not from the Categorical
-        pytest.raises(ValueError, lambda: c1.searchsorted('cucumber'))
-        pytest.raises(ValueError, lambda: s1.searchsorted('cucumber'))
+        pytest.raises(KeyError, lambda: c1.searchsorted('cucumber'))
+        pytest.raises(KeyError, lambda: s1.searchsorted('cucumber'))
 
         # Searching for multiple values one of each is not from the Categorical
-        pytest.raises(ValueError,
+        pytest.raises(KeyError,
                       lambda: c1.searchsorted(['bread', 'cucumber']))
-        pytest.raises(ValueError,
+        pytest.raises(KeyError,
                       lambda: s1.searchsorted(['bread', 'cucumber']))
 
         # searchsorted call for unordered Categorical
