@@ -1007,6 +1007,8 @@ Other API Changes
 - Slicing a single row of a DataFrame with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - :class:`DateOffset` attribute `_cacheable` and method `_should_cache` have been removed (:issue:`23118`)
 - Comparing :class:`Timedelta` to be less or greater than unknown types now raises a ``TypeError`` instead of returning ``False`` (:issue:`20829`)
+- :meth:`Categorical.searchsorted`, when supplied a scalar value to search for, now returns a scalar instead of an array (:issue:`23466`).
+- :meth:`Categorical.searchsorted` now raises a ``KeyError`` rather that a ``ValueError``, if a searched for key is not found in its categories (:issue:`23466`).
 - :meth:`Index.hasnans` and :meth:`Series.hasnans` now always return a python boolean. Previously, a python or a numpy boolean could be returned, depending on circumstances (:issue:`23294`).
 - The order of the arguments of :func:`DataFrame.to_html` and :func:`DataFrame.to_string` is rearranged to be consistent with each other. (:issue:`23614`)
 
@@ -1141,6 +1143,7 @@ Performance Improvements
 - Improved performance of :func:`PeriodIndex.unique` (:issue:`23083`)
 - Improved performance of :func:`pd.concat` for `Series` objects (:issue:`23404`)
 - Improved performance of :meth:`DatetimeIndex.normalize` and :meth:`Timestamp.normalize` for timezone naive or UTC datetimes (:issue:`23634`)
+- Improved performance of :meth:`DatetimeIndex.tz_localize` and various ``DatetimeIndex`` attributes with dateutil UTC timezone (:issue:`23772`)
 
 
 .. _whatsnew_0240.docs:
