@@ -7,11 +7,11 @@ import numpy as np
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
 from pandas.compat import StringIO, long, to_str, u
+from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_period_dtype
 
 from pandas import DataFrame, MultiIndex, Series, compat, isna, to_datetime
-import pandas.core.common as com
 from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
@@ -97,7 +97,7 @@ class Writer(object):
         self._format_axes()
 
     def _format_axes(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def write(self):
         return self._write(self.obj, self.orient, self.double_precision,
@@ -320,7 +320,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         .. versionadded:: 0.19.0
 
-    chunksize: integer, default None
+    chunksize : integer, default None
         Return JsonReader object for iteration.
         See the `line-delimted json docs
         <http://pandas.pydata.org/pandas-docs/stable/io.html#io-jsonl>`_
@@ -658,7 +658,7 @@ class Parser(object):
                 setattr(self.obj, axis, new_axis)
 
     def _try_convert_types(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _try_convert_data(self, name, data, use_dtypes=True,
                           convert_dates=True):
@@ -771,7 +771,7 @@ class Parser(object):
         return data, False
 
     def _try_convert_dates(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
 
 class SeriesParser(Parser):

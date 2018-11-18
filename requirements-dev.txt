@@ -4,7 +4,8 @@ pytz
 Cython>=0.28.2
 flake8
 flake8-comprehensions
-flake8-rst
+flake8-rst==0.4.2
+gitpython
 hypothesis>=3.58.0
 isort
 moto
@@ -28,7 +29,7 @@ numexpr>=2.6.1
 openpyxl
 pyarrow>=0.7.0
 pymysql
-pytables>=3.4.2
+tables>=3.4.2
 pytest-cov
 pytest-xdist
 s3fs

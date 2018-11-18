@@ -6,12 +6,11 @@ import pytest
 
 from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO
+from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, read_csv, read_table
-import pandas.core.common as com
 import pandas.util.testing as tm
 
-from .c_parser_only import CParserTests
 from .comment import CommentTests
 from .common import ParserTests
 from .compression import CompressionTests
@@ -46,7 +45,7 @@ class BaseParser(CommentTests, CompressionTests,
         raise NotImplementedError
 
     def float_precision_choices(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
@@ -57,7 +56,7 @@ class BaseParser(CommentTests, CompressionTests,
         self.csv_shiftjs = os.path.join(self.dirpath, 'sauron.SHIFT_JIS.csv')
 
 
-class TestCParserHighMemory(BaseParser, CParserTests):
+class TestCParserHighMemory(BaseParser):
     engine = 'c'
     low_memory = False
     float_precision_choices = [None, 'high', 'round_trip']
@@ -77,7 +76,7 @@ class TestCParserHighMemory(BaseParser, CParserTests):
         return df
 
 
-class TestCParserLowMemory(BaseParser, CParserTests):
+class TestCParserLowMemory(BaseParser):
     engine = 'c'
     low_memory = True
     float_precision_choices = [None, 'high', 'round_trip']
