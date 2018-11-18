@@ -999,7 +999,7 @@ def str_get_dummies(arr, sep='|'):
 
     See Also
     --------
-    pandas.get_dummies
+    get_dummies
     """
     arr = arr.fillna('')
     try:
@@ -2237,7 +2237,7 @@ class StringMethods(NoNewAttributesMixin):
             # Need to add keys for uniqueness in case of duplicate columns
             others = concat(others, axis=1,
                             join=(join if join == 'inner' else 'outer'),
-                            keys=range(len(others)), copy=False)
+                            keys=range(len(others)), sort=False, copy=False)
             data, others = data.align(others, join=join)
             others = [others[x] for x in others]  # again list of Series
 
