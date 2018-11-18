@@ -742,8 +742,7 @@ class TestDatetime64Arithmetic(object):
         result = np.timedelta64(5, 'ms') + dtarr
         tm.assert_equal(result, expected)
 
-    def test_dt64arr_add_sub_td64_nat(self, box_with_array,
-                                      tz_naive_fixture):
+    def test_dt64arr_add_sub_td64_nat(self, box_with_array, tz_naive_fixture):
         # GH#23320 special handling for timedelta64("NaT")
         tz = tz_naive_fixture
         box = box_with_array
