@@ -208,15 +208,6 @@ def box_with_datetime(request):
     return request.param
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, TimedeltaArray],
-                ids=id_func)
-def box_with_timedelta(request):
-    """
-    Like `box`, but specific to timedelta64 for also testing TimedeltaArray
-    """
-    return request.param
-
-
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array],
                 ids=id_func)
 def box_with_array(request):
