@@ -739,7 +739,7 @@ class TestDatetime64Arithmetic(object):
 
         result = dtarr + np.timedelta64(5, 'ms')
         tm.assert_equal(result, expected)
-        result2 = np.timedelta64(5, 'ms') + dtarr
+        result = np.timedelta64(5, 'ms') + dtarr
         tm.assert_equal(result, expected)
 
     def test_dt64arr_add_sub_td64_nat(self, box_with_array,

@@ -5,9 +5,6 @@ import numpy as np
 import pandas as pd
 
 from pandas.compat import long
-from pandas.core.arrays import (
-    PeriodArray, DatetimeArrayMixin as DatetimeArray,
-    TimedeltaArrayMixin as TimedeltaArray)
 import pandas.util.testing as tm
 
 
