@@ -273,24 +273,22 @@ class TestTableOrient(object):
         expected = OrderedDict([('schema', schema), ('data', data)])
         assert result == expected
 
-    @pytest.mark.parametrize('test_series, test_dataframe', [(
+    @pytest.mark.parametrize('test_series, expected', [(
         pd.Series([1, 2, 3], name='a'),
-        pd.DataFrame(pd.Series([1, 2, 3], name='a')))
+        '[{"a":1},{"a":2},{"a":3}]')
     ])
     def test_to_json_orient_record_with_name(self,
-                                             test_series, test_dataframe):
+                                             test_series, expected):
         result_series = test_series.to_json(orient='records')
-        result_df = test_dataframe.to_json(orient='records')
-        assert result_df == result_series
+        assert expected == result_series
 
-    @pytest.mark.parametrize('test_series, test_dataframe', [(
-        pd.Series([1, 2, 3]), pd.DataFrame(pd.Series([1, 2, 3])))
+    @pytest.mark.parametrize('test_series, expected', [(
+        pd.Series([1, 2, 3]), '[{"0":1},{"0":2},{"0":3}]')
     ])
     def test_to_json_orient_record_with_no_name(self,
-                                                test_series, test_dataframe):
+                                                test_series, expected):
         result_series = test_series.to_json(orient='records')
-        result_df = test_dataframe.to_json(orient='records')
-        assert result_df == result_series
+        assert expected == result_series
 
     def test_to_json_float_index(self):
         data = pd.Series(1, index=[1., 2.])
