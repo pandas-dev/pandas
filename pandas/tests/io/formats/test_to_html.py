@@ -485,6 +485,7 @@ class TestToHTML(object):
                                   'index_named_multi'])
     def test_to_html_basic_alignment(self, datapath, idx_type, col_idx_type,
                                      index, index_names):
+        # GH 22747, GH 22579
         def _exp_name(idx_type, index, index_names):
             # helper function to map test parameters to expected output
             if not index:
