@@ -25,6 +25,7 @@ from pandas.core import ops
 from pandas import (
     Timestamp, Timedelta, Period, Series, date_range, NaT,
     DatetimeIndex, TimedeltaIndex)
+from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 
 
 # ------------------------------------------------------------------
@@ -158,12 +159,16 @@ class TestDatetime64SeriesComparison(object):
         assert "a TypeError will be raised" in str(m[0].message)
 
     @pytest.mark.skip(reason="GH#21359")
-    def test_dt64ser_cmp_date_invalid(self):
+    def test_dt64ser_cmp_date_invalid(self, box_with_datetime):
         # GH#19800 datetime.date comparison raises to
         # match DatetimeIndex/Timestamp.  This also matches the behavior
         # of stdlib datetime.datetime
-        ser = pd.Series(pd.date_range('20010101', periods=10), name='dates')
+        box = box_with_datetime
+
+        ser = pd.date_range('20010101', periods=10)
         date = ser.iloc[0].to_pydatetime().date()
+
+        ser = tm.box_expected(ser, box)
         assert not (ser == date).any()
         assert (ser != date).all()
         with pytest.raises(TypeError):
@@ -225,22 +230,37 @@ class TestDatetime64SeriesComparison(object):
         result = right_f(pd.Timestamp("nat"), s_nat)
         tm.assert_series_equal(result, expected)
 
-    def test_timestamp_equality(self):
+    def test_dt64arr_timestamp_equality(self, box_with_datetime):
         # GH#11034
+        box = box_with_datetime
+        xbox = box if box not in [pd.Index, DatetimeArray] else np.ndarray
+
         ser = pd.Series([pd.Timestamp('2000-01-29 01:59:00'), 'NaT'])
+        ser = tm.box_expected(ser, box)
+
         result = ser != ser
-        tm.assert_series_equal(result, pd.Series([False, True]))
+        expected = tm.box_expected([False, True], xbox)
+        tm.assert_equal(result, expected)
+
         result = ser != ser[0]
-        tm.assert_series_equal(result, pd.Series([False, True]))
+        expected = tm.box_expected([False, True], xbox)
+        tm.assert_equal(result, expected)
+
         result = ser != ser[1]
-        tm.assert_series_equal(result, pd.Series([True, True]))
+        expected = tm.box_expected([True, True], xbox)
+        tm.assert_equal(result, expected)
 
         result = ser == ser
-        tm.assert_series_equal(result, pd.Series([True, False]))
+        expected = tm.box_expected([True, False], xbox)
+        tm.assert_equal(result, expected)
+
         result = ser == ser[0]
-        tm.assert_series_equal(result, pd.Series([True, False]))
+        expected = tm.box_expected([True, False], xbox)
+        tm.assert_equal(result, expected)
+
         result = ser == ser[1]
-        tm.assert_series_equal(result, pd.Series([False, False]))
+        expected = tm.box_expected([False, False], xbox)
+        tm.assert_equal(result, expected)
 
 
 class TestDatetimeIndexComparisons(object):
@@ -629,7 +649,7 @@ class TestDatetimeIndexComparisons(object):
 # Arithmetic
 
 class TestFrameArithmetic(object):
-    def test_dt64arr_sub_dtscalar(self, box):
+    def test_dt64arr_sub_timestamp(self, box):
         # GH#8554, GH#22163 DataFrame op should _not_ return dt64 dtype
         idx = pd.date_range('2013-01-01', periods=3)
         idx = tm.box_expected(idx, box)
@@ -643,28 +663,39 @@ class TestFrameArithmetic(object):
         result = idx - ts
         tm.assert_equal(result, expected)
 
-    def test_df_sub_datetime64_not_ns(self):
+    def test_dt64arr_sub_datetime64_not_ns(self, box):
         # GH#7996, GH#22163 ensure non-nano datetime64 is converted to nano
-        df = pd.DataFrame(pd.date_range('20130101', periods=3))
+        #  for DataFrame operation
+
+        dti = pd.date_range('20130101', periods=3)
+        dtarr = tm.box_expected(dti, box)
+
         dt64 = np.datetime64('2013-01-01')
         assert dt64.dtype == 'datetime64[D]'
-        res = df - dt64
-        expected = pd.DataFrame([pd.Timedelta(days=0), pd.Timedelta(days=1),
-                                 pd.Timedelta(days=2)])
-        tm.assert_frame_equal(res, expected)
+
+        expected = pd.TimedeltaIndex(['0 Days', '1 Day', '2 Days'])
+        expected = tm.box_expected(expected, box)
+
+        result = dtarr - dt64
+        tm.assert_equal(result, expected)
 
 
 class TestTimestampSeriesArithmetic(object):
 
-    def test_timestamp_sub_series(self):
-        ser = pd.Series(pd.date_range('2014-03-17', periods=2, freq='D',
-                                      tz='US/Eastern'))
+    def test_dt64arr_sub_timestamp(self, box):
+        ser = pd.date_range('2014-03-17', periods=2, freq='D',
+                            tz='US/Eastern')
         ts = ser[0]
+
+        # FIXME: transpose raises ValueError
+        ser = tm.box_expected(ser, box, transpose=False)
 
         delta_series = pd.Series([np.timedelta64(0, 'D'),
                                   np.timedelta64(1, 'D')])
-        tm.assert_series_equal(ser - ts, delta_series)
-        tm.assert_series_equal(ts - ser, -delta_series)
+        expected = tm.box_expected(delta_series, box, transpose=False)
+
+        tm.assert_equal(ser - ts, expected)
+        tm.assert_equal(ts - ser, -expected)
 
     def test_dt64ser_sub_datetime_dtype(self):
         ts = Timestamp(datetime(1993, 1, 7, 13, 30, 00))
@@ -687,7 +718,7 @@ class TestTimestampSeriesArithmetic(object):
             # with 'operate' (from core/ops.py) for the ops that are not
             # defined
             op = getattr(get_ser, op_str, None)
-            with tm.assert_raises_regex(TypeError, 'operate|cannot'):
+            with pytest.raises(TypeError, match='operate|cannot'):
                 op(test_ser)
 
         # ## timedelta64 ###
@@ -722,20 +753,23 @@ class TestTimestampSeriesArithmetic(object):
         if op_str not in ['__add__', '__radd__', '__sub__', '__rsub__']:
             check(dt2, td2)
 
-    @pytest.mark.parametrize('klass', [Series, pd.Index])
-    def test_sub_datetime64_not_ns(self, klass):
-        # GH#7996
+    def test_sub_datetime64_not_ns(self, box):
+        # GH#7996 operation with non-nano datetime64 scalar
         dt64 = np.datetime64('2013-01-01')
         assert dt64.dtype == 'datetime64[D]'
 
-        obj = klass(date_range('20130101', periods=3))
-        res = obj - dt64
-        expected = klass([Timedelta(days=0), Timedelta(days=1),
-                          Timedelta(days=2)])
-        tm.assert_equal(res, expected)
+        obj = date_range('20130101', periods=3)
+        obj = tm.box_expected(obj, box)
 
-        res = dt64 - obj
-        tm.assert_equal(res, -expected)
+        expected = TimedeltaIndex([Timedelta(days=0), Timedelta(days=1),
+                                   Timedelta(days=2)])
+        expected = tm.box_expected(expected, box)
+
+        result = obj - dt64
+        tm.assert_equal(result, expected)
+
+        result = dt64 - obj
+        tm.assert_equal(result, -expected)
 
     def test_sub_single_tz(self):
         # GH12290
@@ -1037,14 +1071,14 @@ class TestDatetimeIndexArithmetic(object):
         with pytest.raises(TypeError):
             op(dti, other)
 
-    def test_dti_add_timestamp_raises(self, box):
+    def test_dti_add_timestamp_raises(self, box_with_datetime):
         # GH#22163 ensure DataFrame doesn't cast Timestamp to i8
         idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
-        idx = tm.box_expected(idx, box)
+        idx = tm.box_expected(idx, box_with_datetime)
         msg = "cannot add"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             idx + Timestamp('2011-01-01')
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             Timestamp('2011-01-01') + idx
 
     # -------------------------------------------------------------
@@ -1152,16 +1186,21 @@ class TestDatetimeIndexArithmetic(object):
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and timedelta-like
 
-    def test_dti_add_timedeltalike(self, tz_naive_fixture, two_hours, box):
+    def test_dti_add_timedeltalike(self, tz_naive_fixture, two_hours,
+                                   box_with_datetime):
         # GH#22005, GH#22163 check DataFrame doesn't raise TypeError
+        box = box_with_datetime
+
         tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
-        rng = tm.box_expected(rng, box)
+
+        # FIXME: calling with transpose=True raises ValueError
+        rng = tm.box_expected(rng, box, transpose=False)
 
         result = rng + two_hours
         expected = pd.date_range('2000-01-01 02:00',
                                  '2000-02-01 02:00', tz=tz)
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, box, transpose=False)
         tm.assert_equal(result, expected)
 
     def test_dti_iadd_timedeltalike(self, tz_naive_fixture, two_hours):
@@ -1187,6 +1226,28 @@ class TestDatetimeIndexArithmetic(object):
                                  '2000-01-31 22:00', tz=tz)
         rng -= two_hours
         tm.assert_index_equal(rng, expected)
+
+    def test_dt64arr_add_sub_td64_nat(self, box, tz_naive_fixture):
+        # GH#23320 special handling for timedelta64("NaT")
+        tz = tz_naive_fixture
+
+        dti = pd.date_range("1994-04-01", periods=9, tz=tz, freq="QS")
+        other = np.timedelta64("NaT")
+        expected = pd.DatetimeIndex(["NaT"] * 9, tz=tz)
+
+        # FIXME: fails with transpose=True due to tz-aware DataFrame
+        #  transpose bug
+        obj = tm.box_expected(dti, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
+
+        result = obj + other
+        tm.assert_equal(result, expected)
+        result = other + obj
+        tm.assert_equal(result, expected)
+        result = obj - other
+        tm.assert_equal(result, expected)
+        with pytest.raises(TypeError):
+            other - obj
 
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and TimedeltaIndex/array
@@ -1248,7 +1309,7 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(result, expected)
 
         msg = 'cannot subtract .*TimedeltaIndex'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             tdi - dti
 
         # sub with timedelta64 array
@@ -1256,7 +1317,7 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(result, expected)
 
         msg = 'cannot subtract DatetimeIndex from'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             tdi.values - dti
 
     def test_dti_isub_tdi(self, tz_naive_fixture):
@@ -1272,7 +1333,7 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(result, expected)
 
         msg = 'cannot subtract .*TimedeltaIndex'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             tdi -= dti
 
         # isub with timedelta64 array
@@ -1283,7 +1344,7 @@ class TestDatetimeIndexArithmetic(object):
         msg = '|'.join(['cannot perform __neg__ with this index type:',
                         'ufunc subtract cannot use operands with types',
                         'cannot subtract DatetimeIndex from'])
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             tdi.values -= dti
 
     # -------------------------------------------------------------
@@ -1303,9 +1364,9 @@ class TestDatetimeIndexArithmetic(object):
         # GH#9631
         dti = DatetimeIndex(['2011-01-01', '2011-01-02']).tz_localize(tz)
         msg = 'cannot add DatetimeIndex and {0}'.format(type(addend).__name__)
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             dti + addend
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             addend + dti
 
     # -------------------------------------------------------------
@@ -1411,36 +1472,43 @@ class TestDatetimeIndexArithmetic(object):
         result = dti2 - dti1
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize('freq', [None, 'D'])
-    def test_sub_period(self, freq, box):
+    @pytest.mark.parametrize('dti_freq', [None, 'D'])
+    def test_dt64arr_add_sub_period(self, dti_freq, box_with_datetime):
         # GH#13078
         # not supported, check TypeError
         p = pd.Period('2011-01-01', freq='D')
 
-        idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=freq)
-        idx = tm.box_expected(idx, box)
+        idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
+        idx = tm.box_expected(idx, box_with_datetime)
 
         with pytest.raises(TypeError):
+            idx + p
+        with pytest.raises(TypeError):
+            p + idx
+        with pytest.raises(TypeError):
             idx - p
-
         with pytest.raises(TypeError):
             p - idx
 
-    @pytest.mark.parametrize('op', [operator.add, ops.radd,
-                                    operator.sub, ops.rsub])
     @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
     @pytest.mark.parametrize('dti_freq', [None, 'D'])
-    def test_dti_sub_pi(self, dti_freq, pi_freq, op, box_df_broadcast_failure):
+    def test_dti_add_sub_pi(self, dti_freq, pi_freq,
+                            box_with_datetime, box_with_period):
         # GH#20049 subtracting PeriodIndex should raise TypeError
-        box = box_df_broadcast_failure
-
         dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
         pi = dti.to_period(pi_freq)
 
-        dti = tm.box_expected(dti, box)
-        # TODO: Also box pi?
+        dtarr = tm.box_expected(dti, box_with_datetime)
+        parr = tm.box_expected(pi, box_with_period)
+
         with pytest.raises(TypeError):
-            op(dti, pi)
+            dtarr + parr
+        with pytest.raises(TypeError):
+            parr + dtarr
+        with pytest.raises(TypeError):
+            dtarr - parr
+        with pytest.raises(TypeError):
+            parr - dtarr
 
     # -------------------------------------------------------------------
     # TODO: Most of this block is moved from series or frame tests, needs
@@ -1760,8 +1828,10 @@ class TestDatetimeIndexArithmetic(object):
             res3 = dti - other
         tm.assert_series_equal(res3, expected_sub)
 
-    def test_dti_add_offset_tzaware(self, tz_aware_fixture, box):
+    def test_dti_add_offset_tzaware(self, tz_aware_fixture, box_with_datetime):
         # GH#21610, GH#22163 ensure DataFrame doesn't return object-dtype
+        box = box_with_datetime
+
         timezone = tz_aware_fixture
         if timezone == 'US/Pacific':
             dates = date_range('2012-11-01', periods=3, tz=timezone)
@@ -1773,8 +1843,9 @@ class TestDatetimeIndexArithmetic(object):
         expected = DatetimeIndex(['2010-11-01 05:00', '2010-11-01 06:00',
                                   '2010-11-01 07:00'], freq='H', tz=timezone)
 
-        dates = tm.box_expected(dates, box)
-        expected = tm.box_expected(expected, box)
+        # FIXME: these raise ValueError with transpose=True
+        dates = tm.box_expected(dates, box, transpose=False)
+        expected = tm.box_expected(expected, box, transpose=False)
 
         # TODO: parametrize over the scalar being added?  radd?  sub?
         offset = dates + pd.offsets.Hour(5)

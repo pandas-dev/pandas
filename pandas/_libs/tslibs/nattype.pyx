@@ -648,7 +648,7 @@ class NaTType(_NaT):
         minute : int, optional
         second : int, optional
         microsecond : int, optional
-        nanosecond: int, optional
+        nanosecond : int, optional
         tzinfo : tz-convertible, optional
         fold : int, optional, default is 0
             added in 3.6, NotImplemented

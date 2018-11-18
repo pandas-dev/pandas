@@ -1,10 +1,6 @@
 version: 2
 jobs:
-
-  # --------------------------------------------------------------------------
-  # 1. py36_locale
-  # --------------------------------------------------------------------------
-  py36_locale:
+  build:
     docker:
       - image: continuumio/miniconda:latest
       # databases configuration
@@ -21,7 +17,7 @@ jobs:
 
     environment:
       JOB: "3.6_LOCALE"
-      ENV_FILE: "ci/circle-36-locale.yaml"
+      ENV_FILE: "ci/deps/circle-36-locale.yaml"
       LOCALE_OVERRIDE: "zh_CN.UTF-8"
       MINICONDA_DIR: /home/ubuntu/miniconda3
     steps:
@@ -34,9 +30,3 @@ jobs:
       - run:
           name: test
           command: ./ci/circle/run_circle.sh  --skip-slow --skip-network
-
-workflows:
-  version: 2
-  build_and_test:
-    jobs:
-      - py36_locale

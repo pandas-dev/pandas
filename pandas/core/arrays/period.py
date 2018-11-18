@@ -35,7 +35,7 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCPeriodIndex
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.missing import pad_1d, backfill_1d
 
 import pandas.core.common as com
@@ -146,9 +146,11 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
     See Also
     --------
-    period_array : Create a new PeriodArray
-    pandas.PeriodIndex : Immutable Index for period data
+    period_array : Create a new PeriodArray.
+    pandas.PeriodIndex : Immutable Index for period data.
     """
+    # array priority higher than numpy scalars
+    __array_priority__ = 1000
     _attributes = ["freq"]
     _typ = "periodarray"  # ABCPeriodArray
 
@@ -214,14 +216,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         ordinals = libperiod.extract_ordinals(periods, freq)
         return cls(ordinals, freq=freq)
 
-    def _values_for_factorize(self):
-        return self.asi8, iNaT
-
-    @classmethod
-    def _from_factorized(cls, values, original):
-        # type: (Sequence[Optional[Period]], PeriodArray) -> PeriodArray
-        return cls(values, freq=original.freq)
-
     @classmethod
     def _from_datetime64(cls, data, freq, tz=None):
         """Construct a PeriodArray from a datetime64 array
@@ -260,20 +254,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
         return subarr, freq
 
-    @classmethod
-    def _concat_same_type(cls, to_concat):
-        freq = {x.freq for x in to_concat}
-        assert len(freq) == 1
-        freq = list(freq)[0]
-        values = np.concatenate([x._data for x in to_concat])
-        return cls(values, freq=freq)
-
     # --------------------------------------------------------------------
     # Data / Attributes
-    @property
-    def nbytes(self):
-        # TODO(DatetimeArray): remove
-        return self._data.nbytes
 
     @cache_readonly
     def dtype(self):
@@ -282,10 +264,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     @property
     def _ndarray_values(self):
         # Ordinals
-        return self._data
-
-    @property
-    def asi8(self):
         return self._data
 
     @property
@@ -327,6 +305,50 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
     @property
     def end_time(self):
         return self.to_timestamp(how='end')
+
+    def to_timestamp(self, freq=None, how='start'):
+        """
+        Cast to DatetimeArray/Index.
+
+        Parameters
+        ----------
+        freq : string or DateOffset, optional
+            Target frequency. The default is 'D' for week or longer,
+            'S' otherwise
+        how : {'s', 'e', 'start', 'end'}
+
+        Returns
+        -------
+        DatetimeArray/Index
+        """
+        from pandas.core.arrays import DatetimeArrayMixin
+
+        how = libperiod._validate_end_alias(how)
+
+        end = how == 'E'
+        if end:
+            if freq == 'B':
+                # roll forward to ensure we land on B date
+                adjust = Timedelta(1, 'D') - Timedelta(1, 'ns')
+                return self.to_timestamp(how='start') + adjust
+            else:
+                adjust = Timedelta(1, 'ns')
+                return (self + self.freq).to_timestamp(how='start') - adjust
+
+        if freq is None:
+            base, mult = frequencies.get_freq_code(self.freq)
+            freq = frequencies.get_to_timestamp_base(base)
+        else:
+            freq = Period._maybe_convert_freq(freq)
+
+        base, mult = frequencies.get_freq_code(freq)
+        new_data = self.asfreq(freq, how=how)
+
+        new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
+        return DatetimeArrayMixin(new_data, freq='infer')
+
+    # --------------------------------------------------------------------
+    # Array-like / EA-Interface Methods
 
     def __repr__(self):
         return '<{}>\n{}\nLength: {}, dtype: {}'.format(
@@ -377,32 +399,20 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             raise TypeError(msg)
         self._data[key] = value
 
-    def take(self, indices, allow_fill=False, fill_value=None):
-        if allow_fill:
-            if isna(fill_value):
-                fill_value = iNaT
-            elif isinstance(fill_value, Period):
-                if self.freq != fill_value.freq:
-                    msg = DIFFERENT_FREQ_INDEX.format(
-                        self.freq.freqstr,
-                        fill_value.freqstr
-                    )
-                    raise IncompatibleFrequency(msg)
-
-                fill_value = fill_value.ordinal
-            else:
-                msg = "'fill_value' should be a Period. Got '{}'."
-                raise ValueError(msg.format(fill_value))
-
-        new_values = algos.take(self._data,
-                                indices,
-                                allow_fill=allow_fill,
-                                fill_value=fill_value)
-
-        return type(self)(new_values, self.freq)
-
-    def isna(self):
-        return self._data == iNaT
+    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
+    def _validate_fill_value(self, fill_value):
+        if isna(fill_value):
+            fill_value = iNaT
+        elif isinstance(fill_value, Period):
+            if fill_value.freq != self.freq:
+                msg = DIFFERENT_FREQ_INDEX.format(self.freq.freqstr,
+                                                  fill_value.freqstr)
+                raise IncompatibleFrequency(msg)
+            fill_value = fill_value.ordinal
+        else:
+            raise ValueError("'fill_value' should be a Period. "
+                             "Got '{got}'.".format(got=fill_value))
+        return fill_value
 
     def fillna(self, value=None, method=None, limit=None):
         # TODO(#20300)
@@ -439,9 +449,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             new_values = self.copy()
         return new_values
 
-    def copy(self, deep=False):
-        return type(self)(self._data.copy(), freq=self.freq)
-
     def value_counts(self, dropna=False):
         from pandas import Series, PeriodIndex
 
@@ -456,6 +463,8 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         index = PeriodIndex(cls(result.index, freq=self.freq),
                             name=result.index.name)
         return Series(result.values, index=index, name=result.name)
+
+    # --------------------------------------------------------------------
 
     def shift(self, periods=1):
         """
@@ -568,49 +577,9 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
 
         return type(self)(new_data, freq=freq)
 
-    def to_timestamp(self, freq=None, how='start'):
-        """
-        Cast to DatetimeArray/Index
-
-        Parameters
-        ----------
-        freq : string or DateOffset, optional
-            Target frequency. The default is 'D' for week or longer,
-            'S' otherwise
-        how : {'s', 'e', 'start', 'end'}
-
-        Returns
-        -------
-        DatetimeArray/Index
-        """
-        from pandas.core.arrays import DatetimeArrayMixin
-
-        how = libperiod._validate_end_alias(how)
-
-        end = how == 'E'
-        if end:
-            if freq == 'B':
-                # roll forward to ensure we land on B date
-                adjust = Timedelta(1, 'D') - Timedelta(1, 'ns')
-                return self.to_timestamp(how='start') + adjust
-            else:
-                adjust = Timedelta(1, 'ns')
-                return (self + self.freq).to_timestamp(how='start') - adjust
-
-        if freq is None:
-            base, mult = frequencies.get_freq_code(self.freq)
-            freq = frequencies.get_to_timestamp_base(base)
-        else:
-            freq = Period._maybe_convert_freq(freq)
-
-        base, mult = frequencies.get_freq_code(freq)
-        new_data = self.asfreq(freq, how=how)
-
-        new_data = libperiod.periodarr_to_dt64arr(new_data.asi8, base)
-        return DatetimeArrayMixin(new_data, freq='infer')
-
     # ------------------------------------------------------------------
     # Formatting
+
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         """ actually format my specific types """
         # TODO(DatetimeArray): remove
@@ -631,11 +600,15 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
             values = np.array([formatter(dt) for dt in values])
         return values
 
+    # Delegation...
+    def strftime(self, date_format):
+        return self._format_native_types(date_format=date_format)
+
     def repeat(self, repeats, *args, **kwargs):
         """
-        Repeat elements of a Categorical.
+        Repeat elements of a PeriodArray.
 
-        See also
+        See Also
         --------
         numpy.ndarray.repeat
         """
@@ -643,10 +616,6 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         nv.validate_repeat(args, kwargs)
         values = self._data.repeat(repeats)
         return type(self)(values, self.freq)
-
-    # Delegation...
-    def strftime(self, date_format):
-        return self._format_native_types(date_format=date_format)
 
     def astype(self, dtype, copy=True):
         # TODO: Figure out something better here...
@@ -761,12 +730,15 @@ class PeriodArray(dtl.DatetimeLikeArrayMixin, ExtensionArray):
         assert isinstance(self.freq, Tick)  # checked by calling function
         assert isinstance(other, (timedelta, np.timedelta64, Tick))
 
-        delta = self._check_timedeltalike_freq_compat(other)
+        if notna(other):
+            # special handling for np.timedelta64("NaT"), avoid calling
+            #  _check_timedeltalike_freq_compat as that would raise TypeError
+            other = self._check_timedeltalike_freq_compat(other)
 
         # Note: when calling parent class's _add_timedeltalike_scalar,
         #  it will call delta_to_nanoseconds(delta).  Because delta here
         #  is an integer, delta_to_nanoseconds will return it unchanged.
-        ordinals = super(PeriodArray, self)._add_timedeltalike_scalar(delta)
+        ordinals = super(PeriodArray, self)._add_timedeltalike_scalar(other)
         return ordinals
 
     def _add_delta_tdi(self, other):
