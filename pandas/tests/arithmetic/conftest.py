@@ -5,10 +5,6 @@ import numpy as np
 import pandas as pd
 
 from pandas.compat import long
-from pandas.core.arrays import (
-    PeriodArray,
-    DatetimeArrayMixin as DatetimeArray,
-    TimedeltaArrayMixin as TimedeltaArray)
 import pandas.util.testing as tm
 
 
@@ -190,24 +186,6 @@ def box_transpose_fail(request):
     return request.param
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, PeriodArray],
-                ids=id_func)
-def box_with_period(request):
-    """
-    Like `box`, but specific to PeriodDtype for also testing PeriodArray
-    """
-    return request.param
-
-
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, DatetimeArray],
-                ids=id_func)
-def box_with_datetime(request):
-    """
-    Like `box`, but specific to datetime64 for also testing DatetimeArray
-    """
-    return request.param
-
-
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array],
                 ids=id_func)
 def box_with_array(request):
@@ -216,3 +194,7 @@ def box_with_array(request):
     classes
     """
     return request.param
+
+
+# alias so we can use the same fixture for multiple parameters in a test
+box_with_array2 = box_with_array

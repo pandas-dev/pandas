@@ -38,7 +38,7 @@ class TestTimedelta64ArrayComparisons(object):
     # TODO: All of these need to be parametrized over box
 
     def test_compare_timedelta_series(self):
-        # regresssion test for GH5963
+        # regresssion test for GH#5963
         s = pd.Series([timedelta(days=1), timedelta(days=2)])
         actual = s > timedelta(days=1)
         expected = pd.Series([False, True])
@@ -53,9 +53,11 @@ class TestTimedelta64ArrayComparisons(object):
                 left > right
 
             with pytest.raises(TypeError):
+                # FIXME: Shouldn't this return all-False?
                 left == right
 
             with pytest.raises(TypeError):
+                # FIXME: Shouldn't this return all-True?
                 left != right
 
     @pytest.mark.parametrize('dtype', [None, object])
