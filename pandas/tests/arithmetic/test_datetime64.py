@@ -976,11 +976,14 @@ class TestDatetime64Arithmetic(object):
         with pytest.raises(TypeError):
             per - dtarr
 
+
+class TestDatetime64DateOffsetArithmetic(object):
+
     # -------------------------------------------------------------
-    # Addition/Subtraction of DateOffsets
+    # Tick DateOffsets
 
     # TODO: parametrize over timezone?
-    def test_dt64_series_add_tick_DateOffset(self, box_with_array):
+    def test_dt64arr_series_add_tick_DateOffset(self, box_with_array):
         # GH#4532
         # operate with pd.offsets
         ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
@@ -996,7 +999,7 @@ class TestDatetime64Arithmetic(object):
         result2 = pd.offsets.Second(5) + ser
         tm.assert_equal(result2, expected)
 
-    def test_dt64_series_sub_tick_DateOffset(self, box_with_array):
+    def test_dt64arr_series_sub_tick_DateOffset(self, box_with_array):
         # GH#4532
         # operate with pd.offsets
         ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
@@ -1014,6 +1017,51 @@ class TestDatetime64Arithmetic(object):
 
         with pytest.raises(TypeError):
             pd.offsets.Second(5) - ser
+
+    @pytest.mark.parametrize('cls_name', ['Day', 'Hour', 'Minute', 'Second',
+                                          'Milli', 'Micro', 'Nano'])
+    def test_dt64arr_add_sub_tick_DateOffset_smoke(self, cls_name,
+                                                   box_with_array):
+        # GH#4532
+        # smoke tests for valid DateOffsets
+        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
+        ser = tm.box_expected(ser, box_with_array)
+
+        offset_cls = getattr(pd.offsets, cls_name)
+        ser + offset_cls(5)
+        offset_cls(5) + ser
+        ser - offset_cls(5)
+
+    def test_dti_add_tick_tzaware(self, tz_aware_fixture, box_with_array):
+        # GH#21610, GH#22163 ensure DataFrame doesn't return object-dtype
+        tz = tz_aware_fixture
+        if tz == 'US/Pacific':
+            dates = date_range('2012-11-01', periods=3, tz=tz)
+            offset = dates + pd.offsets.Hour(5)
+            assert dates[0] + pd.offsets.Hour(5) == offset[0]
+
+        dates = date_range('2010-11-01 00:00',
+                           periods=3, tz=tz, freq='H')
+        expected = DatetimeIndex(['2010-11-01 05:00', '2010-11-01 06:00',
+                                  '2010-11-01 07:00'], freq='H', tz=tz)
+
+        # FIXME: these raise ValueError with transpose=True
+        dates = tm.box_expected(dates, box_with_array, transpose=False)
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
+
+        # TODO: parametrize over the scalar being added?  radd?  sub?
+        offset = dates + pd.offsets.Hour(5)
+        tm.assert_equal(offset, expected)
+        offset = dates + np.timedelta64(5, 'h')
+        tm.assert_equal(offset, expected)
+        offset = dates + timedelta(hours=5)
+        tm.assert_equal(offset, expected)
+
+    # -------------------------------------------------------------
+    # RelativeDelta DateOffsets
+
+    # -------------------------------------------------------------
+    # Non-Tick, Non-RelativeDelta DateOffsets
 
 
 class TestDatetime64OverflowHandling(object):
@@ -1205,17 +1253,6 @@ class TestTimestampSeriesArithmetic(object):
         exp = Series([Timedelta('1 days'), pd.NaT])
         tm.assert_series_equal(s - dt, exp)
         tm.assert_series_equal(s - Timestamp(dt), exp)
-
-    @pytest.mark.parametrize('cls_name', ['Day', 'Hour', 'Minute', 'Second',
-                                          'Milli', 'Micro', 'Nano'])
-    def test_dt64_series_add_tick_DateOffset_smoke(self, cls_name):
-        # GH#4532
-        # smoke tests for valid DateOffsets
-        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
-
-        offset_cls = getattr(pd.offsets, cls_name)
-        ser + offset_cls(5)
-        offset_cls(5) + ser
 
     def test_dt64_series_add_mixed_tick_DateOffset(self):
         # GH#4532
@@ -1886,31 +1923,6 @@ class TestDatetimeIndexArithmetic(object):
                                         clear=[pd.core.arrays.datetimelike]):
             res3 = dti - other
         tm.assert_series_equal(res3, expected_sub)
-
-    def test_dti_add_offset_tzaware(self, tz_aware_fixture, box_with_array):
-        # GH#21610, GH#22163 ensure DataFrame doesn't return object-dtype
-        timezone = tz_aware_fixture
-        if timezone == 'US/Pacific':
-            dates = date_range('2012-11-01', periods=3, tz=timezone)
-            offset = dates + pd.offsets.Hour(5)
-            assert dates[0] + pd.offsets.Hour(5) == offset[0]
-
-        dates = date_range('2010-11-01 00:00',
-                           periods=3, tz=timezone, freq='H')
-        expected = DatetimeIndex(['2010-11-01 05:00', '2010-11-01 06:00',
-                                  '2010-11-01 07:00'], freq='H', tz=timezone)
-
-        # FIXME: these raise ValueError with transpose=True
-        dates = tm.box_expected(dates, box_with_array, transpose=False)
-        expected = tm.box_expected(expected, box_with_array, transpose=False)
-
-        # TODO: parametrize over the scalar being added?  radd?  sub?
-        offset = dates + pd.offsets.Hour(5)
-        tm.assert_equal(offset, expected)
-        offset = dates + np.timedelta64(5, 'h')
-        tm.assert_equal(offset, expected)
-        offset = dates + timedelta(hours=5)
-        tm.assert_equal(offset, expected)
 
 
 def test_dt64_with_offset_array(box_with_array):
