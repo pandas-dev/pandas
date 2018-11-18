@@ -28,6 +28,8 @@ from util cimport (is_timedelta64_object, is_datetime64_object,
                    is_integer_object, is_float_object,
                    is_string_object)
 
+from ccalendar import DAY_SECONDS
+
 from np_datetime cimport (cmp_scalar, reverse_ops, td64_to_tdstruct,
                           pandas_timedeltastruct)
 
@@ -37,8 +39,6 @@ from offsets cimport to_offset
 
 # ----------------------------------------------------------------------
 # Constants
-
-cdef int64_t DAY_NS = 86400000000000LL
 
 # components named tuple
 Components = collections.namedtuple('Components', [
@@ -266,10 +266,10 @@ cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
         m = 1000000000L * 2629746
         p = 9
     elif unit == 'W':
-        m = 1000000000L * 86400 * 7
+        m = 1000000000L * DAY_SECONDS * 7
         p = 9
     elif unit == 'D' or unit == 'd':
-        m = 1000000000L * 86400
+        m = 1000000000L * DAY_SECONDS
         p = 9
     elif unit == 'h':
         m = 1000000000L * 3600

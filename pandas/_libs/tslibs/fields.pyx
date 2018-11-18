@@ -12,7 +12,7 @@ cimport numpy as cnp
 from numpy cimport ndarray, int64_t, int32_t, int8_t
 cnp.import_array()
 
-from ccalendar import get_locale_names, MONTHS_FULL, DAYS_FULL
+from ccalendar import get_locale_names, MONTHS_FULL, DAYS_FULL, DAY_SECONDS
 from ccalendar cimport (get_days_in_month, is_leapyear, dayofweek,
                         get_week_of_year, get_day_of_year)
 from np_datetime cimport (npy_datetimestruct, pandas_timedeltastruct,
@@ -36,7 +36,8 @@ def get_time_micros(ndarray[int64_t] dtindex):
     cdef:
         ndarray[int64_t] micros
 
-    micros = np.mod(dtindex, 86400000000000, dtype=np.int64) // 1000LL
+    micros = np.mod(dtindex, DAY_SECONDS * 1000000000, dtype=np.int64)
+    micros //= 1000LL
     return micros
 
 

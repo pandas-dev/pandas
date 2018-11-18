@@ -27,7 +27,7 @@ cdef int64_t NPY_NAT = get_nat()
 
 # ----------------------------------------------------------------------
 
-cdef inline bint is_utc(object tz):
+cpdef inline bint is_utc(object tz):
     return tz is UTC or isinstance(tz, _dateutil_tzutc)
 
 
