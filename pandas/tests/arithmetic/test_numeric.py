@@ -806,6 +806,17 @@ class TestAdditionSubtraction(object):
 
 
 class TestUFuncCompat(object):
+
+    @pytest.mark.parametrize('holder', [pd.Int64Index, pd.UInt64Index,
+                                        pd.Float64Index, pd.Series])
+    def test_ufunc_compat(self, holder):
+        box = pd.Series if holder is pd.Series else pd.Index
+
+        idx = holder(np.arange(5, dtype='int64'))
+        result = np.sin(idx)
+        expected = box(np.sin(np.arange(5, dtype='int64')))
+        tm.assert_equal(result, expected)
+
     @pytest.mark.parametrize('holder', [pd.Int64Index, pd.UInt64Index,
                                         pd.Float64Index, pd.Series])
     def test_ufunc_coercions(self, holder):
