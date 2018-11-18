@@ -30,11 +30,13 @@ class TestTimestampArithmetic(object):
 
     def test_overflow_offset2(self):
         # xref https://github.com/pandas-dev/pandas/issues/14080
+        # used to crash, so check for proper overflow exception
 
         stamp = Timestamp("2000/1/1")
         offset_overflow = to_offset("D")*100**25
         offset_no_overflow = to_offset("D")*100
 
+        # overflow expected
         with pytest.raises(OverflowError):
             stamp + offset_overflow
 
@@ -44,6 +46,7 @@ class TestTimestampArithmetic(object):
         with pytest.raises(OverflowError):
             stamp - offset_overflow
 
+        # no overflow expected
         expected = Timestamp("2000/04/10")
         assert stamp + offset_no_overflow == expected
 
