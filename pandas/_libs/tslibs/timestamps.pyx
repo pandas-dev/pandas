@@ -21,6 +21,7 @@ from util cimport (is_datetime64_object, is_timedelta64_object,
                    is_offset_object)
 
 cimport ccalendar
+from ccalendar import DAY_SECONDS
 from conversion import tz_localize_to_utc, normalize_i8_timestamps
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
@@ -700,6 +701,9 @@ class Timestamp(_Timestamp):
             elif tz is not None:
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
+            # User passed tzinfo instead of tz; avoid silently ignoring
+            tz, tzinfo = tzinfo, None
+
         if is_string_object(ts_input):
             # User passed a date string to parse.
             # Check that the user didn't also pass a date attribute kwarg.
@@ -709,24 +713,23 @@ class Timestamp(_Timestamp):
 
         elif ts_input is _no_input:
             # User passed keyword arguments.
-            if tz is None:
-                # Handle the case where the user passes `tz` and not `tzinfo`
-                tz = tzinfo
-            return Timestamp(datetime(year, month, day, hour or 0,
-                                      minute or 0, second or 0,
-                                      microsecond or 0, tzinfo),
-                             nanosecond=nanosecond, tz=tz)
+            ts_input = datetime(year, month, day, hour or 0,
+                                minute or 0, second or 0,
+                                microsecond or 0)
         elif is_integer_object(freq):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
             # microsecond[, nanosecond[, tzinfo]]]]]])
-            return Timestamp(datetime(ts_input, freq, tz, unit or 0,
-                                      year or 0, month or 0, day or 0,
-                                      minute), nanosecond=hour, tz=minute)
+            ts_input = datetime(ts_input, freq, tz, unit or 0,
+                                year or 0, month or 0, day or 0)
+            nanosecond = hour
+            tz = minute
+            freq = None
 
-        if tzinfo is not None:
-            # User passed tzinfo instead of tz; avoid silently ignoring
-            tz, tzinfo = tzinfo, None
+        if getattr(ts_input, 'tzinfo', None) is not None and tz is not None:
+            warnings.warn("Passing a datetime or Timestamp with tzinfo and the"
+                          " tz parameter will raise in the future. Use"
+                          " tz_convert instead.", FutureWarning)
 
         ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
 
@@ -1285,6 +1288,10 @@ class Timestamp(_Timestamp):
         Normalize Timestamp to midnight, preserving
         tz information.
         """
+        if self.tz is None or is_utc(self.tz):
+            DAY_NS = DAY_SECONDS * 1000000000
+            normalized_value = self.value - (self.value % DAY_NS)
+            return Timestamp(normalized_value).tz_localize(self.tz)
         normalized_value = normalize_i8_timestamps(
             np.array([self.value], dtype='i8'), tz=self.tz)[0]
         return Timestamp(normalized_value).tz_localize(self.tz)
