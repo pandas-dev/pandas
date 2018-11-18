@@ -2,44 +2,36 @@
 from datetime import datetime
 
 import numpy as np
+
+from pandas._libs import (
+    NaT, Timedelta, index as libindex, join as libjoin, lib)
+import pandas.compat as compat
+from pandas.util._decorators import Appender, Substitution
+
 from pandas.core.dtypes.common import (
-    _TD_DTYPE,
-    is_integer,
-    is_float,
-    is_list_like,
-    is_scalar,
-    is_timedelta64_dtype,
-    is_timedelta64_ns_dtype,
-    pandas_dtype,
-    ensure_int64)
+    _TD_DTYPE, ensure_int64, is_float, is_integer, is_list_like, is_scalar,
+    is_timedelta64_dtype, is_timedelta64_ns_dtype, pandas_dtype)
+import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays.timedeltas import (
-    TimedeltaArrayMixin, _is_convertible_to_td, _to_m8)
 from pandas.core.arrays import datetimelike as dtl
-
-from pandas.core.indexes.base import Index
+from pandas.core.arrays.timedeltas import (
+    TimedeltaArrayMixin as TimedeltaArray, _is_convertible_to_td, _to_m8,
+    sequence_to_td64ns)
+from pandas.core.base import _shared_docs
+import pandas.core.common as com
+from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.datetimelike import (
+    DatetimeIndexOpsMixin, TimelikeOps, wrap_arithmetic_op, wrap_array_method,
+    wrap_field_accessor)
 from pandas.core.indexes.numeric import Int64Index
-import pandas.compat as compat
+from pandas.core.ops import get_op_result_name
+from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type
 
 from pandas.tseries.frequencies import to_offset
-from pandas.core.base import _shared_docs
-from pandas.core.indexes.base import _index_shared_docs
-import pandas.core.common as com
-from pandas.core.ops import get_op_result_name
-import pandas.core.dtypes.concat as _concat
-from pandas.util._decorators import Appender, Substitution
-from pandas.core.indexes.datetimelike import (
-    TimelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op,
-    wrap_array_method, wrap_field_accessor)
-from pandas.core.tools.timedeltas import (
-    to_timedelta, _coerce_scalar_to_timedelta_type)
-from pandas._libs import (lib, index as libindex,
-                          join as libjoin, Timedelta, NaT)
-from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
 
-class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
+class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
                      TimelikeOps, Int64Index):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
@@ -49,7 +41,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
     ----------
     data  : array-like (1-dimensional), optional
         Optional timedelta-like data to construct index with
-    unit: unit of the arg (D,h,m,s,ms,us,ns) denote the unit, optional
+    unit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, optional
         which is an integer/float number
     freq : string or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
@@ -80,10 +72,10 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
 
     See Also
     ---------
-    Index : The base pandas Index type
+    Index : The base pandas Index type.
     Timedelta : Represents a duration between two dates or times.
-    DatetimeIndex : Index of datetime64 data
-    PeriodIndex : Index of Period data
+    DatetimeIndex : Index of datetime64 data.
+    PeriodIndex : Index of Period data.
 
     Attributes
     ----------
@@ -139,12 +131,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 periods=None, closed=None, dtype=None, copy=False,
                 name=None, verify_integrity=True):
 
-        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
-            if copy:
-                return data.copy()
-            else:
-                return data._shallow_copy()
-
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         if data is None:
@@ -154,32 +140,31 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             result.name = name
             return result
 
-        if unit is not None:
-            data = to_timedelta(data, unit=unit, box=False)
-
         if is_scalar(data):
-            raise ValueError('TimedeltaIndex() must be called with a '
-                             'collection of some kind, {data} was passed'
-                             .format(data=repr(data)))
+            raise TypeError('{cls}() must be called with a '
+                            'collection of some kind, {data} was passed'
+                            .format(cls=cls.__name__, data=repr(data)))
 
-        # convert if not already
-        if getattr(data, 'dtype', None) != _TD_DTYPE:
-            data = to_timedelta(data, unit=unit, box=False)
-        elif copy:
-            data = np.array(data, copy=True)
-
-        data = np.array(data, copy=False)
-        if data.dtype == np.object_:
-            data = array_to_timedelta64(data)
-        if data.dtype != _TD_DTYPE:
-            if is_timedelta64_dtype(data):
-                # non-nano unit
-                # TODO: watch out for overflows
-                data = data.astype(_TD_DTYPE)
+        if isinstance(data, TimedeltaIndex) and freq is None and name is None:
+            if copy:
+                return data.copy()
             else:
-                data = ensure_int64(data).view(_TD_DTYPE)
+                return data._shallow_copy()
 
-        assert data.dtype == 'm8[ns]', data.dtype
+        # - Cases checked above all return/raise before reaching here - #
+
+        data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
+        if inferred_freq is not None:
+            if freq is not None and freq != inferred_freq:
+                raise ValueError('Inferred frequency {inferred} from passed '
+                                 'values does not conform to passed frequency '
+                                 '{passed}'
+                                 .format(inferred=inferred_freq,
+                                         passed=freq.freqstr))
+            elif freq_infer:
+                freq = inferred_freq
+                freq_infer = False
+            verify_integrity = False
 
         subarr = cls._simple_new(data, name=name, freq=freq)
         # check that we are matching freqs
@@ -188,9 +173,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 cls._validate_frequency(subarr, freq)
 
         if freq_infer:
-            inferred = subarr.inferred_freq
-            if inferred:
-                subarr.freq = to_offset(inferred)
+            subarr.freq = to_offset(subarr.inferred_freq)
 
         return subarr
 
@@ -232,8 +215,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         return attrs
 
     def _evaluate_with_timedelta_like(self, other, op):
-        result = TimedeltaArrayMixin._evaluate_with_timedelta_like(self, other,
-                                                                   op)
+        result = TimedeltaArray._evaluate_with_timedelta_like(self, other, op)
         return wrap_arithmetic_op(self, other, result)
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
@@ -245,12 +227,12 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
-    days = wrap_field_accessor(TimedeltaArrayMixin.days)
-    seconds = wrap_field_accessor(TimedeltaArrayMixin.seconds)
-    microseconds = wrap_field_accessor(TimedeltaArrayMixin.microseconds)
-    nanoseconds = wrap_field_accessor(TimedeltaArrayMixin.nanoseconds)
+    days = wrap_field_accessor(TimedeltaArray.days)
+    seconds = wrap_field_accessor(TimedeltaArray.seconds)
+    microseconds = wrap_field_accessor(TimedeltaArray.microseconds)
+    nanoseconds = wrap_field_accessor(TimedeltaArray.nanoseconds)
 
-    total_seconds = wrap_array_method(TimedeltaArrayMixin.total_seconds, True)
+    total_seconds = wrap_array_method(TimedeltaArray.total_seconds, True)
 
     # -------------------------------------------------------------------
 
