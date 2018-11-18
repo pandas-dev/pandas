@@ -449,24 +449,21 @@ class TestToHTML(object):
         expected = expected_html(datapath, 'gh22579_expected_output')
         assert result == expected
 
+    @pytest.mark.parametrize(
+        ('idx_flag', 'named_index', 'expected_output'),
+        [(True, True, 'gh22579_truncation_index_true'),
+         (False, True, 'gh22579_truncation_index_false_named'),
+         (False, False, 'gh22579_truncation_index_false_unnamed')
+         ])
+    def test_to_html_multi_indexes_index_false_with_truncation(
+            self, datapath, idx_flag, named_index, expected_output):
+        # GH 22579 with truncation
+        names = ['foo', None, 'baz'] if named_index else None
         index = MultiIndex.from_product([['a', 'b'], ['c', 'd'], ['e', 'f']],
-                                        names=['foo', None, 'baz'])
+                                        names=names)
         df = DataFrame(np.arange(64).reshape(8, 8), index=index, columns=index)
-        result = df.to_html(max_rows=4, max_cols=4, index=True)
-        expected = expected_html(datapath, 'gh22579_truncation_index_true')
-        assert result == expected
-
-        df = DataFrame(np.arange(64).reshape(8, 8), index=index, columns=index)
-        result = df.to_html(max_rows=4, max_cols=4, index=False)
-        expected = expected_html(datapath,
-                                 'gh22579_truncation_index_false_named')
-        assert result == expected
-
-        index = MultiIndex.from_product([['a', 'b'], ['c', 'd'], ['e', 'f']])
-        df = DataFrame(np.arange(64).reshape(8, 8), index=index, columns=index)
-        result = df.to_html(max_rows=4, max_cols=4, index=False)
-        expected = expected_html(datapath,
-                                 'gh22579_truncation_index_false_unnamed')
+        result = df.to_html(max_rows=4, max_cols=4, index=idx_flag)
+        expected = expected_html(datapath, expected_output)
         assert result == expected
 
     @pytest.mark.parametrize('col_idx_type',
