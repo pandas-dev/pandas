@@ -110,23 +110,25 @@ def is_scalar(val: object) -> bool:
     Parameters
     ----------
     val : object
-    This includes:
-    * numpy array scalar (e.g. np.int64)
-    * Python builtin numerics
-    * Python builtin byte arrays and strings
-    * None
-    * instances of datetime.datetime
-    * instances of datetime.timedelta
-    * Period
-    * instances of decimal.Decimal
-    * Interval
-    * DateOffset
-    * Fraction
-    * Number
+        This includes:
+
+        - numpy array scalar (e.g. np.int64)
+        - Python builtin numerics
+        - Python builtin byte arrays and strings
+        - None
+        - datetime.datetime
+        - datetime.timedelta
+        - Period
+        - decimal.Decimal
+        - Interval
+        - DateOffset
+        - Fraction
+        - Number
 
     Returns
     -------
-     a bool object.
+    bool
+        Return True if given object is scalar, False otherwise
     
     Examples
     --------
@@ -137,7 +139,7 @@ def is_scalar(val: object) -> bool:
     >>> pd.api.types.is_scalar([2, 3])
     False
     
-    >>> pd.api.types.is_scalar({0:1, 2:3})
+    >>> pd.api.types.is_scalar({0: 1, 2: 3})
     False
     
     >>> pd.api.types.is_scalar((0, 2))
