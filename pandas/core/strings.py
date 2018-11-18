@@ -2412,9 +2412,9 @@ class StringMethods(NoNewAttributesMixin):
     ----------
     sep : str, default whitespace
         String to split on.
-
-        .. versionchanged :: 0.24.0
-            Changed name of parameter from `pat` to `sep`.
+    pat : str, default whitespace
+        .. deprecated:: 0.24.0
+           Use ``sep`` instead
     expand : bool, default True
         If True, return DataFrame/MultiIndex expanding dimensionality.
         If False, return Series/Index.
