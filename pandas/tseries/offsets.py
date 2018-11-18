@@ -9,7 +9,6 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCPeriod
 from pandas.core.tools.datetimes import to_datetime
-import pandas.core.common as com
 
 # import after tools, dateutil check
 from dateutil.easter import easter
@@ -29,6 +28,7 @@ from pandas._libs.tslibs.offsets import (
     roll_yearday,
     shift_month,
     BaseOffset)
+from pandas.errors import AbstractMethodError
 
 
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
@@ -1097,7 +1097,7 @@ class SemiMonthOffset(DateOffset):
 
     def _apply(self, n, other):
         """Handle specific apply logic for child classes"""
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     @apply_index_wraps
     def apply_index(self, i):
@@ -1137,11 +1137,11 @@ class SemiMonthOffset(DateOffset):
         The roll array is based on the fact that i gets rolled back to
         the first day of the month.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _apply_index_days(self, i, roll):
         """Apply the correct day for each date in i"""
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
 
 class SemiMonthEnd(SemiMonthOffset):
@@ -1153,9 +1153,9 @@ class SemiMonthEnd(SemiMonthOffset):
 
     Parameters
     ----------
-    n: int
+    n : int
     normalize : bool, default False
-    day_of_month: int, {1, 3,...,27}, default 15
+    day_of_month : int, {1, 3,...,27}, default 15
     """
     _prefix = 'SM'
     _min_day_of_month = 1
@@ -1212,9 +1212,9 @@ class SemiMonthBegin(SemiMonthOffset):
 
     Parameters
     ----------
-    n: int
+    n : int
     normalize : bool, default False
-    day_of_month: int, {2, 3,...,27}, default 15
+    day_of_month : int, {2, 3,...,27}, default 15
     """
     _prefix = 'SMS'
 
@@ -1432,11 +1432,11 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
 
         Parameters
         ----------
-        other: datetime
+        other : datetime
 
         Returns
         -------
-        day: int
+        day : int
         """
         mstart = datetime(other.year, other.month, 1)
         wday = mstart.weekday()

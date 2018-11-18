@@ -326,8 +326,8 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
 
     See Also
     --------
-    pandas.DataFrame.to_hdf : write a HDF file from a DataFrame
-    pandas.HDFStore : low-level access to HDF files
+    pandas.DataFrame.to_hdf : Write a HDF file from a DataFrame.
+    pandas.HDFStore : Low-level access to HDF files.
 
     Examples
     --------
@@ -942,7 +942,7 @@ class HDFStore(StringMixin):
         ----------
         key : object
         value : {Series, DataFrame, Panel}
-        format: 'table' is the default
+        format : 'table' is the default
             table(t) : table format
                        Write as a PyTables Table structure which may perform
                        worse but allow more flexible operations like searching

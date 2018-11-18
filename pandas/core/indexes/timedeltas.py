@@ -41,7 +41,7 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     ----------
     data  : array-like (1-dimensional), optional
         Optional timedelta-like data to construct index with
-    unit: unit of the arg (D,h,m,s,ms,us,ns) denote the unit, optional
+    unit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, optional
         which is an integer/float number
     freq : string or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
@@ -72,10 +72,10 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
     See Also
     ---------
-    Index : The base pandas Index type
+    Index : The base pandas Index type.
     Timedelta : Represents a duration between two dates or times.
-    DatetimeIndex : Index of datetime64 data
-    PeriodIndex : Index of Period data
+    DatetimeIndex : Index of datetime64 data.
+    PeriodIndex : Index of Period data.
 
     Attributes
     ----------
