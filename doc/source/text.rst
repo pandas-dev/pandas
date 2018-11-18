@@ -311,11 +311,13 @@ Note that ``Index`` will align as well, so we change the indexes of ``s`` and ``
 
 .. ipython:: python
 
-    s2 = s.set_axis(['a', 'b', 'c', 'd'], inplace=False)
+    s_values = np.array(['a', 'b', 'c', 'd'], dtype=object)  # same as s.values
+    s2 = pd.Series(s_values, index=s_values)
     s2
-    u2 = u.set_axis(['b', 'd', 'a', 'c'], inplace=False)
+    u_values = np.array(['b', 'd', 'a', 'c'], dtype=object)  # same as u.values
+    u2 = pd.Series(u_values, index=u_values)
     u2
-    s2.str.cat([pd.Index(['d', 'c', 'b', 'a']), u2, u2.values], na_rep='-', join='left')
+    s2.str.cat([pd.Index(['d', 'c', 'b', 'a']), u2, u_values], na_rep='-', join='left')
 
 All ``np.ndarrays`` within the passed list-like must match in length to the calling ``Series`` (or ``Index``),
 but ``Series`` and ``Index`` may have arbitrary length (as long as alignment is not disabled with ``join is not None``):
@@ -323,7 +325,7 @@ but ``Series`` and ``Index`` may have arbitrary length (as long as alignment is 
 .. ipython:: python
 
     v
-    s.str.cat([v, u, u.values], join='outer', na_rep='-')
+    s.str.cat([v, u, u_values], join='outer', na_rep='-')
 
 If using ``join='right'`` on a list of ``others`` that contains different indexes,
 the union of these indexes will be used as the basis for the final concatenation:
