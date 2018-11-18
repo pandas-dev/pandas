@@ -143,6 +143,32 @@ class TestSeriesCombine(object):
 
         assert_series_equal(s, expected)
 
+    @pytest.mark.parametrize('other_values, caller_dtype, expected', [
+        # other_values is int
+        ([61, 63], 'int64', pd.Series([10, 61, 12])),
+        ([61, 63], float, pd.Series([10., 61., 12.])),
+        ([61, 63], object, pd.Series([10, 61, 12], dtype=object)),
+        # other_values is float, but can be cast to int
+        ([61., 63.], 'int64', pd.Series([10, 61, 12], dtype='int64')),
+        ([61., 63.], float, pd.Series([10., 61., 12.])),
+        ([61., 63.], object, pd.Series([10, 61., 12], dtype=object)),
+        # other_values is float, cannot be cast to int
+        ([61.1, 63.1], 'int64', pd.Series([10., 61.1, 12.])),
+        ([61.1, 63.1], float, pd.Series([10., 61.1, 12.])),
+        ([61.1, 63.1], object, pd.Series([10, 61.1, 12], dtype=object)),
+        # other_values is object, cannot be cast
+        ([(61,), (63,)], 'int64', pd.Series([10, (61,), 12])),
+        ([(61,), (63,)], float, pd.Series([10., (61,), 12.])),
+        ([(61,), (63,)], object, pd.Series([10, (61,), 12]))       
+    ])
+    def test_update_dtypes_no_try_catch(self, other_values, caller_dtype, expected):
+        caller_values = [10, 11, 12]
+        s = Series(caller_values, dtype=caller_dtype)
+        other = Series(other_values, index=[1, 3])
+        s.update(other)
+
+        assert_series_equal(s, expected)
+
     def test_concat_empty_series_dtypes_roundtrips(self):
 
         # round-tripping with self & like self
