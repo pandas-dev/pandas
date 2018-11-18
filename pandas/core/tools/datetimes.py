@@ -212,7 +212,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         if box:
             if errors == 'ignore':
                 from pandas import Index
-                return Index(result, name=name)
+                return Index(result, name=name).tz_localize(tz)
 
             return DatetimeIndex(result, tz=tz, name=name)
         return result
