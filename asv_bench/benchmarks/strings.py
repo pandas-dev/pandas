@@ -7,8 +7,6 @@ import pandas.util.testing as tm
 
 class Methods(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.s = Series(tm.makeStringIndex(10**5))
 
@@ -70,7 +68,6 @@ class Methods(object):
 
 class Repeat(object):
 
-    goal_time = 0.2
     params = ['int', 'array']
     param_names = ['repeats']
 
@@ -86,7 +83,6 @@ class Repeat(object):
 
 class Cat(object):
 
-    goal_time = 0.2
     params = ([0, 3], [None, ','], [None, '-'], [0.0, 0.001, 0.15])
     param_names = ['other_cols', 'sep', 'na_rep', 'na_frac']
 
@@ -112,7 +108,6 @@ class Cat(object):
 
 class Contains(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['regex']
 
@@ -125,7 +120,6 @@ class Contains(object):
 
 class Split(object):
 
-    goal_time = 0.2
     params = [True, False]
     param_names = ['expand']
 
@@ -138,8 +132,6 @@ class Split(object):
 
 class Dummies(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.s = Series(tm.makeStringIndex(10**5)).str.join('|')
 
@@ -149,8 +141,6 @@ class Dummies(object):
 
 class Encode(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.ser = Series(tm.makeUnicodeIndex())
 
@@ -159,8 +149,6 @@ class Encode(object):
 
 
 class Slice(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.s = Series(['abcdefg', np.nan] * 500000)

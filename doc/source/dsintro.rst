@@ -249,7 +249,7 @@ pandas object. Like Series, DataFrame accepts many different kinds of input:
 * Dict of 1D ndarrays, lists, dicts, or Series
 * 2-D numpy.ndarray
 * `Structured or record
-  <http://docs.scipy.org/doc/numpy/user/basics.rec.html>`__ ndarray
+  <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`__ ndarray
 * A ``Series``
 * Another ``DataFrame``
 
@@ -476,7 +476,7 @@ Assigning New Columns in Method Chains
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Inspired by `dplyr's
-<http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html#mutate>`__
+<https://dplyr.tidyverse.org/reference/mutate.html>`__
 ``mutate`` verb, DataFrame has an :meth:`~pandas.DataFrame.assign`
 method that allows you to easily create new columns that are potentially
 derived from existing columns.
@@ -566,13 +566,12 @@ To write code compatible with all versions of Python, split the assignment in tw
    .. code-block:: python
 
       >>> dependent = pd.DataFrame({"A": [1, 1, 1]})
-      >>> dependent.assign(A=lambda x: x["A"] + 1,
-                           B=lambda x: x["A"] + 2)
+      >>> dependent.assign(A=lambda x: x["A"] + 1, B=lambda x: x["A"] + 2)
 
    For Python 3.5 and earlier the expression creating ``B`` refers to the
    "old" value of ``A``, ``[1, 1, 1]``. The output is then
 
-   .. code-block:: python
+   .. code-block:: console
 
          A  B
       0  2  3
@@ -582,7 +581,7 @@ To write code compatible with all versions of Python, split the assignment in tw
    For Python 3.6 and later, the expression creating ``A`` refers to the
    "new" value of ``A``, ``[2, 2, 2]``, which results in
 
-   .. code-block:: python
+   .. code-block:: console
 
          A  B
       0  2  4
@@ -815,7 +814,7 @@ accessed like an attribute:
    df
    df.foo1
 
-The columns are also connected to the `IPython <http://ipython.org>`__
+The columns are also connected to the `IPython <https://ipython.org>`__
 completion mechanism so they can be tab-completed:
 
 .. code-block:: ipython
@@ -834,7 +833,7 @@ Panel
     a future version. See the section :ref:`Deprecate Panel <dsintro.deprecate_panel>`.
 
 Panel is a somewhat less-used, but still important container for 3-dimensional
-data. The term `panel data <http://en.wikipedia.org/wiki/Panel_data>`__ is
+data. The term `panel data <https://en.wikipedia.org/wiki/Panel_data>`__ is
 derived from econometrics and is partially responsible for the name pandas:
 pan(el)-da(ta)-s. The names for the 3 axes are intended to give some semantic
 meaning to describing operations involving panel data and, in particular,
@@ -1024,7 +1023,7 @@ Oftentimes, one can simply use a MultiIndex ``DataFrame`` for easily working wit
 
 In addition, the ``xarray`` package was built from the ground up, specifically in order to
 support the multi-dimensional analysis that is one of ``Panel`` s main use cases.
-`Here is a link to the xarray panel-transition documentation <http://xarray.pydata.org/en/stable/pandas.html#panel-transition>`__.
+`Here is a link to the xarray panel-transition documentation <https://xarray.pydata.org/en/stable/pandas.html#panel-transition>`__.
 
 .. ipython:: python
    :okwarning:
@@ -1046,4 +1045,4 @@ Alternatively, one can convert to an xarray ``DataArray``.
 
    p.to_xarray()
 
-You can see the full-documentation for the `xarray package <http://xarray.pydata.org/en/stable/>`__.
+You can see the full-documentation for the `xarray package <https://xarray.pydata.org/en/stable/>`__.

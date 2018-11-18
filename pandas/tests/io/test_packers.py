@@ -512,27 +512,27 @@ class TestNDFrame(TestPackers):
         for k in self.frame.keys():
             assert_frame_equal(self.frame[k], i_rec[k])
 
-        l = tuple([self.frame['float'], self.frame['float'].A,
-                   self.frame['float'].B, None])
-        l_rec = self.encode_decode(l)
-        check_arbitrary(l, l_rec)
+        packed_items = tuple([self.frame['float'], self.frame['float'].A,
+                              self.frame['float'].B, None])
+        l_rec = self.encode_decode(packed_items)
+        check_arbitrary(packed_items, l_rec)
 
         # this is an oddity in that packed lists will be returned as tuples
-        l = [self.frame['float'], self.frame['float']
-             .A, self.frame['float'].B, None]
-        l_rec = self.encode_decode(l)
+        packed_items = [self.frame['float'], self.frame['float'].A,
+                        self.frame['float'].B, None]
+        l_rec = self.encode_decode(packed_items)
         assert isinstance(l_rec, tuple)
-        check_arbitrary(l, l_rec)
+        check_arbitrary(packed_items, l_rec)
 
     def test_iterator(self):
 
-        l = [self.frame['float'], self.frame['float']
-             .A, self.frame['float'].B, None]
+        packed_items = [self.frame['float'], self.frame['float'].A,
+                        self.frame['float'].B, None]
 
         with ensure_clean(self.path) as path:
-            to_msgpack(path, *l)
+            to_msgpack(path, *packed_items)
             for i, packed in enumerate(read_msgpack(path, iterator=True)):
-                check_arbitrary(packed, l[i])
+                check_arbitrary(packed, packed_items[i])
 
     def tests_datetimeindex_freq_issue(self):
 

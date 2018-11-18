@@ -1,24 +1,25 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 from collections import OrderedDict
-import warnings
 import pydoc
-
-import pytest
+import warnings
 
 import numpy as np
+import pytest
+
+import pandas.compat as compat
+from pandas.compat import isidentifier, lzip, range, string_types
+
 import pandas as pd
-
-from pandas import Index, Series, DataFrame, date_range
+from pandas import (
+    Categorical, DataFrame, DatetimeIndex, Index, Series, TimedeltaIndex,
+    date_range, period_range, timedelta_range)
+from pandas.core.arrays import PeriodArray
 from pandas.core.indexes.datetimes import Timestamp
-
-from pandas.compat import range, lzip, isidentifier, string_types
-from pandas import (compat, Categorical, period_range, timedelta_range,
-                    DatetimeIndex, PeriodIndex, TimedeltaIndex)
-import pandas.io.formats.printing as printing
-from pandas.util.testing import (assert_series_equal,
-                                 ensure_clean)
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal, ensure_clean
+
+import pandas.io.formats.printing as printing
 
 from .common import TestData
 
@@ -456,8 +457,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
         # str accessor only valid with string values
         s = Series(range(5))
-        with tm.assert_raises_regex(AttributeError,
-                                    'only use .str accessor'):
+        with pytest.raises(AttributeError, match='only use .str accessor'):
             s.str.repeat(2)
 
     def test_empty_method(self):
@@ -524,26 +524,25 @@ class TestCategoricalSeries(object):
         assert isinstance(s.cat, CategoricalAccessor)
 
         invalid = Series([1])
-        with tm.assert_raises_regex(AttributeError,
-                                    "only use .cat accessor"):
+        with pytest.raises(AttributeError, match="only use .cat accessor"):
             invalid.cat
         assert not hasattr(invalid, 'cat')
 
     def test_cat_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         c = Series(list('aabbcde')).astype('category')
-        with tm.assert_raises_regex(AttributeError,
-                                    "You cannot add any new attribute"):
+        with pytest.raises(AttributeError,
+                           match="You cannot add any new attribute"):
             c.cat.xlabel = "a"
 
     def test_categorical_delegations(self):
 
         # invalid accessor
         pytest.raises(AttributeError, lambda: Series([1, 2, 3]).cat)
-        tm.assert_raises_regex(
-            AttributeError,
-            r"Can only use .cat accessor with a 'category' dtype",
-            lambda: Series([1, 2, 3]).cat)
+        with pytest.raises(AttributeError,
+                           match=(r"Can only use .cat accessor "
+                                  r"with a 'category' dtype")):
+            Series([1, 2, 3]).cat()
         pytest.raises(AttributeError, lambda: Series(['a', 'b', 'c']).cat)
         pytest.raises(AttributeError, lambda: Series(np.arange(5.)).cat)
         pytest.raises(AttributeError,
@@ -673,9 +672,9 @@ class TestCategoricalSeries(object):
                 tm.assert_series_equal(res, exp)
 
         invalid = Series([1, 2, 3]).astype('category')
-        with tm.assert_raises_regex(AttributeError,
-                                    "Can only use .str "
-                                    "accessor with string"):
+        msg = "Can only use .str accessor with string"
+
+        with pytest.raises(AttributeError, match=msg):
             invalid.str
         assert not hasattr(invalid, 'str')
 
@@ -698,7 +697,7 @@ class TestCategoricalSeries(object):
 
         test_data = [
             ("Datetime", get_ops(DatetimeIndex), s_dr, c_dr),
-            ("Period", get_ops(PeriodIndex), s_pr, c_pr),
+            ("Period", get_ops(PeriodArray), s_pr, c_pr),
             ("Timedelta", get_ops(TimedeltaIndex), s_tdr, c_tdr)]
 
         assert isinstance(c_dr.dt, Properties)
@@ -759,7 +758,8 @@ class TestCategoricalSeries(object):
                 tm.assert_almost_equal(res, exp)
 
         invalid = Series([1, 2, 3]).astype('category')
-        with tm.assert_raises_regex(
-                AttributeError, "Can only use .dt accessor with datetimelike"):
+        msg = "Can only use .dt accessor with datetimelike"
+
+        with pytest.raises(AttributeError, match=msg):
             invalid.dt
         assert not hasattr(invalid, 'str')

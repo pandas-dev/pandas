@@ -1,18 +1,19 @@
-import pytest
-import warnings
-import numpy as np
 from datetime import datetime
+import warnings
 
-import pandas as pd
-import pandas._libs.tslib as tslib
-import pandas.util.testing as tm
-from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp,
-                    date_range, _np_version_under1p10, Index,
-                    bdate_range)
-from pandas.tseries.offsets import BMonthEnd, CDay, BDay, Day, Hour
-from pandas.tests.test_base import Ops
+import numpy as np
+import pytest
+
 from pandas.core.dtypes.generic import ABCDateOffset
 
+import pandas as pd
+from pandas import (
+    DatetimeIndex, Index, PeriodIndex, Series, Timestamp, bdate_range,
+    date_range)
+from pandas.tests.test_base import Ops
+import pandas.util.testing as tm
+
+from pandas.tseries.offsets import BDay, BMonthEnd, CDay, Day, Hour
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -35,7 +36,7 @@ class TestDatetimeIndexOps(Ops):
     def test_ops_properties_basic(self):
 
         # sanity check that the behavior didn't change
-        # GH7206
+        # GH#7206
         for op in ['year', 'day', 'second', 'weekday']:
             pytest.raises(TypeError, lambda x: getattr(self.dt_series, op))
 
@@ -83,18 +84,21 @@ class TestDatetimeIndexOps(Ops):
         assert np.max(dr) == Timestamp('2016-01-20 00:00:00', freq='D')
 
         errmsg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, errmsg, np.min, dr, out=0)
-        tm.assert_raises_regex(ValueError, errmsg, np.max, dr, out=0)
+        with pytest.raises(ValueError, match=errmsg):
+            np.min(dr, out=0)
+
+        with pytest.raises(ValueError, match=errmsg):
+            np.max(dr, out=0)
 
         assert np.argmin(dr) == 0
         assert np.argmax(dr) == 5
 
-        if not _np_version_under1p10:
-            errmsg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmin, dr, out=0)
-            tm.assert_raises_regex(
-                ValueError, errmsg, np.argmax, dr, out=0)
+        errmsg = "the 'out' parameter is not supported"
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmin(dr, out=0)
+
+        with pytest.raises(ValueError, match=errmsg):
+            np.argmax(dr, out=0)
 
     def test_repeat_range(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -148,8 +152,8 @@ class TestDatetimeIndexOps(Ops):
         assert res.freq is None
 
         tm.assert_index_equal(np.repeat(rng, reps), expected_rng)
-        tm.assert_raises_regex(ValueError, msg, np.repeat,
-                               rng, reps, axis=1)
+        with pytest.raises(ValueError, match=msg):
+            np.repeat(rng, reps, axis=1)
 
     def test_resolution(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -339,16 +343,6 @@ class TestDatetimeIndexOps(Ops):
         tm.assert_index_equal(idx, result)
         assert result.freq == freq
 
-    def test_nat_new(self):
-        idx = pd.date_range('2011-01-01', freq='D', periods=5, name='x')
-        result = idx._nat_new()
-        exp = pd.DatetimeIndex([pd.NaT] * 5, name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx._nat_new(box=False)
-        exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
-        tm.assert_numpy_array_equal(result, exp)
-
     def test_nat(self, tz_naive_fixture):
         tz = tz_naive_fixture
         assert pd.DatetimeIndex._na_value is pd.NaT
@@ -358,7 +352,7 @@ class TestDatetimeIndexOps(Ops):
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
-        assert not idx.hasnans
+        assert idx.hasnans is False
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([], dtype=np.intp))
 
@@ -366,7 +360,7 @@ class TestDatetimeIndexOps(Ops):
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
-        assert idx.hasnans
+        assert idx.hasnans is True
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([1], dtype=np.intp))
 
@@ -425,11 +419,11 @@ class TestDatetimeIndexOps(Ops):
         # setting with an incompatible freq
         msg = ('Inferred frequency 2D from passed values does not conform to '
                'passed frequency 5D')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.freq = '5D'
 
         # setting with non-freq string
-        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+        with pytest.raises(ValueError, match='Invalid frequency'):
             idx.freq = 'foo'
 
     def test_offset_deprecated(self):

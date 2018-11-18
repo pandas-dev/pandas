@@ -753,18 +753,28 @@ regularity will result in a ``DatetimeIndex``, although frequency is lost:
 Iterating through groups
 ------------------------
 
-With the :ref:`Resampler` object in hand, iterating through the grouped data is very
+With the ``Resampler`` object in hand, iterating through the grouped data is very
 natural and functions similarly to :py:func:`itertools.groupby`:
 
 .. ipython:: python
 
-   resampled = df.resample('H')
+   small = pd.Series(
+       range(6),
+       index=pd.to_datetime(['2017-01-01T00:00:00',
+                             '2017-01-01T00:30:00',
+                             '2017-01-01T00:31:00',
+                             '2017-01-01T01:00:00',
+                             '2017-01-01T03:00:00',
+                             '2017-01-01T03:05:00'])
+   )
+   resampled = small.resample('H')
 
    for name, group in resampled:
-       print(name)
-       print(group)
+       print("Group: ", name)
+       print("-" * 27)
+       print(group, end="\n\n")
 
-See :ref:`groupby.iterating-label`.
+See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 
 .. _timeseries.components:
 
@@ -888,7 +898,7 @@ custom date increment logic, such as adding business days:
 .. code-block:: python
 
     class BDay(DateOffset):
-	"""DateOffset increments between business days"""
+        """DateOffset increments between business days"""
         def apply(self, other):
             ...
 
@@ -910,26 +920,22 @@ It's definitely worth exploring the ``pandas.tseries.offsets`` module and the
 various docstrings for the classes.
 
 These operations (``apply``, ``rollforward`` and ``rollback``) preserve time 
-(hour, minute, etc) information by default. To reset time, use ``normalize=True`` 
-when creating the offset instance. If ``normalize=True``, the result is 
-normalized after the function is applied.
-
+(hour, minute, etc) information by default. To reset time, use ``normalize``
+before or after applying the operation (depending on whether you want the
+time information included in the operation.
 
 .. ipython:: python
 
+   ts = pd.Timestamp('2014-01-01 09:00')
    day = Day()
-   day.apply(pd.Timestamp('2014-01-01 09:00'))
+   day.apply(ts)
+   day.apply(ts).normalize()
 
-   day = Day(normalize=True)
-   day.apply(pd.Timestamp('2014-01-01 09:00'))
-
+   ts = pd.Timestamp('2014-01-01 22:00')
    hour = Hour()
-   hour.apply(pd.Timestamp('2014-01-01 22:00'))
-
-   hour = Hour(normalize=True)
-   hour.apply(pd.Timestamp('2014-01-01 22:00'))
-   hour.apply(pd.Timestamp('2014-01-01 23:00'))
-
+   hour.apply(ts)
+   hour.apply(ts).normalize()
+   hour.apply(pd.Timestamp("2014-01-01 23:30")).normalize()
 
 .. _timeseries.dayvscalendarday:
 
@@ -1488,6 +1494,7 @@ time. The method for this is :meth:`~Series.shift`, which is available on all of
 the pandas objects.
 
 .. ipython:: python
+
    ts = pd.Series(range(len(rng)), index=rng)
    ts = ts[:5]
    ts.shift(1)
@@ -2126,7 +2133,8 @@ To convert from an ``int64`` based YYYYMMDD representation.
    s
 
    def conv(x):
-       return pd.Period(year = x // 10000, month = x//100 % 100, day = x%100, freq='D')
+       return pd.Period(year=x // 10000, month=x // 100 % 100,
+                        day=x % 100, freq='D')
 
    s.apply(conv)
    s.apply(conv)[2]
@@ -2349,6 +2357,40 @@ constructor as well as ``tz_localize``.
 
    # tz_convert(None) is identical with tz_convert('UTC').tz_localize(None)
    didx.tz_convert('UCT').tz_localize(None)
+
+.. _timeseries.timezone_nonexistent:
+
+Nonexistent Times when Localizing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A DST transition may also shift the local time ahead by 1 hour creating nonexistent
+local times. The behavior of localizing a timeseries with nonexistent times
+can be controlled by the ``nonexistent`` argument. The following options are available:
+
+* ``raise``: Raises a ``pytz.NonExistentTimeError`` (the default behavior)
+* ``NaT``: Replaces nonexistent times with ``NaT``
+* ``shift``: Shifts nonexistent times forward to the closest real time
+
+.. ipython:: python
+
+    dti = pd.date_range(start='2015-03-29 01:30:00', periods=3, freq='H')
+    # 2:30 is a nonexistent time
+
+Localization of nonexistent times will raise an error by default.
+
+.. code-block:: ipython
+
+   In [2]: dti.tz_localize('Europe/Warsaw')
+   NonExistentTimeError: 2015-03-29 02:30:00
+
+Transform nonexistent times to ``NaT`` or the closest real time forward in time.
+
+.. ipython:: python
+
+    dti
+    dti.tz_localize('Europe/Warsaw', nonexistent='shift')
+    dti.tz_localize('Europe/Warsaw', nonexistent='NaT')
+
 
 .. _timeseries.timezone_series:
 

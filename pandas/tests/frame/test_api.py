@@ -107,14 +107,17 @@ class SharedWithSparse(object):
         assert f._get_axis(0) is f.index
         assert f._get_axis(1) is f.columns
 
-        tm.assert_raises_regex(
-            ValueError, 'No axis named', f._get_axis_number, 2)
-        tm.assert_raises_regex(
-            ValueError, 'No axis.*foo', f._get_axis_name, 'foo')
-        tm.assert_raises_regex(
-            ValueError, 'No axis.*None', f._get_axis_name, None)
-        tm.assert_raises_regex(ValueError, 'No axis named',
-                               f._get_axis_number, None)
+        with pytest.raises(ValueError, match='No axis named'):
+            f._get_axis_number(2)
+
+        with pytest.raises(ValueError, match='No axis.*foo'):
+            f._get_axis_name('foo')
+
+        with pytest.raises(ValueError, match='No axis.*None'):
+            f._get_axis_name(None)
+
+        with pytest.raises(ValueError, match='No axis named'):
+            f._get_axis_number(None)
 
     def test_keys(self, float_frame):
         getkeys = float_frame.keys
@@ -192,7 +195,7 @@ class SharedWithSparse(object):
             assert isinstance(v, self.klass._constructor_sliced)
 
     def test_items(self):
-        # issue #17213, #13918
+        # GH 17213, GH 13918
         cols = ['a', 'b', 'c']
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=cols)
         for c, (k, v) in zip(cols, df.items()):
@@ -213,7 +216,7 @@ class SharedWithSparse(object):
             self._assert_series_equal(v, exp)
 
     def test_iterrows_iso8601(self):
-        # GH19671
+        # GH 19671
         if self.klass == SparseDataFrame:
             pytest.xfail(reason='SparseBlock datetime type not implemented.')
 
@@ -354,7 +357,7 @@ class SharedWithSparse(object):
         assert_series_equal(result, expected)
 
     def test_class_axis(self):
-        # https://github.com/pandas-dev/pandas/issues/18147
+        # GH 18147
         # no exception and no empty docstring
         assert pydoc.getdoc(DataFrame.index)
         assert pydoc.getdoc(DataFrame.columns)
@@ -366,9 +369,9 @@ class SharedWithSparse(object):
     def test_repr_with_mi_nat(self, float_string_frame):
         df = self.klass({'X': [1, 2]},
                         index=[[pd.NaT, pd.Timestamp('20130101')], ['a', 'b']])
-        res = repr(df)
-        exp = '              X\nNaT        a  1\n2013-01-01 b  2'
-        assert res == exp
+        result = repr(df)
+        expected = '              X\nNaT        a  1\n2013-01-01 b  2'
+        assert result == expected
 
     def test_iteritems_names(self, float_string_frame):
         for k, v in compat.iteritems(float_string_frame):
@@ -402,7 +405,10 @@ class SharedWithSparse(object):
         t = df.T
 
         result = t.get_dtype_counts()
-        expected = Series({'object': 10})
+        if self.klass is DataFrame:
+            expected = Series({'object': 10})
+        else:
+            expected = Series({'Sparse[object, nan]': 10})
         tm.assert_series_equal(result, expected)
 
 
@@ -418,7 +424,7 @@ class TestDataFrameMisc(SharedWithSparse):
         assert (float_frame.values[:, 0] == 5).all()
 
     def test_as_matrix_deprecated(self, float_frame):
-        # GH18458
+        # GH 18458
         with tm.assert_produces_warning(FutureWarning):
             cols = float_frame.columns.tolist()
             result = float_frame.as_matrix(columns=cols)
@@ -439,7 +445,7 @@ class TestDataFrameMisc(SharedWithSparse):
         assert (float_frame.values[5:10] == 5).all()
 
     def test_inplace_return_self(self):
-        # re #1893
+        # GH 1893
 
         data = DataFrame({'a': ['foo', 'bar', 'baz', 'qux'],
                           'b': [0, 0, 1, 1],
@@ -503,7 +509,7 @@ class TestDataFrameMisc(SharedWithSparse):
         _check_f(d.copy(), f)
 
     def test_tab_complete_warning(self, ip):
-        # https://github.com/pandas-dev/pandas/issues/16409
+        # GH 16409
         pytest.importorskip('IPython', minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 

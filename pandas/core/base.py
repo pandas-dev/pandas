@@ -178,11 +178,13 @@ class SelectionMixin(object):
     _selection = None
     _internal_names = ['_cache', '__setstate__']
     _internal_names_set = set(_internal_names)
+
     _builtin_table = OrderedDict((
         (builtins.sum, np.sum),
         (builtins.max, np.max),
         (builtins.min, np.min),
     ))
+
     _cython_table = OrderedDict((
         (builtins.sum, 'sum'),
         (builtins.max, 'max'),
@@ -190,15 +192,25 @@ class SelectionMixin(object):
         (np.all, 'all'),
         (np.any, 'any'),
         (np.sum, 'sum'),
+        (np.nansum, 'sum'),
         (np.mean, 'mean'),
+        (np.nanmean, 'mean'),
         (np.prod, 'prod'),
+        (np.nanprod, 'prod'),
         (np.std, 'std'),
+        (np.nanstd, 'std'),
         (np.var, 'var'),
+        (np.nanvar, 'var'),
         (np.median, 'median'),
+        (np.nanmedian, 'median'),
         (np.max, 'max'),
+        (np.nanmax, 'max'),
         (np.min, 'min'),
+        (np.nanmin, 'min'),
         (np.cumprod, 'cumprod'),
+        (np.nancumprod, 'cumprod'),
         (np.cumsum, 'cumsum'),
+        (np.nancumsum, 'cumsum'),
     ))
 
     @property
@@ -245,8 +257,8 @@ class SelectionMixin(object):
 
     def __getitem__(self, key):
         if self._selection is not None:
-            raise Exception('Column(s) {selection} already selected'
-                            .format(selection=self._selection))
+            raise IndexError('Column(s) {selection} already selected'
+                             .format(selection=self._selection))
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass,
                             np.ndarray)):
@@ -395,8 +407,8 @@ class SelectionMixin(object):
 
                     elif isinstance(obj, ABCSeries):
                         nested_renaming_depr()
-                    elif isinstance(obj, ABCDataFrame) and \
-                            k not in obj.columns:
+                    elif (isinstance(obj, ABCDataFrame) and
+                          k not in obj.columns):
                         raise KeyError(
                             "Column '{col}' does not exist!".format(col=k))
 
@@ -664,7 +676,7 @@ class IndexOpsMixin(object):
                                 "definition self")
 
     @property
-    def _is_homogeneous(self):
+    def _is_homogeneous_type(self):
         """Whether the object has a single dtype.
 
         By definition, Series and Index are always considered homogeneous.
@@ -673,8 +685,8 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        DataFrame._is_homogeneous
-        MultiIndex._is_homogeneous
+        DataFrame._is_homogeneous_type
+        MultiIndex._is_homogeneous_type
         """
         return True
 
@@ -808,7 +820,7 @@ class IndexOpsMixin(object):
         """
         return a ndarray of the maximum argument indexer
 
-        See also
+        See Also
         --------
         numpy.ndarray.argmax
         """
@@ -851,7 +863,7 @@ class IndexOpsMixin(object):
         """
         return a ndarray of the minimum argument indexer
 
-        See also
+        See Also
         --------
         numpy.ndarray.argmin
         """
@@ -889,7 +901,7 @@ class IndexOpsMixin(object):
     @cache_readonly
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
-        return isna(self).any()
+        return bool(isna(self).any())
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
@@ -1002,8 +1014,8 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        Series.count: number of non-NA elements in a Series
-        DataFrame.count: number of non-NA elements in a DataFrame
+        Series.count: Number of non-NA elements in a Series.
+        DataFrame.count: Number of non-NA elements in a DataFrame.
 
         Examples
         --------

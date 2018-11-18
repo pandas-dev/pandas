@@ -1,23 +1,27 @@
 # pylint: disable-msg=E1101,W0613,W0603
 from itertools import islice
 import os
+
 import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas.compat import StringIO, long, u, to_str
-from pandas import compat, isna
-from pandas import Series, DataFrame, to_datetime, MultiIndex
-from pandas.io.common import (get_filepath_or_buffer, _get_handle,
-                              _infer_compression, _stringify_path,
-                              BaseIterator)
-from pandas.io.parsers import _validate_integer
-import pandas.core.common as com
+from pandas.compat import StringIO, long, to_str, u
+from pandas.errors import AbstractMethodError
+
+from pandas.core.dtypes.common import is_period_dtype
+
+from pandas import DataFrame, MultiIndex, Series, compat, isna, to_datetime
 from pandas.core.reshape.concat import concat
+
+from pandas.io.common import (
+    BaseIterator, _get_handle, _infer_compression, _stringify_path,
+    get_filepath_or_buffer)
 from pandas.io.formats.printing import pprint_thing
+from pandas.io.parsers import _validate_integer
+
 from .normalize import _convert_to_line_delimits
 from .table_schema import build_table_schema, parse_table_schema
-from pandas.core.dtypes.common import is_period_dtype
 
 loads = json.loads
 dumps = json.dumps
@@ -93,7 +97,7 @@ class Writer(object):
         self._format_axes()
 
     def _format_axes(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def write(self):
         return self._write(self.obj, self.orient, self.double_precision,
@@ -316,7 +320,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         .. versionadded:: 0.19.0
 
-    chunksize: integer, default None
+    chunksize : integer, default None
         Return JsonReader object for iteration.
         See the `line-delimted json docs
         <http://pandas.pydata.org/pandas-docs/stable/io.html#io-jsonl>`_
@@ -654,7 +658,7 @@ class Parser(object):
                 setattr(self.obj, axis, new_axis)
 
     def _try_convert_types(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _try_convert_data(self, name, data, use_dtypes=True,
                           convert_dates=True):
@@ -767,7 +771,7 @@ class Parser(object):
         return data, False
 
     def _try_convert_dates(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
 
 class SeriesParser(Parser):

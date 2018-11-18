@@ -7,8 +7,8 @@ de-duplicated (if mangling requested) or ignored otherwise.
 """
 
 from pandas.compat import StringIO
-from pandas import DataFrame
 
+from pandas import DataFrame
 import pandas.util.testing as tm
 
 
@@ -86,3 +86,22 @@ class DupeColumnTests(object):
                                mangle_dupe_cols=True)
             assert list(df.columns) == ["a", "a.1", "a.3", "a.1.1",
                                         "a.2", "a.2.1", "a.3.1"]
+
+    def test_mangled_unnamed_placeholders(self):
+        # xref gh-13017
+        orig_key = "0"
+        orig_value = [1, 2, 3]
+
+        df = DataFrame({orig_key: orig_value})
+
+        # This test recursively updates `df`.
+        for i in range(3):
+            expected = DataFrame()
+
+            for j in range(i + 1):
+                expected["Unnamed: 0" + ".1" * j] = [0, 1, 2]
+
+            expected[orig_key] = orig_value
+            df = self.read_csv(StringIO(df.to_csv()))
+
+            tm.assert_frame_equal(df, expected)

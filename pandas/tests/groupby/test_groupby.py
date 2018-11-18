@@ -623,8 +623,14 @@ def test_as_index_series_return_frame(df):
     assert isinstance(result2, DataFrame)
     assert_frame_equal(result2, expected2)
 
-    # corner case
-    pytest.raises(Exception, grouped['C'].__getitem__, 'D')
+
+def test_as_index_series_column_slice_raises(df):
+    # GH15072
+    grouped = df.groupby('A', as_index=False)
+    msg = r"Column\(s\) C already selected"
+
+    with pytest.raises(IndexError, match=msg):
+        grouped['C'].__getitem__('D')
 
 
 def test_groupby_as_index_cython(df):
@@ -1673,7 +1679,7 @@ def test_tuple_correct_keyerror():
     df = pd.DataFrame(1, index=range(3),
                       columns=pd.MultiIndex.from_product([[1, 2],
                                                           [3, 4]]))
-    with tm.assert_raises_regex(KeyError, "(7, 8)"):
+    with pytest.raises(KeyError, match="(7, 8)"):
         df.groupby((7, 8)).mean()
 
 

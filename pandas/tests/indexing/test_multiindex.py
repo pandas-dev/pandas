@@ -1,12 +1,15 @@
 from warnings import catch_warnings
-import pytest
+
 import numpy as np
-import pandas as pd
-from pandas import (Panel, Series, MultiIndex, DataFrame,
-                    Timestamp, Index, date_range)
-from pandas.util import testing as tm
+import pytest
+
 from pandas.errors import PerformanceWarning, UnsortedIndexError
+
+import pandas as pd
+from pandas import (
+    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, date_range)
 from pandas.tests.indexing.common import _mklbl
+from pandas.util import testing as tm
 
 
 @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
@@ -305,9 +308,9 @@ class TestMultiIndexBasic(object):
         tm.assert_frame_equal(result, expected)
 
         # missing item:
-        with tm.assert_raises_regex(KeyError, '1'):
+        with pytest.raises(KeyError, match='1'):
             df[1]
-        with tm.assert_raises_regex(KeyError, r"'\[1\] not in index'"):
+        with pytest.raises(KeyError, match=r"'\[1\] not in index'"):
             df[[1]]
 
     def test_loc_multiindex_indexer_none(self):
@@ -738,8 +741,8 @@ class TestMultiIndexBasic(object):
         (MultiIndex.from_product([(1, 2), (3, 4)]), True),
         (MultiIndex.from_product([('a', 'b'), (1, 2)]), False),
     ])
-    def test_multiindex_is_homogeneous(self, data, expected):
-        assert data._is_homogeneous is expected
+    def test_multiindex_is_homogeneous_type(self, data, expected):
+        assert data._is_homogeneous_type is expected
 
 
 class TestMultiIndexSlicers(object):
@@ -848,10 +851,10 @@ class TestMultiIndexSlicers(object):
         assert df.index.lexsort_depth == 2
         df = df.sort_index(level=1, axis=0)
         assert df.index.lexsort_depth == 0
-        with tm.assert_raises_regex(
-                UnsortedIndexError,
-                'MultiIndex slicing requires the index to be '
-                r'lexsorted: slicing on levels \[1\], lexsort depth 0'):
+
+        msg = ('MultiIndex slicing requires the index to be '
+               r'lexsorted: slicing on levels \[1\], lexsort depth 0')
+        with pytest.raises(UnsortedIndexError, match=msg):
             df.loc[(slice(None), slice('bar')), :]
 
         # GH 16734: not sorted, but no real slicing

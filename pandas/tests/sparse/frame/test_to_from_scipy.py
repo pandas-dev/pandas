@@ -2,13 +2,11 @@ import pytest
 import numpy as np
 from pandas.util import testing as tm
 from pandas import SparseDataFrame, SparseSeries
+from pandas.core.sparse.api import SparseDtype
 from distutils.version import LooseVersion
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_float_dtype,
-    is_object_dtype,
-    is_float)
-
+)
 
 scipy = pytest.importorskip('scipy')
 ignore_matrix_warning = pytest.mark.filterwarnings(
@@ -57,13 +55,10 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     assert dict(sdf.to_coo().todok()) == dict(spm.todok())
 
     # Ensure dtype is preserved if possible
-    was_upcast = ((fill_value is None or is_float(fill_value)) and
-                  not is_object_dtype(dtype) and
-                  not is_float_dtype(dtype))
-    res_dtype = (bool if is_bool_dtype(dtype) else
-                 float if was_upcast else
-                 dtype)
-    tm.assert_contains_all(sdf.dtypes, {np.dtype(res_dtype)})
+    # XXX: verify this
+    res_dtype = bool if is_bool_dtype(dtype) else dtype
+    tm.assert_contains_all(sdf.dtypes.apply(lambda dtype: dtype.subtype),
+                           {np.dtype(res_dtype)})
     assert sdf.to_coo().dtype == res_dtype
 
     # However, adding a str column results in an upcast to object
@@ -108,7 +103,7 @@ def test_from_to_scipy_object(spmatrix, fill_value):
         fill_value if fill_value is not None else np.nan)
 
     # Assert frame is as expected
-    sdf_obj = sdf.astype(object)
+    sdf_obj = sdf.astype(SparseDtype(object, fill_value))
     tm.assert_sp_frame_equal(sdf_obj, expected)
     tm.assert_frame_equal(sdf_obj.to_dense(), expected.to_dense())
 
@@ -117,7 +112,8 @@ def test_from_to_scipy_object(spmatrix, fill_value):
 
     # Ensure dtype is preserved if possible
     res_dtype = object
-    tm.assert_contains_all(sdf.dtypes, {np.dtype(res_dtype)})
+    tm.assert_contains_all(sdf.dtypes.apply(lambda dtype: dtype.subtype),
+                           {np.dtype(res_dtype)})
     assert sdf.to_coo().dtype == res_dtype
 
 

@@ -1,11 +1,10 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
 import pandas as pd
-import pandas.util.testing as tm
+from pandas import Index, PeriodIndex, date_range, period_range
 import pandas.core.indexes.period as period
-from pandas import period_range, PeriodIndex, Index, date_range
+import pandas.util.testing as tm
 
 
 def _permute(obj):
@@ -107,7 +106,7 @@ class TestPeriodIndex(object):
             index.union(index2)
 
         msg = 'can only call with other PeriodIndex-ed objects'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             index.join(index.to_timestamp())
 
         index3 = period_range('1/1/2000', '1/20/2000', freq='2D')

@@ -13,14 +13,14 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
-import pytest
 import numpy as np
+import pytest
+
+from pandas.core.dtypes.dtypes import IntervalDtype
 
 from pandas import Interval
 from pandas.core.arrays import IntervalArray
-from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():
@@ -45,15 +45,6 @@ def data():
 def data_missing():
     """Length 2 array with [NA, Valid]"""
     return IntervalArray.from_tuples([None, (0, 1)])
-
-
-@pytest.fixture
-def data_repeated():
-    """Return different versions of data for count times"""
-    def gen(count):
-        for _ in range(count):
-            yield IntervalArray(make_data())
-    yield gen
 
 
 @pytest.fixture
@@ -107,10 +98,18 @@ class TestInterface(BaseInterval, base.BaseInterfaceTests):
     pass
 
 
+class TestReduce(base.BaseNoReduceTests):
+    pass
+
+
 class TestMethods(BaseInterval, base.BaseMethodsTests):
 
     @pytest.mark.skip(reason='addition is not defined for intervals')
     def test_combine_add(self, data_repeated):
+        pass
+
+    @pytest.mark.skip(reason="Not Applicable")
+    def test_fillna_length_mismatch(self, data_missing):
         pass
 
 
@@ -137,7 +136,7 @@ class TestMissing(BaseInterval, base.BaseMissingTests):
 
     def test_non_scalar_raises(self, data_missing):
         msg = "Got a 'list' instead."
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             data_missing.fillna([1, 1])
 
 

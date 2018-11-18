@@ -3,8 +3,9 @@ import numpy as np
 
 from pandas.compat import zip
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.common import (
+    ensure_object,
     is_bool_dtype,
     is_categorical_dtype,
     is_object_dtype,
@@ -36,114 +37,26 @@ _cpython_optimized_decoders = _cpython_optimized_encoders + (
 _shared_docs = dict()
 
 
-def _get_array_list(arr, others):
-    """
-    Auxiliary function for :func:`str_cat`
-
-    Parameters
-    ----------
-    arr : ndarray
-        The left-most ndarray of the concatenation
-    others : list, ndarray, Series
-        The rest of the content to concatenate. If list of list-likes,
-        all elements must be passable to ``np.asarray``.
-
-    Returns
-    -------
-    list
-        List of all necessary arrays
-    """
-    from pandas.core.series import Series
-
-    if len(others) and isinstance(com.values_from_object(others)[0],
-                                  (list, np.ndarray, Series)):
-        arrays = [arr] + list(others)
-    else:
-        arrays = [arr, others]
-
-    return [np.asarray(x, dtype=object) for x in arrays]
-
-
-def str_cat(arr, others=None, sep=None, na_rep=None):
+def cat_core(list_of_columns, sep):
     """
     Auxiliary function for :meth:`str.cat`
 
-    If `others` is specified, this function concatenates the Series/Index
-    and elements of `others` element-wise.
-    If `others` is not being passed then all values in the Series are
-    concatenated in a single string with a given `sep`.
-
     Parameters
     ----------
-    others : list-like, or list of list-likes, optional
-        List-likes (or a list of them) of the same length as calling object.
-        If None, returns str concatenating strings of the Series.
-    sep : string or None, default None
-        If None, concatenates without any separator.
-    na_rep : string or None, default None
-        If None, NA in the series are ignored.
+    list_of_columns : list of numpy arrays
+        List of arrays to be concatenated with sep;
+        these arrays may not contain NaNs!
+    sep : string
+        The separator string for concatenating the columns
 
     Returns
     -------
-    concat
-        ndarray containing concatenated results (if `others is not None`)
-        or str (if `others is None`)
+    nd.array
+        The concatenation of list_of_columns with sep
     """
-    if sep is None:
-        sep = ''
-
-    if others is not None:
-        arrays = _get_array_list(arr, others)
-
-        n = _length_check(arrays)
-        masks = np.array([isna(x) for x in arrays])
-        cats = None
-
-        if na_rep is None:
-            na_mask = np.logical_or.reduce(masks, axis=0)
-
-            result = np.empty(n, dtype=object)
-            np.putmask(result, na_mask, np.nan)
-
-            notmask = ~na_mask
-
-            tuples = zip(*[x[notmask] for x in arrays])
-            cats = [sep.join(tup) for tup in tuples]
-
-            result[notmask] = cats
-        else:
-            for i, x in enumerate(arrays):
-                x = np.where(masks[i], na_rep, x)
-                if cats is None:
-                    cats = x
-                else:
-                    cats = cats + sep + x
-
-            result = cats
-
-        return result
-    else:
-        arr = np.asarray(arr, dtype=object)
-        mask = isna(arr)
-        if na_rep is None and mask.any():
-            if sep == '':
-                na_rep = ''
-            else:
-                return sep.join(arr[notna(arr)])
-        return sep.join(np.where(mask, na_rep, arr))
-
-
-def _length_check(others):
-    n = None
-    for x in others:
-        try:
-            if n is None:
-                n = len(x)
-            elif len(x) != n:
-                raise ValueError('All arrays must be same length')
-        except TypeError:
-            raise ValueError('Must pass arrays containing strings to str_cat')
-    return n
+    list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
+    list_with_sep[::2] = list_of_columns
+    return np.sum(list_with_sep, axis=0)
 
 
 def _na_map(f, arr, na_result=np.nan, dtype=object):
@@ -292,7 +205,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
     See Also
     --------
-    match : analogous, but stricter, relying on re.match instead of re.search
+    match : Analogous, but stricter, relying on re.match instead of re.search.
     Series.str.startswith : Test if the start of each string element matches a
         pattern.
     Series.str.endswith : Same as startswith, but tests the end of string.
@@ -562,7 +475,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
         A copy of the object with all matching occurrences of `pat` replaced by
         `repl`.
 
-
     Raises
     ------
     ValueError
@@ -636,7 +548,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     1    bar
     2    NaN
     dtype: object
-
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
@@ -746,7 +657,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
         If True, case sensitive
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
-    na : default NaN, fill value for missing values.
+    na : default NaN, fill value for missing values
 
     Returns
     -------
@@ -757,7 +668,6 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
     contains : analogous, but less strict, relying on re.search instead of
         re.match
     extract : extract matched groups
-
     """
     if not case:
         flags |= re.IGNORECASE
@@ -890,7 +800,7 @@ def str_extract(arr, pat, flags=0, expand=True):
 
     See Also
     --------
-    extractall : returns all matches (not just the first match)
+    extractall : Returns all matches (not just the first match).
 
     Examples
     --------
@@ -977,7 +887,7 @@ def str_extractall(arr, pat, flags=0):
 
     See Also
     --------
-    extract : returns first match only (not all matches)
+    extract : Returns first match only (not all matches).
 
     Examples
     --------
@@ -1089,7 +999,7 @@ def str_get_dummies(arr, sep='|'):
 
     See Also
     --------
-    pandas.get_dummies
+    get_dummies
     """
     arr = arr.fillna('')
     try:
@@ -1264,7 +1174,6 @@ def str_findall(arr, pat, flags=0):
     1        []
     2    [b, b]
     dtype: object
-
     """
     regex = re.compile(pat, flags=flags)
     return _na_map(regex.findall, arr)
@@ -1332,23 +1241,57 @@ def str_index(arr, sub, start=0, end=None, side='left'):
 
 def str_pad(arr, width, side='left', fillchar=' '):
     """
-    Pad strings in the Series/Index with an additional character to
-    specified side.
+    Pad strings in the Series/Index up to width.
 
     Parameters
     ----------
     width : int
         Minimum width of resulting string; additional characters will be filled
-        with spaces
+        with character defined in `fillchar`.
     side : {'left', 'right', 'both'}, default 'left'
-    fillchar : str
-        Additional character for filling, default is whitespace
+        Side from which to fill resulting string.
+    fillchar : str, default ' '
+        Additional character for filling, default is whitespace.
 
     Returns
     -------
-    padded : Series/Index of objects
-    """
+    Series or Index of object
+        Returns Series or Index with minimum number of char in object.
 
+    See Also
+    --------
+    Series.str.rjust: Fills the left side of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='left')``.
+    Series.str.ljust: Fills the right side of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='right')``.
+    Series.str.center: Fills boths sides of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='both')``.
+    Series.str.zfill:  Pad strings in the Series/Index by prepending '0'
+        character. Equivalent to ``Series.str.pad(side='left', fillchar='0')``.
+
+    Examples
+    --------
+    >>> s = pd.Series(["caribou", "tiger"])
+    >>> s
+    0    caribou
+    1      tiger
+    dtype: object
+
+    >>> s.str.pad(width=10)
+    0       caribou
+    1         tiger
+    dtype: object
+
+    >>> s.str.pad(width=10, side='right', fillchar='-')
+    0    caribou---
+    1    tiger-----
+    dtype: object
+
+    >>> s.str.pad(width=10, side='both', fillchar='-')
+    0    -caribou--
+    1    --tiger---
+    dtype: object
+    """
     if not isinstance(fillchar, compat.string_types):
         msg = 'fillchar must be a character, not {0}'
         raise TypeError(msg.format(type(fillchar).__name__))
@@ -1403,17 +1346,69 @@ def str_rsplit(arr, pat=None, n=None):
 
 def str_slice(arr, start=None, stop=None, step=None):
     """
-    Slice substrings from each element in the Series/Index
+    Slice substrings from each element in the Series or Index.
 
     Parameters
     ----------
-    start : int or None
-    stop : int or None
-    step : int or None
+    start : int, optional
+        Start position for slice operation.
+    stop : int, optional
+        Stop position for slice operation.
+    step : int, optional
+        Step size for slice operation.
 
     Returns
     -------
-    sliced : Series/Index of objects
+    Series or Index of object
+        Series or Index from sliced substring from original string object.
+
+    See Also
+    --------
+    Series.str.slice_replace : Replace a slice with a string.
+    Series.str.get : Return element at position.
+        Equivalent to `Series.str.slice(start=i, stop=i+1)` with `i`
+        being the position.
+
+    Examples
+    --------
+    >>> s = pd.Series(["koala", "fox", "chameleon"])
+    >>> s
+    0        koala
+    1          fox
+    2    chameleon
+    dtype: object
+
+    >>> s.str.slice(start=1)
+    0        oala
+    1          ox
+    2    hameleon
+    dtype: object
+
+    >>> s.str.slice(stop=2)
+    0    ko
+    1    fo
+    2    ch
+    dtype: object
+
+    >>> s.str.slice(step=2)
+    0      kaa
+    1       fx
+    2    caeen
+    dtype: object
+
+    >>> s.str.slice(start=0, stop=5, step=3)
+    0    kl
+    1     f
+    2    cm
+    dtype: object
+
+    Equivalent behaviour to:
+
+    >>> s.str[0:5:3]
+    0    kl
+    1     f
+    2    cm
+    dtype: object
     """
     obj = slice(start, stop, step)
     f = lambda x: x[obj]
@@ -1998,12 +1993,12 @@ class StringMethods(NoNewAttributesMixin):
         elif isinstance(others, np.ndarray) and others.ndim == 2:
             others = DataFrame(others, index=idx)
             return ([others[x] for x in others], False)
-        elif is_list_like(others):
+        elif is_list_like(others, allow_sets=False):
             others = list(others)  # ensure iterators do not get read twice etc
 
             # in case of list-like `others`, all elements must be
             # either one-dimensional list-likes or scalars
-            if all(is_list_like(x) for x in others):
+            if all(is_list_like(x, allow_sets=False) for x in others):
                 los = []
                 join_warn = False
                 depr_warn = False
@@ -2076,9 +2071,10 @@ class StringMethods(NoNewAttributesMixin):
 
             If others is None, the method returns the concatenation of all
             strings in the calling Series/Index.
-        sep : string or None, default None
-            If None, concatenates without any separator.
-        na_rep : string or None, default None
+        sep : str, default ''
+            The separator between the different elements/columns. By default
+            the empty string `''` is used.
+        na_rep : str or None, default None
             Representation that is inserted for all missing values:
 
             - If `na_rep` is None, and `others` is None, missing values in the
@@ -2105,8 +2101,8 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        split : Split each string in the Series/Index
-        join : Join lists contained as elements in the Series/Index
+        split : Split each string in the Series/Index.
+        join : Join lists contained as elements in the Series/Index.
 
         Examples
         --------
@@ -2157,13 +2153,6 @@ class StringMethods(NoNewAttributesMixin):
         `join`-keyword works as in other methods.
 
         >>> t = pd.Series(['d', 'a', 'e', 'c'], index=[3, 0, 4, 2])
-        >>> s.str.cat(t, join=None, na_rep='-')
-        0    ad
-        1    ba
-        2    -e
-        3    dc
-        dtype: object
-        >>>
         >>> s.str.cat(t, join='left', na_rep='-')
         0    aa
         1    b-
@@ -2198,6 +2187,8 @@ class StringMethods(NoNewAttributesMixin):
 
         if isinstance(others, compat.string_types):
             raise ValueError("Did you mean to supply a `sep` keyword?")
+        if sep is None:
+            sep = ''
 
         if isinstance(self._orig, Index):
             data = Series(self._orig, index=self._orig)
@@ -2206,9 +2197,13 @@ class StringMethods(NoNewAttributesMixin):
 
         # concatenate Series/Index with itself if no "others"
         if others is None:
-            result = str_cat(data, others=others, sep=sep, na_rep=na_rep)
-            return self._wrap_result(result,
-                                     use_codes=(not self._is_categorical))
+            data = ensure_object(data)
+            na_mask = isna(data)
+            if na_rep is None and na_mask.any():
+                data = data[~na_mask]
+            elif na_rep is not None and na_mask.any():
+                data = np.where(na_mask, na_rep, data)
+            return sep.join(data)
 
         try:
             # turn anything in "others" into lists of Series
@@ -2235,23 +2230,45 @@ class StringMethods(NoNewAttributesMixin):
                           "'outer'|'inner'|'right'`. The future default will "
                           "be `join='left'`.", FutureWarning, stacklevel=2)
 
+        # if join is None, _get_series_list already force-aligned indexes
+        join = 'left' if join is None else join
+
         # align if required
-        if join is not None:
+        if any(not data.index.equals(x.index) for x in others):
             # Need to add keys for uniqueness in case of duplicate columns
             others = concat(others, axis=1,
                             join=(join if join == 'inner' else 'outer'),
-                            keys=range(len(others)))
+                            keys=range(len(others)), sort=False, copy=False)
             data, others = data.align(others, join=join)
             others = [others[x] for x in others]  # again list of Series
 
-        # str_cat discards index
-        res = str_cat(data, others=others, sep=sep, na_rep=na_rep)
+        all_cols = [ensure_object(x) for x in [data] + others]
+        na_masks = np.array([isna(x) for x in all_cols])
+        union_mask = np.logical_or.reduce(na_masks, axis=0)
+
+        if na_rep is None and union_mask.any():
+            # no na_rep means NaNs for all rows where any column has a NaN
+            # only necessary if there are actually any NaNs
+            result = np.empty(len(data), dtype=object)
+            np.putmask(result, union_mask, np.nan)
+
+            not_masked = ~union_mask
+            result[not_masked] = cat_core([x[not_masked] for x in all_cols],
+                                          sep)
+        elif na_rep is not None and union_mask.any():
+            # fill NaNs with na_rep in case there are actually any NaNs
+            all_cols = [np.where(nm, na_rep, col)
+                        for nm, col in zip(na_masks, all_cols)]
+            result = cat_core(all_cols, sep)
+        else:
+            # no NaNs - can just concatenate
+            result = cat_core(all_cols, sep)
 
         if isinstance(self._orig, Index):
-            res = Index(res, name=self._orig.name)
+            result = Index(result, name=self._orig.name)
         else:  # Series
-            res = Series(res, index=data.index, name=self._orig.name)
-        return res
+            result = Series(result, index=data.index, name=self._orig.name)
+        return result
 
     _shared_docs['str_split'] = ("""
     Split strings around given separator/delimiter.
@@ -2412,7 +2429,6 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-
 
     >>> s = pd.Series(['Linda van der Berg', 'George Pitt-Rivers'])
     >>> s
@@ -2645,7 +2661,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Parameters
     ----------
-    to_strip : str or None, default None.
+    to_strip : str or None, default None
         Specifying the set of characters to be removed.
         All combinations of this set of characters will be stripped.
         If None then whitespaces are removed.
@@ -2656,9 +2672,9 @@ class StringMethods(NoNewAttributesMixin):
 
     See Also
     --------
-    Series.str.strip : Remove leading and trailing characters in Series/Index
-    Series.str.lstrip : Remove leading characters in Series/Index
-    Series.str.rstrip : Remove trailing characters in Series/Index
+    Series.str.strip : Remove leading and trailing characters in Series/Index.
+    Series.str.lstrip : Remove leading characters in Series/Index.
+    Series.str.rstrip : Remove trailing characters in Series/Index.
 
     Examples
     --------

@@ -19,6 +19,8 @@ class TestABCClasses(object):
     sparse_series = pd.Series([1, 2, 3]).to_sparse()
     sparse_array = pd.SparseArray(np.random.randn(10))
     sparse_frame = pd.SparseDataFrame({'a': [1, -1, None]})
+    datetime_array = pd.core.arrays.DatetimeArrayMixin(datetime_index)
+    timedelta_array = pd.core.arrays.TimedeltaArrayMixin(timedelta_index)
 
     def test_abc_types(self):
         assert isinstance(pd.Index(['a', 'b', 'c']), gt.ABCIndex)
@@ -50,6 +52,12 @@ class TestABCClasses(object):
                               gt.ABCDateOffset)
         assert isinstance(pd.Interval(0, 1.5), gt.ABCInterval)
         assert not isinstance(pd.Period('2012', freq='A-DEC'), gt.ABCInterval)
+
+        assert isinstance(self.datetime_array, gt.ABCDatetimeArray)
+        assert not isinstance(self.datetime_index, gt.ABCDatetimeArray)
+
+        assert isinstance(self.timedelta_array, gt.ABCTimedeltaArray)
+        assert not isinstance(self.timedelta_index, gt.ABCTimedeltaArray)
 
 
 def test_setattr_warnings():
