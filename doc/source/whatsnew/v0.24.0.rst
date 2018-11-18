@@ -1141,6 +1141,7 @@ Performance Improvements
 - Improved performance of :func:`PeriodIndex.unique` (:issue:`23083`)
 - Improved performance of :func:`pd.concat` for `Series` objects (:issue:`23404`)
 - Improved performance of :meth:`DatetimeIndex.normalize` and :meth:`Timestamp.normalize` for timezone naive or UTC datetimes (:issue:`23634`)
+- Improved performance of :meth:`DatetimeIndex.tz_localize` and various ``DatetimeIndex`` attributes with dateutil UTC timezone (:issue:``)
 
 
 .. _whatsnew_0240.docs:

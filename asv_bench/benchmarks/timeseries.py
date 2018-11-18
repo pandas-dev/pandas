@@ -411,4 +411,5 @@ class DatetimeAccessor(object):
     def time_dt_accessor_year(self, tz):
         self.series.dt.year
 
+
 from .pandas_vb_common import setup  # noqa: F401
