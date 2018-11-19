@@ -206,7 +206,14 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     if isinstance(bins, string_types):
         # GH 14627
-        bins = np.histogram_bin_edges(x, bins)
+        # NOTE: when the minimum numpy requirement is
+        # increased to 1.15, the try-except statement
+        # can be removed.
+        try:
+            bins = np.histogram_bin_edges(x, bins)
+        except AttributeError:
+            cnt, bins = np.histogram(x, bins)
+
         mn, mx = bins[0], bins[-1]
         adj = (mx - mn)
         if adj:
