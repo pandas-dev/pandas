@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
+from warnings import catch_warnings
+
+import numpy as np
 import pytest
 
-from warnings import catch_warnings
-import numpy as np
-from pandas import (Series, DataFrame, Index, Float64Index, Int64Index,
-                    RangeIndex)
-from pandas.util.testing import assert_series_equal, assert_almost_equal
+from pandas import (
+    DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series)
 import pandas.util.testing as tm
-
+from pandas.util.testing import assert_almost_equal, assert_series_equal
 
 ignore_ix = pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
 
@@ -50,11 +50,9 @@ class TestFloatIndexers(object):
 
             s = Series(np.arange(len(i)), index=i)
 
-            def f():
+            msg = 'Cannot index by location index'
+            with pytest.raises(TypeError, match=msg):
                 s.iloc[3.0]
-            tm.assert_raises_regex(TypeError,
-                                   'Cannot index by location index',
-                                   f)
 
             def f():
                 s.iloc[3.0] = 0

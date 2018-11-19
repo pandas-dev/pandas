@@ -1,30 +1,29 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
-
-from datetime import datetime, timedelta
 from collections import OrderedDict
+from datetime import datetime, timedelta
 
-from numpy import nan
 import numpy as np
+from numpy import nan
 import numpy.ma as ma
-import pandas as pd
-
-from pandas.api.types import CategoricalDtype
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_datetime64tz_dtype)
-from pandas import (Index, Series, isna, date_range, Timestamp,
-                    NaT, period_range, timedelta_range, MultiIndex,
-                    IntervalIndex, Categorical, DataFrame)
+import pytest
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
+from pandas.compat import PY36, long, lrange, range, zip
 
-from pandas.compat import lrange, range, zip, long, PY36
-from pandas.util.testing import assert_series_equal
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_datetime64tz_dtype)
+
+import pandas as pd
+from pandas import (
+    Categorical, DataFrame, Index, IntervalIndex, MultiIndex, NaT, Series,
+    Timestamp, date_range, isna, period_range, timedelta_range)
+from pandas.api.types import CategoricalDtype
+from pandas.core.arrays import period_array
 import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
 
 
 class TestSeriesConstructors():
@@ -34,7 +33,7 @@ class TestSeriesConstructors():
         msg = 'not understood'
         invalid_list = [pd.Timestamp, 'pd.Timestamp', list]
         for dtype in invalid_list:
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 Series([], name='time', dtype=dtype)
 
     def test_scalar_conversion(self):
@@ -561,19 +560,19 @@ class TestSeriesConstructors():
 
     def test_constructor_cast(self):
         msg = "could not convert string to float"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Series(["a", "b", "c"], dtype=float)
 
     def test_constructor_unsigned_dtype_overflow(self, uint_dtype):
         # see gh-15832
         msg = 'Trying to coerce negative values to unsigned integers'
-        with tm.assert_raises_regex(OverflowError, msg):
+        with pytest.raises(OverflowError, match=msg):
             Series([-1], dtype=uint_dtype)
 
     def test_constructor_coerce_float_fail(self, any_int_dtype):
         # see gh-15832
         msg = "Trying to coerce float values to integers"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Series([1, 2, 3.5], dtype=any_int_dtype)
 
     def test_constructor_coerce_float_valid(self, float_dtype):
@@ -856,16 +855,32 @@ class TestSeriesConstructors():
         result = Series(s.values, dtype=s.dtype)
         tm.assert_series_equal(result, s)
 
+    def test_constructor_infer_period(self):
+        data = [pd.Period('2000', 'D'), pd.Period('2001', 'D'), None]
+        result = pd.Series(data)
+        expected = pd.Series(period_array(data))
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == 'Period[D]'
+
+        data = np.asarray(data, dtype=object)
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == 'Period[D]'
+
+    def test_constructor_period_incompatible_frequency(self):
+        data = [pd.Period('2000', 'D'), pd.Period('2001', 'A')]
+        result = pd.Series(data)
+        assert result.dtype == object
+        assert result.tolist() == data
+
     def test_constructor_periodindex(self):
         # GH7932
         # converting a PeriodIndex when put in a Series
 
         pi = period_range('20130101', periods=5, freq='D')
         s = Series(pi)
+        assert s.dtype == 'Period[D]'
         expected = Series(pi.astype(object))
         assert_series_equal(s, expected)
-
-        assert s.dtype == 'object'
 
     def test_constructor_dict(self):
         d = {'a': 0., 'b': 1., 'c': 2.}
@@ -1141,8 +1156,13 @@ class TestSeriesConstructors():
     def test_constructor_cant_cast_datetimelike(self, index):
 
         # floats are not ok
-        msg = "Cannot cast {} to ".format(type(index).__name__)
-        with tm.assert_raises_regex(TypeError, msg):
+        msg = "Cannot cast {}.*? to ".format(
+            # strip Index to convert PeriodIndex -> Period
+            # We don't care whether the error message says
+            # PeriodIndex or PeriodArray
+            type(index).__name__.rstrip("Index")
+        )
+        with pytest.raises(TypeError, match=msg):
             Series(index, dtype=float)
 
         # ints are ok
@@ -1172,32 +1192,26 @@ class TestSeriesConstructors():
         exp = Series(index).astype(object)
         tm.assert_series_equal(s, exp)
 
-    def test_constructor_generic_timestamp_deprecated(self):
-        # see gh-15524
+    @pytest.mark.parametrize("dtype", [
+        np.datetime64,
+        np.timedelta64,
+    ])
+    def test_constructor_generic_timestamp_no_frequency(self, dtype):
+        # see gh-15524, gh-15987
+        msg = "dtype has no unit. Please pass in"
 
-        with tm.assert_produces_warning(FutureWarning):
-            dtype = np.timedelta64
-            s = Series([], dtype=dtype)
+        with pytest.raises(ValueError, match=msg):
+            Series([], dtype=dtype)
 
-            assert s.empty
-            assert s.dtype == 'm8[ns]'
+    @pytest.mark.parametrize("dtype,msg", [
+        ("m8[ps]", "cannot convert timedeltalike"),
+        ("M8[ps]", "cannot convert datetimelike"),
+    ])
+    def test_constructor_generic_timestamp_bad_frequency(self, dtype, msg):
+        # see gh-15524, gh-15987
 
-        with tm.assert_produces_warning(FutureWarning):
-            dtype = np.datetime64
-            s = Series([], dtype=dtype)
-
-            assert s.empty
-            assert s.dtype == 'M8[ns]'
-
-        # These timestamps have the wrong frequencies,
-        # so an Exception should be raised now.
-        msg = "cannot convert timedeltalike"
-        with tm.assert_raises_regex(TypeError, msg):
-            Series([], dtype='m8[ps]')
-
-        msg = "cannot convert datetimelike"
-        with tm.assert_raises_regex(TypeError, msg):
-            Series([], dtype='M8[ps]')
+        with pytest.raises(TypeError, match=msg):
+            Series([], dtype=dtype)
 
     @pytest.mark.parametrize('dtype', [None, 'uint8', 'category'])
     def test_constructor_range_dtype(self, dtype):

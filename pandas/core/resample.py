@@ -239,7 +239,7 @@ one pass, you can do
     2013-01-01 00:00:02      7  4.949747
     2013-01-01 00:00:04      5       NaN
 
-    See also
+    See Also
     --------
     pandas.DataFrame.groupby.aggregate
     pandas.DataFrame.resample.transform
@@ -725,7 +725,7 @@ one pass, you can do
 
         Parameters
         ----------
-        fill_value: scalar, optional
+        fill_value : scalar, optional
             Value to use for missing values, applied during upsampling (note
             this does not fill NaNs that already were present).
 
@@ -983,7 +983,7 @@ class DatetimeIndexResampler(Resampler):
         fill_value : scalar, default None
             Value to use for missing values
 
-        See also
+        See Also
         --------
         .fillna
 
@@ -1113,7 +1113,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         fill_value : scalar, default None
             Value to use for missing values
 
-        See also
+        See Also
         --------
         .fillna
 
@@ -1429,7 +1429,7 @@ class TimeGrouper(Grouper):
                                          freq=self.freq,
                                          name=ax.name)
 
-        end_stamps = labels + 1
+        end_stamps = labels + self.freq
         bins = ax.searchsorted(end_stamps, side='left')
 
         # Addresses GH #10530
@@ -1443,17 +1443,18 @@ class TimeGrouper(Grouper):
             raise TypeError('axis must be a DatetimeIndex, but got '
                             'an instance of %r' % type(ax).__name__)
 
+        freq = self.freq
+
         if not len(ax):
-            binner = labels = PeriodIndex(
-                data=[], freq=self.freq, name=ax.name)
+            binner = labels = PeriodIndex(data=[], freq=freq, name=ax.name)
             return binner, [], labels
 
         labels = binner = PeriodIndex(start=ax[0],
                                       end=ax[-1],
-                                      freq=self.freq,
+                                      freq=freq,
                                       name=ax.name)
 
-        end_stamps = (labels + 1).asfreq(self.freq, 's').to_timestamp()
+        end_stamps = (labels + freq).asfreq(freq, 's').to_timestamp()
         if ax.tzinfo:
             end_stamps = end_stamps.tz_localize(ax.tzinfo)
         bins = ax.searchsorted(end_stamps, side='left')

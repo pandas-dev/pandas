@@ -1,23 +1,21 @@
 # -*- coding: utf-8 -*-
 
+import pytest
 import numpy as np
+
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import MultiIndex, Series
 
 
-def test_setops_errorcases(idx):
-    # # non-iterable input
-    cases = [0.5, 'xxx']
-    methods = [idx.intersection, idx.union, idx.difference,
-               idx.symmetric_difference]
-
-    for method in methods:
-        for case in cases:
-            tm.assert_raises_regex(TypeError,
-                                   "Input must be Index "
-                                   "or array-like",
-                                   method, case)
+@pytest.mark.parametrize("case", [0.5, "xxx"])
+@pytest.mark.parametrize("method", ["intersection", "union",
+                                    "difference", "symmetric_difference"])
+def test_set_ops_error_cases(idx, case, method):
+    # non-iterable input
+    msg = "Input must be Index or array-like"
+    with pytest.raises(TypeError, match=msg):
+        getattr(idx, method)(case)
 
 
 def test_intersection_base(idx):
@@ -35,8 +33,8 @@ def test_intersection_base(idx):
         assert tm.equalContents(result, second)
 
     msg = "other must be a MultiIndex or a list of tuples"
-    with tm.assert_raises_regex(TypeError, msg):
-        result = first.intersection([1, 2, 3])
+    with pytest.raises(TypeError, match=msg):
+        first.intersection([1, 2, 3])
 
 
 def test_union_base(idx):
@@ -54,8 +52,8 @@ def test_union_base(idx):
         assert tm.equalContents(result, everything)
 
     msg = "other must be a MultiIndex or a list of tuples"
-    with tm.assert_raises_regex(TypeError, msg):
-        result = first.union([1, 2, 3])
+    with pytest.raises(TypeError, match=msg):
+        first.union([1, 2, 3])
 
 
 def test_difference_base(idx):
@@ -74,8 +72,8 @@ def test_difference_base(idx):
         assert tm.equalContents(result, answer)
 
     msg = "other must be a MultiIndex or a list of tuples"
-    with tm.assert_raises_regex(TypeError, msg):
-        result = first.difference([1, 2, 3])
+    with pytest.raises(TypeError, match=msg):
+        first.difference([1, 2, 3])
 
 
 def test_symmetric_difference(idx):
@@ -93,7 +91,7 @@ def test_symmetric_difference(idx):
         assert tm.equalContents(result, answer)
 
     msg = "other must be a MultiIndex or a list of tuples"
-    with tm.assert_raises_regex(TypeError, msg):
+    with pytest.raises(TypeError, match=msg):
         first.symmetric_difference([1, 2, 3])
 
 
@@ -158,9 +156,10 @@ def test_difference(idx):
         'foo', 'two'), ('qux', 'one'), ('qux', 'two')])
     expected.names = first.names
     assert first.names == result.names
-    tm.assert_raises_regex(TypeError, "other must be a MultiIndex "
-                           "or a list of tuples",
-                           first.difference, [1, 2, 3, 4, 5])
+
+    msg = "other must be a MultiIndex or a list of tuples"
+    with pytest.raises(TypeError, match=msg):
+        first.difference([1, 2, 3, 4, 5])
 
 
 def test_union(idx):

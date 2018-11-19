@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
-import pytest
 from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
 from pandas._libs.tslib import iNaT
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -19,7 +20,7 @@ def test_fillna(idx):
         elif isinstance(index, MultiIndex):
             idx = index.copy()
             msg = "isna is not defined for MultiIndex"
-            with tm.assert_raises_regex(NotImplementedError, msg):
+            with pytest.raises(NotImplementedError, match=msg):
                 idx.fillna(idx[0])
         else:
             idx = index.copy()
@@ -28,7 +29,7 @@ def test_fillna(idx):
             assert result is not idx
 
             msg = "'value' must be a scalar, passed: "
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 idx.fillna([idx[0]])
 
             idx = index.copy()
@@ -49,7 +50,7 @@ def test_fillna(idx):
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
             tm.assert_numpy_array_equal(idx._isnan, expected)
-            assert idx.hasnans
+            assert idx.hasnans is True
 
 
 def test_dropna():
@@ -70,7 +71,7 @@ def test_dropna():
     tm.assert_index_equal(idx.dropna(how='all'), exp)
 
     msg = "invalid how option: xxx"
-    with tm.assert_raises_regex(ValueError, msg):
+    with pytest.raises(ValueError, match=msg):
         idx.dropna(how='xxx')
 
 
@@ -79,7 +80,7 @@ def test_nulls(idx):
     # as these are adequately tested for function elsewhere
 
     msg = "isna is not defined for MultiIndex"
-    with tm.assert_raises_regex(NotImplementedError, msg):
+    with pytest.raises(NotImplementedError, match=msg):
         idx.isna()
 
 
@@ -91,7 +92,7 @@ def test_hasnans_isnans(idx):
     # cases in indices doesn't include NaN
     expected = np.array([False] * len(index), dtype=bool)
     tm.assert_numpy_array_equal(index._isnan, expected)
-    assert not index.hasnans
+    assert index.hasnans is False
 
     index = idx.copy()
     values = index.values
@@ -102,7 +103,7 @@ def test_hasnans_isnans(idx):
     expected = np.array([False] * len(index), dtype=bool)
     expected[1] = True
     tm.assert_numpy_array_equal(index._isnan, expected)
-    assert index.hasnans
+    assert index.hasnans is True
 
 
 def test_nan_stays_float():

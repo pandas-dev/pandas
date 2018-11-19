@@ -31,7 +31,7 @@ argparser = argparse.ArgumentParser(description=desc)
 argparser.add_argument('funcname', metavar='FUNCNAME',
                        help='Name of function/method to search for changes on')
 argparser.add_argument('-f', '--file-masks', metavar='f_re(,f_re)*',
-                       default=["\.py.?$"],
+                       default=[r"\.py.?$"],
                        help='comma separated list of regexes to match '
                        'filenames against\ndefaults all .py? files')
 argparser.add_argument('-d', '--dir-masks', metavar='d_re(,d_re)*',
@@ -80,7 +80,7 @@ def get_hits(defname, files=()):
         try:
             r = sh.git('blame',
                        '-L',
-                       '/def\s*{start}/,/def/'.format(start=defname),
+                       r'/def\s*{start}/,/def/'.format(start=defname),
                        f,
                        _tty_out=False)
         except sh.ErrorReturnCode_128:
@@ -89,7 +89,7 @@ def get_hits(defname, files=()):
 
         lines = r.strip().splitlines()[:-1]
         # remove comment lines
-        lines = [x for x in lines if not re.search("^\w+\s*\(.+\)\s*#", x)]
+        lines = [x for x in lines if not re.search(r"^\w+\s*\(.+\)\s*#", x)]
         hits = set(map(lambda x: x.split(" ")[0], lines))
         cs.update({Hit(commit=c, path=f) for c in hits})
 

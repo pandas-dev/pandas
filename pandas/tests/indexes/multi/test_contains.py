@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import pytest
-from pandas import MultiIndex
+
 from pandas.compat import PYPY
+
+import pandas as pd
+from pandas import MultiIndex
+import pandas.util.testing as tm
 
 
 def test_contains_top_level():

@@ -5,10 +5,10 @@ import sys
 
 import numpy as np
 
-import pandas as pd
-from pandas.core.arrays import (ExtensionArray,
-                                ExtensionScalarOpsMixin)
 from pandas.core.dtypes.base import ExtensionDtype
+
+import pandas as pd
+from pandas.core.arrays import ExtensionArray, ExtensionScalarOpsMixin
 
 
 class DecimalDtype(ExtensionDtype):
@@ -47,6 +47,7 @@ class DecimalDtype(ExtensionDtype):
 
 
 class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
+    __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False, context=None):
         for val in values:
@@ -101,7 +102,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def astype(self, dtype, copy=True):
         if isinstance(dtype, type(self.dtype)):
             return type(self)(self._data, context=dtype.context)
-        return super(DecimalArray, self).astype(dtype, copy)
+        return np.asarray(self, dtype=dtype)
 
     def __setitem__(self, key, value):
         if pd.api.types.is_list_like(value):
@@ -133,6 +134,18 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     @classmethod
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
+
+    def _reduce(self, name, skipna=True, **kwargs):
+
+        if skipna:
+            raise NotImplementedError("decimal does not support skipna=True")
+
+        try:
+            op = getattr(self.data, name)
+        except AttributeError:
+            raise NotImplementedError("decimal does not support "
+                                      "the {} operation".format(name))
+        return op(axis=0)
 
 
 def to_decimal(values, context=None):
