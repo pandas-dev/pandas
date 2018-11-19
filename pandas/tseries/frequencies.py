@@ -292,7 +292,7 @@ class _FrequencyInferer(object):
 
     def __init__(self, index, warn=True):
         self.index = index
-        self.values = np.asarray(index).view('i8')
+        self.values = index.asi8
 
         # This moves the values, which are implicitly in UTC, to the
         # the timezone so they are in local time

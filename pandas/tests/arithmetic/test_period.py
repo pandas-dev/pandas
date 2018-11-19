@@ -30,15 +30,15 @@ class TestPeriodIndexComparisons(object):
         tm.assert_numpy_array_equal(result, exp)
 
     # TODO: moved from test_datetime64; de-duplicate with version below
-    def test_parr_cmp_period_scalar2(self, box):
-        xbox = box if box is not pd.Index else np.ndarray
+    def test_parr_cmp_period_scalar2(self, box_with_array):
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
 
         pi = pd.period_range('2000-01-01', periods=10, freq='D')
 
         val = Period('2000-01-04', freq='D')
         expected = [x > val for x in pi]
 
-        ser = tm.box_expected(pi, box)
+        ser = tm.box_expected(pi, box_with_array)
         expected = tm.box_expected(expected, xbox)
         result = ser > val
         tm.assert_equal(result, expected)
@@ -50,13 +50,13 @@ class TestPeriodIndexComparisons(object):
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
-    def test_parr_cmp_period_scalar(self, freq, box):
+    def test_parr_cmp_period_scalar(self, freq, box_with_array):
         # GH#13200
-        xbox = np.ndarray if box is pd.Index else box
+        xbox = np.ndarray if box_with_array is pd.Index else box_with_array
 
         base = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                            freq=freq)
-        base = tm.box_expected(base, box)
+        base = tm.box_expected(base, box_with_array)
         per = Period('2011-02', freq=freq)
 
         exp = np.array([False, True, False, False])
@@ -90,13 +90,13 @@ class TestPeriodIndexComparisons(object):
         tm.assert_equal(per >= base, exp)
 
     @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
-    def test_parr_cmp_pi(self, freq, box):
+    def test_parr_cmp_pi(self, freq, box_with_array):
         # GH#13200
-        xbox = np.ndarray if box is pd.Index else box
+        xbox = np.ndarray if box_with_array is pd.Index else box_with_array
 
         base = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                            freq=freq)
-        base = tm.box_expected(base, box)
+        base = tm.box_expected(base, box_with_array)
 
         # TODO: could also box idx?
         idx = PeriodIndex(['2011-02', '2011-01', '2011-03', '2011-05'],
@@ -127,12 +127,12 @@ class TestPeriodIndexComparisons(object):
         tm.assert_equal(base <= idx, exp)
 
     @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
-    def test_parr_cmp_pi_mismatched_freq_raises(self, freq, box):
+    def test_parr_cmp_pi_mismatched_freq_raises(self, freq, box_with_array):
         # GH#13200
         # different base freq
         base = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                            freq=freq)
-        base = tm.box_expected(base, box)
+        base = tm.box_expected(base, box_with_array)
 
         msg = "Input has different freq=A-DEC from "
         with pytest.raises(IncompatibleFrequency, match=msg):
@@ -598,14 +598,12 @@ class TestPeriodIndexArithmetic(object):
     def test_pi_add_offset_n_gt1_not_divisible(self, box_with_array):
         # GH#23215
         # PeriodIndex with freq.n > 1 add offset with offset.n % freq.n != 0
-        box = box_with_array
-
         pi = pd.PeriodIndex(['2016-01'], freq='2M')
         expected = pd.PeriodIndex(['2016-04'], freq='2M')
 
         # FIXME: with transposing these tests fail
-        pi = tm.box_expected(pi, box, transpose=False)
-        expected = tm.box_expected(expected, box, transpose=False)
+        pi = tm.box_expected(pi, box_with_array, transpose=False)
+        expected = tm.box_expected(expected, box_with_array, transpose=False)
 
         result = pi + to_offset('3M')
         tm.assert_equal(result, expected)
@@ -616,23 +614,23 @@ class TestPeriodIndexArithmetic(object):
     # ---------------------------------------------------------------
     # __add__/__sub__ with integer arrays
 
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    @pytest.mark.parametrize('int_holder', [np.array, pd.Index])
     @pytest.mark.parametrize('op', [operator.add, ops.radd])
-    def test_pi_add_intarray(self, box, op):
+    def test_pi_add_intarray(self, int_holder, op):
         # GH#19959
         pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('NaT')])
-        other = box([4, -1])
+        other = int_holder([4, -1])
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False,
                                         clear=[pd.core.arrays.datetimelike]):
             result = op(pi, other)
         expected = pd.PeriodIndex([pd.Period('2016Q1'), pd.Period('NaT')])
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
-    def test_pi_sub_intarray(self, box):
+    @pytest.mark.parametrize('int_holder', [np.array, pd.Index])
+    def test_pi_sub_intarray(self, int_holder):
         # GH#19959
         pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('NaT')])
-        other = box([4, -1])
+        other = int_holder([4, -1])
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False,
                                         clear=[pd.core.arrays.datetimelike]):
             result = pi - other

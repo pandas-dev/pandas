@@ -727,6 +727,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             else:  # pragma: no cover
                 return NotImplemented
 
+            if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
+                from pandas.core.arrays import TimedeltaArrayMixin
+                # TODO: infer freq?
+                return TimedeltaArrayMixin(result)
             return result
 
         cls.__add__ = __add__
@@ -791,6 +795,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             else:  # pragma: no cover
                 return NotImplemented
 
+            if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
+                from pandas.core.arrays import TimedeltaArrayMixin
+                # TODO: infer freq?
+                return TimedeltaArrayMixin(result)
             return result
 
         cls.__sub__ = __sub__

@@ -300,6 +300,11 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         return NotImplemented
 
+    def __neg__(self):
+        if self.freq is not None:
+            return type(self)(-self._data, freq=-self.freq)
+        return type(self)(-self._data)
+
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timedelta methods
 
