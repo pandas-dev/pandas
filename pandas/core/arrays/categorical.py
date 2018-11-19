@@ -6,6 +6,7 @@ from warnings import warn
 import numpy as np
 
 from pandas._libs import algos as libalgos, lib
+import pandas.compat as compat
 from pandas.compat import lzip, u
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -26,7 +27,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas import compat
 from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import factorize, take, take_1d, unique1d

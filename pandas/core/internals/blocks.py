@@ -9,6 +9,7 @@ import numpy as np
 
 from pandas._libs import internals as libinternals, lib, tslib, tslibs
 from pandas._libs.tslibs import Timedelta, conversion
+import pandas.compat as compat
 from pandas.compat import range, zip
 from pandas.util._validators import validate_bool_kwarg
 
@@ -31,7 +32,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import (
     _isna_compat, array_equivalent, is_null_datelike_scalar, isna, notna)
 
-from pandas import compat
 import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
 from pandas.core.base import PandasObject

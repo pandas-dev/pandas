@@ -11,6 +11,7 @@ from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period, get_period_field_arr,
     period_asfreq_arr)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
+import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._validators import validate_fillna_kwargs
@@ -24,7 +25,6 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCPeriodIndex, ABCSeries
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas import compat
 import pandas.core.algorithms as algos
 from pandas.core.arrays import ExtensionArray, datetimelike as dtl
 import pandas.core.common as com

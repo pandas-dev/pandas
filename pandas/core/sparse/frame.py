@@ -9,6 +9,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.sparse import BlockIndex, get_blocks
+import pandas.compat as compat
 from pandas.compat import lmap
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
@@ -17,7 +18,6 @@ from pandas.core.dtypes.cast import find_common_type, maybe_upcast
 from pandas.core.dtypes.common import ensure_platform_int, is_scipy_sparse
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas import compat
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 import pandas.core.common as com

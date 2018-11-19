@@ -10,6 +10,7 @@ from pandas._libs.tslib import NaT, Timestamp, iNaT
 from pandas._libs.tslibs import (
     ccalendar, conversion, fields, normalize_date, resolution as libresolution,
     timezones)
+import pandas.compat as compat
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender, cache_readonly
 
@@ -20,7 +21,6 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas import compat
 from pandas.core import ops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl

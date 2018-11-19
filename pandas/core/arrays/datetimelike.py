@@ -11,6 +11,7 @@ from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import maybe_integer_op_deprecated
+import pandas.compat as compat
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
 from pandas.util._decorators import deprecate_kwarg
@@ -24,7 +25,6 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas import compat
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d
 import pandas.core.common as com
 

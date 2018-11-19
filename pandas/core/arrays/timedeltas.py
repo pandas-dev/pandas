@@ -9,6 +9,7 @@ from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64, parse_timedelta_unit)
+import pandas.compat as compat
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -18,7 +19,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
 from pandas.core.dtypes.missing import isna
 
-from pandas import compat
 from pandas.core.algorithms import checked_add_with_arr
 import pandas.core.common as com
 

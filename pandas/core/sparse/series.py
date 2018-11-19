@@ -12,6 +12,7 @@ import numpy as np
 import pandas._libs.index as libindex
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex
+import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
@@ -19,7 +20,6 @@ from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.generic import ABCSeries, ABCSparseSeries
 from pandas.core.dtypes.missing import is_integer, isna, notna
 
-from pandas import compat
 from pandas.core import generic
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.sparse import SparseAccessor
