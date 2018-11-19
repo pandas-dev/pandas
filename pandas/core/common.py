@@ -15,14 +15,12 @@ import numpy as np
 from pandas._libs import lib, tslibs
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas import compat
-from pandas.compat import iteritems, PY2, PY36, OrderedDict
+from pandas.compat import iteritems, PY36, OrderedDict
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex, ABCIndexClass
-from pandas.core.dtypes.common import (is_integer, is_integer_dtype,
-                                       is_bool_dtype, is_extension_array_dtype,
-                                       is_array_like,
-                                       is_float_dtype, is_object_dtype,
-                                       is_categorical_dtype, is_numeric_dtype,
-                                       is_scalar, ensure_platform_int)
+from pandas.core.dtypes.common import (
+    is_integer, is_integer_dtype, is_bool_dtype,
+    is_extension_array_dtype, is_array_like, is_object_dtype,
+    is_categorical_dtype, is_numeric_dtype, is_scalar, ensure_platform_int)
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 
@@ -487,58 +485,47 @@ def _get_rename_function(mapper):
     return f
 
 
-def ensure_integer_dtype(arr, value):
+def searchsorted_integer(arr, value, side="left", sorter=None):
     """
-    Ensure optimal dtype for :func:`searchsorted_integer` is returned.
+    searchsorted implementation for searching integer arrays.
+
+    We get a speedup if we ensure the dtype of arr and value are the same
+    (if possible) before searchingm as numpy implicitly converts the dtypes
+    if they're different, which would cause a slowdown.
+
+    See :func:`searchsorted` for a more general searchsorted implementation.
 
     Parameters
     ----------
-    arr : a numpy integer array
-    value : a number or array of numbers
+    arr : numpy.array
+        a numpy array of integers
+    value : int or numpy.array
+        an integer or an array of integers that we want to find the
+        location(s) for in `arr`
+    side : str
+        One of {'left', 'right'}
+    sorter : numpy.array, optional
 
     Returns
     -------
-    dtype : an numpy integer dtype
-
-    Raises
-    ------
-    TypeError : if value is not a number
-    """
-    value_arr = np.array([value]) if is_scalar(value) else np.array(value)
-
-    if PY2 and not is_numeric_dtype(value_arr):
-        # python 2 allows "a" < 1, avoid such nonsense
-        msg = "value must be numeric, was type {}"
-        raise TypeError(msg.format(value))
-
-    iinfo = np.iinfo(arr.dtype)
-    if not ((value_arr < iinfo.min).any() or (value_arr > iinfo.max).any()):
-        return arr.dtype
-    else:
-        return value_arr.dtype
-
-
-def searchsorted_integer(arr, value, side="left", sorter=None):
-    """
-    searchsorted implementation, but only for integer arrays.
-
-    We get a speedup if the dtype of arr and value is the same.
-
-    See :func:`searchsorted` for a more general searchsorted implementation.
+    int or numpy.array
+        The locations(s) of `value` in `arr`.
     """
     if sorter is not None:
         sorter = ensure_platform_int(sorter)
 
-    dtype = ensure_integer_dtype(arr, value)
+    # below we try to give `value` the same dtype as `arr`, while guarding
+    # against integer overflows. If the value of `value` is outside of the
+    # bound of `arr`, `arr` would be recast by numpy, causing a slower search.
+    value_arr = np.array([value]) if is_scalar(value) else np.array(value)
+    iinfo = np.iinfo(arr.dtype)
+    if (value_arr >= iinfo.min).all() and (value_arr <= iinfo.max).all():
+        dtype = arr.dtype
+    else:
+        dtype = value_arr.dtype
+    value = np.asarray(value, dtype=dtype)
 
-    if is_integer(value) or is_integer_dtype(value):
-        value = np.asarray(value, dtype=dtype)
-    elif hasattr(value, 'is_integer') and value.is_integer():
-        # float 2.0 can be converted to int 2 for better speed,
-        # but float 2.2 should *not* be converted to int 2
-        value = np.asarray(value, dtype=dtype)
-
-    return np.searchsorted(arr, value, side=side, sorter=sorter)
+    return arr.searchsorted(value, side=side, sorter=sorter)
 
 
 def searchsorted(arr, value, side="left", sorter=None):
@@ -550,18 +537,30 @@ def searchsorted(arr, value, side="left", sorter=None):
     the order of `arr` would be preserved.
 
     See :class:`IndexOpsMixin.searchsorted` for more details and examples.
+
+    Parameters
+    ----------
+    arr : numpy.array or ExtensionArray
+    value : scalar or numpy.array
+    side : str
+        One of {'left', 'right'}
+    sorter : numpy.array, optional
+
+    Returns
+    -------
+    int or numpy.array
+        The locations(s) of `value` in `arr`.
     """
     if sorter is not None:
         sorter = ensure_platform_int(sorter)
 
-    if is_integer_dtype(arr):
+    if is_integer_dtype(arr) and (
+            is_integer(value) or is_integer_dtype(value)):
         return searchsorted_integer(arr, value, side=side, sorter=sorter)
-    elif (is_object_dtype(arr) or is_float_dtype(arr) or
-          is_categorical_dtype(arr)):
-        return arr.searchsorted(value, side=side, sorter=sorter)
-    else:
-        # fallback solution. E.g. arr is an array with dtype='datetime64[ns]'
-        # and value is a pd.Timestamp, need to convert value
+    if not (is_object_dtype(arr) or is_numeric_dtype(arr) or
+            is_categorical_dtype(arr)):
+        # E.g. if `arr` is an array with dtype='datetime64[ns]'
+        # and `value` is a pd.Timestamp, we may need to convert value
         from pandas.core.series import Series
         value = Series(value)._values
-        return arr.searchsorted(value, side=side, sorter=sorter)
+    return arr.searchsorted(value, side=side, sorter=sorter)
