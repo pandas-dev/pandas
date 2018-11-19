@@ -641,7 +641,10 @@ cdef inline int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
         int64_t[:] deltas
         int64_t v
 
-    trans, deltas, typ = get_dst_info(tz)
+    if not is_tzlocal(tz):
+        # get_dst_info cannot extract offsets from tzlocal because its
+        # dependent on a datetime
+        trans, deltas, typ = get_dst_info(tz)
     if not to_utc:
         # We add `offset` below instead of subtracting it
         deltas = -1 * np.array(deltas, dtype='i8')
@@ -650,6 +653,8 @@ cdef inline int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
         v = values[i]
         if v == NPY_NAT:
             result[i] = v
+        elif is_tzlocal(tz):
+            result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=to_utc)
         else:
             # TODO: Is it more efficient to call searchsorted pointwise or
             # on `values` outside the loop?  We are not consistent about this.

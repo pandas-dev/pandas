@@ -30,6 +30,7 @@ import pandas._libs.tslibs.resolution as libresolution
 from pandas._libs.tslibs.resolution import Resolution
 from pandas._libs.tslibs.fields import build_field_sarray
 from pandas._libs.tslibs.conversion import tz_convert
+from pandas._libs.tslibs.timezones import UTC
 
 from pandas._libs.algos import unique_deltas
 
@@ -298,7 +299,7 @@ class _FrequencyInferer(object):
         # the timezone so they are in local time
         if hasattr(index, 'tz'):
             if index.tz is not None:
-                self.values = tz_convert(self.values, 'UTC', index.tz)
+                self.values = tz_convert(self.values, UTC, index.tz)
 
         self.warn = warn
 
