@@ -493,15 +493,6 @@ class TestDataFrameAnalytics():
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
 
-    def test_corrwith_invalid_method(self):
-        # GH 21925
-        df = pd.DataFrame(np.random.normal(size=(10, 2)))
-        s = pd.Series(np.random.randn(10))
-        msg = ("method must be either 'pearson', 'spearman', "
-               "or 'kendall'")
-        with tm.assert_raises_regex(ValueError, msg):
-            df.corrwith(s, method="____")
-
     def test_bool_describe_in_mixed_frame(self):
         df = DataFrame({
             'string_data': ['a', 'b', 'c', 'd', 'e'],
