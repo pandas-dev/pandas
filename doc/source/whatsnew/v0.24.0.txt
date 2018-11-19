@@ -593,15 +593,7 @@ Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with
 
 .. _whatsnew_0240.api_breaking.multiindex_to_frame_ordering
 
-``MultiIndex.to_frame()`` Resulting Column Sort Order Guaranteed
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The column order of the resultant ``DataFrame`` from ``MultiIndex.to_frame()`` is now guaranteed to match the ``MultiIndex.names`` order.
-(:issue:`22420`)
-
-Previous Behavior:
-
-The column order would be determined by dictionary ordering, which before Python 3.7, could not be guaranteed.
+The column order of the resultant ``DataFrame`` from ``MultiIndex.to_frame()`` is now guaranteed to match the ``MultiIndex.names`` order. (:issue:`22420`)
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
