@@ -343,24 +343,6 @@ delimiter : str, default ``None``
     Alias for sep.
     """
 
-_fwf_widths = r"""
-colspecs : list of pairs (int, int) or 'infer'. optional
-    A list of pairs (tuples) giving the extents of the fixed-width
-    fields of each line as half-open intervals (i.e.,  [from, to[ ).
-    String value 'infer' can be used to instruct the parser to try
-    detecting the column specifications from the first 100 rows of
-    the data which are not being skipped via skiprows (default='infer').
-widths : list of ints. optional
-    A list of field widths which can be used instead of 'colspecs' if
-    the intervals are contiguous.
-delimiter : str, default ``'\t' + ' '``
-    Characters to consider as filler characters in the fixed-width file.
-    Can be used to specify the filler character of the fields
-    if it is not spaces (e.g., '~').
-**kwds : optional
-    All the following keyword arguments can be passed.
-"""
-
 
 def _validate_integer(name, val, min_val=0):
     """
@@ -726,13 +708,64 @@ Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
                       )(read_table)
 
 
-@Appender(_parser_params.format(
-          func_name='read_fwf',
-          summary=('Read a table of fixed-width formatted lines '
-                   'into DataFrame.'),
-          sep_doc=_fwf_widths,
-          engine_doc=''))
-def read_fwf(filepath_or_buffer, colspecs='infer', widths=None, **kwds):
+def read_fwf(filepath_or_buffer, delimiter='\t' + ' ',
+             colspecs='infer', widths=None, **kwds):
+
+    r"""
+    Read a table of fixed-width formatted lines into DataFrame.
+
+    Also supports optionally iterating or breaking of the file
+    into chunks.
+
+    Additional help can be found in the `online docs for IO Tools
+    <http://pandas.pydata.org/pandas-docs/stable/io.html>`_.
+
+    Parameters
+    ----------
+    filepath_or_buffer : str, path object, or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be: file://localhost/path/to/table.csv.
+
+        If you want to pass in a path object, pandas accepts either
+        ``pathlib.Path`` or ``py._path.local.LocalPath``.
+
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function)
+        or ``StringIO``.
+    delimiter : str, default ``'\t'+' '``
+        Characters to consider as filler characters in the fixed-width file.
+        Can be used to specify the filler character of the fields
+        if it is not spaces (e.g., '~').
+    colspecs : list of pairs (int, int) or 'infer'. optional
+        A list of pairs (tuples) giving the extents of the fixed-width
+        fields of each line as half-open intervals (i.e.,  [from, to[ ).
+        String value 'infer' can be used to instruct the parser to try
+        detecting the column specifications from the first 100 rows of
+        the data which are not being skipped via skiprows (default='infer').
+    widths : list of ints. optional
+        A list of field widths which can be used instead of 'colspecs' if
+        the intervals are contiguous.
+    **kwds : optional
+        Optional keyword arguments can be passed to ``TextFileReader``.
+
+    Returns
+    -------
+    DataFrame or TextParser
+        A comma-separated values (csv) file is returned as two-dimensional
+        data structure with labeled axes.
+
+    See Also
+    --------
+    to_csv : Write DataFrame to a comma-separated values (csv) file.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
+    Examples
+    --------
+    >>> pd.read_fwf('data.csv')  # doctest: +SKIP
+    """
+
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
@@ -747,6 +780,7 @@ def read_fwf(filepath_or_buffer, colspecs='infer', widths=None, **kwds):
             colspecs.append((col, col + w))
             col += w
 
+    kwds['delimiter'] = delimiter
     kwds['colspecs'] = colspecs
     kwds['engine'] = 'python-fwf'
     return _read(filepath_or_buffer, kwds)
