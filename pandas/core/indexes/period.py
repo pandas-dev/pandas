@@ -33,6 +33,7 @@ import pandas.core.arrays.datetimelike as dtl
 from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
+from pandas.core.missing import isna
 
 from pandas import compat
 from pandas.util._decorators import (
@@ -652,7 +653,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             except TypeError:
                 pass
 
-            key = Period(key, self.freq).ordinal
+            period = Period(key, self.freq)
+            key = period.value if isna(period) else period.ordinal
             return com.maybe_box(self, self._engine.get_value(s, key),
                                  series, key)
 

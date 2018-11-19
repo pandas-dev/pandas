@@ -51,6 +51,8 @@ cdef class {{name}}Engine(IndexEngine):
             raise KeyError(val)
         elif util.is_float_object(val):
             raise KeyError(val)
+        elif not util.is_integer_object(val):
+            raise KeyError(val)
     {{endif}}
 
     {{if name != 'Object'}}
