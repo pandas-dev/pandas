@@ -3,13 +3,12 @@ import warnings
 import numpy as np
 
 from pandas._libs import reduction
+import pandas.compat as compat
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_dict_like, is_extension_type, is_list_like, is_sequence)
 from pandas.core.dtypes.generic import ABCSeries
-
-from pandas import compat
 
 from pandas.io.formats.printing import pprint_thing
 

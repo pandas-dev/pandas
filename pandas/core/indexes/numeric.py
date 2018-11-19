@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import index as libindex
+import pandas.compat as compat
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -11,7 +12,6 @@ from pandas.core.dtypes.common import (
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
-from pandas import compat
 from pandas.core import algorithms
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase

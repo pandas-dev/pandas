@@ -10,6 +10,7 @@ import weakref
 import numpy as np
 
 from pandas._libs import Timestamp, iNaT, properties
+import pandas.compat as compat
 from pandas.compat import (
     cPickle as pkl, isidentifier, lrange, lzip, map, set_function_name,
     string_types, to_str, zip)
@@ -31,8 +32,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas import compat
-from pandas.core import config
+from pandas.core import config, missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
@@ -42,8 +42,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
 import pandas.core.indexing as indexing
 from pandas.core.internals import BlockManager
-import pandas.core.missing as missing
-import pandas.core.nanops as nanops
 from pandas.core.ops import _align_method_FRAME
 
 from pandas.io.formats.format import DataFrameFormatter, format_percentiles

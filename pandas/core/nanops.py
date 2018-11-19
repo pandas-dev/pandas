@@ -7,6 +7,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib, tslibs
+import pandas.compat as compat
 
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
@@ -16,7 +17,6 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype, is_object_dtype, is_scalar, is_timedelta64_dtype)
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
-from pandas import compat
 import pandas.core.common as com
 from pandas.core.config import get_option
 

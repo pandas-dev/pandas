@@ -8,6 +8,7 @@ import warnings
 
 import numpy as np
 
+import pandas.compat as compat
 from pandas.compat import OrderedDict, map, range, u, zip
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
@@ -19,7 +20,6 @@ from pandas.core.dtypes.common import (
     is_integer, is_list_like, is_scalar, is_string_like)
 from pandas.core.dtypes.missing import notna
 
-from pandas import compat
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs

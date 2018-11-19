@@ -3,7 +3,8 @@ Base and utility classes for pandas objects.
 """
 import warnings
 import textwrap
-from pandas import compat
+
+import pandas.compat as compat
 from pandas.compat import builtins
 import numpy as np
 

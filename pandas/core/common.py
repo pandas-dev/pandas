@@ -12,6 +12,7 @@ import inspect
 import numpy as np
 
 from pandas._libs import lib, tslibs
+import pandas.compat as compat
 from pandas.compat import PY36, OrderedDict, iteritems
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -20,8 +21,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCIndex, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
-
-from pandas import compat
 
 
 class SettingWithCopyError(ValueError):
