@@ -1,6 +1,8 @@
 import subprocess
-from .exceptions import PyperclipException
+
 from pandas.compat import PY2, text_type
+
+from .exceptions import PyperclipException
 
 EXCEPT_MSG = """
     Pyperclip could not find a copy/paste mechanism for your system.

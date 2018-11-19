@@ -1,13 +1,12 @@
-import string
-import random
 import io
+import random
+import string
+import textwrap
 import pytest
 import numpy as np
-
+from pandas.util.testing import capture_stderr
 import validate_docstrings
 validate_one = validate_docstrings.validate_one
-
-from pandas.util.testing import capture_stderr
 
 
 class GoodDocStrings(object):
@@ -345,6 +344,40 @@ class BadGenericDocStrings(object):
         Series([], dtype: bool)
         """
         pass
+
+    def private_classes(self):
+        """
+        This mentions NDFrame, which is not correct.
+        """
+
+    def unknown_section(self):
+        """
+        This section has an unknown section title.
+
+        Unknown Section
+        ---------------
+        This should raise an error in the validation.
+        """
+
+    def sections_in_wrong_order(self):
+        """
+        This docstring has the sections in the wrong order.
+
+        Parameters
+        ----------
+        name : str
+            This section is in the right position.
+
+        Examples
+        --------
+        >>> print('So far Examples is good, as it goes before Parameters')
+        So far Examples is good, as it goes before Parameters
+
+        See Also
+        --------
+        function : This should generate an error, as See Also needs to go
+            before Examples.
+        """
 
 
 class BadSummaries(object):
@@ -689,7 +722,8 @@ class TestValidator(object):
 
     @capture_stderr
     @pytest.mark.parametrize("func", [
-        'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method'])
+        'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method',
+        'private_classes'])
     def test_bad_generic_functions(self, func):
         errors = validate_one(self._import_path(  # noqa:F821
             klass='BadGenericDocStrings', func=func))['errors']
@@ -698,6 +732,14 @@ class TestValidator(object):
 
     @pytest.mark.parametrize("klass,func,msgs", [
         # See Also tests
+        ('BadGenericDocStrings', 'private_classes',
+         ("Private classes (NDFrame) should not be mentioned in public "
+          'docstrings',)),
+        ('BadGenericDocStrings', 'unknown_section',
+         ('Found unknown section "Unknown Section".',)),
+        ('BadGenericDocStrings', 'sections_in_wrong_order',
+         ('Wrong order of sections. "See Also" should be located before '
+          '"Notes"',)),
         ('BadSeeAlso', 'desc_no_period',
          ('Missing period at end of description for See Also "Series.iloc"',)),
         ('BadSeeAlso', 'desc_first_letter_lowercase',
@@ -712,9 +754,9 @@ class TestValidator(object):
         ('BadSummaries', 'no_capitalization',
          ('Summary must start with infinitive verb',)),
         ('BadSummaries', 'multi_line',
-         ('Summary should fit in a single line.',)),
+         ('Summary should fit in a single line',)),
         ('BadSummaries', 'two_paragraph_multi_line',
-         ('Summary should fit in a single line.',)),
+         ('Summary should fit in a single line',)),
         # Parameters tests
         ('BadParameters', 'missing_params',
          ('Parameters {**kwargs} not documented',)),
@@ -753,66 +795,67 @@ class TestValidator(object):
                      marks=pytest.mark.xfail),
         # Examples tests
         ('BadGenericDocStrings', 'method',
-         ('numpy does not need to be imported in the examples',)),
+         ('Do not import numpy, as it is imported automatically',)),
         ('BadGenericDocStrings', 'method',
-         ('pandas does not need to be imported in the examples',)),
+         ('Do not import pandas, as it is imported automatically',)),
         # See Also tests
         ('BadSeeAlso', 'prefix_pandas',
          ('pandas.Series.rename in `See Also` section '
           'does not need `pandas` prefix',)),
         # Examples tests
         ('BadExamples', 'unused_import',
-         ('1 F401 \'pandas as pdf\' imported but unused',)),
+         ("flake8 error: F401 'pandas as pdf' imported but unused",)),
         ('BadExamples', 'indentation_is_not_a_multiple_of_four',
-         ('1 E111 indentation is not a multiple of four',)),
+         ('flake8 error: E111 indentation is not a multiple of four',)),
         ('BadExamples', 'missing_whitespace_around_arithmetic_operator',
-         ('1 E226 missing whitespace around arithmetic operator',)),
+         ('flake8 error: '
+          'E226 missing whitespace around arithmetic operator',)),
         ('BadExamples', 'missing_whitespace_after_comma',
-         ('3 E231 missing whitespace after \',\'',)),
+         ("flake8 error: E231 missing whitespace after ',' (3 times)",)),
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))
         for msg in msgs:
-            assert msg in ' '.join(result['errors'])
+            assert msg in ' '.join(err[1] for err in result['errors'])
 
 
-class ApiItems(object):
+class TestApiItems(object):
     @property
     def api_doc(self):
-        return io.StringIO('''
-.. currentmodule:: itertools
+        return io.StringIO(textwrap.dedent('''
+            .. currentmodule:: itertools
 
-Itertools
----------
+            Itertools
+            ---------
 
-Infinite
-~~~~~~~~
+            Infinite
+            ~~~~~~~~
 
-.. autosummary::
+            .. autosummary::
 
-    cycle
-    count
+                cycle
+                count
 
-Finite
-~~~~~~
+            Finite
+            ~~~~~~
 
-.. autosummary::
+            .. autosummary::
 
-    chain
+                chain
 
-.. currentmodule:: random
+            .. currentmodule:: random
 
-Random
-------
+            Random
+            ------
 
-All
-~~~
+            All
+            ~~~
 
-.. autosummary::
+            .. autosummary::
 
-    seed
-    randint
-''')
+                seed
+                randint
+            '''))
 
     @pytest.mark.parametrize('idx,name', [(0, 'itertools.cycle'),
                                           (1, 'itertools.count'),
@@ -850,3 +893,92 @@ All
     def test_item_subsection(self, idx, subsection):
         result = list(validate_docstrings.get_api_items(self.api_doc))
         assert result[idx][3] == subsection
+
+
+class TestMainFunction(object):
+    def test_exit_status_for_validate_one(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_one', lambda func_name: {
+                'docstring': 'docstring1',
+                'errors': [('ER01', 'err desc'),
+                           ('ER02', 'err desc'),
+                           ('ER03', 'err desc')],
+                'warnings': [],
+                'examples_errors': ''})
+        exit_status = validate_docstrings.main(func_name='docstring1',
+                                               prefix=None,
+                                               errors=[],
+                                               output_format='default')
+        assert exit_status == 0
+
+    def test_exit_status_errors_for_validate_all(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_all', lambda prefix: {
+                'docstring1': {'errors': [('ER01', 'err desc'),
+                                          ('ER02', 'err desc'),
+                                          ('ER03', 'err desc')],
+                               'file': 'module1.py',
+                               'file_line': 23},
+                'docstring2': {'errors': [('ER04', 'err desc'),
+                                          ('ER05', 'err desc')],
+                               'file': 'module2.py',
+                               'file_line': 925}})
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=[],
+                                               output_format='default')
+        assert exit_status == 5
+
+    def test_no_exit_status_noerrors_for_validate_all(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_all', lambda prefix: {
+                'docstring1': {'errors': [],
+                               'warnings': [('WN01', 'warn desc')]},
+                'docstring2': {'errors': []}})
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=[],
+                                               output_format='default')
+        assert exit_status == 0
+
+    def test_exit_status_for_validate_all_json(self, monkeypatch):
+        print('EXECUTED')
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_all', lambda prefix: {
+                'docstring1': {'errors': [('ER01', 'err desc'),
+                                          ('ER02', 'err desc'),
+                                          ('ER03', 'err desc')]},
+                'docstring2': {'errors': [('ER04', 'err desc'),
+                                          ('ER05', 'err desc')]}})
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=[],
+                                               output_format='json')
+        assert exit_status == 0
+
+    def test_errors_param_filters_errors(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_all', lambda prefix: {
+                'Series.foo': {'errors': [('ER01', 'err desc'),
+                                          ('ER02', 'err desc'),
+                                          ('ER03', 'err desc')],
+                               'file': 'series.py',
+                               'file_line': 142},
+                'DataFrame.bar': {'errors': [('ER01', 'err desc'),
+                                             ('ER02', 'err desc')],
+                                  'file': 'frame.py',
+                                  'file_line': 598},
+                'Series.foobar': {'errors': [('ER01', 'err desc')],
+                                  'file': 'series.py',
+                                  'file_line': 279}})
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=['ER01'],
+                                               output_format='default')
+        assert exit_status == 3
+
+        exit_status = validate_docstrings.main(func_name=None,
+                                               prefix=None,
+                                               errors=['ER03'],
+                                               output_format='default')
+        assert exit_status == 1

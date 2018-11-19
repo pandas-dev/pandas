@@ -334,20 +334,20 @@ class TestTimestampConstructors(object):
         assert result == eval(repr(result))
 
     def test_constructor_invalid(self):
-        with tm.assert_raises_regex(TypeError, 'Cannot convert input'):
+        with pytest.raises(TypeError, match='Cannot convert input'):
             Timestamp(slice(2))
-        with tm.assert_raises_regex(ValueError, 'Cannot convert Period'):
+        with pytest.raises(ValueError, match='Cannot convert Period'):
             Timestamp(Period('1000-01-01'))
 
     def test_constructor_invalid_tz(self):
         # GH#17690
-        with tm.assert_raises_regex(TypeError, 'must be a datetime.tzinfo'):
+        with pytest.raises(TypeError, match='must be a datetime.tzinfo'):
             Timestamp('2017-10-22', tzinfo='US/Eastern')
 
-        with tm.assert_raises_regex(ValueError, 'at most one of'):
+        with pytest.raises(ValueError, match='at most one of'):
             Timestamp('2017-10-22', tzinfo=utc, tz='UTC')
 
-        with tm.assert_raises_regex(ValueError, "Invalid frequency:"):
+        with pytest.raises(ValueError, match="Invalid frequency:"):
             # GH#5168
             # case where user tries to pass tz as an arg, not kwarg, gets
             # interpreted as a `freq`
@@ -568,6 +568,17 @@ class TestTimestampConstructors(object):
         result = Timestamp(arg)
         expected = Timestamp(datetime(2013, 1, 1), tz=pytz.FixedOffset(540))
         assert result == expected
+
+    def test_construct_timestamp_preserve_original_frequency(self):
+        # GH 22311
+        result = Timestamp(Timestamp('2010-08-08', freq='D')).freq
+        expected = offsets.Day()
+        assert result == expected
+
+    def test_constructor_invalid_frequency(self):
+        # GH 22311
+        with pytest.raises(ValueError, match="Invalid frequency:"):
+            Timestamp('2012-01-01', freq=[])
 
 
 class TestTimestamp(object):

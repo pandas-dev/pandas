@@ -65,8 +65,8 @@ CParserError = ParserError
 
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
-cdef double INF = <double>np.inf
-cdef double NEGINF = -INF
+cdef float64_t INF = <float64_t>np.inf
+cdef float64_t NEGINF = -INF
 
 
 cdef extern from "errno.h":
@@ -132,6 +132,7 @@ cdef extern from "parser/tokenizer.h":
         int64_t *word_starts  # where we are in the stream
         int64_t words_len
         int64_t words_cap
+        int64_t max_words_cap    # maximum word cap encountered
 
         char *pword_start        # pointer to stream start of current field
         int64_t word_start       # position start of current field
@@ -182,10 +183,10 @@ cdef extern from "parser/tokenizer.h":
         int64_t skip_first_N_rows
         int64_t skipfooter
         # pick one, depending on whether the converter requires GIL
-        double (*double_converter_nogil)(const char *, char **,
-                                         char, char, char, int) nogil
-        double (*double_converter_withgil)(const char *, char **,
-                                           char, char, char, int)
+        float64_t (*double_converter_nogil)(const char *, char **,
+                                            char, char, char, int) nogil
+        float64_t (*double_converter_withgil)(const char *, char **,
+                                              char, char, char, int)
 
         #  error handling
         char *warn_msg
@@ -233,12 +234,12 @@ cdef extern from "parser/tokenizer.h":
     uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
                            uint64_t uint_max, int *error, char tsep) nogil
 
-    double xstrtod(const char *p, char **q, char decimal, char sci,
-                   char tsep, int skip_trailing) nogil
-    double precise_xstrtod(const char *p, char **q, char decimal, char sci,
-                           char tsep, int skip_trailing) nogil
-    double round_trip(const char *p, char **q, char decimal, char sci,
+    float64_t xstrtod(const char *p, char **q, char decimal, char sci,
                       char tsep, int skip_trailing) nogil
+    float64_t precise_xstrtod(const char *p, char **q, char decimal, char sci,
+                              char tsep, int skip_trailing) nogil
+    float64_t round_trip(const char *p, char **q, char decimal, char sci,
+                         char tsep, int skip_trailing) nogil
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
@@ -302,6 +303,7 @@ cdef class TextReader:
         object tupleize_cols
         object usecols
         list dtype_cast_order
+        set unnamed_cols
         set noconvert
 
     def __cinit__(self, source,
@@ -536,7 +538,7 @@ cdef class TextReader:
                 self.header = [ header ]
 
         self.names = names
-        self.header, self.table_width = self._get_header()
+        self.header, self.table_width, self.unnamed_cols = self._get_header()
 
         if not self.table_width:
             raise EmptyDataError("No columns to parse from file")
@@ -720,13 +722,15 @@ cdef class TextReader:
         cdef:
             Py_ssize_t i, start, field_count, passed_count, unnamed_count  # noqa
             char *word
-            object name
+            object name, old_name
             int status
             int64_t hr, data_line
             char *errors = "strict"
             cdef StringPath path = _string_path(self.c_encoding)
 
         header = []
+        unnamed_cols = set()
+
         if self.parser.header_start >= 0:
 
             # Header is in the file
@@ -759,6 +763,7 @@ cdef class TextReader:
 
                 counts = {}
                 unnamed_count = 0
+
                 for i in range(field_count):
                     word = self.parser.words[start + i]
 
@@ -769,6 +774,9 @@ cdef class TextReader:
                     elif path == ENCODED:
                         name = PyUnicode_Decode(word, strlen(word),
                                                 self.c_encoding, errors)
+
+                    # We use this later when collecting placeholder names.
+                    old_name = name
 
                     if name == '':
                         if self.has_mi_columns:
@@ -786,6 +794,9 @@ cdef class TextReader:
                             name = '%s.%d' % (name, count)
                             count = counts.get(name, 0)
 
+                    if old_name == '':
+                        unnamed_cols.add(name)
+
                     this_header.append(name)
                     counts[name] = count + 1
 
@@ -798,6 +809,7 @@ cdef class TextReader:
                         lc = len(this_header)
                         ic = (len(self.index_col) if self.index_col
                               is not None else 0)
+
                         if lc != unnamed_count and lc - ic > unnamed_count:
                             hr -= 1
                             self.parser_start -= 1
@@ -830,7 +842,7 @@ cdef class TextReader:
             if self.parser.lines < 1:
                 self._tokenize_rows(1)
 
-            return None, self.parser.line_fields[0]
+            return None, self.parser.line_fields[0], unnamed_cols
 
         # Corner case, not enough lines in the file
         if self.parser.lines < data_line + 1:
@@ -864,7 +876,7 @@ cdef class TextReader:
             elif self.allow_leading_cols and passed_count < field_count:
                 self.leading_cols = field_count - passed_count
 
-        return header, field_count
+        return header, field_count, unnamed_cols
 
     def read(self, rows=None):
         """
@@ -1686,8 +1698,8 @@ cdef _try_double(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         char *p_end
-        double *data
-        double NA = na_values[np.float64]
+        float64_t *data
+        float64_t NA = na_values[np.float64]
         kh_float64_t *na_fset
         ndarray result
         khiter_t k
@@ -1695,7 +1707,7 @@ cdef _try_double(parser_t *parser, int64_t col,
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.float64)
-    data = <double *>result.data
+    data = <float64_t *>result.data
     na_fset = kset_float64_from_list(na_flist)
     if parser.double_converter_nogil != NULL:  # if it can run without the GIL
         with nogil:
@@ -1706,8 +1718,8 @@ cdef _try_double(parser_t *parser, int64_t col,
     else:
         assert parser.double_converter_withgil != NULL
         error = _try_double_nogil(parser,
-                                  <double (*)(const char *, char **,
-                                              char, char, char, int)
+                                  <float64_t (*)(const char *, char **,
+                                                 char, char, char, int)
                                   nogil>parser.double_converter_withgil,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
@@ -1719,14 +1731,14 @@ cdef _try_double(parser_t *parser, int64_t col,
 
 
 cdef inline int _try_double_nogil(parser_t *parser,
-                                  double (*double_converter)(
+                                  float64_t (*double_converter)(
                                       const char *, char **, char,
                                       char, char, int) nogil,
                                   int col, int line_start, int line_end,
                                   bint na_filter, kh_str_t *na_hashset,
                                   bint use_na_flist,
                                   const kh_float64_t *na_flist,
-                                  double NA, double *data,
+                                  float64_t NA, float64_t *data,
                                   int *na_count) nogil:
     cdef:
         int error,

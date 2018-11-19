@@ -12,21 +12,21 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_datetime64_any_dtype,
     is_bool_dtype,
-    pandas_dtype,
+    pandas_dtype
 )
-
+from pandas.core.ops import get_op_result_name
 from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.datetimelike import (
     DatelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op
 )
-from pandas.core.tools.datetimes import parse_time_string
+from pandas.core.tools.datetimes import parse_time_string, DateParseError
 
-from pandas._libs import tslib, index as libindex
+from pandas._libs import index as libindex
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
                                         DIFFERENT_FREQ_INDEX)
 
-from pandas._libs.tslibs import resolution
+from pandas._libs.tslibs import resolution, NaT, iNaT
 
 from pandas.core.algorithms import unique1d
 import pandas.core.arrays.datetimelike as dtl
@@ -165,10 +165,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     See Also
     ---------
-    Index : The base pandas Index type
-    Period : Represents a period of time
-    DatetimeIndex : Index with datetime64 data
-    TimedeltaIndex : Index of timedelta64 data
+    Index : The base pandas Index type.
+    Period : Represents a period of time.
+    DatetimeIndex : Index with datetime64 data.
+    TimedeltaIndex : Index of timedelta64 data.
     """
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
@@ -257,7 +257,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         return result
 
     # ------------------------------------------------------------------------
+    # Wrapping PeriodArray
+
+    # ------------------------------------------------------------------------
     # Data
+
     @property
     def _ndarray_values(self):
         return self._data._ndarray_values
@@ -336,7 +340,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         # places outside of indexes/period.py are calling this _box_func,
         # but passing data that's already boxed.
         def func(x):
-            if isinstance(x, Period) or x is tslib.NaT:
+            if isinstance(x, Period) or x is NaT:
                 return x
             else:
                 return Period._from_ordinal(ordinal=x, freq=self.freq)
@@ -360,13 +364,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     def asfreq(self, freq=None, how='E'):
         result = self._data.asfreq(freq=freq, how=how)
         return self._simple_new(result, name=self.name)
-
-    def _nat_new(self, box=True):
-        # TODO(DatetimeArray): remove this
-        result = self._data._nat_new(box=box)
-        if box:
-            result = self._simple_new(result, name=self.name)
-        return result
 
     def to_timestamp(self, freq=None, how='start'):
         from pandas import DatetimeIndex
@@ -425,6 +422,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     # ------------------------------------------------------------------------
     # Indexing
+
     @cache_readonly
     def _engine(self):
         return self._engine_type(lambda: self, len(self))
@@ -580,7 +578,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                 raise IncompatibleFrequency(msg)
             value = value.ordinal
         elif isinstance(value, compat.string_types):
-            value = Period(value, freq=self.freq).ordinal
+            try:
+                value = Period(value, freq=self.freq).ordinal
+            except DateParseError:
+                raise KeyError("Cannot interpret '{}' as period".format(value))
 
         return self._ndarray_values.searchsorted(value, side=side,
                                                  sorter=sorter)
@@ -711,6 +712,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                 key = asdt
             except TypeError:
                 pass
+            except DateParseError:
+                # A string with invalid format
+                raise KeyError("Cannot interpret '{}' as period".format(key))
 
             try:
                 key = Period(key, freq=self.freq)
@@ -720,7 +724,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                 raise KeyError(key)
 
             try:
-                ordinal = tslib.iNaT if key is tslib.NaT else key.ordinal
+                ordinal = iNaT if key is NaT else key.ordinal
                 if tolerance is not None:
                     tolerance = self._convert_tolerance(tolerance,
                                                         np.asarray(key))
@@ -848,8 +852,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
 
-    def _wrap_union_result(self, other, result):
-        name = self.name if self.name == other.name else None
+    def _wrap_setop_result(self, other, result):
+        name = get_op_result_name(self, other)
         result = self._apply_meta(result)
         result.name = name
         return result

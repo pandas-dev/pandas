@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from pandas.compat import long
+from pandas.core.arrays import PeriodArray, DatetimeArrayMixin as DatetimeArray
 
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
@@ -157,17 +158,34 @@ def box_df_fail(request):
     return request.param
 
 
-@pytest.fixture(params=[
-    pd.Index,
-    pd.Series,
-    pytest.param(pd.DataFrame,
-                 marks=pytest.mark.xfail(reason="Tries to broadcast "
-                                                "incorrectly",
-                                         strict=True, raises=ValueError))
-], ids=lambda x: x.__name__)
-def box_df_broadcast_failure(request):
+@pytest.fixture(params=[(pd.Index, False),
+                        (pd.Series, False),
+                        (pd.DataFrame, False),
+                        pytest.param((pd.DataFrame, True),
+                                     marks=pytest.mark.xfail(strict=True))],
+                ids=lambda x: x[0].__name__ + '-' + str(x[1]))
+def box_transpose_fail(request):
     """
-    Fixture equivalent to `box` but with the common failing case where
-    the DataFrame operation tries to broadcast incorrectly.
+    Fixture similar to `box` but testing both transpose cases for DataFrame,
+    with the tranpose=True case xfailed.
+    """
+    # GH#23620
+    return request.param
+
+
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, PeriodArray],
+                ids=lambda x: x.__name__)
+def box_with_period(request):
+    """
+    Like `box`, but specific to PeriodDtype for also testing PeriodArray
+    """
+    return request.param
+
+
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, DatetimeArray],
+                ids=lambda x: x.__name__)
+def box_with_datetime(request):
+    """
+    Like `box`, but specific to datetime64 for also testing DatetimeArray
     """
     return request.param

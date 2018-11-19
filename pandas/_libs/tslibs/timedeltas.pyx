@@ -45,10 +45,16 @@ Components = collections.namedtuple('Components', [
     'days', 'hours', 'minutes', 'seconds',
     'milliseconds', 'microseconds', 'nanoseconds'])
 
-cdef dict timedelta_abbrevs = { 'D': 'd',
-                                'd': 'd',
-                                'days': 'd',
-                                'day': 'd',
+
+cdef dict timedelta_abbrevs = { 'Y': 'Y',
+                                'y': 'Y',
+                                'M': 'M',
+                                'W': 'W',
+                                'w': 'W',
+                                'D': 'D',
+                                'd': 'D',
+                                'days': 'D',
+                                'day': 'D',
                                 'hours': 'h',
                                 'hour': 'h',
                                 'hr': 'h',
@@ -57,6 +63,7 @@ cdef dict timedelta_abbrevs = { 'D': 'd',
                                 'minute': 'm',
                                 'min': 'm',
                                 'minutes': 'm',
+                                't': 'm',
                                 's': 's',
                                 'seconds': 's',
                                 'sec': 's',
@@ -66,16 +73,19 @@ cdef dict timedelta_abbrevs = { 'D': 'd',
                                 'millisecond': 'ms',
                                 'milli': 'ms',
                                 'millis': 'ms',
+                                'l': 'ms',
                                 'us': 'us',
                                 'microseconds': 'us',
                                 'microsecond': 'us',
                                 'micro': 'us',
                                 'micros': 'us',
+                                'u': 'us',
                                 'ns': 'ns',
                                 'nanoseconds': 'ns',
                                 'nano': 'ns',
                                 'nanos': 'ns',
-                                'nanosecond': 'ns'}
+                                'nanosecond': 'ns',
+                                'n': 'ns'}
 
 _no_input = object()
 
@@ -140,7 +150,8 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
 
 cpdef convert_to_timedelta64(object ts, object unit):
     """
-    Convert an incoming object to a timedelta64 if possible
+    Convert an incoming object to a timedelta64 if possible.
+    Before calling, unit must be standardized to avoid repeated unit conversion
 
     Handle these types of objects:
         - timedelta/Timedelta
@@ -228,6 +239,7 @@ def array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
         for i in range(n):
             result[i] = parse_timedelta_string(values[i])
     except:
+        unit = parse_timedelta_unit(unit)
         for i in range(n):
             try:
                 result[i] = convert_to_timedelta64(values[i], unit)
@@ -247,7 +259,16 @@ cdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
         int64_t m
         int p
 
-    if unit == 'D' or unit == 'd':
+    if unit == 'Y':
+        m = 1000000000L * 31556952
+        p = 9
+    elif unit == 'M':
+        m = 1000000000L * 2629746
+        p = 9
+    elif unit == 'W':
+        m = 1000000000L * 86400 * 7
+        p = 9
+    elif unit == 'D' or unit == 'd':
         m = 1000000000L * 86400
         p = 9
     elif unit == 'h':
@@ -485,13 +506,33 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
 
     try:
         unit = ''.join(unit)
-        unit = timedelta_abbrevs[unit.lower()]
+        if unit == 'M':
+            # To parse ISO 8601 string, 'M' should be treated as minute,
+            # not month
+            unit = 'm'
+        unit = parse_timedelta_unit(unit)
     except KeyError:
         raise ValueError("invalid abbreviation: {unit}".format(unit=unit))
 
     n = ''.join(number) + '.' + ''.join(frac)
     return cast_from_unit(float(n), unit)
 
+
+cpdef inline object parse_timedelta_unit(object unit):
+    """
+    Parameters
+    ----------
+    unit : an unit string
+    """
+    if unit is None:
+        return 'ns'
+    elif unit == 'M':
+        return unit
+    try:
+        return timedelta_abbrevs[unit.lower()]
+    except (KeyError, AttributeError):
+        raise ValueError("invalid unit abbreviation: {unit}"
+                         .format(unit=unit))
 
 # ----------------------------------------------------------------------
 # Timedelta ops utilities
@@ -1070,8 +1111,14 @@ class Timedelta(_Timedelta):
     Parameters
     ----------
     value : Timedelta, timedelta, np.timedelta64, string, or integer
-    unit : string, {'ns', 'us', 'ms', 's', 'm', 'h', 'D'}, optional
+    unit : str, optional
         Denote the unit of the input, if input is an integer. Default 'ns'.
+        Possible values:
+        {'Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
+        'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds', 'sec', 'second',
+        'ms', 'milliseconds', 'millisecond', 'milli', 'millis', 'L',
+        'us', 'microseconds', 'microsecond', 'micro', 'micros', 'U',
+        'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond', 'N'}
     days, seconds, microseconds,
     milliseconds, minutes, hours, weeks : numeric, optional
         Values for construction in compat with datetime.timedelta.
@@ -1121,6 +1168,7 @@ class Timedelta(_Timedelta):
             value = np.timedelta64(delta_to_nanoseconds(value.delta), 'ns')
         elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
+            unit = parse_timedelta_unit(unit)
             value = convert_to_timedelta64(value, unit)
         elif checknull_with_nat(value):
             return NaT

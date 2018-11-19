@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import enum
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
@@ -16,13 +17,13 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 from util cimport (is_datetime64_object, is_timedelta64_object,
-                   is_integer_object, is_string_object, is_array)
+                   is_integer_object, is_string_object, is_array,
+                   is_offset_object)
 
 cimport ccalendar
 from conversion import tz_localize_to_utc, normalize_i8_timestamps
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
-import enum
 from fields import get_start_end_field, get_date_name_field
 from nattype import NaT
 from nattype cimport NPY_NAT
@@ -732,7 +733,10 @@ class Timestamp(_Timestamp):
         if ts.value == NPY_NAT:
             return NaT
 
-        if is_string_object(freq):
+        if freq is None:
+            # GH 22311: Try to extract the frequency of a given Timestamp input
+            freq = getattr(ts_input, 'freq', None)
+        elif not is_offset_object(freq):
             freq = to_offset(freq)
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
