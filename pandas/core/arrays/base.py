@@ -48,8 +48,8 @@ class ExtensionArray(object):
     and dtype is provided. It can be customized or replaced by
     by overriding:
 
-    * _formatter
-    * __repr__
+    * __repr__ : A default repr for the ExtensionArray.
+    * _formatter : Print scalars inside a Series or DataFrame.
 
     Some methods require casting the ExtensionArray to an ndarray of Python
     objects with ``self.astype(object)``, which may be expensive. When
@@ -695,7 +695,7 @@ class ExtensionArray(object):
         -------
         Callable[[Any], str]
             A callable that gets instances of the scalar type and
-            returns a string. By defult, :func:`repr` is used.
+            returns a string. By default, :func:`repr` is used.
         """
         return repr
 
