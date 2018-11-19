@@ -26,6 +26,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     pandas_dtype,
     is_scalar)
+from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 
@@ -1199,7 +1200,8 @@ class MultiIndex(Index):
         # Guarantee resulting column order
         result = DataFrame(
             OrderedDict([
-                ((level if name is None else name), self._get_level_values(level))
+                ((level if name is None else name),
+                 self._get_level_values(level))
                 for name, level in zip(idx_names, range(len(self.levels)))
             ]),
             copy=False
@@ -1455,34 +1457,51 @@ class MultiIndex(Index):
         --------
         >>> df = pd.DataFrame([[0, 'happy'], [0, 'jolly'], [1, 'happy'],
         ...                    [1, 'jolly'], [2, 'joy'], [2, 'joy']],
-        ...                   columns=['number', 'mood'])
+        ...                   columns=['will_be', 'used'])
         >>> df
-           number   mood
-        0       0  happy
-        1       0  jolly
-        2       1  happy
-        3       1  jolly
-        4       2    joy
-        5       2    joy
+           will_be   used
+        0        0  happy
+        1        0  jolly
+        2        1  happy
+        3        1  jolly
+        4        2    joy
+        5        2    joy
         >>> pd.MultiIndex.from_frame(df)
         MultiIndex(levels=[[0, 1, 2], ['happy', 'jolly', 'joy']],
                    labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 2, 2]],
-                   names=['number', 'mood'])
+                   names=['will_be', 'used'])
+
+        >>> df = pd.DataFrame([['ahc', 'iam'], ['ahc', 'wim'], ['boh', 'amg'],
+        ...                    ['boh', 'iam'], ['oil', 'wim'], ['oil', 'amg']],
+        ...                   columns=['will_be', 'overriden'])
+        >>> df
+           will_be   overriden
+        0      ahc         iam
+        1      ahc         wim
+        2      boh         amg
+        3      boh         iam
+        4      oil         wim
+        5      oil         amg
+        >>> pd.MultiIndex.from_frame(df, names=['sure', 'will'])
+        MultiIndex(levels=[['ahc', 'boh', 'oil'], ['amg', 'iam', 'wim']],
+                   labels=[[0, 0, 1, 1, 2, 2], [1, 2, 0, 1, 2, 0]],
+                   names=['sure', 'will'])
 
         See Also
         --------
-        MultiIndex.from_arrays : Convert list of arrays to MultiIndex
-        MultiIndex.from_tuples : Convert list of tuples to MultiIndex
+        MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
+        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
         MultiIndex.from_product : Make a MultiIndex from cartesian product
-                                  of iterables
+                                  of iterables.
         """
-        from pandas.core.dtypes.generic import ABCDataFrame
         if not isinstance(df, ABCDataFrame):
             raise TypeError("Input must be a DataFrame")
 
+        column_names, columns = lzip(*df.iteritems())
+
         # Get MultiIndex names
         if names is None:
-            names = df.columns
+            names = column_names
         elif is_list_like(names):
             if len(names) != len(df.columns):
                     raise ValueError("'names' should have same length as "
@@ -1491,38 +1510,7 @@ class MultiIndex(Index):
             raise TypeError("'names' must be a list / sequence of column "
                             "names.")
 
-        # This way will preserve dtype of columns
-        return cls.from_arrays([df.iloc[:, x] for x in range(len(df.columns))],
-                               sortorder=sortorder,
-                               names=names)
-
-    @classmethod
-    def from_data(cls, data, orient='columns', sortorder=None, names=None):
-        from pandas import DataFrame
-
-        is_df = isinstance(data, DataFrame)
-        try:
-            df = DataFrame(data)
-        except ValueError:
-            raise TypeError("'from_data' input must be valid DataFrame input.")
-        if orient == 'rows':
-            df = df.T
-
-        if not is_df:
-            df.columns = [None for _ in range(len(df.columns))]
-
-        if names is None:
-            pass
-        elif is_list_like(names):
-            if len(names) != len(df.columns):
-                    raise ValueError("'names' should have same length as "
-                                     "number of columns in df.")
-        else:
-            raise TypeError("'names' must be a list / sequence of column "
-                            "names.")
-        return cls.from_arrays([df.iloc[:, x] for x in range(len(df.columns))],
-                               sortorder=sortorder,
-                               names=names)
+        return cls.from_arrays(columns, sortorder=sortorder, names=names)
 
     def _sort_levels_monotonic(self):
         """
