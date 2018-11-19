@@ -36,7 +36,7 @@ _mixed_frame = _frame.copy()
 _mixed_frame['foo'] = 'bar'
 
 
-@td.skip_if_no('xlrd', '0.9')
+@td.skip_if_no('xlrd', '1.0.0')
 class SharedItems(object):
 
     @pytest.fixture(autouse=True)
@@ -796,35 +796,19 @@ class TestXlrdReader(ReadingTestsBase):
                 tm.assert_frame_equal(dfs[s], dfs_returned[s])
 
     def test_reader_seconds(self, ext):
-        import xlrd
 
         # Test reading times with and without milliseconds. GH5945.
-        if LooseVersion(xlrd.__VERSION__) >= LooseVersion("0.9.3"):
-            # Xlrd >= 0.9.3 can handle Excel milliseconds.
-            expected = DataFrame.from_dict({"Time": [time(1, 2, 3),
-                                            time(2, 45, 56, 100000),
-                                            time(4, 29, 49, 200000),
-                                            time(6, 13, 42, 300000),
-                                            time(7, 57, 35, 400000),
-                                            time(9, 41, 28, 500000),
-                                            time(11, 25, 21, 600000),
-                                            time(13, 9, 14, 700000),
-                                            time(14, 53, 7, 800000),
-                                            time(16, 37, 0, 900000),
-                                            time(18, 20, 54)]})
-        else:
-            # Xlrd < 0.9.3 rounds Excel milliseconds.
-            expected = DataFrame.from_dict({"Time": [time(1, 2, 3),
-                                            time(2, 45, 56),
-                                            time(4, 29, 49),
-                                            time(6, 13, 42),
-                                            time(7, 57, 35),
-                                            time(9, 41, 29),
-                                            time(11, 25, 22),
-                                            time(13, 9, 15),
-                                            time(14, 53, 8),
-                                            time(16, 37, 1),
-                                            time(18, 20, 54)]})
+        expected = DataFrame.from_dict({"Time": [time(1, 2, 3),
+                                                 time(2, 45, 56, 100000),
+                                                 time(4, 29, 49, 200000),
+                                                 time(6, 13, 42, 300000),
+                                                 time(7, 57, 35, 400000),
+                                                 time(9, 41, 28, 500000),
+                                                 time(11, 25, 21, 600000),
+                                                 time(13, 9, 14, 700000),
+                                                 time(14, 53, 7, 800000),
+                                                 time(16, 37, 0, 900000),
+                                                 time(18, 20, 54)]})
 
         actual = self.get_exceldf('times_1900', ext, 'Sheet1')
         tm.assert_frame_equal(actual, expected)
