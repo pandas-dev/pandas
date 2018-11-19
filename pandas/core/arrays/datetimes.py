@@ -222,6 +222,11 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
 
+        if is_object_dtype(values):
+            # kludge; dispatch until the DatetimeArray constructor is complete
+            from pandas import DatetimeIndex
+            values = DatetimeIndex(values, freq=freq, tz=tz)
+
         if isinstance(values, ABCSeries):
             # extract to ndarray or DatetimeIndex
             values = values._values
