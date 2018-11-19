@@ -647,9 +647,9 @@ cdef inline int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
         # get_dst_info cannot extract offsets from tzlocal because its
         # dependent on a datetime
         trans, deltas, typ = get_dst_info(tz)
-    if not to_utc:
-        # We add `offset` below instead of subtracting it
-        deltas = -1 * np.array(deltas, dtype='i8')
+        if not to_utc:
+            # We add `offset` below instead of subtracting it
+            deltas = -1 * np.array(deltas, dtype='i8')
 
     for i in range(n):
         v = values[i]
