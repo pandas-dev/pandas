@@ -34,55 +34,53 @@ jobs:
       architecture: 'x64'
 
   - script: |
+      echo "HOME"
+      echo $HOME
+      echo "Build.SourcesDirectory"
+      echo $(Build.SourcesDirectory)
+      echo "pwd"
+      pwd
+    displayName: "TEMPORARY checking directories"
+
+  - script: |
+      echo '##vso[task.setvariable variable=PATH]$HOME/miniconda3/bin:$PATH'
+      echo '##vso[task.setvariable variable=CONDA_ENV]pandas'
+      echo '##vso[task.setvariable variable=ENV_FILE]ci/deps/azure-checks-and-doc.yaml'
+      echo '##vso[task.setvariable variable=AZURE]true'
+    displayName: 'Setting environment variables'
+
+  - script: |
+      echo $PATH
       sudo apt-get install -y libc6-dev-i386
       ci/incremental/install_miniconda.sh
       ci/incremental/setup_conda_environment.sh
     displayName: 'Set up environment'
-    env:
-      PATH: $HOME/miniconda3/bin:$PATH
-      CONDA_ENV: pandas
-      ENV_FILE: ci/deps/azure-checks-and-doc.yaml
 
   - script: ci/incremental/build.sh
     displayName: 'Build'
     condition: true
-    env:
-      PATH: $HOME/miniconda3/bin:$PATH
-      CONDA_ENV: pandas
 
   - script: ci/code_checks.sh lint
     displayName: 'Linting'
     condition: true
-    env:
-      PATH: $HOME/miniconda3/bin:$PATH
-      AZURE: true
 
   - script: ci/code_checks.sh patterns
     displayName: 'Looking for unwanted patterns'
     condition: true
-    env:
-      PATH: $HOME/miniconda3/bin:$PATH
-      AZURE: true
 
   - script: ci/code_checks.sh doctests
     displayName: 'Running doctests'
     condition: true
-    env:
-      PATH: $HOME/miniconda3/bin:$PATH
 
   - script: ci/code_checks.sh docstrings
     displayName: 'Docstring validation'
     condition: true
-    env:
-      PATH: $HOME/miniconda3/bin:$PATH
 
   - script: |
       source activate pandas
       doc/make.py html
     displayName: 'Building docs'
     condition: true
-    env:
-      PATH: $HOME/miniconda3/bin:$PATH
 
   - script: |
       az extension add --name storage-preview
