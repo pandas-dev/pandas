@@ -1344,15 +1344,13 @@ class Categorical(ExtensionArray, PandasObject):
                              "ordered one")
 
         from pandas.core.series import Series
+        codes = _get_codes_for_values(Series(value).values, self.categories)
+        if -1 in codes:
+            raise KeyError("Value(s) to be inserted must be in categories.")
 
-        values_as_codes = _get_codes_for_values(Series(value).values,
-                                                self.categories)
+        codes = codes[0] if is_scalar(value) else codes
 
-        if -1 in values_as_codes:
-            raise ValueError("Value(s) to be inserted must be in categories.")
-
-        return self.codes.searchsorted(values_as_codes, side=side,
-                                       sorter=sorter)
+        return self.codes.searchsorted(codes, side=side, sorter=sorter)
 
     def isna(self):
         """
