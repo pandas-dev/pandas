@@ -6,7 +6,7 @@ import textwrap
 
 from pandas import compat
 from pandas.compat import u, lzip
-from pandas._libs import lib, algos as libalgos
+from pandas._libs import algos as libalgos
 
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCCategoricalIndex)
@@ -113,14 +113,6 @@ def _cat_compare_op(op):
                 ret[na_mask] = False
             return ret
 
-        # Numpy-1.9 and earlier may convert a scalar to a zerodim array during
-        # comparison operation when second arg has higher priority, e.g.
-        #
-        #     cat[0] < cat
-        #
-        # With cat[0], for example, being ``np.int64(1)`` by the time it gets
-        # into this function would become ``np.array(1)``.
-        other = lib.item_from_zerodim(other)
         if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
@@ -2053,15 +2045,7 @@ class Categorical(ExtensionArray, PandasObject):
         elif isinstance(key, slice):
             pass
 
-        # Array of True/False in Series or Categorical
-        else:
-            # There is a bug in numpy, which does not accept a Series as a
-            # indexer
-            # https://github.com/pandas-dev/pandas/issues/6168
-            # https://github.com/numpy/numpy/issues/4240 -> fixed in numpy 1.9
-            # FIXME: remove when numpy 1.9 is the lowest numpy version pandas
-            # accepts...
-            key = np.asarray(key)
+        # else: array of True/False in Series or Categorical
 
         lindexer = self.categories.get_indexer(rvalue)
         lindexer = self._maybe_coerce_indexer(lindexer)

@@ -251,7 +251,6 @@ c2f_dict = {'complex': np.float64,
             'complex128': np.float64,
             'complex64': np.float32}
 
-# numpy 1.6.1 compat
 if hasattr(np, 'float128'):
     c2f_dict['complex256'] = np.float128
 

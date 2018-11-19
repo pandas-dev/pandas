@@ -164,9 +164,7 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
-
-        # Assigning causes segfault in NumPy < 1.5.1
-        # rec.dtype.names = list(rec.dtype.names)[::-1]
+        rec.dtype.names = list(rec.dtype.names)[::-1]
 
         index = self.frame.index
 
