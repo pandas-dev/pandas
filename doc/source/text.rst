@@ -307,17 +307,19 @@ Concatenating a Series and many objects into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Several items can be combined a list-like container (including iterators, ``dict``-views, etc.), which may contain ``Series``, ``Index`` and ``np.ndarray``.
-Note that ``Index`` will align as well, so we change the indexes of ``s`` and ``u`` to strings for the purpose of this example:
+Note that ``Index`` will align as well, so for the purpose of this example, we change ``s`` and ``u`` from above to also have a string index:
 
 .. ipython:: python
 
-    s_values = np.array(['a', 'b', 'c', 'd'], dtype=object)  # same as s.values
+    s_values = np.array(['a', 'b', 'c', 'd'], dtype=object)
     s2 = pd.Series(s_values, index=s_values)
     s2
-    u_values = np.array(['b', 'd', 'a', 'c'], dtype=object)  # same as u.values
+    u_values = np.array(['b', 'd', 'a', 'c'], dtype=object)
     u2 = pd.Series(u_values, index=u_values)
     u2
-    s2.str.cat([pd.Index(['d', 'c', 'b', 'a']), u2, u_values], na_rep='-', join='left')
+    idx = pd.Index(['d', 'c', 'b', 'a'])
+    idx
+    s2.str.cat([u2, idx, u_values], join='left')
 
 All ``np.ndarrays`` within the passed list-like must match in length to the calling ``Series`` (or ``Index``),
 but ``Series`` and ``Index`` may have arbitrary length (as long as alignment is not disabled with ``join is not None``):
@@ -327,7 +329,7 @@ but ``Series`` and ``Index`` may have arbitrary length (as long as alignment is 
     v
     s.str.cat([v, u, u_values], join='outer', na_rep='-')
 
-If using ``join='right'`` on a list of ``others`` that contains different indexes,
+If using ``join='right'`` on a list-like of ``others`` that contains different indexes,
 the union of these indexes will be used as the basis for the final concatenation:
 
 .. ipython:: python
