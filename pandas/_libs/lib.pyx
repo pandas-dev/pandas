@@ -48,8 +48,7 @@ cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
 cimport util
-from util cimport (is_nan,
-                   UINT8_MAX, UINT64_MAX, INT64_MAX, INT64_MIN)
+from util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
 
 from tslib import array_to_datetime
 from tslibs.nattype cimport NPY_NAT
@@ -1642,19 +1641,21 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
 
     if n == 0:
         return False
-
+    # Get a reference timezone to compare with the rest of the tzs in the array
     for i in range(n):
         base_val = values[i]
         if base_val is not NaT:
             base_tz = get_timezone(getattr(base_val, 'tzinfo', None))
-
-            for j in range(i, n):
-                val = values[j]
-                if val is not NaT:
-                    tz = getattr(val, 'tzinfo', None)
-                    if not tz_compare(base_tz, tz):
-                        return False
             break
+
+    for j in range(i, n):
+        # Compare val's timezone with the reference timezone
+        # NaT can coexist with tz-aware datetimes, so skip if encountered
+        val = values[j]
+        if val is not NaT:
+            tz = getattr(val, 'tzinfo', None)
+            if not tz_compare(base_tz, tz):
+                return False
 
     return True
 
@@ -2045,7 +2046,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
     # we try to coerce datetime w/tz but must all have the same tz
     if seen.datetimetz_:
-        if len({getattr(val, 'tzinfo', None) for val in objects}) == 1:
+        if is_datetime_with_singletz_array(objects):
             from pandas import DatetimeIndex
             return DatetimeIndex(objects)
         seen.object_ = 1
@@ -2272,7 +2273,7 @@ def to_object_array_tuples(rows: list):
 
     k = 0
     for i in range(n):
-        tmp = len(rows[i])
+        tmp = 1 if checknull(rows[i]) else len(rows[i])
         if tmp > k:
             k = tmp
 
@@ -2286,7 +2287,7 @@ def to_object_array_tuples(rows: list):
     except Exception:
         # upcast any subclasses to tuple
         for i in range(n):
-            row = tuple(rows[i])
+            row = (rows[i],) if checknull(rows[i]) else tuple(rows[i])
             for j in range(len(row)):
                 result[i, j] = row[j]
 

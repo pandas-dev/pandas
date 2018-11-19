@@ -5,8 +5,21 @@ import numpy as np
 import pandas as pd
 
 from pandas.compat import long
-from pandas.core.arrays import PeriodArray, DatetimeArrayMixin as DatetimeArray
+import pandas.util.testing as tm
 
+
+# ------------------------------------------------------------------
+# Helper Functions
+
+def id_func(x):
+    if isinstance(x, tuple):
+        assert len(x) == 2
+        return x[0].__name__ + '-' + str(x[1])
+    else:
+        return x.__name__
+
+
+# ------------------------------------------------------------------
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
 def one(request):
@@ -42,14 +55,6 @@ def numeric_idx(request):
     Several types of numeric-dtypes Index objects
     """
     return request.param
-
-
-@pytest.fixture
-def tdser():
-    """
-    Return a Series with dtype='timedelta64[ns]', including a NaT.
-    """
-    return pd.Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
 
 
 # ------------------------------------------------------------------
@@ -137,7 +142,7 @@ def mismatched_freq(request):
 # ------------------------------------------------------------------
 
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame],
-                ids=lambda x: x.__name__)
+                ids=id_func)
 def box(request):
     """
     Several array-like containers that should have effectively identical
@@ -150,7 +155,7 @@ def box(request):
                         pd.Series,
                         pytest.param(pd.DataFrame,
                                      marks=pytest.mark.xfail(strict=True))],
-                ids=lambda x: x.__name__)
+                ids=id_func)
 def box_df_fail(request):
     """
     Fixture equivalent to `box` fixture but xfailing the DataFrame case.
@@ -163,7 +168,7 @@ def box_df_fail(request):
                         (pd.DataFrame, False),
                         pytest.param((pd.DataFrame, True),
                                      marks=pytest.mark.xfail(strict=True))],
-                ids=lambda x: x[0].__name__ + '-' + str(x[1]))
+                ids=id_func)
 def box_transpose_fail(request):
     """
     Fixture similar to `box` but testing both transpose cases for DataFrame,
@@ -173,19 +178,15 @@ def box_transpose_fail(request):
     return request.param
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, PeriodArray],
-                ids=lambda x: x.__name__)
-def box_with_period(request):
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array],
+                ids=id_func)
+def box_with_array(request):
     """
-    Like `box`, but specific to PeriodDtype for also testing PeriodArray
+    Fixture to test behavior for Index, Series, DataFrame, and pandas Array
+    classes
     """
     return request.param
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, DatetimeArray],
-                ids=lambda x: x.__name__)
-def box_with_datetime(request):
-    """
-    Like `box`, but specific to datetime64 for also testing DatetimeArray
-    """
-    return request.param
+# alias so we can use the same fixture for multiple parameters in a test
+box_with_array2 = box_with_array

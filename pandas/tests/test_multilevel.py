@@ -1376,7 +1376,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         try:
             df = f()
-        except:
+        except ValueError:
             pass
         assert (df['foo', 'one'] == 0).all()
 
