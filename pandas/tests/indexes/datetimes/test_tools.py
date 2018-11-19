@@ -409,8 +409,8 @@ class TestToDatetime(object):
                                                      hour=3, minute=0))],
                        dtype=object)
         result = pd.to_datetime(arr, utc=True, cache=cache)
-        expected = DatetimeIndex(['2000-01-01 08:00:00+00:00',
-                                  '2000-06-01 07:00:00+00:00'],
+        expected = DatetimeIndex(['2000-01-01 08:00:00',
+                                  '2000-06-01 07:00:00'],
                                  dtype='datetime64[ns, UTC]', freq=None)
         tm.assert_index_equal(result, expected)
 
@@ -488,8 +488,8 @@ class TestToDatetime(object):
                        dtype=object)
 
         result = pd.to_datetime(arr, errors='coerce', utc=True, cache=cache)
-        expected = DatetimeIndex(['2000-01-01 08:00:00+00:00',
-                                  '2000-06-01 07:00:00+00:00'],
+        expected = DatetimeIndex(['2000-01-01 08:00:00',
+                                  '2000-06-01 07:00:00'],
                                  dtype='datetime64[ns, UTC]', freq=None)
         tm.assert_index_equal(result, expected)
 

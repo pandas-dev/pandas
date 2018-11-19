@@ -785,7 +785,8 @@ cdef inline int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz,
         Py_ssize_t i, n = len(vals)
         int64_t val
 
-    if get_timezone(tz) != 'UTC':
+    if not is_utc(get_timezone(tz)):
+    #if get_timezone(tz) != 'UTC':
         converted = np.empty(n, dtype=np.int64)
         if is_tzlocal(tz):
             for i in range(n):
@@ -890,7 +891,10 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     if is_tzlocal(tz):
         for i in range(n):
             v = vals[i]
-            result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=True)
+            if v == NPY_NAT:
+                result[i] = NPY_NAT
+            else:
+                result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=True)
         return result
 
     if is_string_object(ambiguous):

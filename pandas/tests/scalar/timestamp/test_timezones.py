@@ -11,6 +11,7 @@ from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 import dateutil
 from dateutil.tz import gettz, tzoffset
 
+from pandas._libs.tslibs import timezones
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
@@ -342,10 +343,7 @@ class TestTimestampTZOperations(object):
     def test_timestamp_timetz_equivalent_with_datetime_tz(self,
                                                           tz_naive_fixture):
         # GH21358
-        if tz_naive_fixture is not None:
-            tz = dateutil.tz.gettz(tz_naive_fixture)
-        else:
-            tz = None
+        tz = timezones.maybe_get_tz(tz_naive_fixture)
 
         stamp = Timestamp('2018-06-04 10:20:30', tz=tz)
         _datetime = datetime(2018, 6, 4, hour=10,
