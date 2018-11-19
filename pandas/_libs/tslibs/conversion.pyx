@@ -692,6 +692,7 @@ cdef inline int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz,
         datetime dt
 
     dt64_to_dtstruct(val, &dts)
+    # THIS NEEDS TO BE A LOCAL DATETIME!
     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                   dts.min, dts.sec, dts.us, tz)
     delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
@@ -790,7 +791,6 @@ cdef inline int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz,
         int64_t val
 
     if not is_utc(get_timezone(tz)):
-    #if get_timezone(tz) != 'UTC':
         converted = np.empty(n, dtype=np.int64)
         if is_tzlocal(tz):
             for i in range(n):
