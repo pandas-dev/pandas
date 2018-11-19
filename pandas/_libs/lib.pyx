@@ -150,10 +150,6 @@ def is_scalar(val: object) -> bool:
     >>> from fractions import Fraction
     >>> pd.api.types.is_scalar(Fraction(3, 5))
     True
-
-    >>> from numbers import Number
-    >>> pd.api.types.is_scalar(Number())
-    True
     """
 
     return (cnp.PyArray_IsAnyScalar(val)
