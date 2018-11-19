@@ -8,7 +8,7 @@ from pytz import utc
 from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timestamp, NaT, iNaT
 from pandas._libs.tslibs import (
-    normalize_date,
+    ccalendar, normalize_date,
     conversion, fields, timezones,
     resolution as libresolution)
 
@@ -49,7 +49,12 @@ def _to_m8(key, tz=None):
     """
     if not isinstance(key, Timestamp):
         # this also converts strings
-        key = Timestamp(key, tz=tz)
+        key = Timestamp(key)
+        if key.tzinfo is not None and tz is not None:
+            # Don't tz_localize(None) if key is already tz-aware
+            key = key.tz_convert(tz)
+        else:
+            key = key.tz_localize(tz)
 
     return np.int64(conversion.pydt_to_i8(key)).view(_NS_DTYPE)
 
@@ -57,9 +62,8 @@ def _to_m8(key, tz=None):
 def _field_accessor(name, field, docstring=None):
     def f(self):
         values = self.asi8
-        if self.tz is not None:
-            if self.tz is not utc:
-                values = self._local_timestamps()
+        if self.tz is not None and not timezones.is_utc(self.tz):
+            values = self._local_timestamps()
 
         if field in self._bool_ops:
             if field.endswith(('start', 'end')):
@@ -221,6 +225,11 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
+
+        if is_object_dtype(values):
+            # kludge; dispatch until the DatetimeArray constructor is complete
+            from pandas import DatetimeIndex
+            values = DatetimeIndex(values, freq=freq, tz=tz)
 
         if isinstance(values, ABCSeries):
             # extract to ndarray or DatetimeIndex
@@ -857,7 +866,14 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
-        new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
+        if self.tz is None or timezones.is_utc(self.tz):
+            not_null = self.notna()
+            DAY_NS = ccalendar.DAY_SECONDS * 1000000000
+            new_values = self.asi8.copy()
+            adjustment = (new_values[not_null] % DAY_NS)
+            new_values[not_null] = new_values[not_null] - adjustment
+        else:
+            new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
         return type(self)(new_values, freq='infer').tz_localize(self.tz)
 
     def to_period(self, freq=None):
@@ -970,7 +986,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         >>> idx.month_name()
         Index(['January', 'February', 'March'], dtype='object')
         """
-        if self.tz is not None and self.tz is not utc:
+        if self.tz is not None and not timezones.is_utc(self.tz):
             values = self._local_timestamps()
         else:
             values = self.asi8
@@ -1006,7 +1022,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         >>> idx.day_name()
         Index(['Monday', 'Tuesday', 'Wednesday'], dtype='object')
         """
-        if self.tz is not None and self.tz is not utc:
+        if self.tz is not None and not timezones.is_utc(self.tz):
             values = self._local_timestamps()
         else:
             values = self.asi8
@@ -1024,7 +1040,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # If the Timestamps have a timezone that is not UTC,
         # convert them into their i8 representation while
         # keeping their timezone and not using UTC
-        if self.tz is not None and self.tz is not utc:
+        if self.tz is not None and not timezones.is_utc(self.tz):
             timestamps = self._local_timestamps()
         else:
             timestamps = self.asi8
@@ -1048,7 +1064,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # If the Timestamps have a timezone that is not UTC,
         # convert them into their i8 representation while
         # keeping their timezone and not using UTC
-        if self.tz is not None and self.tz is not utc:
+        if self.tz is not None and not timezones.is_utc(self.tz):
             timestamps = self._local_timestamps()
         else:
             timestamps = self.asi8
