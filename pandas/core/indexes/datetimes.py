@@ -6,7 +6,6 @@ import operator
 import warnings
 
 import numpy as np
-from pytz import utc
 
 from pandas._libs import (
     Timestamp, index as libindex, join as libjoin, lib, tslib as libts)
@@ -474,11 +473,11 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
     def _get_time_micros(self):
         values = self.asi8
-        if self.tz is not None and self.tz is not utc:
+        if self.tz is not None and not timezones.is_utc(self.tz):
             values = self._local_timestamps()
         return fields.get_time_micros(values)
 
-    def to_series(self, keep_tz=False, index=None, name=None):
+    def to_series(self, keep_tz=None, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
         useful with map for returning an indexer based on an index
@@ -486,7 +485,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         Parameters
         ----------
         keep_tz : optional, defaults False
-            return the data keeping the timezone.
+            Return the data keeping the timezone.
 
             If keep_tz is True:
 
@@ -500,6 +499,12 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
               Series will have a datetime64[ns] dtype. TZ aware
               objects will have the tz removed.
+
+            .. versionchanged:: 0.24
+                The default value will change to True in a future release.
+                You can set ``keep_tz=True`` to already obtain the future
+                behaviour and silence the warning.
+
         index : Index, optional
             index of resulting Series. If None, defaults to original index
         name : string, optional
@@ -516,6 +521,19 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             index = self._shallow_copy()
         if name is None:
             name = self.name
+
+        if keep_tz is None and self.tz is not None:
+            warnings.warn("The default of the 'keep_tz' keyword will change "
+                          "to True in a future release. You can set "
+                          "'keep_tz=True' to obtain the future behaviour and "
+                          "silence this warning.", FutureWarning, stacklevel=2)
+            keep_tz = False
+        elif keep_tz is False:
+            warnings.warn("Specifying 'keep_tz=False' is deprecated and this "
+                          "option will be removed in a future release. If "
+                          "you want to remove the timezone information, you "
+                          "can do 'idx.tz_convert(None)' before calling "
+                          "'to_series'.", FutureWarning, stacklevel=2)
 
         if keep_tz and self.tz is not None:
             # preserve the tz & copy
@@ -918,7 +936,10 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
             # needed to localize naive datetimes
             if self.tz is not None:
-                key = Timestamp(key, tz=self.tz)
+                if key.tzinfo is not None:
+                    key = Timestamp(key).tz_convert(self.tz)
+                else:
+                    key = Timestamp(key).tz_localize(self.tz)
 
             return self.get_value_maybe_box(series, key)
 
@@ -944,7 +965,11 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     def get_value_maybe_box(self, series, key):
         # needed to localize naive datetimes
         if self.tz is not None:
-            key = Timestamp(key, tz=self.tz)
+            key = Timestamp(key)
+            if key.tzinfo is not None:
+                key = key.tz_convert(self.tz)
+            else:
+                key = key.tz_localize(self.tz)
         elif not isinstance(key, Timestamp):
             key = Timestamp(key)
         values = self._engine.get_value(com.values_from_object(series),
@@ -967,7 +992,10 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
         if isinstance(key, datetime):
             # needed to localize naive datetimes
-            key = Timestamp(key, tz=self.tz)
+            if key.tzinfo is None:
+                key = Timestamp(key, tz=self.tz)
+            else:
+                key = Timestamp(key).tz_convert(self.tz)
             return Index.get_loc(self, key, method, tolerance)
 
         elif isinstance(key, timedelta):
@@ -991,7 +1019,11 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 pass
 
             try:
-                stamp = Timestamp(key, tz=self.tz)
+                stamp = Timestamp(key)
+                if stamp.tzinfo is not None and self.tz is not None:
+                    stamp = stamp.tz_convert(self.tz)
+                else:
+                    stamp = stamp.tz_localize(self.tz)
                 return Index.get_loc(self, stamp, method, tolerance)
             except KeyError:
                 raise KeyError(key)

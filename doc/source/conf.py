@@ -586,7 +586,7 @@ def linkcode_resolve(domain, info):
     for part in fullname.split('.'):
         try:
             obj = getattr(obj, part)
-        except:
+        except AttributeError:
             return None
 
     try:
@@ -595,14 +595,14 @@ def linkcode_resolve(domain, info):
             fn = inspect.getsourcefile(inspect.unwrap(obj))
         else:
             fn = inspect.getsourcefile(obj)
-    except:
+    except TypeError:
         fn = None
     if not fn:
         return None
 
     try:
         source, lineno = inspect.getsourcelines(obj)
-    except:
+    except OSError:
         lineno = None
 
     if lineno:

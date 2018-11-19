@@ -1070,18 +1070,6 @@ cdef class TextReader:
 
             conv = self._get_converter(i, name)
 
-            # XXX
-            na_flist = set()
-            if self.na_filter:
-                na_list, na_flist = self._get_na_list(i, name)
-                if na_list is None:
-                    na_filter = 0
-                else:
-                    na_filter = 1
-                    na_hashset = kset_from_list(na_list)
-            else:
-                na_filter = 0
-
             col_dtype = None
             if self.dtype is not None:
                 if isinstance(self.dtype, dict):
@@ -1106,13 +1094,34 @@ cdef class TextReader:
                                               self.c_encoding)
                 continue
 
-            # Should return as the desired dtype (inferred or specified)
-            col_res, na_count = self._convert_tokens(
-                i, start, end, name, na_filter, na_hashset,
-                na_flist, col_dtype)
+            # Collect the list of NaN values associated with the column.
+            # If we aren't supposed to do that, or none are collected,
+            # we set `na_filter` to `0` (`1` otherwise).
+            na_flist = set()
 
-            if na_filter:
-                self._free_na_set(na_hashset)
+            if self.na_filter:
+                na_list, na_flist = self._get_na_list(i, name)
+                if na_list is None:
+                    na_filter = 0
+                else:
+                    na_filter = 1
+                    na_hashset = kset_from_list(na_list)
+            else:
+                na_filter = 0
+
+            # Attempt to parse tokens and infer dtype of the column.
+            # Should return as the desired dtype (inferred or specified).
+            try:
+                col_res, na_count = self._convert_tokens(
+                    i, start, end, name, na_filter, na_hashset,
+                    na_flist, col_dtype)
+            finally:
+                # gh-21353
+                #
+                # Cleanup the NaN hash that we generated
+                # to avoid memory leaks.
+                if na_filter:
+                    self._free_na_set(na_hashset)
 
             if upcast_na and na_count > 0:
                 col_res = _maybe_upcast(col_res)
@@ -2059,6 +2068,7 @@ cdef kh_str_t* kset_from_list(list values) except NULL:
 
         # None creeps in sometimes, which isn't possible here
         if not isinstance(val, bytes):
+            kh_destroy_str(table)
             raise ValueError('Must be all encoded bytes')
 
         k = kh_put_str(table, PyBytes_AsString(val), &ret)

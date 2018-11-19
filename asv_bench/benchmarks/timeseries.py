@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import dateutil
 import numpy as np
 from pandas import to_datetime, date_range, Series, DataFrame, period_range
 from pandas.tseries.frequencies import infer_freq
@@ -57,7 +58,10 @@ class DatetimeIndex(object):
 
 class TzLocalize(object):
 
-    def setup(self):
+    params = [None, 'US/Eastern', 'UTC', dateutil.tz.tzutc()]
+    param_names = 'tz'
+
+    def setup(self, tz):
         dst_rng = date_range(start='10/29/2000 1:00:00',
                              end='10/29/2000 1:59:59', freq='S')
         self.index = date_range(start='10/29/2000',
@@ -68,8 +72,8 @@ class TzLocalize(object):
                                                   end='10/29/2000 3:00:00',
                                                   freq='S'))
 
-    def time_infer_dst(self):
-        self.index.tz_localize('US/Eastern', ambiguous='infer')
+    def time_infer_dst(self, tz):
+        self.index.tz_localize(tz, ambiguous='infer')
 
 
 class ResetIndex(object):
@@ -377,15 +381,35 @@ class ToDatetimeCache(object):
 
 class DatetimeAccessor(object):
 
-    def setup(self):
-        N = 100000
-        self.series = Series(date_range(start='1/1/2000', periods=N, freq='T'))
+    params = [None, 'US/Eastern', 'UTC', dateutil.tz.tzutc()]
+    param_names = 'tz'
 
-    def time_dt_accessor(self):
+    def setup(self, tz):
+        N = 100000
+        self.series = Series(
+            date_range(start='1/1/2000', periods=N, freq='T', tz=tz)
+        )
+
+    def time_dt_accessor(self, tz):
         self.series.dt
 
-    def time_dt_accessor_normalize(self):
+    def time_dt_accessor_normalize(self, tz):
         self.series.dt.normalize()
+
+    def time_dt_accessor_month_name(self, tz):
+        self.series.dt.month_name()
+
+    def time_dt_accessor_day_name(self, tz):
+        self.series.dt.day_name()
+
+    def time_dt_accessor_time(self, tz):
+        self.series.dt.time
+
+    def time_dt_accessor_date(self, tz):
+        self.series.dt.date
+
+    def time_dt_accessor_year(self, tz):
+        self.series.dt.year
 
 
 from .pandas_vb_common import setup  # noqa: F401

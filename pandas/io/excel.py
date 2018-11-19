@@ -122,7 +122,7 @@ dtype : Type name or dict of column -> type, default None
 
     .. versionadded:: 0.20.0
 
-engine: string, default None
+engine : string, default None
     If io is not a buffer or path, this must be set to identify io.
     Acceptable values are None or xlrd
 converters : dict, default None
@@ -368,7 +368,7 @@ class ExcelFile(object):
     io : string, path object (pathlib.Path or py._path.local.LocalPath),
         file-like object or xlrd workbook
         If a string or path object, expected to be a path to xls or xlsx file
-    engine: string, default None
+    engine : string, default None
         If io is not a buffer or path, this must be set to identify io.
         Acceptable values are None or xlrd
     """
@@ -630,11 +630,12 @@ class ExcelFile(object):
                     if is_integer(skiprows):
                         row += skiprows
 
-                    data[row], control_row = _fill_mi_header(
-                        data[row], control_row)
-                    header_name, _ = _pop_header_name(
-                        data[row], index_col)
-                    header_names.append(header_name)
+                    data[row], control_row = _fill_mi_header(data[row],
+                                                             control_row)
+
+                    if index_col is not None:
+                        header_name, _ = _pop_header_name(data[row], index_col)
+                        header_names.append(header_name)
 
             if is_list_like(index_col):
                 # Forward fill values for MultiIndex index.
@@ -682,7 +683,8 @@ class ExcelFile(object):
 
                 output[asheetname] = parser.read(nrows=nrows)
 
-                if not squeeze or isinstance(output[asheetname], DataFrame):
+                if ((not squeeze or isinstance(output[asheetname], DataFrame))
+                        and header_names):
                     output[asheetname].columns = output[
                         asheetname].columns.set_names(header_names)
             except EmptyDataError:
@@ -863,16 +865,30 @@ def _fill_mi_header(row, control_row):
 
 
 def _pop_header_name(row, index_col):
-    """ (header, new_data) for header rows in MultiIndex parsing"""
-    none_fill = lambda x: None if x == '' else x
+    """
+    Pop the header name for MultiIndex parsing.
 
-    if index_col is None:
-        # no index col specified, trim data for inference path
-        return none_fill(row[0]), row[1:]
-    else:
-        # pop out header name and fill w/ blank
-        i = index_col if not is_list_like(index_col) else max(index_col)
-        return none_fill(row[i]), row[:i] + [''] + row[i + 1:]
+    Parameters
+    ----------
+    row : list
+        The data row to parse for the header name.
+    index_col : int, list
+        The index columns for our data. Assumed to be non-null.
+
+    Returns
+    -------
+    header_name : str
+        The extracted header name.
+    trimmed_row : list
+        The original data row with the header name removed.
+    """
+    # Pop out header name and fill w/blank.
+    i = index_col if not is_list_like(index_col) else max(index_col)
+
+    header_name = row[i]
+    header_name = None if header_name == "" else header_name
+
+    return header_name, row[:i] + [''] + row[i + 1:]
 
 
 @add_metaclass(abc.ABCMeta)
@@ -1011,8 +1027,8 @@ class ExcelWriter(object):
             cell of formatted data to save to Excel sheet
         sheet_name : string, default None
             Name of Excel sheet, if None, then use self.cur_sheet
-        startrow: upper left cell row to dump data frame
-        startcol: upper left cell column to dump data frame
+        startrow : upper left cell row to dump data frame
+        startcol : upper left cell column to dump data frame
         freeze_panes: integer tuple of length 2
             contains the bottom-most row and right-most column to freeze
         """
@@ -1159,7 +1175,7 @@ class _OpenpyxlWriter(ExcelWriter):
         converts a style_dict to an openpyxl style object
         Parameters
         ----------
-        style_dict: style dictionary to convert
+        style_dict : style dictionary to convert
         """
 
         from openpyxl.style import Style
@@ -1652,15 +1668,15 @@ class _XlwtWriter(ExcelWriter):
         for example:
 
             hstyle = {"font": {"bold": True},
-            "border": {"top": "thin",
-                    "right": "thin",
-                    "bottom": "thin",
-                    "left": "thin"},
-            "align": {"horiz": "center"}}
+            "border" : {"top": "thin",
+                        "right": "thin",
+                        "bottom": "thin",
+                        "left": "thin"},
+            "align" : {"horiz": "center"}}
             will be converted to
-            font: bold on; \
-                    border: top thin, right thin, bottom thin, left thin; \
-                    align: horiz center;
+            font : bold on; \
+                    border : top thin, right thin, bottom thin, left thin; \
+                    align : horiz center;
         """
         if hasattr(item, 'items'):
             if firstlevel:
@@ -1687,8 +1703,8 @@ class _XlwtWriter(ExcelWriter):
         converts a style_dict to an xlwt style object
         Parameters
         ----------
-        style_dict: style dictionary to convert
-        num_format_str: optional number format string
+        style_dict : style dictionary to convert
+        num_format_str : optional number format string
         """
         import xlwt
 
@@ -1790,8 +1806,8 @@ class _XlsxStyler(object):
 
         Parameters
         ----------
-        style_dict: style dictionary to convert
-        num_format_str: optional number format string
+        style_dict : style dictionary to convert
+        num_format_str : optional number format string
         """
 
         # Create a XlsxWriter format object.

@@ -1241,9 +1241,9 @@ class DataFrame(NDFrame):
             raise ValueError("orient '{o}' not understood".format(o=orient))
 
     def to_gbq(self, destination_table, project_id=None, chunksize=None,
-               reauth=False, if_exists='fail', private_key=None,
-               auth_local_webserver=False, table_schema=None, location=None,
-               progress_bar=True, verbose=None):
+               reauth=False, if_exists='fail', auth_local_webserver=False,
+               table_schema=None, location=None, progress_bar=True,
+               credentials=None, verbose=None, private_key=None):
         """
         Write a DataFrame to a Google BigQuery table.
 
@@ -1311,10 +1311,31 @@ class DataFrame(NDFrame):
             chunk by chunk.
 
             *New in version 0.5.0 of pandas-gbq*.
+        credentials : google.auth.credentials.Credentials, optional
+            Credentials for accessing Google APIs. Use this parameter to
+            override default credentials, such as to use Compute Engine
+            :class:`google.auth.compute_engine.Credentials` or Service
+            Account :class:`google.oauth2.service_account.Credentials`
+            directly.
+
+            *New in version 0.8.0 of pandas-gbq*.
+
+            .. versionadded:: 0.24.0
         verbose : bool, deprecated
-            Deprecated in Pandas-GBQ 0.4.0. Use the `logging module
+            Deprecated in pandas-gbq version 0.4.0. Use the `logging module
             to adjust verbosity instead
             <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
+        private_key : str, deprecated
+            Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
+            parameter and
+            :func:`google.oauth2.service_account.Credentials.from_service_account_info`
+            or
+            :func:`google.oauth2.service_account.Credentials.from_service_account_file`
+            instead.
+
+            Service account private key in JSON format. Can be file path
+            or string contents. This is useful for remote server
+            authentication (eg. Jupyter/IPython notebook on remote host).
 
         See Also
         --------
@@ -1324,11 +1345,11 @@ class DataFrame(NDFrame):
         from pandas.io import gbq
         return gbq.to_gbq(
             self, destination_table, project_id=project_id,
-            chunksize=chunksize, reauth=reauth,
-            if_exists=if_exists, private_key=private_key,
+            chunksize=chunksize, reauth=reauth, if_exists=if_exists,
             auth_local_webserver=auth_local_webserver,
             table_schema=table_schema, location=location,
-            progress_bar=progress_bar, verbose=verbose)
+            progress_bar=progress_bar, credentials=credentials,
+            verbose=verbose, private_key=private_key)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
@@ -1689,7 +1710,7 @@ class DataFrame(NDFrame):
         tupleize_cols : boolean, default False
             write multi_index columns as a list of tuples (if True)
             or new (expanded format) if False)
-        infer_datetime_format: boolean, default False
+        infer_datetime_format : boolean, default False
             If True and `parse_dates` is True for a column, try to infer the
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.
@@ -2035,24 +2056,21 @@ class DataFrame(NDFrame):
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
                   sparsify=None, index_names=True, justify=None,
-                  line_width=None, max_rows=None, max_cols=None,
-                  show_dimensions=False):
+                  max_rows=None, max_cols=None, show_dimensions=False,
+                  decimal='.', line_width=None):
         """
         Render a DataFrame to a console-friendly tabular output.
-
         %(shared_params)s
         line_width : int, optional
             Width to wrap a line in characters.
-
         %(returns)s
-
         See Also
         --------
         to_html : Convert DataFrame to HTML.
 
         Examples
         --------
-        >>> d = {'col1' : [1, 2, 3], 'col2' : [4, 5, 6]}
+        >>> d = {'col1': [1, 2, 3], 'col2': [4, 5, 6]}
         >>> df = pd.DataFrame(d)
         >>> print(df.to_string())
            col1  col2
@@ -2068,42 +2086,37 @@ class DataFrame(NDFrame):
                                            sparsify=sparsify, justify=justify,
                                            index_names=index_names,
                                            header=header, index=index,
-                                           line_width=line_width,
                                            max_rows=max_rows,
                                            max_cols=max_cols,
-                                           show_dimensions=show_dimensions)
+                                           show_dimensions=show_dimensions,
+                                           decimal=decimal,
+                                           line_width=line_width)
         formatter.to_string()
 
         if buf is None:
             result = formatter.buf.getvalue()
             return result
 
-    @Substitution(header='whether to print column labels, default True')
+    @Substitution(header='Whether to print column labels, default True')
     @Substitution(shared_params=fmt.common_docstring,
                   returns=fmt.return_docstring)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
                 index=True, na_rep='NaN', formatters=None, float_format=None,
-                sparsify=None, index_names=True, justify=None, bold_rows=True,
-                classes=None, escape=True, max_rows=None, max_cols=None,
-                show_dimensions=False, notebook=False, decimal='.',
-                border=None, table_id=None):
+                sparsify=None, index_names=True, justify=None, max_rows=None,
+                max_cols=None, show_dimensions=False, decimal='.',
+                bold_rows=True, classes=None, escape=True,
+                notebook=False, border=None, table_id=None):
         """
         Render a DataFrame as an HTML table.
-
         %(shared_params)s
-        bold_rows : boolean, default True
-            Make the row labels bold in the output
+        bold_rows : bool, default True
+            Make the row labels bold in the output.
         classes : str or list or tuple, default None
-            CSS class(es) to apply to the resulting html table
-        escape : boolean, default True
+            CSS class(es) to apply to the resulting html table.
+        escape : bool, default True
             Convert the characters <, >, and & to HTML-safe sequences.
         notebook : {True, False}, default False
             Whether the generated HTML is for IPython Notebook.
-        decimal : string, default '.'
-            Character recognized as decimal separator, e.g. ',' in Europe
-
-            .. versionadded:: 0.18.0
-
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.html.border``.
@@ -2114,9 +2127,7 @@ class DataFrame(NDFrame):
             A css id is included in the opening `<table>` tag if specified.
 
             .. versionadded:: 0.23.0
-
         %(returns)s
-
         See Also
         --------
         to_string : Convert DataFrame to a string.
