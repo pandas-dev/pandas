@@ -225,8 +225,8 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
 
     # warn if passing timedelta64, raise for PeriodDtype
     # NB: this must come after unit transformation
-    arg, _ = maybe_convert_dtype(arg, copy=False,
-                                 has_format=format is not None)
+    orig_arg = arg
+    arg, _ = maybe_convert_dtype(arg, copy=False)
 
     arg = ensure_object(arg)
     require_iso8601 = False
@@ -252,7 +252,10 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
             # shortcut formatting here
             if format == '%Y%m%d':
                 try:
-                    result = _attempt_YYYYMMDD(arg, errors=errors)
+                    # pass orig_arg as float-dtype may have been converted to
+                    # datetime64[ns]
+                    orig_arg = ensure_object(orig_arg)
+                    result = _attempt_YYYYMMDD(orig_arg, errors=errors)
                 except (ValueError, TypeError, tslibs.OutOfBoundsDatetime):
                     raise ValueError("cannot convert the input to "
                                      "'%Y%m%d' date format")
@@ -278,6 +281,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                             raise
                         result = arg
         except ValueError as e:
+            # Fallback to try to convert datetime objects
             try:
                 values, tz = conversion.datetime_to_datetime64(arg)
                 return DatetimeIndex._simple_new(values, name=name, tz=tz)

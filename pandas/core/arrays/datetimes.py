@@ -1463,7 +1463,7 @@ def maybe_infer_tz(tz, inferred_tz):
     return tz
 
 
-def maybe_convert_dtype(data, copy, has_format=False):
+def maybe_convert_dtype(data, copy):
     """
     Convert data based on dtype conventions, issuing deprecation warnings
     or errors where appropriate.
@@ -1472,9 +1472,6 @@ def maybe_convert_dtype(data, copy, has_format=False):
     ----------
     data : np.ndarray or pd.Index
     copy : bool
-    has_format : bool, default False
-        Indicates if the data will be passed to a parsing function with a
-        `format` kwarg.
 
     Returns
     -------
@@ -1486,7 +1483,7 @@ def maybe_convert_dtype(data, copy, has_format=False):
     TypeError : PeriodDType data is passed
     """
 
-    if is_float_dtype(data) and not has_format:
+    if is_float_dtype(data):
         # Note: we must cast to datetime64[ns] here in order to treat these
         #  as wall-times instead of UTC timestamps.
         data = data.astype(_NS_DTYPE)
@@ -1529,6 +1526,8 @@ def objects_to_datetime64ns(data, dayfirst, yearfirst,
         Whether to convert timezone-aware timestamps to UTC
     errors : {'raise', 'ignore', 'coerce'}
     allow_object : bool
+        Whether to return an object-dtype ndarray instead of raising if the
+        data contains more than one timezone.
 
     Returns
     -------
