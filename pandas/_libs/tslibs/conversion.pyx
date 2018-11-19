@@ -882,7 +882,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         bint shift = False, fill_nonexist = False
 
     # Vectorized version of DstTzInfo.localize
-    if tz == UTC or tz is None:
+    if is_utc(tz) or tz is None:
         return vals
 
     result = np.empty(n, dtype=np.int64)
