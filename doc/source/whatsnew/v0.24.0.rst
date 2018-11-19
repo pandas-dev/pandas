@@ -307,7 +307,7 @@ Backwards incompatible API changes
 Dependencies have increased minimum versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have updated our minimum supported versions of dependencies (:issue:`21242`, `18742`).
+We have updated our minimum supported versions of dependencies (:issue:`21242`, :issue:`18742`, :issue:`23774`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+
@@ -330,6 +330,8 @@ If installed, we now require:
 | pytables        | 3.4.2           |          |
 +-----------------+-----------------+----------+
 | scipy           | 0.18.1          |          |
++-----------------+-----------------+----------+
+| xlrd            | 1.0.0           |          |
 +-----------------+-----------------+----------+
 
 Additionally we no longer depend on `feather-format` for feather based storage
@@ -1382,8 +1384,10 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :func:`DataFrame.to_string()` that caused representations of :class:`DataFrame` to not take up the whole window (:issue:`22984`)
 - Bug in :func:`DataFrame.to_csv` where a single level MultiIndex incorrectly wrote a tuple. Now just the value of the index is written (:issue:`19589`).
 - Bug in :meth:`HDFStore.append` when appending a :class:`DataFrame` with an empty string column and ``min_itemsize`` < 8 (:issue:`12242`)
+- Bug in :func:`read_csv()` in which memory leaks occurred in the C engine when parsing ``NaN`` values due to insufficient cleanup on completion or error (:issue:`21353`)
 - Bug in :func:`read_csv()` in which incorrect error messages were being raised when ``skipfooter`` was passed in along with ``nrows``, ``iterator``, or ``chunksize`` (:issue:`23711`)
 - Bug in :meth:`read_csv()` in which :class:`MultiIndex` index names were being improperly handled in the cases when they were not provided (:issue:`23484`)
+- Bug in :meth:`read_csv()` in which unnecessary warnings were being raised when the dialect's values conflicted with the default arguments (:issue:`23761`)
 - Bug in :meth:`read_html()` in which the error message was not displaying the valid flavors when an invalid one was provided (:issue:`23549`)
 - Bug in :meth:`read_excel()` in which extraneous header names were extracted, even though none were specified (:issue:`11733`)
 - Bug in :meth:`read_excel()` in which ``index_col=None`` was not being respected and parsing index columns anyway (:issue:`20480`)
