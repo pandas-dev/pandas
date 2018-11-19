@@ -121,52 +121,32 @@ class TestSeriesCombine(object):
                              columns=['a', 'b', 'c'])
         assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize('other_values', [
-        [61, 63],       # int
-        [61., 63.],     # float, but can be cast to int
-        [61.1, 63.1],   # float, cannot be cast to int
-        [(61,), (63,)]  # object
-    ], ids=['int', 'float_castable', 'float', 'object'])
-    @pytest.mark.parametrize('caller_dtype', ['int32', 'int64',
-                                              'float32', 'float64', object])
-    def test_update_dtypes(self, caller_dtype, other_values):
-        caller_values = [10, 11, 12]
-        s = Series(caller_values, dtype=caller_dtype)
-        other = Series(other_values, index=[1, 3])
-        s.update(other)
-
-        expected_values = [caller_values[0], other_values[0], caller_values[2]]
-        try:
-            # we keep original dtype whenever possible
-            expected = Series(expected_values, dtype=caller_dtype)
-        except ValueError:
-            expected = Series(expected_values)
-
-        assert_series_equal(s, expected)
-
-    @pytest.mark.parametrize('other_values, caller_dtype, expected', [
-        # other_values is int
+    @pytest.mark.parametrize('other, dtype, expected', [
+        # other is int
+        ([61, 63], 'int32', pd.Series([10, 61, 12], dtype='int32')),
         ([61, 63], 'int64', pd.Series([10, 61, 12])),
         ([61, 63], float, pd.Series([10., 61., 12.])),
         ([61, 63], object, pd.Series([10, 61, 12], dtype=object)),
-        # other_values is float, but can be cast to int
-        ([61., 63.], 'int64', pd.Series([10, 61, 12], dtype='int64')),
+        # other is float, but can be cast to int
+        ([61., 63.], 'int32', pd.Series([10, 61, 12], dtype='int32')),
+        ([61., 63.], 'int64', pd.Series([10, 61, 12])),
         ([61., 63.], float, pd.Series([10., 61., 12.])),
         ([61., 63.], object, pd.Series([10, 61., 12], dtype=object)),
-        # other_values is float, cannot be cast to int
+        # others is float, cannot be cast to int
+        ([61.1, 63.1], 'int32', pd.Series([10., 61.1, 12.])),
         ([61.1, 63.1], 'int64', pd.Series([10., 61.1, 12.])),
         ([61.1, 63.1], float, pd.Series([10., 61.1, 12.])),
         ([61.1, 63.1], object, pd.Series([10, 61.1, 12], dtype=object)),
-        # other_values is object, cannot be cast
+        # other is object, cannot be cast
+        ([(61,), (63,)], 'int32', pd.Series([10, (61,), 12])),
         ([(61,), (63,)], 'int64', pd.Series([10, (61,), 12])),
         ([(61,), (63,)], float, pd.Series([10., (61,), 12.])),
         ([(61,), (63,)], object, pd.Series([10, (61,), 12]))
     ])
-    def test_update_dtypes_no_try_catch(self, other_values,
-                                        caller_dtype, expected):
-        caller_values = [10, 11, 12]
-        s = Series(caller_values, dtype=caller_dtype)
-        other = Series(other_values, index=[1, 3])
+    def test_update_dtypes(self, other, dtype, expected):
+
+        s = Series([10, 11, 12], dtype=dtype)
+        other = Series(other, index=[1, 3])
         s.update(other)
 
         assert_series_equal(s, expected)
