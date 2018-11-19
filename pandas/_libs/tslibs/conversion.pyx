@@ -8,6 +8,7 @@ from numpy cimport int64_t, int32_t, ndarray
 cnp.import_array()
 
 import pytz
+from dateutil.tz import tzutc
 
 # stdlib datetime imports
 from datetime import time as datetime_time
@@ -539,7 +540,8 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     elif obj.value == NPY_NAT:
         pass
     elif is_tzlocal(tz):
-        local_val = _tz_convert_tzlocal_utc(obj.value, tz, to_utc=False)
+        local_val = _tz_convert_tzlocal_utc(obj.value, tz, to_utc=False,
+                                            from_utc=True)
         dt64_to_dtstruct(local_val, &obj.dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
@@ -668,7 +670,8 @@ cdef inline int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
 
 
 cdef inline int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz,
-                                            bint to_utc=True):
+                                            bint to_utc=True,
+                                            bint from_utc=False):
     """
     Convert the i8 representation of a datetime from a tzlocal timezone to
     UTC, or vice-versa.
@@ -681,6 +684,8 @@ cdef inline int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz,
     tz : tzinfo
     to_utc : bint
         True if converting tzlocal _to_ UTC, False if going the other direction
+    from_utc: bint
+        True if val is a UTC timestamp, False if val is a wall/naive timestamp
 
     Returns
     -------
@@ -693,8 +698,12 @@ cdef inline int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz,
 
     dt64_to_dtstruct(val, &dts)
     # THIS NEEDS TO BE A LOCAL DATETIME!
+    # get_utcoffset (utcoffset udh) assumes the datetime is a wall time
     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                  dts.min, dts.sec, dts.us, tz)
+                  dts.min, dts.sec, dts.us)
+    if from_utc:
+        dt = dt.replace(tzinfo=tzutc())
+        dt = dt.astimezone(tz)
     delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
 
     if not to_utc:
@@ -713,7 +722,7 @@ cdef inline int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz):
     -------
     local_val : int64_t
     """
-    return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False)
+    return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False, from_utc=True)
 
 
 cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
