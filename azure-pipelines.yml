@@ -27,8 +27,6 @@ jobs:
 - job: 'Checks_and_doc'
   pool:
     vmImage: ubuntu-16.04
-  env:
-    CONDA_ENV: pandas
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -38,61 +36,69 @@ jobs:
   - script: |
       sudo apt-get install -y libc6-dev-i386
       ci/incremental/install_miniconda.sh
-      export PATH=$HOME/miniconda3/bin:$PATH
-      #export CONDA_ENV=pandas
-      export ENV_FILE=ci/deps/azure-checks-and-doc.yaml
       ci/incremental/setup_conda_environment.sh
     displayName: 'Set up environment'
+    env:
+      PATH: $HOME/miniconda3/bin:$PATH
+      CONDA_ENV: pandas
+      ENV_FILE: ci/deps/azure-checks-and-doc.yaml
 
-  - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
-      #export CONDA_ENV=pandas
-      ci/incremental/build.sh
+  - script: ci/incremental/build.sh
     displayName: 'Build'
     condition: true
+    env:
+      PATH: $HOME/miniconda3/bin:$PATH
+      CONDA_ENV: pandas
 
-  - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
-      export AZURE=true
-      ci/code_checks.sh lint
+  - script: ci/code_checks.sh lint
     displayName: 'Linting'
     condition: true
+    env:
+      PATH: $HOME/miniconda3/bin:$PATH
+      AZURE: true
 
-  - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
-      export AZURE=true
-      ci/code_checks.sh patterns
+  - script: ci/code_checks.sh patterns
     displayName: 'Looking for unwanted patterns'
     condition: true
+    env:
+      PATH: $HOME/miniconda3/bin:$PATH
+      AZURE: true
 
-  - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
-      ci/code_checks.sh doctests
+  - script: ci/code_checks.sh doctests
     displayName: 'Running doctests'
     condition: true
+    env:
+      PATH: $HOME/miniconda3/bin:$PATH
 
-  - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
-      ci/code_checks.sh docstrings
+  - script: ci/code_checks.sh docstrings
     displayName: 'Docstring validation'
     condition: true
+    env:
+      PATH: $HOME/miniconda3/bin:$PATH
 
   - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas
       doc/make.py html
     displayName: 'Building docs'
     condition: true
+    env:
+      PATH: $HOME/miniconda3/bin:$PATH
+
+  - scripts: |
+      az extension add --name storage-preview
+      az storage blob upload-batch -s $SOURCE_PATH -d '$web'
+    displayName: 'Publishing docs (Azure storage)'
+    condition: true
+    env:
+      SOURCE_PATH: $(Build.SourcesDirectory)/doc/build/html/
+      AZURE_STORAGE_CONNECTION_STRING: $(CONNECTION_STRING)
 
   - script: |
-      export REPO_DIR=$(Build.ArtifactStagingDirectory)/pandas-docs-travis
       if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
           export NAME="master"
       else
           export NAME=$(System.PullRequest.PullRequestId)
       fi
-      echo $(Build.SourceBranch)
-      echo $NAME
       export PR_DIR=$REPO_DIR/pr/$NAME
       git clone https://$(GITHUB_DOC_TOKEN)@github.com/pandas-dev/pandas-docs-travis.git $REPO_DIR
       mkdir -p $PR_DIR
@@ -105,5 +111,7 @@ jobs:
       git config user.name "pandas-docs-bot"
       git commit -m "Added pandas documentation for $NAME"
       git push
-    displayName: 'Publishing docs'
+    displayName: 'Publishing docs (GitHub pages)'
     condition: true
+    env:
+      REPO_DIR: $(Build.ArtifactStagingDirectory)/pandas-docs-travis
