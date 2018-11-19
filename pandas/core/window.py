@@ -33,7 +33,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.groupby.base import GroupByMixin
 import pandas.core.common as com
-import pandas._libs.window as libwindow
+import pandas._libs.window as _window
 
 from pandas import compat
 from pandas.compat.numpy import function as nv
@@ -688,10 +688,10 @@ class Window(_Window):
 
             def f(arg, *args, **kwargs):
                 minp = _use_window(self.min_periods, len(window))
-                return libwindow.roll_window(np.concatenate((arg,
-                                                             additional_nans))
-                                             if center else arg, window, minp,
-                                             avg=mean)
+                return _window.roll_window(np.concatenate((arg,
+                                                           additional_nans))
+                                           if center else arg, window, minp,
+                                           avg=mean)
 
             result = np.apply_along_axis(f, self.axis, values)
 
@@ -851,7 +851,7 @@ class _Rolling(_Window):
                 cfunc = getattr(_window, func, None)
                 if cfunc is None:
                     raise ValueError("we do not support this function "
-                                     "in libwindow.{func}".format(func=func))
+                                     "in _window.{0}".format(func))
 
                 def func(arg, window, min_periods=None, closed=None):
                     minp = check_minp(min_periods, window)
@@ -995,7 +995,7 @@ class _Rolling_and_Expanding(_Rolling):
             minp = _use_window(min_periods, window)
             if not raw:
                 arg = Series(arg, index=self.obj.index)
-            return libwindow.roll_generic(
+            return _window.roll_generic(
                 arg, window, minp, indexi,
                 closed, offset, func, raw, args, kwargs)
 
@@ -1160,8 +1160,8 @@ class _Rolling_and_Expanding(_Rolling):
 
         def f(arg, *args, **kwargs):
             minp = _require_min_periods(1)(self.min_periods, window)
-            return _zsqrt(libwindow.roll_var(arg, window, minp, indexi,
-                                             self.closed, ddof))
+            return _zsqrt(_window.roll_var(arg, window, minp, indexi,
+                                           self.closed, ddof))
 
         return self._apply(f, 'std', check_minp=_require_min_periods(1),
                            ddof=ddof, **kwargs)
@@ -1331,15 +1331,15 @@ class _Rolling_and_Expanding(_Rolling):
         def f(arg, *args, **kwargs):
             minp = _use_window(self.min_periods, window)
             if quantile == 1.0:
-                return libwindow.roll_max(arg, window, minp, indexi,
-                                          self.closed)
+                return _window.roll_max(arg, window, minp, indexi,
+                                        self.closed)
             elif quantile == 0.0:
-                return libwindow.roll_min(arg, window, minp, indexi,
-                                          self.closed)
+                return _window.roll_min(arg, window, minp, indexi,
+                                        self.closed)
             else:
-                return libwindow.roll_quantile(arg, window, minp, indexi,
-                                               self.closed, quantile,
-                                               interpolation)
+                return _window.roll_quantile(arg, window, minp, indexi,
+                                             self.closed, quantile,
+                                             interpolation)
 
         return self._apply(f, 'quantile', quantile=quantile,
                            **kwargs)
@@ -2265,7 +2265,7 @@ class EWM(_Rolling):
                 cfunc = getattr(_window, func, None)
                 if cfunc is None:
                     raise ValueError("we do not support this function "
-                                     "in libwindow.{func}".format(func=func))
+                                     "in _window.{0}".format(func))
 
                 def func(arg):
                     return cfunc(arg, self.com, int(self.adjust),
@@ -2300,9 +2300,9 @@ class EWM(_Rolling):
         nv.validate_window_func('var', args, kwargs)
 
         def f(arg):
-            return libwindow.ewmcov(arg, arg, self.com, int(self.adjust),
-                                    int(self.ignore_na), int(self.min_periods),
-                                    int(bias))
+            return _window.ewmcov(arg, arg, self.com, int(self.adjust),
+                                  int(self.ignore_na), int(self.min_periods),
+                                  int(bias))
 
         return self._apply(f, **kwargs)
 
@@ -2320,10 +2320,9 @@ class EWM(_Rolling):
         def _get_cov(X, Y):
             X = self._shallow_copy(X)
             Y = self._shallow_copy(Y)
-            cov = libwindow.ewmcov(X._prep_values(), Y._prep_values(),
-                                   self.com, int(self.adjust),
-                                   int(self.ignore_na), int(self.min_periods),
-                                   int(bias))
+            cov = _window.ewmcov(X._prep_values(), Y._prep_values(), self.com,
+                                 int(self.adjust), int(self.ignore_na),
+                                 int(self.min_periods), int(bias))
             return X._wrap_result(cov)
 
         return _flex_binary_moment(self._selected_obj, other._selected_obj,
@@ -2345,10 +2344,10 @@ class EWM(_Rolling):
             Y = self._shallow_copy(Y)
 
             def _cov(x, y):
-                return libwindow.ewmcov(x, y, self.com, int(self.adjust),
-                                        int(self.ignore_na),
-                                        int(self.min_periods),
-                                        1)
+                return _window.ewmcov(x, y, self.com, int(self.adjust),
+                                      int(self.ignore_na),
+                                      int(self.min_periods),
+                                      1)
 
             x_values = X._prep_values()
             y_values = Y._prep_values()
