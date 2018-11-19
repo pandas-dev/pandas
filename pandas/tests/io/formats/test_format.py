@@ -70,7 +70,7 @@ def has_horizontally_truncated_repr(df):
     try:  # Check header row
         fst_line = np.array(repr(df).splitlines()[0].split())
         cand_col = np.where(fst_line == '...')[0][0]
-    except:
+    except IndexError:
         return False
     # Make sure each row has this ... in the same place
     r = repr(df)
@@ -459,7 +459,7 @@ class TestDataFrameFormatting(object):
         for line in rs[1:]:
             try:
                 line = line.decode(get_option("display.encoding"))
-            except:
+            except AttributeError:
                 pass
             if not line.startswith('dtype:'):
                 assert len(line) == line_len
