@@ -442,12 +442,11 @@ class TestToHTML(object):
         expected = expected_html(datapath, 'gh22579_expected_output')
         assert result == expected
 
-    @pytest.mark.parametrize(
-        ('idx_flag', 'named_index', 'expected_output'),
-        [(True, True, 'gh22579_truncation_index_true'),
-         (False, True, 'gh22579_truncation_index_false_named'),
-         (False, False, 'gh22579_truncation_index_false_unnamed')
-         ])
+    @pytest.mark.parametrize('idx_flag, named_index, expected_output', [
+        (True, True, 'gh22579_truncation_index_true'),
+        (False, True, 'gh22579_truncation_index_false_named'),
+        (False, False, 'gh22579_truncation_index_false_unnamed')
+    ])
     def test_to_html_multi_indexes_index_false_with_truncation(
             self, datapath, idx_flag, named_index, expected_output):
         # GH 22579 with truncation
@@ -459,30 +458,28 @@ class TestToHTML(object):
         expected = expected_html(datapath, expected_output)
         assert result == expected
 
-    @pytest.mark.parametrize('col_idx_type',
-                             [Index([0, 1]),
-                              Index([0, 1], name='columns.name'),
-                              MultiIndex.from_product([['a'], ['b', 'c']]),
-                              MultiIndex.from_product([['a'], ['b', 'c']],
-                                                      names=['columns.name.0',
-                                                             'columns.name.1'])
-                              ],
-                             ids=['columns_unnamed_standard',
-                                  'columns_named_standard',
-                                  'columns_unnamed_multi',
-                                  'columns_named_multi'])
-    @pytest.mark.parametrize('idx_type',
-                             [Index([0, 1]),
-                              Index([0, 1], name='index.name'),
-                              MultiIndex.from_product([['a'], ['b', 'c']]),
-                              MultiIndex.from_product([['a'], ['b', 'c']],
-                                                      names=['index.name.0',
-                                                             'index.name.1'])
-                              ],
-                             ids=['index_unnamed_standard',
-                                  'index_named_standard',
-                                  'index_unnamed_multi',
-                                  'index_named_multi'])
+    @pytest.mark.parametrize('col_idx_type', [
+        Index([0, 1]),
+        Index([0, 1], name='columns.name'),
+        MultiIndex.from_product([['a'], ['b', 'c']]),
+        MultiIndex.from_product([['a'], ['b', 'c']], names=['columns.name.0',
+                                                            'columns.name.1'])
+    ],
+        ids=['columns_unnamed_standard',
+             'columns_named_standard',
+             'columns_unnamed_multi',
+             'columns_named_multi'])
+    @pytest.mark.parametrize('idx_type', [
+        Index([0, 1]),
+        Index([0, 1], name='index.name'),
+        MultiIndex.from_product([['a'], ['b', 'c']]),
+        MultiIndex.from_product([['a'], ['b', 'c']], names=['index.name.0',
+                                                            'index.name.1'])
+    ],
+        ids=['index_unnamed_standard',
+             'index_named_standard',
+             'index_unnamed_multi',
+             'index_named_multi'])
     def test_to_html_basic_alignment(self, datapath, idx_type, col_idx_type,
                                      index, index_names):
         # GH 22747, GH 22579
