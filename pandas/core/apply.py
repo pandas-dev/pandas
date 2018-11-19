@@ -1,14 +1,15 @@
 import warnings
+
 import numpy as np
-from pandas import compat
+
 from pandas._libs import reduction
-from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.dtypes.common import (
-    is_extension_type,
-    is_dict_like,
-    is_list_like,
-    is_sequence)
 from pandas.util._decorators import cache_readonly
+
+from pandas.core.dtypes.common import (
+    is_dict_like, is_extension_type, is_list_like, is_sequence)
+from pandas.core.dtypes.generic import ABCSeries
+
+from pandas import compat
 
 from pandas.io.formats.printing import pprint_thing
 
