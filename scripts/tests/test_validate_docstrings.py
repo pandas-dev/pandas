@@ -817,6 +817,20 @@ class TestValidator(object):
         for msg in msgs:
             assert msg in ' '.join(err[1] for err in result['errors'])
 
+    def test_validate_all_ignore_deprecated(self, monkeypatch):
+        monkeypatch.setattr(
+            validate_docstrings, 'validate_one', lambda func_name: {
+                'docstring': 'docstring1',
+                'errors': [('ER01', 'err desc'),
+                           ('ER02', 'err desc'),
+                           ('ER03', 'err desc')],
+                'warnings': [],
+                'examples_errors': '',
+                'deprecated': True})
+        result = validate_docstrings.validate_all(prefix=None,
+                                                  ignore_deprecated=True)
+        assert len(result) == 0
+
 
 class TestApiItems(object):
     @property
@@ -907,12 +921,14 @@ class TestMainFunction(object):
         exit_status = validate_docstrings.main(func_name='docstring1',
                                                prefix=None,
                                                errors=[],
-                                               output_format='default')
+                                               output_format='default',
+                                               ignore_deprecated=False)
         assert exit_status == 0
 
     def test_exit_status_errors_for_validate_all(self, monkeypatch):
         monkeypatch.setattr(
-            validate_docstrings, 'validate_all', lambda prefix: {
+            validate_docstrings, 'validate_all',
+            lambda prefix, ignore_deprecated=False: {
                 'docstring1': {'errors': [('ER01', 'err desc'),
                                           ('ER02', 'err desc'),
                                           ('ER03', 'err desc')],
@@ -925,25 +941,29 @@ class TestMainFunction(object):
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=[],
-                                               output_format='default')
+                                               output_format='default',
+                                               ignore_deprecated=False)
         assert exit_status == 5
 
     def test_no_exit_status_noerrors_for_validate_all(self, monkeypatch):
         monkeypatch.setattr(
-            validate_docstrings, 'validate_all', lambda prefix: {
+            validate_docstrings, 'validate_all',
+            lambda prefix, ignore_deprecated=False: {
                 'docstring1': {'errors': [],
                                'warnings': [('WN01', 'warn desc')]},
                 'docstring2': {'errors': []}})
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=[],
-                                               output_format='default')
+                                               output_format='default',
+                                               ignore_deprecated=False)
         assert exit_status == 0
 
     def test_exit_status_for_validate_all_json(self, monkeypatch):
         print('EXECUTED')
         monkeypatch.setattr(
-            validate_docstrings, 'validate_all', lambda prefix: {
+            validate_docstrings, 'validate_all',
+            lambda prefix, ignore_deprecated=False: {
                 'docstring1': {'errors': [('ER01', 'err desc'),
                                           ('ER02', 'err desc'),
                                           ('ER03', 'err desc')]},
@@ -952,12 +972,14 @@ class TestMainFunction(object):
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=[],
-                                               output_format='json')
+                                               output_format='json',
+                                               ignore_deprecated=False)
         assert exit_status == 0
 
     def test_errors_param_filters_errors(self, monkeypatch):
         monkeypatch.setattr(
-            validate_docstrings, 'validate_all', lambda prefix: {
+            validate_docstrings, 'validate_all',
+            lambda prefix, ignore_deprecated=False: {
                 'Series.foo': {'errors': [('ER01', 'err desc'),
                                           ('ER02', 'err desc'),
                                           ('ER03', 'err desc')],
@@ -973,11 +995,13 @@ class TestMainFunction(object):
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=['ER01'],
-                                               output_format='default')
+                                               output_format='default',
+                                               ignore_deprecated=False)
         assert exit_status == 3
 
         exit_status = validate_docstrings.main(func_name=None,
                                                prefix=None,
                                                errors=['ER03'],
-                                               output_format='default')
+                                               output_format='default',
+                                               ignore_deprecated=False)
         assert exit_status == 1

@@ -7381,7 +7381,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return asfreq(self, freq, method=method, how=how, normalize=normalize,
                       fill_value=fill_value)
 
-    def at_time(self, time, asof=False):
+    def at_time(self, time, asof=False, axis=None):
         """
         Select values at particular time of day (e.g. 9:30AM).
 
@@ -7393,6 +7393,10 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         time : datetime.time or string
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+
+            .. versionadded:: 0.24.0
+
 
         Returns
         -------
@@ -7422,14 +7426,20 @@ class NDFrame(PandasObject, SelectionMixin):
         DatetimeIndex.indexer_at_time : Get just the index locations for
             values at particular time of the day.
         """
+        if axis is None:
+            axis = self._stat_axis_number
+        axis = self._get_axis_number(axis)
+
+        index = self._get_axis(axis)
         try:
-            indexer = self.index.indexer_at_time(time, asof=asof)
-            return self._take(indexer)
+            indexer = index.indexer_at_time(time, asof=asof)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 
+        return self._take(indexer, axis=axis)
+
     def between_time(self, start_time, end_time, include_start=True,
-                     include_end=True):
+                     include_end=True, axis=None):
         """
         Select values between particular times of the day (e.g., 9:00-9:30 AM).
 
@@ -7447,6 +7457,9 @@ class NDFrame(PandasObject, SelectionMixin):
         end_time : datetime.time or string
         include_start : boolean, default True
         include_end : boolean, default True
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -7484,13 +7497,19 @@ class NDFrame(PandasObject, SelectionMixin):
         DatetimeIndex.indexer_between_time : Get just the index locations for
             values between particular times of the day.
         """
+        if axis is None:
+            axis = self._stat_axis_number
+        axis = self._get_axis_number(axis)
+
+        index = self._get_axis(axis)
         try:
-            indexer = self.index.indexer_between_time(
+            indexer = index.indexer_between_time(
                 start_time, end_time, include_start=include_start,
                 include_end=include_end)
-            return self._take(indexer)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
+
+        return self._take(indexer, axis=axis)
 
     def resample(self, rule, how=None, axis=0, fill_method=None, closed=None,
                  label=None, convention='start', kind=None, loffset=None,
@@ -9336,8 +9355,14 @@ class NDFrame(PandasObject, SelectionMixin):
                 if is_datetime64_any_dtype(data):
                     tz = data.dt.tz
                     asint = data.dropna().values.view('i8')
+                    top = Timestamp(top)
+                    if top.tzinfo is not None and tz is not None:
+                        # Don't tz_localize(None) if key is already tz-aware
+                        top = top.tz_convert(tz)
+                    else:
+                        top = top.tz_localize(tz)
                     names += ['top', 'freq', 'first', 'last']
-                    result += [Timestamp(top, tz=tz), freq,
+                    result += [top, freq,
                                Timestamp(asint.min(), tz=tz),
                                Timestamp(asint.max(), tz=tz)]
                 else:

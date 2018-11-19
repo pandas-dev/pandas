@@ -11,11 +11,7 @@ from pandas.errors import AbstractMethodError
 from pandas import DataFrame, read_csv, read_table
 import pandas.util.testing as tm
 
-from .comment import CommentTests
 from .common import ParserTests
-from .compression import CompressionTests
-from .converters import ConverterTests
-from .dialect import DialectTests
 from .dtypes import DtypeTests
 from .header import HeaderTests
 from .index_col import IndexColTests
@@ -29,9 +25,7 @@ from .skiprows import SkipRowsTests
 from .usecols import UsecolsTests
 
 
-class BaseParser(CommentTests, CompressionTests,
-                 ConverterTests, DialectTests,
-                 DtypeTests, DupeColumnTests,
+class BaseParser(DtypeTests, DupeColumnTests,
                  HeaderTests, IndexColTests,
                  MultithreadTests, NAvaluesTests,
                  ParseDatesTests, ParserTests,
