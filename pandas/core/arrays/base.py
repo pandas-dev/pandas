@@ -676,7 +676,7 @@ class ExtensionArray(object):
                                dtype=self.dtype)
 
     def _formatter(self, boxed=False):
-        # type: (bool) -> Callable[[Any], str]
+        # type: (bool) -> Callable[[Any], Optional[str]]
         """Formatting function for scalar values.
 
         This is used in the default '__repr__'. The returned formatting

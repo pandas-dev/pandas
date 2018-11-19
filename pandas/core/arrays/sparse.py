@@ -1739,12 +1739,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             index=printing.pprint_thing(self.sp_index))
 
     def _formatter(self, boxed=False):
-        def fmt(x):
-            if isna(x) and isinstance(x, float):
-                return 'NaN'
-            return str(x)
-
-        return fmt
+        return None
 
 
 SparseArray._add_arithmetic_ops()
