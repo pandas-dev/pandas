@@ -437,10 +437,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
     def test_td64arr_add_sub_timestamp(self, box_with_array):
         # GH#11925
-        if box_with_array is tm.to_array:
-            pytest.xfail("DatetimeArray.__sub__ returns ndarray instead "
-                         "of TimedeltaArray")
-
         ts = Timestamp('2012-01-01')
         # TODO: parametrize over types of datetime scalar?
 

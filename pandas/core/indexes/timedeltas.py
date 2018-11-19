@@ -227,6 +227,10 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
+    is_monotonic_increasing = Index.is_monotonic_increasing
+    is_monotonic_decreasing = Index.is_monotonic_decreasing
+    is_unique = Index.is_unique
+
     days = wrap_field_accessor(TimedeltaArray.days)
     seconds = wrap_field_accessor(TimedeltaArray.seconds)
     microseconds = wrap_field_accessor(TimedeltaArray.microseconds)
