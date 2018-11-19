@@ -6848,9 +6848,9 @@ class DataFrame(NDFrame):
         >>> df2 = pd.DataFrame([(.2, .2), (.1, .5), (.8, .3), (.1, .2)],
         ...                   columns=['C', 'D'])
         >>> df1.pearson_with(df2)
-                C       D
-        A   0.944  -0.375
-        B  -0.636   0.712
+                  C         D
+        A  0.944267 -0.374634
+        B -0.636209  0.712697
         """
         numeric_df1 = self._get_numeric_data()
         numeric_df2 = other._get_numeric_data()
