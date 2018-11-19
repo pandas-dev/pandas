@@ -130,11 +130,13 @@ class MultiIndex(Index):
         The unique labels for each level
     codes : sequence of arrays
         Integers for each level designating which label at each location
+
+        .. versionadded:: 0.24.0
     labels : sequence of arrays
+        Integers for each level designating which label at each location
+
         .. deprecated:: 0.24.0
             Use ``codes`` instead
-
-        Integers for each level designating which label at each location
     sortorder : optional int
         Level of sortedness (must be lexicographically sorted by that
         level)
@@ -178,7 +180,6 @@ class MultiIndex(Index):
     names
     levels
     codes
-    labels
     nlevels
     levshape
 
@@ -189,7 +190,6 @@ class MultiIndex(Index):
     from_product
     set_levels
     set_codes
-    set_labels
     to_frame
     to_flat_index
     is_lexsorted
@@ -1206,7 +1206,7 @@ class MultiIndex(Index):
         else:
             raise ValueError("invalid how option: {0}".format(how))
 
-        new_codes = [label[~indexer] for label in self.codes]
+        new_codes = [level_codes[~indexer] for level_codes in self.codes]
         return self.copy(codes=new_codes, deep=True)
 
     def get_value(self, series, key):
@@ -1677,11 +1677,11 @@ class MultiIndex(Index):
             key = com.cast_scalar_indexer(key)
 
             retval = []
-            for lev, lab in zip(self.levels, self.codes):
-                if lab[key] == -1:
+            for lev, level_codes in zip(self.levels, self.codes):
+                if level_codes[key] == -1:
                     retval.append(np.nan)
                 else:
-                    retval.append(lev[lab[key]])
+                    retval.append(lev[level_codes[key]])
 
             return tuple(retval)
         else:
@@ -1929,7 +1929,7 @@ class MultiIndex(Index):
     def __getslice__(self, i, j):
         return self.__getitem__(slice(i, j))
 
-    def _get_labels_for_sorting(self):
+    def _get_codes_for_sorting(self):
         """
         we categorizing our codes by using the
         available categories (all, not just observed)
@@ -2754,26 +2754,26 @@ class MultiIndex(Index):
             return False
 
         for i in range(self.nlevels):
-            slabels = self.codes[i]
-            slabels = slabels[slabels != -1]
-            svalues = algos.take_nd(np.asarray(self.levels[i]._values),
-                                    slabels, allow_fill=False)
+            self_codes = self.codes[i]
+            self_codes = self_codes[self_codes != -1]
+            self_values = algos.take_nd(np.asarray(self.levels[i]._values),
+                                        self_codes, allow_fill=False)
 
-            olabels = other.codes[i]
-            olabels = olabels[olabels != -1]
-            ovalues = algos.take_nd(
+            other_codes = other.codes[i]
+            other_codes = other_codes[other_codes != -1]
+            other_values = algos.take_nd(
                 np.asarray(other.levels[i]._values),
-                olabels, allow_fill=False)
+                other_codes, allow_fill=False)
 
             # since we use NaT both datetime64 and timedelta64
             # we can have a situation where a level is typed say
             # timedelta64 in self (IOW it has other values than NaT)
             # but types datetime64 in other (where its all NaT)
             # but these are equivalent
-            if len(svalues) == 0 and len(ovalues) == 0:
+            if len(self_values) == 0 and len(other_values) == 0:
                 continue
 
-            if not array_equivalent(svalues, ovalues):
+            if not array_equivalent(self_values, other_values):
                 return False
 
         return True
@@ -2951,7 +2951,7 @@ class MultiIndex(Index):
             if k not in level:
                 # have to insert into level
                 # must insert at end otherwise you have to recompute all the
-                # other labels
+                # other codes
                 lev_loc = len(level)
                 level = level.insert(lev_loc, k)
             else:
@@ -2989,13 +2989,13 @@ class MultiIndex(Index):
         else:
             num = self._get_level_number(level)
             levs = self.levels[num]
-            labs = self.codes[num]
+            level_codes = self.codes[num]
 
             sought_labels = levs.isin(values).nonzero()[0]
             if levs.size == 0:
-                return np.zeros(len(labs), dtype=np.bool_)
+                return np.zeros(len(level_codes), dtype=np.bool_)
             else:
-                return np.lib.arraysetops.in1d(labs, sought_labels)
+                return np.lib.arraysetops.in1d(level_codes, sought_labels)
 
 
 MultiIndex._add_numeric_methods_disabled()
