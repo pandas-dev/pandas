@@ -379,7 +379,7 @@ cdef class _Timestamp(datetime):
         typ = getattr(other, '_typ', None)
 
         # a Timestamp-DatetimeIndex -> yields a negative TimedeltaIndex
-        if typ == ('datetimeindex', 'datetimearray'):
+        if typ in ('datetimeindex', 'datetimearray'):
             # timezone comparison is performed in DatetimeIndex._sub_datelike
             return -other.__sub__(self)
 

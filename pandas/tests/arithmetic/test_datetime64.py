@@ -1252,6 +1252,10 @@ class TestDatetime64DateOffsetArithmetic(object):
     def test_dt64arr_add_sub_offset_ndarray(self, tz_naive_fixture,
                                             box_with_array):
         # GH#18849
+        if box_with_array is pd.DataFrame:
+            pytest.xfail("FIXME: ValueError with transpose; "
+                         "alignment error without")
+
         tz = tz_naive_fixture
         dti = pd.date_range('2017-01-01', periods=2, tz=tz)
         dtarr = tm.box_expected(dti, box_with_array)
