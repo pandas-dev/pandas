@@ -726,8 +726,8 @@ Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
                       )(read_table)
 
 
-def read_fwf(filepath_or_buffer, delimiter='\t' + ' ',
-             colspecs='infer', widths=None, **kwds):
+def read_fwf(filepath_or_buffer, colspecs='infer',
+             widths=None, **kwds):
 
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
@@ -751,10 +751,6 @@ def read_fwf(filepath_or_buffer, delimiter='\t' + ' ',
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-    delimiter : str, default ``'\t'+' '``
-        Characters to consider as filler characters in the fixed-width file.
-        Can be used to specify the filler character of the fields
-        if it is not spaces (e.g., '~').
     colspecs : list of pairs (int, int) or 'infer'. optional
         A list of pairs (tuples) giving the extents of the fixed-width
         fields of each line as half-open intervals (i.e.,  [from, to[ ).
@@ -798,7 +794,6 @@ def read_fwf(filepath_or_buffer, delimiter='\t' + ' ',
             colspecs.append((col, col + w))
             col += w
 
-    kwds['delimiter'] = delimiter
     kwds['colspecs'] = colspecs
     kwds['engine'] = 'python-fwf'
     return _read(filepath_or_buffer, kwds)
