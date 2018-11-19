@@ -23,7 +23,6 @@ from pandas._libs.tslibs.offsets import shift_months
 from pandas import (
     Timestamp, Timedelta, Period, Series, date_range, NaT,
     DatetimeIndex, TimedeltaIndex)
-from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 
 
 # ------------------------------------------------------------------
@@ -51,16 +50,16 @@ class TestDatetime64DataFrameComparison(object):
 
 class TestDatetime64SeriesComparison(object):
     # TODO: moved from tests.series.test_operators; needs cleanup
-    def test_comparison_invalid(self, box):
+    def test_comparison_invalid(self, box_with_array):
         # GH#4968
         # invalid date/int comparisons
-        xbox = box if box not in [pd.Index, DatetimeArray] else np.ndarray
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
 
         ser = Series(range(5))
         ser2 = Series(pd.date_range('20010101', periods=5))
 
-        ser = tm.box_expected(ser, box)
-        ser2 = tm.box_expected(ser2, box)
+        ser = tm.box_expected(ser, box_with_array)
+        ser2 = tm.box_expected(ser2, box_with_array)
 
         for (x, y) in [(ser, ser2), (ser2, ser)]:
 
@@ -228,11 +227,10 @@ class TestDatetime64SeriesComparison(object):
 
     def test_dt64arr_timestamp_equality(self, box_with_array):
         # GH#11034
-        box = box_with_array
-        xbox = box if box not in [pd.Index, DatetimeArray] else np.ndarray
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
 
         ser = pd.Series([pd.Timestamp('2000-01-29 01:59:00'), 'NaT'])
-        ser = tm.box_expected(ser, box)
+        ser = tm.box_expected(ser, box_with_array)
 
         result = ser != ser
         expected = tm.box_expected([False, True], xbox)
@@ -793,28 +791,28 @@ class TestDatetime64Arithmetic(object):
         pd.Timestamp('2013-01-01'),
         pd.Timestamp('2013-01-01').to_pydatetime(),
         pd.Timestamp('2013-01-01').to_datetime64()])
-    def test_dt64arr_sub_dtscalar(self, box, ts):
+    def test_dt64arr_sub_dtscalar(self, box_with_array, ts):
         # GH#8554, GH#22163 DataFrame op should _not_ return dt64 dtype
         idx = pd.date_range('2013-01-01', periods=3)
-        idx = tm.box_expected(idx, box)
+        idx = tm.box_expected(idx, box_with_array)
 
         expected = pd.TimedeltaIndex(['0 Days', '1 Day', '2 Days'])
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = idx - ts
         tm.assert_equal(result, expected)
 
-    def test_dt64arr_sub_datetime64_not_ns(self, box):
+    def test_dt64arr_sub_datetime64_not_ns(self, box_with_array):
         # GH#7996, GH#22163 ensure non-nano datetime64 is converted to nano
         #  for DataFrame operation
         dt64 = np.datetime64('2013-01-01')
         assert dt64.dtype == 'datetime64[D]'
 
         dti = pd.date_range('20130101', periods=3)
-        dtarr = tm.box_expected(dti, box)
+        dtarr = tm.box_expected(dti, box_with_array)
 
         expected = pd.TimedeltaIndex(['0 Days', '1 Day', '2 Days'])
-        expected = tm.box_expected(expected, box)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = dtarr - dt64
         tm.assert_equal(result, expected)
@@ -824,9 +822,6 @@ class TestDatetime64Arithmetic(object):
 
     def test_dt64arr_sub_timestamp(self, box_T_with_array):
         box, transpose = box_T_with_array
-        if box is tm.to_array:
-            pytest.xfail("DatetimeArray.__sub__ returns ndarray instead "
-                         "of TimedeltaArray")
 
         ser = pd.date_range('2014-03-17', periods=2, freq='D',
                             tz='US/Eastern')
@@ -844,9 +839,6 @@ class TestDatetime64Arithmetic(object):
     def test_dt64arr_sub_NaT(self, box_T_with_array):
         # GH#18808
         box, transpose = box_T_with_array
-        if box is tm.to_array:
-            pytest.xfail("DatetimeArray.__sub__ returns ndarray instead "
-                         "of TimedeltaArray")
 
         dti = pd.DatetimeIndex([pd.NaT, pd.Timestamp('19900315')])
         ser = tm.box_expected(dti, box, transpose=transpose)
@@ -975,6 +967,196 @@ class TestDatetime64Arithmetic(object):
             per - dtarr
 
 
+class TestDatetime64DateOffsetArithmetic(object):
+
+    # -------------------------------------------------------------
+    # Tick DateOffsets
+
+    # TODO: parametrize over timezone?
+    def test_dt64arr_series_add_tick_DateOffset(self, box_with_array):
+        # GH#4532
+        # operate with pd.offsets
+        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
+        expected = Series([Timestamp('20130101 9:01:05'),
+                           Timestamp('20130101 9:02:05')])
+
+        ser = tm.box_expected(ser, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = ser + pd.offsets.Second(5)
+        tm.assert_equal(result, expected)
+
+        result2 = pd.offsets.Second(5) + ser
+        tm.assert_equal(result2, expected)
+
+    def test_dt64arr_series_sub_tick_DateOffset(self, box_with_array):
+        # GH#4532
+        # operate with pd.offsets
+        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
+        expected = Series([Timestamp('20130101 9:00:55'),
+                           Timestamp('20130101 9:01:55')])
+
+        ser = tm.box_expected(ser, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = ser - pd.offsets.Second(5)
+        tm.assert_equal(result, expected)
+
+        result2 = -pd.offsets.Second(5) + ser
+        tm.assert_equal(result2, expected)
+
+        with pytest.raises(TypeError):
+            pd.offsets.Second(5) - ser
+
+    @pytest.mark.parametrize('cls_name', ['Day', 'Hour', 'Minute', 'Second',
+                                          'Milli', 'Micro', 'Nano'])
+    def test_dt64arr_add_sub_tick_DateOffset_smoke(self, cls_name,
+                                                   box_with_array):
+        # GH#4532
+        # smoke tests for valid DateOffsets
+        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
+        ser = tm.box_expected(ser, box_with_array)
+
+        offset_cls = getattr(pd.offsets, cls_name)
+        ser + offset_cls(5)
+        offset_cls(5) + ser
+        ser - offset_cls(5)
+
+    def test_dti_add_tick_tzaware(self, tz_aware_fixture, box_T_with_array):
+        # GH#21610, GH#22163 ensure DataFrame doesn't return object-dtype
+        box, transpose = box_T_with_array
+        tz = tz_aware_fixture
+        if tz == 'US/Pacific':
+            dates = date_range('2012-11-01', periods=3, tz=tz)
+            offset = dates + pd.offsets.Hour(5)
+            assert dates[0] + pd.offsets.Hour(5) == offset[0]
+
+        dates = date_range('2010-11-01 00:00',
+                           periods=3, tz=tz, freq='H')
+        expected = DatetimeIndex(['2010-11-01 05:00', '2010-11-01 06:00',
+                                  '2010-11-01 07:00'], freq='H', tz=tz)
+
+        dates = tm.box_expected(dates, box, transpose=transpose)
+        expected = tm.box_expected(expected, box, transpose=transpose)
+
+        # TODO: parametrize over the scalar being added?  radd?  sub?
+        offset = dates + pd.offsets.Hour(5)
+        tm.assert_equal(offset, expected)
+        offset = dates + np.timedelta64(5, 'h')
+        tm.assert_equal(offset, expected)
+        offset = dates + timedelta(hours=5)
+        tm.assert_equal(offset, expected)
+
+    # -------------------------------------------------------------
+    # RelativeDelta DateOffsets
+
+    # -------------------------------------------------------------
+    # Non-Tick, Non-RelativeDelta DateOffsets
+
+
+class TestDatetime64OverflowHandling(object):
+    # TODO: box + de-duplicate
+
+    def test_dt64_series_arith_overflow(self):
+        # GH#12534, fixed by GH#19024
+        dt = pd.Timestamp('1700-01-31')
+        td = pd.Timedelta('20000 Days')
+        dti = pd.date_range('1949-09-30', freq='100Y', periods=4)
+        ser = pd.Series(dti)
+        with pytest.raises(OverflowError):
+            ser - dt
+        with pytest.raises(OverflowError):
+            dt - ser
+        with pytest.raises(OverflowError):
+            ser + td
+        with pytest.raises(OverflowError):
+            td + ser
+
+        ser.iloc[-1] = pd.NaT
+        expected = pd.Series(['2004-10-03', '2104-10-04', '2204-10-04', 'NaT'],
+                             dtype='datetime64[ns]')
+        res = ser + td
+        tm.assert_series_equal(res, expected)
+        res = td + ser
+        tm.assert_series_equal(res, expected)
+
+        ser.iloc[1:] = pd.NaT
+        expected = pd.Series(['91279 Days', 'NaT', 'NaT', 'NaT'],
+                             dtype='timedelta64[ns]')
+        res = ser - dt
+        tm.assert_series_equal(res, expected)
+        res = dt - ser
+        tm.assert_series_equal(res, -expected)
+
+    def test_datetimeindex_sub_timestamp_overflow(self):
+        dtimax = pd.to_datetime(['now', pd.Timestamp.max])
+        dtimin = pd.to_datetime(['now', pd.Timestamp.min])
+
+        tsneg = Timestamp('1950-01-01')
+        ts_neg_variants = [tsneg,
+                           tsneg.to_pydatetime(),
+                           tsneg.to_datetime64().astype('datetime64[ns]'),
+                           tsneg.to_datetime64().astype('datetime64[D]')]
+
+        tspos = Timestamp('1980-01-01')
+        ts_pos_variants = [tspos,
+                           tspos.to_pydatetime(),
+                           tspos.to_datetime64().astype('datetime64[ns]'),
+                           tspos.to_datetime64().astype('datetime64[D]')]
+
+        for variant in ts_neg_variants:
+            with pytest.raises(OverflowError):
+                dtimax - variant
+
+        expected = pd.Timestamp.max.value - tspos.value
+        for variant in ts_pos_variants:
+            res = dtimax - variant
+            assert res[1].value == expected
+
+        expected = pd.Timestamp.min.value - tsneg.value
+        for variant in ts_neg_variants:
+            res = dtimin - variant
+            assert res[1].value == expected
+
+        for variant in ts_pos_variants:
+            with pytest.raises(OverflowError):
+                dtimin - variant
+
+    def test_datetimeindex_sub_datetimeindex_overflow(self):
+        # GH#22492, GH#22508
+        dtimax = pd.to_datetime(['now', pd.Timestamp.max])
+        dtimin = pd.to_datetime(['now', pd.Timestamp.min])
+
+        ts_neg = pd.to_datetime(['1950-01-01', '1950-01-01'])
+        ts_pos = pd.to_datetime(['1980-01-01', '1980-01-01'])
+
+        # General tests
+        expected = pd.Timestamp.max.value - ts_pos[1].value
+        result = dtimax - ts_pos
+        assert result[1].value == expected
+
+        expected = pd.Timestamp.min.value - ts_neg[1].value
+        result = dtimin - ts_neg
+        assert result[1].value == expected
+
+        with pytest.raises(OverflowError):
+            dtimax - ts_neg
+
+        with pytest.raises(OverflowError):
+            dtimin - ts_pos
+
+        # Edge cases
+        tmin = pd.to_datetime([pd.Timestamp.min])
+        t1 = tmin + pd.Timedelta.max + pd.Timedelta('1us')
+        with pytest.raises(OverflowError):
+            t1 - tmin
+
+        tmax = pd.to_datetime([pd.Timestamp.max])
+        t2 = tmax + pd.Timedelta.min - pd.Timedelta('1us')
+        with pytest.raises(OverflowError):
+            tmax - t2
+
+
 class TestTimestampSeriesArithmetic(object):
 
     def test_dt64ser_sub_datetime_dtype(self):
@@ -1064,52 +1246,6 @@ class TestTimestampSeriesArithmetic(object):
         tm.assert_series_equal(s - dt, exp)
         tm.assert_series_equal(s - Timestamp(dt), exp)
 
-    def test_dt64_series_add_tick_DateOffset(self, box_with_array):
-        # GH#4532
-        # operate with pd.offsets
-        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
-        expected = Series([Timestamp('20130101 9:01:05'),
-                           Timestamp('20130101 9:02:05')])
-
-        ser = tm.box_expected(ser, box_with_array)
-        expected = tm.box_expected(expected, box_with_array)
-
-        result = ser + pd.offsets.Second(5)
-        tm.assert_equal(result, expected)
-
-        result2 = pd.offsets.Second(5) + ser
-        tm.assert_equal(result2, expected)
-
-    def test_dt64_series_sub_tick_DateOffset(self, box_with_array):
-        # GH#4532
-        # operate with pd.offsets
-        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
-        expected = Series([Timestamp('20130101 9:00:55'),
-                           Timestamp('20130101 9:01:55')])
-
-        ser = tm.box_expected(ser, box_with_array)
-        expected = tm.box_expected(expected, box_with_array)
-
-        result = ser - pd.offsets.Second(5)
-        tm.assert_equal(result, expected)
-
-        result2 = -pd.offsets.Second(5) + ser
-        tm.assert_equal(result2, expected)
-
-        with pytest.raises(TypeError):
-            pd.offsets.Second(5) - ser
-
-    @pytest.mark.parametrize('cls_name', ['Day', 'Hour', 'Minute', 'Second',
-                                          'Milli', 'Micro', 'Nano'])
-    def test_dt64_series_add_tick_DateOffset_smoke(self, cls_name):
-        # GH#4532
-        # smoke tests for valid DateOffsets
-        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
-
-        offset_cls = getattr(pd.offsets, cls_name)
-        ser + offset_cls(5)
-        offset_cls(5) + ser
-
     def test_dt64_series_add_mixed_tick_DateOffset(self):
         # GH#4532
         # operate with pd.offsets
@@ -1126,37 +1262,6 @@ class TestTimestampSeriesArithmetic(object):
         expected = Series([Timestamp('20130101 9:06:00.005'),
                            Timestamp('20130101 9:07:00.005')])
         tm.assert_series_equal(result, expected)
-
-    def test_dt64_series_arith_overflow(self):
-        # GH#12534, fixed by GH#19024
-        dt = pd.Timestamp('1700-01-31')
-        td = pd.Timedelta('20000 Days')
-        dti = pd.date_range('1949-09-30', freq='100Y', periods=4)
-        ser = pd.Series(dti)
-        with pytest.raises(OverflowError):
-            ser - dt
-        with pytest.raises(OverflowError):
-            dt - ser
-        with pytest.raises(OverflowError):
-            ser + td
-        with pytest.raises(OverflowError):
-            td + ser
-
-        ser.iloc[-1] = pd.NaT
-        expected = pd.Series(['2004-10-03', '2104-10-04', '2204-10-04', 'NaT'],
-                             dtype='datetime64[ns]')
-        res = ser + td
-        tm.assert_series_equal(res, expected)
-        res = td + ser
-        tm.assert_series_equal(res, expected)
-
-        ser.iloc[1:] = pd.NaT
-        expected = pd.Series(['91279 Days', 'NaT', 'NaT', 'NaT'],
-                             dtype='timedelta64[ns]')
-        res = ser - dt
-        tm.assert_series_equal(res, expected)
-        res = dt - ser
-        tm.assert_series_equal(res, -expected)
 
     def test_datetime64_ops_nat(self):
         # GH#11349
@@ -1343,11 +1448,11 @@ class TestDatetimeIndexArithmetic(object):
     # __add__/__sub__ with integer arrays
 
     @pytest.mark.parametrize('freq', ['H', 'D'])
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
-    def test_dti_add_intarray_tick(self, box, freq):
+    @pytest.mark.parametrize('int_holder', [np.array, pd.Index])
+    def test_dti_add_intarray_tick(self, int_holder, freq):
         # GH#19959
         dti = pd.date_range('2016-01-01', periods=2, freq=freq)
-        other = box([4, -1])
+        other = int_holder([4, -1])
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             expected = DatetimeIndex([dti[n] + other[n]
@@ -1360,11 +1465,11 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('freq', ['W', 'M', 'MS', 'Q'])
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
-    def test_dti_add_intarray_non_tick(self, box, freq):
+    @pytest.mark.parametrize('int_holder', [np.array, pd.Index])
+    def test_dti_add_intarray_non_tick(self, int_holder, freq):
         # GH#19959
         dti = pd.date_range('2016-01-01', periods=2, freq=freq)
-        other = box([4, -1])
+        other = int_holder([4, -1])
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             expected = DatetimeIndex([dti[n] + other[n]
@@ -1383,11 +1488,11 @@ class TestDatetimeIndexArithmetic(object):
             result = other + dti
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
-    def test_dti_add_intarray_no_freq(self, box):
+    @pytest.mark.parametrize('int_holder', [np.array, pd.Index])
+    def test_dti_add_intarray_no_freq(self, int_holder):
         # GH#19959
         dti = pd.DatetimeIndex(['2016-01-01', 'NaT', '2017-04-05 06:07:08'])
-        other = box([9, 4, -1])
+        other = int_holder([9, 4, -1])
         with pytest.raises(NullFrequencyError):
             dti + other
         with pytest.raises(NullFrequencyError):
@@ -1683,74 +1788,6 @@ class TestDatetimeIndexArithmetic(object):
             tm.assert_index_equal(result, exp)
             assert result.freq == 'D'
 
-    def test_datetimeindex_sub_timestamp_overflow(self):
-        dtimax = pd.to_datetime(['now', pd.Timestamp.max])
-        dtimin = pd.to_datetime(['now', pd.Timestamp.min])
-
-        tsneg = Timestamp('1950-01-01')
-        ts_neg_variants = [tsneg,
-                           tsneg.to_pydatetime(),
-                           tsneg.to_datetime64().astype('datetime64[ns]'),
-                           tsneg.to_datetime64().astype('datetime64[D]')]
-
-        tspos = Timestamp('1980-01-01')
-        ts_pos_variants = [tspos,
-                           tspos.to_pydatetime(),
-                           tspos.to_datetime64().astype('datetime64[ns]'),
-                           tspos.to_datetime64().astype('datetime64[D]')]
-
-        for variant in ts_neg_variants:
-            with pytest.raises(OverflowError):
-                dtimax - variant
-
-        expected = pd.Timestamp.max.value - tspos.value
-        for variant in ts_pos_variants:
-            res = dtimax - variant
-            assert res[1].value == expected
-
-        expected = pd.Timestamp.min.value - tsneg.value
-        for variant in ts_neg_variants:
-            res = dtimin - variant
-            assert res[1].value == expected
-
-        for variant in ts_pos_variants:
-            with pytest.raises(OverflowError):
-                dtimin - variant
-
-    def test_datetimeindex_sub_datetimeindex_overflow(self):
-        # GH#22492, GH#22508
-        dtimax = pd.to_datetime(['now', pd.Timestamp.max])
-        dtimin = pd.to_datetime(['now', pd.Timestamp.min])
-
-        ts_neg = pd.to_datetime(['1950-01-01', '1950-01-01'])
-        ts_pos = pd.to_datetime(['1980-01-01', '1980-01-01'])
-
-        # General tests
-        expected = pd.Timestamp.max.value - ts_pos[1].value
-        result = dtimax - ts_pos
-        assert result[1].value == expected
-
-        expected = pd.Timestamp.min.value - ts_neg[1].value
-        result = dtimin - ts_neg
-        assert result[1].value == expected
-
-        with pytest.raises(OverflowError):
-            dtimax - ts_neg
-
-        with pytest.raises(OverflowError):
-            dtimin - ts_pos
-
-        # Edge cases
-        tmin = pd.to_datetime([pd.Timestamp.min])
-        t1 = tmin + pd.Timedelta.max + pd.Timedelta('1us')
-        with pytest.raises(OverflowError):
-            t1 - tmin
-
-        tmax = pd.to_datetime([pd.Timestamp.max])
-        t2 = tmax + pd.Timedelta.min - pd.Timedelta('1us')
-        with pytest.raises(OverflowError):
-            tmax - t2
-
     @pytest.mark.parametrize('names', [('foo', None, None),
                                        ('baz', 'bar', None),
                                        ('bar', 'bar', 'bar')])
@@ -1879,77 +1916,77 @@ class TestDatetimeIndexArithmetic(object):
             res3 = dti - other
         tm.assert_series_equal(res3, expected_sub)
 
-    def test_dti_add_offset_tzaware(self, tz_aware_fixture, box_T_with_array):
-        # GH#21610, GH#22163 ensure DataFrame doesn't return object-dtype
-        box, transpose = box_T_with_array
-        timezone = tz_aware_fixture
-        if timezone == 'US/Pacific':
-            dates = date_range('2012-11-01', periods=3, tz=timezone)
-            offset = dates + pd.offsets.Hour(5)
-            assert dates[0] + pd.offsets.Hour(5) == offset[0]
 
-        dates = date_range('2010-11-01 00:00',
-                           periods=3, tz=timezone, freq='H')
-        expected = DatetimeIndex(['2010-11-01 05:00', '2010-11-01 06:00',
-                                  '2010-11-01 07:00'], freq='H', tz=timezone)
-
-        dates = tm.box_expected(dates, box, transpose=transpose)
-        expected = tm.box_expected(expected, box, transpose=transpose)
-
-        # TODO: parametrize over the scalar being added?  radd?  sub?
-        offset = dates + pd.offsets.Hour(5)
-        tm.assert_equal(offset, expected)
-        offset = dates + np.timedelta64(5, 'h')
-        tm.assert_equal(offset, expected)
-        offset = dates + timedelta(hours=5)
-        tm.assert_equal(offset, expected)
-
-
-@pytest.mark.parametrize('klass', [Series, DatetimeIndex])
-def test_dt64_with_offset_array(klass):
+def test_dt64_with_offset_array(box_with_array):
     # GH#10699
     # array of offsets
-    box = Series if klass is Series else pd.Index
+    s = DatetimeIndex([Timestamp('2000-1-1'), Timestamp('2000-2-1')])
+    s = tm.box_expected(s, box_with_array)
 
-    s = klass([Timestamp('2000-1-1'), Timestamp('2000-2-1')])
-
-    with tm.assert_produces_warning(PerformanceWarning,
+    warn = PerformanceWarning if box_with_array is not pd.DataFrame else None
+    with tm.assert_produces_warning(warn,
                                     clear=[pd.core.arrays.datetimelike]):
-        result = s + box([pd.offsets.DateOffset(years=1),
+        other = pd.Index([pd.offsets.DateOffset(years=1),
                           pd.offsets.MonthEnd()])
-        exp = klass([Timestamp('2001-1-1'), Timestamp('2000-2-29')])
+        other = tm.box_expected(other, box_with_array)
+        result = s + other
+        exp = DatetimeIndex([Timestamp('2001-1-1'), Timestamp('2000-2-29')])
+        exp = tm.box_expected(exp, box_with_array)
         tm.assert_equal(result, exp)
 
         # same offset
-        result = s + box([pd.offsets.DateOffset(years=1),
+        other = pd.Index([pd.offsets.DateOffset(years=1),
                           pd.offsets.DateOffset(years=1)])
-        exp = klass([Timestamp('2001-1-1'), Timestamp('2001-2-1')])
+        other = tm.box_expected(other, box_with_array)
+        result = s + other
+        exp = DatetimeIndex([Timestamp('2001-1-1'), Timestamp('2001-2-1')])
+        exp = tm.box_expected(exp, box_with_array)
         tm.assert_equal(result, exp)
 
 
-@pytest.mark.parametrize('klass', [Series, DatetimeIndex])
-def test_dt64_with_DateOffsets_relativedelta(klass):
+def test_dt64_with_DateOffsets_relativedelta(box_with_array):
     # GH#10699
-    vec = klass([Timestamp('2000-01-05 00:15:00'),
-                 Timestamp('2000-01-31 00:23:00'),
-                 Timestamp('2000-01-01'),
-                 Timestamp('2000-03-31'),
-                 Timestamp('2000-02-29'),
-                 Timestamp('2000-12-31'),
-                 Timestamp('2000-05-15'),
-                 Timestamp('2001-06-15')])
+    if box_with_array is tm.to_array:
+        pytest.xfail("apply_index implementations are Index-specific")
+
+    vec = DatetimeIndex([Timestamp('2000-01-05 00:15:00'),
+                         Timestamp('2000-01-31 00:23:00'),
+                         Timestamp('2000-01-01'),
+                         Timestamp('2000-03-31'),
+                         Timestamp('2000-02-29'),
+                         Timestamp('2000-12-31'),
+                         Timestamp('2000-05-15'),
+                         Timestamp('2001-06-15')])
+    vec = tm.box_expected(vec, box_with_array)
+    vec_items = vec.squeeze() if box_with_array is pd.DataFrame else vec
 
     # DateOffset relativedelta fastpath
     relative_kwargs = [('years', 2), ('months', 5), ('days', 3),
                        ('hours', 5), ('minutes', 10), ('seconds', 2),
                        ('microseconds', 5)]
     for i, kwd in enumerate(relative_kwargs):
-        op = pd.DateOffset(**dict([kwd]))
-        tm.assert_equal(klass([x + op for x in vec]), vec + op)
-        tm.assert_equal(klass([x - op for x in vec]), vec - op)
-        op = pd.DateOffset(**dict(relative_kwargs[:i + 1]))
-        tm.assert_equal(klass([x + op for x in vec]), vec + op)
-        tm.assert_equal(klass([x - op for x in vec]), vec - op)
+        off = pd.DateOffset(**dict([kwd]))
+
+        expected = DatetimeIndex([x + off for x in vec_items])
+        expected = tm.box_expected(expected, box_with_array)
+        tm.assert_equal(expected, vec + off)
+
+        expected = DatetimeIndex([x - off for x in vec_items])
+        expected = tm.box_expected(expected, box_with_array)
+        tm.assert_equal(expected, vec - off)
+
+        off = pd.DateOffset(**dict(relative_kwargs[:i + 1]))
+
+        expected = DatetimeIndex([x + off for x in vec_items])
+        expected = tm.box_expected(expected, box_with_array)
+        tm.assert_equal(expected, vec + off)
+
+        expected = DatetimeIndex([x - off for x in vec_items])
+        expected = tm.box_expected(expected, box_with_array)
+        tm.assert_equal(expected, vec - off)
+
+        with pytest.raises(TypeError):
+            off - vec
 
 
 @pytest.mark.parametrize('cls_and_kwargs', [
@@ -1973,18 +2010,22 @@ def test_dt64_with_DateOffsets_relativedelta(klass):
     'Easter', ('DateOffset', {'day': 4}),
     ('DateOffset', {'month': 5})])
 @pytest.mark.parametrize('normalize', [True, False])
-@pytest.mark.parametrize('klass', [Series, DatetimeIndex])
-def test_dt64_with_DateOffsets(klass, normalize, cls_and_kwargs):
+def test_dt64_with_DateOffsets(box_with_array, normalize, cls_and_kwargs):
     # GH#10699
     # assert these are equal on a piecewise basis
-    vec = klass([Timestamp('2000-01-05 00:15:00'),
-                 Timestamp('2000-01-31 00:23:00'),
-                 Timestamp('2000-01-01'),
-                 Timestamp('2000-03-31'),
-                 Timestamp('2000-02-29'),
-                 Timestamp('2000-12-31'),
-                 Timestamp('2000-05-15'),
-                 Timestamp('2001-06-15')])
+    if box_with_array is tm.to_array:
+        pytest.xfail("apply_index implementations are Index-specific")
+
+    vec = DatetimeIndex([Timestamp('2000-01-05 00:15:00'),
+                         Timestamp('2000-01-31 00:23:00'),
+                         Timestamp('2000-01-01'),
+                         Timestamp('2000-03-31'),
+                         Timestamp('2000-02-29'),
+                         Timestamp('2000-12-31'),
+                         Timestamp('2000-05-15'),
+                         Timestamp('2001-06-15')])
+    vec = tm.box_expected(vec, box_with_array)
+    vec_items = vec.squeeze() if box_with_array is pd.DataFrame else vec
 
     if isinstance(cls_and_kwargs, tuple):
         # If cls_name param is a tuple, then 2nd entry is kwargs for
@@ -2008,40 +2049,62 @@ def test_dt64_with_DateOffsets(klass, normalize, cls_and_kwargs):
                 continue
 
             offset = offset_cls(n, normalize=normalize, **kwargs)
-            tm.assert_equal(klass([x + offset for x in vec]), vec + offset)
-            tm.assert_equal(klass([x - offset for x in vec]), vec - offset)
-            tm.assert_equal(klass([offset + x for x in vec]), offset + vec)
+
+            expected = DatetimeIndex([x + offset for x in vec_items])
+            expected = tm.box_expected(expected, box_with_array)
+            tm.assert_equal(expected, vec + offset)
+
+            expected = DatetimeIndex([x - offset for x in vec_items])
+            expected = tm.box_expected(expected, box_with_array)
+            tm.assert_equal(expected, vec - offset)
+
+            expected = DatetimeIndex([offset + x for x in vec_items])
+            expected = tm.box_expected(expected, box_with_array)
+            tm.assert_equal(expected, offset + vec)
+
+            with pytest.raises(TypeError):
+                offset - vec
 
 
-@pytest.mark.parametrize('klass', [Series, DatetimeIndex])
-def test_datetime64_with_DateOffset(klass):
+def test_datetime64_with_DateOffset(box_T_with_array):
     # GH#10699
-    s = klass(date_range('2000-01-01', '2000-01-31'), name='a')
+    box, transpose = box_T_with_array
+    if box is tm.to_array:
+        pytest.xfail("DateOffset.apply_index uses _shallow_copy")
+
+    s = date_range('2000-01-01', '2000-01-31', name='a')
+    s = tm.box_expected(s, box, transpose=transpose)
     result = s + pd.DateOffset(years=1)
     result2 = pd.DateOffset(years=1) + s
-    exp = klass(date_range('2001-01-01', '2001-01-31'), name='a')
+    exp = date_range('2001-01-01', '2001-01-31', name='a')
+    exp = tm.box_expected(exp, box, transpose=transpose)
     tm.assert_equal(result, exp)
     tm.assert_equal(result2, exp)
 
     result = s - pd.DateOffset(years=1)
-    exp = klass(date_range('1999-01-01', '1999-01-31'), name='a')
+    exp = date_range('1999-01-01', '1999-01-31', name='a')
+    exp = tm.box_expected(exp, box, transpose=transpose)
     tm.assert_equal(result, exp)
 
-    s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
-               pd.Timestamp('2000-02-15', tz='US/Central')], name='a')
+    s = DatetimeIndex([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
+                       Timestamp('2000-02-15', tz='US/Central')], name='a')
+    s = tm.box_expected(s, box, transpose=transpose)
     result = s + pd.offsets.Day()
     result2 = pd.offsets.Day() + s
-    exp = klass([Timestamp('2000-01-16 00:15:00', tz='US/Central'),
-                 Timestamp('2000-02-16', tz='US/Central')], name='a')
+    exp = DatetimeIndex([Timestamp('2000-01-16 00:15:00', tz='US/Central'),
+                         Timestamp('2000-02-16', tz='US/Central')], name='a')
+    exp = tm.box_expected(exp, box, transpose=transpose)
     tm.assert_equal(result, exp)
     tm.assert_equal(result2, exp)
 
-    s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
-               pd.Timestamp('2000-02-15', tz='US/Central')], name='a')
+    s = DatetimeIndex([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
+                       Timestamp('2000-02-15', tz='US/Central')], name='a')
+    s = tm.box_expected(s, box, transpose=transpose)
     result = s + pd.offsets.MonthEnd()
     result2 = pd.offsets.MonthEnd() + s
-    exp = klass([Timestamp('2000-01-31 00:15:00', tz='US/Central'),
-                 Timestamp('2000-02-29', tz='US/Central')], name='a')
+    exp = DatetimeIndex([Timestamp('2000-01-31 00:15:00', tz='US/Central'),
+                         Timestamp('2000-02-29', tz='US/Central')], name='a')
+    exp = tm.box_expected(exp, box, transpose=transpose)
     tm.assert_equal(result, exp)
     tm.assert_equal(result2, exp)
 

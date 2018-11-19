@@ -6,7 +6,6 @@ import operator
 import warnings
 
 import numpy as np
-from pytz import utc
 
 from pandas._libs import (
     Timestamp, index as libindex, join as libjoin, lib, tslib as libts)
@@ -474,7 +473,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
     def _get_time_micros(self):
         values = self.asi8
-        if self.tz is not None and self.tz is not utc:
+        if self.tz is not None and not timezones.is_utc(self.tz):
             values = self._local_timestamps()
         return fields.get_time_micros(values)
 
