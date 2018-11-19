@@ -2807,7 +2807,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         -------
         None
         """
-        values = conversion.ensure_datetime64ns(values)
+        values = conversion.ensure_datetime64ns(values, copy=False)
 
         self.values[locs] = values
 
