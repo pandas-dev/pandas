@@ -570,16 +570,6 @@ class TestDataFrameApply():
 
         tm.assert_frame_equal(result, expected)
 
-    def test_apply_keep_sparse_dtype(self):
-        # GH 23744
-        df = pd.SparseDataFrame(np.array([[0, 1, 0], [0, 0, 0], [0, 0, 1]]),
-                                columns=['a', 'b', 'c'], default_fill_value=1)
-        df2 = pd.DataFrame(df)
-
-        df = df.apply(np.exp)
-        df2 = df2.apply(np.exp)
-        tm.assert_frame_equal(df, df2)
-
 
 class TestInferOutputShape(object):
     # the user has supplied an opaque UDF where
