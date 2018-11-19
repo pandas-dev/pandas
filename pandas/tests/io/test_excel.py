@@ -235,6 +235,16 @@ class ReadingTestsBase(SharedItems):
             self.get_exceldf("test1", ext, "Sheet1", index_col=["A"],
                              usecols=["A", "C"])
 
+    def test_index_col_empty(self, ext):
+        # see gh-9208
+        result = self.get_exceldf("test1", ext, "Sheet3",
+                                  index_col=["A", "B", "C"])
+        expected = DataFrame(columns=["D", "E", "F"],
+                             index=MultiIndex(levels=[[]] * 3,
+                                              labels=[[]] * 3,
+                                              names=["A", "B", "C"]))
+        tm.assert_frame_equal(result, expected)
+
     def test_usecols_pass_non_existent_column(self, ext):
         msg = ("Usecols do not match columns, "
                "columns expected but not found: " + r"\['E'\]")
@@ -885,6 +895,17 @@ class TestXlrdReader(ReadingTestsBase):
         actual = read_excel(mi_file, "both_name_skiprows", index_col=[0, 1],
                             header=[0, 1], skiprows=2)
         tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_multiindex_header_only(self, ext):
+        # see gh-11733.
+        #
+        # Don't try to parse a header name if there isn't one.
+        mi_file = os.path.join(self.dirpath, "testmultiindex" + ext)
+        result = read_excel(mi_file, "index_col_none", header=[0, 1])
+
+        exp_columns = MultiIndex.from_product([("A", "B"), ("key", "val")])
+        expected = DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
+        tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no("xlsxwriter")
     def test_read_excel_multiindex_empty_level(self, ext):
@@ -1836,33 +1857,41 @@ class TestExcelWriter(_WriterBase):
 
     def test_duplicated_columns(self, *_):
         # see gh-5235
-        write_frame = DataFrame([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
-        col_names = ["A", "B", "B"]
+        df = DataFrame([[1, 2, 3], [1, 2, 3], [1, 2, 3]],
+                       columns=["A", "B", "B"])
+        df.to_excel(self.path, "test1")
+        expected = DataFrame([[1, 2, 3], [1, 2, 3], [1, 2, 3]],
+                             columns=["A", "B", "B.1"])
 
-        write_frame.columns = col_names
-        write_frame.to_excel(self.path, "test1")
+        # By default, we mangle.
+        result = read_excel(self.path, "test1", index_col=0)
+        tm.assert_frame_equal(result, expected)
 
-        read_frame = read_excel(self.path, "test1", index_col=0)
-        read_frame.columns = col_names
-
-        tm.assert_frame_equal(write_frame, read_frame)
+        # Explicitly, we pass in the parameter.
+        result = read_excel(self.path, "test1", index_col=0,
+                            mangle_dupe_cols=True)
+        tm.assert_frame_equal(result, expected)
 
         # see gh-11007, gh-10970
-        write_frame = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]],
-                                columns=["A", "B", "A", "B"])
-        write_frame.to_excel(self.path, "test1")
+        df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]],
+                       columns=["A", "B", "A", "B"])
+        df.to_excel(self.path, "test1")
 
-        read_frame = read_excel(self.path, "test1", index_col=0)
-        read_frame.columns = ["A", "B", "A", "B"]
-
-        tm.assert_frame_equal(write_frame, read_frame)
+        result = read_excel(self.path, "test1", index_col=0)
+        expected = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]],
+                             columns=["A", "B", "A.1", "B.1"])
+        tm.assert_frame_equal(result, expected)
 
         # see gh-10982
-        write_frame.to_excel(self.path, "test1", index=False, header=False)
-        read_frame = read_excel(self.path, "test1", header=None)
+        df.to_excel(self.path, "test1", index=False, header=False)
+        result = read_excel(self.path, "test1", header=None)
 
-        write_frame.columns = [0, 1, 2, 3]
-        tm.assert_frame_equal(write_frame, read_frame)
+        expected = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]])
+        tm.assert_frame_equal(result, expected)
+
+        msg = "Setting mangle_dupe_cols=False is not supported yet"
+        with pytest.raises(ValueError, match=msg):
+            read_excel(self.path, "test1", header=None, mangle_dupe_cols=False)
 
     def test_swapped_columns(self, merge_cells, engine, ext):
         # Test for issue #5427.

@@ -315,8 +315,8 @@ class Categorical(ExtensionArray, PandasObject):
 
     See Also
     --------
-    pandas.api.types.CategoricalDtype : Type for categorical data
-    CategoricalIndex : An Index with an underlying ``Categorical``
+    pandas.api.types.CategoricalDtype : Type for categorical data.
+    CategoricalIndex : An Index with an underlying ``Categorical``.
     """
 
     # For comparisons, so that numpy uses our implementation if the compare
@@ -1344,15 +1344,13 @@ class Categorical(ExtensionArray, PandasObject):
                              "ordered one")
 
         from pandas.core.series import Series
+        codes = _get_codes_for_values(Series(value).values, self.categories)
+        if -1 in codes:
+            raise KeyError("Value(s) to be inserted must be in categories.")
 
-        values_as_codes = _get_codes_for_values(Series(value).values,
-                                                self.categories)
+        codes = codes[0] if is_scalar(value) else codes
 
-        if -1 in values_as_codes:
-            raise ValueError("Value(s) to be inserted must be in categories.")
-
-        return self.codes.searchsorted(values_as_codes, side=side,
-                                       sorter=sorter)
+        return self.codes.searchsorted(codes, side=side, sorter=sorter)
 
     def isna(self):
         """
@@ -1366,9 +1364,9 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        isna : top-level isna
-        isnull : alias of isna
-        Categorical.notna : boolean inverse of Categorical.isna
+        isna : Top-level isna.
+        isnull : Alias of isna.
+        Categorical.notna : Boolean inverse of Categorical.isna.
 
         """
 
@@ -1389,9 +1387,9 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        notna : top-level notna
-        notnull : alias of notna
-        Categorical.isna : boolean inverse of Categorical.notna
+        notna : Top-level notna.
+        notnull : Alias of notna.
+        Categorical.isna : Boolean inverse of Categorical.notna.
 
         """
         return ~self.isna()
@@ -2371,7 +2369,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         See Also
         --------
-        pandas.Series.isin : equivalent method on Series
+        pandas.Series.isin : Equivalent method on Series.
 
         Examples
         --------
@@ -2435,7 +2433,6 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     >>> s.cat.set_categories(list('abcde'))
     >>> s.cat.as_ordered()
     >>> s.cat.as_unordered()
-
     """
 
     def __init__(self, data):

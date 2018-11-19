@@ -70,7 +70,7 @@ def has_horizontally_truncated_repr(df):
     try:  # Check header row
         fst_line = np.array(repr(df).splitlines()[0].split())
         cand_col = np.where(fst_line == '...')[0][0]
-    except:
+    except IndexError:
         return False
     # Make sure each row has this ... in the same place
     r = repr(df)
@@ -305,14 +305,10 @@ class TestDataFrameFormatting(object):
             assert not has_truncated_repr(df)
             assert not has_expanded_repr(df)
 
-    def test_repr_truncates_terminal_size(self):
+    def test_repr_truncates_terminal_size(self, mock):
         # https://github.com/pandas-dev/pandas/issues/21180
         # TODO: use mock fixutre.
         # This is being backported, so doing it directly here.
-        try:
-            from unittest import mock
-        except ImportError:
-            mock = pytest.importorskip("mock")
 
         terminal_size = (118, 96)
         p1 = mock.patch('pandas.io.formats.console.get_terminal_size',
@@ -342,6 +338,17 @@ class TestDataFrameFormatting(object):
             result = repr(df2)
 
         assert df2.columns[0] in result.split('\n')[0]
+
+    def test_repr_truncates_terminal_size_full(self, mock):
+        # GH 22984 ensure entire window is filled
+        terminal_size = (80, 24)
+        df = pd.DataFrame(np.random.rand(1, 7))
+        p1 = mock.patch('pandas.io.formats.console.get_terminal_size',
+                        return_value=terminal_size)
+        p2 = mock.patch('pandas.io.formats.format.get_terminal_size',
+                        return_value=terminal_size)
+        with p1, p2:
+            assert "..." not in str(df)
 
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
@@ -452,7 +459,7 @@ class TestDataFrameFormatting(object):
         for line in rs[1:]:
             try:
                 line = line.decode(get_option("display.encoding"))
-            except:
+            except AttributeError:
                 pass
             if not line.startswith('dtype:'):
                 assert len(line) == line_len
@@ -1450,6 +1457,12 @@ c  10  11  12  13  14\
                     '3  3.0  fooooo\n'
                     '4  4.0     bar')
         assert result == expected
+
+    def test_to_string_decimal(self):
+        # Issue #23614
+        df = DataFrame({'A': [6.0, 3.1, 2.2]})
+        expected = '     A\n0  6,0\n1  3,1\n2  2,2'
+        assert df.to_string(decimal=',') == expected
 
     def test_to_string_line_width(self):
         df = DataFrame(123, lrange(10, 15), lrange(30))

@@ -221,9 +221,9 @@ Support for merging named Series objects was added in version 0.24.0
 
 See Also
 --------
-merge_ordered : merge with optional filling/interpolation.
-merge_asof : merge on nearest keys.
-DataFrame.join : similar method using indices.
+merge_ordered : Merge with optional filling/interpolation.
+merge_asof : Merge on nearest keys.
+DataFrame.join : Similar method using indices.
 
 Examples
 --------
@@ -348,10 +348,10 @@ class DataFrame(NDFrame):
 
     See Also
     --------
-    DataFrame.from_records : constructor from tuples, also record arrays
-    DataFrame.from_dict : from dicts of Series, arrays, or dicts
-    DataFrame.from_items : from sequence of (key, value) pairs
-    pandas.read_csv, pandas.read_table, pandas.read_clipboard
+    DataFrame.from_records : Constructor from tuples, also record arrays.
+    DataFrame.from_dict : From dicts of Series, arrays, or dicts.
+    DataFrame.from_items : From sequence of (key, value) pairs
+        pandas.read_csv, pandas.read_table, pandas.read_clipboard.
     """
 
     @property
@@ -1066,8 +1066,8 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.from_records : DataFrame from ndarray (structured
-            dtype), list of tuples, dict, or DataFrame
-        DataFrame : DataFrame object creation using constructor
+            dtype), list of tuples, dict, or DataFrame.
+        DataFrame : DataFrame object creation using constructor.
 
         Examples
         --------
@@ -1241,9 +1241,9 @@ class DataFrame(NDFrame):
             raise ValueError("orient '{o}' not understood".format(o=orient))
 
     def to_gbq(self, destination_table, project_id=None, chunksize=None,
-               reauth=False, if_exists='fail', private_key=None,
-               auth_local_webserver=False, table_schema=None, location=None,
-               progress_bar=True, verbose=None):
+               reauth=False, if_exists='fail', auth_local_webserver=False,
+               table_schema=None, location=None, progress_bar=True,
+               credentials=None, verbose=None, private_key=None):
         """
         Write a DataFrame to a Google BigQuery table.
 
@@ -1311,10 +1311,31 @@ class DataFrame(NDFrame):
             chunk by chunk.
 
             *New in version 0.5.0 of pandas-gbq*.
+        credentials : google.auth.credentials.Credentials, optional
+            Credentials for accessing Google APIs. Use this parameter to
+            override default credentials, such as to use Compute Engine
+            :class:`google.auth.compute_engine.Credentials` or Service
+            Account :class:`google.oauth2.service_account.Credentials`
+            directly.
+
+            *New in version 0.8.0 of pandas-gbq*.
+
+            .. versionadded:: 0.24.0
         verbose : bool, deprecated
-            Deprecated in Pandas-GBQ 0.4.0. Use the `logging module
+            Deprecated in pandas-gbq version 0.4.0. Use the `logging module
             to adjust verbosity instead
             <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
+        private_key : str, deprecated
+            Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
+            parameter and
+            :func:`google.oauth2.service_account.Credentials.from_service_account_info`
+            or
+            :func:`google.oauth2.service_account.Credentials.from_service_account_file`
+            instead.
+
+            Service account private key in JSON format. Can be file path
+            or string contents. This is useful for remote server
+            authentication (eg. Jupyter/IPython notebook on remote host).
 
         See Also
         --------
@@ -1324,11 +1345,11 @@ class DataFrame(NDFrame):
         from pandas.io import gbq
         return gbq.to_gbq(
             self, destination_table, project_id=project_id,
-            chunksize=chunksize, reauth=reauth,
-            if_exists=if_exists, private_key=private_key,
+            chunksize=chunksize, reauth=reauth, if_exists=if_exists,
             auth_local_webserver=auth_local_webserver,
             table_schema=table_schema, location=location,
-            progress_bar=progress_bar, verbose=verbose)
+            progress_bar=progress_bar, credentials=credentials,
+            verbose=verbose, private_key=private_key)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
@@ -1484,9 +1505,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.from_records: convert structured or record ndarray
+        DataFrame.from_records: Convert structured or record ndarray
             to DataFrame.
-        numpy.recarray: ndarray that allows field access using
+        numpy.recarray: An ndarray that allows field access using
             attributes, analogous to typed columns in a
             spreadsheet.
 
@@ -1689,7 +1710,7 @@ class DataFrame(NDFrame):
         tupleize_cols : boolean, default False
             write multi_index columns as a list of tuples (if True)
             or new (expanded format) if False)
-        infer_datetime_format: boolean, default False
+        infer_datetime_format : boolean, default False
             If True and `parse_dates` is True for a column, try to infer the
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.
@@ -1829,24 +1850,6 @@ class DataFrame(NDFrame):
 
         return self._constructor_expanddim(new_mgr)
 
-    @Appender(_shared_docs['to_excel'] % _shared_doc_kwargs)
-    def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
-                 float_format=None, columns=None, header=True, index=True,
-                 index_label=None, startrow=0, startcol=0, engine=None,
-                 merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
-                 freeze_panes=None):
-
-        from pandas.io.formats.excel import ExcelFormatter
-        formatter = ExcelFormatter(self, na_rep=na_rep, cols=columns,
-                                   header=header,
-                                   float_format=float_format, index=index,
-                                   index_label=index_label,
-                                   merge_cells=merge_cells,
-                                   inf_rep=inf_rep)
-        formatter.write(excel_writer, sheet_name=sheet_name, startrow=startrow,
-                        startcol=startcol, freeze_panes=freeze_panes,
-                        engine=engine)
-
     @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def to_stata(self, fname, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
@@ -1918,9 +1921,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.read_stata : Import Stata data files
-        pandas.io.stata.StataWriter : low-level writer for Stata data files
-        pandas.io.stata.StataWriter117 : low-level writer for version 117 files
+        pandas.read_stata : Import Stata data files.
+        pandas.io.stata.StataWriter : Low-level writer for Stata data files.
+        pandas.io.stata.StataWriter117 : Low-level writer for version 117
+            files.
 
         Examples
         --------
@@ -2052,24 +2056,21 @@ class DataFrame(NDFrame):
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
                   sparsify=None, index_names=True, justify=None,
-                  line_width=None, max_rows=None, max_cols=None,
-                  show_dimensions=False):
+                  max_rows=None, max_cols=None, show_dimensions=False,
+                  decimal='.', line_width=None):
         """
         Render a DataFrame to a console-friendly tabular output.
-
         %(shared_params)s
         line_width : int, optional
             Width to wrap a line in characters.
-
         %(returns)s
-
         See Also
         --------
         to_html : Convert DataFrame to HTML.
 
         Examples
         --------
-        >>> d = {'col1' : [1, 2, 3], 'col2' : [4, 5, 6]}
+        >>> d = {'col1': [1, 2, 3], 'col2': [4, 5, 6]}
         >>> df = pd.DataFrame(d)
         >>> print(df.to_string())
            col1  col2
@@ -2085,42 +2086,37 @@ class DataFrame(NDFrame):
                                            sparsify=sparsify, justify=justify,
                                            index_names=index_names,
                                            header=header, index=index,
-                                           line_width=line_width,
                                            max_rows=max_rows,
                                            max_cols=max_cols,
-                                           show_dimensions=show_dimensions)
+                                           show_dimensions=show_dimensions,
+                                           decimal=decimal,
+                                           line_width=line_width)
         formatter.to_string()
 
         if buf is None:
             result = formatter.buf.getvalue()
             return result
 
-    @Substitution(header='whether to print column labels, default True')
+    @Substitution(header='Whether to print column labels, default True')
     @Substitution(shared_params=fmt.common_docstring,
                   returns=fmt.return_docstring)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
                 index=True, na_rep='NaN', formatters=None, float_format=None,
-                sparsify=None, index_names=True, justify=None, bold_rows=True,
-                classes=None, escape=True, max_rows=None, max_cols=None,
-                show_dimensions=False, notebook=False, decimal='.',
-                border=None, table_id=None):
+                sparsify=None, index_names=True, justify=None, max_rows=None,
+                max_cols=None, show_dimensions=False, decimal='.',
+                bold_rows=True, classes=None, escape=True,
+                notebook=False, border=None, table_id=None):
         """
         Render a DataFrame as an HTML table.
-
         %(shared_params)s
-        bold_rows : boolean, default True
-            Make the row labels bold in the output
+        bold_rows : bool, default True
+            Make the row labels bold in the output.
         classes : str or list or tuple, default None
-            CSS class(es) to apply to the resulting html table
-        escape : boolean, default True
+            CSS class(es) to apply to the resulting html table.
+        escape : bool, default True
             Convert the characters <, >, and & to HTML-safe sequences.
         notebook : {True, False}, default False
             Whether the generated HTML is for IPython Notebook.
-        decimal : string, default '.'
-            Character recognized as decimal separator, e.g. ',' in Europe
-
-            .. versionadded:: 0.18.0
-
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.html.border``.
@@ -2131,9 +2127,7 @@ class DataFrame(NDFrame):
             A css id is included in the opening `<table>` tag if specified.
 
             .. versionadded:: 0.23.0
-
         %(returns)s
-
         See Also
         --------
         to_string : Convert DataFrame to a string.
@@ -3747,9 +3741,9 @@ class DataFrame(NDFrame):
         --------
         DataFrame.loc : Label-location based indexer for selection by label.
         DataFrame.dropna : Return DataFrame with labels on given axis omitted
-            where (all or any) data are missing
+            where (all or any) data are missing.
         DataFrame.drop_duplicates : Return DataFrame with duplicate rows
-            removed, optionally only considering certain columns
+            removed, optionally only considering certain columns.
         Series.drop : Return Series with specified index labels removed.
 
         Raises
@@ -4701,7 +4695,7 @@ class DataFrame(NDFrame):
         --------
         DataFrame.nsmallest : Return the first `n` rows ordered by `columns` in
             ascending order.
-        DataFrame.sort_values : Sort DataFrame by the values
+        DataFrame.sort_values : Sort DataFrame by the values.
         DataFrame.head : Return the first `n` rows without re-ordering.
 
         Notes
@@ -5088,7 +5082,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.combine_first : Combine two DataFrame objects and default to
-            non-null values in frame calling the method
+            non-null values in frame calling the method.
         """
         other_idxlen = len(other.index)  # save for compare
 
@@ -5194,7 +5188,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.combine : Perform series-wise operation on two DataFrames
-            using a given function
+            using a given function.
         """
         import pandas.core.computation.expressions as expressions
 
@@ -5230,8 +5224,10 @@ class DataFrame(NDFrame):
 
         return self.combine(other, combiner, overwrite=False)
 
+    @deprecate_kwarg(old_arg_name='raise_conflict', new_arg_name='errors',
+                     mapping={False: 'ignore', True: 'raise'})
     def update(self, other, join='left', overwrite=True, filter_func=None,
-               raise_conflict=False):
+               errors='ignore'):
         """
         Modify in place using non-NA values from another DataFrame.
 
@@ -5255,17 +5251,28 @@ class DataFrame(NDFrame):
             * False: only update values that are NA in
               the original DataFrame.
 
-        filter_func : callable(1d-array) -> boolean 1d-array, optional
+        filter_func : callable(1d-array) -> bool 1d-array, optional
             Can choose to replace values other than NA. Return True for values
             that should be updated.
-        raise_conflict : bool, default False
-            If True, will raise a ValueError if the DataFrame and `other`
+        errors : {'raise', 'ignore'}, default 'ignore'
+            If 'raise', will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
+
+            .. versionchanged :: 0.24.0
+               Changed from `raise_conflict=False|True`
+               to `errors='ignore'|'raise'`.
+
+        Returns
+        -------
+        None : method directly changes calling object
 
         Raises
         ------
         ValueError
-            When `raise_conflict` is True and there's overlapping non-NA data.
+            * When `errors='raise'` and there's overlapping non-NA data.
+            * When `errors` is not either `'ignore'` or `'raise'`
+        NotImplementedError
+            * If `join != 'left'`
 
         See Also
         --------
@@ -5336,6 +5343,9 @@ class DataFrame(NDFrame):
         # TODO: Support other joins
         if join != 'left':  # pragma: no cover
             raise NotImplementedError("Only left join is supported")
+        if errors not in ['ignore', 'raise']:
+            raise ValueError("The parameter errors must be either "
+                             "'ignore' or 'raise'")
 
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
@@ -5349,7 +5359,7 @@ class DataFrame(NDFrame):
                 with np.errstate(all='ignore'):
                     mask = ~filter_func(this) | isna(that)
             else:
-                if raise_conflict:
+                if errors == 'raise':
                     mask_this = notna(that)
                     mask_that = notna(this)
                     if any(mask_this & mask_that):
@@ -5406,9 +5416,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.pivot_table : generalization of pivot that can handle
+        DataFrame.pivot_table : Generalization of pivot that can handle
             duplicate values for one index/column pair.
-        DataFrame.unstack : pivot based on the index values instead of a
+        DataFrame.unstack : Pivot based on the index values instead of a
             column.
 
         Notes
@@ -5594,8 +5604,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.pivot : pivot without aggregation that can handle
-            non-numeric data
+        DataFrame.pivot : Pivot without aggregation that can handle
+            non-numeric data.
         """
 
     @Substitution('')
@@ -6244,9 +6254,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.applymap: For elementwise operations
-        DataFrame.aggregate: only perform aggregating type operations
-        DataFrame.transform: only perform transforming type operations
+        DataFrame.applymap: For elementwise operations.
+        DataFrame.aggregate: Only perform aggregating type operations.
+        DataFrame.transform: Only perform transforming type operations.
 
         Examples
         --------
@@ -6353,7 +6363,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.apply : Apply a function along input axis of DataFrame
+        DataFrame.apply : Apply a function along input axis of DataFrame.
 
         Examples
         --------
@@ -6437,7 +6447,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.concat : General function to concatenate DataFrame, Series
-            or Panel objects
+            or Panel objects.
 
         Examples
         --------
@@ -6904,10 +6914,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.Series.cov : compute covariance with another Series
-        pandas.core.window.EWM.cov: exponential weighted sample covariance
-        pandas.core.window.Expanding.cov : expanding sample covariance
-        pandas.core.window.Rolling.cov : rolling sample covariance
+        pandas.Series.cov : Compute covariance with another Series.
+        pandas.core.window.EWM.cov: Exponential weighted sample covariance.
+        pandas.core.window.Expanding.cov : Expanding sample covariance.
+        pandas.core.window.Rolling.cov : Rolling sample covariance.
 
         Notes
         -----
@@ -7064,11 +7074,11 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.count: number of non-NA elements in a Series
-        DataFrame.shape: number of DataFrame rows and columns (including NA
-            elements)
-        DataFrame.isna: boolean same-sized DataFrame showing places of NA
-            elements
+        Series.count: Number of non-NA elements in a Series.
+        DataFrame.shape: Number of DataFrame rows and columns (including NA
+            elements).
+        DataFrame.isna: Boolean same-sized DataFrame showing places of NA
+            elements.
 
         Examples
         --------

@@ -32,7 +32,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
 from pandas.core.reshape.util import cartesian_product
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_axis_style_args
 
 _shared_doc_kwargs = dict(
@@ -1235,7 +1235,12 @@ class Panel(NDFrame):
         kwargs.update(axes)
         kwargs.pop('axis', None)
         kwargs.pop('labels', None)
-        return super(Panel, self).reindex(**kwargs)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            # do not warn about constructing Panel when reindexing
+            result = super(Panel, self).reindex(**kwargs)
+        return result
 
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.rename.__doc__)
@@ -1377,25 +1382,37 @@ class Panel(NDFrame):
             return concat([self] + list(other), axis=0, join=how,
                           join_axes=join_axes, verify_integrity=True)
 
+    @deprecate_kwarg(old_arg_name='raise_conflict', new_arg_name='errors',
+                     mapping={False: 'ignore', True: 'raise'})
     def update(self, other, join='left', overwrite=True, filter_func=None,
-               raise_conflict=False):
+               errors='ignore'):
         """
-        Modify Panel in place using non-NA values from passed
-        Panel, or object coercible to Panel. Aligns on items
+        Modify Panel in place using non-NA values from other Panel.
+
+        May also use object coercible to Panel. Will align on items.
 
         Parameters
         ----------
         other : Panel, or object coercible to Panel
-        join : How to join individual DataFrames
-            {'left', 'right', 'outer', 'inner'}, default 'left'
-        overwrite : boolean, default True
-            If True then overwrite values for common keys in the calling panel
-        filter_func : callable(1d-array) -> 1d-array<boolean>, default None
+            The object from which the caller will be udpated.
+        join : {'left', 'right', 'outer', 'inner'}, default 'left'
+            How individual DataFrames are joined.
+        overwrite : bool, default True
+            If True then overwrite values for common keys in the calling Panel.
+        filter_func : callable(1d-array) -> 1d-array<bool>, default None
             Can choose to replace values other than NA. Return True for values
-            that should be updated
-        raise_conflict : bool
-            If True, will raise an error if a DataFrame and other both
-            contain data in the same place.
+            that should be updated.
+        errors : {'raise', 'ignore'}, default 'ignore'
+            If 'raise', will raise an error if a DataFrame and other both.
+
+            .. versionchanged :: 0.24.0
+               Changed from `raise_conflict=False|True`
+               to `errors='ignore'|'raise'`.
+
+        See Also
+        --------
+        DataFrame.update : Similar method for DataFrames.
+        dict.update : Similar method for dictionaries.
         """
 
         if not isinstance(other, self._constructor):
@@ -1406,8 +1423,8 @@ class Panel(NDFrame):
         other = other.reindex(**{axis_name: axis_values})
 
         for frame in axis_values:
-            self[frame].update(other[frame], join, overwrite, filter_func,
-                               raise_conflict)
+            self[frame].update(other[frame], join=join, overwrite=overwrite,
+                               filter_func=filter_func, errors=errors)
 
     def _get_join_index(self, other, how):
         if how == 'left':
