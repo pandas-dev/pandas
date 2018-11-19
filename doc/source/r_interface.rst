@@ -35,8 +35,8 @@ In the remainder of this page, a few examples of explicit conversion is given. T
 
 .. code-block:: python
 
-   >>> from rpy2.robjects import r, pandas2ri  # doctest: +SKIP
-   >>> pandas2ri.activate()  # doctest: +SKIP
+    >>> from rpy2.robjects import pandas2ri  # doctest: +SKIP
+    >>> pandas2ri.activate()  # doctest: +SKIP
 
 Transferring R data sets into Python
 ------------------------------------
@@ -46,6 +46,7 @@ of R to pandas objects will be done automatically. For example, to obtain the 'i
 
 .. code-block:: python
 
+    >>> from rpy2.robjects import r  # doctest: +SKIP
     >>> r.data('iris')  # doctest: +SKIP
     >>> r['iris'].head()  # doctest: +SKIP
         Sepal.Length  Sepal.Width  Petal.Length  Petal.Width Species
