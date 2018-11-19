@@ -613,7 +613,7 @@ class TestTimestamp(object):
         assert conv.hour == 19
 
     def test_utc_z_designator(self):
-        assert get_timezone(Timestamp('2014-11-02 01:00Z').tzinfo) == 'UTC'
+        assert get_timezone(Timestamp('2014-11-02 01:00Z').tzinfo) is utc
 
     def test_asm8(self):
         np.random.seed(7960929)

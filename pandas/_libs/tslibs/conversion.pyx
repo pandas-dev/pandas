@@ -35,6 +35,7 @@ from timedeltas cimport cast_from_unit
 from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
                         get_utcoffset, get_dst_info,
                         get_timezone, maybe_get_tz, tz_compare)
+from timezones import UTC
 from parsing import parse_datetime_string
 
 from nattype import nat_strings, NaT
@@ -45,8 +46,6 @@ from nattype cimport NPY_NAT, checknull_with_nat
 
 NS_DTYPE = np.dtype('M8[ns]')
 TD_DTYPE = np.dtype('m8[ns]')
-
-UTC = pytz.UTC
 
 
 # ----------------------------------------------------------------------
@@ -442,7 +441,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
             check_dts_bounds(&obj.dts)
             if out_local == 1:
                 obj.tzinfo = pytz.FixedOffset(out_tzoffset)
-                obj.value = tz_convert_single(obj.value, obj.tzinfo, 'UTC')
+                obj.value = tz_convert_single(obj.value, obj.tzinfo, UTC)
                 if tz is None:
                     check_dts_bounds(&obj.dts)
                     check_overflows(obj)
@@ -576,7 +575,7 @@ cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
         identically, i.e. discards nanos from Timestamps.
         It also assumes that the `tz` input is not None.
     """
-    if tz == 'UTC' or tz is UTC:
+    if is_utc(tz):
         return UTC.localize(dt)
     try:
         # datetime.replace with pytz may be incorrect result
@@ -603,7 +602,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
     elif not PyDateTime_CheckExact(dt):
         # i.e. is a Timestamp
         return dt.tz_localize(tz)
-    elif tz == 'UTC' or tz is UTC:
+    elif is_utc(tz):
         return UTC.localize(dt)
     try:
         # datetime.replace with pytz may be incorrect result
@@ -735,7 +734,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         int64_t arr[1]
 
     # See GH#17734 We should always be converting either from UTC or to UTC
-    assert (is_utc(tz1) or tz1 == 'UTC') or (is_utc(tz2) or tz2 == 'UTC')
+    assert is_utc(tz1) or is_utc(tz2)
 
     if val == NPY_NAT:
         return val
@@ -743,13 +742,13 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     # Convert to UTC
     if is_tzlocal(tz1):
         utc_date = _tz_convert_tzlocal_utc(val, tz1, to_utc=True)
-    elif get_timezone(tz1) != 'UTC':
+    elif not is_utc(get_timezone(tz1)):
         arr[0] = val
         utc_date = _tz_convert_dst(arr, tz1, to_utc=True)[0]
     else:
         utc_date = val
 
-    if get_timezone(tz2) == 'UTC':
+    if is_utc(get_timezone(tz2)):
         return utc_date
     elif is_tzlocal(tz2):
         return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
