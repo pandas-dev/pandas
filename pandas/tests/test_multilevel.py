@@ -10,11 +10,9 @@ from numpy.random import randn
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
-from pandas import (Panel, DataFrame, Series, notna, isna, Timestamp, concat,
-                    read_csv)
+from pandas import (Panel, DataFrame, Series, notna, isna, Timestamp)
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
-import pandas.core.common as com
 import pandas.util.testing as tm
 from pandas.compat import (range, lrange, StringIO, lzip, u, product as
                            cart_product, zip)
@@ -239,57 +237,6 @@ class TestMultiLevel(Base):
         lines = repr(df).split('\n')
         assert lines[2].startswith('a 0 foo')
 
-    def test_getitem_simple(self):
-        df = self.frame.T
-
-        col = df['foo', 'one']
-        tm.assert_almost_equal(col.values, df.values[:, 0])
-        with pytest.raises(KeyError):
-            df[('foo', 'four')]
-        with pytest.raises(KeyError):
-            df['foobar']
-
-    def test_series_getitem(self):
-        s = self.ymd['A']
-
-        result = s[2000, 3]
-
-        # TODO(wesm): unused?
-        # result2 = s.loc[2000, 3]
-
-        expected = s.reindex(s.index[42:65])
-        expected.index = expected.index.droplevel(0).droplevel(0)
-        tm.assert_series_equal(result, expected)
-
-        result = s[2000, 3, 10]
-        expected = s[49]
-        assert result == expected
-
-        # fancy
-        expected = s.reindex(s.index[49:51])
-        result = s.loc[[(2000, 3, 10), (2000, 3, 13)]]
-        tm.assert_series_equal(result, expected)
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
-            result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
-        tm.assert_series_equal(result, expected)
-
-        # key error
-        pytest.raises(KeyError, s.__getitem__, (2000, 3, 4))
-
-    def test_series_getitem_corner(self):
-        s = self.ymd['A']
-
-        # don't segfault, GH #495
-        # out of bounds access
-        pytest.raises(IndexError, s.__getitem__, len(self.ymd))
-
-        # generator
-        result = s[(x > 0 for x in s)]
-        expected = s[s > 0]
-        tm.assert_series_equal(result, expected)
-
     def test_series_setitem(self):
         s = self.ymd['A']
 
@@ -303,81 +250,6 @@ class TestMultiLevel(Base):
 
     def test_series_slice_partial(self):
         pass
-
-    def test_frame_getitem_setitem_boolean(self):
-        df = self.frame.T.copy()
-        values = df.values
-
-        result = df[df > 0]
-        expected = df.where(df > 0)
-        tm.assert_frame_equal(result, expected)
-
-        df[df > 0] = 5
-        values[values > 0] = 5
-        tm.assert_almost_equal(df.values, values)
-
-        df[df == 5] = 0
-        values[values == 5] = 0
-        tm.assert_almost_equal(df.values, values)
-
-        # a df that needs alignment first
-        df[df[:-1] < 0] = 2
-        np.putmask(values[:-1], values[:-1] < 0, 2)
-        tm.assert_almost_equal(df.values, values)
-
-        with pytest.raises(TypeError, match='boolean values only'):
-            df[df * 0] = 2
-
-    def test_frame_getitem_setitem_slice(self):
-        # getitem
-        result = self.frame.iloc[:4]
-        expected = self.frame[:4]
-        tm.assert_frame_equal(result, expected)
-
-        # setitem
-        cp = self.frame.copy()
-        cp.iloc[:4] = 0
-
-        assert (cp.values[:4] == 0).all()
-        assert (cp.values[4:] != 0).all()
-
-    def test_frame_getitem_setitem_multislice(self):
-        levels = [['t1', 't2'], ['a', 'b', 'c']]
-        labels = [[0, 0, 0, 1, 1], [0, 1, 2, 0, 1]]
-        midx = MultiIndex(labels=labels, levels=levels, names=[None, 'id'])
-        df = DataFrame({'value': [1, 2, 3, 7, 8]}, index=midx)
-
-        result = df.loc[:, 'value']
-        tm.assert_series_equal(df['value'], result)
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
-            result = df.ix[:, 'value']
-        tm.assert_series_equal(df['value'], result)
-
-        result = df.loc[df.index[1:3], 'value']
-        tm.assert_series_equal(df['value'][1:3], result)
-
-        result = df.loc[:, :]
-        tm.assert_frame_equal(df, result)
-
-        result = df
-        df.loc[:, 'value'] = 10
-        result['value'] = 10
-        tm.assert_frame_equal(df, result)
-
-        df.loc[:, :] = 10
-        tm.assert_frame_equal(df, result)
-
-    def test_frame_getitem_multicolumn_empty_level(self):
-        f = DataFrame({'a': ['1', '2', '3'], 'b': ['2', '3', '4']})
-        f.columns = [['level1 item1', 'level1 item2'], ['', 'level2 item2'],
-                     ['level3 item1', 'level3 item2']]
-
-        result = f['level1 item1']
-        expected = DataFrame([['1'], ['2'], ['3']], index=f.index,
-                             columns=['level3 item1'])
-        tm.assert_frame_equal(result, expected)
 
     def test_frame_setitem_multi_column(self):
         df = DataFrame(randn(10, 4), columns=[['a', 'a', 'b', 'b'],
@@ -414,259 +286,11 @@ class TestMultiLevel(Base):
         assert sliced_a2.name == ('A', '2')
         assert sliced_b1.name == ('B', '1')
 
-    def test_getitem_tuple_plus_slice(self):
-        # GH #671
-        df = DataFrame({'a': lrange(10),
-                        'b': lrange(10),
-                        'c': np.random.randn(10),
-                        'd': np.random.randn(10)})
-
-        idf = df.set_index(['a', 'b'])
-
-        result = idf.loc[(0, 0), :]
-        expected = idf.loc[0, 0]
-        expected2 = idf.xs((0, 0))
-        with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
-            expected3 = idf.ix[0, 0]
-
-        tm.assert_series_equal(result, expected)
-        tm.assert_series_equal(result, expected2)
-        tm.assert_series_equal(result, expected3)
-
-    def test_getitem_setitem_tuple_plus_columns(self):
-        # GH #1013
-
-        df = self.ymd[:5]
-
-        result = df.loc[(2000, 1, 6), ['A', 'B', 'C']]
-        expected = df.loc[2000, 1, 6][['A', 'B', 'C']]
-        tm.assert_series_equal(result, expected)
-
-    def test_xs(self):
-        xs = self.frame.xs(('bar', 'two'))
-        xs2 = self.frame.loc[('bar', 'two')]
-
-        tm.assert_series_equal(xs, xs2)
-        tm.assert_almost_equal(xs.values, self.frame.values[4])
-
-        # GH 6574
-        # missing values in returned index should be preserrved
-        acc = [
-            ('a', 'abcde', 1),
-            ('b', 'bbcde', 2),
-            ('y', 'yzcde', 25),
-            ('z', 'xbcde', 24),
-            ('z', None, 26),
-            ('z', 'zbcde', 25),
-            ('z', 'ybcde', 26),
-        ]
-        df = DataFrame(acc,
-                       columns=['a1', 'a2', 'cnt']).set_index(['a1', 'a2'])
-        expected = DataFrame({'cnt': [24, 26, 25, 26]}, index=Index(
-            ['xbcde', np.nan, 'zbcde', 'ybcde'], name='a2'))
-
-        result = df.xs('z', level='a1')
-        tm.assert_frame_equal(result, expected)
-
-    def test_xs_partial(self):
-        result = self.frame.xs('foo')
-        result2 = self.frame.loc['foo']
-        expected = self.frame.T['foo'].T
-        tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result, result2)
-
-        result = self.ymd.xs((2000, 4))
-        expected = self.ymd.loc[2000, 4]
-        tm.assert_frame_equal(result, expected)
-
-        # ex from #1796
-        index = MultiIndex(levels=[['foo', 'bar'], ['one', 'two'], [-1, 1]],
-                           labels=[[0, 0, 0, 0, 1, 1, 1, 1],
-                                   [0, 0, 1, 1, 0, 0, 1, 1], [0, 1, 0, 1, 0, 1,
-                                                              0, 1]])
-        df = DataFrame(np.random.randn(8, 4), index=index,
-                       columns=list('abcd'))
-
-        result = df.xs(['foo', 'one'])
-        expected = df.loc['foo', 'one']
-        tm.assert_frame_equal(result, expected)
-
-    def test_xs_with_duplicates(self):
-        # Issue #13719
-        df_dup = concat([self.frame] * 2)
-        assert df_dup.index.is_unique is False
-        expected = concat([self.frame.xs('one', level='second')] * 2)
-        tm.assert_frame_equal(df_dup.xs('one', level='second'), expected)
-        tm.assert_frame_equal(df_dup.xs(['one'], level=['second']), expected)
-
-    def test_xs_level(self):
-        result = self.frame.xs('two', level='second')
-        expected = self.frame[self.frame.index.get_level_values(1) == 'two']
-        expected.index = expected.index.droplevel(1)
-
-        tm.assert_frame_equal(result, expected)
-
-        index = MultiIndex.from_tuples([('x', 'y', 'z'), ('a', 'b', 'c'), (
-            'p', 'q', 'r')])
-        df = DataFrame(np.random.randn(3, 5), index=index)
-        result = df.xs('c', level=2)
-        expected = df[1:2]
-        expected.index = expected.index.droplevel(2)
-        tm.assert_frame_equal(result, expected)
-
-        # this is a copy in 0.14
-        result = self.frame.xs('two', level='second')
-
-        # setting this will give a SettingWithCopyError
-        # as we are trying to write a view
-        def f(x):
-            x[:] = 10
-
-        pytest.raises(com.SettingWithCopyError, f, result)
-
-    def test_xs_level_multiple(self):
-        text = """                      A       B       C       D        E
-one two three   four
-a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
-a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
-x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
-
-        df = read_csv(StringIO(text), sep=r'\s+', engine='python')
-
-        result = df.xs(('a', 4), level=['one', 'four'])
-        expected = df.xs('a').xs(4, level='four')
-        tm.assert_frame_equal(result, expected)
-
-        # this is a copy in 0.14
-        result = df.xs(('a', 4), level=['one', 'four'])
-
-        # setting this will give a SettingWithCopyError
-        # as we are trying to write a view
-        def f(x):
-            x[:] = 10
-
-        pytest.raises(com.SettingWithCopyError, f, result)
-
-        # GH2107
-        dates = lrange(20111201, 20111205)
-        ids = 'abcde'
-        idx = MultiIndex.from_tuples([x for x in cart_product(dates, ids)])
-        idx.names = ['date', 'secid']
-        df = DataFrame(np.random.randn(len(idx), 3), idx, ['X', 'Y', 'Z'])
-
-        rs = df.xs(20111201, level='date')
-        xp = df.loc[20111201, :]
-        tm.assert_frame_equal(rs, xp)
-
-    def test_xs_level0(self):
-        text = """                      A       B       C       D        E
-one two three   four
-a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
-a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
-x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
-
-        df = read_csv(StringIO(text), sep=r'\s+', engine='python')
-
-        result = df.xs('a', level=0)
-        expected = df.xs('a')
-        assert len(result) == 2
-        tm.assert_frame_equal(result, expected)
-
-    def test_xs_level_series(self):
-        s = self.frame['A']
-        result = s[:, 'two']
-        expected = self.frame.xs('two', level=1)['A']
-        tm.assert_series_equal(result, expected)
-
-        s = self.ymd['A']
-        result = s[2000, 5]
-        expected = self.ymd.loc[2000, 5]['A']
-        tm.assert_series_equal(result, expected)
-
-        # not implementing this for now
-
-        pytest.raises(TypeError, s.__getitem__, (2000, slice(3, 4)))
-
-        # result = s[2000, 3:4]
-        # lv =s.index.get_level_values(1)
-        # expected = s[(lv == 3) | (lv == 4)]
-        # expected.index = expected.index.droplevel(0)
-        # tm.assert_series_equal(result, expected)
-
-        # can do this though
-
     def test_get_loc_single_level(self):
         s = Series(np.random.randn(len(self.single_level)),
                    index=self.single_level)
         for k in self.single_level.values:
             s[k]
-
-    def test_getitem_toplevel(self):
-        df = self.frame.T
-
-        result = df['foo']
-        expected = df.reindex(columns=df.columns[:3])
-        expected.columns = expected.columns.droplevel(0)
-        tm.assert_frame_equal(result, expected)
-
-        result = df['bar']
-        result2 = df.loc[:, 'bar']
-
-        expected = df.reindex(columns=df.columns[3:5])
-        expected.columns = expected.columns.droplevel(0)
-        tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result, result2)
-
-    def test_getitem_setitem_slice_integers(self):
-        index = MultiIndex(levels=[[0, 1, 2], [0, 2]],
-                           labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]])
-
-        frame = DataFrame(np.random.randn(len(index), 4), index=index,
-                          columns=['a', 'b', 'c', 'd'])
-        res = frame.loc[1:2]
-        exp = frame.reindex(frame.index[2:])
-        tm.assert_frame_equal(res, exp)
-
-        frame.loc[1:2] = 7
-        assert (frame.loc[1:2] == 7).values.all()
-
-        series = Series(np.random.randn(len(index)), index=index)
-
-        res = series.loc[1:2]
-        exp = series.reindex(series.index[2:])
-        tm.assert_series_equal(res, exp)
-
-        series.loc[1:2] = 7
-        assert (series.loc[1:2] == 7).values.all()
-
-    def test_getitem_int(self):
-        levels = [[0, 1], [0, 1, 2]]
-        labels = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
-        index = MultiIndex(levels=levels, labels=labels)
-
-        frame = DataFrame(np.random.randn(6, 2), index=index)
-
-        result = frame.loc[1]
-        expected = frame[-3:]
-        expected.index = expected.index.droplevel(0)
-        tm.assert_frame_equal(result, expected)
-
-        # raises exception
-        pytest.raises(KeyError, frame.loc.__getitem__, 3)
-
-        # however this will work
-        result = self.frame.iloc[2]
-        expected = self.frame.xs(self.frame.index[2])
-        tm.assert_series_equal(result, expected)
-
-    def test_getitem_partial(self):
-        ymd = self.ymd.T
-        result = ymd[2000, 2]
-
-        expected = ymd.reindex(columns=ymd.columns[ymd.columns.labels[1] == 1])
-        expected.columns = expected.columns.droplevel(0).droplevel(0)
-        tm.assert_frame_equal(result, expected)
 
     def test_setitem_change_dtype(self):
         dft = self.frame.T
@@ -704,27 +328,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         lev = self.ymd.index.labels[1]
         expected = self.ymd[(lev >= 1) & (lev <= 3)]
         tm.assert_frame_equal(result, expected)
-
-    def test_getitem_partial_column_select(self):
-        idx = MultiIndex(labels=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],
-                         levels=[['a', 'b'], ['x', 'y'], ['p', 'q']])
-        df = DataFrame(np.random.rand(3, 2), index=idx)
-
-        result = df.loc[('a', 'y'), :]
-        expected = df.loc[('a', 'y')]
-        tm.assert_frame_equal(result, expected)
-
-        result = df.loc[('a', 'y'), [1, 0]]
-        expected = df.loc[('a', 'y')][[1, 0]]
-        tm.assert_frame_equal(result, expected)
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
-            result = df.ix[('a', 'y'), [1, 0]]
-        tm.assert_frame_equal(result, expected)
-
-        pytest.raises(KeyError, df.loc.__getitem__,
-                      (('a', 'foo'), slice(None, None)))
 
     def test_delevel_infer_dtype(self):
         tuples = [tuple
@@ -1355,31 +958,6 @@ Thur,Lunch,Yes,51.51,17"""
         exp = x.reindex(exp_index) - y.reindex(exp_index)
         tm.assert_series_equal(res, exp)
 
-    def test_frame_getitem_view(self):
-        df = self.frame.T.copy()
-
-        # this works because we are modifying the underlying array
-        # really a no-no
-        df['foo'].values[:] = 0
-        assert (df['foo'].values == 0).all()
-
-        # but not if it's mixed-type
-        df['foo', 'four'] = 'foo'
-        df = df.sort_index(level=0, axis=1)
-
-        # this will work, but will raise/warn as its chained assignment
-        def f():
-            df['foo']['one'] = 2
-            return df
-
-        pytest.raises(com.SettingWithCopyError, f)
-
-        try:
-            df = f()
-        except ValueError:
-            pass
-        assert (df['foo', 'one'] == 0).all()
-
     def test_count(self):
         frame = self.frame.copy()
         frame.index.names = ['a', 'b']
@@ -1637,14 +1215,6 @@ Thur,Lunch,Yes,51.51,17"""
         missing = tuple([0, 1] * 5 * N)
         result = index.get_indexer([missing] + [keys[i] for i in idces])
         tm.assert_numpy_array_equal(result, expected)
-
-    def test_getitem_lowerdim_corner(self):
-        pytest.raises(KeyError, self.frame.loc.__getitem__,
-                      (('bar', 'three'), 'B'))
-
-        # in theory should be inserting in a sorted space????
-        self.frame.loc[('bar', 'three'), 'B'] = 0
-        assert self.frame.sort_index().loc[('bar', 'three'), 'B'] == 0
 
     # ---------------------------------------------------------------------
     # AMBIGUOUS CASES!
