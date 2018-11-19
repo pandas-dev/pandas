@@ -314,13 +314,13 @@ def indent(text, indents=1):
 
 def make_signature(func):
     """
-    Returns a string repr of tuple - the arg list of a func call with
-    any defaults and the arg list.
+    Returns a tuple containing the paramenter list with defaults
+    and parameter list.
 
     Examples
     --------
-    >>> def f(a,b,c=2) :
-    >>>     return a*b*c
+    >>> def f(a, b, c=2):
+    >>>     return a * b * c
     >>> print(make_signature(f))
     (['a', 'b', 'c=2'], ['a', 'b', 'c'])
     """
