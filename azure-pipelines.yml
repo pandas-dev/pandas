@@ -82,12 +82,26 @@ jobs:
     displayName: 'Building docs'
     condition: true
 
-  - task: PublishBuildArtifacts@1
-    inputs:
-      pathtoPublish: $(Build.SourcesDirectory)/doc/build/html
-      artifactName: 'docs'
-      publishLocation: 'Container'
-      parallel: true
-      parallelCount: 8
-    displayName: 'Publshing docs'
+  - script: |
+      export REPO_DIR=$(Build.ArtifactStagingDirectory)/pandas-docs-travis
+      if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
+          export NAME="master"
+      else
+          export NAME=$(System.PullRequest.PullRequestId)
+      fi
+      echo $(Build.SourceBranch)
+      echo $NAME
+      export PR_DIR=$REPO_DIR/pr/$NAME
+      git clone https://$(GITHUB_DOC_TOKEN)@github.com/pandas-dev/pandas-docs-travis.git $REPO_DIR
+      mkdir -p $PR_DIR
+      rm -rf $PR_DIR/*
+      cp -r doc/build/html/* $PR_DIR/
+      cp LICENSE $PR_DIR/
+      cd $REPO_DIR
+      git add --all .
+      git config user.email "pandas-docs-bot@localhost"
+      git config user.name "pandas-docs-bot"
+      git commit -m "Added pandas documentation for $NAME"
+      git push
+    displayName: 'Publishing docs'
     condition: true
