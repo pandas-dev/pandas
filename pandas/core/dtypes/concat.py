@@ -231,7 +231,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     sort_categories : boolean, default False
         If true, resulting categories will be lexsorted, otherwise
         they will be ordered as they appear in the data.
-    ignore_order: boolean, default False
+    ignore_order : boolean, default False
         If true, the ordered attribute of the Categoricals will be ignored.
         Results in an unordered categorical.
 
