@@ -752,7 +752,6 @@ class TestValidator(object):
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method',
         'private_classes',
-        'two_linebreaks_between_sections', 'linebreak_at_end_of_docstring',
     ])
     def test_bad_generic_functions(self, func):
         errors = validate_one(self._import_path(  # noqa:F821
@@ -841,8 +840,16 @@ class TestValidator(object):
           'E226 missing whitespace around arithmetic operator',)),
         ('BadExamples', 'missing_whitespace_after_comma',
          ("flake8 error: E231 missing whitespace after ',' (3 times)",)),
+        ('BadGenericDocStrings', 'two_linebreaks_between_sections',
+         ('Double line break found; please use only one blank line to '
+          'separate sections or paragraphs, and do not leave blank lines '
+          'at the end of docstrings',)),
+        ('BadGenericDocStrings', 'linebreak_at_end_of_docstring',
+         ('Double line break found; please use only one blank line to '
+          'separate sections or paragraphs, and do not leave blank lines '
+          'at the end of docstrings',)),
     ])
-    def test_bad_examples(self, capsys, klass, func, msgs):
+    def test_bad_docstrings(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))
         for msg in msgs:
             assert msg in ' '.join(err[1] for err in result['errors'])
