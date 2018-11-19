@@ -2273,7 +2273,7 @@ def to_object_array_tuples(rows: list):
 
     k = 0
     for i in range(n):
-        tmp = len(rows[i])
+        tmp = 1 if checknull(rows[i]) else len(rows[i])
         if tmp > k:
             k = tmp
 
@@ -2287,7 +2287,7 @@ def to_object_array_tuples(rows: list):
     except Exception:
         # upcast any subclasses to tuple
         for i in range(n):
-            row = tuple(rows[i])
+            row = (rows[i],) if checknull(rows[i]) else tuple(rows[i])
             for j in range(len(row)):
                 result[i, j] = row[j]
 
