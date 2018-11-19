@@ -423,14 +423,14 @@ class TestSafeSort(object):
             pytest.raises(TypeError, safe_sort, arr)
 
     def test_exceptions(self):
-        with tm.assert_raises_regex(TypeError,
-                                    "Only list-like objects are allowed"):
+        with pytest.raises(TypeError,
+                           match="Only list-like objects are allowed"):
             safe_sort(values=1)
 
-        with tm.assert_raises_regex(TypeError,
-                                    "Only list-like objects or None"):
+        with pytest.raises(TypeError,
+                           match="Only list-like objects or None"):
             safe_sort(values=[0, 1, 2], labels=1)
 
-        with tm.assert_raises_regex(ValueError,
-                                    "values should be unique"):
+        with pytest.raises(ValueError,
+                           match="values should be unique"):
             safe_sort(values=[0, 1, 2, 1], labels=[0, 1])

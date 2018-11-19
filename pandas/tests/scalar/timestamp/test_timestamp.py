@@ -244,7 +244,10 @@ class TestTimestampConstructors(object):
                     assert conversion.pydt_to_i8(result) == expected_tz
 
                     # should convert to UTC
-                    result = Timestamp(result, tz='UTC')
+                    if tz is not None:
+                        result = Timestamp(result).tz_convert('UTC')
+                    else:
+                        result = Timestamp(result, tz='UTC')
                     expected_utc = expected - offset * 3600 * 1000000000
                     assert result.value == expected_utc
                     assert conversion.pydt_to_i8(result) == expected_utc
@@ -295,7 +298,7 @@ class TestTimestampConstructors(object):
                 assert conversion.pydt_to_i8(result) == expected_tz
 
                 # should convert to UTC
-                result = Timestamp(result, tz='UTC')
+                result = Timestamp(result).tz_convert('UTC')
                 expected_utc = expected
                 assert result.value == expected_utc
                 assert conversion.pydt_to_i8(result) == expected_utc
@@ -334,20 +337,20 @@ class TestTimestampConstructors(object):
         assert result == eval(repr(result))
 
     def test_constructor_invalid(self):
-        with tm.assert_raises_regex(TypeError, 'Cannot convert input'):
+        with pytest.raises(TypeError, match='Cannot convert input'):
             Timestamp(slice(2))
-        with tm.assert_raises_regex(ValueError, 'Cannot convert Period'):
+        with pytest.raises(ValueError, match='Cannot convert Period'):
             Timestamp(Period('1000-01-01'))
 
     def test_constructor_invalid_tz(self):
         # GH#17690
-        with tm.assert_raises_regex(TypeError, 'must be a datetime.tzinfo'):
+        with pytest.raises(TypeError, match='must be a datetime.tzinfo'):
             Timestamp('2017-10-22', tzinfo='US/Eastern')
 
-        with tm.assert_raises_regex(ValueError, 'at most one of'):
+        with pytest.raises(ValueError, match='at most one of'):
             Timestamp('2017-10-22', tzinfo=utc, tz='UTC')
 
-        with tm.assert_raises_regex(ValueError, "Invalid frequency:"):
+        with pytest.raises(ValueError, match="Invalid frequency:"):
             # GH#5168
             # case where user tries to pass tz as an arg, not kwarg, gets
             # interpreted as a `freq`
@@ -558,7 +561,7 @@ class TestTimestampConstructors(object):
         # GH 20854
         expected = Timestamp('2016-10-30 03:00:00{}'.format(offset),
                              tz='Europe/Helsinki')
-        result = Timestamp(expected, tz='Europe/Helsinki')
+        result = Timestamp(expected).tz_convert('Europe/Helsinki')
         assert result == expected
 
     @pytest.mark.parametrize('arg', [
@@ -574,6 +577,18 @@ class TestTimestampConstructors(object):
         result = Timestamp(Timestamp('2010-08-08', freq='D')).freq
         expected = offsets.Day()
         assert result == expected
+
+    def test_constructor_invalid_frequency(self):
+        # GH 22311
+        with pytest.raises(ValueError, match="Invalid frequency:"):
+            Timestamp('2012-01-01', freq=[])
+
+    @pytest.mark.parametrize('box', [datetime, Timestamp])
+    def test_depreciate_tz_and_tzinfo_in_datetime_input(self, box):
+        # GH 23579
+        kwargs = {'year': 2018, 'month': 1, 'day': 1, 'tzinfo': utc}
+        with tm.assert_produces_warning(FutureWarning):
+            Timestamp(box(**kwargs), tz='US/Pacific')
 
 
 class TestTimestamp(object):

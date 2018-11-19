@@ -37,6 +37,7 @@ cdef extern from "src/datetime/np_datetime_strings.h":
                                 npy_datetimestruct *out,
                                 int *out_local, int *out_tzoffset)
 
+
 # ----------------------------------------------------------------------
 # numpy object inspection
 

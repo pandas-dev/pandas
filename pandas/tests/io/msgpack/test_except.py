@@ -4,7 +4,6 @@ from datetime import datetime
 from pandas.io.msgpack import packb, unpackb
 
 import pytest
-import pandas.util.testing as tm
 
 
 class DummyException(Exception):
@@ -15,7 +14,7 @@ class TestExceptions(object):
 
     def test_raise_on_find_unsupported_value(self):
         msg = "can\'t serialize datetime"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             packb(datetime.now())
 
     def test_raise_from_object_hook(self):
@@ -35,5 +34,5 @@ class TestExceptions(object):
 
     def test_invalid_value(self):
         msg = "Unpack failed: error"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             unpackb(b"\xd9\x97#DL_")

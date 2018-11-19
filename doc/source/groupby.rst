@@ -79,7 +79,7 @@ pandas objects can be split on any of their axes. The abstract definition of
 grouping is to provide a mapping of labels to group names. To create a GroupBy
 object (more on what the GroupBy object is later), you may do the following:
 
-.. code-block:: ipython
+.. code-block:: python
 
    # default is axis=0
    >>> grouped = obj.groupby(key)
@@ -995,6 +995,33 @@ Note that ``df.groupby('A').colname.std().`` is more efficient than
 is only interesting over one column (here ``colname``), it may be filtered
 *before* applying the aggregation function.
 
+.. note::
+   Any object column, also if it contains numerical values such as ``Decimal``
+   objects, is considered as a "nuisance" columns. They are excluded from
+   aggregate functions automatically in groupby.
+
+   If you do wish to include decimal or object columns in an aggregation with
+   other non-nuisance data types, you must do so explicitly.
+
+.. ipython:: python
+
+    from decimal import Decimal
+    df_dec = pd.DataFrame(
+        {'id': [1, 2, 1, 2],
+         'int_column': [1, 2, 3, 4],
+         'dec_column': [Decimal('0.50'), Decimal('0.15'), Decimal('0.25'), Decimal('0.40')]
+        }
+    )
+
+    # Decimal columns can be sum'd explicitly by themselves...
+    df_dec.groupby(['id'])[['dec_column']].sum()
+
+    # ...but cannot be combined with standard data types or they will be excluded
+    df_dec.groupby(['id'])[['int_column', 'dec_column']].sum()
+
+    # Use .agg function to aggregate over standard and "nuisance" data types at the same time
+    df_dec.groupby(['id']).agg({'int_column': 'sum', 'dec_column': 'sum'})
+
 .. _groupby.observed:
 
 Handling of (un)observed Categorical values
@@ -1283,7 +1310,7 @@ arbitrary function, for example:
 
 .. code-block:: python
 
-   (df.groupby(['Store', 'Product']).pipe(report_func)
+   df.groupby(['Store', 'Product']).pipe(report_func)
 
 where ``report_func`` takes a GroupBy object and creates a report
 from that.

@@ -173,11 +173,11 @@ class MultiIndex(Index):
 
     See Also
     --------
-    MultiIndex.from_arrays  : Convert list of arrays to MultiIndex
+    MultiIndex.from_arrays  : Convert list of arrays to MultiIndex.
     MultiIndex.from_product : Create a MultiIndex from the cartesian product
-                              of iterables
-    MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex
-    Index : The base pandas Index type
+                              of iterables.
+    MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex.
+    Index : The base pandas Index type.
 
     Attributes
     ----------
@@ -196,6 +196,7 @@ class MultiIndex(Index):
     set_levels
     set_labels
     to_frame
+    to_flat_index
     is_lexsorted
     sortlevel
     droplevel
@@ -1179,7 +1180,7 @@ class MultiIndex(Index):
         -------
         DataFrame : a DataFrame containing the original MultiIndex data.
 
-        See also
+        See Also
         --------
         DataFrame
         """
@@ -1255,6 +1256,34 @@ class MultiIndex(Index):
                       FutureWarning, stacklevel=2)
         return MultiIndex(levels=levels, labels=labels, names=names)
 
+    def to_flat_index(self):
+        """
+        Convert a MultiIndex to an Index of Tuples containing the level values.
+
+        .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        pd.Index
+            Index with the MultiIndex data represented in Tuples.
+
+        Notes
+        -----
+        This method will simply return the caller if called by anything other
+        than a MultiIndex.
+
+        Examples
+        --------
+        >>> index = pd.MultiIndex.from_product(
+        ...     [['foo', 'bar'], ['baz', 'qux']],
+        ...     names=['a', 'b'])
+        >>> index.to_flat_index()
+        Index([('foo', 'baz'), ('foo', 'qux'),
+               ('bar', 'baz'), ('bar', 'qux')],
+              dtype='object')
+        """
+        return Index(self.values, tupleize_cols=False)
+
     @property
     def is_all_dates(self):
         return False
@@ -1305,9 +1334,9 @@ class MultiIndex(Index):
 
         See Also
         --------
-        MultiIndex.from_tuples : Convert list of tuples to MultiIndex
+        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
         MultiIndex.from_product : Make a MultiIndex from cartesian product
-                                  of iterables
+                                  of iterables.
         MultiIndex.from_frame : Make a MultiIndex from a DataFrame.
         """
         if not is_list_like(arrays):
@@ -1413,8 +1442,8 @@ class MultiIndex(Index):
 
         See Also
         --------
-        MultiIndex.from_arrays : Convert list of arrays to MultiIndex
-        MultiIndex.from_tuples : Convert list of tuples to MultiIndex
+        MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
+        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
         MultiIndex.from_frame : Make a MultiIndex from a DataFrame.
         """
         from pandas.core.arrays.categorical import _factorize_from_iterables
@@ -1899,9 +1928,9 @@ class MultiIndex(Index):
 
         See Also
         --------
-        Series.swaplevel : Swap levels i and j in a MultiIndex
+        Series.swaplevel : Swap levels i and j in a MultiIndex.
         Dataframe.swaplevel : Swap levels i and j in a MultiIndex on a
-            particular axis
+            particular axis.
 
         Examples
         --------
@@ -1980,7 +2009,7 @@ class MultiIndex(Index):
         ascending : boolean, default True
             False to sort in descending order
             Can also be a list to specify a directed ordering
-        sort_remaining : sort by the remaining levels after level.
+        sort_remaining : sort by the remaining levels after level
 
         Returns
         -------
@@ -2299,9 +2328,9 @@ class MultiIndex(Index):
         or a sequence of such. If you want to use those, use
         :meth:`MultiIndex.get_locs` instead.
 
-        See also
+        See Also
         --------
-        Index.get_loc : get_loc method for (single-level) index.
+        Index.get_loc : The get_loc method for (single-level) index.
         MultiIndex.slice_locs : Get slice location given start label(s) and
                                 end label(s).
         MultiIndex.get_locs : Get location for a label/slice/list/mask or a
@@ -2405,7 +2434,7 @@ class MultiIndex(Index):
         ---------
         MultiIndex.get_loc  : Get location for a label or a tuple of labels.
         MultiIndex.get_locs : Get location for a label/slice/list/mask or a
-                              sequence of such
+                              sequence of such.
         """
 
         def maybe_droplevels(indexer, levels, drop_level):
@@ -2625,7 +2654,7 @@ class MultiIndex(Index):
         >>> mi.get_locs([[True, False, True], slice('e', 'f')])
         array([2], dtype=int64)
 
-        See also
+        See Also
         --------
         MultiIndex.get_loc : Get location for a label or a tuple of labels.
         MultiIndex.slice_locs : Get slice location given start label(s) and
@@ -2752,7 +2781,7 @@ class MultiIndex(Index):
         Determines if two MultiIndex objects have the same labeling information
         (the levels themselves do not necessarily have to be the same)
 
-        See also
+        See Also
         --------
         equal_levels
         """

@@ -1,18 +1,29 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
+import warnings
 
 import numpy as np
 
 from pandas._libs import tslibs
-from pandas._libs.tslibs import Timedelta, Timestamp, NaT
+from pandas._libs.tslibs import Timedelta, Timestamp, NaT, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
-from pandas._libs.tslibs.timedeltas import array_to_timedelta64
+from pandas._libs.tslibs.timedeltas import (
+    array_to_timedelta64, parse_timedelta_unit)
+from pandas.util._decorators import Appender
 
 from pandas import compat
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, is_list_like)
-from pandas.core.dtypes.generic import ABCSeries
+    _TD_DTYPE,
+    is_object_dtype,
+    is_string_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_timedelta64_dtype,
+    is_datetime64_dtype,
+    is_list_like,
+    ensure_int64)
+from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
@@ -81,7 +92,7 @@ def _td_array_cmp(cls, op):
             raise TypeError(msg.format(cls=type(self).__name__,
                                        typ=type(other).__name__))
         else:
-            other = type(self)(other).values
+            other = type(self)(other)._data
             result = meth(self, other)
             result = com.values_from_object(result)
 
@@ -98,6 +109,8 @@ def _td_array_cmp(cls, op):
 
 
 class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
+    _typ = "timedeltaarray"
+
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit='ns')
@@ -127,7 +140,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         result._freq = freq
         return result
 
-    def __new__(cls, values, freq=None):
+    def __new__(cls, values, freq=None, dtype=_TD_DTYPE):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
@@ -137,9 +150,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         result = cls._simple_new(values, freq=freq)
         if freq_infer:
-            inferred = result.inferred_freq
-            if inferred:
-                result.freq = to_offset(inferred)
+            result.freq = to_offset(result.inferred_freq)
 
         return result
 
@@ -179,6 +190,20 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             index = index[:-1]
 
         return cls._simple_new(index, freq=freq)
+
+    # ----------------------------------------------------------------
+    # Array-Like / EA-Interface Methods
+
+    @Appender(dtl.DatetimeLikeArrayMixin._validate_fill_value.__doc__)
+    def _validate_fill_value(self, fill_value):
+        if isna(fill_value):
+            fill_value = iNaT
+        elif isinstance(fill_value, (timedelta, np.timedelta64, Tick)):
+            fill_value = Timedelta(fill_value).value
+        else:
+            raise ValueError("'fill_value' should be a Timedelta. "
+                             "Got '{got}'.".format(got=fill_value))
+        return fill_value
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
@@ -274,6 +299,11 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                 return result
 
         return NotImplemented
+
+    def __neg__(self):
+        if self.freq is not None:
+            return type(self)(-self._data, freq=-self.freq)
+        return type(self)(-self._data)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timedelta methods
@@ -394,6 +424,172 @@ TimedeltaArrayMixin._add_datetimelike_methods()
 
 # ---------------------------------------------------------------------
 # Constructor Helpers
+
+def sequence_to_td64ns(data, copy=False, unit="ns", errors="raise"):
+    """
+    Parameters
+    ----------
+    array : list-like
+    copy : bool, default False
+    unit : str, default "ns"
+        The timedelta unit to treat integers as multiples of.
+    errors : {"raise", "coerce", "ignore"}, default "raise"
+        How to handle elements that cannot be converted to timedelta64[ns].
+        See ``pandas.to_timedelta`` for details.
+
+    Returns
+    -------
+    converted : numpy.ndarray
+        The sequence converted to a numpy array with dtype ``timedelta64[ns]``.
+    inferred_freq : Tick or None
+        The inferred frequency of the sequence.
+
+    Raises
+    ------
+    ValueError : Data cannot be converted to timedelta64[ns].
+
+    Notes
+    -----
+    Unlike `pandas.to_timedelta`, if setting ``errors=ignore`` will not cause
+    errors to be ignored; they are caught and subsequently ignored at a
+    higher level.
+    """
+    inferred_freq = None
+    unit = parse_timedelta_unit(unit)
+
+    # Unwrap whatever we have into a np.ndarray
+    if not hasattr(data, 'dtype'):
+        # e.g. list, tuple
+        if np.ndim(data) == 0:
+            # i.e. generator
+            data = list(data)
+        data = np.array(data, copy=False)
+    elif isinstance(data, ABCSeries):
+        data = data._values
+    elif isinstance(data, (ABCTimedeltaIndex, TimedeltaArrayMixin)):
+        inferred_freq = data.freq
+        data = data._data
+
+    # Convert whatever we have into timedelta64[ns] dtype
+    if is_object_dtype(data) or is_string_dtype(data):
+        # no need to make a copy, need to convert if string-dtyped
+        data = objects_to_td64ns(data, unit=unit, errors=errors)
+        copy = False
+
+    elif is_integer_dtype(data):
+        # treat as multiples of the given unit
+        data, copy_made = ints_to_td64ns(data, unit=unit)
+        copy = copy and not copy_made
+
+    elif is_float_dtype(data):
+        # treat as multiples of the given unit.  If after converting to nanos,
+        #  there are fractional components left, these are truncated
+        #  (i.e. NOT rounded)
+        mask = np.isnan(data)
+        coeff = np.timedelta64(1, unit) / np.timedelta64(1, 'ns')
+        data = (coeff * data).astype(np.int64).view('timedelta64[ns]')
+        data[mask] = iNaT
+        copy = False
+
+    elif is_timedelta64_dtype(data):
+        if data.dtype != _TD_DTYPE:
+            # non-nano unit
+            # TODO: watch out for overflows
+            data = data.astype(_TD_DTYPE)
+            copy = False
+
+    elif is_datetime64_dtype(data):
+        # GH#23539
+        warnings.warn("Passing datetime64-dtype data to TimedeltaIndex is "
+                      "deprecated, will raise a TypeError in a future "
+                      "version",
+                      FutureWarning, stacklevel=3)
+        data = ensure_int64(data).view(_TD_DTYPE)
+
+    else:
+        raise TypeError("dtype {dtype} cannot be converted to timedelta64[ns]"
+                        .format(dtype=data.dtype))
+
+    data = np.array(data, copy=copy)
+    assert data.dtype == 'm8[ns]', data
+    return data, inferred_freq
+
+
+def ints_to_td64ns(data, unit="ns"):
+    """
+    Convert an ndarray with integer-dtype to timedelta64[ns] dtype, treating
+    the integers as multiples of the given timedelta unit.
+
+    Parameters
+    ----------
+    data : numpy.ndarray with integer-dtype
+    unit : str, default "ns"
+        The timedelta unit to treat integers as multiples of.
+
+    Returns
+    -------
+    numpy.ndarray : timedelta64[ns] array converted from data
+    bool : whether a copy was made
+    """
+    copy_made = False
+    unit = unit if unit is not None else "ns"
+
+    if data.dtype != np.int64:
+        # converting to int64 makes a copy, so we can avoid
+        # re-copying later
+        data = data.astype(np.int64)
+        copy_made = True
+
+    if unit != "ns":
+        dtype_str = "timedelta64[{unit}]".format(unit=unit)
+        data = data.view(dtype_str)
+
+        # TODO: watch out for overflows when converting from lower-resolution
+        data = data.astype("timedelta64[ns]")
+        # the astype conversion makes a copy, so we can avoid re-copying later
+        copy_made = True
+
+    else:
+        data = data.view("timedelta64[ns]")
+
+    return data, copy_made
+
+
+def objects_to_td64ns(data, unit="ns", errors="raise"):
+    """
+    Convert a object-dtyped or string-dtyped array into an
+    timedelta64[ns]-dtyped array.
+
+    Parameters
+    ----------
+    data : ndarray or Index
+    unit : str, default "ns"
+        The timedelta unit to treat integers as multiples of.
+    errors : {"raise", "coerce", "ignore"}, default "raise"
+        How to handle elements that cannot be converted to timedelta64[ns].
+        See ``pandas.to_timedelta`` for details.
+
+    Returns
+    -------
+    numpy.ndarray : timedelta64[ns] array converted from data
+
+    Raises
+    ------
+    ValueError : Data cannot be converted to timedelta64[ns].
+
+    Notes
+    -----
+    Unlike `pandas.to_timedelta`, if setting `errors=ignore` will not cause
+    errors to be ignored; they are caught and subsequently ignored at a
+    higher level.
+    """
+    # coerce Index to np.ndarray, converting string-dtype if necessary
+    values = np.array(data, dtype=np.object_, copy=False)
+
+    result = array_to_timedelta64(values,
+                                  unit=unit, errors=errors)
+    return result.view('timedelta64[ns]')
+
 
 def _generate_regular_range(start, end, periods, offset):
     stride = offset.nanos

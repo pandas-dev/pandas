@@ -170,7 +170,7 @@ We'll now kick off a three-step process:
 .. code-block:: none
 
    # Create and activate the build environment
-   conda env create -f ci/environment-dev.yaml
+   conda env create -f environment.yml
    conda activate pandas-dev
 
    # or with older versions of Anaconda:
@@ -179,9 +179,6 @@ We'll now kick off a three-step process:
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
    python -m pip install -e .
-
-   # Install the rest of the optional dependencies
-   conda install -c defaults -c conda-forge --file=ci/requirements-optional-conda.txt
 
 At this point you should be able to import pandas from your locally built version::
 
@@ -221,13 +218,11 @@ You'll need to have at least python3.5 installed on your system.
    . ~/virtualenvs/pandas-dev/bin/activate
 
    # Install the build dependencies
-   python -m pip install -r ci/requirements_dev.txt
+   python -m pip install -r requirements-dev.txt
+
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
    python -m pip install -e .
-
-   # Install additional dependencies
-   python -m pip install -r ci/requirements-optional-pip.txt
 
 Creating a branch
 -----------------
@@ -596,21 +591,14 @@ run this slightly modified command::
 
    git diff master --name-only -- "*.py" | grep "pandas/" | xargs flake8
 
-Note that on Windows, these commands are unfortunately not possible because
-commands like ``grep`` and ``xargs`` are not available natively. To imitate the
-behavior with the commands above, you should run::
+Windows does not support the ``grep`` and ``xargs`` commands (unless installed
+for example via the `MinGW <http://www.mingw.org/>`__ toolchain), but one can
+imitate the behaviour as follows::
 
-    git diff master --name-only -- "*.py"
+    for /f %i in ('git diff upstream/master --name-only ^| findstr pandas/') do flake8 %i
 
-This will list all of the Python files that have been modified. The only ones
-that matter during linting are any whose directory filepath begins with "pandas."
-For each filepath, copy and paste it after the ``flake8`` command as shown below:
-
-    flake8 <python-filepath>
-
-Alternatively, you can install the ``grep`` and ``xargs`` commands via the
-`MinGW <http://www.mingw.org/>`__ toolchain, and it will allow you to run the
-commands above.
+This will also get all the files being changed by the PR (and within the
+``pandas/`` folder), and run ``flake8`` on them one after the other.
 
 .. _contributing.import-formatting:
 
@@ -792,7 +780,7 @@ Transitioning to ``pytest``
 .. code-block:: python
 
     class TestReallyCoolFeature(object):
-        ....
+        pass
 
 Going forward, we are moving to a more *functional* style using the `pytest <http://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
 framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
@@ -800,7 +788,7 @@ framework that will facilitate testing and developing. Thus, instead of writing 
 .. code-block:: python
 
     def test_really_cool_feature():
-        ....
+        pass
 
 Using ``pytest``
 ~~~~~~~~~~~~~~~~
@@ -825,24 +813,29 @@ We would name this file ``test_cool_feature.py`` and put in an appropriate place
    import pandas as pd
    from pandas.util import testing as tm
 
+
    @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
    def test_dtypes(dtype):
        assert str(np.dtype(dtype)) == dtype
 
-   @pytest.mark.parametrize('dtype', ['float32',
-       pytest.param('int16', marks=pytest.mark.skip),
-       pytest.param('int32',
-                    marks=pytest.mark.xfail(reason='to show how it works'))])
+
+   @pytest.mark.parametrize(
+       'dtype', ['float32', pytest.param('int16', marks=pytest.mark.skip),
+                 pytest.param('int32', marks=pytest.mark.xfail(
+                     reason='to show how it works'))])
    def test_mark(dtype):
        assert str(np.dtype(dtype)) == 'float32'
+
 
    @pytest.fixture
    def series():
        return pd.Series([1, 2, 3])
 
+
    @pytest.fixture(params=['int8', 'int16', 'int32', 'int64'])
    def dtype(request):
        return request.param
+
 
    def test_series(series, dtype):
        result = series.astype(dtype)
@@ -911,6 +904,7 @@ for details <https://hypothesis.readthedocs.io/en/latest/index.html>`_.
         st.none(), st.booleans(), st.floats(allow_nan=False), st.text(),
         st.lists(any_json_value), st.dictionaries(st.text(), any_json_value)
     ))
+
 
     @given(value=any_json_value)
     def test_json_roundtrip(value):
@@ -1102,7 +1096,7 @@ Information on how to write a benchmark and how to use asv can be found in the
 Documenting your code
 ---------------------
 
-Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.txt``.
+Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.rst``.
 This file contains an ongoing change log for each release.  Add an entry to this file to
 document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
 GitHub issue number when adding your entry (using ``:issue:`1234``` where ``1234`` is the
