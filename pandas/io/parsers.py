@@ -74,7 +74,16 @@ filepath_or_buffer : str, path object, or file-like object
 
     By file-like object, we refer to objects with a ``read()`` method, such as
     a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
-{sep_doc}
+sep : str, default {_default_sep}
+    Delimiter to use. If sep is None, the C engine cannot automatically detect
+    the separator, but the Python parsing engine can, meaning the latter will
+    be used and automatically detect the separator by Python's builtin sniffer
+    tool, ``csv.Sniffer``. In addition, separators longer than 1 character and
+    different from ``'\s+'`` will be interpreted as regular expressions and
+    will also force the use of the Python parsing engine. Note that regex
+    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``.
+delimiter : str, default ``None``
+    Alias for sep.
 header : int or list of ints, default 'infer'
     Row number(s) to use as the column names, and the start of the
     data.  Default behavior is to infer the column names: if no names
@@ -130,7 +139,9 @@ dtype : Type name or dict of column -> type, default None
     to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
-{engine_doc}
+engine : {{'c', 'python'}}, optional
+    Parser engine to use. The C engine is faster while the python engine is
+    currently more feature-complete.
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels.
@@ -325,23 +336,6 @@ Examples
 --------
 >>> pd.{func_name}('data.csv')  # doctest: +SKIP
 """
-
-# engine is not used in read_fwf() so is factored out of the shared docstring
-_engine_doc = """engine : {'c', 'python'}, optional
-    Parser engine to use. The C engine is faster while the python engine is
-    currently more feature-complete."""
-
-_sep_doc = r"""sep : str, default {default}
-    Delimiter to use. If sep is None, the C engine cannot automatically detect
-    the separator, but the Python parsing engine can, meaning the latter will
-    be used and automatically detect the separator by Python's builtin sniffer
-    tool, ``csv.Sniffer``. In addition, separators longer than 1 character and
-    different from ``'\s+'`` will be interpreted as regular expressions and
-    will also force the use of the Python parsing engine. Note that regex
-    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``.
-delimiter : str, default ``None``
-    Alias for sep.
-    """
 
 
 def _validate_integer(name, val, min_val=0):
@@ -710,8 +704,7 @@ read_csv = Appender(_parser_params.format(
                     func_name='read_csv',
                     summary=('Read a comma-separated values (csv) file '
                              'into DataFrame.'),
-                    sep_doc=_sep_doc.format(default="','"),
-                    engine_doc=_engine_doc)
+                    _default_sep="','")
                     )(read_csv)
 
 read_table = _make_parser_function('read_table', default_sep='\t')
@@ -721,8 +714,7 @@ read_table = Appender(_parser_params.format(
 
 .. deprecated:: 0.24.0
 Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
-                      sep_doc=_sep_doc.format(default="\\t (tab-stop)"),
-                      engine_doc=_engine_doc)
+                      _default_sep=r'\\t (tab-stop)')
                       )(read_table)
 
 
