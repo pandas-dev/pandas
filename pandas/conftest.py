@@ -355,7 +355,7 @@ unique_nulls_fixture2 = unique_nulls_fixture
 
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
              'dateutil/Asia/Singapore', tzutc(), tzlocal(), FixedOffset(300),
-             FixedOffset(0)]
+             FixedOffset(0), FixedOffset(-300)]
 
 
 @td.parametrize_fixture_doc(str(TIMEZONES))
