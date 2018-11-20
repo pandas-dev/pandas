@@ -52,3 +52,5 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
+  - pip:
+    - cpplint

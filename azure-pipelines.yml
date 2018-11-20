@@ -64,12 +64,6 @@ jobs:
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
-      ci/code_checks.sh code
-    displayName: 'Checks on imported code'
-    condition: true
-
-  - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
       ci/code_checks.sh dependencies
     displayName: 'Dependencies consistency'
     condition: true
@@ -81,6 +75,12 @@ jobs:
     condition: true
 
   # Requires pandas
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      ci/code_checks.sh code
+    displayName: 'Checks on imported code'
+    condition: true
+
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       ci/code_checks.sh doctests
