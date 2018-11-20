@@ -5,16 +5,18 @@
    This is an experimental API and subject to breaking changes
    without warning.
 """
-import numpy as np
-
 import operator
 
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
-from pandas.errors import AbstractMethodError
+import numpy as np
+
+from pandas.compat import PY3, set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.compat import set_function_name, PY3
-from pandas.core import ops
+from pandas.errors import AbstractMethodError
+
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+
+from pandas.core import ops
 
 _not_implemented_message = "{} does not implement {}."
 

@@ -1,28 +1,24 @@
+import copy
 import sys
 import warnings
-import copy
+
 import numpy as np
 
-
 from pandas._libs import lib
+from pandas.compat import range, set_function_name, string_types
 from pandas.util._decorators import cache_readonly
-from pandas.compat import range, string_types
-from pandas.compat import set_function_name
+
+from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.common import (
+    is_bool_dtype, is_float, is_float_dtype, is_integer, is_integer_dtype,
+    is_list_like, is_object_dtype, is_scalar)
+from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
-from pandas.core.dtypes.cast import astype_nansafe
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
-from pandas.core.dtypes.common import (
-    is_integer, is_scalar, is_float,
-    is_bool_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_list_like)
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
-from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.missing import isna, notna
 
 
 class _IntegerDtype(ExtensionDtype):
