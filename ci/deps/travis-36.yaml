@@ -8,6 +8,7 @@ dependencies:
   - fastparquet
   - gcsfs
   - geopandas
+  - html5lib
   - matplotlib
   - nomkl
   - numexpr
