@@ -3,10 +3,6 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import division
 
-# pylint: disable=E1101,E1103
-# pylint: disable=W0703,W0622,W0613,W0201
-
-import warnings
 from textwrap import dedent
 import warnings
 
@@ -2315,33 +2311,30 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> s1 = pd.Series([1, 2])
-        >>> s2 = pd.Series([0, 3, 4])
-        >>> s1.combine(s2, lambda x1, x2: x1 if x1 > x2 else x2)
-        0    1
-        1    3
-        2    4
+        Consider 2 Datasets data_A and data_B containing highest clocked speeds of different birds.
+
+        >>> s1 = pd.Series({'falcon': 330, 'eagle': 160, 'swift': 105, 'duck': 30})
+        >>> s2 = pd.Series({'falcon': 345, 'eagle': 200, 'swift': 100})
+
+        Now, to combine the two datasets and view the highest speeds of the birds across the
+        two datasets
+
+        >>> s1.combine(s2, max)
+        duck       30
+        eagle     200
+        falcon    345
+        swift     105
         dtype: int64
 
-        >>> arms = pd.Series({'dog':2,'cat': 2,'mouse': 2})
-        >>> legs = pd.Series({'dog':2,'cat': 2})
-        >>> arms
-        dog      2
-        cat      2
-        mouse    2
-        dtype: int64
-        >>> legs
-        dog    2
-        cat    2
-        dtype: int64
-        >>> limbs = arms.combine(legs, lambda x1,x2: x1+x2, fill_value=0)
-        >>> limbs
-        cat      4
-        dog      4
-        mouse    2
-        dtype: int64
+        Considering an average value of birds' speed to be ~40 mph,
 
-        """
+        >>> s1.combine(s2, max, fill_value=40)
+        duck       40
+        eagle     200
+        falcon    345
+        swift     105
+        dtype: int64
+"""
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
 
