@@ -781,7 +781,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef inline int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz,
-                                           bint to_utc):
+                                           bint to_utc, bint from_utc=False):
     """
     Convert the given values (in i8) either to UTC or from UTC.
 
@@ -790,6 +790,9 @@ cdef inline int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz,
     vals : int64 ndarray
     tz1 : string / timezone object
     to_utc : bint
+    from_utc : bint
+        True if vals are UTC timestamps, False if vals are wall timestamps
+        Only applicable for tz=dateutil.tz.tzlocal()
 
     Returns
     -------
@@ -808,7 +811,8 @@ cdef inline int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz,
                 if val == NPY_NAT:
                     converted[i] = NPY_NAT
                 else:
-                    converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc)
+                    converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc,
+                                                           from_utc=from_utc)
         else:
             converted = _tz_convert_dst(vals, tz, to_utc)
     else:
@@ -841,7 +845,8 @@ def tz_convert(int64_t[:] vals, object tz1, object tz2):
 
     # Convert to UTC
     utc_dates = _tz_convert_one_way(vals, tz1, to_utc=True)
-    converted = _tz_convert_one_way(utc_dates, tz2, to_utc=False)
+    converted = _tz_convert_one_way(utc_dates, tz2, to_utc=False,
+                                    from_utc=True)
     return np.array(converted, dtype=np.int64)
 
 
