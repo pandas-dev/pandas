@@ -1355,7 +1355,7 @@ class IndexOpsMixin(object):
             same shape as `value`.
 
             .. versionchanged :: 0.24.0
-                Ìf `value`is a scalar, an int is now always returned.
+                If `value` is a scalar, an int is now always returned.
                 Previously, scalar inputs returned an 1-item array for
                 :class:`Series` and :class:`Categorical`.
 
