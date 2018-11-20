@@ -14,13 +14,6 @@ cache:
   - $HOME/.cache # cython cache
   - $HOME/.ccache # compiler cache
 
-env:
-  global:
-    # create a github personal access token
-    # cd pandas-dev/pandas
-    # travis encrypt 'PANDAS_GH_TOKEN=personal_access_token' -r pandas-dev/pandas
-    - secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
-
 git:
     # for cloning
     depth: 1500
@@ -52,7 +45,7 @@ matrix:
           - python-gtk2
     - dist: trusty
       env:
-        - JOB="3.6, lint, coverage" ENV_FILE="ci/deps/travis-36.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true LINT=true
+        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
     - dist: trusty
       env:
         - JOB="3.7, NumPy dev" ENV_FILE="ci/deps/travis-37-numpydev.yaml" TEST_ARGS="--skip-slow --skip-network -W error" PANDAS_TESTING_MODE="deprecate"
