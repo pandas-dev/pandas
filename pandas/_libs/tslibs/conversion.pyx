@@ -697,10 +697,10 @@ cdef inline int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz,
         datetime dt
 
     dt64_to_dtstruct(val, &dts)
-    # THIS NEEDS TO BE A LOCAL DATETIME!
-    # get_utcoffset (utcoffset udh) assumes the datetime is a wall time
     dt = datetime(dts.year, dts.month, dts.day, dts.hour,
                   dts.min, dts.sec, dts.us)
+    # get_utcoffset (tz.utcoffset under the hood) only makes sense if datetime
+    # is _wall time_, so if val is a UTC timestamp convert to wall time
     if from_utc:
         dt = dt.replace(tzinfo=tzutc())
         dt = dt.astimezone(tz)
@@ -766,7 +766,8 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     if is_utc(get_timezone(tz2)):
         return utc_date
     elif is_tzlocal(tz2):
-        return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
+        return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False,
+                                       from_utc=True)
     else:
         # Convert UTC to other timezone
         arr[0] = utc_date
