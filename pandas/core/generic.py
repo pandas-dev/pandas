@@ -1109,16 +1109,15 @@ class NDFrame(PandasObject, SelectionMixin):
                                              ('inplace', False)])
     def rename_axis(self, mapper=None, **kwargs):
         """
-        Alter the name of the index or name of Index object that is the
-        columns.
+        Set the name of the axis for the index or columns.
 
         Parameters
         ----------
         mapper : scalar, list-like, optional
             Value to set the axis name attribute.
         index, columns : scalar, list-like, dict-like or function, optional
-            dict-like or functions transformations to apply to
-            that axis' values.
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
 
             Use either ``mapper`` and ``axis`` to
             specify the axis to target with ``mapper``, or ``index``
@@ -1126,17 +1125,24 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionchanged:: 0.24.0
 
-        axis : int or string, default 0
-        copy : boolean, default True
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to rename.
+        copy : bool, default True
             Also copy underlying data.
-        inplace : boolean, default False
+        inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
             or DataFrame.
 
         Returns
         -------
-        renamed : Series, DataFrame, or None
+        Series, DataFrame, or None
             The same type as the caller or None if `inplace` is True.
+
+        See Also
+        --------
+        Series.rename : Alter Series index labels or name.
+        DataFrame.rename : Alter DataFrame index labels or name.
+        Index.rename : Set new names on index.
 
         Notes
         -----
@@ -1162,75 +1168,73 @@ class NDFrame(PandasObject, SelectionMixin):
         We *highly* recommend using keyword arguments to clarify your
         intent.
 
-        See Also
-        --------
-        Series.rename : Alter Series index labels or name.
-        DataFrame.rename : Alter DataFrame index labels or name.
-        Index.rename : Set new names on index.
-
         Examples
         --------
         **Series**
 
-        >>> s = pd.Series([1, 2, 3])
-        >>> s.rename_axis("foo")
-        foo
-        0    1
-        1    2
-        2    3
-        dtype: int64
+        >>> s = pd.Series(["dog", "cat", "monkey"])
+        >>> s
+        0       dog
+        1       cat
+        2    monkey
+        dtype: object
+        >>> s.rename_axis("animal")
+        animal
+        0    dog
+        1    cat
+        2    monkey
+        dtype: object
 
         **DataFrame**
 
-        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.rename_axis("foo")
-             A  B
-        foo
-        0    1  4
-        1    2  5
-        2    3  6
+        >>> df = pd.DataFrame({"num_legs": [4, 4, 2],
+        ...                    "num_arms": [0, 0, 2]},
+        ...                   ["dog", "cat", "monkey"])
+        >>> df
+                num_legs  num_arms
+        dog            4         0
+        cat            4         0
+        monkey         2         2
+        >>> df = df.rename_axis("animal")
+        >>> df
+                num_legs  num_arms
+        animal
+        dog            4         0
+        cat            4         0
+        monkey         2         2
+        >>> df = df.rename_axis("limbs", axis="columns")
+        >>> df
+        limbs   num_legs  num_arms
+        animal
+        dog            4         0
+        cat            4         0
+        monkey         2         2
 
-        >>> df.rename_axis("bar", axis="columns")
-        bar  A  B
-        0    1  4
-        1    2  5
-        2    3  6
+        **MultiIndex**
 
-        >>> mi = pd.MultiIndex.from_product([['a', 'b', 'c'], [1, 2]],
-        ...                                 names=['let','num'])
-        >>> df = pd.DataFrame({'x': [i for i in range(len(mi))],
-        ...                    'y' : [i*10 for i in range(len(mi))]},
-        ...                    index=mi)
-        >>> df.rename_axis(index={'num' : 'n'})
-               x   y
-        let n
-        a   1  0   0
-            2  1  10
-        b   1  2  20
-            2  3  30
-        c   1  4  40
-            2  5  50
+        >>> df.index = pd.MultiIndex.from_product([['mammal'],
+        ...                                        ['dog', 'cat', 'monkey']],
+        ...                                       names=['type', 'name'])
+        >>> df
+        limbs          num_legs  num_arms
+        type   name
+        mammal dog            4         0
+               cat            4         0
+               monkey         2         2
 
-        >>> cdf = df.rename_axis(columns='col')
-        >>> cdf
-        col      x   y
-        let num
-        a   1    0   0
-            2    1  10
-        b   1    2  20
-            2    3  30
-        c   1    4  40
-            2    5  50
+        >>> df.rename_axis(index={'type': 'class'})
+        limbs          num_legs  num_arms
+        class  name
+        mammal dog            4         0
+               cat            4         0
+               monkey         2         2
 
-        >>> cdf.rename_axis(columns=str.upper)
-        COL      x   y
-        let num
-        a   1    0   0
-            2    1  10
-        b   1    2  20
-            2    3  30
-        c   1    4  40
-            2    5  50
+        >>> df.rename_axis(columns=str.upper)
+        LIMBS          num_legs  num_arms
+        type   name
+        mammal dog            4         0
+               cat            4         0
+               monkey         2         2
         """
         axes, kwargs = self._construct_axes_from_arguments((), kwargs)
         copy = kwargs.pop('copy', True)
@@ -1285,45 +1289,57 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _set_axis_name(self, name, axis=0, inplace=False):
         """
-        Alter the name or names of the axis.
+        Set the name(s) of the axis.
 
         Parameters
         ----------
         name : str or list of str
-            Name for the Index, or list of names for the MultiIndex
-        axis : int or str
-           0 or 'index' for the index; 1 or 'columns' for the columns
-        inplace : bool
-            whether to modify `self` directly or return a copy
+            Name(s) to set.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to set the label. The value 0 or 'index' specifies index,
+            and the value 1 or 'columns' specifies columns.
+        inplace : bool, default False
+            If `True`, do operation inplace and return None.
 
             .. versionadded:: 0.21.0
 
         Returns
         -------
-        renamed : same type as caller or None if inplace=True
+        Series, DataFrame, or None
+            The same type as the caller or `None` if `inplace` is `True`.
 
         See Also
         --------
-        pandas.DataFrame.rename
-        pandas.Series.rename
-        pandas.Index.rename
+        DataFrame.rename : Alter the axis labels of :class:`DataFrame`.
+        Series.rename : Alter the index labels or set the index name
+            of :class:`Series`.
+        Index.rename : Set the name of :class:`Index` or :class:`MultiIndex`.
 
         Examples
         --------
-        >>> df._set_axis_name("foo")
-             A
-        foo
-        0    1
-        1    2
-        2    3
-        >>> df.index = pd.MultiIndex.from_product([['A'], ['a', 'b', 'c']])
-        >>> df._set_axis_name(["bar", "baz"])
-                 A
-        bar baz
-        A   a    1
-            b    2
-            c    3
+        >>> df = pd.DataFrame({"num_legs": [4, 4, 2]},
+        ...                   ["dog", "cat", "monkey"])
+        >>> df
+                num_legs
+        dog            4
+        cat            4
+        monkey         2
+        >>> df._set_axis_name("animal")
+                num_legs
+        animal
+        dog            4
+        cat            4
+        monkey         2
+        >>> df.index = pd.MultiIndex.from_product(
+        ...                [["mammal"], ['dog', 'cat', 'monkey']])
+        >>> df._set_axis_name(["type", "name"])
+                       legs
+        type   name
+        mammal dog        4
+               cat        4
+               monkey     2
         """
+        pd.MultiIndex.from_product([["mammal"], ['dog', 'cat', 'monkey']])
         axis = self._get_axis_number(axis)
         idx = self._get_axis(axis).set_names(name)
 
