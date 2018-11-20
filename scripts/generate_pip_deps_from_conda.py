@@ -75,7 +75,18 @@ def main(conda_fname, pip_fname, compare=False):
     with open(conda_fname) as conda_fd:
         deps = yaml.safe_load(conda_fd)['dependencies']
 
-    pip_content = '\n'.join(filter(None, map(conda_package_to_pip, deps)))
+    pip_deps = []
+    for dep in deps:
+        if isinstance(dep, str):
+            conda_dep = conda_package_to_pip(dep)
+            if conda_dep:
+                pip_deps.append(conda_dep)
+        elif isinstance(dep, dict) and len(dep) == 1 and 'pip' in dep:
+            pip_deps += dep['pip']
+        else:
+            raise ValueError('Unexpected dependency {}'.format(dep))
+
+    pip_content = '\n'.join(pip_deps)
 
     if compare:
         with open(pip_fname) as pip_fd:

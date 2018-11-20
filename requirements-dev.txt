@@ -41,3 +41,4 @@ xarray
 xlrd
 xlsxwriter
 xlwt
+cpplint
