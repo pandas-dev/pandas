@@ -41,6 +41,11 @@ import pandas.util.testing as tm
     # 2D ndarrays pass through
     (np.array([[1, 2], [3, 4]]), None, np.array([[1, 2], [3, 4]])),
     ([[1, 2], [3, 4]], None, np.array([[1, 2, ], [3, 4]])),
+    # pass an ExtensionArray, but a different dtype
+    (period_array(['2000', '2001'], freq='D'),
+     'category',
+     pd.Categorical([pd.Period('2000', 'D'), pd.Period('2001', 'D')])),
+
 ])
 def test_array(data, dtype, expected):
     result = pd.array(data, dtype=dtype)

@@ -34,8 +34,8 @@ def array(data, dtype=None, copy=False):
         2. Otherwise, pandas will attempt to infer the `dtype`
            from the data.
 
-        In particular, note that when `data` is a NumPy, ``data.dtype``
-        is ignored.
+        In particular, note that when `data` is a NumPy array,
+        ``data.dtype`` is ignored.
 
     copy : bool, default False
         Whether to copy the data.
