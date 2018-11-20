@@ -33,8 +33,10 @@ elif [ "$COVERAGE" ]; then
 
 elif [ "$SLOW" ]; then
     TEST_ARGS="--only-slow --skip-network"
-    echo pytest -n 2 -m "not single" -v --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
-    pytest      -n 2 -m "not single" -v --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
+    # XXX adding `-n 2` and removing the " and slow" caused the log to be extremly verbose, and made the job fail because of it
+    # restoring the " and slow" to see if that is the problem
+    echo pytest -n 2 -m "not single and slow" -v --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
+    pytest      -n 2 -m "not single and slow" -v --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
 
 else
     echo pytest -n 2 -m "not single" --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
