@@ -512,10 +512,28 @@ class TestStringMethods(object):
         assert result.dtype == np.bool_
         tm.assert_numpy_array_equal(result, expected)
 
-        # na
-        values = Series(['om', 'foo', np.nan])
-        res = values.str.contains('foo', na="foo")
-        assert res.loc[2] == "foo"
+    def test_contains_for_object_category(self):
+        # gh 22158
+
+        # na for category
+        values = Series(["a", "b", "c", "a", np.nan], dtype="category")
+        result = values.str.contains('a', na=True)
+        expected = Series([True, False, False, True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = values.str.contains('a', na=False)
+        expected = Series([True, False, False, True, False])
+        tm.assert_series_equal(result, expected)
+
+        # na for objects
+        values = Series(["a", "b", "c", "a", np.nan])
+        result = values.str.contains('a', na=True)
+        expected = Series([True, False, False, True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = values.str.contains('a', na=False)
+        expected = Series([True, False, False, True, False])
+        tm.assert_series_equal(result, expected)
 
     def test_startswith(self):
         values = Series(['om', NA, 'foo_nom', 'nom', 'bar_foo', NA, 'foo'])
@@ -2893,7 +2911,7 @@ class TestStringMethods(object):
         expected = Series([np.nan])
         tm.assert_series_equal(result, expected)
 
-    def test_more_contains(self):
+    def test_contains_moar(self):
         # PR #1179
         s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', NA,
                     'CABA', 'dog', 'cat'])
@@ -2943,7 +2961,7 @@ class TestStringMethods(object):
         expected = Series([np.nan, np.nan, np.nan], dtype=np.object_)
         assert_series_equal(result, expected)
 
-    def test_more_replace(self):
+    def test_replace_moar(self):
         # PR #1179
         s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', NA, 'CABA',
                     'dog', 'cat'])
