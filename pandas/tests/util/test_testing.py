@@ -868,8 +868,8 @@ class TestAssertExtensionArrayEqual(object):
             ExtensionArray are different
 
             ExtensionArray values are different \\(50\\.0 %\\)
-            \\[left\\]:  \\[-0.17387645482451206, 0.3414148016424936\\]
-            \\[right\\]: \\[-0.17387645482451206, 0.3414148016424937\\]""")
+            \\[left\\]:  \\[-0\\.17387645482.*, 0\\.341414801642.*\\]
+            \\[right\\]: \\[-0\\.17387645482.*, 0\\.341414801642.*\\]""")
         with pytest.raises(AssertionError, match=msg):
             assert_extension_array_equal(left, right, check_exact=True)
 
@@ -889,8 +889,8 @@ class TestAssertExtensionArrayEqual(object):
             ExtensionArray are different
 
             ExtensionArray values are different \\(50\\.0 %\\)
-            \\[left\\]:  \\[0.5, 0.123456\\]
-            \\[right\\]: \\[0.5, 0.123457\\]""")
+            \\[left\\]:  \\[0\\.5, 0\\.123456\\]
+            \\[right\\]: \\[0\\.5, 0\\.123457\\]""")
         with pytest.raises(AssertionError, match=msg):
             assert_extension_array_equal(
                 left, right, check_less_precise=check_less_precise)
