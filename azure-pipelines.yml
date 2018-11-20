@@ -41,6 +41,13 @@ jobs:
       echo '##vso[task.setvariable variable=AZURE]true'
     displayName: 'Setting environment variables'
 
+  # Does not require a conda environment
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      ci/code_checks.sh patterns
+    displayName: 'Looking for unwanted patterns'
+    condition: true
+
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       sudo apt-get install -y libc6-dev-i386
@@ -48,12 +55,7 @@ jobs:
       ci/incremental/setup_conda_environment.sh
     displayName: 'Set up environment'
 
-  - script: |
-      export PATH=$HOME/miniconda3/bin:$PATH
-      ci/incremental/build.sh
-    displayName: 'Build'
-    condition: true
-
+  # Does not require pandas
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       ci/code_checks.sh lint
@@ -62,10 +64,23 @@ jobs:
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
-      ci/code_checks.sh patterns
-    displayName: 'Looking for unwanted patterns'
+      ci/code_checks.sh code
+    displayName: 'Checks on imported code'
     condition: true
 
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      ci/code_checks.sh dependencies
+    displayName: 'Dependencies consistency'
+    condition: true
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      ci/incremental/build.sh
+    displayName: 'Build'
+    condition: true
+
+  # Requires pandas
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       ci/code_checks.sh doctests

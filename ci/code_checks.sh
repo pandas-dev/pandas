@@ -9,15 +9,16 @@
 # validate formatting error in docstrings.
 #
 # Usage:
-#   $ ./ci/code_checks.sh             # run all checks
-#   $ ./ci/code_checks.sh lint        # run linting only
-#   $ ./ci/code_checks.sh patterns    # check for patterns that should not exist
-#   $ ./ci/code_checks.sh doctests    # run doctests
-#   $ ./ci/code_checks.sh docstrings  # validate docstring errors
+#   $ ./ci/code_checks.sh               # run all checks
+#   $ ./ci/code_checks.sh lint          # run linting only
+#   $ ./ci/code_checks.sh patterns      # check for patterns that should not exist
+#   $ ./ci/code_checks.sh code          # checks on imported code
+#   $ ./ci/code_checks.sh doctests      # run doctests
+#   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh dependencies  # check that dependencies are consistent
 
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "dependecies" ]] || \
-    { echo "Unknown command $1. Usage: $0 [lint|patterns|doctests|docstrings|dependencies]"; exit 9999; }
+[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "dependecies" ]] || \
+    { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|dependencies]"; exit 9999; }
 
 source activate pandas
 BASE_DIR="$(dirname $0)/.."
@@ -147,6 +148,11 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check that the deprecated `assert_raises_regex` is not used (`pytest.raises(match=pattern)` should be used instead)' ; echo $MSG
     ! grep -R --exclude=*.pyc --exclude=testing.py --exclude=test_testing.py assert_raises_regex pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+fi
+
+### CODE ###
+if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 
     MSG='Check for modules that pandas should not import' ; echo $MSG
     python -c "
