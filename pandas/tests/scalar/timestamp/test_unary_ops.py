@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 
+from dateutil.tz import gettz
 import pytest
 import pytz
 from pytz import utc
-from dateutil.tz import gettz
 
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-
-from pandas.compat import PY3
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
-from pandas import Timestamp, NaT
+from pandas.compat import PY3
+import pandas.util._test_decorators as td
+
+from pandas import NaT, Timestamp
+import pandas.util.testing as tm
+
 from pandas.tseries.frequencies import to_offset
 
 
@@ -326,6 +327,17 @@ class TestTimestampUnaryOps(object):
         t = Timestamp('2013-11-3', tz='America/Chicago')
         result = t.replace(hour=3)
         expected = Timestamp('2013-11-3 03:00:00', tz='America/Chicago')
+        assert result == expected
+
+    # --------------------------------------------------------------
+    # Timestamp.normalize
+
+    @pytest.mark.parametrize('arg', ['2013-11-30', '2013-11-30 12:00:00'])
+    def test_normalize(self, tz_naive_fixture, arg):
+        tz = tz_naive_fixture
+        ts = Timestamp(arg, tz=tz)
+        result = ts.normalize()
+        expected = Timestamp('2013-11-30', tz=tz)
         assert result == expected
 
     # --------------------------------------------------------------

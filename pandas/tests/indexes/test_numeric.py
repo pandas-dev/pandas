@@ -49,12 +49,6 @@ class Numeric(Base):
         result = a - fidx
         tm.assert_index_equal(result, expected)
 
-    def test_ufunc_compat(self):
-        idx = self._holder(np.arange(5, dtype='int64'))
-        result = np.sin(idx)
-        expected = Float64Index(np.sin(np.arange(5, dtype='int64')))
-        tm.assert_index_equal(result, expected)
-
     def test_index_groupby(self):
         int_idx = Index(range(6))
         float_idx = Index(np.arange(0, 0.6, 0.1))
@@ -488,11 +482,10 @@ class NumericInt(Numeric):
         exp_ridx = np.array([2, 3, 2, 3, 0, 1, 0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(ridx, exp_ridx)
 
-    def test_join_self(self):
-        kinds = 'outer', 'inner', 'left', 'right'
-        for kind in kinds:
-            joined = self.index.join(self.index, how=kind)
-            assert self.index is joined
+    @pytest.mark.parametrize('kind', ['outer', 'inner', 'left', 'right'])
+    def test_join_self(self, kind):
+        joined = self.index.join(self.index, how=kind)
+        assert self.index is joined
 
     def test_union_noncomparable(self):
         from datetime import datetime, timedelta
