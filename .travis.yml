@@ -66,17 +66,10 @@ matrix:
       env:
         - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" SLOW=true
 
-    # In allow_failures
-    - dist: trusty
-      env:
-        - JOB="3.6, doc" ENV_FILE="ci/deps/travis-36-doc.yaml" DOC=true
     allow_failures:
       - dist: trusty
         env:
           - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" SLOW=true
-      - dist: trusty
-        env:
-          - JOB="3.6, doc" ENV_FILE="ci/deps/travis-36-doc.yaml" DOC=true
 
 before_install:
   - echo "before_install"
