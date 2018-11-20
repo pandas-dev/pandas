@@ -307,14 +307,13 @@ To evaluate single-element pandas objects in a boolean context, use the method
 
    .. code-block:: python
 
-       >>> if df:                         # noqa: E999
-               ...
+      >>> if df:                         # noqa: E999
 
    Or
 
    .. code-block:: python
 
-       >>> df and df2
+      >>> df and df2
 
    These will both raise errors, as you are trying to compare multiple values.
 
@@ -330,9 +329,9 @@ Comparing if objects are equivalent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Often you may find that there is more than one way to compute the same
-result.  As a simple example, consider ``df+df`` and ``df*2``. To test
+result.  As a simple example, consider ``df + df`` and ``df * 2``. To test
 that these two computations produce the same result, given the tools
-shown above, you might imagine using ``(df+df == df*2).all()``. But in
+shown above, you might imagine using ``(df + df == df * 2).all()``. But in
 fact, this expression is False:
 
 .. ipython:: python
@@ -340,7 +339,7 @@ fact, this expression is False:
    df + df == df * 2
    (df + df == df * 2).all()
 
-Notice that the boolean DataFrame ``df+df == df*2`` contains some False values!
+Notice that the boolean DataFrame ``df + df == df * 2`` contains some False values!
 This is because NaNs do not compare as equals:
 
 .. ipython:: python
@@ -1506,14 +1505,15 @@ In short, basic iteration (``for i in object``) produces:
 
 Thus, for example, iterating over a DataFrame gives you the column names:
 
-.. ipython::
+.. ipython:: python
 
-    In [0]: df = pd.DataFrame({'col1': np.random.randn(3), 'col2': np.random.randn(3)},
-       ...:                   index=['a', 'b', 'c'])
+   df = pd.DataFrame(
+       {'col1': np.random.randn(3), 'col2': np.random.randn(3)},
+       index=['a', 'b', 'c'])
 
-    In [0]: for col in df:
-       ...:     print(col)
-       ...:
+   for col in df:
+       print(col)
+
 
 Pandas objects also have the dict-like :meth:`~DataFrame.iteritems` method to
 iterate over the (key, value) pairs.
@@ -1576,12 +1576,11 @@ through key-value pairs:
 
 For example:
 
-.. ipython::
+.. ipython:: python
 
-   In [0]: for item, frame in wp.iteritems():
-      ...:     print(item)
-      ...:     print(frame)
-      ...:
+   for item, frame in wp.iteritems():
+       print(item)
+       print(frame)
 
 .. _basics.iterrows:
 
@@ -1592,11 +1591,10 @@ iterrows
 DataFrame as Series objects. It returns an iterator yielding each
 index value along with a Series containing the data in each row:
 
-.. ipython::
+.. ipython:: python
 
-   In [0]: for row_index, row in df.iterrows():
-      ...:     print('%s\n%s' % (row_index, row))
-      ...:
+   for row_index, row in df.iterrows():
+       print('%s\n%s' % (row_index, row))
 
 .. note::
 
@@ -1969,10 +1967,12 @@ with the data type of each column.
 
 .. ipython:: python
 
-   dft = pd.DataFrame(dict(A = np.random.rand(3), B = 1, C = 'foo',
-                           D = pd.Timestamp('20010102'),
-                           E = pd.Series([1.0]*3).astype('float32'),
-			               F = False, G = pd.Series([1]*3,dtype='int8')))
+   dft = pd.DataFrame(dict(A=np.random.rand(3),
+                           B=1,
+                           C='foo',
+                           D=pd.Timestamp('20010102'),
+                           E=pd.Series([1.0] * 3).astype('float32'),
+                           F=False, G=pd.Series([1] * 3, dtype='int8')))
    dft
    dft.dtypes
 
@@ -2011,10 +2011,10 @@ different numeric dtypes will **NOT** be combined. The following example will gi
    df1 = pd.DataFrame(np.random.randn(8, 1), columns=['A'], dtype='float32')
    df1
    df1.dtypes
-   df2 = pd.DataFrame(dict(A = pd.Series(np.random.randn(8), dtype='float16'),
-                           B = pd.Series(np.random.randn(8)),
-                           C = pd.Series(np.array(
-                           np.random.randn(8), dtype='uint8')) ))
+   df2 = pd.DataFrame(dict(A=pd.Series(np.random.randn(8), dtype='float16'),
+                           B=pd.Series(np.random.randn(8)),
+                           C=pd.Series(np.array(
+                               np.random.randn(8), dtype='uint8'))))
    df2
    df2.dtypes
 
@@ -2029,7 +2029,7 @@ The following will all result in ``int64`` dtypes.
 
    pd.DataFrame([1, 2], columns=['a']).dtypes
    pd.DataFrame({'a': [1, 2]}).dtypes
-   pd.DataFrame({'a': 1 }, index=list(range(2))).dtypes
+   pd.DataFrame({'a': 1}, index=list(range(2))).dtypes
 
 Note that Numpy will choose *platform-dependent* types when creating arrays.
 The following **WILL** result in ``int32`` on 32-bit platform.
@@ -2084,8 +2084,8 @@ Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`.
 
 .. ipython:: python
 
-   dft = pd.DataFrame({'a': [1,2,3], 'b': [4,5,6], 'c': [7, 8, 9]})
-   dft[['a','b']] = dft[['a','b']].astype(np.uint8)
+   dft = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6], 'c': [7, 8, 9]})
+   dft[['a', 'b']] = dft[['a', 'b']].astype(np.uint8)
    dft
    dft.dtypes
 
@@ -2095,7 +2095,7 @@ Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFra
 
 .. ipython:: python
 
-   dft1 = pd.DataFrame({'a': [1,0,1], 'b': [4,5,6], 'c': [7, 8, 9]})
+   dft1 = pd.DataFrame({'a': [1, 0, 1], 'b': [4, 5, 6], 'c': [7, 8, 9]})
    dft1 = dft1.astype({'a': np.bool, 'c': np.float64})
    dft1
    dft1.dtypes
@@ -2108,7 +2108,7 @@ Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFra
 
     .. ipython:: python
 
-       dft = pd.DataFrame({'a': [1,2,3], 'b': [4,5,6], 'c': [7, 8, 9]})
+       dft = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6], 'c': [7, 8, 9]})
        dft.loc[:, ['a', 'b']].astype(np.uint8).dtypes
        dft.loc[:, ['a', 'b']] = dft.loc[:, ['a', 'b']].astype(np.uint8)
        dft.dtypes
@@ -2244,7 +2244,7 @@ See also :ref:`Support for integer NA <gotchas.intna>`.
    dfi
    dfi.dtypes
 
-   casted = dfi[dfi>0]
+   casted = dfi[dfi > 0]
    casted
    casted.dtypes
 
@@ -2256,7 +2256,7 @@ While float dtypes are unchanged.
    dfa['A'] = dfa['A'].astype('float32')
    dfa.dtypes
 
-   casted = dfa[df2>0]
+   casted = dfa[df2 > 0]
    casted
    casted.dtypes
 
