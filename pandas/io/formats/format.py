@@ -1123,12 +1123,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
     def _format_strings(self):
         values = self.values
         if isinstance(values, (ABCIndexClass, ABCSeries)):
-            boxed = True
             values = values._values
-        else:
-            boxed = False
 
-        formatter = values._formatter(boxed=boxed)
+        formatter = values._formatter(boxed=True)
 
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo
