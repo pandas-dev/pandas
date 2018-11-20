@@ -632,6 +632,24 @@ def _make_parser_function(name, default_sep=','):
             if sep is False:
                 sep = default_sep
 
+        # gh-23761
+        #
+        # When a dialect is passed, it overrides any of the overlapping
+        # parameters passed in directly. We don't want to warn if the
+        # default parameters were passed in (since it probably means
+        # that the user didn't pass them in explicitly in the first place).
+        #
+        # "delimiter" is the annoying corner case because we alias it to
+        # "sep" before doing comparison to the dialect values later on.
+        # Thus, we need a flag to indicate that we need to "override"
+        # the comparison to dialect values by checking if default values
+        # for BOTH "delimiter" and "sep" were provided.
+        if dialect is not None:
+            sep_override = delimiter is None and sep == default_sep
+            kwds = dict(sep_override=sep_override)
+        else:
+            kwds = dict()
+
         # Alias sep -> delimiter.
         if delimiter is None:
             delimiter = sep
@@ -647,7 +665,7 @@ def _make_parser_function(name, default_sep=','):
             engine = 'c'
             engine_specified = False
 
-        kwds = dict(delimiter=delimiter,
+        kwds.update(delimiter=delimiter,
                     engine=engine,
                     dialect=dialect,
                     compression=compression,
@@ -769,23 +787,38 @@ class TextFileReader(BaseIterator):
                 except AttributeError:
                     raise ValueError("Invalid dialect '{dialect}' provided"
                                      .format(dialect=kwds['dialect']))
-                provided = kwds.get(param, _parser_defaults[param])
+                parser_default = _parser_defaults[param]
+                provided = kwds.get(param, parser_default)
 
-                # Messages for conflicting values between the dialect instance
-                # and the actual parameters provided.
+                # Messages for conflicting values between the dialect
+                # instance and the actual parameters provided.
                 conflict_msgs = []
 
-                if dialect_val != provided:
-                    conflict_msgs.append((
-                        "Conflicting values for '{param}': '{val}' was "
-                        "provided, but the dialect specifies '{diaval}'. "
-                        "Using the dialect-specified value.".format(
-                            param=param, val=provided, diaval=dialect_val)))
+                # Don't warn if the default parameter was passed in,
+                # even if it conflicts with the dialect (gh-23761).
+                if provided != parser_default and provided != dialect_val:
+                    msg = ("Conflicting values for '{param}': '{val}' was "
+                           "provided, but the dialect specifies '{diaval}'. "
+                           "Using the dialect-specified value.".format(
+                               param=param, val=provided, diaval=dialect_val))
+
+                    # Annoying corner case for not warning about
+                    # conflicts between dialect and delimiter parameter.
+                    # Refer to the outer "_read_" function for more info.
+                    if not (param == "delimiter" and
+                            kwds.pop("sep_override", False)):
+                        conflict_msgs.append(msg)
 
                 if conflict_msgs:
                     warnings.warn('\n\n'.join(conflict_msgs), ParserWarning,
                                   stacklevel=2)
                 kwds[param] = dialect_val
+
+        if kwds.get("skipfooter"):
+            if kwds.get("iterator") or kwds.get("chunksize"):
+                raise ValueError("'skipfooter' not supported for 'iteration'")
+            if kwds.get("nrows"):
+                raise ValueError("'skipfooter' not supported with 'nrows'")
 
         if kwds.get('header', 'infer') == 'infer':
             kwds['header'] = 0 if kwds.get('names') is None else None
@@ -1054,11 +1087,6 @@ class TextFileReader(BaseIterator):
 
     def read(self, nrows=None):
         nrows = _validate_integer('nrows', nrows)
-
-        if nrows is not None:
-            if self.options.get('skipfooter'):
-                raise ValueError('skipfooter not supported for iteration')
-
         ret = self._engine.read(nrows)
 
         # May alter columns / col_dict
@@ -1387,22 +1415,20 @@ class ParserBase(object):
         columns = lzip(*[extract(r) for r in header])
         names = ic + columns
 
-        def tostr(x):
-            return str(x) if not isinstance(x, compat.string_types) else x
-
-        # if we find 'Unnamed' all of a single level, then our header was too
-        # long
+        # If we find unnamed columns all in a single
+        # level, then our header was too long.
         for n in range(len(columns[0])):
-            if all('Unnamed' in tostr(c[n]) for c in columns):
+            if all(compat.to_str(c[n]) in self.unnamed_cols for c in columns):
                 raise ParserError(
                     "Passed header=[%s] are too many rows for this "
                     "multi_index of columns"
                     % ','.join(str(x) for x in self.header)
                 )
 
-        # clean the column names (if we have an index_col)
+        # Clean the column names (if we have an index_col).
         if len(ic):
-            col_names = [r[0] if len(r[0]) and 'Unnamed' not in r[0] else None
+            col_names = [r[0] if (len(r[0]) and
+                                  r[0] not in self.unnamed_cols) else None
                          for r in header]
         else:
             col_names = [None] * len(header)
