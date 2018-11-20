@@ -84,7 +84,7 @@ sep : str, default {_default_sep}
     delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``.
 delimiter : str, default ``None``
     Alias for sep.
-header : int or list of ints, default 'infer'
+header : int, list of int, default 'infer'
     Row number(s) to use as the column names, and the start of the
     data.  Default behavior is to infer the column names: if no names
     are passed the behavior is identical to ``header=0`` and column
@@ -98,16 +98,16 @@ header : int or list of ints, default 'infer'
     parameter ignores commented lines and empty lines if
     ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
     data rather than the first line of the file.
-names : array-like, default None
+names : array-like, optional
     List of column names to use. If file contains no header row, then you
     should explicitly pass ``header=None``. Duplicates in this list will cause
     a ``UserWarning`` to be issued.
-index_col : int or sequence or False, default None
+index_col : int, sequence or bool, optional
     Column to use as the row labels of the DataFrame. If a sequence is given, a
     MultiIndex is used. If you have a malformed file with delimiters at the end
     of each line, you might consider ``index_col=False`` to force pandas to
     not use the first column as the index (row names).
-usecols : list-like or callable, default None
+usecols : list-like or callable, optional
     Return a subset of the columns. If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in `names` or
@@ -127,13 +127,13 @@ usecols : list-like or callable, default None
     parsing time and lower memory usage.
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
-prefix : str, default None
+prefix : str, optional
     Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
 mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
-dtype : Type name or dict of column -> type, default None
+dtype : Type name or dict of column -> type, optional
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
     Use `str` or `object` together with suitable `na_values` settings
     to preserve and not interpret dtype.
@@ -142,16 +142,16 @@ dtype : Type name or dict of column -> type, default None
 engine : {{'c', 'python'}}, optional
     Parser engine to use. The C engine is faster while the python engine is
     currently more feature-complete.
-converters : dict, default None
+converters : dict, optional
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels.
-true_values : list, default None
+true_values : list, optional
     Values to consider as True.
-false_values : list, default None
+false_values : list, optional
     Values to consider as False.
 skipinitialspace : bool, default False
     Skip spaces after delimiter.
-skiprows : list-like or int or callable, default None
+skiprows : list-like, int or callable, optional
     Line numbers to skip (0-indexed) or number of lines to skip (int)
     at the start of the file.
 
@@ -160,9 +160,9 @@ skiprows : list-like or int or callable, default None
     An example of a valid callable argument would be ``lambda x: x in [0, 2]``.
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with engine='c').
-nrows : int, default None
+nrows : int, optional
     Number of rows of file to read. Useful for reading pieces of large files.
-na_values : scalar, str, list-like, or dict, default None
+na_values : scalar, str, list-like, or dict, optional
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values.  By default the following values are interpreted as
     NaN: '""" + fill("', '".join(sorted(_NA_VALUES)),
@@ -190,12 +190,12 @@ verbose : bool, default False
     Indicate number of NA values placed in non-numeric columns.
 skip_blank_lines : bool, default True
     If True, skip over blank lines rather than interpreting as NaN values.
-parse_dates : bool or list of ints or names or list of lists or dict, \
+parse_dates : bool or list of int or names or list of lists or dict, \
 default False
     The behavior is as follows:
 
     * boolean. If True -> try parsing the index.
-    * list of ints or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
+    * list of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
       each as a separate date column.
     * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
       a single date column.
@@ -215,7 +215,7 @@ infer_datetime_format : bool, default False
 keep_date_col : bool, default False
     If True and `parse_dates` specifies combining multiple columns then
     keep the original columns.
-date_parser : function, default None
+date_parser : function, optional
     Function to use for converting a sequence of string columns to an array of
     datetime instances. The default uses ``dateutil.parser.parser`` to do the
     conversion. Pandas will try to call `date_parser` in three different ways,
@@ -230,7 +230,7 @@ dayfirst : bool, default False
 iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
-chunksize : int, default None
+chunksize : int, optional
     Return TextFileReader object for iteration.
     See the `IO Tools docs
     <http://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
@@ -244,11 +244,11 @@ compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
 
     .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
 
-thousands : str, default None
+thousands : str, optional
     Thousands separator.
 decimal : str, default '.'
     Character to recognize as decimal point (e.g. use ',' for European data).
-lineterminator : str (length 1), default None
+lineterminator : str (length 1), optional
     Character to break file into lines. Only valid with C parser.
 quotechar : str (length 1), optional
     The character used to denote the start and end of a quoted item. Quoted
@@ -260,9 +260,9 @@ doublequote : bool, default ``True``
    When quotechar is specified and quoting is not ``QUOTE_NONE``, indicate
    whether or not to interpret two consecutive quotechar elements INSIDE a
    field as a single ``quotechar`` element.
-escapechar : str (length 1), default None
+escapechar : str (length 1), optional
     One-character string used to escape delimiter when quoting is QUOTE_NONE.
-comment : str, default None
+comment : str, optional
     Indicates remainder of line should not be parsed. If found at the beginning
     of a line, the line will be ignored altogether. This parameter must be a
     single character. Like empty lines (as long as ``skip_blank_lines=True``),
@@ -270,11 +270,11 @@ comment : str, default None
     `skiprows`. For example, if ``comment='#'``, parsing
     ``#empty\\na,b,c\\n1,2,3`` with ``header=0`` will result in 'a,b,c' being
     treated as the header.
-encoding : str, default None
+encoding : str, optional
     Encoding to use for UTF when reading/writing (ex. 'utf-8'). `List of Python
     standard encodings
     <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
-dialect : str or csv.Dialect instance, default None
+dialect : str or csv.Dialect, optional
     If provided, this parameter will override values (default or not) for the
     following parameters: `delimiter`, `doublequote`, `escapechar`,
     `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
@@ -743,13 +743,13 @@ def read_fwf(filepath_or_buffer, colspecs='infer',
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-    colspecs : list of pairs (int, int) or 'infer'. optional
-        A list of pairs (tuples) giving the extents of the fixed-width
+    colspecs : list of tuple (int, int) or 'infer'. optional
+        A list of tuples giving the extents of the fixed-width
         fields of each line as half-open intervals (i.e.,  [from, to[ ).
         String value 'infer' can be used to instruct the parser to try
         detecting the column specifications from the first 100 rows of
         the data which are not being skipped via skiprows (default='infer').
-    widths : list of ints. optional
+    widths : list of int, optional
         A list of field widths which can be used instead of 'colspecs' if
         the intervals are contiguous.
     **kwds : optional
@@ -765,7 +765,6 @@ def read_fwf(filepath_or_buffer, colspecs='infer',
     --------
     to_csv : Write DataFrame to a comma-separated values (csv) file.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
-    read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
     Examples
     --------
@@ -2055,37 +2054,37 @@ def TextParser(*args, **kwds):
     ----------
     data : file-like object or list
     delimiter : separator character to use
-    dialect : str or csv.Dialect instance, default None
+    dialect : str or csv.Dialect instance, optional
         Ignored if delimiter is longer than 1 character
     names : sequence, default
     header : int, default 0
         Row to use to parse column labels. Defaults to the first row. Prior
         rows will be discarded
-    index_col : int or list, default None
+    index_col : int or list, optional
         Column or columns to use as the (possibly hierarchical) index
     has_index_names: bool, default False
         True if the cols defined in index_col have an index name and are
         not in the header.
-    na_values : scalar, str, list-like, or dict, default None
+    na_values : scalar, str, list-like, or dict, optional
         Additional strings to recognize as NA/NaN.
     keep_default_na : bool, default True
-    thousands : str, default None
+    thousands : str, optional
         Thousands separator
-    comment : str, default None
+    comment : str, optional
         Comment out remainder of line
     parse_dates : bool, default False
     keep_date_col : bool, default False
-    date_parser : function, default None
+    date_parser : function, optional
     skiprows : list of integers
         Row numbers to skip
     skipfooter : int
         Number of line at bottom of file to skip
-    converters : dict, default None
+    converters : dict, optional
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels, values are functions that take one
         input argument, the cell (not column) content, and return the
         transformed content.
-    encoding : str, default None
+    encoding : str, optional
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
     squeeze : bool, default False
         returns Series if only one column.
@@ -2093,7 +2092,7 @@ def TextParser(*args, **kwds):
         If True and `parse_dates` is True for a column, try to infer the
         datetime format based on the first datetime string. If the format
         can be inferred, there often will be a large parsing speed-up.
-    float_precision : str, default None
+    float_precision : str, optional
         Specifies which converter the C engine should use for floating-point
         values. The options are None for the ordinary converter,
         'high' for the high-precision converter, and 'round_trip' for the
