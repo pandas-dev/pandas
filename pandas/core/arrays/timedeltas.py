@@ -134,12 +134,11 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         return result
 
     def __new__(cls, values, freq=None, dtype=_TD_DTYPE, copy=False):
-        verify_integrity = True
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
-        values, inferred_freq = sequence_to_td64ns(values, copy=copy,
-                                                   unit=None)
+        values, inferred_freq = sequence_to_td64ns(
+            values, copy=copy, unit=None)
         if inferred_freq is not None:
             if freq is not None and freq != inferred_freq:
                 raise ValueError('Inferred frequency {inferred} from passed '
@@ -150,11 +149,10 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             elif freq_infer:
                 freq = inferred_freq
                 freq_infer = False
-            verify_integrity = False
 
         result = cls._simple_new(values, freq=freq)
         # check that we are matching freqs
-        if verify_integrity and len(result) > 0:
+        if inferred_freq is None and len(result) > 0:
             if freq is not None and not freq_infer:
                 cls._validate_frequency(result, freq)
 

@@ -1125,10 +1125,25 @@ class TestDatetime64DateOffsetArithmetic(object):
         'Easter', ('DateOffset', {'day': 4}),
         ('DateOffset', {'month': 5})])
     @pytest.mark.parametrize('normalize', [True, False])
+    @pytest.mark.parametrize('n', [0, 5])
     def test_dt64arr_add_sub_DateOffsets(self, box_with_array,
-                                         normalize, cls_and_kwargs):
+                                         n, normalize, cls_and_kwargs):
         # GH#10699
-        # assert these are equal on a piecewise basis
+        # assert vectorized operation matches pointwise operations
+
+        if isinstance(cls_and_kwargs, tuple):
+            # If cls_name param is a tuple, then 2nd entry is kwargs for
+            # the offset constructor
+            cls_name, kwargs = cls_and_kwargs
+        else:
+            cls_name = cls_and_kwargs
+            kwargs = {}
+
+        if n == 0 and cls_name in ['WeekOfMonth', 'LastWeekOfMonth',
+                                   'FY5253Quarter', 'FY5253']:
+            # passing n = 0 is invalid for these offset classes
+            return
+
         vec = DatetimeIndex([Timestamp('2000-01-05 00:15:00'),
                              Timestamp('2000-01-31 00:23:00'),
                              Timestamp('2000-01-01'),
@@ -1140,14 +1155,6 @@ class TestDatetime64DateOffsetArithmetic(object):
         vec = tm.box_expected(vec, box_with_array)
         vec_items = vec.squeeze() if box_with_array is pd.DataFrame else vec
 
-        if isinstance(cls_and_kwargs, tuple):
-            # If cls_name param is a tuple, then 2nd entry is kwargs for
-            # the offset constructor
-            cls_name, kwargs = cls_and_kwargs
-        else:
-            cls_name = cls_and_kwargs
-            kwargs = {}
-
         offset_cls = getattr(pd.offsets, cls_name)
 
         with warnings.catch_warnings(record=True):
@@ -1155,28 +1162,23 @@ class TestDatetime64DateOffsetArithmetic(object):
             # applied to Series or DatetimeIndex
             # we aren't testing that here, so ignore.
             warnings.simplefilter("ignore", PerformanceWarning)
-            for n in [0, 5]:
-                if (cls_name in ['WeekOfMonth', 'LastWeekOfMonth',
-                                 'FY5253Quarter', 'FY5253'] and n == 0):
-                    # passing n = 0 is invalid for these offset classes
-                    continue
 
-                offset = offset_cls(n, normalize=normalize, **kwargs)
+            offset = offset_cls(n, normalize=normalize, **kwargs)
 
-                expected = DatetimeIndex([x + offset for x in vec_items])
-                expected = tm.box_expected(expected, box_with_array)
-                tm.assert_equal(expected, vec + offset)
+            expected = DatetimeIndex([x + offset for x in vec_items])
+            expected = tm.box_expected(expected, box_with_array)
+            tm.assert_equal(expected, vec + offset)
 
-                expected = DatetimeIndex([x - offset for x in vec_items])
-                expected = tm.box_expected(expected, box_with_array)
-                tm.assert_equal(expected, vec - offset)
+            expected = DatetimeIndex([x - offset for x in vec_items])
+            expected = tm.box_expected(expected, box_with_array)
+            tm.assert_equal(expected, vec - offset)
 
-                expected = DatetimeIndex([offset + x for x in vec_items])
-                expected = tm.box_expected(expected, box_with_array)
-                tm.assert_equal(expected, offset + vec)
+            expected = DatetimeIndex([offset + x for x in vec_items])
+            expected = tm.box_expected(expected, box_with_array)
+            tm.assert_equal(expected, offset + vec)
 
-                with pytest.raises(TypeError):
-                    offset - vec
+            with pytest.raises(TypeError):
+                offset - vec
 
     def test_dt64arr_add_sub_DateOffset(self, box_with_array):
         # GH#10699
