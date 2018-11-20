@@ -1856,7 +1856,7 @@ class DataFrame(NDFrame):
                  data_label=None, variable_labels=None, version=114,
                  convert_strl=None):
         """
-        Converting DataFrame object to Stata dta format.
+        Export DataFrame object to Stata dta format.
 
         Writes the DataFrame to a Stata dataset file.
         "dta" files contain a Stata dataset.
