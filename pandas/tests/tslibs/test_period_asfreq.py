@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from pandas._libs.tslibs.frequencies import get_freq
-from pandas._libs.tslibs.period import period_ordinal, period_asfreq
+from pandas._libs.tslibs.period import period_asfreq, period_ordinal
 
 
 class TestPeriodFreqConversion(object):

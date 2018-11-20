@@ -9,9 +9,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+from pandas import NaT, Timedelta, Timestamp
 from pandas.core import ops
-from pandas import Timedelta, Timestamp, NaT
+import pandas.util.testing as tm
 
 
 class TestTimedeltaAdditionSubtraction(object):
@@ -189,54 +189,54 @@ class TestTimedeltaAdditionSubtraction(object):
         assert result == Timedelta(-239, unit='h')
 
     def test_td_sub_timedeltalike_object_dtype_array(self):
-        # GH 21980
+        # GH#21980
         arr = np.array([Timestamp('20130101 9:01'),
                         Timestamp('20121230 9:02')])
         exp = np.array([Timestamp('20121231 9:01'),
                         Timestamp('20121229 9:02')])
-        res = arr - pd.Timedelta('1D')
+        res = arr - Timedelta('1D')
         tm.assert_numpy_array_equal(res, exp)
 
     def test_td_sub_mixed_most_timedeltalike_object_dtype_array(self):
-        # GH 21980
-        now = pd.Timestamp.now()
+        # GH#21980
+        now = Timestamp.now()
         arr = np.array([now,
-                        pd.Timedelta('1D'),
+                        Timedelta('1D'),
                         np.timedelta64(2, 'h')])
-        exp = np.array([now - pd.Timedelta('1D'),
-                        pd.Timedelta('0D'),
-                        np.timedelta64(2, 'h') - pd.Timedelta('1D')])
-        res = arr - pd.Timedelta('1D')
+        exp = np.array([now - Timedelta('1D'),
+                        Timedelta('0D'),
+                        np.timedelta64(2, 'h') - Timedelta('1D')])
+        res = arr - Timedelta('1D')
         tm.assert_numpy_array_equal(res, exp)
 
     def test_td_rsub_mixed_most_timedeltalike_object_dtype_array(self):
-        # GH 21980
-        now = pd.Timestamp.now()
+        # GH#21980
+        now = Timestamp.now()
         arr = np.array([now,
-                        pd.Timedelta('1D'),
+                        Timedelta('1D'),
                         np.timedelta64(2, 'h')])
         with pytest.raises(TypeError):
-            pd.Timedelta('1D') - arr
+            Timedelta('1D') - arr
 
     @pytest.mark.parametrize('op', [operator.add, ops.radd])
     def test_td_add_timedeltalike_object_dtype_array(self, op):
-        # GH 21980
+        # GH#21980
         arr = np.array([Timestamp('20130101 9:01'),
                         Timestamp('20121230 9:02')])
         exp = np.array([Timestamp('20130102 9:01'),
                         Timestamp('20121231 9:02')])
-        res = op(arr, pd.Timedelta('1D'))
+        res = op(arr, Timedelta('1D'))
         tm.assert_numpy_array_equal(res, exp)
 
     @pytest.mark.parametrize('op', [operator.add, ops.radd])
     def test_td_add_mixed_timedeltalike_object_dtype_array(self, op):
-        # GH 21980
-        now = pd.Timestamp.now()
+        # GH#21980
+        now = Timestamp.now()
         arr = np.array([now,
-                        pd.Timedelta('1D')])
-        exp = np.array([now + pd.Timedelta('1D'),
-                        pd.Timedelta('2D')])
-        res = op(arr, pd.Timedelta('1D'))
+                        Timedelta('1D')])
+        exp = np.array([now + Timedelta('1D'),
+                        Timedelta('2D')])
+        res = op(arr, Timedelta('1D'))
         tm.assert_numpy_array_equal(res, exp)
 
 
@@ -255,7 +255,7 @@ class TestTimedeltaMultiplicationDivision(object):
     # ---------------------------------------------------------------
     # Timedelta.__mul__, __rmul__
 
-    @pytest.mark.parametrize('td_nat', [pd.NaT,
+    @pytest.mark.parametrize('td_nat', [NaT,
                                         np.timedelta64('NaT', 'ns'),
                                         np.timedelta64('NaT')])
     @pytest.mark.parametrize('op', [operator.mul, ops.rmul])
@@ -558,7 +558,7 @@ class TestTimedeltaMultiplicationDivision(object):
         td = Timedelta(hours=37)
 
         with pytest.raises(TypeError):
-            td % pd.Timestamp('2018-01-22')
+            td % Timestamp('2018-01-22')
 
         with pytest.raises(TypeError):
             td % []
@@ -583,7 +583,7 @@ class TestTimedeltaMultiplicationDivision(object):
         td = Timedelta(minutes=3)
 
         with pytest.raises(TypeError):
-            pd.Timestamp('2018-01-22') % td
+            Timestamp('2018-01-22') % td
 
         with pytest.raises(TypeError):
             15 % td
@@ -608,8 +608,8 @@ class TestTimedeltaMultiplicationDivision(object):
 
         assert result
         result = divmod(td, np.nan)
-        assert result[0] is pd.NaT
-        assert result[1] is pd.NaT
+        assert result[0] is NaT
+        assert result[1] is NaT
 
     def test_divmod(self):
         # GH#19365
@@ -625,9 +625,9 @@ class TestTimedeltaMultiplicationDivision(object):
         assert isinstance(result[1], Timedelta)
         assert result[1] == Timedelta(0)
 
-        result = divmod(td, pd.NaT)
+        result = divmod(td, NaT)
         assert np.isnan(result[0])
-        assert result[1] is pd.NaT
+        assert result[1] is NaT
 
     def test_divmod_offset(self):
         # GH#19365
@@ -643,7 +643,7 @@ class TestTimedeltaMultiplicationDivision(object):
         td = Timedelta(days=2, hours=6)
 
         with pytest.raises(TypeError):
-            divmod(td, pd.Timestamp('2018-01-22'))
+            divmod(td, Timestamp('2018-01-22'))
 
     def test_rdivmod_pytimedelta(self):
         # GH#19365
@@ -663,7 +663,7 @@ class TestTimedeltaMultiplicationDivision(object):
         td = Timedelta(minutes=3)
 
         with pytest.raises(TypeError):
-            divmod(pd.Timestamp('2018-01-22'), td)
+            divmod(Timestamp('2018-01-22'), td)
 
         with pytest.raises(TypeError):
             divmod(15, td)
@@ -684,8 +684,8 @@ class TestTimedeltaMultiplicationDivision(object):
         ops.rsub])
     @pytest.mark.parametrize('arr', [
         np.array([Timestamp('20130101 9:01'), Timestamp('20121230 9:02')]),
-        np.array([pd.Timestamp.now(), pd.Timedelta('1D')])
+        np.array([Timestamp.now(), Timedelta('1D')])
     ])
     def test_td_op_timedelta_timedeltalike_array(self, op, arr):
         with pytest.raises(TypeError):
-            op(arr, pd.Timedelta('1D'))
+            op(arr, Timedelta('1D'))

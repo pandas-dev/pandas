@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta
 
-import pytest
 import numpy as np
+import pytest
 
-import pandas.util.testing as tm
 from pandas.compat import long
+
+from pandas import Timedelta, Timestamp
+import pandas.util.testing as tm
+
 from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
-from pandas import Timestamp, Timedelta
 
 
 class TestTimestampArithmetic(object):

@@ -1,15 +1,17 @@
 """ test the scalar Timedelta """
-import pytest
-
-import numpy as np
 from datetime import timedelta
 
+import numpy as np
+import pytest
+
+from pandas._libs.tslib import NaT, iNaT
+import pandas.compat as compat
+
 import pandas as pd
-import pandas.util.testing as tm
+from pandas import (
+    Series, Timedelta, TimedeltaIndex, timedelta_range, to_timedelta)
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
-from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
-                    to_timedelta, compat)
-from pandas._libs.tslib import iNaT, NaT
+import pandas.util.testing as tm
 
 
 class TestTimedeltaArithmetic(object):

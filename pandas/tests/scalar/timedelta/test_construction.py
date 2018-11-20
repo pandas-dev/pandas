@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 
-import pytest
 import numpy as np
+import pytest
 
-import pandas as pd
-from pandas import Timedelta
+from pandas import Timedelta, offsets, to_timedelta
 
 
 def test_construction():
@@ -107,16 +106,15 @@ def test_construction():
     assert Timedelta(10.5, unit='s').value == expected
 
     # offset
-    assert pd.to_timedelta(pd.offsets.Hour(2)) == Timedelta(hours=2)
-    assert Timedelta(pd.offsets.Hour(2)) == Timedelta(hours=2)
-    assert Timedelta(pd.offsets.Second(2)) == Timedelta(seconds=2)
+    assert to_timedelta(offsets.Hour(2)) == Timedelta(hours=2)
+    assert Timedelta(offsets.Hour(2)) == Timedelta(hours=2)
+    assert Timedelta(offsets.Second(2)) == Timedelta(seconds=2)
 
     # GH#11995: unicode
     expected = Timedelta('1H')
-    result = pd.Timedelta(u'1H')
+    result = Timedelta(u'1H')
     assert result == expected
-    assert (pd.to_timedelta(pd.offsets.Hour(2)) ==
-            Timedelta(u'0 days, 02:00:00'))
+    assert to_timedelta(offsets.Hour(2)) == Timedelta(u'0 days, 02:00:00')
 
     with pytest.raises(ValueError):
         Timedelta(u'foo bar')
@@ -154,17 +152,17 @@ def test_td_from_repr_roundtrip(val):
 
 
 def test_overflow_on_construction():
-    # xref https://github.com/statsmodels/statsmodels/issues/3374
-    value = pd.Timedelta('1day').value * 20169940
+    # GH#3374
+    value = Timedelta('1day').value * 20169940
     with pytest.raises(OverflowError):
-        pd.Timedelta(value)
+        Timedelta(value)
 
     # xref GH#17637
     with pytest.raises(OverflowError):
-        pd.Timedelta(7 * 19999, unit='D')
+        Timedelta(7 * 19999, unit='D')
 
     with pytest.raises(OverflowError):
-        pd.Timedelta(timedelta(days=13 * 19999))
+        Timedelta(timedelta(days=13 * 19999))
 
 
 @pytest.mark.parametrize('fmt,exp', [

@@ -3,33 +3,24 @@ from datetime import date, datetime, timedelta
 import functools
 import operator
 
-from pandas.compat import range
-from pandas import compat
+from dateutil.easter import easter
 import numpy as np
 
-from pandas.core.dtypes.generic import ABCPeriod
-from pandas.core.tools.datetimes import to_datetime
-
-# import after tools, dateutil check
-from dateutil.easter import easter
-from pandas._libs import tslibs, Timestamp, OutOfBoundsDatetime, Timedelta
+from pandas._libs.tslibs import (
+    NaT, OutOfBoundsDatetime, Timedelta, Timestamp, ccalendar, conversion,
+    delta_to_nanoseconds, frequencies as libfrequencies, normalize_date,
+    offsets as liboffsets)
+from pandas._libs.tslibs.offsets import (
+    ApplyTypeError, BaseOffset, _get_calendar, _is_normalized, _to_dt64,
+    apply_index_wraps, as_datetime, roll_yearday, shift_month)
+import pandas.compat as compat
+from pandas.compat import range
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
-from pandas._libs.tslibs import (
-    ccalendar, conversion,
-    frequencies as libfrequencies)
-from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
-import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import (
-    ApplyTypeError,
-    as_datetime, _is_normalized,
-    _get_calendar, _to_dt64,
-    apply_index_wraps,
-    roll_yearday,
-    shift_month,
-    BaseOffset)
-from pandas.errors import AbstractMethodError
+from pandas.core.dtypes.generic import ABCPeriod
 
+from pandas.core.tools.datetimes import to_datetime
 
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'CBMonthEnd', 'CBMonthBegin',
@@ -60,8 +51,8 @@ def as_timestamp(obj):
 def apply_wraps(func):
     @functools.wraps(func)
     def wrapper(self, other):
-        if other is tslibs.NaT:
-            return tslibs.NaT
+        if other is NaT:
+            return NaT
         elif isinstance(other, (timedelta, Tick, DateOffset)):
             # timedelta path
             return func(self, other)
@@ -103,7 +94,7 @@ def apply_wraps(func):
 
             if self.normalize:
                 # normalize_date returns normal datetime
-                result = tslibs.normalize_date(result)
+                result = normalize_date(result)
 
             if tz is not None and result.tzinfo is None:
                 result = conversion.localize_pydatetime(result, tz)

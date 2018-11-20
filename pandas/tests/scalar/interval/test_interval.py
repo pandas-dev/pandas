@@ -1,10 +1,10 @@
 from __future__ import division
 
 import numpy as np
-from pandas import Interval, Timestamp, Timedelta
-import pandas.core.common as com
-
 import pytest
+
+from pandas import Interval, Timedelta, Timestamp
+import pandas.core.common as com
 
 
 @pytest.fixture

@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 
+import dateutil.tz
 import pytest
 import pytz
-import dateutil.tz
 
-from pandas._libs.tslibs import timezones, conversion
+from pandas._libs.tslibs import conversion, timezones
+
 from pandas import Timestamp
 
 

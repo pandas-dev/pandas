@@ -2,20 +2,20 @@
 """
 Tests for Timestamp timezone-related methods
 """
-from datetime import datetime, date, timedelta
-
+from datetime import date, datetime, timedelta
 from distutils.version import LooseVersion
+
+import dateutil
+from dateutil.tz import gettz, tzoffset
 import pytest
 import pytz
 from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
-import dateutil
-from dateutil.tz import gettz, tzoffset
 
-import pandas.util.testing as tm
+from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
-from pandas import Timestamp, NaT
-from pandas.errors import OutOfBoundsDatetime
+from pandas import NaT, Timestamp
+import pandas.util.testing as tm
 
 
 class TestTimestampTZOperations(object):

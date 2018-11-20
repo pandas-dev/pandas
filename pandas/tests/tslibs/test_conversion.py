@@ -3,10 +3,11 @@
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
-from pandas import date_range
 from pandas._libs.tslib import iNaT
 from pandas._libs.tslibs import conversion, timezones
+
+from pandas import date_range
+import pandas.util.testing as tm
 
 
 def compare_utc_to_local(tz_didx, utc_didx):
