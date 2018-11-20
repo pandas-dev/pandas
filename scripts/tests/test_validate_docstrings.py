@@ -288,6 +288,34 @@ class BadGenericDocStrings(object):
         """
         pass
 
+    def two_linebreaks_between_sections(self, foo):
+        """
+        Test linebreaks message GL03.
+
+        Note 2 blank lines before parameters section.
+
+
+        Parameters
+        ----------
+        foo : str
+            Description of foo parameter.
+        """
+        pass
+
+    def linebreak_at_end_of_docstring(self, foo):
+        """
+        Test linebreaks message GL03.
+
+        Note extra blank line at end of docstring.
+
+        Parameters
+        ----------
+        foo : str
+            Description of foo parameter.
+
+        """
+        pass
+
     def plot(self, kind, **kwargs):
         """
         Generate a plot.
@@ -723,7 +751,8 @@ class TestValidator(object):
     @capture_stderr
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method',
-        'private_classes'])
+        'private_classes',
+    ])
     def test_bad_generic_functions(self, func):
         errors = validate_one(self._import_path(  # noqa:F821
             klass='BadGenericDocStrings', func=func))['errors']
@@ -811,8 +840,16 @@ class TestValidator(object):
           'E226 missing whitespace around arithmetic operator',)),
         ('BadExamples', 'missing_whitespace_after_comma',
          ("flake8 error: E231 missing whitespace after ',' (3 times)",)),
+        ('BadGenericDocStrings', 'two_linebreaks_between_sections',
+         ('Double line break found; please use only one blank line to '
+          'separate sections or paragraphs, and do not leave blank lines '
+          'at the end of docstrings',)),
+        ('BadGenericDocStrings', 'linebreak_at_end_of_docstring',
+         ('Double line break found; please use only one blank line to '
+          'separate sections or paragraphs, and do not leave blank lines '
+          'at the end of docstrings',)),
     ])
-    def test_bad_examples(self, capsys, klass, func, msgs):
+    def test_bad_docstrings(self, capsys, klass, func, msgs):
         result = validate_one(self._import_path(klass=klass, func=func))
         for msg in msgs:
             assert msg in ' '.join(err[1] for err in result['errors'])

@@ -67,7 +67,9 @@ ERROR_MSGS = {
             'in the docstring (do not close the quotes in the same line as '
             'the text, or leave a blank line between the last text and the '
             'quotes)',
-    'GL03': 'Use only one blank line to separate sections or paragraphs',
+    'GL03': 'Double line break found; please use only one blank line to '
+            'separate sections or paragraphs, and do not leave blank lines '
+            'at the end of docstrings',
     'GL04': 'Private classes ({mentioned_private_classes}) should not be '
             'mentioned in public docstrings',
     'GL05': 'Tabs found at the start of line "{line_with_tabs}", please use '
