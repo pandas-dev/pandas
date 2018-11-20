@@ -1,12 +1,15 @@
+from datetime import datetime, timedelta
 import warnings
 
-from pandas import DateOffset, DatetimeIndex, Series, Timestamp
-from pandas.errors import PerformanceWarning
-from pandas.compat import add_metaclass
-from datetime import datetime, timedelta
-from dateutil.relativedelta import MO, TU, WE, TH, FR, SA, SU  # noqa
-from pandas.tseries.offsets import Easter, Day
+from dateutil.relativedelta import FR, MO, SA, SU, TH, TU, WE  # noqa
 import numpy as np
+
+from pandas.compat import add_metaclass
+from pandas.errors import PerformanceWarning
+
+from pandas import DateOffset, DatetimeIndex, Series, Timestamp
+
+from pandas.tseries.offsets import Day, Easter
 
 
 def next_monday(dt):

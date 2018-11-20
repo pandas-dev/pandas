@@ -29,6 +29,7 @@ from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.indexes.datetimes import _to_m8
 from pandas.tests.indexes.common import Base
 from pandas.util.testing import assert_almost_equal
+from pandas.core.sorting import safe_sort
 
 
 class TestIndex(Base):
@@ -1119,7 +1120,8 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("second_name,expected", [
         (None, None), ('name', 'name')])
-    def test_difference_name_preservation(self, second_name, expected):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_name_preservation(self, second_name, expected, sort):
         # TODO: replace with fixturesult
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
@@ -1127,7 +1129,7 @@ class TestIndex(Base):
 
         first.name = 'name'
         second.name = second_name
-        result = first.difference(second)
+        result = first.difference(second, sort)
 
         assert tm.equalContents(result, answer)
 
@@ -1136,21 +1138,36 @@ class TestIndex(Base):
         else:
             assert result.name == expected
 
-    def test_difference_empty_arg(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_empty_arg(self, sort):
         first = self.strIndex[5:20]
         first.name == 'name'
-        result = first.difference([])
+        result = first.difference([], sort)
 
         assert tm.equalContents(result, first)
         assert result.name == first.name
 
-    def test_difference_identity(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_identity(self, sort):
         first = self.strIndex[5:20]
         first.name == 'name'
-        result = first.difference(first)
+        result = first.difference(first, sort)
 
         assert len(result) == 0
         assert result.name == first.name
+
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_sort(self, sort):
+        first = self.strIndex[5:20]
+        second = self.strIndex[:10]
+
+        result = first.difference(second, sort)
+        expected = self.strIndex[10:20]
+
+        if sort:
+            expected = expected.sort_values()
+
+        tm.assert_index_equal(result, expected)
 
     def test_symmetric_difference(self):
         # smoke
@@ -1196,17 +1213,19 @@ class TestIndex(Base):
         assert tm.equalContents(result, expected)
         assert result.name == 'new_name'
 
-    def test_difference_type(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_type(self, sort):
         # GH 20040
         # If taking difference of a set and itself, it
         # needs to preserve the type of the index
         skip_index_keys = ['repeats']
         for key, index in self.generate_index_types(skip_index_keys):
-            result = index.difference(index)
+            result = index.difference(index, sort)
             expected = index.drop(index)
             tm.assert_index_equal(result, expected)
 
-    def test_intersection_difference(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_intersection_difference(self, sort):
         # GH 20040
         # Test that the intersection of an index with an
         # empty index produces the same index as the difference
@@ -1214,7 +1233,7 @@ class TestIndex(Base):
         skip_index_keys = ['repeats']
         for key, index in self.generate_index_types(skip_index_keys):
             inter = index.intersection(index.drop(index))
-            diff = index.difference(index)
+            diff = index.difference(index, sort)
             tm.assert_index_equal(inter, diff)
 
     @pytest.mark.parametrize("attr,expected", [
@@ -2424,14 +2443,17 @@ class TestMixedIntIndex(Base):
         result = first.intersection(klass(second.values))
         assert tm.equalContents(result, second)
 
-    def test_difference_base(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_base(self, sort):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
         index = self.create_index()
         first = index[:4]
         second = index[3:]
 
-        result = first.difference(second)
-        expected = Index([0, 1, 'a'])
+        result = first.difference(second, sort)
+        expected = Index([0, 'a', 1])
+        if sort:
+            expected = Index(safe_sort(expected))
         tm.assert_index_equal(result, expected)
 
     def test_symmetric_difference(self):
