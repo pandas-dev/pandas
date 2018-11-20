@@ -36,6 +36,7 @@ class HTMLFormatter(TableFormatter):
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.escape = self.fmt.kwds.get('escape', True)
         self.show_dimensions = self.fmt.show_dimensions
+        self.is_truncated = self.fmt.is_truncated
         self.notebook = notebook
         if border is None:
             border = get_option('display.html.border')
