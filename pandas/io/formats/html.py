@@ -25,8 +25,8 @@ class HTMLFormatter(TableFormatter):
 
     indent_delta = 2
 
-    def __init__(self, formatter, classes=None, max_rows=None, max_cols=None,
-                 notebook=False, border=None, table_id=None):
+    def __init__(self, formatter, classes=None, notebook=False, border=None,
+                 table_id=None):
         self.fmt = formatter
         self.classes = classes
 
@@ -35,12 +35,7 @@ class HTMLFormatter(TableFormatter):
         self.elements = []
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.escape = self.fmt.kwds.get('escape', True)
-
-        self.max_rows = max_rows or len(self.fmt.frame)
-        self.max_cols = max_cols or len(self.fmt.columns)
         self.show_dimensions = self.fmt.show_dimensions
-        self.is_truncated = (self.max_rows < len(self.fmt.frame) or
-                             self.max_cols < len(self.fmt.columns))
         self.notebook = notebook
         if border is None:
             border = get_option('display.html.border')
@@ -301,12 +296,9 @@ class HTMLFormatter(TableFormatter):
         if all((self.fmt.has_index_names,
                 self.fmt.index,
                 self.fmt.show_index_names)):
-            row = ([x if x is not None else ''
-                    for x in self.frame.index.names] +
-                   [''] * min(len(self.columns), self.max_cols))
-            if truncate_h:
-                ins_col = row_levels + self.fmt.tr_col_num
-                row.insert(ins_col, '')
+            ncols = len(self.fmt.tr_frame.columns)
+            row = ([x if x is not None else '' for x in self.frame.index.names]
+                   + [''] * (ncols + (1 if truncate_h else 0)))
             self.write_tr(row, indent, self.indent_delta, header=True)
 
         indent -= self.indent_delta
@@ -318,9 +310,8 @@ class HTMLFormatter(TableFormatter):
         self.write('<tbody>', indent)
         indent += self.indent_delta
 
-        fmt_values = {}
-        for i in range(min(len(self.columns), self.max_cols)):
-            fmt_values[i] = self.fmt._format_col(i)
+        ncols = len(self.fmt.tr_frame.columns)
+        fmt_values = {i: self.fmt._format_col(i) for i in range(ncols)}
 
         # write values
         if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
