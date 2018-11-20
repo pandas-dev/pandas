@@ -2,6 +2,7 @@ import datetime
 
 from pandas import Timestamp
 import pytz
+import dateutil
 
 
 class TimestampConstruction(object):
@@ -29,7 +30,8 @@ class TimestampConstruction(object):
 
 
 class TimestampProperties(object):
-    _tzs = [None, pytz.timezone('Europe/Amsterdam')]
+    _tzs = [None, pytz.timezone('Europe/Amsterdam'), pytz.UTC,
+            dateutil.tz.tzutc()]
     _freqs = [None, 'B']
     params = [_tzs, _freqs]
     param_names = ['tz', 'freq']
@@ -87,7 +89,8 @@ class TimestampProperties(object):
 
 
 class TimestampOps(object):
-    params = [None, 'US/Eastern']
+    params = [None, 'US/Eastern', pytz.UTC,
+              dateutil.tz.tzutc()]
     param_names = ['tz']
 
     def setup(self, tz):
@@ -101,6 +104,17 @@ class TimestampOps(object):
 
     def time_to_pydatetime(self, tz):
         self.ts.to_pydatetime()
+
+    def time_normalize(self, tz):
+        self.ts.normalize()
+
+    def time_tz_convert(self, tz):
+        if self.ts.tz is not None:
+            self.ts.tz_convert(tz)
+
+    def time_tz_localize(self, tz):
+        if self.ts.tz is None:
+            self.ts.tz_localize(tz)
 
 
 class TimestampAcrossDst(object):

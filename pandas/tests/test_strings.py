@@ -297,6 +297,26 @@ class TestStringMethods(object):
             # str.cat(others=None) returns string, for example
             assert result == expected
 
+    def test_api_for_categorical(self, any_string_method):
+        # https://github.com/pandas-dev/pandas/issues/10661
+        s = Series(list('aabb'))
+        s = s + " " + s
+        c = s.astype('category')
+        assert isinstance(c.str, strings.StringMethods)
+
+        method_name, args, kwargs = any_string_method
+
+        result = getattr(c.str, method_name)(*args, **kwargs)
+        expected = getattr(s.str, method_name)(*args, **kwargs)
+
+        if isinstance(result, DataFrame):
+            tm.assert_frame_equal(result, expected)
+        elif isinstance(result, Series):
+            tm.assert_series_equal(result, expected)
+        else:
+            # str.cat(others=None) returns string, for example
+            assert result == expected
+
     def test_iter(self):
         # GH3638
         strs = 'google', 'wikimedia', 'wikipedia', 'wikitravel'
@@ -769,10 +789,28 @@ class TestStringMethods(object):
         assert result.dtype == np.bool_
         tm.assert_numpy_array_equal(result, expected)
 
-        # na
-        values = Series(['om', 'foo', np.nan])
-        res = values.str.contains('foo', na="foo")
-        assert res.loc[2] == "foo"
+    def test_contains_for_object_category(self):
+        # gh 22158
+
+        # na for category
+        values = Series(["a", "b", "c", "a", np.nan], dtype="category")
+        result = values.str.contains('a', na=True)
+        expected = Series([True, False, False, True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = values.str.contains('a', na=False)
+        expected = Series([True, False, False, True, False])
+        tm.assert_series_equal(result, expected)
+
+        # na for objects
+        values = Series(["a", "b", "c", "a", np.nan])
+        result = values.str.contains('a', na=True)
+        expected = Series([True, False, False, True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = values.str.contains('a', na=False)
+        expected = Series([True, False, False, True, False])
+        tm.assert_series_equal(result, expected)
 
     def test_startswith(self):
         values = Series(['om', NA, 'foo_nom', 'nom', 'bar_foo', NA, 'foo'])
@@ -2587,24 +2625,35 @@ class TestStringMethods(object):
             s.str.split('_', expand="not_a_boolean")
 
     def test_split_to_multiindex_expand(self):
-        idx = Index(['nosplit', 'alsonosplit'])
+        # https://github.com/pandas-dev/pandas/issues/23677
+
+        idx = Index(['nosplit', 'alsonosplit', np.nan])
         result = idx.str.split('_', expand=True)
         exp = idx
         tm.assert_index_equal(result, exp)
         assert result.nlevels == 1
 
-        idx = Index(['some_equal_splits', 'with_no_nans'])
+        idx = Index(['some_equal_splits', 'with_no_nans', np.nan, None])
         result = idx.str.split('_', expand=True)
-        exp = MultiIndex.from_tuples([('some', 'equal', 'splits'), (
-            'with', 'no', 'nans')])
+        exp = MultiIndex.from_tuples([('some', 'equal', 'splits'),
+                                      ('with', 'no', 'nans'),
+                                      [np.nan, np.nan, np.nan],
+                                      [None, None, None]])
         tm.assert_index_equal(result, exp)
         assert result.nlevels == 3
 
-        idx = Index(['some_unequal_splits', 'one_of_these_things_is_not'])
+        idx = Index(['some_unequal_splits',
+                     'one_of_these_things_is_not',
+                     np.nan, None])
         result = idx.str.split('_', expand=True)
-        exp = MultiIndex.from_tuples([('some', 'unequal', 'splits', NA, NA, NA
-                                       ), ('one', 'of', 'these', 'things',
-                                           'is', 'not')])
+        exp = MultiIndex.from_tuples([('some', 'unequal', 'splits',
+                                       NA, NA, NA),
+                                      ('one', 'of', 'these',
+                                       'things', 'is', 'not'),
+                                      (np.nan, np.nan, np.nan,
+                                       np.nan, np.nan, np.nan),
+                                      (None, None, None,
+                                       None, None, None)])
         tm.assert_index_equal(result, exp)
         assert result.nlevels == 6
 
@@ -2698,50 +2747,54 @@ class TestStringMethods(object):
         tm.assert_index_equal(res, exp)
 
     def test_partition_series(self):
-        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+        # https://github.com/pandas-dev/pandas/issues/23558
+
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h', None])
 
         result = values.str.partition('_', expand=False)
         exp = Series([('a', '_', 'b_c'), ('c', '_', 'd_e'), NA,
-                      ('f', '_', 'g_h')])
+                      ('f', '_', 'g_h'), None])
         tm.assert_series_equal(result, exp)
 
         result = values.str.rpartition('_', expand=False)
         exp = Series([('a_b', '_', 'c'), ('c_d', '_', 'e'), NA,
-                      ('f_g', '_', 'h')])
+                      ('f_g', '_', 'h'), None])
         tm.assert_series_equal(result, exp)
 
         # more than one char
-        values = Series(['a__b__c', 'c__d__e', NA, 'f__g__h'])
+        values = Series(['a__b__c', 'c__d__e', NA, 'f__g__h', None])
         result = values.str.partition('__', expand=False)
         exp = Series([('a', '__', 'b__c'), ('c', '__', 'd__e'), NA,
-                      ('f', '__', 'g__h')])
+                      ('f', '__', 'g__h'), None])
         tm.assert_series_equal(result, exp)
 
         result = values.str.rpartition('__', expand=False)
         exp = Series([('a__b', '__', 'c'), ('c__d', '__', 'e'), NA,
-                      ('f__g', '__', 'h')])
+                      ('f__g', '__', 'h'), None])
         tm.assert_series_equal(result, exp)
 
         # None
-        values = Series(['a b c', 'c d e', NA, 'f g h'])
+        values = Series(['a b c', 'c d e', NA, 'f g h', None])
         result = values.str.partition(expand=False)
         exp = Series([('a', ' ', 'b c'), ('c', ' ', 'd e'), NA,
-                      ('f', ' ', 'g h')])
+                      ('f', ' ', 'g h'), None])
         tm.assert_series_equal(result, exp)
 
         result = values.str.rpartition(expand=False)
         exp = Series([('a b', ' ', 'c'), ('c d', ' ', 'e'), NA,
-                      ('f g', ' ', 'h')])
+                      ('f g', ' ', 'h'), None])
         tm.assert_series_equal(result, exp)
 
-        # Not splited
-        values = Series(['abc', 'cde', NA, 'fgh'])
+        # Not split
+        values = Series(['abc', 'cde', NA, 'fgh', None])
         result = values.str.partition('_', expand=False)
-        exp = Series([('abc', '', ''), ('cde', '', ''), NA, ('fgh', '', '')])
+        exp = Series([('abc', '', ''), ('cde', '', ''), NA,
+                      ('fgh', '', ''), None])
         tm.assert_series_equal(result, exp)
 
         result = values.str.rpartition('_', expand=False)
-        exp = Series([('', '', 'abc'), ('', '', 'cde'), NA, ('', '', 'fgh')])
+        exp = Series([('', '', 'abc'), ('', '', 'cde'), NA,
+                      ('', '', 'fgh'), None])
         tm.assert_series_equal(result, exp)
 
         # unicode
@@ -2765,57 +2818,65 @@ class TestStringMethods(object):
         assert result == [v.rpartition('_') for v in values]
 
     def test_partition_index(self):
-        values = Index(['a_b_c', 'c_d_e', 'f_g_h'])
+        # https://github.com/pandas-dev/pandas/issues/23558
+
+        values = Index(['a_b_c', 'c_d_e', 'f_g_h', np.nan, None])
 
         result = values.str.partition('_', expand=False)
-        exp = Index(np.array([('a', '_', 'b_c'), ('c', '_', 'd_e'), ('f', '_',
-                                                                     'g_h')]))
+        exp = Index(np.array([('a', '_', 'b_c'), ('c', '_', 'd_e'),
+                              ('f', '_', 'g_h'), np.nan, None]))
         tm.assert_index_equal(result, exp)
         assert result.nlevels == 1
 
         result = values.str.rpartition('_', expand=False)
-        exp = Index(np.array([('a_b', '_', 'c'), ('c_d', '_', 'e'), (
-            'f_g', '_', 'h')]))
+        exp = Index(np.array([('a_b', '_', 'c'), ('c_d', '_', 'e'),
+                              ('f_g', '_', 'h'), np.nan, None]))
         tm.assert_index_equal(result, exp)
         assert result.nlevels == 1
 
         result = values.str.partition('_')
-        exp = Index([('a', '_', 'b_c'), ('c', '_', 'd_e'), ('f', '_', 'g_h')])
+        exp = Index([('a', '_', 'b_c'), ('c', '_', 'd_e'),
+                     ('f', '_', 'g_h'), (np.nan, np.nan, np.nan),
+                     (None, None, None)])
         tm.assert_index_equal(result, exp)
         assert isinstance(result, MultiIndex)
         assert result.nlevels == 3
 
         result = values.str.rpartition('_')
-        exp = Index([('a_b', '_', 'c'), ('c_d', '_', 'e'), ('f_g', '_', 'h')])
+        exp = Index([('a_b', '_', 'c'), ('c_d', '_', 'e'),
+                     ('f_g', '_', 'h'), (np.nan, np.nan, np.nan),
+                     (None, None, None)])
         tm.assert_index_equal(result, exp)
         assert isinstance(result, MultiIndex)
         assert result.nlevels == 3
 
     def test_partition_to_dataframe(self):
-        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+        # https://github.com/pandas-dev/pandas/issues/23558
+
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h', None])
         result = values.str.partition('_')
-        exp = DataFrame({0: ['a', 'c', np.nan, 'f'],
-                         1: ['_', '_', np.nan, '_'],
-                         2: ['b_c', 'd_e', np.nan, 'g_h']})
+        exp = DataFrame({0: ['a', 'c', np.nan, 'f', None],
+                         1: ['_', '_', np.nan, '_', None],
+                         2: ['b_c', 'd_e', np.nan, 'g_h', None]})
         tm.assert_frame_equal(result, exp)
 
         result = values.str.rpartition('_')
-        exp = DataFrame({0: ['a_b', 'c_d', np.nan, 'f_g'],
-                         1: ['_', '_', np.nan, '_'],
-                         2: ['c', 'e', np.nan, 'h']})
+        exp = DataFrame({0: ['a_b', 'c_d', np.nan, 'f_g', None],
+                         1: ['_', '_', np.nan, '_', None],
+                         2: ['c', 'e', np.nan, 'h', None]})
         tm.assert_frame_equal(result, exp)
 
-        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h', None])
         result = values.str.partition('_', expand=True)
-        exp = DataFrame({0: ['a', 'c', np.nan, 'f'],
-                         1: ['_', '_', np.nan, '_'],
-                         2: ['b_c', 'd_e', np.nan, 'g_h']})
+        exp = DataFrame({0: ['a', 'c', np.nan, 'f', None],
+                         1: ['_', '_', np.nan, '_', None],
+                         2: ['b_c', 'd_e', np.nan, 'g_h', None]})
         tm.assert_frame_equal(result, exp)
 
         result = values.str.rpartition('_', expand=True)
-        exp = DataFrame({0: ['a_b', 'c_d', np.nan, 'f_g'],
-                         1: ['_', '_', np.nan, '_'],
-                         2: ['c', 'e', np.nan, 'h']})
+        exp = DataFrame({0: ['a_b', 'c_d', np.nan, 'f_g', None],
+                         1: ['_', '_', np.nan, '_', None],
+                         2: ['c', 'e', np.nan, 'h', None]})
         tm.assert_frame_equal(result, exp)
 
     def test_partition_with_name(self):
@@ -2842,6 +2903,24 @@ class TestStringMethods(object):
         exp = Index(np.array([('a', ',', 'b'), ('c', ',', 'd')]), name='xxx')
         assert res.nlevels == 1
         tm.assert_index_equal(res, exp)
+
+    def test_partition_deprecation(self):
+        # GH 22676; depr kwarg "pat" in favor of "sep"
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+
+        # str.partition
+        # using sep -> no warning
+        expected = values.str.partition(sep='_')
+        with tm.assert_produces_warning(FutureWarning):
+            result = values.str.partition(pat='_')
+            tm.assert_frame_equal(result, expected)
+
+        # str.rpartition
+        # using sep -> no warning
+        expected = values.str.rpartition(sep='_')
+        with tm.assert_produces_warning(FutureWarning):
+            result = values.str.rpartition(pat='_')
+            tm.assert_frame_equal(result, expected)
 
     def test_pipe_failures(self):
         # #2119
@@ -2871,7 +2950,7 @@ class TestStringMethods(object):
                 expected = Series([s[start:stop:step] if not isna(s) else NA
                                    for s in values])
                 tm.assert_series_equal(result, expected)
-            except:
+            except IndexError:
                 print('failed on %s:%s:%s' % (start, stop, step))
                 raise
 
@@ -3109,7 +3188,7 @@ class TestStringMethods(object):
         expected = Series([np.nan])
         tm.assert_series_equal(result, expected)
 
-    def test_more_contains(self):
+    def test_contains_moar(self):
         # PR #1179
         s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', NA,
                     'CABA', 'dog', 'cat'])
@@ -3159,7 +3238,7 @@ class TestStringMethods(object):
         expected = Series([np.nan, np.nan, np.nan], dtype=np.object_)
         assert_series_equal(result, expected)
 
-    def test_more_replace(self):
+    def test_replace_moar(self):
         # PR #1179
         s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', NA, 'CABA',
                     'dog', 'cat'])
