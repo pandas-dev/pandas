@@ -357,6 +357,7 @@ class MPLPlot(object):
         # with ``dtype == object``
         data = data._convert(datetime=True, timedelta=True)
         numeric_data = data.select_dtypes(include=[np.number,
+                                                   np.bool_,
                                                    "datetime",
                                                    "datetimetz",
                                                    "timedelta"])
