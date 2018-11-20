@@ -814,7 +814,7 @@ values.
 .. autosummary::
    :toctree: generated/
 
-   IntegerArray
+   arrays.IntegerArray
 
 .. _api.arrays.interval:
 
@@ -846,7 +846,7 @@ can be collected in a :class:`PeriodArray`. See :ref:`timeseries.periods` for mo
 .. autosummary::
    :toctree: generated/
 
-   PeriodArray
+   arrays.PeriodArray
 
 Sparse
 ~~~~~~
