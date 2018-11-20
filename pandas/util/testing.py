@@ -27,7 +27,8 @@ from pandas.core.dtypes.common import (
     is_bool, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
     is_datetimelike_v_numeric, is_datetimelike_v_object,
     is_extension_array_dtype, is_interval_dtype, is_list_like, is_number,
-    is_period_dtype, is_sequence, is_timedelta64_dtype, needs_i8_conversion)
+    is_period_dtype, is_scalar, is_sequence, is_timedelta64_dtype,
+    needs_i8_conversion)  # noqa
 from pandas.core.dtypes.missing import array_equivalent
 
 import pandas as pd
