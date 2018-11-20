@@ -801,19 +801,26 @@ class TestIntervalIndex(Base):
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
-    def test_difference(self, closed):
-        index = self.create_index(closed=closed)
-        tm.assert_index_equal(index.difference(index[:1]), index[1:])
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference(self, closed, sort):
+        index = IntervalIndex.from_arrays([1, 0, 3, 2],
+                                          [1, 2, 3, 4],
+                                          closed=closed)
+        result = index.difference(index[:1], sort)
+        expected = index[1:]
+        if sort:
+            expected = expected.sort_values()
+        tm.assert_index_equal(result, expected)
 
         # GH 19101: empty result, same dtype
-        result = index.difference(index)
+        result = index.difference(index, sort)
         expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
         tm.assert_index_equal(result, expected)
 
         # GH 19101: empty result, different dtypes
         other = IntervalIndex.from_arrays(index.left.astype('float64'),
                                           index.right, closed=closed)
-        result = index.difference(other)
+        result = index.difference(other, sort)
         tm.assert_index_equal(result, expected)
 
     def test_symmetric_difference(self, closed):
