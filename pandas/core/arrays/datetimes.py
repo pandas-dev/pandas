@@ -6,39 +6,29 @@ import numpy as np
 from pytz import utc
 
 from pandas._libs import lib, tslib
-from pandas._libs.tslib import Timestamp, NaT, iNaT
+from pandas._libs.tslib import NaT, Timestamp, iNaT
 from pandas._libs.tslibs import (
-    ccalendar, normalize_date,
-    conversion, fields, timezones,
-    resolution as libresolution)
-
-from pandas.util._decorators import cache_readonly, Appender
+    ccalendar, conversion, fields, normalize_date, resolution as libresolution,
+    timezones)
+import pandas.compat as compat
 from pandas.errors import PerformanceWarning
-from pandas import compat
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
-    is_float_dtype,
-    is_timedelta64_dtype,
-    is_period_dtype,
-    is_extension_type,
-    is_object_dtype,
-    is_int64_dtype,
-    is_datetime64tz_dtype,
-    is_datetime64_dtype)
+    _NS_DTYPE, is_datetime64_dtype, is_datetime64tz_dtype, is_extension_type,
+    is_float_dtype, is_int64_dtype, is_object_dtype, is_period_dtype,
+    is_timedelta64_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.missing import isna
 
-import pandas.core.common as com
-from pandas.core.algorithms import checked_add_with_arr
 from pandas.core import ops
-
-from pandas.tseries.frequencies import to_offset, get_period_alias
-from pandas.tseries.offsets import Tick, generate_range
-
+from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays import datetimelike as dtl
+import pandas.core.common as com
 
+from pandas.tseries.frequencies import get_period_alias, to_offset
+from pandas.tseries.offsets import Tick, generate_range
 
 _midnight = time(0, 0)
 
