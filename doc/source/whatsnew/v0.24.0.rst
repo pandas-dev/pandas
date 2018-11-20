@@ -1443,6 +1443,7 @@ Reshaping
 - Bug in :func:`merge_asof` where confusing error message raised when attempting to merge with missing values (:issue:`23189`)
 - Bug in :meth:`DataFrame.nsmallest` and :meth:`DataFrame.nlargest` for dataframes that have a :class:`MultiIndex` for columns (:issue:`23033`).
 - Bug in :meth:`DataFrame.append` with a :class:`Series` with a dateutil timezone would raise a ``TypeError`` (:issue:`23682`)
+- Bug in ``Series`` construction when passing no data and ``dtype=str`` (:issue:`22477`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
