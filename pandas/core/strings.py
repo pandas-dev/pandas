@@ -19,7 +19,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import NoNewAttributesMixin
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, deprecate_kwarg
 import re
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
@@ -1857,7 +1857,7 @@ class StringMethods(NoNewAttributesMixin):
             g = self.get(i)
 
     def _wrap_result(self, result, use_codes=True,
-                     name=None, expand=None):
+                     name=None, expand=None, fill_value=np.nan):
 
         from pandas.core.index import Index, MultiIndex
 
@@ -1867,7 +1867,8 @@ class StringMethods(NoNewAttributesMixin):
         # so make it possible to skip this step as the method already did this
         # before the transformation...
         if use_codes and self._is_categorical:
-            result = take_1d(result, self._orig.cat.codes)
+            result = take_1d(result, self._orig.cat.codes,
+                             fill_value=fill_value)
 
         if not hasattr(result, 'ndim') or not hasattr(result, 'dtype'):
             return result
@@ -2410,8 +2411,11 @@ class StringMethods(NoNewAttributesMixin):
 
     Parameters
     ----------
-    pat : str, default whitespace
+    sep : str, default whitespace
         String to split on.
+    pat : str, default whitespace
+        .. deprecated:: 0.24.0
+           Use ``sep`` instead
     expand : bool, default True
         If True, return DataFrame/MultiIndex expanding dimensionality.
         If False, return Series/Index.
@@ -2485,8 +2489,9 @@ class StringMethods(NoNewAttributesMixin):
                   'empty strings',
         'also': 'rpartition : Split the string at the last occurrence of `sep`'
     })
-    def partition(self, pat=' ', expand=True):
-        f = lambda x: x.partition(pat)
+    @deprecate_kwarg(old_arg_name='pat', new_arg_name='sep')
+    def partition(self, sep=' ', expand=True):
+        f = lambda x: x.partition(sep)
         result = _na_map(f, self._parent)
         return self._wrap_result(result, expand=expand)
 
@@ -2496,8 +2501,9 @@ class StringMethods(NoNewAttributesMixin):
                   'string itself',
         'also': 'partition : Split the string at the first occurrence of `sep`'
     })
-    def rpartition(self, pat=' ', expand=True):
-        f = lambda x: x.rpartition(pat)
+    @deprecate_kwarg(old_arg_name='pat', new_arg_name='sep')
+    def rpartition(self, sep=' ', expand=True):
+        f = lambda x: x.rpartition(sep)
         result = _na_map(f, self._parent)
         return self._wrap_result(result, expand=expand)
 
@@ -2515,12 +2521,12 @@ class StringMethods(NoNewAttributesMixin):
     def contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
         result = str_contains(self._parent, pat, case=case, flags=flags, na=na,
                               regex=regex)
-        return self._wrap_result(result)
+        return self._wrap_result(result, fill_value=na)
 
     @copy(str_match)
     def match(self, pat, case=True, flags=0, na=np.nan):
         result = str_match(self._parent, pat, case=case, flags=flags, na=na)
-        return self._wrap_result(result)
+        return self._wrap_result(result, fill_value=na)
 
     @copy(str_replace)
     def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):

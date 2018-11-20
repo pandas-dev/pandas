@@ -288,6 +288,7 @@ Other Enhancements
 - Added :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` for determining overlaps between interval-like objects (:issue:`21998`)
 - :func:`~DataFrame.to_parquet` now supports writing a ``DataFrame`` as a directory of parquet files partitioned by a subset of the columns when ``engine = 'pyarrow'`` (:issue:`23283`)
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have gained the ``nonexistent`` argument for alternative handling of nonexistent times. See :ref:`timeseries.timezone_nonexistent` (:issue:`8917`)
+- :meth:`Index.difference` now has an optional ``sort`` parameter to specify whether the results should be sorted if possible (:issue:`17839`)
 - :meth:`read_excel()` now accepts ``usecols`` as a list of column names or callable (:issue:`18273`)
 - :meth:`MultiIndex.to_flat_index` has been added to flatten multiple levels into a single-level :class:`Index` object.
 - :meth:`DataFrame.to_stata` and :class:` pandas.io.stata.StataWriter117` can write mixed sting columns to Stata strl format (:issue:`23633`)
@@ -307,7 +308,7 @@ Backwards incompatible API changes
 Dependencies have increased minimum versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have updated our minimum supported versions of dependencies (:issue:`21242`, `18742`).
+We have updated our minimum supported versions of dependencies (:issue:`21242`, :issue:`18742`, :issue:`23774`).
 If installed, we now require:
 
 +-----------------+-----------------+----------+
@@ -330,6 +331,8 @@ If installed, we now require:
 | pytables        | 3.4.2           |          |
 +-----------------+-----------------+----------+
 | scipy           | 0.18.1          |          |
++-----------------+-----------------+----------+
+| xlrd            | 1.0.0           |          |
 +-----------------+-----------------+----------+
 
 Additionally we no longer depend on `feather-format` for feather based storage
@@ -462,6 +465,7 @@ For situations where you need an ``ndarray`` of ``Interval`` objects, use
 
    np.asarray(idx)
    idx.values.astype(object)
+
 
 .. _whatsnew_0240.api.timezone_offset_parsing:
 
@@ -1033,6 +1037,7 @@ Deprecations
 - :meth:`Timestamp.tz_localize`, :meth:`DatetimeIndex.tz_localize`, and :meth:`Series.tz_localize` have deprecated the ``errors`` argument in favor of the ``nonexistent`` argument (:issue:`8917`)
 - The class ``FrozenNDArray`` has been deprecated. When unpickling, ``FrozenNDArray`` will be unpickled to ``np.ndarray`` once this class is removed (:issue:`9031`)
 - The methods :meth:`DataFrame.update` and :meth:`Panel.update` have deprecated the ``raise_conflict=False|True`` keyword in favor of ``errors='ignore'|'raise'`` (:issue:`23585`)
+- The methods :meth:`Series.str.partition` and :meth:`Series.str.rpartition` have deprecated the ``pat`` keyword in favor of ``sep`` (:issue:`22676`)
 - Deprecated the `nthreads` keyword of :func:`pandas.read_feather` in favor of
   `use_threads` to reflect the changes in pyarrow 0.11.0. (:issue:`23053`)
 - :func:`pandas.read_excel` has deprecated accepting ``usecols`` as an integer. Please pass in a list of ints from 0 to ``usecols`` inclusive instead (:issue:`23527`)
@@ -1276,7 +1281,7 @@ Strings
 
 - Bug in :meth:`Index.str.partition` was not nan-safe (:issue:`23558`).
 - Bug in :meth:`Index.str.split` was not nan-safe (:issue:`23677`).
--
+- Bug :func:`Series.str.contains` not respecting the ``na`` argument for a ``Categorical`` dtype ``Series`` (:issue:`22158`)
 
 Interval
 ^^^^^^^^
@@ -1414,6 +1419,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` when resampling by a weekly offset (``'W'``) across a DST transition (:issue:`9119`, :issue:`21459`)
 - Bug in :meth:`DataFrame.expanding` in which the ``axis`` argument was not being respected during aggregations (:issue:`23372`)
 - Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` which caused missing values when the input function can accept a :class:`DataFrame` but renames it (:issue:`23455`).
+- Bug in :func:`pandas.core.groupby.GroupBy.nth` where column order was not always preserved (:issue:`20760`)
 
 Reshaping
 ^^^^^^^^^
@@ -1437,6 +1443,7 @@ Reshaping
 - Bug in :func:`merge_asof` where confusing error message raised when attempting to merge with missing values (:issue:`23189`)
 - Bug in :meth:`DataFrame.nsmallest` and :meth:`DataFrame.nlargest` for dataframes that have a :class:`MultiIndex` for columns (:issue:`23033`).
 - Bug in :meth:`DataFrame.append` with a :class:`Series` with a dateutil timezone would raise a ``TypeError`` (:issue:`23682`)
+- Bug in ``Series`` construction when passing no data and ``dtype=str`` (:issue:`22477`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
@@ -1469,6 +1476,7 @@ Other
 - :meth:`DataFrame.nlargest` and :meth:`DataFrame.nsmallest` now returns the correct n values when keep != 'all' also when tied on the first columns (:issue:`22752`)
 - :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax`` (:issue:`21548` and :issue:`21526`). ``NaN`` values are also handled properly.
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
+- Checking PEP 3141 numbers in :func:`~pandas.api.types.is_scalar` function returns ``True`` (:issue:`22903`)
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
 
 .. _whatsnew_0.24.0.contributors:
@@ -1477,3 +1485,4 @@ Contributors
 ~~~~~~~~~~~~
 
 .. contributors:: v0.23.4..HEAD
+
