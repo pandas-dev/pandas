@@ -92,7 +92,7 @@ jobs:
     condition: true
     env:
       SOURCE_PATH: $(Build.SourcesDirectory)/doc/build/html/
-      AZURE_STORAGE_CONNECTION_STRING: $(CONNECTION_STRING)
+      AZURE_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=https;AccountName=$(AZURE_STORAGE_ACCOUNT);AccountKey=$(AZURE_STORAGE_ACCESS_KEY)
 
   - script: |
       if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
