@@ -173,32 +173,20 @@ fi
 ### DOCTESTS ###
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
-    echo "checkpoint 1"
-    echo $RET
-
     MSG='Doctests frame.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/frame.py \
         -k"-axes -combine -itertuples -join -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_stata"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    echo "checkpoint 2"
-    echo $RET
 
     MSG='Doctests series.py' ; echo $MSG
     pytest -q --doctest-modules pandas/core/series.py \
         -k"-nonzero -reindex -searchsorted -to_dict"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    echo "checkpoint 3"
-    echo $RET
-
     MSG='Doctests generic.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/generic.py \
+    pytest -v --doctest-modules pandas/core/generic.py \
         -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -to_json -transpose -values -xs"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    echo "checkpoint 4"
-    echo $RET
 
     MSG='Doctests top-level reshaping functions' ; echo $MSG
     pytest -q --doctest-modules \
@@ -209,18 +197,12 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
         -k"-crosstab -pivot_table -cut"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    echo "checkpoint 5"
-    echo $RET
-
     MSG='Doctests interval classes' ; echo $MSG
     pytest --doctest-modules -v \
         pandas/core/indexes/interval.py \
         pandas/core/arrays/interval.py \
         -k"-from_arrays -from_breaks -from_intervals -from_tuples -get_loc -set_closed -to_tuples -interval_range"
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    echo "checkpoint 6"
-    echo $RET
 
 fi
 
