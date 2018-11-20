@@ -3,15 +3,17 @@
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """
 from datetime import datetime
+
+from dateutil.parser import parse
 import numpy as np
 import pytest
-from dateutil.parser import parse
 
-import pandas.util._test_decorators as td
-from pandas import compat
-from pandas.util import testing as tm
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_time_string
+import pandas.compat as compat
+import pandas.util._test_decorators as td
+
+from pandas.util import testing as tm
 
 
 class TestParseQuarters(object):
