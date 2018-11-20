@@ -37,9 +37,6 @@ jobs:
       # XXX not sure why setting $PATH here does not work
       # echo '##vso[task.setvariable variable=PATH]$HOME/miniconda3/bin:$PATH'
       echo '##vso[task.setvariable variable=CONDA_ENV]pandas'
-      # TODO remove the deps file if `environment.yml` can be used
-      # echo '##vso[task.setvariable variable=ENV_FILE]ci/deps/azure-checks-and-doc.yaml'
-      # XXX this build should run with the same environment we use locally
       echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
       echo '##vso[task.setvariable variable=AZURE]true'
     displayName: 'Setting environment variables'
@@ -71,7 +68,6 @@ jobs:
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
-      conda list | grep qt  # XXX only for debugging during implementation
       ci/code_checks.sh doctests
     displayName: 'Running doctests'
     condition: true
@@ -96,7 +92,7 @@ jobs:
     condition: true
     env:
       SOURCE_PATH: $(Build.SourcesDirectory)/doc/build/html/
-      AZURE_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=https;AccountName=$(AZURE_STORAGE_ACCOUNT);AccountKey=$(AZURE_STORAGE_ACCESS_KEY)
+      AZURE_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=https;AccountName=$(AZURE_STORAGE_ACCOUNT);AccountKey=$(AZURE_STORAGE_ACCESS_KEY)"
 
   - script: |
       if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
