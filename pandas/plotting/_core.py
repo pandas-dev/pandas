@@ -38,6 +38,7 @@ from pandas.plotting._tools import (_subplots, _flatten, table,
                                     _handle_shared_axes, _get_all_lines,
                                     _get_xlim, _set_ticks_props,
                                     format_date_labels)
+from pandas.plotting import _misc as misc
 
 try:
     from pandas.plotting import _converter
@@ -2913,6 +2914,15 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         return self(kind='pie', **kwds)
 
+    def lag(self, *args, **kwds):
+        return misc.lag_plot(self._parent, *args, **kwds)
+
+    def autocorrelation(self, *args, **kwds):
+        return misc.autocorrelation_plot(self._parent, *args, **kwds)
+
+    def bootstrap(self, *args, **kwds):
+        return misc.bootstrap_plot(self._parent, *args, **kwds)
+
 
 class FramePlotMethods(BasePlotMethods):
     """DataFrame plotting accessor and method
@@ -3609,3 +3619,16 @@ class FramePlotMethods(BasePlotMethods):
         if gridsize is not None:
             kwds['gridsize'] = gridsize
         return self(kind='hexbin', x=x, y=y, C=C, **kwds)
+
+    def scatter_matrix(self, *args, **kwds):
+        return misc.scatter_matrix(self._parent, *args, **kwds)
+
+    def andrews_curves(self, class_column, *args, **kwds):
+        return misc.andrews_curves(self._parent, class_column, *args, **kwds)
+
+    def parallel_coordinates(self, class_column, *args, **kwds):
+        return misc.parallel_coordinates(self._parent, class_column,
+                                         *args, **kwds)
+
+    def radviz(self, class_column, *args, **kwds):
+        return misc.radviz(self._parent, class_column, *args, **kwds)
