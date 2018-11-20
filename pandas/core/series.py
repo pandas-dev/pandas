@@ -2306,11 +2306,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.combine_first : Combine Series values, choosing the calling Series' values first.
+        Series.combine_first : Combine Series values, choosing the calling
+                               Series' values first.
 
         Examples
         --------
-        Consider 2 Datasets ``s1`` and ``s2`` containing highest clocked speeds of different birds.
+        Consider 2 Datasets ``s1`` and ``s2`` containing
+        highest clocked speeds of different birds.
 
         >>> s1 = pd.Series({'falcon': 330.0, 'eagle': 160.0})
         >>> s1
@@ -2323,9 +2325,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         eagle     200.0
         duck       30.0
         dtype: float64
-        
-        Now, to combine the two datasets and view the highest speeds of the birds across the
-        two datasets
+
+        Now, to combine the two datasets and view the highest speeds
+        of the birds across the two datasets
 
         >>> s1.combine(s2, max)
         duck        NaN
@@ -2333,10 +2335,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         falcon    345.0
         dtype: float64
 
-        In the previous example, the resulting value for duck is missing, because the maximum
-        of a NaN and a float is a NaN. So, in the example, we set ``fill_value=0``,
+        In the previous example, the resulting value for duck is missing,
+        because the maximum of a NaN and a float is a NaN.
+        So, in the example, we set ``fill_value=0``,
         so the maximum value returned will be the value from some dataset.
-        
+
         >>> s1.combine(s2, max, fill_value=0)
         duck       30.0
         eagle     200.0
@@ -2394,11 +2397,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         Series
             The result of combining the Series with the other object.
-        
+
         See Also
         --------
         Series.combine : Perform elementwise operation on two Series
-                         using a given function
+                         using a given function.
 
         Notes
         -----
@@ -2412,7 +2415,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0    1.0
         1    4.0
         dtype: float64
-        
         """
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
