@@ -494,7 +494,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
-            self._group_selection = ax.difference(Index(groupers)).tolist()
+            self._group_selection = ax.difference(Index(groupers),
+                                                  sort=False).tolist()
             self._reset_cache('_selected_obj')
 
     def _set_result_index_ordered(self, result):

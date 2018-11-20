@@ -666,12 +666,13 @@ class Base(object):
                 with pytest.raises(TypeError, match=msg):
                     first.union([1, 2, 3])
 
-    def test_difference_base(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_base(self, sort):
         for name, idx in compat.iteritems(self.indices):
             first = idx[2:]
             second = idx[:4]
             answer = idx[4:]
-            result = first.difference(second)
+            result = first.difference(second, sort)
 
             if isinstance(idx, CategoricalIndex):
                 pass
@@ -685,7 +686,7 @@ class Base(object):
                 if isinstance(idx, PeriodIndex):
                     msg = "can only call with other PeriodIndex-ed objects"
                     with pytest.raises(ValueError, match=msg):
-                        first.difference(case)
+                        first.difference(case, sort)
                 elif isinstance(idx, CategoricalIndex):
                     pass
                 elif isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
@@ -693,13 +694,13 @@ class Base(object):
                     tm.assert_numpy_array_equal(result.sort_values().asi8,
                                                 answer.sort_values().asi8)
                 else:
-                    result = first.difference(case)
+                    result = first.difference(case, sort)
                     assert tm.equalContents(result, answer)
 
             if isinstance(idx, MultiIndex):
                 msg = "other must be a MultiIndex or a list of tuples"
                 with pytest.raises(TypeError, match=msg):
-                    first.difference([1, 2, 3])
+                    first.difference([1, 2, 3], sort)
 
     def test_symmetric_difference(self):
         for name, idx in compat.iteritems(self.indices):
