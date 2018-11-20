@@ -41,9 +41,10 @@ jobs:
       echo '##vso[task.setvariable variable=AZURE]true'
     displayName: 'Setting environment variables'
 
-  # Does not require a conda environment
+  # Do not require a conda environment
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
       ci/code_checks.sh patterns
     displayName: 'Looking for unwanted patterns'
     condition: true
@@ -55,15 +56,17 @@ jobs:
       ci/incremental/setup_conda_environment.sh
     displayName: 'Set up environment'
 
-  # Does not require pandas
+  # Do not require pandas
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
       ci/code_checks.sh lint
     displayName: 'Linting'
     condition: true
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
       ci/code_checks.sh dependencies
     displayName: 'Dependencies consistency'
     condition: true
@@ -74,29 +77,33 @@ jobs:
     displayName: 'Build'
     condition: true
 
-  # Requires pandas
+  # Require pandas
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
       ci/code_checks.sh code
     displayName: 'Checks on imported code'
     condition: true
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
-      export DISPLAY=":99.0"  # XXX just testing if this is why to_clipboard is failing
+      source activate pandas-dev
       ci/code_checks.sh doctests
     displayName: 'Running doctests'
     condition: true
+    env:
+      DISPLAY: ":99.0"  # required by to_clipboard doctests
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
       ci/code_checks.sh docstrings
     displayName: 'Docstring validation'
     condition: true
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
-      source activate pandas
+      source activate pandas-dev
       doc/make.py html
     displayName: 'Building docs'
     condition: true

@@ -20,7 +20,6 @@
 [[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "dependencies" ]] || \
     { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|dependencies]"; exit 9999; }
 
-source activate pandas
 BASE_DIR="$(dirname $0)/.."
 RET=0
 CHECK=$1
