@@ -126,7 +126,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average',
 
     sorted_data = values.take(_as)
     sorted_mask = mask.take(_as)
-    _indices = np.diff(sorted_mask).nonzero()[0]
+    _indices = np.diff(sorted_mask.astype(int)).nonzero()[0]
     non_na_idx = _indices[0] if len(_indices) > 0 else -1
     argsorted = _as.astype('i8')
 

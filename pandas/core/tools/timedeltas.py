@@ -3,44 +3,57 @@ timedelta support tools
 """
 
 import numpy as np
-import pandas as pd
+
 from pandas._libs import tslibs
-from pandas._libs.tslibs.timedeltas import (convert_to_timedelta64,
-                                            parse_timedelta_unit)
+from pandas._libs.tslibs.timedeltas import (
+    convert_to_timedelta64, parse_timedelta_unit)
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
+import pandas as pd
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
 def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     """
-    Convert argument to timedelta
+    Convert argument to timedelta.
+
+    Timedeltas are absolute differences in times, expressed in difference
+    units (e.g. days, hours, minutes, seconds). This method converts
+    an argument from a recognized timedelta format / value into
+    a Timedelta type.
 
     Parameters
     ----------
-    arg : string, timedelta, list, tuple, 1-d array, or Series
-    unit : str, optional
-        Denote the unit of the input, if input is an integer. Default 'ns'.
-        Possible values:
-        {'Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
-        'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds', 'sec', 'second',
-        'ms', 'milliseconds', 'millisecond', 'milli', 'millis', 'L',
-        'us', 'microseconds', 'microsecond', 'micro', 'micros', 'U',
-        'ns', 'nanoseconds', 'nano', 'nanos', 'nanosecond', 'N'}
-    box : boolean, default True
-        - If True returns a Timedelta/TimedeltaIndex of the results
-        - if False returns a np.timedelta64 or ndarray of values of dtype
-          timedelta64[ns]
+    arg : str, timedelta, list-like or Series
+        The data to be converted to timedelta.
+    unit : str, default 'ns'
+        Denotes the unit of the arg. Possible values:
+        ('Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr',
+        'h', 'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
+        'sec', 'second', 'ms', 'milliseconds', 'millisecond',
+        'milli', 'millis', 'L', 'us', 'microseconds', 'microsecond',
+        'micro', 'micros', 'U', 'ns', 'nanoseconds', 'nano', 'nanos',
+        'nanosecond', 'N').
+    box : bool, default True
+        - If True returns a Timedelta/TimedeltaIndex of the results.
+        - If False returns a numpy.timedelta64 or numpy.darray of
+          values of dtype timedelta64[ns].
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
-        - If 'raise', then invalid parsing will raise an exception
-        - If 'coerce', then invalid parsing will be set as NaT
-        - If 'ignore', then invalid parsing will return the input
+        - If 'raise', then invalid parsing will raise an exception.
+        - If 'coerce', then invalid parsing will be set as NaT.
+        - If 'ignore', then invalid parsing will return the input.
 
     Returns
     -------
-    ret : timedelta64/arrays of timedelta64 if parsing succeeded
+    timedelta64 or numpy.array of timedelta64
+        Output type returned if parsing succeeded.
+
+    See also
+    --------
+    DataFrame.astype : Cast argument to a specified dtype.
+    to_datetime : Convert argument to datetime.
 
     Examples
     --------
@@ -68,10 +81,10 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
 
-    See Also
-    --------
-    pandas.DataFrame.astype : Cast argument to a specified dtype.
-    pandas.to_datetime : Convert argument to datetime.
+    Returning an ndarray by using the 'box' keyword argument:
+
+    >>> pd.to_timedelta(np.arange(5), box=False)
+    array([0, 1, 2, 3, 4], dtype='timedelta64[ns]')
     """
     unit = parse_timedelta_unit(unit)
 

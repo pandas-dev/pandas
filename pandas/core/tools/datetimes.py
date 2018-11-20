@@ -1,36 +1,24 @@
-from functools import partial
-from datetime import datetime, time
 from collections import MutableMapping
+from datetime import datetime, time
+from functools import partial
 
 import numpy as np
 
 from pandas._libs import tslib, tslibs
-from pandas._libs.tslibs.strptime import array_strptime
-from pandas._libs.tslibs import parsing, conversion, Timestamp
+from pandas._libs.tslibs import Timestamp, conversion, parsing
 from pandas._libs.tslibs.parsing import (  # noqa
-    parse_time_string,
-    DateParseError,
-    _format_is_iso,
-    _guess_datetime_format)
+    DateParseError, _format_is_iso, _guess_datetime_format, parse_time_string)
+from pandas._libs.tslibs.strptime import array_strptime
+from pandas.compat import zip
 
 from pandas.core.dtypes.common import (
-    ensure_object,
-    is_datetime64_ns_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_integer_dtype,
-    is_integer,
-    is_float,
-    is_list_like,
-    is_scalar,
-    is_numeric_dtype,
-    is_object_dtype)
-from pandas.core.dtypes.generic import (
-    ABCIndexClass, ABCSeries,
-    ABCDataFrame)
+    ensure_object, is_datetime64_dtype, is_datetime64_ns_dtype,
+    is_datetime64tz_dtype, is_float, is_integer, is_integer_dtype,
+    is_list_like, is_numeric_dtype, is_object_dtype, is_scalar)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import notna
+
 from pandas.core import algorithms
-from pandas.compat import zip
 
 
 def _guess_datetime_format_for_array(arr, **kwargs):
