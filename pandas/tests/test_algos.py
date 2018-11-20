@@ -1462,6 +1462,7 @@ class TestRank(object):
         with pytest.raises(TypeError, match=msg):
             algos.rank(arr)
 
+    @pytest.mark.single
     @pytest.mark.parametrize('values', [
         np.arange(2**24 + 1),
         np.arange(2**25 + 2).reshape(2**24 + 1, 2)],
