@@ -175,7 +175,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                                  '{passed}'
                                  .format(inferred=inferred_freq,
                                          passed=freq.freqstr))
-            elif freq_infer:
+            elif freq is None:
+                # TODO: should this be the stronger condition `if freq_infer`?
                 freq = inferred_freq
                 freq_infer = False
 
@@ -307,7 +308,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         result = checked_add_with_arr(i8, other.value,
                                       arr_mask=self._isnan)
         result = self._maybe_mask_results(result)
-        return DatetimeArrayMixin(result, tz=other.tz)
+        return DatetimeArrayMixin(result, tz=other.tz, freq=self.freq)
 
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects
