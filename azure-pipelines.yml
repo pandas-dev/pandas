@@ -36,7 +36,7 @@ jobs:
   - script: |
       # XXX not sure why setting $PATH here does not work
       # echo '##vso[task.setvariable variable=PATH]$HOME/miniconda3/bin:$PATH'
-      echo '##vso[task.setvariable variable=CONDA_ENV]pandas'
+      echo '##vso[task.setvariable variable=CONDA_ENV]pandas-dev'
       echo '##vso[task.setvariable variable=ENV_FILE]environment.yml'
       echo '##vso[task.setvariable variable=AZURE]true'
     displayName: 'Setting environment variables'

@@ -16,15 +16,7 @@ conda remove --all -q -y -n $CONDA_ENV
 
 echo
 echo "[create env]"
-echo $ENV_FILE
-cat $ENV_FILE
 time conda env create -q -n "${CONDA_ENV}" --file="${ENV_FILE}" || exit 1
-conda list -e
-
-echo "Installing pyqt, as seems it's not got from the file (debugging why)"
-conda install -yq pyqt
-conda list -e
-
 
 # Activate first
 set +v
@@ -45,8 +37,6 @@ conda list pandas
 if [ -n "$LOCALE_OVERRIDE" ]; then
     sudo locale-gen "$LOCALE_OVERRIDE"
 fi
-
-conda list -e
 
 # # Install the compiler toolchain
 # if [[ $(uname) == Linux ]]; then
