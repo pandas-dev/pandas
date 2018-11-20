@@ -1,6 +1,5 @@
-from warnings import catch_warnings
-
 from datetime import datetime
+from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -9,8 +8,8 @@ from pandas.errors import PerformanceWarning, UnsortedIndexError
 
 import pandas as pd
 from pandas import (
-    DataFrame, date_range, Index, MultiIndex, Panel, Period, period_range,
-    Series, Timestamp)
+    DataFrame, Index, MultiIndex, Panel, Period, Series, Timestamp, date_range,
+    period_range)
 from pandas.tests.indexing.common import _mklbl
 from pandas.util import testing as tm
 
