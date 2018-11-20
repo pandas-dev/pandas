@@ -26,6 +26,98 @@ def assert_series_or_index_equal(left, right):
         assert_index_equal(left, right)
 
 
+_any_string_method = [
+    ('cat',           (),                     {'sep': ','}),       # noqa: E241
+    ('cat',           (Series(list('zyx')),), {'sep': ',',         # noqa: E241
+                                               'join': 'left'}),
+    ('center',        (10,),                  {}),                 # noqa: E241
+    ('contains',      ('a',),                 {}),                 # noqa: E241
+    ('count',         ('a',),                 {}),                 # noqa: E241
+    ('decode',        ('UTF-8',),             {}),                 # noqa: E241
+    ('encode',        ('UTF-8',),             {}),                 # noqa: E241
+    ('endswith',      ('a',),                 {}),                 # noqa: E241
+    ('extract',       ('([a-z]*)',),          {'expand': False}),  # noqa: E241
+    ('extract',       ('([a-z]*)',),          {'expand': True}),   # noqa: E241
+    ('extractall',    ('([a-z]*)',),          {}),                 # noqa: E241
+    ('find',          ('a',),                 {}),                 # noqa: E241
+    ('findall',       ('a',),                 {}),                 # noqa: E241
+    ('get',           (0,),                   {}),                 # noqa: E241
+    # because "index" (and "rindex") fail intentionally
+    # if the string is not found, search only for empty string
+    ('index',         ('',),                  {}),                 # noqa: E241
+    ('join',          (',',),                 {}),                 # noqa: E241
+    ('ljust',         (10,),                  {}),                 # noqa: E241
+    ('match',         ('a',),                 {}),                 # noqa: E241
+    ('normalize',     ('NFC',),               {}),                 # noqa: E241
+    ('pad',           (10,),                  {}),                 # noqa: E241
+    ('partition',     (' ',),                 {'expand': False}),  # noqa: E241
+    ('partition',     (' ',),                 {'expand': True}),   # noqa: E241
+    ('repeat',        (3,),                   {}),                 # noqa: E241
+    ('replace',       ('a', 'z',),            {}),                 # noqa: E241
+    ('rfind',         ('a',),                 {}),                 # noqa: E241
+    ('rindex',        ('',),                  {}),                 # noqa: E241
+    ('rjust',         (10,),                  {}),                 # noqa: E241
+    ('rpartition',    (' ',),                 {'expand': False}),  # noqa: E241
+    ('rpartition',    (' ',),                 {'expand': True}),   # noqa: E241
+    ('slice',         (0, 1,),                {}),                 # noqa: E241
+    ('slice_replace', (0, 1, 'z',),           {}),                 # noqa: E241
+    ('split',         (' ',),                 {'expand': False}),  # noqa: E241
+    ('split',         (' ',),                 {'expand': True}),   # noqa: E241
+    ('startswith',    ('a',),                 {}),                 # noqa: E241
+    # translating unicode points of "a" to "d"
+    ('translate',     ({97: 100},),           {}),                 # noqa: E241
+    ('wrap',          (2,),                   {}),                 # noqa: E241
+    ('zfill',         (10,),                  {})                  # noqa: E241
+] + list(zip([
+    # methods without positional arguments: zip with empty tuple and empty dict
+    'capitalize', 'cat', 'get_dummies',
+    'isalnum', 'isalpha', 'isdecimal',
+    'isdigit', 'islower', 'isnumeric',
+    'isspace', 'istitle', 'isupper',
+    'len', 'lower', 'lstrip', 'partition',
+    'rpartition', 'rsplit', 'rstrip',
+    'slice', 'slice_replace', 'split',
+    'strip', 'swapcase', 'title', 'upper'
+], [()] * 100, [{}] * 100))
+ids, _, _ = zip(*_any_string_method)  # use method name as fixture-id
+
+
+# test that the above list captures all methods of StringMethods
+missing_methods = {f for f in dir(strings.StringMethods)
+                   if not f.startswith('_')} - set(ids)
+assert not missing_methods
+
+
+@pytest.fixture(params=_any_string_method, ids=ids)
+def any_string_method(request):
+    """
+    Fixture for all public methods of `StringMethods`
+
+    This fixture returns a tuple of the method name and sample arguments
+    necessary to call the method.
+
+    Returns
+    -------
+    method_name : str
+        The name of the method in `StringMethods`
+    args : tuple
+        Sample values for the positional arguments
+    kwargs : dict
+        Sample values for the keyword arguments
+
+    Examples
+    --------
+    >>> def test_something(any_string_method):
+    ...     s = pd.Series(['a', 'b', np.nan, 'd'])
+    ...
+    ...     method_name, args, kwargs = any_string_method
+    ...     method = getattr(s.str, method_name)
+    ...     # will not raise
+    ...     method(*args, **kwargs)
+    """
+    return request.param
+
+
 class TestStringMethods(object):
 
     def test_api(self):
@@ -39,6 +131,26 @@ class TestStringMethods(object):
         with pytest.raises(AttributeError, match="only use .str accessor"):
             invalid.str
         assert not hasattr(invalid, 'str')
+
+    def test_api_for_categorical(self, any_string_method):
+        # https://github.com/pandas-dev/pandas/issues/10661
+        s = Series(list('aabb'))
+        s = s + " " + s
+        c = s.astype('category')
+        assert isinstance(c.str, strings.StringMethods)
+
+        method_name, args, kwargs = any_string_method
+
+        result = getattr(c.str, method_name)(*args, **kwargs)
+        expected = getattr(s.str, method_name)(*args, **kwargs)
+
+        if isinstance(result, DataFrame):
+            tm.assert_frame_equal(result, expected)
+        elif isinstance(result, Series):
+            tm.assert_series_equal(result, expected)
+        else:
+            # str.cat(others=None) returns string, for example
+            assert result == expected
 
     def test_iter(self):
         # GH3638
@@ -512,10 +624,28 @@ class TestStringMethods(object):
         assert result.dtype == np.bool_
         tm.assert_numpy_array_equal(result, expected)
 
-        # na
-        values = Series(['om', 'foo', np.nan])
-        res = values.str.contains('foo', na="foo")
-        assert res.loc[2] == "foo"
+    def test_contains_for_object_category(self):
+        # gh 22158
+
+        # na for category
+        values = Series(["a", "b", "c", "a", np.nan], dtype="category")
+        result = values.str.contains('a', na=True)
+        expected = Series([True, False, False, True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = values.str.contains('a', na=False)
+        expected = Series([True, False, False, True, False])
+        tm.assert_series_equal(result, expected)
+
+        # na for objects
+        values = Series(["a", "b", "c", "a", np.nan])
+        result = values.str.contains('a', na=True)
+        expected = Series([True, False, False, True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = values.str.contains('a', na=False)
+        expected = Series([True, False, False, True, False])
+        tm.assert_series_equal(result, expected)
 
     def test_startswith(self):
         values = Series(['om', NA, 'foo_nom', 'nom', 'bar_foo', NA, 'foo'])
@@ -2609,6 +2739,24 @@ class TestStringMethods(object):
         assert res.nlevels == 1
         tm.assert_index_equal(res, exp)
 
+    def test_partition_deprecation(self):
+        # GH 22676; depr kwarg "pat" in favor of "sep"
+        values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
+
+        # str.partition
+        # using sep -> no warning
+        expected = values.str.partition(sep='_')
+        with tm.assert_produces_warning(FutureWarning):
+            result = values.str.partition(pat='_')
+            tm.assert_frame_equal(result, expected)
+
+        # str.rpartition
+        # using sep -> no warning
+        expected = values.str.rpartition(sep='_')
+        with tm.assert_produces_warning(FutureWarning):
+            result = values.str.rpartition(pat='_')
+            tm.assert_frame_equal(result, expected)
+
     def test_pipe_failures(self):
         # #2119
         s = Series(['A|B|C'])
@@ -2875,7 +3023,7 @@ class TestStringMethods(object):
         expected = Series([np.nan])
         tm.assert_series_equal(result, expected)
 
-    def test_more_contains(self):
+    def test_contains_moar(self):
         # PR #1179
         s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', NA,
                     'CABA', 'dog', 'cat'])
@@ -2925,7 +3073,7 @@ class TestStringMethods(object):
         expected = Series([np.nan, np.nan, np.nan], dtype=np.object_)
         assert_series_equal(result, expected)
 
-    def test_more_replace(self):
+    def test_replace_moar(self):
         # PR #1179
         s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', NA, 'CABA',
                     'dog', 'cat'])
