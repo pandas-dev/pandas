@@ -2290,7 +2290,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Combine the Series and `other` using `func` to perform elementwise
         selection for combined Series.
         `fill_value` is assumed when value is missing at some index
-        from one of the two objects being combined .
+        from one of the two objects being combined.
 
         Parameters
         ----------
@@ -2316,12 +2316,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Examples
         --------
         >>> s1 = pd.Series([1, 2])
-        >>> s2 = pd.Series([0, 3])
-        >>> s1.combine(s2, lambda x1, x2: x1 if x1 < x2 else x2)
-        0    0
-        1    2
-        dtype: int64
-
         >>> s2 = pd.Series([0, 3, 4])
         >>> s1.combine(s2, lambda x1, x2: x1 if x1 > x2 else x2)
         0    1
@@ -2329,11 +2323,22 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    4
         dtype: int64
 
-        >>> s1.combine(s2, lambda x1, x2: x1 if x1 > x2 else x2,
-        ...            fill_value=787)
-        0      1
-        1      3
-        2    787
+        >>> arms = pd.Series({'dog':2,'cat': 2,'mouse': 2})
+        >>> legs = pd.Series({'dog':2,'cat': 2})
+        >>> arms
+        dog      2
+        cat      2
+        mouse    2
+        dtype: int64
+        >>> legs
+        dog    2
+        cat    2
+        dtype: int64
+        >>> limbs = arms.combine(legs, lambda x1,x2: x1+x2, fill_value=0)
+        >>> limbs
+        cat      4
+        dog      4
+        mouse    2
         dtype: int64
 
         """
