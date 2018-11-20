@@ -103,7 +103,7 @@ def array(data, dtype=None, copy=False):
         inferred_dtype = lib.infer_dtype(data)
         if inferred_dtype == 'period':
             try:
-                return period_array(data)
+                return period_array(data, copy=copy)
             except tslibs.IncompatibleFrequency:
                 pass  # we return an array below.
 
