@@ -18,7 +18,10 @@ dependencies:
   - pymysql
   - pytables
   - python-dateutil
-  - python=3.7*
+  # XXX We should be testing ``python=3.7*`` here, but `moto` is
+  # failing with py3.7 at the moment.
+  # See: https://github.com/pandas-dev/pandas/pull/23727/files#r234240004
+  - python=3.6*
   - pytz
   - s3fs
   - scipy
