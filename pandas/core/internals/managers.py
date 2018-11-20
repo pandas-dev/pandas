@@ -7,42 +7,34 @@ import re
 
 import numpy as np
 
-from pandas._libs import lib, internals as libinternals
-
+from pandas._libs import internals as libinternals, lib
+from pandas.compat import map, range, zip
 from pandas.util._validators import validate_bool_kwarg
-from pandas.compat import range, map, zip
 
-from pandas.core.dtypes.common import (
-    _NS_DTYPE,
-    is_datetimelike_v_numeric,
-    is_numeric_v_string_like, is_extension_type,
-    is_extension_array_dtype,
-    is_scalar)
 from pandas.core.dtypes.cast import (
-    maybe_promote,
-    infer_dtype_from_scalar,
-    find_common_type,
-    maybe_convert_objects)
-from pandas.core.dtypes.missing import isna
+    find_common_type, infer_dtype_from_scalar, maybe_convert_objects,
+    maybe_promote)
+from pandas.core.dtypes.common import (
+    _NS_DTYPE, is_datetimelike_v_numeric, is_extension_array_dtype,
+    is_extension_type, is_numeric_v_string_like, is_scalar)
 import pandas.core.dtypes.concat as _concat
-from pandas.core.dtypes.generic import ABCSeries, ABCExtensionArray
+from pandas.core.dtypes.generic import ABCExtensionArray, ABCSeries
+from pandas.core.dtypes.missing import isna
 
-from pandas.core.base import PandasObject
 import pandas.core.algorithms as algos
 from pandas.core.arrays.sparse import _maybe_to_sparse
-
+from pandas.core.base import PandasObject
 from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.indexing import maybe_convert_indices
 
 from pandas.io.formats.printing import pprint_thing
 
 from .blocks import (
-    Block, DatetimeTZBlock, CategoricalBlock, ExtensionBlock,
-    _extend_blocks, _merge_blocks, _safe_reshape,
-    make_block, get_block_type)
+    Block, CategoricalBlock, DatetimeTZBlock, ExtensionBlock, _extend_blocks,
+    _merge_blocks, _safe_reshape, get_block_type, make_block)
 from .concat import (  # all for concatenate_block_managers
-    concatenate_join_units, is_uniform_join_units,
-    get_mgr_concatenation_plan, combine_concat_plans)
+    combine_concat_plans, concatenate_join_units, get_mgr_concatenation_plan,
+    is_uniform_join_units)
 
 # TODO: flexible with index=None and/or items=None
 

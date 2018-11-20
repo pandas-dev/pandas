@@ -1,23 +1,19 @@
 # -*- coding: utf-8 -*-
 # TODO: Needs a better name; too many modules are already called "concat"
-import copy
 from collections import defaultdict
+import copy
 
 import numpy as np
 
-from pandas._libs import tslibs, internals as libinternals
+from pandas._libs import internals as libinternals, tslibs
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.common import (
-    is_timedelta64_dtype,
-    is_datetime64_dtype, is_datetimetz,
-    is_categorical_dtype,
-    is_float_dtype, is_numeric_dtype,
-    is_sparse,
-    _get_dtype)
 from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.common import (
+    _get_dtype, is_categorical_dtype, is_datetime64_dtype, is_datetimetz,
+    is_float_dtype, is_numeric_dtype, is_sparse, is_timedelta64_dtype)
 import pandas.core.dtypes.concat as _concat
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algos
 

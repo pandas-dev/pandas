@@ -5,32 +5,25 @@ import warnings
 import numpy as np
 
 from pandas._libs import tslibs
-from pandas._libs.tslibs import Timedelta, Timestamp, NaT, iNaT
+from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64, parse_timedelta_unit)
+import pandas.compat as compat
 from pandas.util._decorators import Appender
 
-from pandas import compat
-
 from pandas.core.dtypes.common import (
-    _TD_DTYPE,
-    is_object_dtype,
-    is_string_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_timedelta64_dtype,
-    is_datetime64_dtype,
-    is_list_like,
-    ensure_int64)
+    _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
+    is_integer_dtype, is_list_like, is_object_dtype, is_string_dtype,
+    is_timedelta64_dtype)
 from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
+import pandas.core.common as com
 
-from pandas.tseries.offsets import Tick
 from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import Tick
 
 from . import datetimelike as dtl
 

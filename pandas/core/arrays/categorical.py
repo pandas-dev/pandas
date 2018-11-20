@@ -1,60 +1,45 @@
 # pylint: disable=E1101,W0232
 
-import numpy as np
-from warnings import warn
 import textwrap
+from warnings import warn
 
-from pandas import compat
-from pandas.compat import u, lzip
-from pandas._libs import lib, algos as libalgos
+import numpy as np
 
-from pandas.core.dtypes.generic import (
-    ABCSeries, ABCIndexClass, ABCCategoricalIndex)
-from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.inference import is_hashable
-from pandas.core.dtypes.cast import (
-    maybe_infer_to_datetimelike,
-    coerce_indexer_dtype)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_object,
-    ensure_platform_int,
-    is_extension_array_dtype,
-    is_dtype_equal,
-    is_datetimelike,
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-    is_categorical,
-    is_categorical_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_list_like, is_sequence,
-    is_scalar, is_iterator,
-    is_dict_like)
-
-from pandas.core.algorithms import factorize, take_1d, unique1d, take
-from pandas.core.accessor import PandasDelegate, delegate_names
-from pandas.core.base import (PandasObject,
-                              NoNewAttributesMixin, _shared_docs)
-import pandas.core.common as com
-from pandas.core.missing import interpolate_2d
+from pandas._libs import algos as libalgos, lib
+import pandas.compat as compat
+from pandas.compat import lzip, u
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
-    Appender, cache_readonly, deprecate_kwarg, Substitution)
+    Appender, Substitution, cache_readonly, deprecate_kwarg)
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
+from pandas.core.dtypes.cast import (
+    coerce_indexer_dtype, maybe_infer_to_datetimelike)
+from pandas.core.dtypes.common import (
+    ensure_int64, ensure_object, ensure_platform_int, is_categorical,
+    is_categorical_dtype, is_datetime64_dtype, is_datetimelike, is_dict_like,
+    is_dtype_equal, is_extension_array_dtype, is_float_dtype, is_integer_dtype,
+    is_iterator, is_list_like, is_object_dtype, is_scalar, is_sequence,
+    is_timedelta64_dtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.generic import (
+    ABCCategoricalIndex, ABCIndexClass, ABCSeries)
+from pandas.core.dtypes.inference import is_hashable
+from pandas.core.dtypes.missing import isna, notna
+
+from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
-
+from pandas.core.algorithms import factorize, take, take_1d, unique1d
+from pandas.core.base import NoNewAttributesMixin, PandasObject, _shared_docs
+import pandas.core.common as com
+from pandas.core.config import get_option
+from pandas.core.missing import interpolate_2d
 from pandas.core.sorting import nargsort
 
 from pandas.io.formats import console
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
-from pandas.core.config import get_option
 
 from .base import ExtensionArray
-
 
 _take_msg = textwrap.dedent("""\
     Interpreting negative values in 'indexer' as missing values.

@@ -3,32 +3,36 @@ Data structures for sparse float data. Life is made simpler by dealing only
 with float64 data
 """
 from __future__ import division
-# pylint: disable=E1101,E1103,W0231,E0202
 
 import warnings
-from pandas.compat import lmap
-from pandas import compat
+
 import numpy as np
 
-from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.cast import maybe_upcast, find_common_type
-from pandas.core.dtypes.common import ensure_platform_int, is_scipy_sparse
-
-from pandas.compat.numpy import function as nv
-from pandas.core.index import Index, MultiIndex, ensure_index
-from pandas.core.series import Series
-from pandas.core.frame import DataFrame, extract_index, _prep_ndarray
-import pandas.core.algorithms as algos
-from pandas.core.internals import (BlockManager,
-                                   create_block_manager_from_arrays)
-import pandas.core.generic as generic
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
-from pandas.core.sparse.series import SparseSeries
 from pandas._libs.sparse import BlockIndex, get_blocks
+import pandas.compat as compat
+from pandas.compat import lmap
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
-import pandas.core.ops as ops
+
+from pandas.core.dtypes.cast import find_common_type, maybe_upcast
+from pandas.core.dtypes.common import ensure_platform_int, is_scipy_sparse
+from pandas.core.dtypes.missing import isna, notna
+
+import pandas.core.algorithms as algos
+from pandas.core.arrays.sparse import SparseArray, SparseDtype
 import pandas.core.common as com
+from pandas.core.frame import DataFrame, _prep_ndarray, extract_index
+import pandas.core.generic as generic
+from pandas.core.index import Index, MultiIndex, ensure_index
 import pandas.core.indexes.base as ibase
+from pandas.core.internals import (
+    BlockManager, create_block_manager_from_arrays)
+import pandas.core.ops as ops
+from pandas.core.series import Series
+from pandas.core.sparse.series import SparseSeries
+
+# pylint: disable=E1101,E1103,W0231,E0202
+
 
 _shared_doc_kwargs = dict(klass='SparseDataFrame')
 

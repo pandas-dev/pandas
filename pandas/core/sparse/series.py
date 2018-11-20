@@ -5,36 +5,30 @@ with float64 data
 
 # pylint: disable=E1101,E1103,W0231
 
-import numpy as np
 import warnings
 
-from pandas.core.dtypes.common import (
-    is_scalar,
-)
-from pandas.core.dtypes.missing import isna, notna, is_integer
+import numpy as np
 
-from pandas import compat
-from pandas.compat.numpy import function as nv
-from pandas.core.index import Index
-from pandas.core.series import Series
-from pandas.core.dtypes.generic import ABCSeries, ABCSparseSeries
-from pandas.core.internals import SingleBlockManager
-from pandas.core import generic
-import pandas.core.ops as ops
 import pandas._libs.index as libindex
+import pandas._libs.sparse as splib
+from pandas._libs.sparse import BlockIndex, IntIndex
+import pandas.compat as compat
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.arrays import (
-    SparseArray,
-)
+from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.generic import ABCSeries, ABCSparseSeries
+from pandas.core.dtypes.missing import is_integer, isna, notna
+
+from pandas.core import generic
+from pandas.core.arrays import SparseArray
 from pandas.core.arrays.sparse import SparseAccessor
-from pandas._libs.sparse import BlockIndex, IntIndex
-import pandas._libs.sparse as splib
-
+from pandas.core.index import Index
+from pandas.core.internals import SingleBlockManager
+import pandas.core.ops as ops
+from pandas.core.series import Series
 from pandas.core.sparse.scipy_sparse import (
-    _sparse_series_to_coo,
-    _coo_to_sparse_series)
-
+    _coo_to_sparse_series, _sparse_series_to_coo)
 
 _shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
                           axes_single_arg="{0, 'index'}",
