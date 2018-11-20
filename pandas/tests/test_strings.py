@@ -245,9 +245,6 @@ class TestStringMethods(object):
         if box == Index and dtype == 'category':
             pytest.xfail(reason='Broken methods on CategoricalIndex; '
                          'see GH 23556')
-        if (method_name in ['partition', 'rpartition'] and box == Index
-                and inferred_dtype != 'bytes'):
-            pytest.xfail(reason='Method not nan-safe on Index; see GH 23558')
         if (method_name == 'split' and box == Index
                 and inferred_dtype in ['unicode', 'mixed', 'mixed-integer']
                 and dtype == object and kwargs.get('expand', None) is True):
@@ -276,26 +273,6 @@ class TestStringMethods(object):
                                                 inferred_dtype=inferred_dtype))
             with pytest.raises(TypeError, match=msg):
                 method(*args, **kwargs)
-
-    def test_api_for_categorical(self, any_string_method):
-        # https://github.com/pandas-dev/pandas/issues/10661
-        s = Series(list('aabb'))
-        s = s + " " + s
-        c = s.astype('category')
-        assert isinstance(c.str, strings.StringMethods)
-
-        method_name, args, kwargs = any_string_method
-
-        result = getattr(c.str, method_name)(*args, **kwargs)
-        expected = getattr(s.str, method_name)(*args, **kwargs)
-
-        if isinstance(result, DataFrame):
-            tm.assert_frame_equal(result, expected)
-        elif isinstance(result, Series):
-            tm.assert_series_equal(result, expected)
-        else:
-            # str.cat(others=None) returns string, for example
-            assert result == expected
 
     def test_api_for_categorical(self, any_string_method):
         # https://github.com/pandas-dev/pandas/issues/10661
