@@ -1,3 +1,4 @@
+from datetime import datetime
 from warnings import catch_warnings
 
 import numpy as np
@@ -7,7 +8,8 @@ from pandas.errors import PerformanceWarning, UnsortedIndexError
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, Panel, Series, Timestamp, date_range)
+    DataFrame, Index, MultiIndex, Panel, Period, Series, Timestamp, date_range,
+    period_range)
 from pandas.tests.indexing.common import _mklbl
 from pandas.util import testing as tm
 
@@ -1340,3 +1342,20 @@ class TestMultiIndexPanel(object):
         p5.iloc[0, :, 0] = [1, 2]
         expected = Panel(arr, **axes)
         tm.assert_panel_equal(p5, expected)
+
+
+def test_multiindex_period_datetime():
+    # GH4861, using datetime in period of multiindex raises exception
+
+    idx1 = Index(['a', 'a', 'a', 'b', 'b'])
+    idx2 = period_range('2012-01', periods=len(idx1), freq='M')
+    s = Series(np.random.randn(len(idx1)), [idx1, idx2])
+
+    # try Period as index
+    expected = s.iloc[0]
+    result = s.loc['a', Period('2012-01')]
+    assert result == expected
+
+    # try datetime as index
+    result = s.loc['a', datetime(2012, 1, 1)]
+    assert result == expected
