@@ -1217,9 +1217,9 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
             dtype = dtype.dtype
 
         # coerce if we have nan for an integer dtype
-        if is_integer_dtype(dtype) and isna(value):
+        if length and is_integer_dtype(dtype) and isna(value):
             dtype = np.dtype('float64')
-        if isinstance(dtype, np.dtype) and dtype.kind in ("U", "S"):
+        elif isinstance(dtype, np.dtype) and dtype.kind in ("U", "S"):
             subarr = np.empty(length, dtype=object)
             if not isna(value):
                 value = to_str(value)
