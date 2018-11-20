@@ -19,7 +19,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import NoNewAttributesMixin
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, deprecate_kwarg
 import re
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
@@ -2410,8 +2410,11 @@ class StringMethods(NoNewAttributesMixin):
 
     Parameters
     ----------
-    pat : str, default whitespace
+    sep : str, default whitespace
         String to split on.
+    pat : str, default whitespace
+        .. deprecated:: 0.24.0
+           Use ``sep`` instead
     expand : bool, default True
         If True, return DataFrame/MultiIndex expanding dimensionality.
         If False, return Series/Index.
@@ -2485,8 +2488,9 @@ class StringMethods(NoNewAttributesMixin):
                   'empty strings',
         'also': 'rpartition : Split the string at the last occurrence of `sep`'
     })
-    def partition(self, pat=' ', expand=True):
-        f = lambda x: x.partition(pat)
+    @deprecate_kwarg(old_arg_name='pat', new_arg_name='sep')
+    def partition(self, sep=' ', expand=True):
+        f = lambda x: x.partition(sep)
         result = _na_map(f, self._parent)
         return self._wrap_result(result, expand=expand)
 
@@ -2496,8 +2500,9 @@ class StringMethods(NoNewAttributesMixin):
                   'string itself',
         'also': 'partition : Split the string at the first occurrence of `sep`'
     })
-    def rpartition(self, pat=' ', expand=True):
-        f = lambda x: x.rpartition(pat)
+    @deprecate_kwarg(old_arg_name='pat', new_arg_name='sep')
+    def rpartition(self, sep=' ', expand=True):
+        f = lambda x: x.rpartition(sep)
         result = _na_map(f, self._parent)
         return self._wrap_result(result, expand=expand)
 
