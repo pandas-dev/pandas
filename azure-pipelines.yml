@@ -83,6 +83,7 @@ jobs:
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
+      export DISPLAY=":99.0"  # XXX just testing if this is why to_clipboard is failing
       ci/code_checks.sh doctests
     displayName: 'Running doctests'
     condition: true
