@@ -2,7 +2,6 @@ name: pandas
 channels:
   - defaults
   - conda-forge
-  - r
 dependencies:
   - beautifulsoup4
   - bottleneck
@@ -31,14 +30,11 @@ dependencies:
   - python-snappy
   - python=3.6*
   - pytz
-  - r
-  - rpy2
   - scipy
   - seaborn
   - sphinx
   - sqlalchemy
   - statsmodels
-  - tzlocal
   - xarray
   - xlrd
   - xlsxwriter
