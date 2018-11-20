@@ -231,6 +231,14 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     is_monotonic_decreasing = Index.is_monotonic_decreasing
     is_unique = Index.is_unique
 
+    __mul__ = Index.__mul__
+    __rmul__ = Index.__rmul__
+    __truediv__ = Index.__truediv__
+    __floordiv__ = Index.__floordiv__
+    __rfloordiv__ = Index.__rfloordiv__
+    if compat.PY2:
+        __div__ = Index.__div__
+
     days = wrap_field_accessor(TimedeltaArray.days)
     seconds = wrap_field_accessor(TimedeltaArray.seconds)
     microseconds = wrap_field_accessor(TimedeltaArray.microseconds)
