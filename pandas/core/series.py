@@ -2306,16 +2306,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.combine_first : Combine Series values, choosing the calling
-                               Series' values first.
+        Series.combine_first : Combine Series values, choosing the calling Series' values first.
 
         Examples
         --------
-        Consider 2 Datasets data_A and data_B containing highest clocked speeds of different birds.
+        Consider 2 Datasets ``s1`` and ``s2`` containing highest clocked speeds of different birds.
 
-        >>> s1 = pd.Series({'falcon': 330, 'eagle': 160, 'swift': 105})
-        >>> s2 = pd.Series({'falcon': 345, 'eagle': 200, 'swift': 100, 'duck': 30})
-
+        >>> s1 = pd.Series({'falcon': 330.0, 'eagle': 160.0})
+        >>> s1
+        falcon    330.0
+        eagle     160.0
+        dtype: float64
+        >>> s2 = pd.Series({'falcon': 345.0, 'eagle': 200.0, 'duck': 30.0})
+        >>> s2
+        falcon    345.0
+        eagle     200.0
+        duck       30.0
+        dtype: float64
+        
         Now, to combine the two datasets and view the highest speeds of the birds across the
         two datasets
 
@@ -2323,17 +2331,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         duck        NaN
         eagle     200.0
         falcon    345.0
-        swift     105.0
         dtype: float64
 
-        To get the clocked speed of the duck, we can use `fill_value=0` as 
-
+        In the previous example, the resulting value for duck is missing, because the maximum
+        of a NaN and a float is a NaN. So, in the example, we set ``fill_value=0``,
+        so the maximum value returned will be the value from some dataset.
+        
         >>> s1.combine(s2, max, fill_value=0)
-        duck       30
-        eagle     200
-        falcon    345
-        swift     105
-        dtype: int64
+        duck       30.0
+        eagle     200.0
+        falcon    345.0
+        dtype: float64
 """
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
