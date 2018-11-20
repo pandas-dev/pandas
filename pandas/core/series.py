@@ -2307,7 +2307,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.combine_first : Combine Series values, choosing the calling
-                                              Series' values first.
+                                                  Series' values first.
 
         Examples
         --------
@@ -2401,7 +2401,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.combine : Perform elementwise operation on two Series
-                                     using a given function.
+                                         using a given function.
 
         Notes
         -----
