@@ -2313,23 +2313,23 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         Consider 2 Datasets data_A and data_B containing highest clocked speeds of different birds.
 
-        >>> s1 = pd.Series({'falcon': 330, 'eagle': 160, 'swift': 105, 'duck': 30})
-        >>> s2 = pd.Series({'falcon': 345, 'eagle': 200, 'swift': 100})
+        >>> s1 = pd.Series({'falcon': 330, 'eagle': 160, 'swift': 105})
+        >>> s2 = pd.Series({'falcon': 345, 'eagle': 200, 'swift': 100, 'duck': 30})
 
         Now, to combine the two datasets and view the highest speeds of the birds across the
         two datasets
 
         >>> s1.combine(s2, max)
+        duck        NaN
+        eagle     200.0
+        falcon    345.0
+        swift     105.0
+        dtype: float64
+
+        To get the clocked speed of the duck, we can use `fill_value=0` as 
+
+        >>> s1.combine(s2, max, fill_value=0)
         duck       30
-        eagle     200
-        falcon    345
-        swift     105
-        dtype: int64
-
-        Considering an average value of birds' speed to be ~40 mph,
-
-        >>> s1.combine(s2, max, fill_value=40)
-        duck       40
         eagle     200
         falcon    345
         swift     105
