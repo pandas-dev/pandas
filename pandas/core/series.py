@@ -2298,8 +2298,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             The value(s) to be combined with the `Series`.
         func : function
             Function that takes two scalars as inputs and returns an element.
-        fill_value : scalar, default None
-            The optional value to assume when an index is missing from
+        fill_value : scalar, optional
+            The value to assume when an index is missing from
             one Series or the other. The default specifies to use the
             appropriate NaN value for the underlying dtype of the Series.
 
@@ -2386,12 +2386,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        combined : Series
+        Series
+            The result of combining the Series with the other object.
         
         See Also
         --------
         Series.combine : Perform elementwise operation on two Series
-            using a given function
+                         using a given function
 
         Notes
         -----
