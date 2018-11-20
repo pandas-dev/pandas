@@ -5,7 +5,7 @@ Module parse to/from Excel
 # ---------------------------------------------------------------------
 # ExcelFile class
 import abc
-from datetime import MINYEAR, date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from distutils.version import LooseVersion
 from io import UnsupportedOperation
 import os
@@ -375,15 +375,14 @@ class ExcelFile(object):
 
     def __init__(self, io, **kwds):
 
-        err_msg = "Install xlrd >= 0.9.0 for Excel support"
+        err_msg = "Install xlrd >= 1.0.0 for Excel support"
 
         try:
             import xlrd
         except ImportError:
             raise ImportError(err_msg)
         else:
-            ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
-            if ver < (0, 9):  # pragma: no cover
+            if xlrd.__VERSION__ < LooseVersion("1.0.0"):
                 raise ImportError(err_msg +
                                   ". Current version " + xlrd.__VERSION__)
 
@@ -515,7 +514,6 @@ class ExcelFile(object):
             raise NotImplementedError("chunksize keyword of read_excel "
                                       "is not implemented")
 
-        import xlrd
         from xlrd import (xldate, XL_CELL_DATE,
                           XL_CELL_ERROR, XL_CELL_BOOLEAN,
                           XL_CELL_NUMBER)
@@ -528,36 +526,23 @@ class ExcelFile(object):
 
             if cell_typ == XL_CELL_DATE:
 
-                if xlrd_0_9_3:
-                    # Use the newer xlrd datetime handling.
-                    try:
-                        cell_contents = \
-                            xldate.xldate_as_datetime(cell_contents,
-                                                      epoch1904)
-                    except OverflowError:
-                        return cell_contents
-                    # Excel doesn't distinguish between dates and time,
-                    # so we treat dates on the epoch as times only.
-                    # Also, Excel supports 1900 and 1904 epochs.
-                    year = (cell_contents.timetuple())[0:3]
-                    if ((not epoch1904 and year == (1899, 12, 31)) or
-                            (epoch1904 and year == (1904, 1, 1))):
-                        cell_contents = time(cell_contents.hour,
-                                             cell_contents.minute,
-                                             cell_contents.second,
-                                             cell_contents.microsecond)
-                else:
-                    # Use the xlrd <= 0.9.2 date handling.
-                    try:
-                        dt = xldate.xldate_as_tuple(cell_contents, epoch1904)
+                # Use the newer xlrd datetime handling.
+                try:
+                    cell_contents = xldate.xldate_as_datetime(
+                        cell_contents, epoch1904)
+                except OverflowError:
+                    return cell_contents
 
-                    except xldate.XLDateTooLarge:
-                        return cell_contents
-
-                    if dt[0] < MINYEAR:
-                        cell_contents = time(*dt[3:])
-                    else:
-                        cell_contents = datetime(*dt)
+                # Excel doesn't distinguish between dates and time,
+                # so we treat dates on the epoch as times only.
+                # Also, Excel supports 1900 and 1904 epochs.
+                year = (cell_contents.timetuple())[0:3]
+                if ((not epoch1904 and year == (1899, 12, 31)) or
+                        (epoch1904 and year == (1904, 1, 1))):
+                    cell_contents = time(cell_contents.hour,
+                                         cell_contents.minute,
+                                         cell_contents.second,
+                                         cell_contents.microsecond)
 
             elif cell_typ == XL_CELL_ERROR:
                 cell_contents = np.nan
@@ -570,12 +555,6 @@ class ExcelFile(object):
                 if val == cell_contents:
                     cell_contents = val
             return cell_contents
-
-        # xlrd >= 0.9.3 can return datetime objects directly.
-        if LooseVersion(xlrd.__VERSION__) >= LooseVersion("0.9.3"):
-            xlrd_0_9_3 = True
-        else:
-            xlrd_0_9_3 = False
 
         ret_dict = False
 

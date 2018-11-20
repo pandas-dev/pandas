@@ -269,7 +269,7 @@ Optional Dependencies
 * `matplotlib <http://matplotlib.org/>`__: for plotting, Version 2.0.0 or higher.
 * For Excel I/O:
 
-    * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
+    * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd), version 1.0.0 or higher required, and writing (xlwt)
     * `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__: openpyxl version 2.4.0
       for writing .xlsx files (xlrd >= 0.9.0)
     * `XlsxWriter <https://pypi.org/project/XlsxWriter>`__: Alternative Excel writer
