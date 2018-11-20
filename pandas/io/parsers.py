@@ -53,7 +53,7 @@ from pandas.io.date_converters import generic_parser
 # so we need to remove it if we see it.
 _BOM = u('\ufeff')
 
-_parser_params = r"""
+_doc_read_csv_and_table = r"""
 {summary}
 
 Also supports optionally iterating or breaking of the file
@@ -700,7 +700,7 @@ def _make_parser_function(name, default_sep=','):
 
 
 read_csv = _make_parser_function('read_csv', default_sep=',')
-read_csv = Appender(_parser_params.format(
+read_csv = Appender(_doc_read_csv_and_table.format(
                     func_name='read_csv',
                     summary=('Read a comma-separated values (csv) file '
                              'into DataFrame.'),
@@ -708,13 +708,13 @@ read_csv = Appender(_parser_params.format(
                     )(read_csv)
 
 read_table = _make_parser_function('read_table', default_sep='\t')
-read_table = Appender(_parser_params.format(
+read_table = Appender(_doc_read_csv_and_table.format(
                       func_name='read_table',
                       summary="""Read general delimited file into DataFrame.
 
 .. deprecated:: 0.24.0
 Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
-                      _default_sep=r'\\t (tab-stop)')
+                      _default_sep=r"'\\t' (tab-stop)")
                       )(read_table)
 
 
