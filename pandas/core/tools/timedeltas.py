@@ -26,18 +26,19 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     Parameters
     ----------
     arg : str, timedelta, list-like or Series
-          The argument which needs to be converted to timedelta.
+        The data to be converted to timedelta.
     unit : str, default 'ns'
-         ('Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr',
-         'h', 'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
-         'sec', 'second', 'ms', 'milliseconds', 'millisecond',
-         'milli', 'millis', 'L', 'us', 'microseconds', 'microsecond',
-         'micro', 'micros', 'U', 'ns', 'nanoseconds', 'nano', 'nanos',
-         'nanosecond', 'N').
+        Denotes the unit of the arg. Possible values:
+        ('Y', 'M', 'W', 'D', 'days', 'day', 'hours', hour', 'hr',
+        'h', 'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
+        'sec', 'second', 'ms', 'milliseconds', 'millisecond',
+        'milli', 'millis', 'L', 'us', 'microseconds', 'microsecond',
+        'micro', 'micros', 'U', 'ns', 'nanoseconds', 'nano', 'nanos',
+        'nanosecond', 'N').
     box : bool, default True
-          If True returns a Timedelta/TimedeltaIndex of the results.
-          If False returns a np.timedelta64 or ndarray of values of dtype
-          timedelta64[ns].
+        - If True returns a Timedelta/TimedeltaIndex of the results.
+        - If False returns a numpy.timedelta64 or numpy.darray of
+          values of dtype timedelta64[ns].
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaT.
@@ -83,12 +84,6 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
 
     >>> pd.to_timedelta(np.arange(5), box=False)
     array([0, 1, 2, 3, 4], dtype='timedelta64[ns]')
-<<<<<<< HEAD
-
-    See also
-
-=======
->>>>>>> improved styling
     """
     unit = parse_timedelta_unit(unit)
 
