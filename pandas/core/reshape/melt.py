@@ -25,6 +25,8 @@ from pandas.core.tools.numeric import to_numeric
 def melt(frame, id_vars=None, value_vars=None, var_name=None,
          value_name='value', col_level=None):
     # TODO: what about the existing index?
+    # If multiindex, gather names of columns on all level for checking presence
+    # of `id_vars` and `value_vars`
     if isinstance(frame.columns, ABCMultiIndex):
         cols = [x for c in frame.columns for x in c]
     else:
