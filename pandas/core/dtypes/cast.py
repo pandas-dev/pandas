@@ -728,7 +728,8 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
         # if we have a datetime/timedelta array of objects
         # then coerce to a proper dtype and recall astype_nansafe
 
-        if is_timedelta64_dtype(dtype):
+        if (is_timedelta64_dtype(dtype)
+                or np.issubdtype(dtype.type, np.integer)):
             # TODO: this is an old numpy compat branch that is not necessary
             # anymore for its original purpose (unsafe casting from object to
             # int, see GH 1987).
@@ -736,11 +737,17 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
             # uncommenting them would re-call (see below)
             # >>> astype_nansafe(to_timedelta(arr).values, dtype, copy=copy),
             # and end up in the `is_timedelta64_dtype(arr)` above, which
-            # explicitly and deliberately returns a float dtype.
-            # However, the test
+            # deliberately returns a float dtype. However, the test
             # reshape/merge/test_merge.py::TestMerge:;test_other_timedelta_unit
-            # expects an explicit timedelta dtype as output.
-            # Once this is fixed, `astype_intsafe` can be deleted from lib.
+            # expects an explicit timedelta dtype as output - a contradiction.
+
+            # TODO: the case of np.issubdtype(dtype.type, np.integer) is only
+            # relevant anymore for IntegerArray, and should be solved by having
+            # consistent astyping for extension arrays, see GH 22384, as well
+            # as a branch here for `is_extension_array_dtype(arr)`
+
+            # TODO: Once those things are fixed, `astype_intsafe` can be
+            # removed completely from _libs.lib.
             return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
 
         elif is_datetime64_dtype(dtype):
