@@ -53,7 +53,8 @@ These are some neat pandas ``idioms``
 
 .. ipython:: python
 
-   df = pd.DataFrame({'AAA': [4, 5, 6, 7], 'BBB': [10, 20, 30, 40],
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
                       'CCC': [100, 50, -30, -50]})
    df
 
@@ -85,7 +86,8 @@ Or use pandas where after you've set up a mask
 
 .. ipython:: python
 
-   df_mask = pd.DataFrame({'AAA': [True] * 4, 'BBB': [False] * 4,
+   df_mask = pd.DataFrame({'AAA': [True] * 4,
+                           'BBB': [False] * 4,
                            'CCC': [True, False] * 2})
    df.where(df_mask, -1000)
 
@@ -94,7 +96,8 @@ Or use pandas where after you've set up a mask
 
 .. ipython:: python
 
-   df = pd.DataFrame({'AAA': [4, 5, 6, 7], 'BBB': [10, 20, 30, 40],
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
                       'CCC': [100, 50, -30, -50]})
    df
    df['logic'] = np.where(df['AAA'] > 5, 'high', 'low')
@@ -108,14 +111,13 @@ Splitting
 
 .. ipython:: python
 
-   df = pd.DataFrame({'AAA': [4, 5, 6, 7], 'BBB': [10, 20, 30, 40],
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
                       'CCC': [100, 50, -30, -50]})
    df
 
-   dflow = df[df.AAA <= 5]
-   dflow
-   dfhigh = df[df.AAA > 5]
-   dfhigh
+   df[df.AAA <= 5]
+   df[df.AAA > 5]
 
 Building Criteria
 *****************
@@ -125,7 +127,8 @@ Building Criteria
 
 .. ipython:: python
 
-   df = pd.DataFrame({'AAA': [4, 5, 6, 7], 'BBB': [10, 20, 30, 40],
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
                       'CCC': [100, 50, -30, -50]})
    df
 
@@ -133,15 +136,13 @@ Building Criteria
 
 .. ipython:: python
 
-   newseries = df.loc[(df['BBB'] < 25) & (df['CCC'] >= -40), 'AAA']
-   newseries
+   df.loc[(df['BBB'] < 25) & (df['CCC'] >= -40), 'AAA']
 
 ...or (without assignment returns a Series)
 
 .. ipython:: python
 
-   newseries = df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']
-   newseries
+   df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']
 
 ...or (with assignment modifies the DataFrame.)
 
@@ -155,7 +156,8 @@ Building Criteria
 
 .. ipython:: python
 
-   df = pd.DataFrame({'AAA': [4, 5, 6, 7], 'BBB': [10, 20, 30, 40],
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
                       'CCC': [100, 50, -30, -50]})
    df
    aValue = 43.0
@@ -166,7 +168,8 @@ Building Criteria
 
 .. ipython:: python
 
-   df = pd.DataFrame({'AAA': [4, 5, 6, 7], 'BBB': [10, 20, 30, 40],
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
                       'CCC': [100, 50, -30, -50]})
    df
 
@@ -204,7 +207,8 @@ The :ref:`indexing <indexing>` docs.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'AAA': [4, 5, 6, 7], 'BBB': [10, 20, 30, 40],
+   df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                      'BBB': [10, 20, 30, 40],
                       'CCC': [100, 50, -30, -50]})
    df
 
@@ -215,11 +219,11 @@ The :ref:`indexing <indexing>` docs.
 
 .. ipython:: python
 
-   data = {'AAA': [4, 5, 6, 7],
-           'BBB': [10, 20, 30, 40],
-           'CCC': [100, 50, -30, -50]}
-   df = pd.DataFrame(data=data, index=['foo', 'bar', 'boo', 'kar'])
-   df
+  df = pd.DataFrame({'AAA': [4, 5, 6, 7],
+                     'BBB': [10, 20, 30, 40],
+                     'CCC': [100, 50, -30, -50]},
+                    index=['foo', 'bar', 'boo', 'kar'])
+
 
 There are 2 explicit slicing methods, with a third general case
 
@@ -295,7 +299,7 @@ New Columns
                       'CCC': [2, 1, 3, 1]})
    df
 
-   source_cols = df.columns   # or some subset would work too.
+   source_cols = df.columns   # Or some subset would work too
    new_cols = [str(x) + "_cat" for x in source_cols]
    categories = {1: 'Alpha', 2: 'Beta', 3: 'Charlie'}
 
@@ -533,10 +537,10 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
    S = pd.Series([i / 100.0 for i in range(1, 11)])
 
-   def CumRet(x, y):
+   def cumRet(x, y):
        return x * (1 + y)
 
-   def Red(x):
+   def red(x):
        return functools.reduce(CumRet, x, 1.0)
 
    S.expanding().apply(Red, raw=True)
@@ -606,11 +610,11 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
 .. ipython:: python
 
-   df = pd.DataFrame({u'line_race': [10, 10, 8, 10, 10, 8],
-                      u'beyer': [99, 102, 103, 103, 88, 100]},
-                     index=[u'Last Gunfighter', u'Last Gunfighter',
-                            u'Last Gunfighter', u'Paynter', u'Paynter',
-                            u'Paynter'])
+   df = pd.DataFrame({'line_race': [10, 10, 8, 10, 10, 8],
+                      'beyer': [99, 102, 103, 103, 88, 100]},
+                     index=['Last Gunfighter', 'Last Gunfighter',
+                            'Last Gunfighter', 'Paynter', 'Paynter',
+                            'Paynter'])
    df
    df['beyer_shifted'] = df.groupby(level=0)['beyer'].shift(1)
    df
@@ -759,9 +763,9 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
                      columns=['A', 'B'])
    df
 
-   def gm(aDF, Const):
-       v = ((((aDF.A + aDF.B) + 1).cumprod()) - 1) * Const
-       return (aDF.index[0], v.iloc[-1])
+   def gm(df, const):
+       v = ((((df.A + df.B) + 1).cumprod()) - 1) * const
+       return (df.index[0], v.iloc[-1])
 
    S = pd.Series(dict([gm(df.iloc[i:min(i + 51, len(df) - 1)], 5)
                        for i in range(len(df) - 50)]))
@@ -944,16 +948,16 @@ The :ref:`Plotting <visualization>` docs.
 .. ipython:: python
 
    df = pd.DataFrame(
-       {u'stratifying_var': np.random.uniform(0, 100, 20),
-        u'price': np.random.normal(100, 5, 20)})
+       {'stratifying_var': np.random.uniform(0, 100, 20),
+        'price': np.random.normal(100, 5, 20)})
 
-   df[u'quartiles'] = pd.qcut(
-       df[u'stratifying_var'],
+   df['quartiles'] = pd.qcut(
+       df['stratifying_var'],
        4,
-       labels=[u'0-25%', u'25-50%', u'50-75%', u'75-100%'])
+       labels=['0-25%', '25-50%', '50-75%', '75-100%'])
 
    @savefig quartile_boxplot.png
-   df.boxplot(column=u'price', by=u'quartiles')
+   df.boxplot(column='price', by='quartiles')
 
 Data In/Out
 -----------
@@ -1424,8 +1428,7 @@ of the data values:
        rows = itertools.product(*data_dict.values())
        return pd.DataFrame.from_records(rows, columns=data_dict.keys())
 
-   df = expand_grid(
-       {'height': [60, 70],
-        'weight': [100, 140, 180],
-        'sex': ['Male', 'Female']})
+   df = expand_grid({'height': [60, 70],
+                     'weight': [100, 140, 180],
+                     'sex': ['Male', 'Female']})
    df
