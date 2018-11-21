@@ -55,11 +55,6 @@ def array(data, dtype=None, copy=False):
     change. We recommend specifying `dtype` to ensure that the correct
     array type is constructed.
 
-    See Also
-    --------
-    numpy.array : construct a NumPy array
-    Series : construct a pandas Series
-
     Examples
     --------
     If a dtype is not specified, `data` is passed through to
@@ -98,6 +93,11 @@ def array(data, dtype=None, copy=False):
 
     >>> pd.array([1, 2, np.nan], dtype='Int64')
     IntegerArray([1, 2, nan], dtype='Int64')
+
+    See Also
+    --------
+    numpy.array : construct a NumPy array
+    Series : construct a pandas Series
     """
     from pandas.core.arrays import period_array, ExtensionArray
 
