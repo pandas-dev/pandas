@@ -26,7 +26,6 @@ New features
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now accept a callable for generic calculation methods of correlation, e.g. histogram intersection (:issue:`22684`)
 - :func:`DataFrame.to_string` now accepts ``decimal`` as an argument, allowing
 the user to specify which decimal separator should be used in the output. (:issue:`23614`)
-- :func:`pd.melt` now requires `id_vars` and `value_vars` to be in the ``DataFrame``
 
 .. _whatsnew_0240.enhancements.extension_array_operators:
 
