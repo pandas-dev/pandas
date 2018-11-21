@@ -13,6 +13,7 @@ from pandas.core.dtypes.missing import notna
 from pandas import compat
 from pandas.core.arrays import Categorical
 from pandas.core.frame import _shared_docs
+from pandas.core.indexes.base import Index
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
 
@@ -24,6 +25,12 @@ from pandas.core.tools.numeric import to_numeric
 def melt(frame, id_vars=None, value_vars=None, var_name=None,
          value_name='value', col_level=None):
     # TODO: what about the existing index?
+    # If multiindex, gather names of columns on all level for checking presence
+    # of `id_vars` and `value_vars`
+    if isinstance(frame.columns, ABCMultiIndex):
+        cols = [x for c in frame.columns for x in c]
+    else:
+        cols = list(frame.columns)
     if id_vars is not None:
         if not is_list_like(id_vars):
             id_vars = [id_vars]
@@ -32,7 +39,13 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
             raise ValueError('id_vars must be a list of tuples when columns'
                              ' are a MultiIndex')
         else:
+            # Check that `id_vars` are in frame
             id_vars = list(id_vars)
+            missing = Index(np.ravel(id_vars)).difference(cols)
+            if not missing.empty:
+                raise KeyError("The following 'id_vars' are not present"
+                               " in the DataFrame: {missing}"
+                               "".format(missing=list(missing)))
     else:
         id_vars = []
 
@@ -45,6 +58,12 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
                              ' columns are a MultiIndex')
         else:
             value_vars = list(value_vars)
+            # Check that `value_vars` are in frame
+            missing = Index(np.ravel(value_vars)).difference(cols)
+            if not missing.empty:
+                raise KeyError("The following 'value_vars' are not present in"
+                               " the DataFrame: {missing}"
+                               "".format(missing=list(missing)))
         frame = frame.loc[:, id_vars + value_vars]
     else:
         frame = frame.copy()
