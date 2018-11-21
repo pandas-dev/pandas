@@ -1,3 +1,1 @@
-.. _contributing.docs:
-
 See `doc/source/contributing.rst` in this repo, or the generated html version https://pandas.pydata.org/pandas-docs/stable/contributing.html
