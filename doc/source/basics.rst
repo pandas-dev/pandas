@@ -307,7 +307,8 @@ To evaluate single-element pandas objects in a boolean context, use the method
 
    .. code-block:: python
 
-      >>> if df:                         # noqa: E999
+      >>> if df:
+      ...     pass
 
    Or
 
@@ -1507,8 +1508,9 @@ Thus, for example, iterating over a DataFrame gives you the column names:
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-       {'col1': np.random.randn(3), 'col2': np.random.randn(3)},
+   df = pd.DataFrame({
+       'col1': np.random.randn(3),
+       'col2': np.random.randn(3)},
        index=['a', 'b', 'c'])
 
    for col in df:
@@ -1594,7 +1596,7 @@ index value along with a Series containing the data in each row:
 .. ipython:: python
 
    for row_index, row in df.iterrows():
-       print('%s\n%s' % (row_index, row))
+       print(row_index, row, sep='\n')
 
 .. note::
 
@@ -1972,7 +1974,8 @@ with the data type of each column.
                            C='foo',
                            D=pd.Timestamp('20010102'),
                            E=pd.Series([1.0] * 3).astype('float32'),
-                           F=False, G=pd.Series([1] * 3, dtype='int8')))
+                           F=False,
+                           G=pd.Series([1] * 3, dtype='int8')))
    dft
    dft.dtypes
 
@@ -2013,8 +2016,8 @@ different numeric dtypes will **NOT** be combined. The following example will gi
    df1.dtypes
    df2 = pd.DataFrame(dict(A=pd.Series(np.random.randn(8), dtype='float16'),
                            B=pd.Series(np.random.randn(8)),
-                           C=pd.Series(np.array(
-                               np.random.randn(8), dtype='uint8'))))
+                           C=pd.Series(np.array(np.random.randn(8),
+                                                dtype='uint8'))))
    df2
    df2.dtypes
 
