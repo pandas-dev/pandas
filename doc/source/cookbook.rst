@@ -8,17 +8,13 @@
    import pandas as pd
    import numpy as np
    from pandas.compat import StringIO
-
    import os
    import itertools
    import functools
    import datetime
    import glob
    np.random.seed(123456)
-
    pd.options.display.max_rows = 15
-
-
    np.set_printoptions(precision=4, suppress=True)
 
 
@@ -243,7 +239,6 @@ There are 2 explicit slicing methods, with a third general case
 Ambiguity arises when an index consists of integers with a non-zero start or non-unit increment.
 
 .. ipython:: python
-    :verbatim:
 
    data = {'AAA': [4, 5, 6, 7],
            'BBB': [10, 20, 30, 40],
@@ -414,17 +409,13 @@ To take the cross section of the 1st level and 1st axis the index:
    index = list(itertools.product(['Ada', 'Quinn', 'Violet'],
                                   ['Comp', 'Math', 'Sci']))
    headr = list(itertools.product(['Exams', 'Labs'], ['I', 'II']))
-
    indx = pd.MultiIndex.from_tuples(index, names=['Student', 'Course'])
    cols = pd.MultiIndex.from_tuples(headr)   # Notice these are un-named
-
    data = [[70 + x + y + (x * y) % 3 for x in range(4)] for y in range(9)]
-
    df = pd.DataFrame(data, indx, cols)
    df
 
    All = slice(None)
-
    df.loc['Violet']
    df.loc[(All, 'Math'), All]
    df.loc[(slice('Ada', 'Quinn'), 'Math'), All]
@@ -512,7 +503,6 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 .. ipython:: python
 
    gb = df.groupby(['animal'])
-
    gb.get_group('cat')
 
 `Apply to different items in a group
@@ -529,7 +519,6 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
                         index=['size', 'weight', 'adult'])
 
    expected_df = gb.apply(GrowUp)
-
    expected_df
 
 `Expanding Apply
@@ -767,7 +756,7 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
 
    def gm(df, const):
        v = ((((df.A + df.B) + 1).cumprod()) - 1) * const
-       return (v.iloc[-1])
+       return v.iloc[-1]
 
    s = pd.Series({df.index[i]: gm(df.iloc[i:min(i + 51, len(df) - 1)], 5)
                   for i in range(len(df) - 50)})
@@ -1036,7 +1025,7 @@ You can use the same approach to read all files matching a pattern.  Here is an 
 Finally, this strategy will work with the other ``pd.read_*(...)`` functions described in the :ref:`io docs<io>`.
 
 .. ipython:: python
-    :verbatim:
+    :suppress:
 
     for i in range(3):
         os.remove('file_{}.csv'.format(i))
@@ -1047,7 +1036,6 @@ Parsing date components in multi-columns
 Parsing date components in multi-columns is faster with a format
 
 .. ipython:: python
-    :verbatim:
 
     i = pd.date_range('20000101', periods=10000)
     df = pd.DataFrame({'year': i.year, 'month': i.month, 'day': i.day})
@@ -1057,6 +1045,7 @@ Parsing date components in multi-columns is faster with a format
                                               x['month'], x['day']), axis=1)
     ds.head()
     %timeit pd.to_datetime(ds)
+
 
 Skip row between header and data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1326,7 +1315,6 @@ The `method` argument within `DataFrame.corr` can accept a callable in addition 
     ...
     ...
     >>> df = pd.DataFrame(np.random.normal(size=(100, 3)))
-    ...
     >>> df.corr(method=distcorr)
               0         1         2
     0  1.000000  0.171368  0.145302
