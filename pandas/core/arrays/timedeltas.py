@@ -417,7 +417,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             return np.array(result)
 
         else:
-            # object-dtype *may* be OK here, but generally this will raise
+            # numeric-dtyped other
             result = other / self._data
             return type(self)(result)
 
