@@ -3359,7 +3359,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Notes
         -----
-        Like calling ``.reindex(index=other.index,columns=other.columns,...)``.
+        Same as calling
+        ``.reindex(index=other.index, columns=other.columns,...)``.
 
         Returns
         -------
@@ -4083,14 +4084,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        DataFrame.set_index : set row labels
-        DataFrame.reset_index : remove row labels or move them to new columns
-        DataFrame.reindex : change to new indices or expand indices
-        DataFrame.reindex_like : change to same indices as other DataFrame
+        DataFrame.set_index : Set row labels.
+        DataFrame.reset_index : Remove row labels or move them to new columns.
+        DataFrame.reindex : Change to new indices or expand indices.
+        DataFrame.reindex_like : Change to same indices as other DataFrame.
 
         Returns
         -------
-        reindexed : %(klass)s
+        %(klass)s
 
         Examples
         --------

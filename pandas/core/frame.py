@@ -3909,16 +3909,15 @@ class DataFrame(NDFrame):
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
         """
-        An index is created with existing columns.
+        Set the DataFrame index using existing columns.
 
         Set the DataFrame index (row labels) using one or more existing
         columns. The index can replace the existing index or expand on it.
 
         Parameters
         ----------
-        keys : str or list of str or array
-            Column label or list of column labels / arrays that will
-            form the new index.
+        keys : label or list of label
+            Name or names of the columns that will be used as the index.
         drop : bool, default True
             Delete columns to be used as the new index.
         append : bool, default False
@@ -4049,13 +4048,11 @@ class DataFrame(NDFrame):
     def reset_index(self, level=None, drop=False, inplace=False, col_level=0,
                     col_fill=''):
         """
-        An existing index is modified.
+        Reset the index, or a level of it.
 
-        For DataFrame with multi-level index, return new DataFrame with
-        labeling information in the columns under the index names, defaulting
-        to 'level_0', 'level_1', etc. if any are None. For a standard index,
-        the index name will be used (if set), otherwise a default 'index' or
-        'level_0' (if 'index' is already taken) will be used.
+        Reset the index of the DataFrame, and use the default one instead.
+        If the DataFrame has a MultiIndex, this method can remove one or more
+        of them.
 
         Parameters
         ----------
@@ -4078,7 +4075,7 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
-            Changed row labels.
+            DataFrame with the new index.
 
         See Also
         --------
@@ -4088,9 +4085,9 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame([('bird',    389.0),
-        ...                    ('bird',     24.0),
-        ...                    ('mammal',   80.5),
+        >>> df = pd.DataFrame([('bird', 389.0),
+        ...                    ('bird', 24.0),
+        ...                    ('mammal', 80.5),
         ...                    ('mammal', np.nan)],
         ...                   index=['falcon', 'parrot', 'lion', 'monkey'],
         ...                   columns=('class', 'max_speed'))
