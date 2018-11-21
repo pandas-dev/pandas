@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import tslibs
+from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
@@ -324,12 +324,83 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     __mul__ = _wrap_tdi_op(operator.mul)
     __rmul__ = __mul__
-    __truediv__ = _wrap_tdi_op(operator.truediv)
     __floordiv__ = _wrap_tdi_op(operator.floordiv)
     __rfloordiv__ = _wrap_tdi_op(ops.rfloordiv)
 
+    def __truediv__(self, other):
+        # TODO: should we unbox zero_dim?
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+
+        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            other = Timedelta(other)
+            if other is NaT:
+                # specifically timedelta64-NaT
+                result = np.empty(self.shape, dtype=np.float64)
+                result.fill(np.nan)
+                return result
+
+            # otherwise, dispatch to Timedelta implementation
+            return self._data / other
+
+        elif lib.is_scalar(other):
+            # assume it is numeric
+            result = self._data / other
+            freq = None
+            if self.freq is not None:
+                # Tick division is not implemented, so operate on Timedelta
+                freq = self.freq.delta / other
+            return type(self)(result, freq=freq)
+
+        elif is_timedelta64_dtype(other):
+            # let numpy handle it
+            return self._data / other
+
+        elif is_object_dtype(other):
+            result = [self[n] / other[n] for n in range(len(self))]
+            result = np.array(result)
+            if lib.infer_dtype(result) == 'timedelta':
+                # TODO: keep inferred freq?
+                result, _ = sequence_to_td64ns(result)
+                return type(self)(result)
+
+            return np.array(result)
+
+        else:
+            result = self._data / other
+            return type(self)(result)
+
+    def __rtruediv__(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+
+        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            other = Timedelta(other)
+            if other is NaT:
+                # specifically timedelta64-NaT
+                result = np.empty(self.shape, dtype=np.float64)
+                result.fill(np.nan)
+                return result
+
+            # otherwise, dispatch to Timedelta implementation
+            return other / self._data
+
+        elif is_timedelta64_dtype(other):
+            # let numpy handle it
+            return other / self._data
+
+        elif is_object_dtype(other):
+            result = [other[n] / self[n] for n in range(len(self))]
+            return np.array(result)
+
+        else:
+            # object-dtype *may* be OK here, but generally this will raise
+            result = other / self._data
+            return type(self)(result)
+
     if compat.PY2:
         __div__ = __truediv__
+        __rdiv__ = __rtruediv__
 
     # Note: TimedeltaIndex overrides this in call to cls._add_numeric_methods
     def __neg__(self):

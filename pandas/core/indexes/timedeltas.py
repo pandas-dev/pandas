@@ -229,11 +229,8 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
     __mul__ = Index.__mul__
     __rmul__ = Index.__rmul__
-    __truediv__ = Index.__truediv__
     __floordiv__ = Index.__floordiv__
     __rfloordiv__ = Index.__rfloordiv__
-    if compat.PY2:
-        __div__ = Index.__div__
 
     days = wrap_field_accessor(TimedeltaArray.days)
     seconds = wrap_field_accessor(TimedeltaArray.seconds)
@@ -241,6 +238,38 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     nanoseconds = wrap_field_accessor(TimedeltaArray.nanoseconds)
 
     total_seconds = wrap_array_method(TimedeltaArray.total_seconds, True)
+
+    @classmethod
+    def _override_div_mod_methods(cls):
+        """
+        Define __div__, __mod__, etc by wrapping TimedeltaArray implementations
+        rather than the versions defined by _add_numeric_methods.  Because
+        _add_numeric_methods is called after class creation, we have to define
+        these methods even later.
+        """
+
+        def __truediv__(self, other):
+            oth = other
+            if isinstance(other, Index):
+                # TimedeltaArray defers, so we need to unwrap
+                oth = other._values
+            result = TimedeltaArray.__truediv__(self, oth)
+            return wrap_arithmetic_op(self, other, result)
+
+        def __rtruediv__(self, other):
+            oth = other
+            if isinstance(other, Index):
+                # TimedeltaArray defers, so we need to unwrap
+                oth = other._values
+            result = TimedeltaArray.__rtruediv__(self, oth)
+            return wrap_arithmetic_op(self, other, result)
+
+        cls.__truediv__ = __truediv__
+        cls.__rtruediv__ = __rtruediv__
+
+        if compat.PY2:
+            cls.__div__ = __truediv__
+            cls.__rdiv__ = __rtruediv__
 
     # -------------------------------------------------------------------
 
@@ -642,6 +671,7 @@ TimedeltaIndex._add_comparison_ops()
 TimedeltaIndex._add_numeric_methods()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
+TimedeltaIndex._override_div_mod_methods()
 
 
 def _is_convertible_to_index(other):
