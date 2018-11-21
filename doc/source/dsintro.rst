@@ -1028,6 +1028,7 @@ support the multi-dimensional analysis that is one of ``Panel`` s main use cases
 .. ipython:: python
    :okwarning:
 
+   import pandas.util.testing as tm
    p = tm.makePanel()
    p
 
