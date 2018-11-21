@@ -1182,6 +1182,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(result, expected)
 
     def test_td64arr_div_td64_ndarray(self, box_with_array):
+        # GH#22631
         rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
         expected = pd.Float64Index([12, np.nan, 24], name='foo')
 
@@ -1192,12 +1193,18 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = rng / other
         tm.assert_equal(result, expected)
 
+        result = rng / tm.box_expected(other, box_with_array)
+        tm.assert_equal(result, expected, check_names=False)
+
         result = rng / other.astype(object)
         tm.assert_equal(result, expected)
 
         expected = 1 / expected
         result = other / rng
         tm.assert_equal(result, expected)
+
+        result = tm.box_expected(other, box_with_array) / rng
+        tm.assert_equal(result, expected, check_names=False)
 
         result = other.astype(object) / rng
         tm.assert_equal(result, expected)
