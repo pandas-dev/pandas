@@ -18,12 +18,15 @@ def array(data, dtype=None, copy=False):
     Parameters
     ----------
     data : Sequence[object]
-        A sequence of scalar instances for `dtype`. The underlying
-        array will be extracted from a Series or Index object.
+        A sequence of objects. The scalars inside `data` should
+        be instances of the scalar type for `dtype`.
+
+        When `data` is an Index or Series, the underlying array
+        will be extracted from `data`.
 
     dtype : Union[str, np.dtype, ExtensionDtype], optional
         The dtype to use for the array. This may be a NumPy
-        dtype, or an extension type registered with pandas using
+        dtype or an extension type registered with pandas using
         :meth:`pandas.api.extensions.register_extension_dtype`.
 
         If not specified, there are two possibilities:
@@ -34,15 +37,28 @@ def array(data, dtype=None, copy=False):
         2. Otherwise, pandas will attempt to infer the `dtype`
            from the data.
 
-        In particular, note that when `data` is a NumPy array,
-        ``data.dtype`` is ignored.
+        Note that when `data` is a NumPy array, ``data.dtype`` is
+        ignored.
 
     copy : bool, default False
         Whether to copy the data.
 
     Returns
     -------
-    Array : Union[ndarray, ExtensionArray]
+    array : Union[numpy.ndarray, ExtensionArray]
+
+    Notes
+    -----
+    Omitting the `dtype` argument means pandas will attempt to infer the
+    best array type from the values in the data. As new array types are
+    added by pandas and 3rd party libraries, the best array type may
+    change. We recommend specifying `dtype` to ensure that the correct
+    array type is constructed.
+
+    See Also
+    --------
+    numpy.array : construct a NumPy array
+    Series : construct a pandas Series
 
     Examples
     --------
