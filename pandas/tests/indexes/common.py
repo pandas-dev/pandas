@@ -322,12 +322,6 @@ class Base(object):
         result = idx.duplicated(keep=keep)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_unique_na(self):
-        idx = pd.Index([2, np.nan, 2, 1], name='my_index')
-        expected = pd.Index([2, np.nan, 1], name='my_index')
-        result = idx.unique()
-        tm.assert_index_equal(result, expected)
-
     def test_memory_usage(self):
         for name, index in compat.iteritems(self.indices):
             result = index.memory_usage()

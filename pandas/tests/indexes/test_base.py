@@ -2319,6 +2319,12 @@ class TestMixedIntIndex(Base):
 
         assert tm.equalContents(result, index)
 
+    def test_unique_na(self):
+        idx = pd.Index([2, np.nan, 2, 1], name='my_index')
+        expected = pd.Index([2, np.nan, 1], name='my_index')
+        result = idx.unique()
+        tm.assert_index_equal(result, expected)
+
     def test_intersection_base(self):
         # (same results for py2 and py3 but sortedness not tested elsewhere)
         index = self.create_index()
