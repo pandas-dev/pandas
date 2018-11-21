@@ -7,9 +7,6 @@
 
    import numpy as np
    import pandas as pd
-   from pandas.api.types import CategoricalDtype
-   from pandas.api.types import union_categoricals
-   from pandas.compat import StringIO
    np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
    pd.options.display.max_rows = 15
@@ -157,6 +154,7 @@ of :class:`~pandas.api.types.CategoricalDtype`.
 
 .. ipython:: python
 
+    from pandas.api.types import CategoricalDtype
     s = pd.Series(["a", "b", "c", "a"])
     cat_type = CategoricalDtype(categories=["b", "c", "d"],
                                 ordered=True)
@@ -168,6 +166,7 @@ are consistent among all columns.
 
 .. ipython:: python
 
+    from pandas.api.types import CategoricalDtype
     df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
     cat_type = CategoricalDtype(categories=list('abcd'),
                                 ordered=True)
@@ -237,6 +236,7 @@ by default.
 
 .. ipython:: python
 
+   from pandas.api.types import CategoricalDtype
    CategoricalDtype(['a', 'b', 'c'])
    CategoricalDtype(['a', 'b', 'c'], ordered=True)
    CategoricalDtype()
@@ -381,7 +381,7 @@ Categories must be unique or a `ValueError` is raised:
     try:
         s.cat.categories = [1, 1, 1]
     except ValueError as e:
-        print("ValueError: " + str(e))
+        print("ValueError:", str(e))
 
 Categories must also not be ``NaN`` or a `ValueError` is raised:
 
@@ -390,7 +390,7 @@ Categories must also not be ``NaN`` or a `ValueError` is raised:
     try:
         s.cat.categories = [1, 2, np.nan]
     except ValueError as e:
-        print("ValueError: " + str(e))
+        print("ValueError:", str(e))
 
 Appending new categories
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -600,7 +600,7 @@ This doesn't work because the categories are not the same:
     try:
         cat > cat_base2
     except TypeError as e:
-        print("TypeError: " + str(e))
+        print("TypeError:", str(e))
 
 If you want to do a "non-equality" comparison of a categorical series with a list-like object
 which is not categorical data, you need to be explicit and convert the categorical data back to
@@ -613,7 +613,7 @@ the original values:
     try:
         cat > base
     except TypeError as e:
-        print("TypeError: " + str(e))
+        print("TypeError:", str(e))
 
     np.asarray(cat) > base
 
@@ -782,7 +782,7 @@ value is included in the `categories`:
     try:
         df.iloc[2:4, :] = [["c", 3], ["c", 3]]
     except ValueError as e:
-        print("ValueError: " + str(e))
+        print("ValueError:", str(e))
 
 Setting values by assigning categorical data will also check that the `categories` match:
 
@@ -794,7 +794,7 @@ Setting values by assigning categorical data will also check that the `categorie
         df.loc["j": "k", "cats"] = pd.Categorical(["b", "b"],
                                                   categories=["a", "b", "c"])
     except ValueError as e:
-        print("ValueError: " + str(e))
+        print("ValueError:", str(e))
 
 Assigning a ``Categorical`` to parts of a column of other types will use the values:
 
@@ -832,7 +832,7 @@ In this case the categories are not the same, and therefore an error is raised:
     try:
         pd.concat([df, df_different])
     except ValueError as e:
-        print("ValueError: " + str(e))
+        print("ValueError:", str(e))
 
 The same applies to ``df.append(df_different)``.
 
@@ -853,6 +853,7 @@ the categories being combined.
 
 .. ipython:: python
 
+    from pandas.api.types import union_categoricals
     a = pd.Categorical(["b", "c"])
     b = pd.Categorical(["a", "b"])
     union_categoricals([a, b])
@@ -991,6 +992,7 @@ relevant columns back to `category` and assign the right categories and categori
 
 .. ipython:: python
 
+    from pandas.compat import StringIO
     s = pd.Series(pd.Categorical(['a', 'b', 'b', 'a', 'a', 'd']))
     # rename the categories
     s.cat.categories = ["very good", "good", "bad"]
@@ -1111,13 +1113,13 @@ NumPy itself doesn't know about the new `dtype`:
     try:
         np.dtype("category")
     except TypeError as e:
-        print("TypeError: " + str(e))
+        print("TypeError:", str(e))
 
     dtype = pd.Categorical(["a"]).dtype
     try:
         np.dtype(dtype)
     except TypeError as e:
-        print("TypeError: " + str(e))
+        print("TypeError:", str(e))
 
 Dtype comparisons work:
 
@@ -1141,9 +1143,9 @@ are not numeric data (even in the case that ``.categories`` is numeric).
     s = pd.Series(pd.Categorical([1, 2, 3, 4]))
     try:
         np.sum(s)
-        # same with np.log(s),..
+        # same with np.log(s),...
     except TypeError as e:
-        print("TypeError: " + str(e))
+        print("TypeError:", str(e))
 
 .. note::
     If such a function works, please file a bug at https://github.com/pandas-dev/pandas!
