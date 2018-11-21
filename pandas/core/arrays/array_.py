@@ -9,7 +9,11 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas import compat
 
 
-def array(data, dtype=None, copy=False):
+def array(data,         # type: Sequence[object]
+          dtype=None,   # type: Optional[Union[str, np.dtype, ExtensionDtype]]
+          copy=True,    # type: bool
+          ):
+    # type: (...) -> Union[str, np.dtype, ExtensionDtype]
     """
     Create an array.
 
@@ -17,14 +21,14 @@ def array(data, dtype=None, copy=False):
 
     Parameters
     ----------
-    data : Sequence[object]
-        A sequence of objects. The scalars inside `data` should
-        be instances of the scalar type for `dtype`.
+    data : Sequence of objects.
+        The scalars inside `data` should be instances of the
+        scalar type for `dtype`.
 
         When `data` is an Index or Series, the underlying array
         will be extracted from `data`.
 
-    dtype : Union[str, np.dtype, ExtensionDtype], optional
+    dtype : str, np.dtype, or ExtensionDtype, optional
         The dtype to use for the array. This may be a NumPy
         dtype or an extension type registered with pandas using
         :meth:`pandas.api.extensions.register_extension_dtype`.
@@ -38,10 +42,14 @@ def array(data, dtype=None, copy=False):
            from the data.
 
         Note that when `data` is a NumPy array, ``data.dtype`` is
-        ignored.
+        *not* used for inferring the array type. This is because
+        NumPy cannot represent all the types of data that can be
+        held in extension arrays.
 
-    copy : bool, default False
-        Whether to copy the data.
+    copy : bool, default True
+        Whether to copy the data, even if not necessary. Depending
+        on the type of `data`, creating the new array may require
+        copying data, even if ``copy=False``.
 
     Returns
     -------
@@ -52,8 +60,11 @@ def array(data, dtype=None, copy=False):
     Omitting the `dtype` argument means pandas will attempt to infer the
     best array type from the values in the data. As new array types are
     added by pandas and 3rd party libraries, the best array type may
-    change. We recommend specifying `dtype` to ensure that the correct
-    array type is constructed.
+    change. We recommend specifying `dtype` to ensure that
+
+    1. the correct array type for the data is returned
+    2. the returned array type doesn't change as new extension types
+       are added by pandas and third-party libraries
 
     See Also
     --------
@@ -99,7 +110,9 @@ def array(data, dtype=None, copy=False):
     >>> pd.array([1, 2, np.nan], dtype='Int64')
     IntegerArray([1, 2, nan], dtype='Int64')
     """
-    from pandas.core.arrays import period_array, ExtensionArray
+    from pandas.core.arrays import (
+        period_array, ExtensionArray, IntervalArray
+    )
 
     if isinstance(data, (ABCSeries, ABCIndexClass)):
         data = data._values
@@ -121,7 +134,16 @@ def array(data, dtype=None, copy=False):
             try:
                 return period_array(data, copy=copy)
             except tslibs.IncompatibleFrequency:
-                pass  # we return an array below.
+                # We may have a mixture of frequencies.
+                # We choose to return an ndarray, rather than raising.
+                pass
+        elif inferred_dtype == 'interval':
+            try:
+                return IntervalArray(data, copy=copy)
+            except ValueError:
+                # We may have a mixture of `closed` here.
+                # We choose to return an ndarray, rather than raising.
+                pass
 
         # TODO(DatetimeArray): handle this type
         # TODO(BooleanArray): handle this type

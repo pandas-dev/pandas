@@ -109,8 +109,9 @@ Reduction and groupby operations such as 'sum' work.
 .. _whatsnew_0240.enhancements.array:
 
 A new top-level method :func:`array` has been added for creating arrays (:issue:`22860`).
-This can be used to create NumPy arrays, or any :ref:`extension array <extending.extension-types>`, including
-extension arrays registered by :ref:`3rd party libraries <ecosystem.extensions>`.
+This can be used to create any :ref:`extension array <extending.extension-types>`, including
+extension arrays registered by :ref:`3rd party libraries <ecosystem.extensions>`, or to
+create NumPy arrays.
 
 .. ipython:: python
 
@@ -118,9 +119,10 @@ extension arrays registered by :ref:`3rd party libraries <ecosystem.extensions>`
    pd.array(['a', 'b', 'c'], dtype='category')
    pd.array([1, 2])
 
-Notice that the default return value, if no ``dtype`` is specified, is a NumPy array. So
-the first example of ``[1, 2, np.nan]`` will return a floating-point NumPy array,
-since ``NaN`` is a float.
+Notice that the default return value, if no ``dtype`` is specified, the type of
+array is inferred from the data. In particular, note that the first example of
+``[1, 2, np.nan]`` will return a floating-point NumPy array, since ``NaN``
+is a float.
 
 .. ipython:: python
 

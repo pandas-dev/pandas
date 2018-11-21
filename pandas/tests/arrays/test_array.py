@@ -52,17 +52,39 @@ def test_array(data, dtype, expected):
     tm.assert_equal(result, expected)
 
 
+def test_array_copy():
+    a = np.array([1, 2])
+    # default is to copy
+    b = pd.array(a)
+    assert np.shares_memory(a, b) is False
+
+    # copy=True
+    b = pd.array(a, copy=True)
+    assert np.shares_memory(a, b) is False
+
+    # copy=False
+    b = pd.array(a, copy=False)
+    assert a is b
+
+
 @pytest.mark.parametrize('data, expected', [
     ([pd.Period("2000", "D"), pd.Period("2001", "D")],
      period_array(["2000", "2001"], freq="D")),
+    ([pd.Interval(0, 1), pd.Interval(1, 2)],
+     pd.IntervalArray.from_breaks([0, 1, 2])),
 ])
 def test_array_inference(data, expected):
     result = pd.array(data)
     tm.assert_equal(result, expected)
 
 
-def test_array_inference_period_fails():
-    data = [pd.Period("2000", "D"), pd.Period("2001", "A")]
+@pytest.mark.parametrize('data', [
+    # mix of frequencies
+    [pd.Period("2000", "D"), pd.Period("2001", "A")],
+    # mix of closed
+    [pd.Interval(0, 1, closed='left'), pd.Interval(1, 2, closed='right')],
+])
+def test_array_inference_fails(data):
     result = pd.array(data)
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
