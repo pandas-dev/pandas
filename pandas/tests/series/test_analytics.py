@@ -1,33 +1,32 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-from itertools import product
 from distutils.version import LooseVersion
+from itertools import product
 import operator
+
+import numpy as np
+from numpy import nan
 import pytest
 
-from numpy import nan
-import numpy as np
-import pandas as pd
+from pandas.compat import PY35, lrange, range
+import pandas.util._test_decorators as td
 
-from pandas import (Series, Categorical, DataFrame, isna, notna,
-                    bdate_range, date_range, _np_version_under1p10,
-                    CategoricalIndex)
+import pandas as pd
+from pandas import (
+    Categorical, CategoricalIndex, DataFrame, Series, bdate_range, compat,
+    date_range, isna, notna)
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
-
-from pandas.compat import lrange, range, PY35
-from pandas import compat
-from pandas.util.testing import (assert_series_equal, assert_almost_equal,
-                                 assert_frame_equal, assert_index_equal)
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-from .common import TestData
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_index_equal,
+    assert_series_equal)
 
 
-class TestSeriesAnalytics(TestData):
+class TestSeriesAnalytics(object):
 
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("method, unit", [
@@ -194,8 +193,8 @@ class TestSeriesAnalytics(TestData):
                 result = s.max(skipna=False)
                 assert np.allclose(float(result), v[-1])
 
-    def test_sum(self):
-        self._check_stat_op('sum', np.sum, check_allna=False)
+    def test_sum(self, string_series):
+        self._check_stat_op('sum', np.sum, string_series, check_allna=False)
 
     def test_sum_inf(self):
         s = Series(np.random.randn(10))
@@ -215,67 +214,67 @@ class TestSeriesAnalytics(TestData):
         res = nanops.nansum(arr, axis=1)
         assert np.isinf(res).all()
 
-    def test_mean(self):
-        self._check_stat_op('mean', np.mean)
+    def test_mean(self, string_series):
+        self._check_stat_op('mean', np.mean, string_series)
 
-    def test_median(self):
-        self._check_stat_op('median', np.median)
+    def test_median(self, string_series):
+        self._check_stat_op('median', np.median, string_series)
 
         # test with integers, test failure
         int_ts = Series(np.ones(10, dtype=int), index=lrange(10))
         tm.assert_almost_equal(np.median(int_ts), int_ts.median())
 
-    def test_prod(self):
-        self._check_stat_op('prod', np.prod)
+    def test_prod(self, string_series):
+        self._check_stat_op('prod', np.prod, string_series)
 
-    def test_min(self):
-        self._check_stat_op('min', np.min, check_objects=True)
+    def test_min(self, string_series):
+        self._check_stat_op('min', np.min, string_series, check_objects=True)
 
-    def test_max(self):
-        self._check_stat_op('max', np.max, check_objects=True)
+    def test_max(self, string_series):
+        self._check_stat_op('max', np.max, string_series, check_objects=True)
 
-    def test_var_std(self):
+    def test_var_std(self, datetime_series, string_series):
         alt = lambda x: np.std(x, ddof=1)
-        self._check_stat_op('std', alt)
+        self._check_stat_op('std', alt, string_series)
 
         alt = lambda x: np.var(x, ddof=1)
-        self._check_stat_op('var', alt)
+        self._check_stat_op('var', alt, string_series)
 
-        result = self.ts.std(ddof=4)
-        expected = np.std(self.ts.values, ddof=4)
+        result = datetime_series.std(ddof=4)
+        expected = np.std(datetime_series.values, ddof=4)
         assert_almost_equal(result, expected)
 
-        result = self.ts.var(ddof=4)
-        expected = np.var(self.ts.values, ddof=4)
+        result = datetime_series.var(ddof=4)
+        expected = np.var(datetime_series.values, ddof=4)
         assert_almost_equal(result, expected)
 
         # 1 - element series with ddof=1
-        s = self.ts.iloc[[0]]
+        s = datetime_series.iloc[[0]]
         result = s.var(ddof=1)
         assert isna(result)
 
         result = s.std(ddof=1)
         assert isna(result)
 
-    def test_sem(self):
+    def test_sem(self, datetime_series, string_series):
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
-        self._check_stat_op('sem', alt)
+        self._check_stat_op('sem', alt, string_series)
 
-        result = self.ts.sem(ddof=4)
-        expected = np.std(self.ts.values,
-                          ddof=4) / np.sqrt(len(self.ts.values))
+        result = datetime_series.sem(ddof=4)
+        expected = np.std(datetime_series.values,
+                          ddof=4) / np.sqrt(len(datetime_series.values))
         assert_almost_equal(result, expected)
 
         # 1 - element series with ddof=1
-        s = self.ts.iloc[[0]]
+        s = datetime_series.iloc[[0]]
         result = s.sem(ddof=1)
         assert isna(result)
 
     @td.skip_if_no_scipy
-    def test_skew(self):
+    def test_skew(self, string_series):
         from scipy.stats import skew
         alt = lambda x: skew(x, bias=False)
-        self._check_stat_op('skew', alt)
+        self._check_stat_op('skew', alt, string_series)
 
         # test corner cases, skew() returns NaN unless there's at least 3
         # values
@@ -291,10 +290,10 @@ class TestSeriesAnalytics(TestData):
                 assert (df.skew() == 0).all()
 
     @td.skip_if_no_scipy
-    def test_kurt(self):
+    def test_kurt(self, string_series):
         from scipy.stats import kurtosis
         alt = lambda x: kurtosis(x, bias=False)
-        self._check_stat_op('kurt', alt)
+        self._check_stat_op('kurt', alt, string_series)
 
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
                            labels=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2],
@@ -353,9 +352,9 @@ class TestSeriesAnalytics(TestData):
         )
         tm.assert_series_equal(result, expected)
 
-    def test_argsort(self):
-        self._check_accum_op('argsort', check_dtype=False)
-        argsorted = self.ts.argsort()
+    def test_argsort(self, datetime_series):
+        self._check_accum_op('argsort', datetime_series, check_dtype=False)
+        argsorted = datetime_series.argsort()
         assert issubclass(argsorted.dtype.type, np.integer)
 
         # GH 2967 (introduced bug in 0.11-dev I think)
@@ -388,26 +387,28 @@ class TestSeriesAnalytics(TestData):
         pytest.raises(AssertionError, tm.assert_numpy_array_equal,
                       qindexer, mindexer)
 
-    def test_cumsum(self):
-        self._check_accum_op('cumsum')
+    def test_cumsum(self, datetime_series):
+        self._check_accum_op('cumsum', datetime_series)
 
-    def test_cumprod(self):
-        self._check_accum_op('cumprod')
+    def test_cumprod(self, datetime_series):
+        self._check_accum_op('cumprod', datetime_series)
 
-    def test_cummin(self):
-        tm.assert_numpy_array_equal(self.ts.cummin().values,
-                                    np.minimum.accumulate(np.array(self.ts)))
-        ts = self.ts.copy()
+    def test_cummin(self, datetime_series):
+        tm.assert_numpy_array_equal(datetime_series.cummin().values,
+                                    np.minimum
+                                    .accumulate(np.array(datetime_series)))
+        ts = datetime_series.copy()
         ts[::2] = np.NaN
         result = ts.cummin()[1::2]
         expected = np.minimum.accumulate(ts.dropna())
 
         tm.assert_series_equal(result, expected)
 
-    def test_cummax(self):
-        tm.assert_numpy_array_equal(self.ts.cummax().values,
-                                    np.maximum.accumulate(np.array(self.ts)))
-        ts = self.ts.copy()
+    def test_cummax(self, datetime_series):
+        tm.assert_numpy_array_equal(datetime_series.cummax().values,
+                                    np.maximum
+                                    .accumulate(np.array(datetime_series)))
+        ts = datetime_series.copy()
         ts[::2] = np.NaN
         result = ts.cummax()[1::2]
         expected = np.maximum.accumulate(ts.dropna())
@@ -506,14 +507,14 @@ class TestSeriesAnalytics(TestData):
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
-    def _check_stat_op(self, name, alternate, check_objects=False,
-                       check_allna=False):
+    def _check_stat_op(self, name, alternate, string_series_,
+                       check_objects=False, check_allna=False):
 
         with pd.option_context('use_bottleneck', False):
             f = getattr(Series, name)
 
             # add some NaNs
-            self.series[5:15] = np.NaN
+            string_series_[5:15] = np.NaN
 
             # idxmax, idxmin, min, and max are valid for dates
             if name not in ['max', 'min']:
@@ -521,15 +522,15 @@ class TestSeriesAnalytics(TestData):
                 pytest.raises(TypeError, f, ds)
 
             # skipna or no
-            assert notna(f(self.series))
-            assert isna(f(self.series, skipna=False))
+            assert notna(f(string_series_))
+            assert isna(f(string_series_, skipna=False))
 
             # check the result is correct
-            nona = self.series.dropna()
+            nona = string_series_.dropna()
             assert_almost_equal(f(nona), alternate(nona.values))
-            assert_almost_equal(f(self.series), alternate(nona.values))
+            assert_almost_equal(f(string_series_), alternate(nona.values))
 
-            allna = self.series * nan
+            allna = string_series_ * nan
 
             if check_allna:
                 assert np.isnan(f(allna))
@@ -539,9 +540,9 @@ class TestSeriesAnalytics(TestData):
             f(s)
 
             # 2888
-            l = [0]
-            l.extend(lrange(2 ** 40, 2 ** 40 + 1000))
-            s = Series(l, dtype='int64')
+            items = [0]
+            items.extend(lrange(2 ** 40, 2 ** 40 + 1000))
+            s = Series(items, dtype='int64')
             assert_almost_equal(float(f(s)), float(alternate(s.values)))
 
             # check date range
@@ -556,21 +557,21 @@ class TestSeriesAnalytics(TestData):
                 pytest.raises(TypeError, f, Series(list('abc')))
 
             # Invalid axis.
-            pytest.raises(ValueError, f, self.series, axis=1)
+            pytest.raises(ValueError, f, string_series_, axis=1)
 
             # Unimplemented numeric_only parameter.
             if 'numeric_only' in compat.signature(f).args:
-                tm.assert_raises_regex(NotImplementedError, name, f,
-                                       self.series, numeric_only=True)
+                with pytest.raises(NotImplementedError, match=name):
+                    f(string_series_, numeric_only=True)
 
-    def _check_accum_op(self, name, check_dtype=True):
+    def _check_accum_op(self, name, datetime_series_, check_dtype=True):
         func = getattr(np, name)
-        tm.assert_numpy_array_equal(func(self.ts).values,
-                                    func(np.array(self.ts)),
+        tm.assert_numpy_array_equal(func(datetime_series_).values,
+                                    func(np.array(datetime_series_)),
                                     check_dtype=check_dtype)
 
         # with missing values
-        ts = self.ts.copy()
+        ts = datetime_series_.copy()
         ts[::2] = np.NaN
 
         result = func(ts)[1::2]
@@ -600,20 +601,20 @@ class TestSeriesAnalytics(TestData):
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             msg = "the 'axis' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.compress,
-                                   cond, s, axis=1)
+            with pytest.raises(ValueError, match=msg):
+                np.compress(cond, s, axis=1)
 
             msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.compress,
-                                   cond, s, out=s)
+            with pytest.raises(ValueError, match=msg):
+                np.compress(cond, s, out=s)
 
-    def test_round(self):
-        self.ts.index.name = "index_name"
-        result = self.ts.round(2)
-        expected = Series(np.round(self.ts.values, 2),
-                          index=self.ts.index, name='ts')
+    def test_round(self, datetime_series):
+        datetime_series.index.name = "index_name"
+        result = datetime_series.round(2)
+        expected = Series(np.round(datetime_series.values, 2),
+                          index=datetime_series.index, name='ts')
         assert_series_equal(result, expected)
-        assert result.name == self.ts.name
+        assert result.name == datetime_series.name
 
     def test_numpy_round(self):
         # See gh-12600
@@ -623,7 +624,7 @@ class TestSeriesAnalytics(TestData):
         assert_series_equal(out, expected)
 
         msg = "the 'out' parameter is not supported"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             np.round(s, decimals=0, out=s)
 
     def test_built_in_round(self):
@@ -717,26 +718,28 @@ class TestSeriesAnalytics(TestData):
             assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
-    def test_corr(self):
+    def test_corr(self, datetime_series):
         import scipy.stats as stats
 
         # full overlap
-        tm.assert_almost_equal(self.ts.corr(self.ts), 1)
+        tm.assert_almost_equal(datetime_series.corr(datetime_series), 1)
 
         # partial overlap
-        tm.assert_almost_equal(self.ts[:15].corr(self.ts[5:]), 1)
+        tm.assert_almost_equal(datetime_series[:15].corr(datetime_series[5:]),
+                               1)
 
-        assert isna(self.ts[:15].corr(self.ts[5:], min_periods=12))
+        assert isna(datetime_series[:15].corr(datetime_series[5:],
+                    min_periods=12))
 
-        ts1 = self.ts[:15].reindex(self.ts.index)
-        ts2 = self.ts[5:].reindex(self.ts.index)
+        ts1 = datetime_series[:15].reindex(datetime_series.index)
+        ts2 = datetime_series[5:].reindex(datetime_series.index)
         assert isna(ts1.corr(ts2, min_periods=12))
 
         # No overlap
-        assert np.isnan(self.ts[::2].corr(self.ts[1::2]))
+        assert np.isnan(datetime_series[::2].corr(datetime_series[1::2]))
 
         # all NA
-        cp = self.ts[:10].copy()
+        cp = datetime_series[:10].copy()
         cp[:] = np.nan
         assert isna(cp.corr(cp))
 
@@ -786,10 +789,10 @@ class TestSeriesAnalytics(TestData):
         s2 = pd.Series(np.random.randn(10))
         msg = ("method must be either 'pearson', 'spearman', "
                "or 'kendall'")
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s1.corr(s2, method="____")
 
-    def test_corr_callable_method(self):
+    def test_corr_callable_method(self, datetime_series):
         # simple correlation example
         # returns 1 if exact equality, 0 otherwise
         my_corr = lambda a, b: 1. if (a == b).all() else 0.
@@ -803,16 +806,16 @@ class TestSeriesAnalytics(TestData):
             expected)
 
         # full overlap
-        tm.assert_almost_equal(
-            self.ts.corr(self.ts, method=my_corr), 1.)
+        tm.assert_almost_equal(datetime_series.corr(
+            datetime_series, method=my_corr), 1.)
 
         # partial overlap
-        tm.assert_almost_equal(
-            self.ts[:15].corr(self.ts[5:], method=my_corr), 1.)
+        tm.assert_almost_equal(datetime_series[:15].corr(
+            datetime_series[5:], method=my_corr), 1.)
 
         # No overlap
-        assert np.isnan(
-            self.ts[::2].corr(self.ts[1::2], method=my_corr))
+        assert np.isnan(datetime_series[::2].corr(
+            datetime_series[1::2], method=my_corr))
 
         # dataframe example
         df = pd.DataFrame([s1, s2])
@@ -821,35 +824,37 @@ class TestSeriesAnalytics(TestData):
         tm.assert_almost_equal(
             df.transpose().corr(method=my_corr), expected)
 
-    def test_cov(self):
+    def test_cov(self, datetime_series):
         # full overlap
-        tm.assert_almost_equal(self.ts.cov(self.ts), self.ts.std() ** 2)
+        tm.assert_almost_equal(datetime_series.cov(datetime_series),
+                               datetime_series.std() ** 2)
 
         # partial overlap
-        tm.assert_almost_equal(self.ts[:15].cov(self.ts[5:]),
-                               self.ts[5:15].std() ** 2)
+        tm.assert_almost_equal(datetime_series[:15].cov(datetime_series[5:]),
+                               datetime_series[5:15].std() ** 2)
 
         # No overlap
-        assert np.isnan(self.ts[::2].cov(self.ts[1::2]))
+        assert np.isnan(datetime_series[::2].cov(datetime_series[1::2]))
 
         # all NA
-        cp = self.ts[:10].copy()
+        cp = datetime_series[:10].copy()
         cp[:] = np.nan
         assert isna(cp.cov(cp))
 
         # min_periods
-        assert isna(self.ts[:15].cov(self.ts[5:], min_periods=12))
+        assert isna(datetime_series[:15].cov(datetime_series[5:],
+                    min_periods=12))
 
-        ts1 = self.ts[:15].reindex(self.ts.index)
-        ts2 = self.ts[5:].reindex(self.ts.index)
+        ts1 = datetime_series[:15].reindex(datetime_series.index)
+        ts2 = datetime_series[5:].reindex(datetime_series.index)
         assert isna(ts1.cov(ts2, min_periods=12))
 
-    def test_count(self):
-        assert self.ts.count() == len(self.ts)
+    def test_count(self, datetime_series):
+        assert datetime_series.count() == len(datetime_series)
 
-        self.ts[::2] = np.NaN
+        datetime_series[::2] = np.NaN
 
-        assert self.ts.count() == np.isfinite(self.ts).sum()
+        assert datetime_series.count() == np.isfinite(datetime_series).sum()
 
         mi = MultiIndex.from_arrays([list('aabbcc'), [1, 2, 2, nan, 1, 2]])
         ts = Series(np.arange(len(mi)), index=mi)
@@ -952,17 +957,17 @@ class TestSeriesAnalytics(TestData):
         pytest.raises(Exception, a.dot, a.values[:3])
         pytest.raises(ValueError, a.dot, b.T)
 
-    def test_clip(self):
-        val = self.ts.median()
+    def test_clip(self, datetime_series):
+        val = datetime_series.median()
 
-        assert self.ts.clip_lower(val).min() == val
-        assert self.ts.clip_upper(val).max() == val
+        assert datetime_series.clip_lower(val).min() == val
+        assert datetime_series.clip_upper(val).max() == val
 
-        assert self.ts.clip(lower=val).min() == val
-        assert self.ts.clip(upper=val).max() == val
+        assert datetime_series.clip(lower=val).min() == val
+        assert datetime_series.clip(upper=val).max() == val
 
-        result = self.ts.clip(-0.5, 0.5)
-        expected = np.clip(self.ts, -0.5, 0.5)
+        result = datetime_series.clip(-0.5, 0.5)
+        expected = np.clip(datetime_series, -0.5, 0.5)
         assert_series_equal(result, expected)
         assert isinstance(expected, Series)
 
@@ -974,12 +979,12 @@ class TestSeriesAnalytics(TestData):
 
         for s in sers:
             thresh = s[2]
-            l = s.clip_lower(thresh)
-            u = s.clip_upper(thresh)
-            assert l[notna(l)].min() == thresh
-            assert u[notna(u)].max() == thresh
-            assert list(isna(s)) == list(isna(l))
-            assert list(isna(s)) == list(isna(u))
+            lower = s.clip_lower(thresh)
+            upper = s.clip_upper(thresh)
+            assert lower[notna(lower)].min() == thresh
+            assert upper[notna(upper)].max() == thresh
+            assert list(isna(s)) == list(isna(lower))
+            assert list(isna(s)) == list(isna(upper))
 
     def test_clip_with_na_args(self):
         """Should process np.nan argument as None """
@@ -1196,25 +1201,25 @@ class TestSeriesAnalytics(TestData):
         expected = Timedelta('1 days')
         assert result == expected
 
-    def test_idxmin(self):
+    def test_idxmin(self, string_series):
         # test idxmin
         # _check_stat_op approach can not be used here because of isna check.
 
         # add some NaNs
-        self.series[5:15] = np.NaN
+        string_series[5:15] = np.NaN
 
         # skipna or no
-        assert self.series[self.series.idxmin()] == self.series.min()
-        assert isna(self.series.idxmin(skipna=False))
+        assert string_series[string_series.idxmin()] == string_series.min()
+        assert isna(string_series.idxmin(skipna=False))
 
         # no NaNs
-        nona = self.series.dropna()
+        nona = string_series.dropna()
         assert nona[nona.idxmin()] == nona.min()
         assert (nona.index.values.tolist().index(nona.idxmin()) ==
                 nona.values.argmin())
 
         # all NaNs
-        allna = self.series * nan
+        allna = string_series * nan
         assert isna(allna.idxmin())
 
         # datetime64[ns]
@@ -1246,32 +1251,31 @@ class TestSeriesAnalytics(TestData):
 
         assert result == 1
 
-        if not _np_version_under1p10:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                msg = "the 'out' parameter is not supported"
-                tm.assert_raises_regex(ValueError, msg, np.argmin,
-                                       s, out=data)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            msg = "the 'out' parameter is not supported"
+            with pytest.raises(ValueError, match=msg):
+                np.argmin(s, out=data)
 
-    def test_idxmax(self):
+    def test_idxmax(self, string_series):
         # test idxmax
         # _check_stat_op approach can not be used here because of isna check.
 
         # add some NaNs
-        self.series[5:15] = np.NaN
+        string_series[5:15] = np.NaN
 
         # skipna or no
-        assert self.series[self.series.idxmax()] == self.series.max()
-        assert isna(self.series.idxmax(skipna=False))
+        assert string_series[string_series.idxmax()] == string_series.max()
+        assert isna(string_series.idxmax(skipna=False))
 
         # no NaNs
-        nona = self.series.dropna()
+        nona = string_series.dropna()
         assert nona[nona.idxmax()] == nona.max()
         assert (nona.index.values.tolist().index(nona.idxmax()) ==
                 nona.values.argmax())
 
         # all NaNs
-        allna = self.series * nan
+        allna = string_series * nan
         assert isna(allna.idxmax())
 
         from pandas import date_range
@@ -1315,12 +1319,11 @@ class TestSeriesAnalytics(TestData):
 
         assert result == 10
 
-        if not _np_version_under1p10:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                msg = "the 'out' parameter is not supported"
-                tm.assert_raises_regex(ValueError, msg, np.argmax,
-                                       s, out=data)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            msg = "the 'out' parameter is not supported"
+            with pytest.raises(ValueError, match=msg):
+                np.argmax(s, out=data)
 
     def test_ptp(self):
         # GH21614
@@ -1389,7 +1392,8 @@ class TestSeriesAnalytics(TestData):
         assert_series_equal(np.repeat(s, 2), expected)
 
         msg = "the 'axis' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.repeat, s, 2, axis=0)
+        with pytest.raises(ValueError, match=msg):
+            np.repeat(s, 2, axis=0)
 
     def test_searchsorted(self):
         s = Series([1, 2, 3])
@@ -1442,17 +1446,17 @@ class TestSeriesAnalytics(TestData):
         s = Series(np.random.randint(0, 10, size=1000))
         assert not s.is_monotonic
         s = Series(np.arange(1000))
-        assert s.is_monotonic
-        assert s.is_monotonic_increasing
+        assert s.is_monotonic is True
+        assert s.is_monotonic_increasing is True
         s = Series(np.arange(1000, 0, -1))
-        assert s.is_monotonic_decreasing
+        assert s.is_monotonic_decreasing is True
 
         s = Series(pd.date_range('20130101', periods=10))
-        assert s.is_monotonic
-        assert s.is_monotonic_increasing
+        assert s.is_monotonic is True
+        assert s.is_monotonic_increasing is True
         s = Series(list(reversed(s.tolist())))
-        assert not s.is_monotonic
-        assert s.is_monotonic_decreasing
+        assert s.is_monotonic is False
+        assert s.is_monotonic_decreasing is True
 
     def test_sort_index_level(self):
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
@@ -1490,8 +1494,8 @@ class TestSeriesAnalytics(TestData):
         tm.assert_series_equal(result, exp)
         assert result.dtype == np.object
 
-    def test_shift_int(self):
-        ts = self.ts.astype(int)
+    def test_shift_int(self, datetime_series):
+        ts = datetime_series.astype(int)
         shifted = ts.shift(1)
         expected = ts.astype(float).shift(1)
         assert_series_equal(shifted, expected)
@@ -1926,7 +1930,7 @@ class TestNLargestNSmallest(object):
         args = 2, len(r), 0, -1
         methods = r.nlargest, r.nsmallest
         for method, arg in product(methods, args):
-            with tm.assert_raises_regex(TypeError, msg):
+            with pytest.raises(TypeError, match=msg):
                 method(arg)
 
     def test_nsmallest_nlargest(self, s_main_dtypes_split):
@@ -1956,9 +1960,9 @@ class TestNLargestNSmallest(object):
         assert_series_equal(s.nsmallest(), s.iloc[[2, 3, 0, 4]])
 
         msg = 'keep must be either "first", "last"'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s.nsmallest(keep='invalid')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             s.nlargest(keep='invalid')
 
         # GH 15297

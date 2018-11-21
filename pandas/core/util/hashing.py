@@ -4,17 +4,15 @@ data hash pandas / numpy objects
 import itertools
 
 import numpy as np
-from pandas._libs import hashing, tslibs
-from pandas.core.dtypes.generic import (
-    ABCMultiIndex,
-    ABCIndexClass,
-    ABCSeries,
-    ABCDataFrame)
-from pandas.core.dtypes.common import (
-    is_categorical_dtype, is_list_like)
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.cast import infer_dtype_from_scalar
 
+from pandas._libs import hashing, tslibs
+
+from pandas.core.dtypes.cast import infer_dtype_from_scalar
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, is_extension_array_dtype, is_list_like)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCIndexClass, ABCMultiIndex, ABCSeries)
+from pandas.core.dtypes.missing import isna
 
 # 16 byte long hashing key
 _default_hash_key = '0123456789123456'
@@ -265,10 +263,13 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
     # numpy if categorical is a subdtype of complex, as it will choke).
     if is_categorical_dtype(dtype):
         return _hash_categorical(vals, encoding, hash_key)
+    elif is_extension_array_dtype(dtype):
+        vals, _ = vals._values_for_factorize()
+        dtype = vals.dtype
 
     # we'll be working with everything as 64-bit values, so handle this
     # 128-bit value early
-    elif np.issubdtype(dtype, np.complex128):
+    if np.issubdtype(dtype, np.complex128):
         return hash_array(vals.real) + 23 * hash_array(vals.imag)
 
     # First, turn whatever array this is into unsigned 64-bit ints, if we can

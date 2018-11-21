@@ -1,12 +1,13 @@
-import operator
 import collections
+import operator
 
 import pytest
 
-import pandas as pd
-import pandas.util.testing as tm
 from pandas.compat import PY2, PY36
+
+import pandas as pd
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
 
@@ -138,7 +139,20 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
-    pass
+
+    @pytest.mark.skip(reason="Different definitions of NA")
+    def test_stack(self):
+        """
+        The test does .astype(object).stack(). If we happen to have
+        any missing values in `data`, then we'll end up with different
+        rows since we consider `{}` NA, but `.astype(object)` doesn't.
+        """
+
+    @pytest.mark.xfail(reason="dict for NA", strict=True)
+    def test_unstack(self, data, index):
+        # The base test has NaN for the expected NA value.
+        # this matches otherwise
+        return super().test_unstack(data, index)
 
 
 class TestGetitem(BaseJSON, base.BaseGetitemTests):
@@ -158,6 +172,10 @@ class TestMissing(BaseJSON, base.BaseMissingTests):
 unhashable = pytest.mark.skip(reason="Unhashable")
 unstable = pytest.mark.skipif(not PY36,  # 3.6 or higher
                               reason="Dictionary order unstable")
+
+
+class TestReduce(base.BaseNoReduceTests):
+    pass
 
 
 class TestMethods(BaseJSON, base.BaseMethodsTests):
@@ -198,6 +216,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     @pytest.mark.skip(reason="combine for JSONArray not supported")
     def test_combine_add(self, data_repeated):
         pass
+
+    @unhashable
+    def test_hash_pandas_object_works(self, data, kind):
+        super().test_hash_pandas_object_works(data, kind)
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
@@ -250,7 +272,7 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
 
     def test_add_series_with_extension_array(self, data):
         ser = pd.Series(data)
-        with tm.assert_raises_regex(TypeError, "unsupported"):
+        with pytest.raises(TypeError, match="unsupported"):
             ser + data
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):

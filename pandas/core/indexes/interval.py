@@ -25,6 +25,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.indexes.base import (
     Index, ensure_index,
     default_pprint, _index_shared_docs)
+from pandas.core.ops import get_op_result_name
 
 from pandas._libs import Timestamp, Timedelta
 from pandas._libs.interval import (
@@ -48,12 +49,15 @@ from pandas.core.arrays.interval import (IntervalArray,
 
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
+
+# TODO(jschendel) remove constructor key when IntervalArray is public (GH22860)
 _index_doc_kwargs.update(
     dict(klass='IntervalIndex',
+         constructor='pd.IntervalIndex',
          target_klass='IntervalIndex or list of Intervals',
          name=textwrap.dedent("""\
          name : object, optional
-              to be stored in the index.
+              Name to be stored in the index.
          """),
          ))
 
@@ -116,15 +120,15 @@ def _new_IntervalIndex(cls, d):
     versionadded="0.20.0",
     extra_methods="contains\n",
     examples=textwrap.dedent("""\
-
     Examples
     --------
     A new ``IntervalIndex`` is typically constructed using
     :func:`interval_range`:
 
     >>> pd.interval_range(start=0, end=5)
-    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
-                  closed='right', dtype='interval[int64]')
+    IntervalIndex([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
+                  closed='right',
+                  dtype='interval[int64]')
 
     It may also be constructed using one of the constructor
     methods: :meth:`IntervalIndex.from_arrays`,
@@ -1028,8 +1032,12 @@ class IntervalIndex(IntervalMixin, Index):
                 self.right.equals(other.right) and
                 self.closed == other.closed)
 
+    @Appender(_interval_shared_docs['overlaps'] % _index_doc_kwargs)
+    def overlaps(self, other):
+        return self._data.overlaps(other)
+
     def _setop(op_name):
-        def func(self, other):
+        def func(self, other, sort=True):
             other = self._as_like_interval_index(other)
 
             # GH 19016: ensure set op will not return a prohibited dtype
@@ -1040,8 +1048,12 @@ class IntervalIndex(IntervalMixin, Index):
                        'objects that have compatible dtypes')
                 raise TypeError(msg.format(op=op_name))
 
-            result = getattr(self._multiindex, op_name)(other._multiindex)
-            result_name = self.name if self.name == other.name else None
+            if op_name == 'difference':
+                result = getattr(self._multiindex, op_name)(other._multiindex,
+                                                            sort)
+            else:
+                result = getattr(self._multiindex, op_name)(other._multiindex)
+            result_name = get_op_result_name(self, other)
 
             # GH 19101: ensure empty results have correct dtype
             if result.empty:
@@ -1052,6 +1064,14 @@ class IntervalIndex(IntervalMixin, Index):
             return type(self).from_tuples(result, closed=self.closed,
                                           name=result_name)
         return func
+
+    @property
+    def is_all_dates(self):
+        """
+        This is False even when left/right contain datetime-like objects,
+        as the check is done on the Interval itself
+        """
+        return False
 
     union = _setop('union')
     intersection = _setop('intersection')
@@ -1169,7 +1189,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
     See Also
     --------
-    IntervalIndex : an Index of intervals that are all closed on the same side.
+    IntervalIndex : An Index of intervals that are all closed on the same side.
     """
     start = com.maybe_box_datetimelike(start)
     end = com.maybe_box_datetimelike(end)

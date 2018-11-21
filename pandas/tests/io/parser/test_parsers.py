@@ -1,38 +1,27 @@
 # -*- coding: utf-8 -*-
 
 import os
-import pytest
-import pandas.util.testing as tm
 
-from pandas import read_csv, read_table, DataFrame
-import pandas.core.common as com
+import pytest
+
 from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO
+from pandas.errors import AbstractMethodError
+
+from pandas import DataFrame, read_csv, read_table
+import pandas.util.testing as tm
 
 from .common import ParserTests
-from .header import HeaderTests
-from .comment import CommentTests
-from .dialect import DialectTests
-from .quoting import QuotingTests
-from .usecols import UsecolsTests
-from .skiprows import SkipRowsTests
-from .index_col import IndexColTests
-from .na_values import NAvaluesTests
-from .converters import ConverterTests
-from .c_parser_only import CParserTests
-from .parse_dates import ParseDatesTests
-from .compression import CompressionTests
-from .mangle_dupes import DupeColumnTests
 from .multithread import MultithreadTests
+from .na_values import NAvaluesTests
+from .parse_dates import ParseDatesTests
 from .python_parser_only import PythonParserTests
-from .dtypes import DtypeTests
+from .quoting import QuotingTests
+from .skiprows import SkipRowsTests
+from .usecols import UsecolsTests
 
 
-class BaseParser(CommentTests, CompressionTests,
-                 ConverterTests, DialectTests,
-                 DtypeTests, DupeColumnTests,
-                 HeaderTests, IndexColTests,
-                 MultithreadTests, NAvaluesTests,
+class BaseParser(MultithreadTests, NAvaluesTests,
                  ParseDatesTests, ParserTests,
                  SkipRowsTests, UsecolsTests,
                  QuotingTests):
@@ -44,7 +33,7 @@ class BaseParser(CommentTests, CompressionTests,
         raise NotImplementedError
 
     def float_precision_choices(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
@@ -55,7 +44,7 @@ class BaseParser(CommentTests, CompressionTests,
         self.csv_shiftjs = os.path.join(self.dirpath, 'sauron.SHIFT_JIS.csv')
 
 
-class TestCParserHighMemory(BaseParser, CParserTests):
+class TestCParserHighMemory(BaseParser):
     engine = 'c'
     low_memory = False
     float_precision_choices = [None, 'high', 'round_trip']
@@ -75,7 +64,7 @@ class TestCParserHighMemory(BaseParser, CParserTests):
         return df
 
 
-class TestCParserLowMemory(BaseParser, CParserTests):
+class TestCParserLowMemory(BaseParser):
     engine = 'c'
     low_memory = True
     float_precision_choices = [None, 'high', 'round_trip']

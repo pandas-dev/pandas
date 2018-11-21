@@ -7,41 +7,29 @@ similar to how we have a Groupby object
 """
 from __future__ import division
 
-import warnings
-import numpy as np
 from collections import defaultdict
 from datetime import timedelta
+from textwrap import dedent
+import warnings
 
-from pandas.core.dtypes.generic import (
-    ABCSeries,
-    ABCDataFrame,
-    ABCDatetimeIndex,
-    ABCTimedeltaIndex,
-    ABCPeriodIndex,
-    ABCDateOffset)
+import numpy as np
+
+import pandas._libs.window as libwindow
+import pandas.compat as compat
+from pandas.compat.numpy import function as nv
+from pandas.util._decorators import Appender, Substitution, cache_readonly
+
 from pandas.core.dtypes.common import (
-    is_integer,
-    is_bool,
-    is_float_dtype,
-    is_integer_dtype,
-    needs_i8_conversion,
-    is_timedelta64_dtype,
-    is_list_like,
-    ensure_float64,
-    is_scalar)
+    ensure_float64, is_bool, is_float_dtype, is_integer, is_integer_dtype,
+    is_list_like, is_scalar, is_timedelta64_dtype, needs_i8_conversion)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCDateOffset, ABCDatetimeIndex, ABCPeriodIndex, ABCSeries,
+    ABCTimedeltaIndex)
 
 from pandas.core.base import PandasObject, SelectionMixin
-from pandas.core.groupby.base import GroupByMixin
 import pandas.core.common as com
-import pandas._libs.window as _window
-
-from pandas import compat
-from pandas.compat.numpy import function as nv
-from pandas.util._decorators import (Substitution, Appender,
-                                     cache_readonly)
 from pandas.core.generic import _shared_docs
-from textwrap import dedent
-
+from pandas.core.groupby.base import GroupByMixin
 
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
@@ -50,7 +38,7 @@ Returns
 -------
 same type as input
 
-See also
+See Also
 --------
 pandas.Series.%(name)s
 pandas.DataFrame.%(name)s
@@ -98,11 +86,11 @@ class _Window(PandasObject, SelectionMixin):
     def validate(self):
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
-        if self.min_periods is not None and not \
-           is_integer(self.min_periods):
+        if (self.min_periods is not None and
+                not is_integer(self.min_periods)):
             raise ValueError("min_periods must be an integer")
-        if self.closed is not None and self.closed not in \
-           ['right', 'both', 'left', 'neither']:
+        if (self.closed is not None and
+                self.closed not in ['right', 'both', 'left', 'neither']):
             raise ValueError("closed must be 'right', 'left', 'both' or "
                              "'neither'")
 
@@ -136,7 +124,7 @@ class _Window(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        key : string / list of selections
+        key : str / list of selections
         ndim : 1,2
             requested ndim of result
         subset : object, default None
@@ -416,10 +404,10 @@ class _Window(PandasObject, SelectionMixin):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data
-    DataFrame.%(name)s : Calling object with DataFrames
-    Series.mean : Equivalent method for Series
-    DataFrame.mean : Equivalent method for DataFrame
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.mean : Equivalent method for Series.
+    DataFrame.mean : Equivalent method for DataFrame.
 
     Examples
     --------
@@ -464,15 +452,16 @@ class Window(_Window):
         (otherwise result is NA). For a window that is specified by an offset,
         `min_periods` will default to 1. Otherwise, `min_periods` will default
         to the size of the window.
-    center : boolean, default False
+    center : bool, default False
         Set the labels at the center of the window.
-    win_type : string, default None
+    win_type : str, default None
         Provide a window type. If ``None``, all points are evenly weighted.
         See the notes below for further information.
-    on : string, optional
+    on : str, optional
         For a DataFrame, column on which to calculate
         the rolling window, rather than the index
-    closed : string, default None
+    axis : int or str, default 0
+    closed : str, default None
         Make the interval closed on the 'right', 'left', 'both' or
         'neither' endpoints.
         For offset-based windows, it defaults to 'right'.
@@ -480,8 +469,6 @@ class Window(_Window):
         for fixed windows.
 
         .. versionadded:: 0.20.0
-
-    axis : int or string, default 0
 
     Returns
     -------
@@ -548,7 +535,6 @@ class Window(_Window):
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
 
-
     Contrasting to an integer rolling window, this will roll a variable
     length window corresponding to the time period.
     The default for min_periods is 1.
@@ -593,7 +579,7 @@ class Window(_Window):
     See Also
     --------
     expanding : Provides expanding transformations.
-    ewm : Provides exponential weighted functions
+    ewm : Provides exponential weighted functions.
     """
 
     def validate(self):
@@ -661,7 +647,7 @@ class Window(_Window):
 
         Parameters
         ----------
-        mean : boolean, default True
+        mean : bool, default True
             If True computes weighted mean, else weighted sum
 
         Returns
@@ -690,10 +676,10 @@ class Window(_Window):
 
             def f(arg, *args, **kwargs):
                 minp = _use_window(self.min_periods, len(window))
-                return _window.roll_window(np.concatenate((arg,
-                                                           additional_nans))
-                                           if center else arg, window, minp,
-                                           avg=mean)
+                return libwindow.roll_window(np.concatenate((arg,
+                                                             additional_nans))
+                                             if center else arg, window, minp,
+                                             avg=mean)
 
             result = np.apply_along_axis(f, self.axis, values)
 
@@ -734,7 +720,7 @@ class Window(_Window):
     8 -0.096361  0.818139  0.472290
     9  0.070889  0.134399 -0.031308
 
-    See also
+    See Also
     --------
     pandas.DataFrame.rolling.aggregate
     pandas.DataFrame.aggregate
@@ -819,11 +805,11 @@ class _Rolling(_Window):
 
         Parameters
         ----------
-        func : string/callable to apply
-        name : string, optional
+        func : str/callable to apply
+        name : str, optional
            name of this function
         window : int/array, default to _get_window()
-        center : boolean, default to self.center
+        center : bool, default to self.center
         check_minp : function, default to _use_window
 
         Returns
@@ -850,10 +836,10 @@ class _Rolling(_Window):
 
             # if we have a string function name, wrap it
             if isinstance(func, compat.string_types):
-                cfunc = getattr(_window, func, None)
+                cfunc = getattr(libwindow, func, None)
                 if cfunc is None:
                     raise ValueError("we do not support this function "
-                                     "in _window.{0}".format(func))
+                                     "in libwindow.{func}".format(func=func))
 
                 def func(arg, window, min_periods=None, closed=None):
                     minp = check_minp(min_periods, window)
@@ -904,9 +890,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    pandas.Series.%(name)s : Calling object with Series data
-    pandas.DataFrame.%(name)s : Calling object with DataFrames
-    pandas.DataFrame.count : Count of the full DataFrame
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.DataFrame.count : Count of the full DataFrame.
 
     Examples
     --------
@@ -997,7 +983,7 @@ class _Rolling_and_Expanding(_Rolling):
             minp = _use_window(min_periods, window)
             if not raw:
                 arg = Series(arg, index=self.obj.index)
-            return _window.roll_generic(
+            return libwindow.roll_generic(
                 arg, window, minp, indexi,
                 closed, offset, func, raw, args, kwargs)
 
@@ -1032,10 +1018,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with a Series
-    DataFrame.%(name)s : Calling object with a DataFrame
-    Series.min : Similar method for Series
-    DataFrame.min : Similar method for DataFrame
+    Series.%(name)s : Calling object with a Series.
+    DataFrame.%(name)s : Calling object with a DataFrame.
+    Series.min : Similar method for Series.
+    DataFrame.min : Similar method for DataFrame.
 
     Examples
     --------
@@ -1075,10 +1061,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data
-    DataFrame.%(name)s : Calling object with DataFrames
-    Series.median : Equivalent method for Series
-    DataFrame.median : Equivalent method for DataFrame
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.median : Equivalent method for Series.
+    DataFrame.median : Equivalent method for DataFrame.
 
     Examples
     --------
@@ -1118,11 +1104,11 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data
-    DataFrame.%(name)s : Calling object with DataFrames
-    Series.std : Equivalent method for Series
-    DataFrame.std : Equivalent method for DataFrame
-    numpy.std : Equivalent method for Numpy array
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.std : Equivalent method for Series.
+    DataFrame.std : Equivalent method for DataFrame.
+    numpy.std : Equivalent method for Numpy array.
 
     Notes
     -----
@@ -1162,8 +1148,8 @@ class _Rolling_and_Expanding(_Rolling):
 
         def f(arg, *args, **kwargs):
             minp = _require_min_periods(1)(self.min_periods, window)
-            return _zsqrt(_window.roll_var(arg, window, minp, indexi,
-                                           self.closed, ddof))
+            return _zsqrt(libwindow.roll_var(arg, window, minp, indexi,
+                                             self.closed, ddof))
 
         return self._apply(f, 'std', check_minp=_require_min_periods(1),
                            ddof=ddof, **kwargs)
@@ -1189,11 +1175,11 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data
-    DataFrame.%(name)s : Calling object with DataFrames
-    Series.var : Equivalent method for Series
-    DataFrame.var : Equivalent method for DataFrame
-    numpy.var : Equivalent method for Numpy array
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.var : Equivalent method for Series.
+    DataFrame.var : Equivalent method for DataFrame.
+    numpy.var : Equivalent method for Numpy array.
 
     Notes
     -----
@@ -1256,12 +1242,12 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data
-    DataFrame.%(name)s : Calling object with DataFrames
-    Series.kurt : Equivalent method for Series
-    DataFrame.kurt : Equivalent method for DataFrame
-    scipy.stats.skew : Third moment of a probability density
-    scipy.stats.kurtosis : Reference SciPy method
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.kurt : Equivalent method for Series.
+    DataFrame.kurt : Equivalent method for DataFrame.
+    scipy.stats.skew : Third moment of a probability density.
+    scipy.stats.kurtosis : Reference SciPy method.
 
     Notes
     -----
@@ -1333,15 +1319,15 @@ class _Rolling_and_Expanding(_Rolling):
         def f(arg, *args, **kwargs):
             minp = _use_window(self.min_periods, window)
             if quantile == 1.0:
-                return _window.roll_max(arg, window, minp, indexi,
-                                        self.closed)
+                return libwindow.roll_max(arg, window, minp, indexi,
+                                          self.closed)
             elif quantile == 0.0:
-                return _window.roll_min(arg, window, minp, indexi,
-                                        self.closed)
+                return libwindow.roll_min(arg, window, minp, indexi,
+                                          self.closed)
             else:
-                return _window.roll_quantile(arg, window, minp, indexi,
-                                             self.closed, quantile,
-                                             interpolation)
+                return libwindow.roll_quantile(arg, window, minp, indexi,
+                                               self.closed, quantile,
+                                               interpolation)
 
         return self._apply(f, 'quantile', quantile=quantile,
                            **kwargs)
@@ -1415,12 +1401,12 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data
-    DataFrame.%(name)s : Calling object with DataFrames
-    Series.corr : Equivalent method for Series
-    DataFrame.corr : Equivalent method for DataFrame
-    %(name)s.cov : Similar method to calculate covariance
-    numpy.corrcoef : NumPy Pearson's correlation calculation
+    Series.%(name)s : Calling object with Series data.
+    DataFrame.%(name)s : Calling object with DataFrames.
+    Series.corr : Equivalent method for Series.
+    DataFrame.corr : Equivalent method for DataFrame.
+    %(name)s.cov : Similar method to calculate covariance.
+    numpy.corrcoef : NumPy Pearson's correlation calculation.
 
     Notes
     -----
@@ -1641,7 +1627,7 @@ class Rolling(_Rolling_and_Expanding):
     8 -0.289082 -1.647453
     9  0.212668 -1.647453
 
-    See also
+    See Also
     --------
     pandas.Series.rolling
     pandas.DataFrame.rolling
@@ -1816,9 +1802,9 @@ class Expanding(_Rolling_and_Expanding):
     min_periods : int, default 1
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
-    center : boolean, default False
+    center : bool, default False
         Set the labels at the center of the window.
-    axis : int or string, default 0
+    axis : int or str, default 0
 
     Returns
     -------
@@ -1850,8 +1836,8 @@ class Expanding(_Rolling_and_Expanding):
 
     See Also
     --------
-    rolling : Provides rolling window calculations
-    ewm : Provides exponential weighted functions
+    rolling : Provides rolling window calculations.
+    ewm : Provides exponential weighted functions.
     """
 
     _attributes = ['min_periods', 'center', 'axis']
@@ -1866,12 +1852,25 @@ class Expanding(_Rolling_and_Expanding):
         return Expanding
 
     def _get_window(self, other=None):
-        obj = self._selected_obj
-        if other is None:
-            return (max(len(obj), self.min_periods) if self.min_periods
-                    else len(obj))
-        return (max((len(obj) + len(obj)), self.min_periods)
-                if self.min_periods else (len(obj) + len(obj)))
+        """
+        Get the window length over which to perform some operation.
+
+        Parameters
+        ----------
+        other : object, default None
+            The other object that is involved in the operation.
+            Such an object is involved for operations like covariance.
+
+        Returns
+        -------
+        window : int
+            The window length.
+        """
+        axis = self.obj._get_axis(self.axis)
+        length = len(axis) + (other is not None) * len(axis)
+
+        other = self.min_periods or -1
+        return max(length, other)
 
     _agg_doc = dedent("""
     Examples
@@ -1904,7 +1903,7 @@ class Expanding(_Rolling_and_Expanding):
     8  0.067236  0.948257  0.163353
     9 -0.286980  0.618493 -0.694496
 
-    See also
+    See Also
     --------
     pandas.DataFrame.expanding.aggregate
     pandas.DataFrame.rolling.aggregate
@@ -2049,7 +2048,7 @@ _bias_template = """
 
 Parameters
 ----------
-bias : boolean, default False
+bias : bool, default False
     Use a standard estimation bias correction
 """
 
@@ -2066,7 +2065,7 @@ pairwise : bool, default None
     will be a MultiIndex DataFrame in the case of DataFrame inputs.
     In the case of missing elements, only complete pairwise observations will
     be used.
-bias : boolean, default False
+bias : bool, default False
    Use a standard estimation bias correction
 """
 
@@ -2097,10 +2096,10 @@ class EWM(_Rolling):
     min_periods : int, default 0
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
-    adjust : boolean, default True
+    adjust : bool, default True
         Divide by decaying adjustment factor in beginning periods to account
         for imbalance in relative weightings (viewing EWMA as a moving average)
-    ignore_na : boolean, default False
+    ignore_na : bool, default False
         Ignore missing values when calculating weights;
         specify True to reproduce pre-0.15.0 behavior
 
@@ -2156,7 +2155,7 @@ class EWM(_Rolling):
 
     See Also
     --------
-    rolling : Provides rolling window calculations
+    rolling : Provides rolling window calculations.
     expanding : Provides expanding transformations.
     """
     _attributes = ['com', 'min_periods', 'adjust', 'ignore_na', 'axis']
@@ -2207,7 +2206,7 @@ class EWM(_Rolling):
     8  0.067236  0.948257  0.163353
     9 -0.286980  0.618493 -0.694496
 
-    See also
+    See Also
     --------
     pandas.DataFrame.rolling.aggregate
 
@@ -2229,7 +2228,7 @@ class EWM(_Rolling):
 
         Parameters
         ----------
-        func : string/callable to apply
+        func : str/callable to apply
 
         Returns
         -------
@@ -2251,10 +2250,10 @@ class EWM(_Rolling):
 
             # if we have a string function name, wrap it
             if isinstance(func, compat.string_types):
-                cfunc = getattr(_window, func, None)
+                cfunc = getattr(libwindow, func, None)
                 if cfunc is None:
                     raise ValueError("we do not support this function "
-                                     "in _window.{0}".format(func))
+                                     "in libwindow.{func}".format(func=func))
 
                 def func(arg):
                     return cfunc(arg, self.com, int(self.adjust),
@@ -2289,9 +2288,9 @@ class EWM(_Rolling):
         nv.validate_window_func('var', args, kwargs)
 
         def f(arg):
-            return _window.ewmcov(arg, arg, self.com, int(self.adjust),
-                                  int(self.ignore_na), int(self.min_periods),
-                                  int(bias))
+            return libwindow.ewmcov(arg, arg, self.com, int(self.adjust),
+                                    int(self.ignore_na), int(self.min_periods),
+                                    int(bias))
 
         return self._apply(f, **kwargs)
 
@@ -2309,9 +2308,10 @@ class EWM(_Rolling):
         def _get_cov(X, Y):
             X = self._shallow_copy(X)
             Y = self._shallow_copy(Y)
-            cov = _window.ewmcov(X._prep_values(), Y._prep_values(), self.com,
-                                 int(self.adjust), int(self.ignore_na),
-                                 int(self.min_periods), int(bias))
+            cov = libwindow.ewmcov(X._prep_values(), Y._prep_values(),
+                                   self.com, int(self.adjust),
+                                   int(self.ignore_na), int(self.min_periods),
+                                   int(bias))
             return X._wrap_result(cov)
 
         return _flex_binary_moment(self._selected_obj, other._selected_obj,
@@ -2333,10 +2333,10 @@ class EWM(_Rolling):
             Y = self._shallow_copy(Y)
 
             def _cov(x, y):
-                return _window.ewmcov(x, y, self.com, int(self.adjust),
-                                      int(self.ignore_na),
-                                      int(self.min_periods),
-                                      1)
+                return libwindow.ewmcov(x, y, self.com, int(self.adjust),
+                                        int(self.ignore_na),
+                                        int(self.min_periods),
+                                        1)
 
             x_values = X._prep_values()
             y_values = Y._prep_values()

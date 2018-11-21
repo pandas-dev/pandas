@@ -1,7 +1,8 @@
 """This module is designed for community supported date conversion functions"""
-from pandas.compat import range, map
 import numpy as np
+
 from pandas._libs.tslibs import parsing
+from pandas.compat import map, range
 
 
 def parse_date_time(date_col, time_col):

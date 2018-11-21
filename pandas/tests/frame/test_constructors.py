@@ -292,10 +292,10 @@ class TestDataFrameConstructors(TestData):
         # GH10856
         # dict with scalar values should raise error, even if columns passed
         msg = 'If using all scalar values, you must pass an index'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             DataFrame({'a': 0.7})
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             DataFrame({'a': 0.7}, columns=['a'])
 
     @pytest.mark.parametrize("scalar", [2, np.nan, None, 'D'])
@@ -377,40 +377,43 @@ class TestDataFrameConstructors(TestData):
     def test_constructor_error_msgs(self):
         msg = "Empty data passed with indices specified."
         # passing an empty array with columns specified.
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             DataFrame(np.empty(0), columns=list('abc'))
 
         msg = "Mixing dicts with non-Series may lead to ambiguous ordering."
         # mix dict and array, wrong size
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             DataFrame({'A': {'a': 'a', 'b': 'b'},
                        'B': ['a', 'b', 'c']})
 
         # wrong size ndarray, GH 3105
         msg = r"Shape of passed values is \(3, 4\), indices imply \(3, 3\)"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             DataFrame(np.arange(12).reshape((4, 3)),
                       columns=['foo', 'bar', 'baz'],
                       index=pd.date_range('2000-01-01', periods=3))
 
         # higher dim raise exception
-        with tm.assert_raises_regex(ValueError, 'Must pass 2-d input'):
+        with pytest.raises(ValueError, match='Must pass 2-d input'):
             DataFrame(np.zeros((3, 3, 3)), columns=['A', 'B', 'C'], index=[1])
 
         # wrong size axis labels
-        with tm.assert_raises_regex(ValueError, "Shape of passed values "
-                                    r"is \(3, 2\), indices "
-                                    r"imply \(3, 1\)"):
+        msg = ("Shape of passed values "
+               r"is \(3, 2\), indices "
+               r"imply \(3, 1\)")
+        with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B', 'C'], index=[1])
 
-        with tm.assert_raises_regex(ValueError, "Shape of passed values "
-                                    r"is \(3, 2\), indices "
-                                    r"imply \(2, 2\)"):
+        msg = ("Shape of passed values "
+               r"is \(3, 2\), indices "
+               r"imply \(2, 2\)")
+        with pytest.raises(ValueError, match=msg):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B'], index=[1, 2])
 
-        with tm.assert_raises_regex(ValueError, "If using all scalar "
-                                    "values, you must pass "
-                                    "an index"):
+        msg = ("If using all scalar "
+               "values, you must pass "
+               "an index")
+        with pytest.raises(ValueError, match=msg):
             DataFrame({'a': False, 'b': True})
 
     def test_constructor_with_embedded_frames(self):
@@ -582,14 +585,14 @@ class TestDataFrameConstructors(TestData):
         a = pd.PeriodIndex(['2012-01', 'NaT', '2012-04'], freq='M')
         b = pd.PeriodIndex(['2012-02-01', '2012-03-01', 'NaT'], freq='D')
         df = pd.DataFrame({'a': a, 'b': b})
-        assert df['a'].dtype == 'object'
-        assert df['b'].dtype == 'object'
+        assert df['a'].dtype == a.dtype
+        assert df['b'].dtype == b.dtype
 
         # list of periods
         df = pd.DataFrame({'a': a.astype(object).tolist(),
                            'b': b.astype(object).tolist()})
-        assert df['a'].dtype == 'object'
-        assert df['b'].dtype == 'object'
+        assert df['a'].dtype == a.dtype
+        assert df['b'].dtype == b.dtype
 
     def test_nested_dict_frame_constructor(self):
         rng = pd.period_range('1/1/2000', periods=5)
@@ -637,14 +640,14 @@ class TestDataFrameConstructors(TestData):
 
         # wrong size axis labels
         msg = r'Shape of passed values is \(3, 2\), indices imply \(3, 1\)'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             DataFrame(mat, columns=['A', 'B', 'C'], index=[1])
         msg = r'Shape of passed values is \(3, 2\), indices imply \(2, 2\)'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             DataFrame(mat, columns=['A', 'B'], index=[1, 2])
 
         # higher dim raise exception
-        with tm.assert_raises_regex(ValueError, 'Must pass 2-d input'):
+        with pytest.raises(ValueError, match='Must pass 2-d input'):
             DataFrame(empty((3, 3, 3)), columns=['A', 'B', 'C'],
                       index=[1])
 
@@ -711,7 +714,7 @@ class TestDataFrameConstructors(TestData):
         assert 1 == frame['A'][1]
         assert 2 == frame['C'][2]
 
-        # masked np.datetime64 stays (use lib.NaT as null)
+        # masked np.datetime64 stays (use NaT as null)
         mat = ma.masked_all((2, 3), dtype='M8[ns]')
         # 2-D input
         frame = DataFrame(mat, columns=['A', 'B', 'C'], index=[1, 2])
@@ -829,7 +832,7 @@ class TestDataFrameConstructors(TestData):
         exp = DataFrame({'a': df['a'].values, 'b': [True] * 10})
 
         tm.assert_frame_equal(df, exp)
-        with tm.assert_raises_regex(ValueError, 'must pass an index'):
+        with pytest.raises(ValueError, match='must pass an index'):
             DataFrame({'a': False, 'b': True})
 
     def test_constructor_DataFrame(self):
@@ -862,7 +865,7 @@ class TestDataFrameConstructors(TestData):
 
         # can't cast
         mat = np.array(['foo', 'bar'], dtype=object).reshape(2, 1)
-        with tm.assert_raises_regex(ValueError, 'cast'):
+        with pytest.raises(ValueError, match='cast'):
             DataFrame(mat, index=[0, 1], columns=[0], dtype=float)
 
         dm = DataFrame(DataFrame(self.frame._series))
@@ -896,8 +899,7 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_list_of_lists(self):
         # GH #484
-        l = [[1, 'a'], [2, 'b']]
-        df = DataFrame(data=l, columns=["num", "str"])
+        df = DataFrame(data=[[1, 'a'], [2, 'b']], columns=["num", "str"])
         assert is_integer_dtype(df['num'])
         assert df['str'].dtype == np.object_
 
@@ -923,9 +925,9 @@ class TestDataFrameConstructors(TestData):
             def __len__(self, n):
                 return self._lst.__len__()
 
-        l = [DummyContainer([1, 'a']), DummyContainer([2, 'b'])]
+        lst_containers = [DummyContainer([1, 'a']), DummyContainer([2, 'b'])]
         columns = ["num", "str"]
-        result = DataFrame(l, columns=columns)
+        result = DataFrame(lst_containers, columns=columns)
         expected = DataFrame([[1, 'a'], [2, 'b']], columns=columns)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -1109,8 +1111,7 @@ class TestDataFrameConstructors(TestData):
     def test_constructor_ragged(self):
         data = {'A': randn(10),
                 'B': randn(8)}
-        with tm.assert_raises_regex(ValueError,
-                                    'arrays must all be same length'):
+        with pytest.raises(ValueError, match='arrays must all be same length'):
             DataFrame(data)
 
     def test_constructor_scalar(self):
@@ -1132,7 +1133,7 @@ class TestDataFrameConstructors(TestData):
         assert result.index.is_monotonic
 
         # ordering ambiguous, raise exception
-        with tm.assert_raises_regex(ValueError, 'ambiguous ordering'):
+        with pytest.raises(ValueError, match='ambiguous ordering'):
             DataFrame({'A': ['a', 'b'], 'B': {'a': 'a', 'b': 'b'}})
 
         # this is OK though
@@ -1186,10 +1187,10 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, expected)
 
         msg = "cannot use columns parameter with orient='columns'"
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             DataFrame.from_dict(dict([('A', [1, 2]), ('B', [4, 5])]),
                                 orient='columns', columns=['one', 'two'])
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             DataFrame.from_dict(dict([('A', [1, 2]), ('B', [4, 5])]),
                                 columns=['one', 'two'])
 
@@ -1300,9 +1301,8 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(recons, self.mixed_frame)
         assert recons['A'].dtype == np.float64
 
-        with tm.assert_raises_regex(TypeError,
-                                    "Must pass columns with "
-                                    "orient='index'"):
+        msg = "Must pass columns with orient='index'"
+        with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 DataFrame.from_items(row_items, orient='index')
@@ -1332,16 +1332,16 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_from_items_scalars(self):
         # GH 17312
-        with tm.assert_raises_regex(ValueError,
-                                    r'The value in each \(key, value\) '
-                                    'pair must be an array, Series, or dict'):
+        msg = (r'The value in each \(key, value\) '
+               'pair must be an array, Series, or dict')
+        with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 DataFrame.from_items([('A', 1), ('B', 4)])
 
-        with tm.assert_raises_regex(ValueError,
-                                    r'The value in each \(key, value\) '
-                                    'pair must be an array, Series, or dict'):
+        msg = (r'The value in each \(key, value\) '
+               'pair must be an array, Series, or dict')
+        with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 DataFrame.from_items([('A', 1), ('B', 2)], columns=['col1'],
@@ -1364,8 +1364,8 @@ class TestDataFrameConstructors(TestData):
                         'B': list(self.frame['B'])}, columns=['A', 'B'])
         tm.assert_frame_equal(df, self.frame.loc[:, ['A', 'B']])
 
-        with tm.assert_raises_regex(ValueError, 'does not match '
-                                    'index length'):
+        msg = 'does not match index length'
+        with pytest.raises(ValueError, match=msg):
             DataFrame({'A': self.frame['A'], 'B': list(self.frame['B'])[:-2]})
 
     def test_constructor_miscast_na_int_dtype(self):
@@ -1420,8 +1420,9 @@ class TestDataFrameConstructors(TestData):
 
         pytest.raises(ValueError, DataFrame, 'a', [1, 2])
         pytest.raises(ValueError, DataFrame, 'a', columns=['a', 'c'])
-        with tm.assert_raises_regex(TypeError, 'incompatible data '
-                                    'and dtype'):
+
+        msg = 'incompatible data and dtype'
+        with pytest.raises(TypeError, match=msg):
             DataFrame('a', [1, 2], ['a', 'c'], float)
 
     def test_constructor_with_datetimes(self):
@@ -1744,14 +1745,14 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_categorical_series(self):
 
-        l = [1, 2, 3, 1]
-        exp = Series(l).astype('category')
-        res = Series(l, dtype='category')
+        items = [1, 2, 3, 1]
+        exp = Series(items).astype('category')
+        res = Series(items, dtype='category')
         tm.assert_series_equal(res, exp)
 
-        l = ["a", "b", "c", "a"]
-        exp = Series(l).astype('category')
-        res = Series(l, dtype='category')
+        items = ["a", "b", "c", "a"]
+        exp = Series(items).astype('category')
+        res = Series(items, dtype='category')
         tm.assert_series_equal(res, exp)
 
         # insert into frame with different index
@@ -1784,7 +1785,7 @@ class TestDataFrameConstructors(TestData):
 
         # wrong length
         msg = r'Shape of passed values is \(3, 2\), indices imply \(3, 1\)'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             DataFrame.from_records(arr, index=index[:-1])
 
         indexed_frame = DataFrame.from_records(arr, index='f1')

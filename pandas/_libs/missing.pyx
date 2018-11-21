@@ -5,16 +5,17 @@ from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, uint8_t
+from numpy cimport ndarray, int64_t, uint8_t, float64_t
 cnp.import_array()
 
 cimport util
 
 from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
+from tslibs.nattype cimport checknull_with_nat
 from tslibs.nattype import NaT
 
-cdef double INF = <double> np.inf
-cdef double NEGINF = -INF
+cdef float64_t INF = <float64_t>np.inf
+cdef float64_t NEGINF = -INF
 
 cdef int64_t NPY_NAT = util.get_nat()
 
@@ -124,7 +125,7 @@ cdef inline bint _check_none_nan_inf_neginf(object val):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnaobj(ndarray arr):
+cpdef ndarray[uint8_t] isnaobj(ndarray arr):
     """
     Return boolean mask denoting which elements of a 1-D array are na-like,
     according to the criteria defined in `_check_all_nulls`:
@@ -224,7 +225,7 @@ def isnaobj2d(ndarray arr):
 
     assert arr.ndim == 2, "'arr' must be 2-D."
 
-    n, m = (<object> arr).shape
+    n, m = (<object>arr).shape
     result = np.zeros((n, m), dtype=np.uint8)
     for i in range(n):
         for j in range(m):
@@ -268,7 +269,7 @@ def isnaobj2d_old(ndarray arr):
 
     assert arr.ndim == 2, "'arr' must be 2-D."
 
-    n, m = (<object> arr).shape
+    n, m = (<object>arr).shape
     result = np.zeros((n, m), dtype=np.uint8)
     for i in range(n):
         for j in range(m):
@@ -278,14 +279,14 @@ def isnaobj2d_old(ndarray arr):
     return result.view(np.bool_)
 
 
-cpdef bint isposinf_scalar(object val):
+def isposinf_scalar(val: object) -> bool:
     if util.is_float_object(val) and val == INF:
         return True
     else:
         return False
 
 
-cpdef bint isneginf_scalar(object val):
+def isneginf_scalar(val: object) -> bool:
     if util.is_float_object(val) and val == NEGINF:
         return True
     else:
@@ -295,9 +296,7 @@ cpdef bint isneginf_scalar(object val):
 cdef inline bint is_null_datetime64(v):
     # determine if we have a null for a datetime (or integer versions),
     # excluding np.timedelta64('nat')
-    if v is None or util.is_nan(v):
-        return True
-    elif v is NaT:
+    if checknull_with_nat(v):
         return True
     elif util.is_datetime64_object(v):
         return v.view('int64') == NPY_NAT
@@ -307,9 +306,7 @@ cdef inline bint is_null_datetime64(v):
 cdef inline bint is_null_timedelta64(v):
     # determine if we have a null for a timedelta (or integer versions),
     # excluding np.datetime64('nat')
-    if v is None or util.is_nan(v):
-        return True
-    elif v is NaT:
+    if checknull_with_nat(v):
         return True
     elif util.is_timedelta64_object(v):
         return v.view('int64') == NPY_NAT
@@ -319,8 +316,4 @@ cdef inline bint is_null_timedelta64(v):
 cdef inline bint is_null_period(v):
     # determine if we have a null for a Period (or integer versions),
     # excluding np.datetime64('nat') and np.timedelta64('nat')
-    if v is None or util.is_nan(v):
-        return True
-    elif v is NaT:
-        return True
-    return False
+    return checknull_with_nat(v)

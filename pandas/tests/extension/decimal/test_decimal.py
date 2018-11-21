@@ -1,15 +1,16 @@
-import operator
 import decimal
+import math
+import operator
 
 import numpy as np
-import pandas as pd
-from pandas import compat
-import pandas.util.testing as tm
 import pytest
 
+import pandas as pd
+from pandas import compat
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
-from .array import DecimalDtype, DecimalArray, make_data, to_decimal
+from .array import DecimalArray, DecimalDtype, make_data, to_decimal
 
 
 @pytest.fixture
@@ -63,9 +64,23 @@ def data_for_grouping():
 class BaseDecimal(object):
 
     def assert_series_equal(self, left, right, *args, **kwargs):
+        def convert(x):
+            # need to convert array([Decimal(NaN)], dtype='object') to np.NaN
+            # because Series[object].isnan doesn't recognize decimal(NaN) as
+            # NA.
+            try:
+                return math.isnan(x)
+            except TypeError:
+                return False
 
-        left_na = left.isna()
-        right_na = right.isna()
+        if left.dtype == 'object':
+            left_na = left.apply(convert)
+        else:
+            left_na = left.isna()
+        if right.dtype == 'object':
+            right_na = right.apply(convert)
+        else:
+            right_na = right.isna()
 
         tm.assert_series_equal(left_na, right_na)
         return tm.assert_series_equal(left[~left_na],
@@ -100,7 +115,9 @@ class TestDtype(BaseDecimal, base.BaseDtypeTests):
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):
-    pass
+
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
@@ -112,7 +129,8 @@ class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
 
 
 class TestReshaping(BaseDecimal, base.BaseReshapingTests):
-    pass
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestGetitem(BaseDecimal, base.BaseGetitemTests):
@@ -128,6 +146,28 @@ class TestGetitem(BaseDecimal, base.BaseGetitemTests):
 
 
 class TestMissing(BaseDecimal, base.BaseMissingTests):
+    pass
+
+
+class Reduce(object):
+
+    def check_reduce(self, s, op_name, skipna):
+
+        if skipna or op_name in ['median', 'skew', 'kurt']:
+            with pytest.raises(NotImplementedError):
+                getattr(s, op_name)(skipna=skipna)
+
+        else:
+            result = getattr(s, op_name)(skipna=skipna)
+            expected = getattr(np.asarray(s), op_name)()
+            tm.assert_almost_equal(result, expected)
+
+
+class TestNumericReduce(Reduce, base.BaseNumericReduceTests):
+    pass
+
+
+class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
     pass
 
 
@@ -152,7 +192,8 @@ class TestCasting(BaseDecimal, base.BaseCastingTests):
 
 
 class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
-    pass
+    pytestmark = pytest.mark.skipif(compat.PY2,
+                                    reason="Unhashble dtype in Py2.")
 
 
 class TestSetitem(BaseDecimal, base.BaseSetitemTests):
@@ -166,7 +207,7 @@ class TestSetitem(BaseDecimal, base.BaseSetitemTests):
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")
-    with tm.assert_raises_regex(ValueError, xpr):
+    with pytest.raises(ValueError, match=xpr):
         pd.Series([0, 1, 2], dtype=DecimalDtype())
 
 

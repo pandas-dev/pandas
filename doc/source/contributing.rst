@@ -170,7 +170,7 @@ We'll now kick off a three-step process:
 .. code-block:: none
 
    # Create and activate the build environment
-   conda env create -f ci/environment-dev.yaml
+   conda env create -f environment.yml
    conda activate pandas-dev
 
    # or with older versions of Anaconda:
@@ -179,9 +179,6 @@ We'll now kick off a three-step process:
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
    python -m pip install -e .
-
-   # Install the rest of the optional dependencies
-   conda install -c defaults -c conda-forge --file=ci/requirements-optional-conda.txt
 
 At this point you should be able to import pandas from your locally built version::
 
@@ -221,13 +218,11 @@ You'll need to have at least python3.5 installed on your system.
    . ~/virtualenvs/pandas-dev/bin/activate
 
    # Install the build dependencies
-   python -m pip install -r ci/requirements_dev.txt
+   python -m pip install -r requirements-dev.txt
+
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
    python -m pip install -e .
-
-   # Install additional dependencies
-   python -m pip install -r ci/requirements-optional-pip.txt
 
 Creating a branch
 -----------------
@@ -497,6 +492,17 @@ tools will be run to check your code for stylistic errors.
 Generating any warnings will cause the test to fail.
 Thus, good style is a requirement for submitting code to *pandas*.
 
+There is a tool in pandas to help contributors verify their changes before
+contributing them to the project::
+
+   ./ci/code_checks.sh
+
+The script verify the linting of code files, it looks for common mistake patterns
+(like missing spaces around sphinx directives that make the documentation not
+being rendered properly) and it also validates the doctests. It is possible to
+run the checks independently by using the parameters ``lint``, ``patterns`` and
+``doctests`` (e.g. ``./ci/code_checks.sh lint``).
+
 In addition, because a lot of people use our library, it is important that we
 do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
@@ -569,7 +575,7 @@ the `flake8 <https://pypi.org/project/flake8>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
 
-   git diff master -u -- "*.py" | flake8 --diff
+   git diff upstream/master -u -- "*.py" | flake8 --diff
 
 This command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
@@ -578,28 +584,69 @@ unused function. However, style-checking the diff will not catch this because
 the actual import is not part of the diff. Thus, for completeness, you should
 run this command, though it will take longer::
 
-   git diff master --name-only -- "*.py" | grep "pandas/" | xargs -r flake8
+   git diff upstream/master --name-only -- "*.py" | xargs -r flake8
 
 Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
-   git diff master --name-only -- "*.py" | grep "pandas/" | xargs flake8
+   git diff upstream/master --name-only -- "*.py" | xargs flake8
 
-Note that on Windows, these commands are unfortunately not possible because
-commands like ``grep`` and ``xargs`` are not available natively. To imitate the
-behavior with the commands above, you should run::
+Windows does not support the ``xargs`` command (unless installed for example
+via the `MinGW <http://www.mingw.org/>`__ toolchain), but one can imitate the
+behaviour as follows::
 
-    git diff master --name-only -- "*.py"
+    for /f %i in ('git diff upstream/master --name-only -- "*.py"') do flake8 %i
 
-This will list all of the Python files that have been modified. The only ones
-that matter during linting are any whose directory filepath begins with "pandas."
-For each filepath, copy and paste it after the ``flake8`` command as shown below:
+This will get all the files being changed by the PR (and ending with ``.py``),
+and run ``flake8`` on them, one after the other.
 
-    flake8 <python-filepath>
+.. _contributing.import-formatting:
 
-Alternatively, you can install the ``grep`` and ``xargs`` commands via the
-`MinGW <http://www.mingw.org/>`__ toolchain, and it will allow you to run the
-commands above.
+Import Formatting
+~~~~~~~~~~~~~~~~~
+*pandas* uses `isort <https://pypi.org/project/isort/>`__ to standardise import
+formatting across the codebase.
+
+A guide to import layout as per pep8 can be found `here <https://www.python.org/dev/peps/pep-0008/#imports/>`__.
+
+A summary of our current import sections ( in order ):
+
+* Future
+* Python Standard Library
+* Third Party
+* ``pandas._libs``, ``pandas.compat``, ``pandas.util._*``, ``pandas.errors`` (largely not dependent on ``pandas.core``)
+* ``pandas.core.dtypes`` (largely not dependent on the rest of ``pandas.core``)
+* Rest of ``pandas.core.*``
+* Non-core ``pandas.io``, ``pandas.plotting``, ``pandas.tseries``
+* Local application/library specific imports
+
+Imports are alphabetically sorted within these sections.
+
+
+As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
+
+    isort --recursive --check-only pandas
+
+to check that imports are correctly formatted as per the `setup.cfg`.
+
+If you see output like the below in :ref:`Continuous Integration <contributing.ci>` checks:
+
+.. code-block:: shell
+
+   Check import format using isort
+   ERROR: /home/travis/build/pandas-dev/pandas/pandas/io/pytables.py Imports are incorrectly sorted
+   Check import format using isort DONE
+   The command "ci/code_checks.sh" exited with 1
+
+You should run::
+
+    isort pandas/io/pytables.py
+
+to automatically format imports correctly. This will modify your local copy of the files.
+
+The `--recursive` flag can be passed to sort all files in a directory.
+
+You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -646,12 +693,12 @@ Testing With Continuous Integration
 -----------------------------------
 
 The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__,
-`Appveyor <https://www.appveyor.com/>`__, and `Circle CI <https://circleci.com/>`__ continuous integration
-services, once your pull request is submitted.
+`Azure Pipelines <https://azure.microsoft.com/en-us/services/devops/pipelines/>`__,
+and `Circle CI <https://circleci.com/>`__ continuous integration services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
 then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
 for `Travis-CI <http://about.travis-ci.org/docs/user/getting-started/>`__,
-`Appveyor <https://www.appveyor.com/docs/>`__ , and `CircleCI <https://circleci.com/>`__.
+`Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/>`__, and `CircleCI <https://circleci.com/>`__.
 
 A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
 then you will get a red 'X', where you can click through to see the individual failed tests.
@@ -661,8 +708,8 @@ This is an example of a green build.
 
 .. note::
 
-   Each time you push to *your* fork, a *new* run of the tests will be triggered on the CI. Appveyor will auto-cancel
-   any non-currently-running tests for that same pull-request. You can enable the auto-cancel feature for
+   Each time you push to *your* fork, a *new* run of the tests will be triggered on the CI.
+   You can enable the auto-cancel feature, which removes any non-currently-running tests for that same pull-request, for
    `Travis-CI here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__ and
    for `CircleCI here <https://circleci.com/changelog-legacy/#option-to-auto-cancel-redundant-builds>`__.
 
@@ -673,7 +720,7 @@ Test-driven development/code writing
 ------------------------------------
 
 *pandas* is serious about testing and strongly encourages contributors to embrace
-`test-driven development (TDD) <http://en.wikipedia.org/wiki/Test-driven_development>`_.
+`test-driven development (TDD) <https://en.wikipedia.org/wiki/Test-driven_development>`_.
 This development process "relies on the repetition of a very short development cycle:
 first the developer writes an (initially failing) automated test case that defines a desired
 improvement or new function, then produces the minimum amount of code to pass that test."
@@ -733,7 +780,7 @@ Transitioning to ``pytest``
 .. code-block:: python
 
     class TestReallyCoolFeature(object):
-        ....
+        pass
 
 Going forward, we are moving to a more *functional* style using the `pytest <http://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
 framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
@@ -741,7 +788,7 @@ framework that will facilitate testing and developing. Thus, instead of writing 
 .. code-block:: python
 
     def test_really_cool_feature():
-        ....
+        pass
 
 Using ``pytest``
 ~~~~~~~~~~~~~~~~
@@ -766,24 +813,29 @@ We would name this file ``test_cool_feature.py`` and put in an appropriate place
    import pandas as pd
    from pandas.util import testing as tm
 
+
    @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
    def test_dtypes(dtype):
        assert str(np.dtype(dtype)) == dtype
 
-   @pytest.mark.parametrize('dtype', ['float32',
-       pytest.param('int16', marks=pytest.mark.skip),
-       pytest.param('int32',
-                    marks=pytest.mark.xfail(reason='to show how it works'))])
+
+   @pytest.mark.parametrize(
+       'dtype', ['float32', pytest.param('int16', marks=pytest.mark.skip),
+                 pytest.param('int32', marks=pytest.mark.xfail(
+                     reason='to show how it works'))])
    def test_mark(dtype):
        assert str(np.dtype(dtype)) == 'float32'
+
 
    @pytest.fixture
    def series():
        return pd.Series([1, 2, 3])
 
+
    @pytest.fixture(params=['int8', 'int16', 'int32', 'int64'])
    def dtype(request):
        return request.param
+
 
    def test_series(series, dtype):
        result = series.astype(dtype)
@@ -852,6 +904,7 @@ for details <https://hypothesis.readthedocs.io/en/latest/index.html>`_.
         st.none(), st.booleans(), st.floats(allow_nan=False), st.text(),
         st.lists(any_json_value), st.dictionaries(st.text(), any_json_value)
     ))
+
 
     @given(value=any_json_value)
     def test_json_roundtrip(value):
@@ -1043,7 +1096,7 @@ Information on how to write a benchmark and how to use asv can be found in the
 Documenting your code
 ---------------------
 
-Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.txt``.
+Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.rst``.
 This file contains an ongoing change log for each release.  Add an entry to this file to
 document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
 GitHub issue number when adding your entry (using ``:issue:`1234``` where ``1234`` is the
@@ -1066,6 +1119,8 @@ or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v
 
 Contributing your changes to *pandas*
 =====================================
+
+.. _contributing.commit-code:
 
 Committing your code
 --------------------
@@ -1110,6 +1165,8 @@ is fine, but the former is generally preferred:
 Now you can commit your changes in your local repository::
 
     git commit -m
+
+.. _contributing.push-code:
 
 Pushing your changes
 --------------------
