@@ -1128,6 +1128,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
             pd.NaT / rng
 
     def test_td64arr_div_td64nat(self, box_with_array):
+        # GH#23829
         rng = timedelta_range('1 days', '10 days',)
         rng = tm.box_expected(rng, box_with_array)
 
@@ -1150,6 +1151,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(result, idx)
 
         with pytest.raises(TypeError, match='Cannot divide'):
+            # GH#23829
             1 / idx
 
     def test_td64arr_div_tdlike_scalar(self, two_hours, box_with_array):
