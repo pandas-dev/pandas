@@ -30,10 +30,10 @@ def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
 
     Parameters
     ----------
-    `ax` : Matplotlib axes object
-    `data` : DataFrame or Series
+    ax : Matplotlib axes object
+    data : DataFrame or Series
         data for table contents
-    `kwargs` : keywords, optional
+    kwargs : keywords, optional
         keyword arguments which passed to matplotlib.table.table.
         If `rowLabels` or `colLabels` is not specified, data index or column
         name will be used.

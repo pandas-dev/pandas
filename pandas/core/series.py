@@ -77,7 +77,7 @@ _shared_doc_kwargs = dict(
 def remove_na(arr):
     """Remove null values from array like structure.
 
-    .. deprecated :: 0.21.0
+    .. deprecated:: 0.21.0
         Use s[s.notnull()] instead.
     """
 
