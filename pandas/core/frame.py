@@ -1856,13 +1856,16 @@ class DataFrame(NDFrame):
                  data_label=None, variable_labels=None, version=114,
                  convert_strl=None):
         """
-        Export Stata binary dta files.
+        Export DataFrame object to Stata dta format.
+
+        Writes the DataFrame to a Stata dataset file.
+        "dta" files contain a Stata dataset.
 
         Parameters
         ----------
-        fname : path (string), buffer or path object
-            string, path object (pathlib.Path or py._path.local.LocalPath) or
-            object implementing a binary write() functions. If using a buffer
+        fname : str, buffer or path object
+            String, path object (pathlib.Path or py._path.local.LocalPath) or
+            object implementing a binary write() function. If using a buffer
             then the buffer will not be automatically closed after the file
             data has been written.
         convert_dates : dict
@@ -1881,7 +1884,7 @@ class DataFrame(NDFrame):
         time_stamp : datetime
             A datetime to use as file creation date.  Default is the current
             time.
-        data_label : str
+        data_label : str, optional
             A label for the data set.  Must be 80 characters or smaller.
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
@@ -1889,7 +1892,7 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.19.0
 
-        version : {114, 117}
+        version : {114, 117}, default 114
             Version to use in the output dta file.  Version 114 can be used
             read by Stata 10 and later.  Version 117 can be read by Stata 13
             or later. Version 114 limits string variables to 244 characters or
@@ -1921,28 +1924,16 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.read_stata : Import Stata data files.
-        pandas.io.stata.StataWriter : Low-level writer for Stata data files.
-        pandas.io.stata.StataWriter117 : Low-level writer for version 117
-            files.
+        read_stata : Import Stata data files.
+        io.stata.StataWriter : Low-level writer for Stata data files.
+        io.stata.StataWriter117 : Low-level writer for version 117 files.
 
         Examples
         --------
-        >>> data.to_stata('./data_file.dta')
-
-        Or with dates
-
-        >>> data.to_stata('./date_data_file.dta', {2 : 'tw'})
-
-        Alternatively you can create an instance of the StataWriter class
-
-        >>> writer = StataWriter('./data_file.dta', data)
-        >>> writer.write_file()
-
-        With dates:
-
-        >>> writer = StataWriter('./date_data_file.dta', data, {2 : 'tw'})
-        >>> writer.write_file()
+        >>> df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
+        ...                               'parrot'],
+        ...                    'speed': [350, 18, 361, 15]})
+        >>> df.to_stata('animals.dta')  # doctest: +SKIP
         """
         kwargs = {}
         if version not in (114, 117):
