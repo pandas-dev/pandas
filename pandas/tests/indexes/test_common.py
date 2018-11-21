@@ -331,10 +331,12 @@ class TestCommon(object):
 
     def test_has_duplicates(self, indices):
         holder = type(indices)
-        if not len(indices) or isinstance(indices, MultiIndex):
+        if not len(indices) or isinstance(indices, (MultiIndex, RangeIndex)):
             # MultiIndex tested separately in:
-            # tests/indexes/multi/test_unique_and_duplicates
-            pytest.skip('Skip check for empty Index and MultiIndex')
+            #   tests/indexes/multi/test_unique_and_duplicates.
+            # RangeIndex is unique by definition.
+            pytest.skip('Skip check for empty Index, MultiIndex, '
+                        'and RangeIndex')
 
         idx = holder([indices[0]] * 5)
         assert idx.is_unique is False
