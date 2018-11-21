@@ -1039,40 +1039,17 @@ Parsing date components in multi-columns
 
 Parsing date components in multi-columns is faster with a format
 
-.. code-block:: ipython
+.. ipython:: python
+    i = pd.date_range('20000101', periods=10000)
+    df = pd.DataFrame({'year': i.year, 'month': i.month, 'day': i.day})
+    df.head()
+    %timeit pd.to_datetime(df.year * 10000 + df.month * 100 + df.day,
+                   format='%Y%m%d')
+    ds = df.apply(lambda x: "%04d%02d%02d" % (x['year'],
+                                              x['month'], x['day']), axis=1)
 
-    In [30]: i = pd.date_range('20000101', periods=10000)
-
-    In [31]: df = pd.DataFrame({'year': i.year, 'month': i.month, 'day': i.day})
-
-    In [32]: df.head()
-    Out[32]:
-       day  month  year
-    0    1      1  2000
-    1    2      1  2000
-    2    3      1  2000
-    3    4      1  2000
-    4    5      1  2000
-
-    In [33]: %timeit pd.to_datetime(df.year * 10000 + df.month * 100 + df.day, format='%Y%m%d')
-    4.8 ms ± 23.7 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
-
-    # simulate combinging into a string, then parsing
-    In [34]: ds = df.apply(lambda x: "%04d%02d%02d" % (x['year'],
-                           x['month'], x['day']), axis=1)
-
-    In [35]: ds.head()
-    Out[35]:
-    0    20000101
-    1    20000102
-    2    20000103
-    3    20000104
-    4    20000105
-    dtype: object
-
-    In [36]: %timeit pd.to_datetime(ds)
-    Out[36]:
-    1 loops, best of 3: 488 ms per loop
+    ds.head()
+    %timeit pd.to_datetime(ds)
 
 Skip row between header and data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
