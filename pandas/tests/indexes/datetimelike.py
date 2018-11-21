@@ -47,9 +47,7 @@ class DatetimeLike(Base):
         if hasattr(idx, 'freq'):
             assert "freq='%s'" % idx.freqstr in str(idx)
 
-    def test_view(self, indices):
-        super(DatetimeLike, self).test_view(indices)
-
+    def test_view(self):
         i = self.create_index()
 
         i_view = i.view('i8')
