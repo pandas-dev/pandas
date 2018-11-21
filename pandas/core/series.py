@@ -118,7 +118,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     Parameters
     ----------
     data : array-like, Iterable, dict, or scalar value
-        Contains data stored in Series
+        Contains data stored in Series.
 
         .. versionchanged :: 0.23.0
            If data is a dict, argument order is maintained for Python 3.6
@@ -133,8 +133,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         dtype for the output Series. If not specified, this will be
         inferred from `data`.
-    copy : boolean, default False
-        Copy input data
+    copy : bool, default False
+        Copy input data.
     """
     _metadata = ['name']
     _accessors = {'dt', 'cat', 'str', 'sparse'}
@@ -389,22 +389,30 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ndarray compatibility
     @property
     def dtype(self):
-        """ return the dtype object of the underlying data """
+        """
+        Return the dtype object of the underlying data.
+        """
         return self._data.dtype
 
     @property
     def dtypes(self):
-        """ return the dtype object of the underlying data """
+        """
+        Return the dtype object of the underlying data.
+        """
         return self._data.dtype
 
     @property
     def ftype(self):
-        """ return if the data is sparse|dense """
+        """
+        Return if the data is sparse|dense.
+        """
         return self._data.ftype
 
     @property
     def ftypes(self):
-        """ return if the data is sparse|dense """
+        """
+        Return if the data is sparse|dense.
+        """
         return self._data.ftype
 
     @property
@@ -441,7 +449,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def _values(self):
-        """ return the internal repr of this data """
+        """
+        Return the internal repr of this data.
+        """
         return self._data.internal_values()
 
     def _formatting_values(self):
@@ -451,7 +461,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._data.formatting_values()
 
     def get_values(self):
-        """ same as values (but handles sparseness conversions); is a view """
+        """
+        Same as values (but handles sparseness conversions); is a view.
+        """
         return self._data.get_values()
 
     @property
@@ -3482,9 +3494,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
             attribute.
-        copy : boolean, default True
+        copy : bool, default True
             Also copy underlying data
-        inplace : boolean, default False
+        inplace : bool, default False
             Whether to return a new Series. If True then value of copy is
             ignored.
         level : int or level name, default None

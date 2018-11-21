@@ -2342,7 +2342,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_msgpack(self, path_or_buf=None, encoding='utf-8', **kwargs):
         """
-        msgpack (serialize) object to input file path
+        Serialize object to input file path using msgpack format.
 
         THIS IS AN EXPERIMENTAL LIBRARY and the storage format
         may not be stable until a future release.
