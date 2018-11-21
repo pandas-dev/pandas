@@ -688,7 +688,7 @@ If the slicing operation returns either a ``DataFrame`` or a column of type
     df = pd.DataFrame({"cats": cats, "values": values}, index=idx)
     df.iloc[2:4, :]
     df.iloc[2:4, :].dtypes
-    df.loc["h": "j", "cats"]
+    df.loc["h":"j", "cats"]
     df[df["cats"] == "b"]
 
 An example where the category type is not preserved is if you take one single 
@@ -788,10 +788,10 @@ Setting values by assigning categorical data will also check that the `categorie
 
 .. ipython:: python
 
-    df.loc["j": "k", "cats"] = pd.Categorical(["a", "a"], categories=["a", "b"])
+    df.loc["j":"k", "cats"] = pd.Categorical(["a", "a"], categories=["a", "b"])
     df
     try:
-        df.loc["j": "k", "cats"] = pd.Categorical(["b", "b"],
+        df.loc["j":"k", "cats"] = pd.Categorical(["b", "b"],
                                                   categories=["a", "b", "c"])
     except ValueError as e:
         print("ValueError:", str(e))
