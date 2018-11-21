@@ -18,10 +18,7 @@ dependencies:
   - pymysql
   - pytables
   - python-dateutil
-  # XXX We should be testing ``python=3.7*`` here, but `moto` is
-  # failing with py3.7 at the moment.
-  # See: https://github.com/pandas-dev/pandas/pull/23727/files#r234240004
-  - python=3.6*
+  - python=3.7*
   - pytz
   - s3fs
   - scipy
@@ -33,6 +30,6 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
-  - moto
   - pip:
     - hypothesis>=3.58.0
+    - moto  # latest moto in conda-forge fails with 3.7, move to conda dependencies when this is fixed
