@@ -19,7 +19,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import NoNewAttributesMixin
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, deprecate_kwarg
 import re
 import pandas._libs.lib as lib
 import pandas._libs.ops as libops
@@ -205,7 +205,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
     See Also
     --------
-    match : analogous, but stricter, relying on re.match instead of re.search
+    match : Analogous, but stricter, relying on re.match instead of re.search.
     Series.str.startswith : Test if the start of each string element matches a
         pattern.
     Series.str.endswith : Same as startswith, but tests the end of string.
@@ -475,7 +475,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
         A copy of the object with all matching occurrences of `pat` replaced by
         `repl`.
 
-
     Raises
     ------
     ValueError
@@ -549,7 +548,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     1    bar
     2    NaN
     dtype: object
-
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
@@ -670,7 +668,6 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
     contains : analogous, but less strict, relying on re.search instead of
         re.match
     extract : extract matched groups
-
     """
     if not case:
         flags |= re.IGNORECASE
@@ -803,7 +800,7 @@ def str_extract(arr, pat, flags=0, expand=True):
 
     See Also
     --------
-    extractall : returns all matches (not just the first match)
+    extractall : Returns all matches (not just the first match).
 
     Examples
     --------
@@ -890,7 +887,7 @@ def str_extractall(arr, pat, flags=0):
 
     See Also
     --------
-    extract : returns first match only (not all matches)
+    extract : Returns first match only (not all matches).
 
     Examples
     --------
@@ -1002,7 +999,7 @@ def str_get_dummies(arr, sep='|'):
 
     See Also
     --------
-    pandas.get_dummies
+    get_dummies
     """
     arr = arr.fillna('')
     try:
@@ -1177,7 +1174,6 @@ def str_findall(arr, pat, flags=0):
     1        []
     2    [b, b]
     dtype: object
-
     """
     regex = re.compile(pat, flags=flags)
     return _na_map(regex.findall, arr)
@@ -1861,7 +1857,7 @@ class StringMethods(NoNewAttributesMixin):
             g = self.get(i)
 
     def _wrap_result(self, result, use_codes=True,
-                     name=None, expand=None):
+                     name=None, expand=None, fill_value=np.nan):
 
         from pandas.core.index import Index, MultiIndex
 
@@ -1871,7 +1867,8 @@ class StringMethods(NoNewAttributesMixin):
         # so make it possible to skip this step as the method already did this
         # before the transformation...
         if use_codes and self._is_categorical:
-            result = take_1d(result, self._orig.cat.codes)
+            result = take_1d(result, self._orig.cat.codes,
+                             fill_value=fill_value)
 
         if not hasattr(result, 'ndim') or not hasattr(result, 'dtype'):
             return result
@@ -2104,8 +2101,8 @@ class StringMethods(NoNewAttributesMixin):
 
         See Also
         --------
-        split : Split each string in the Series/Index
-        join : Join lists contained as elements in the Series/Index
+        split : Split each string in the Series/Index.
+        join : Join lists contained as elements in the Series/Index.
 
         Examples
         --------
@@ -2241,7 +2238,7 @@ class StringMethods(NoNewAttributesMixin):
             # Need to add keys for uniqueness in case of duplicate columns
             others = concat(others, axis=1,
                             join=(join if join == 'inner' else 'outer'),
-                            keys=range(len(others)), copy=False)
+                            keys=range(len(others)), sort=False, copy=False)
             data, others = data.align(others, join=join)
             others = [others[x] for x in others]  # again list of Series
 
@@ -2414,8 +2411,11 @@ class StringMethods(NoNewAttributesMixin):
 
     Parameters
     ----------
-    pat : str, default whitespace
+    sep : str, default whitespace
         String to split on.
+    pat : str, default whitespace
+        .. deprecated:: 0.24.0
+           Use ``sep`` instead
     expand : bool, default True
         If True, return DataFrame/MultiIndex expanding dimensionality.
         If False, return Series/Index.
@@ -2432,7 +2432,6 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-
 
     >>> s = pd.Series(['Linda van der Berg', 'George Pitt-Rivers'])
     >>> s
@@ -2490,8 +2489,9 @@ class StringMethods(NoNewAttributesMixin):
                   'empty strings',
         'also': 'rpartition : Split the string at the last occurrence of `sep`'
     })
-    def partition(self, pat=' ', expand=True):
-        f = lambda x: x.partition(pat)
+    @deprecate_kwarg(old_arg_name='pat', new_arg_name='sep')
+    def partition(self, sep=' ', expand=True):
+        f = lambda x: x.partition(sep)
         result = _na_map(f, self._parent)
         return self._wrap_result(result, expand=expand)
 
@@ -2501,8 +2501,9 @@ class StringMethods(NoNewAttributesMixin):
                   'string itself',
         'also': 'partition : Split the string at the first occurrence of `sep`'
     })
-    def rpartition(self, pat=' ', expand=True):
-        f = lambda x: x.rpartition(pat)
+    @deprecate_kwarg(old_arg_name='pat', new_arg_name='sep')
+    def rpartition(self, sep=' ', expand=True):
+        f = lambda x: x.rpartition(sep)
         result = _na_map(f, self._parent)
         return self._wrap_result(result, expand=expand)
 
@@ -2520,12 +2521,12 @@ class StringMethods(NoNewAttributesMixin):
     def contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
         result = str_contains(self._parent, pat, case=case, flags=flags, na=na,
                               regex=regex)
-        return self._wrap_result(result)
+        return self._wrap_result(result, fill_value=na)
 
     @copy(str_match)
     def match(self, pat, case=True, flags=0, na=np.nan):
         result = str_match(self._parent, pat, case=case, flags=flags, na=na)
-        return self._wrap_result(result)
+        return self._wrap_result(result, fill_value=na)
 
     @copy(str_replace)
     def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
@@ -2676,9 +2677,9 @@ class StringMethods(NoNewAttributesMixin):
 
     See Also
     --------
-    Series.str.strip : Remove leading and trailing characters in Series/Index
-    Series.str.lstrip : Remove leading characters in Series/Index
-    Series.str.rstrip : Remove trailing characters in Series/Index
+    Series.str.strip : Remove leading and trailing characters in Series/Index.
+    Series.str.lstrip : Remove leading characters in Series/Index.
+    Series.str.rstrip : Remove trailing characters in Series/Index.
 
     Examples
     --------

@@ -33,6 +33,7 @@ import pandas.core.arrays.datetimelike as dtl
 from pandas.core.arrays.period import PeriodArray, period_array
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
+from pandas.core.missing import isna
 
 from pandas import compat
 from pandas.util._decorators import (
@@ -165,10 +166,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     See Also
     ---------
-    Index : The base pandas Index type
-    Period : Represents a period of time
-    DatetimeIndex : Index with datetime64 data
-    TimedeltaIndex : Index of timedelta64 data
+    Index : The base pandas Index type.
+    Period : Represents a period of time.
+    DatetimeIndex : Index with datetime64 data.
+    TimedeltaIndex : Index of timedelta64 data.
     """
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
@@ -257,7 +258,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         return result
 
     # ------------------------------------------------------------------------
+    # Wrapping PeriodArray
+
+    # ------------------------------------------------------------------------
     # Data
+
     @property
     def _ndarray_values(self):
         return self._data._ndarray_values
@@ -361,13 +366,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         result = self._data.asfreq(freq=freq, how=how)
         return self._simple_new(result, name=self.name)
 
-    def _nat_new(self, box=True):
-        # TODO(DatetimeArray): remove this
-        result = self._data._nat_new(box=box)
-        if box:
-            result = self._simple_new(result, name=self.name)
-        return result
-
     def to_timestamp(self, freq=None, how='start'):
         from pandas import DatetimeIndex
         result = self._data.to_timestamp(freq=freq, how=how)
@@ -425,6 +423,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     # ------------------------------------------------------------------------
     # Indexing
+
     @cache_readonly
     def _engine(self):
         return self._engine_type(lambda: self, len(self))
@@ -654,7 +653,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             except TypeError:
                 pass
 
-            key = Period(key, self.freq).ordinal
+            period = Period(key, self.freq)
+            key = period.value if isna(period) else period.ordinal
             return com.maybe_box(self, self._engine.get_value(s, key),
                                  series, key)
 

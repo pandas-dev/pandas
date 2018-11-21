@@ -5,7 +5,7 @@ Module parse to/from Excel
 # ---------------------------------------------------------------------
 # ExcelFile class
 import abc
-from datetime import MINYEAR, date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from distutils.version import LooseVersion
 from io import UnsupportedOperation
 import os
@@ -95,6 +95,10 @@ parse_cols : int or list, default None
 usecols : int, str, list-like, or callable default None
     * If None, then parse all columns,
     * If int, then indicates last column to be parsed
+
+    .. deprecated:: 0.24.0
+       Pass in a list of ints instead from 0 to `usecols` inclusive.
+
     * If string, then indicates comma separated list of Excel column letters
       and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
       both sides.
@@ -118,7 +122,7 @@ dtype : Type name or dict of column -> type, default None
 
     .. versionadded:: 0.20.0
 
-engine: string, default None
+engine : string, default None
     If io is not a buffer or path, this must be set to identify io.
     Acceptable values are None or xlrd
 converters : dict, default None
@@ -171,12 +175,16 @@ convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally
+mangle_dupe_cols : boolean, default True
+    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
+    'X'...'X'. Passing in False will cause data to be overwritten if there
+    are duplicate names in the columns.
 
 Returns
 -------
 parsed : DataFrame or Dict of DataFrames
-    DataFrame from the passed in Excel file.  See notes in sheet_name
-    argument for more information on when a Dict of Dataframes is returned.
+    DataFrame from the passed in Excel file. See notes in sheet_name
+    argument for more information on when a dict of DataFrames is returned.
 
 Examples
 --------
@@ -310,6 +318,7 @@ def read_excel(io,
                comment=None,
                skipfooter=0,
                convert_float=True,
+               mangle_dupe_cols=True,
                **kwds):
 
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
@@ -345,6 +354,7 @@ def read_excel(io,
         comment=comment,
         skipfooter=skipfooter,
         convert_float=convert_float,
+        mangle_dupe_cols=mangle_dupe_cols,
         **kwds)
 
 
@@ -358,22 +368,21 @@ class ExcelFile(object):
     io : string, path object (pathlib.Path or py._path.local.LocalPath),
         file-like object or xlrd workbook
         If a string or path object, expected to be a path to xls or xlsx file
-    engine: string, default None
+    engine : string, default None
         If io is not a buffer or path, this must be set to identify io.
         Acceptable values are None or xlrd
     """
 
     def __init__(self, io, **kwds):
 
-        err_msg = "Install xlrd >= 0.9.0 for Excel support"
+        err_msg = "Install xlrd >= 1.0.0 for Excel support"
 
         try:
             import xlrd
         except ImportError:
             raise ImportError(err_msg)
         else:
-            ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
-            if ver < (0, 9):  # pragma: no cover
+            if xlrd.__VERSION__ < LooseVersion("1.0.0"):
                 raise ImportError(err_msg +
                                   ". Current version " + xlrd.__VERSION__)
 
@@ -437,6 +446,7 @@ class ExcelFile(object):
               comment=None,
               skipfooter=0,
               convert_float=True,
+              mangle_dupe_cols=True,
               **kwds):
         """
         Parse specified sheet(s) into a DataFrame
@@ -472,6 +482,7 @@ class ExcelFile(object):
                                  comment=comment,
                                  skipfooter=skipfooter,
                                  convert_float=convert_float,
+                                 mangle_dupe_cols=mangle_dupe_cols,
                                  **kwds)
 
     def _parse_excel(self,
@@ -494,6 +505,7 @@ class ExcelFile(object):
                      comment=None,
                      skipfooter=0,
                      convert_float=True,
+                     mangle_dupe_cols=True,
                      **kwds):
 
         _validate_header_arg(header)
@@ -502,7 +514,6 @@ class ExcelFile(object):
             raise NotImplementedError("chunksize keyword of read_excel "
                                       "is not implemented")
 
-        import xlrd
         from xlrd import (xldate, XL_CELL_DATE,
                           XL_CELL_ERROR, XL_CELL_BOOLEAN,
                           XL_CELL_NUMBER)
@@ -515,36 +526,23 @@ class ExcelFile(object):
 
             if cell_typ == XL_CELL_DATE:
 
-                if xlrd_0_9_3:
-                    # Use the newer xlrd datetime handling.
-                    try:
-                        cell_contents = \
-                            xldate.xldate_as_datetime(cell_contents,
-                                                      epoch1904)
-                    except OverflowError:
-                        return cell_contents
-                    # Excel doesn't distinguish between dates and time,
-                    # so we treat dates on the epoch as times only.
-                    # Also, Excel supports 1900 and 1904 epochs.
-                    year = (cell_contents.timetuple())[0:3]
-                    if ((not epoch1904 and year == (1899, 12, 31)) or
-                            (epoch1904 and year == (1904, 1, 1))):
-                        cell_contents = time(cell_contents.hour,
-                                             cell_contents.minute,
-                                             cell_contents.second,
-                                             cell_contents.microsecond)
-                else:
-                    # Use the xlrd <= 0.9.2 date handling.
-                    try:
-                        dt = xldate.xldate_as_tuple(cell_contents, epoch1904)
+                # Use the newer xlrd datetime handling.
+                try:
+                    cell_contents = xldate.xldate_as_datetime(
+                        cell_contents, epoch1904)
+                except OverflowError:
+                    return cell_contents
 
-                    except xldate.XLDateTooLarge:
-                        return cell_contents
-
-                    if dt[0] < MINYEAR:
-                        cell_contents = time(*dt[3:])
-                    else:
-                        cell_contents = datetime(*dt)
+                # Excel doesn't distinguish between dates and time,
+                # so we treat dates on the epoch as times only.
+                # Also, Excel supports 1900 and 1904 epochs.
+                year = (cell_contents.timetuple())[0:3]
+                if ((not epoch1904 and year == (1899, 12, 31)) or
+                        (epoch1904 and year == (1904, 1, 1))):
+                    cell_contents = time(cell_contents.hour,
+                                         cell_contents.minute,
+                                         cell_contents.second,
+                                         cell_contents.microsecond)
 
             elif cell_typ == XL_CELL_ERROR:
                 cell_contents = np.nan
@@ -557,12 +555,6 @@ class ExcelFile(object):
                 if val == cell_contents:
                     cell_contents = val
             return cell_contents
-
-        # xlrd >= 0.9.3 can return datetime objects directly.
-        if LooseVersion(xlrd.__VERSION__) >= LooseVersion("0.9.3"):
-            xlrd_0_9_3 = True
-        else:
-            xlrd_0_9_3 = False
 
         ret_dict = False
 
@@ -617,11 +609,12 @@ class ExcelFile(object):
                     if is_integer(skiprows):
                         row += skiprows
 
-                    data[row], control_row = _fill_mi_header(
-                        data[row], control_row)
-                    header_name, _ = _pop_header_name(
-                        data[row], index_col)
-                    header_names.append(header_name)
+                    data[row], control_row = _fill_mi_header(data[row],
+                                                             control_row)
+
+                    if index_col is not None:
+                        header_name, _ = _pop_header_name(data[row], index_col)
+                        header_names.append(header_name)
 
             if is_list_like(index_col):
                 # Forward fill values for MultiIndex index.
@@ -630,20 +623,24 @@ class ExcelFile(object):
                 else:
                     offset = 1 + max(header)
 
-                for col in index_col:
-                    last = data[offset][col]
+                # Check if we have an empty dataset
+                # before trying to collect data.
+                if offset < len(data):
+                    for col in index_col:
+                        last = data[offset][col]
 
-                    for row in range(offset + 1, len(data)):
-                        if data[row][col] == '' or data[row][col] is None:
-                            data[row][col] = last
-                        else:
-                            last = data[row][col]
+                        for row in range(offset + 1, len(data)):
+                            if data[row][col] == '' or data[row][col] is None:
+                                data[row][col] = last
+                            else:
+                                last = data[row][col]
 
             has_index_names = is_list_like(header) and len(header) > 1
 
             # GH 12292 : error when read one empty column from excel file
             try:
                 parser = TextParser(data,
+                                    names=names,
                                     header=header,
                                     index_col=index_col,
                                     has_index_names=has_index_names,
@@ -660,14 +657,13 @@ class ExcelFile(object):
                                     comment=comment,
                                     skipfooter=skipfooter,
                                     usecols=usecols,
+                                    mangle_dupe_cols=mangle_dupe_cols,
                                     **kwds)
 
                 output[asheetname] = parser.read(nrows=nrows)
 
-                if names is not None:
-                    output[asheetname].columns = names
-
-                if not squeeze or isinstance(output[asheetname], DataFrame):
+                if ((not squeeze or isinstance(output[asheetname], DataFrame))
+                        and header_names):
                     output[asheetname].columns = output[
                         asheetname].columns.set_names(header_names)
             except EmptyDataError:
@@ -778,6 +774,10 @@ def _maybe_convert_usecols(usecols):
         return usecols
 
     if is_integer(usecols):
+        warnings.warn(("Passing in an integer for `usecols` has been "
+                       "deprecated. Please pass in a list of ints from "
+                       "0 to `usecols` inclusive instead."),
+                      FutureWarning, stacklevel=2)
         return lrange(usecols + 1)
 
     if isinstance(usecols, compat.string_types):
@@ -844,16 +844,30 @@ def _fill_mi_header(row, control_row):
 
 
 def _pop_header_name(row, index_col):
-    """ (header, new_data) for header rows in MultiIndex parsing"""
-    none_fill = lambda x: None if x == '' else x
+    """
+    Pop the header name for MultiIndex parsing.
 
-    if index_col is None:
-        # no index col specified, trim data for inference path
-        return none_fill(row[0]), row[1:]
-    else:
-        # pop out header name and fill w/ blank
-        i = index_col if not is_list_like(index_col) else max(index_col)
-        return none_fill(row[i]), row[:i] + [''] + row[i + 1:]
+    Parameters
+    ----------
+    row : list
+        The data row to parse for the header name.
+    index_col : int, list
+        The index columns for our data. Assumed to be non-null.
+
+    Returns
+    -------
+    header_name : str
+        The extracted header name.
+    trimmed_row : list
+        The original data row with the header name removed.
+    """
+    # Pop out header name and fill w/blank.
+    i = index_col if not is_list_like(index_col) else max(index_col)
+
+    header_name = row[i]
+    header_name = None if header_name == "" else header_name
+
+    return header_name, row[:i] + [''] + row[i + 1:]
 
 
 @add_metaclass(abc.ABCMeta)
@@ -992,8 +1006,8 @@ class ExcelWriter(object):
             cell of formatted data to save to Excel sheet
         sheet_name : string, default None
             Name of Excel sheet, if None, then use self.cur_sheet
-        startrow: upper left cell row to dump data frame
-        startcol: upper left cell column to dump data frame
+        startrow : upper left cell row to dump data frame
+        startcol : upper left cell column to dump data frame
         freeze_panes: integer tuple of length 2
             contains the bottom-most row and right-most column to freeze
         """
@@ -1140,7 +1154,7 @@ class _OpenpyxlWriter(ExcelWriter):
         converts a style_dict to an openpyxl style object
         Parameters
         ----------
-        style_dict: style dictionary to convert
+        style_dict : style dictionary to convert
         """
 
         from openpyxl.style import Style
@@ -1668,8 +1682,8 @@ class _XlwtWriter(ExcelWriter):
         converts a style_dict to an xlwt style object
         Parameters
         ----------
-        style_dict: style dictionary to convert
-        num_format_str: optional number format string
+        style_dict : style dictionary to convert
+        num_format_str : optional number format string
         """
         import xlwt
 
@@ -1771,8 +1785,8 @@ class _XlsxStyler(object):
 
         Parameters
         ----------
-        style_dict: style dictionary to convert
-        num_format_str: optional number format string
+        style_dict : style dictionary to convert
+        num_format_str : optional number format string
         """
 
         # Create a XlsxWriter format object.

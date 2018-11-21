@@ -10,10 +10,11 @@ import collections
 import re
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal
+from numbers import Number
+from fractions import Fraction
 import numpy as np
 import pytz
 import pytest
-
 import pandas as pd
 from pandas._libs import lib, iNaT, missing as libmissing
 from pandas import (Series, Index, DataFrame, Timedelta,
@@ -59,7 +60,7 @@ ll_params = [
     ({'a', 1},                  'set', 'set'),                  # noqa: E241
     (set(),                     'set', 'set-empty'),            # noqa: E241
     (frozenset({'a', 1}),       'set', 'frozenset'),            # noqa: E241
-    (frozenset([]),             'set', 'frozenset-empty'),      # noqa: E241
+    (frozenset(),               'set', 'frozenset-empty'),      # noqa: E241
     (iter([1, 2]),              True,  'iterator'),             # noqa: E241
     (iter([]),                  True,  'iterator-empty'),       # noqa: E241
     ((x for x in [1, 2]),       True,  'generator'),            # noqa: E241
@@ -1183,6 +1184,8 @@ class TestIsScalar(object):
         assert is_scalar(None)
         assert is_scalar(True)
         assert is_scalar(False)
+        assert is_scalar(Number())
+        assert is_scalar(Fraction())
         assert is_scalar(0.)
         assert is_scalar(np.nan)
         assert is_scalar('foobar')

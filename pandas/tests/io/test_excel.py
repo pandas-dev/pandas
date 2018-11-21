@@ -36,7 +36,7 @@ _mixed_frame = _frame.copy()
 _mixed_frame['foo'] = 'bar'
 
 
-@td.skip_if_no('xlrd', '0.9')
+@td.skip_if_no('xlrd', '1.0.0')
 class SharedItems(object):
 
     @pytest.fixture(autouse=True)
@@ -105,29 +105,52 @@ class SharedItems(object):
 class ReadingTestsBase(SharedItems):
     # This is based on ExcelWriterBase
 
-    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
+    @td.skip_if_no("xlrd", "1.0.1")  # see gh-22682
     def test_usecols_int(self, ext):
 
-        dfref = self.get_csv_refdf('test1')
-        dfref = dfref.reindex(columns=['A', 'B', 'C'])
-        df1 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0, usecols=3)
-        df2 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                               index_col=0, usecols=3)
+        df_ref = self.get_csv_refdf("test1")
+        df_ref = df_ref.reindex(columns=["A", "B", "C"])
 
-        with tm.assert_produces_warning(FutureWarning):
+        # usecols as int
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
             with warnings.catch_warnings():
                 # Ignore xlrd time.clock DeprecationWarning in py37
                 warnings.filterwarnings(
                     action='ignore',
                     message='time.clock has been deprecated',
                     category=DeprecationWarning)
-                df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+                df1 = self.get_exceldf("test1", ext, "Sheet1",
+                                       index_col=0, usecols=3)
+
+        # usecols as int
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            with warnings.catch_warnings():
+                # Ignore xlrd time.clock DeprecationWarning in py37
+                warnings.filterwarnings(
+                    action='ignore',
+                    message='time.clock has been deprecated',
+                    category=DeprecationWarning)
+                df2 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
+                                       index_col=0, usecols=3)
+
+        # parse_cols instead of usecols, usecols as int
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            with warnings.catch_warnings():
+                # Ignore xlrd time.clock DeprecationWarning in py37
+                warnings.filterwarnings(
+                    action='ignore',
+                    message='time.clock has been deprecated',
+                    category=DeprecationWarning)
+                df3 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
                                        index_col=0, parse_cols=3)
 
         # TODO add index to xls file)
-        tm.assert_frame_equal(df1, dfref, check_names=False)
-        tm.assert_frame_equal(df2, dfref, check_names=False)
-        tm.assert_frame_equal(df3, dfref, check_names=False)
+        tm.assert_frame_equal(df1, df_ref, check_names=False)
+        tm.assert_frame_equal(df2, df_ref, check_names=False)
+        tm.assert_frame_equal(df3, df_ref, check_names=False)
 
     @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_usecols_list(self, ext):
@@ -241,6 +264,16 @@ class ReadingTestsBase(SharedItems):
         with pytest.raises(TypeError, match=msg):
             self.get_exceldf("test1", ext, "Sheet1", index_col=["A"],
                              usecols=["A", "C"])
+
+    def test_index_col_empty(self, ext):
+        # see gh-9208
+        result = self.get_exceldf("test1", ext, "Sheet3",
+                                  index_col=["A", "B", "C"])
+        expected = DataFrame(columns=["D", "E", "F"],
+                             index=MultiIndex(levels=[[]] * 3,
+                                              labels=[[]] * 3,
+                                              names=["A", "B", "C"]))
+        tm.assert_frame_equal(result, expected)
 
     def test_usecols_pass_non_existent_column(self, ext):
         msg = ("Usecols do not match columns, "
@@ -799,35 +832,19 @@ class TestXlrdReader(ReadingTestsBase):
                 tm.assert_frame_equal(dfs[s], dfs_returned[s])
 
     def test_reader_seconds(self, ext):
-        import xlrd
 
         # Test reading times with and without milliseconds. GH5945.
-        if LooseVersion(xlrd.__VERSION__) >= LooseVersion("0.9.3"):
-            # Xlrd >= 0.9.3 can handle Excel milliseconds.
-            expected = DataFrame.from_dict({"Time": [time(1, 2, 3),
-                                            time(2, 45, 56, 100000),
-                                            time(4, 29, 49, 200000),
-                                            time(6, 13, 42, 300000),
-                                            time(7, 57, 35, 400000),
-                                            time(9, 41, 28, 500000),
-                                            time(11, 25, 21, 600000),
-                                            time(13, 9, 14, 700000),
-                                            time(14, 53, 7, 800000),
-                                            time(16, 37, 0, 900000),
-                                            time(18, 20, 54)]})
-        else:
-            # Xlrd < 0.9.3 rounds Excel milliseconds.
-            expected = DataFrame.from_dict({"Time": [time(1, 2, 3),
-                                            time(2, 45, 56),
-                                            time(4, 29, 49),
-                                            time(6, 13, 42),
-                                            time(7, 57, 35),
-                                            time(9, 41, 29),
-                                            time(11, 25, 22),
-                                            time(13, 9, 15),
-                                            time(14, 53, 8),
-                                            time(16, 37, 1),
-                                            time(18, 20, 54)]})
+        expected = DataFrame.from_dict({"Time": [time(1, 2, 3),
+                                                 time(2, 45, 56, 100000),
+                                                 time(4, 29, 49, 200000),
+                                                 time(6, 13, 42, 300000),
+                                                 time(7, 57, 35, 400000),
+                                                 time(9, 41, 28, 500000),
+                                                 time(11, 25, 21, 600000),
+                                                 time(13, 9, 14, 700000),
+                                                 time(14, 53, 7, 800000),
+                                                 time(16, 37, 0, 900000),
+                                                 time(18, 20, 54)]})
 
         actual = self.get_exceldf('times_1900', ext, 'Sheet1')
         tm.assert_frame_equal(actual, expected)
@@ -898,6 +915,17 @@ class TestXlrdReader(ReadingTestsBase):
         actual = read_excel(mi_file, "both_name_skiprows", index_col=[0, 1],
                             header=[0, 1], skiprows=2)
         tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_multiindex_header_only(self, ext):
+        # see gh-11733.
+        #
+        # Don't try to parse a header name if there isn't one.
+        mi_file = os.path.join(self.dirpath, "testmultiindex" + ext)
+        result = read_excel(mi_file, "index_col_none", header=[0, 1])
+
+        exp_columns = MultiIndex.from_product([("A", "B"), ("key", "val")])
+        expected = DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
+        tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no("xlsxwriter")
     def test_read_excel_multiindex_empty_level(self, ext):
@@ -1849,33 +1877,41 @@ class TestExcelWriter(_WriterBase):
 
     def test_duplicated_columns(self, *_):
         # see gh-5235
-        write_frame = DataFrame([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
-        col_names = ["A", "B", "B"]
+        df = DataFrame([[1, 2, 3], [1, 2, 3], [1, 2, 3]],
+                       columns=["A", "B", "B"])
+        df.to_excel(self.path, "test1")
+        expected = DataFrame([[1, 2, 3], [1, 2, 3], [1, 2, 3]],
+                             columns=["A", "B", "B.1"])
 
-        write_frame.columns = col_names
-        write_frame.to_excel(self.path, "test1")
+        # By default, we mangle.
+        result = read_excel(self.path, "test1", index_col=0)
+        tm.assert_frame_equal(result, expected)
 
-        read_frame = read_excel(self.path, "test1", index_col=0)
-        read_frame.columns = col_names
-
-        tm.assert_frame_equal(write_frame, read_frame)
+        # Explicitly, we pass in the parameter.
+        result = read_excel(self.path, "test1", index_col=0,
+                            mangle_dupe_cols=True)
+        tm.assert_frame_equal(result, expected)
 
         # see gh-11007, gh-10970
-        write_frame = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]],
-                                columns=["A", "B", "A", "B"])
-        write_frame.to_excel(self.path, "test1")
+        df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]],
+                       columns=["A", "B", "A", "B"])
+        df.to_excel(self.path, "test1")
 
-        read_frame = read_excel(self.path, "test1", index_col=0)
-        read_frame.columns = ["A", "B", "A", "B"]
-
-        tm.assert_frame_equal(write_frame, read_frame)
+        result = read_excel(self.path, "test1", index_col=0)
+        expected = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]],
+                             columns=["A", "B", "A.1", "B.1"])
+        tm.assert_frame_equal(result, expected)
 
         # see gh-10982
-        write_frame.to_excel(self.path, "test1", index=False, header=False)
-        read_frame = read_excel(self.path, "test1", header=None)
+        df.to_excel(self.path, "test1", index=False, header=False)
+        result = read_excel(self.path, "test1", header=None)
 
-        write_frame.columns = [0, 1, 2, 3]
-        tm.assert_frame_equal(write_frame, read_frame)
+        expected = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]])
+        tm.assert_frame_equal(result, expected)
+
+        msg = "Setting mangle_dupe_cols=False is not supported yet"
+        with pytest.raises(ValueError, match=msg):
+            read_excel(self.path, "test1", header=None, mangle_dupe_cols=False)
 
     def test_swapped_columns(self, merge_cells, engine, ext):
         # Test for issue #5427.

@@ -12,6 +12,7 @@ import numpy as np
 from pandas.util._decorators import cache_readonly, Appender
 from pandas.compat import range, lrange, map, zip, string_types
 import pandas.compat as compat
+from pandas.errors import AbstractMethodError
 
 import pandas.core.common as com
 from pandas.core.base import PandasObject
@@ -373,7 +374,7 @@ class MPLPlot(object):
         self.data = numeric_data
 
     def _make_plot(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _add_table(self):
         if self.table is False:
@@ -2452,7 +2453,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    bins: integer, default 10
+    bins : integer, default 10
         Number of histogram bins to be used
     `**kwds` : keywords
         To be passed to the actual plotting function
@@ -2460,7 +2461,6 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     See Also
     --------
     matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
-
     """
     import matplotlib.pyplot as plt
 
@@ -2511,22 +2511,22 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
 
     Parameters
     ----------
-    data: Series/DataFrame
-    column: object, optional
-    by: object, optional
-    ax: axes, optional
-    bins: int, default 50
-    figsize: tuple, optional
-    layout: optional
-    sharex: boolean, default False
-    sharey: boolean, default False
-    rot: int, default 90
-    grid: bool, default True
-    kwargs: dict, keyword arguments passed to matplotlib.Axes.hist
+    data : Series/DataFrame
+    column : object, optional
+    by : object, optional
+    ax : axes, optional
+    bins : int, default 50
+    figsize : tuple, optional
+    layout : optional
+    sharex : boolean, default False
+    sharey : boolean, default False
+    rot : int, default 90
+    grid : bool, default True
+    kwargs : dict, keyword arguments passed to matplotlib.Axes.hist
 
     Returns
     -------
-    axes: collection of Matplotlib Axes
+    axes : collection of Matplotlib Axes
     """
     _raise_if_no_mpl()
     _converter._WARN = False
@@ -2826,7 +2826,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        bins: integer, default 10
+        bins : integer, default 10
             Number of histogram bins to be used
         `**kwds` : optional
             Additional keyword arguments are documented in
@@ -3491,7 +3491,7 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        matplotlib.pyplot.scatter : scatter plot using multiple input data
+        matplotlib.pyplot.scatter : Scatter plot using multiple input data
             formats.
 
         Examples
@@ -3567,7 +3567,7 @@ class FramePlotMethods(BasePlotMethods):
         See Also
         --------
         DataFrame.plot : Make plots of a DataFrame.
-        matplotlib.pyplot.hexbin : hexagonal binning plot using matplotlib,
+        matplotlib.pyplot.hexbin : Hexagonal binning plot using matplotlib,
             the matplotlib function that is used under the hood.
 
         Examples

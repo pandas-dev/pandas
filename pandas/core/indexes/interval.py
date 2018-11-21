@@ -1037,7 +1037,7 @@ class IntervalIndex(IntervalMixin, Index):
         return self._data.overlaps(other)
 
     def _setop(op_name):
-        def func(self, other):
+        def func(self, other, sort=True):
             other = self._as_like_interval_index(other)
 
             # GH 19016: ensure set op will not return a prohibited dtype
@@ -1048,7 +1048,11 @@ class IntervalIndex(IntervalMixin, Index):
                        'objects that have compatible dtypes')
                 raise TypeError(msg.format(op=op_name))
 
-            result = getattr(self._multiindex, op_name)(other._multiindex)
+            if op_name == 'difference':
+                result = getattr(self._multiindex, op_name)(other._multiindex,
+                                                            sort)
+            else:
+                result = getattr(self._multiindex, op_name)(other._multiindex)
             result_name = get_op_result_name(self, other)
 
             # GH 19101: ensure empty results have correct dtype
@@ -1185,7 +1189,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
     See Also
     --------
-    IntervalIndex : an Index of intervals that are all closed on the same side.
+    IntervalIndex : An Index of intervals that are all closed on the same side.
     """
     start = com.maybe_box_datetimelike(start)
     end = com.maybe_box_datetimelike(end)
