@@ -577,8 +577,6 @@ cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
         identically, i.e. discards nanos from Timestamps.
         It also assumes that the `tz` input is not None.
     """
-    if is_utc(tz):
-        return UTC.localize(dt)
     try:
         # datetime.replace with pytz may be incorrect result
         return tz.localize(dt)
@@ -605,7 +603,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
         # i.e. is a Timestamp
         return dt.tz_localize(tz)
     elif is_utc(tz):
-        return UTC.localize(dt)
+        return _localize_pydatetime(dt, tz)
     try:
         # datetime.replace with pytz may be incorrect result
         return tz.localize(dt)
