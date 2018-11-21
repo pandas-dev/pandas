@@ -7,7 +7,7 @@ Where to start?
 ---------------
 
 Please follow the documentation in ``doc/source/contributing.rst`` for a 
-detailed guide on how to contribute to documentation
+detailed guide on how to contribute to documentation.
 
 There are a number of issues listed under `Docs
 <https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open>`_
