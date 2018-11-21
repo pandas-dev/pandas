@@ -329,7 +329,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     __rfloordiv__ = _wrap_tdi_op(ops.rfloordiv)
 
     def __truediv__(self, other):
-        # TODO: Decimals?
         other = lib.item_from_zerodim(other)
 
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):

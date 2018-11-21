@@ -1121,9 +1121,10 @@ class TestTimedeltaArraylikeMulDivOps(object):
         # don't allow division by NaT (maybe could in the future)
         rng = timedelta_range('1 days', '10 days', name='foo')
         rng = tm.box_expected(rng, box_with_array)
-        with pytest.raises(TypeError):
+
+        with pytest.raises(TypeError, match='true_divide cannot use operands'):
             rng / pd.NaT
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match='Cannot divide NaTType by'):
             pd.NaT / rng
 
     def test_td64arr_div_td64nat(self, box_with_array):
@@ -1148,7 +1149,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = idx / 1
         tm.assert_equal(result, idx)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match='Cannot divide'):
             1 / idx
 
     def test_td64arr_div_tdlike_scalar(self, two_hours, box_with_array):
@@ -1280,7 +1281,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = idx // 1
         tm.assert_equal(result, idx)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match='floor_divide cannot use operands'):
             1 // idx
 
     def test_td64arr_floordiv_tdlike_scalar(self, two_hours, box_with_array):
@@ -1389,7 +1390,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = tdser / two
         tm.assert_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match='Cannot divide'):
             two / tdser
 
     @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
@@ -1441,7 +1442,11 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = tdser / vector
         tm.assert_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        pattern = ('true_divide cannot use operands|'
+                   'cannot perform __div__|'
+                   'unsupported operand|'
+                   'Cannot divide')
+        with pytest.raises(TypeError, match=pattern):
             vector / tdser
 
         if not isinstance(vector, pd.Index):
@@ -1449,7 +1454,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
             result = tdser / vector.astype(object)
             tm.assert_equal(result, expected)
 
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=pattern):
             vector.astype(object) / tdser
 
     @pytest.mark.parametrize('names', [(None, None, None),

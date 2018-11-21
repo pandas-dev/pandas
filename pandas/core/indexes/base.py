@@ -4896,11 +4896,14 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__mod__ = _make_arithmetic_op(operator.mod, cls)
         cls.__floordiv__ = _make_arithmetic_op(operator.floordiv, cls)
         cls.__rfloordiv__ = _make_arithmetic_op(ops.rfloordiv, cls)
-        cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
-        cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
-        if not compat.PY3:
-            cls.__div__ = _make_arithmetic_op(operator.div, cls)
-            cls.__rdiv__ = _make_arithmetic_op(ops.rdiv, cls)
+
+        if not issubclass(cls, ABCTimedeltaIndex):
+            # GH#23829 TimedeltaIndex defines these directly
+            cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
+            cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
+            if not compat.PY3:
+                cls.__div__ = _make_arithmetic_op(operator.div, cls)
+                cls.__rdiv__ = _make_arithmetic_op(ops.rdiv, cls)
 
         cls.__divmod__ = _make_arithmetic_op(divmod, cls)
 
