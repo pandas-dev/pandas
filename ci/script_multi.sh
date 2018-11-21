@@ -33,8 +33,8 @@ elif [ "$COVERAGE" ]; then
 
 elif [ "$SLOW" ]; then
     TEST_ARGS="--only-slow --skip-network"
-    echo pytest -n 2 -m "not single" --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
-    pytest      -n 2 -m "not single" --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
+    echo pytest -q -n 2 -m "not single" --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
+    pytest      -q -n 2 -m "not single" --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
 
 else
     echo pytest -n 2 -m "not single" --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
