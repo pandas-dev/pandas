@@ -247,7 +247,7 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
 
    data = {'AAA': [4, 5, 6, 7],
            'BBB': [10, 20, 30, 40],
-           'CCC': [100, 50, -30, -50]})
+           'CCC': [100, 50, -30, -50]}
    df2 = pd.DataFrame(data=data, index=[1, 2, 3, 4])  # Note index starts at 1.
    df2.iloc[1:3]  # Position-oriented
    df2.loc[1:3]  # Label-oriented
