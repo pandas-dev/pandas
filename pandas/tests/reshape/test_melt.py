@@ -269,6 +269,21 @@ class TestMelt(object):
                                  Col="\\['not_here', 'or_there'\\]")):
             df.melt(['a', 'b', 'not_here', 'or_there'], ['c', 'd'])
 
+        # Multiindex melt fails if column is missing from multilevel melt
+        multi = df.copy()
+        multi.columns = [list('ABCD'), list('abcd')]
+        with pytest.raises(
+            KeyError,
+            match=msg.format(Var='id_vars',
+                             Col="\\['E'\\]")):
+            multi.melt([('E', 'a')], [('B', 'b')])
+        # Multiindex fails if column is missing from single level melt
+        with pytest.raises(
+            KeyError,
+            match=msg.format(Var='value_vars',
+                             Col="\\['F'\\]")):
+            multi.melt(['A'], ['F'], col_level=0)
+
 
 class TestLreshape(object):
 
