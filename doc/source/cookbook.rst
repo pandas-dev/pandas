@@ -243,11 +243,13 @@ There are 2 explicit slicing methods, with a third general case
 Ambiguity arises when an index consists of integers with a non-zero start or non-unit increment.
 
 .. ipython:: python
+    :verbatim:
 
+   data = {'AAA': [4, 5, 6, 7],
+           'BBB': [10, 20, 30, 40],
+           'CCC': [100, 50, -30, -50]})
    df2 = pd.DataFrame(data=data, index=[1, 2, 3, 4])  # Note index starts at 1.
-
    df2.iloc[1:3]  # Position-oriented
-
    df2.loc[1:3]  # Label-oriented
 
 `Using inverse operator (~) to take the complement of a mask
@@ -537,13 +539,13 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
    S = pd.Series([i / 100.0 for i in range(1, 11)])
 
-   def cumRet(x, y):
+   def cum_ret(x, y):
        return x * (1 + y)
 
    def red(x):
-       return functools.reduce(CumRet, x, 1.0)
+       return functools.reduce(cum_ret, x, 1.0)
 
-   S.expanding().apply(Red, raw=True)
+   S.expanding().apply(red, raw=True)
 
 
 `Replacing some values with mean of the rest of a group
@@ -747,8 +749,8 @@ Apply
    def SeriesFromSubList(aList):
        return pd.Series(aList)
 
-   df_orgz = pd.concat(dict([(ind, row.apply(SeriesFromSubList))
-                             for ind, row in df.iterrows()]))
+   df_orgz = pd.concat({ind: row.apply(SeriesFromSubList)
+                        for ind, row in df.iterrows()})
    df_orgz
 
 `Rolling Apply with a DataFrame returning a Series
@@ -765,11 +767,11 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
 
    def gm(df, const):
        v = ((((df.A + df.B) + 1).cumprod()) - 1) * const
-       return (df.index[0], v.iloc[-1])
+       return (v.iloc[-1])
 
-   S = pd.Series(dict([gm(df.iloc[i:min(i + 51, len(df) - 1)], 5)
-                       for i in range(len(df) - 50)]))
-   S
+   s = pd.Series({df.index[i]: gm(df.iloc[i:min(i + 51, len(df) - 1)], 5)
+                  for i in range(len(df) - 50)})
+   s
 
 `Rolling apply with a DataFrame returning a Scalar
 <http://stackoverflow.com/questions/21040766/python-pandas-rolling-apply-two-column-input-into-function/21045831#21045831>`__
@@ -1034,7 +1036,7 @@ You can use the same approach to read all files matching a pattern.  Here is an 
 Finally, this strategy will work with the other ``pd.read_*(...)`` functions described in the :ref:`io docs<io>`.
 
 .. ipython:: python
-    :suppress:
+    :verbatim:
 
     for i in range(3):
         os.remove('file_{}.csv'.format(i))
@@ -1045,16 +1047,14 @@ Parsing date components in multi-columns
 Parsing date components in multi-columns is faster with a format
 
 .. ipython:: python
-    :suppress:
+    :verbatim:
 
     i = pd.date_range('20000101', periods=10000)
     df = pd.DataFrame({'year': i.year, 'month': i.month, 'day': i.day})
     df.head()
-    %timeit pd.to_datetime(df.year * 10000 + df.month * 100 + df.day,
-                   format='%Y%m%d')
+    %timeit pd.to_datetime(df.year * 10000 + df.month * 100 + df.day, format='%Y%m%d')
     ds = df.apply(lambda x: "%04d%02d%02d" % (x['year'],
                                               x['month'], x['day']), axis=1)
-
     ds.head()
     %timeit pd.to_datetime(ds)
 
