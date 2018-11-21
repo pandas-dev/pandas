@@ -423,6 +423,9 @@ cdef class {{name}}HashTable(HashTable):
 
                 if ignore_na and (val != val
                                   or (use_na_value and val == na_value2)):
+                    # if missing values do not count as unique values (i.e. if
+                    # ignore_na is True), skip the hashtable entry for them,
+                    # and replace the corresponding label with na_sentinel
                     labels[i] = na_sentinel
                     continue
 
@@ -768,7 +771,9 @@ cdef class StringHashTable(HashTable):
             if (ignore_na
                 and (not isinstance(val, (str, unicode))
                      or (use_na_value and val == na_value))):
-                # missing value
+                # if missing values do not count as unique values (i.e. if
+                # ignore_na is True), we can skip the actual value, and
+                # replace the label with na_sentinel directly
                 labels[i] = na_sentinel
             else:
                 # if ignore_na is False, we also stringify NaN/None/etc.
@@ -779,6 +784,7 @@ cdef class StringHashTable(HashTable):
         with nogil:
             for i in range(n):
                 if ignore_na and labels[i] == na_sentinel:
+                    # skip entries for ignored missing values (see above)
                     continue
 
                 v = vecs[i]
@@ -1016,6 +1022,9 @@ cdef class PyObjectHashTable(HashTable):
 
             if ignore_na and ((val != val or val is None)
                               or (use_na_value and val == na_value)):
+                # if missing values do not count as unique values (i.e. if
+                # ignore_na is True), skip the hashtable entry for them, and
+                # replace the corresponding label with na_sentinel
                 labels[i] = na_sentinel
                 continue
 
