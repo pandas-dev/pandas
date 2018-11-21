@@ -22,19 +22,12 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-<<<<<<< HEAD
-
-from pandas.tseries.frequencies import to_offset, get_period_alias
-from pandas.tseries.offsets import Tick, generate_range, Day, _Day
-
-=======
 from pandas.core.algorithms import checked_add_with_arr
->>>>>>> upstream/master
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias, to_offset
-from pandas.tseries.offsets import Tick, generate_range
+from pandas.tseries.offsets import _Day, Day, Tick, generate_range
 
 _midnight = time(0, 0)
 
