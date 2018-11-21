@@ -100,6 +100,11 @@ jobs:
     condition: true
 
   - script: |
+      pytest --capture=no --strict scripts
+    displayName: 'Testing docstring validaton script'
+    condition: true
+
+  - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
       doc/make.py html
