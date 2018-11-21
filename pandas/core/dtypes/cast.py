@@ -725,7 +725,10 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
 
     elif is_object_dtype(arr):
 
-        if np.issubdtype(dtype.type, np.integer):
+        # if we have a datetime/timedelta array of objects
+        # then coerce to a proper dtype and recall astype_nansafe
+
+        if is_timedelta64_dtype(dtype):
             # TODO: this is an old numpy compat branch that is not necessary
             # anymore for its original purpose (unsafe casting from object to
             # int, see GH 1987).
@@ -740,15 +743,12 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
             # Once this is fixed, `astype_intsafe` can be deleted from lib.
             return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
 
-        # if we have a datetime/timedelta array of objects
-        # then coerce to a proper dtype and recall astype_nansafe
-
         elif is_datetime64_dtype(dtype):
             from pandas import to_datetime
             return astype_nansafe(to_datetime(arr).values, dtype, copy=copy)
-        elif is_timedelta64_dtype(dtype):
-            from pandas import to_timedelta
-            return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
+        # elif is_timedelta64_dtype(dtype):
+        #     from pandas import to_timedelta
+        #     return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
 
     if dtype.name in ("datetime64", "timedelta64"):
         msg = ("The '{dtype}' dtype has no unit. "
