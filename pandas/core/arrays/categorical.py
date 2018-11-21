@@ -5,13 +5,13 @@ from warnings import warn
 
 import numpy as np
 
-from pandas import compat
+from pandas._libs import algos as libalgos
+import pandas.compat as compat
 from pandas.compat import lzip, u
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
-from pandas._libs import algos as libalgos
 
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype, maybe_infer_to_datetimelike)
