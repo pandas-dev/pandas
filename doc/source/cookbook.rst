@@ -743,8 +743,9 @@ Apply
    def SeriesFromSubList(aList):
        return pd.Series(aList)
 
-   df_orgz = pd.concat({[(ind, row.apply(SeriesFromSubList))
-                         for ind, row in df.iterrows()]})
+   df_orgz = pd.concat(dict([(ind, row.apply(SeriesFromSubList))
+                             for ind, row in df.iterrows()]))
+   df_orgz
 
 `Rolling Apply with a DataFrame returning a Series
 <http://stackoverflow.com/questions/19121854/using-rolling-apply-on-a-dataframe-object>`__
@@ -762,8 +763,8 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
        v = ((((aDF.A + aDF.B) + 1).cumprod()) - 1) * Const
        return (aDF.index[0], v.iloc[-1])
 
-   S = pd.Series({[gm(df.iloc[i:min(i + 51, len(df) - 1)], 5)
-                   for i in range(len(df) - 50)]})
+   S = pd.Series(dict([gm(df.iloc[i:min(i + 51, len(df) - 1)], 5)
+                       for i in range(len(df) - 50)]))
    S
 
 `Rolling apply with a DataFrame returning a Scalar
@@ -782,11 +783,11 @@ Rolling Apply to multiple columns where function returns a Scalar (Volume Weight
 
    def vwap(bars):
        return ((bars.Close * bars.Volume).sum() / bars.Volume.sum())
+
    window = 5
    s = pd.concat([(pd.Series(vwap(df.iloc[i:i + window]),
                    index=[df.index[i + window]]))
                   for i in range(len(df) - window)])
-   s.round(2)
    s.round(2)
 
 Timeseries
@@ -1038,8 +1039,10 @@ Parsing date components in multi-columns
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Parsing date components in multi-columns is faster with a format
- 
+
 .. ipython:: python
+    :suppress:
+
     i = pd.date_range('20000101', periods=10000)
     df = pd.DataFrame({'year': i.year, 'month': i.month, 'day': i.day})
     df.head()
