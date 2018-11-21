@@ -1183,8 +1183,8 @@ class TestTimedeltaArraylikeMulDivOps(object):
 
     def test_td64arr_div_td64_ndarray(self, box_with_array):
         # GH#22631
-        rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
-        expected = pd.Float64Index([12, np.nan, 24], name='foo')
+        rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'])
+        expected = pd.Float64Index([12, np.nan, 24])
 
         rng = tm.box_expected(rng, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1194,20 +1194,40 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(result, expected)
 
         result = rng / tm.box_expected(other, box_with_array)
-        tm.assert_equal(result, expected, check_names=False)
+        tm.assert_equal(result, expected)
 
         result = rng / other.astype(object)
         tm.assert_equal(result, expected)
 
+        result = rng / list(other)
+        tm.assert_equal(result, expected)
+
+        # reversed op
         expected = 1 / expected
         result = other / rng
         tm.assert_equal(result, expected)
 
         result = tm.box_expected(other, box_with_array) / rng
-        tm.assert_equal(result, expected, check_names=False)
+        tm.assert_equal(result, expected)
 
         result = other.astype(object) / rng
         tm.assert_equal(result, expected)
+
+        result = list(other) / rng
+        tm.assert_equal(result, expected)
+
+    def test_tdarr_div_length_mismatch(self, box_with_array):
+        rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'])
+        mismatched = [1, 2, 3, 4]
+
+        rng = tm.box_expected(rng, box_with_array)
+        for obj in [mismatched, mismatched[:2]]:
+            # one shorter, one longer
+            for other in [obj, np.array(obj), pd.Index(obj)]:
+                with pytest.raises(ValueError):
+                    rng / other
+                with pytest.raises(ValueError):
+                    other / rng
 
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__

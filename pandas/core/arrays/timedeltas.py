@@ -165,6 +165,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     def __new__(cls, values, freq=None, dtype=_TD_DTYPE):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
+        values, inferred_freq = sequence_to_td64ns(values)
 
         values = np.array(values, copy=False)
         if values.dtype == np.object_:
@@ -328,7 +329,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     __rfloordiv__ = _wrap_tdi_op(ops.rfloordiv)
 
     def __truediv__(self, other):
-        # TODO: should we unbox zero_dim?
+        # TODO: Decimals?
+        other = lib.item_from_zerodim(other)
+
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
             return NotImplemented
 
@@ -352,6 +355,13 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                 freq = self.freq.delta / other
             return type(self)(result, freq=freq)
 
+        if not hasattr(other, "dtype"):
+            # e.g. list, tuple
+            other = np.array(other)
+
+        if len(other) != len(self):
+            raise ValueError("Cannot divide vectors with unequal lengths")
+
         elif is_timedelta64_dtype(other):
             # let numpy handle it
             return self._data / other
@@ -371,6 +381,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             return type(self)(result)
 
     def __rtruediv__(self, other):
+        other = lib.item_from_zerodim(other)
+
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
             return NotImplemented
 
@@ -384,6 +396,18 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
             # otherwise, dispatch to Timedelta implementation
             return other / self._data
+
+        elif lib.is_scalar(other):
+            raise TypeError("Cannot divide {typ} by {cls}"
+                            .format(typ=type(other).__name__,
+                                    cls=type(self).__name__))
+
+        if not hasattr(other, "dtype"):
+            # e.g. list, tuple
+            other = np.array(other)
+
+        if len(other) != len(self):
+            raise ValueError("Cannot divide vectors with unequal lengths")
 
         elif is_timedelta64_dtype(other):
             # let numpy handle it
