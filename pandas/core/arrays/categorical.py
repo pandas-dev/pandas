@@ -5,7 +5,7 @@ from warnings import warn
 
 import numpy as np
 
-from pandas._libs import algos as libalgos
+from pandas._libs import algos as libalgos, lib
 import pandas.compat as compat
 from pandas.compat import lzip, u
 from pandas.compat.numpy import function as nv
@@ -98,6 +98,14 @@ def _cat_compare_op(op):
                 ret[na_mask] = False
             return ret
 
+        # Numpy < 1.13 may convert a scalar to a zerodim array during
+        # comparison operation when second arg has higher priority, e.g.
+        #
+        #     cat[0] < cat
+        #
+        # With cat[0], for example, being ``np.int64(1)`` by the time it gets
+        # into this function would become ``np.array(1)``.
+        other = lib.item_from_zerodim(other)
         if is_scalar(other):
             if other in self.categories:
                 i = self.categories.get_loc(other)
