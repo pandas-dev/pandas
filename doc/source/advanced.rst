@@ -49,6 +49,11 @@ analysis.
 
 See the :ref:`cookbook<cookbook.multi_index>` for some advanced strategies.
 
+.. versionchanged:: 0.24.0
+
+   :attr:`MultiIndex.labels` has been renamed to :attr:`MultiIndex.codes`
+   and :attr:`MultiIndex.set_labels` to :attr:`MultiIndex.set_codes`.
+
 Creating a MultiIndex (hierarchical index) object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -469,7 +474,7 @@ values across a level. For instance:
 .. ipython:: python
 
    midx = pd.MultiIndex(levels=[['zero', 'one'], ['x', 'y']],
-                        labels=[[1, 1, 0, 0], [1, 0, 1, 0]])
+                        codes=[[1, 1, 0, 0],[1, 0, 1, 0]])
    df = pd.DataFrame(np.random.randn(4, 2), index=midx)
    df
    df2 = df.mean(level=0)
