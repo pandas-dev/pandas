@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_extension_type,
-    is_extension_array_dtype)
+    is_extension_array_dtype, is_datetime64tz_dtype)
 
 from pandas.util._validators import validate_bool_kwarg
 from pandas.errors import AbstractMethodError
@@ -861,7 +861,9 @@ class IndexOpsMixin(object):
         >>> ser.to_numpy()
         array(['a', 'b', 'a'], dtype=object)
         """
-        if is_extension_array_dtype(self.dtype):
+        if (is_extension_array_dtype(self.dtype) or
+                is_datetime64tz_dtype(self.dtype)):
+            # TODO(DatetimeArray): remove the second clause.
             return np.asarray(self._values)
         return self._values
 

@@ -81,11 +81,11 @@ the **array** property
 
 Getting the "raw data" inside a :class:`DataFrame` is possibly a bit more
 complex. When your ``DataFrame`` only has a single data type for all the
-columns, :atr:`DataFrame.values` will return the underlying data:
+columns, :atr:`DataFrame.to_numpy` will return the underlying data:
 
 .. ipython:: python
 
-   df.values
+   df.to_numpy()
 
 If a DataFrame or Panel contains homogeneously-typed data, the ndarray can
 actually be modified in-place, and the changes will be reflected in the data
@@ -2076,7 +2076,7 @@ force some *upcasting*.
 
 .. ipython:: python
 
-   df3.values.dtype
+   df3.to_numpy().dtype
 
 astype
 ~~~~~~
