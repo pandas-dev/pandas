@@ -593,7 +593,6 @@ class TestTimestampConstructors(object):
         result = Timestamp(datetime(2018, 1, 1), tz=tzutc())
         expected = Timestamp(datetime(2018, 1, 1)).tz_localize(tzutc())
         assert result == expected
-        assert result.tz is tzutc()
 
 
 class TestTimestamp(object):
