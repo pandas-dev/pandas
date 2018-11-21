@@ -19,7 +19,8 @@ from pandas.util import testing as tm
 
 
 @pytest.fixture
-def frame():
+def multiindex_dataframe_random_data():
+    """DataFrame with 2 level MultiIndex with random data"""
     index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                               'three']],
                        labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
@@ -30,7 +31,9 @@ def frame():
 
 
 @pytest.fixture
-def ymd():
+def multiindex_year_month_day_dataframe_random_data():
+    """DataFrame with 3 level MultiIndex (year, month, day) covering
+    first 100 business days from 2000-01-01 with random data"""
     tm.N = 100
     tdf = tm.makeTimeDataFrame()
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month,
@@ -774,7 +777,8 @@ class TestMultiIndexBasic(object):
     def test_multiindex_is_homogeneous_type(self, data, expected):
         assert data._is_homogeneous_type is expected
 
-    def test_getitem_simple(self, frame):
+    def test_getitem_simple(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
         df = frame.T
 
         col = df['foo', 'one']
@@ -784,7 +788,9 @@ class TestMultiIndexBasic(object):
         with pytest.raises(KeyError):
             df['foobar']
 
-    def test_series_getitem(self, ymd):
+    def test_series_getitem(
+            self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
         s = ymd['A']
 
         result = s[2000, 3]
@@ -813,7 +819,9 @@ class TestMultiIndexBasic(object):
         # key error
         pytest.raises(KeyError, s.__getitem__, (2000, 3, 4))
 
-    def test_series_getitem_corner(self, ymd):
+    def test_series_getitem_corner(
+            self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
         s = ymd['A']
 
         # don't segfault, GH #495
@@ -825,7 +833,9 @@ class TestMultiIndexBasic(object):
         expected = s[s > 0]
         tm.assert_series_equal(result, expected)
 
-    def test_frame_getitem_setitem_boolean(self, frame):
+    def test_frame_getitem_setitem_boolean(
+            self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
         df = frame.T.copy()
         values = df.values
 
@@ -849,7 +859,9 @@ class TestMultiIndexBasic(object):
         with pytest.raises(TypeError, match='boolean values only'):
             df[df * 0] = 2
 
-    def test_frame_getitem_setitem_slice(self, frame):
+    def test_frame_getitem_setitem_slice(
+            self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
         # getitem
         result = frame.iloc[:4]
         expected = frame[:4]
@@ -920,16 +932,18 @@ class TestMultiIndexBasic(object):
         tm.assert_series_equal(result, expected2)
         tm.assert_series_equal(result, expected3)
 
-    def test_getitem_setitem_tuple_plus_columns(self, ymd):
+    def test_getitem_setitem_tuple_plus_columns(
+            self, multiindex_year_month_day_dataframe_random_data):
         # GH #1013
-
+        ymd = multiindex_year_month_day_dataframe_random_data
         df = ymd[:5]
 
         result = df.loc[(2000, 1, 6), ['A', 'B', 'C']]
         expected = df.loc[2000, 1, 6][['A', 'B', 'C']]
         tm.assert_series_equal(result, expected)
 
-    def test_xs(self, frame):
+    def test_xs(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
         xs = frame.xs(('bar', 'two'))
         xs2 = frame.loc[('bar', 'two')]
 
@@ -955,7 +969,10 @@ class TestMultiIndexBasic(object):
         result = df.xs('z', level='a1')
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_partial(self, frame, ymd):
+    def test_xs_partial(self, multiindex_dataframe_random_data,
+                        multiindex_year_month_day_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+        ymd = multiindex_year_month_day_dataframe_random_data
         result = frame.xs('foo')
         result2 = frame.loc['foo']
         expected = frame.T['foo'].T
@@ -978,15 +995,17 @@ class TestMultiIndexBasic(object):
         expected = df.loc['foo', 'one']
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_with_duplicates(self, frame):
+    def test_xs_with_duplicates(self, multiindex_dataframe_random_data):
         # Issue #13719
+        frame = multiindex_dataframe_random_data
         df_dup = concat([frame] * 2)
         assert df_dup.index.is_unique is False
         expected = concat([frame.xs('one', level='second')] * 2)
         tm.assert_frame_equal(df_dup.xs('one', level='second'), expected)
         tm.assert_frame_equal(df_dup.xs(['one'], level=['second']), expected)
 
-    def test_xs_level(self, frame):
+    def test_xs_level(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
         result = frame.xs('two', level='second')
         expected = frame[frame.index.get_level_values(1) == 'two']
         expected.index = expected.index.droplevel(1)
@@ -1059,7 +1078,10 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert len(result) == 2
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_level_series(self, frame, ymd):
+    def test_xs_level_series(self, multiindex_dataframe_random_data,
+                             multiindex_year_month_day_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+        ymd = multiindex_year_month_day_dataframe_random_data
         s = frame['A']
         result = s[:, 'two']
         expected = frame.xs('two', level=1)['A']
@@ -1082,7 +1104,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # can do this though
 
-    def test_getitem_toplevel(self, frame):
+    def test_getitem_toplevel(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
         df = frame.T
 
         result = df['foo']
@@ -1120,27 +1143,30 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         series.loc[1:2] = 7
         assert (series.loc[1:2] == 7).values.all()
 
-    def test_getitem_int(self, frame):
+    def test_getitem_int(self, multiindex_dataframe_random_data):
         levels = [[0, 1], [0, 1, 2]]
         labels = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
         index = MultiIndex(levels=levels, labels=labels)
 
-        _frame = DataFrame(np.random.randn(6, 2), index=index)
+        frame = DataFrame(np.random.randn(6, 2), index=index)
 
-        result = _frame.loc[1]
-        expected = _frame[-3:]
+        result = frame.loc[1]
+        expected = frame[-3:]
         expected.index = expected.index.droplevel(0)
         tm.assert_frame_equal(result, expected)
 
         # raises exception
-        pytest.raises(KeyError, _frame.loc.__getitem__, 3)
+        pytest.raises(KeyError, frame.loc.__getitem__, 3)
 
         # however this will work
+        frame = multiindex_dataframe_random_data
         result = frame.iloc[2]
         expected = frame.xs(frame.index[2])
         tm.assert_series_equal(result, expected)
 
-    def test_getitem_partial(self, ymd):
+    def test_getitem_partial(
+            self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
         ymd = ymd.T
         result = ymd[2000, 2]
 
@@ -1169,7 +1195,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         pytest.raises(KeyError, df.loc.__getitem__,
                       (('a', 'foo'), slice(None, None)))
 
-    def test_frame_getitem_view(self, frame):
+    def test_frame_getitem_view(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
         df = frame.T.copy()
 
         # this works because we are modifying the underlying array
@@ -1194,7 +1221,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             pass
         assert (df['foo', 'one'] == 0).all()
 
-    def test_getitem_lowerdim_corner(self, frame):
+    def test_getitem_lowerdim_corner(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
         pytest.raises(KeyError, frame.loc.__getitem__,
                       (('bar', 'three'), 'B'))
 
@@ -1214,7 +1242,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         xp = Series(['x'], index=xp_idx, name='data')
         tm.assert_series_equal(rs, xp)
 
-    def test_getitem_slice_not_sorted(self, frame):
+    def test_getitem_slice_not_sorted(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
         df = frame.sort_index(level=1).T
 
         # buglet with int typechecking
@@ -1246,7 +1275,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert result.index.is_monotonic
         tm.assert_frame_equal(result, expected)
 
-    def test_frame_getitem_not_sorted(self, frame):
+    def test_frame_getitem_not_sorted(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
         df = frame.T
         df['foo', 'four'] = 'foo'
 
