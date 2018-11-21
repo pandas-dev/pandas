@@ -3,33 +3,24 @@ from datetime import date, datetime, timedelta
 import functools
 import operator
 
-from pandas.compat import range
-from pandas import compat
+from dateutil.easter import easter
 import numpy as np
 
-from pandas.core.dtypes.generic import ABCPeriod
-from pandas.core.tools.datetimes import to_datetime
-import pandas.core.common as com
-
-# import after tools, dateutil check
-from dateutil.easter import easter
-from pandas._libs import tslibs, Timestamp, OutOfBoundsDatetime, Timedelta
+from pandas._libs.tslibs import (
+    NaT, OutOfBoundsDatetime, Timedelta, Timestamp, ccalendar, conversion,
+    delta_to_nanoseconds, frequencies as libfrequencies, normalize_date,
+    offsets as liboffsets)
+from pandas._libs.tslibs.offsets import (
+    ApplyTypeError, BaseOffset, _get_calendar, _is_normalized, _to_dt64,
+    apply_index_wraps, as_datetime, roll_yearday, shift_month)
+import pandas.compat as compat
+from pandas.compat import range
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
-from pandas._libs.tslibs import (
-    ccalendar, conversion,
-    frequencies as libfrequencies)
-from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
-import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import (
-    ApplyTypeError,
-    as_datetime, _is_normalized,
-    _get_calendar, _to_dt64,
-    apply_index_wraps,
-    roll_yearday,
-    shift_month,
-    BaseOffset)
+from pandas.core.dtypes.generic import ABCPeriod
 
+from pandas.core.tools.datetimes import to_datetime
 
 __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'CBMonthEnd', 'CBMonthBegin',
@@ -60,8 +51,8 @@ def as_timestamp(obj):
 def apply_wraps(func):
     @functools.wraps(func)
     def wrapper(self, other):
-        if other is tslibs.NaT:
-            return tslibs.NaT
+        if other is NaT:
+            return NaT
         elif isinstance(other, (timedelta, Tick, DateOffset)):
             # timedelta path
             return func(self, other)
@@ -103,7 +94,7 @@ def apply_wraps(func):
 
             if self.normalize:
                 # normalize_date returns normal datetime
-                result = tslibs.normalize_date(result)
+                result = normalize_date(result)
 
             if tz is not None and result.tzinfo is None:
                 result = conversion.localize_pydatetime(result, tz)
@@ -807,7 +798,6 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
     Parameters
     ----------
     n : int, default 1
-    offset : timedelta, default timedelta(0)
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
@@ -816,6 +806,7 @@ class CustomBusinessDay(_CustomMixin, BusinessDay):
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
+    offset : timedelta, default timedelta(0)
     """
     _prefix = 'C'
     _attributes = frozenset(['n', 'normalize',
@@ -958,7 +949,6 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
     Parameters
     ----------
     n : int, default 1
-    offset : timedelta, default timedelta(0)
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range
     weekmask : str, Default 'Mon Tue Wed Thu Fri'
@@ -967,6 +957,7 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         list/array of dates to exclude from the set of valid business days,
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
+    offset : timedelta, default timedelta(0)
     """
     _attributes = frozenset(['n', 'normalize',
                              'weekmask', 'holidays', 'calendar', 'offset'])
@@ -1097,7 +1088,7 @@ class SemiMonthOffset(DateOffset):
 
     def _apply(self, n, other):
         """Handle specific apply logic for child classes"""
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     @apply_index_wraps
     def apply_index(self, i):
@@ -1137,11 +1128,11 @@ class SemiMonthOffset(DateOffset):
         The roll array is based on the fact that i gets rolled back to
         the first day of the month.
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _apply_index_days(self, i, roll):
         """Apply the correct day for each date in i"""
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
 
 class SemiMonthEnd(SemiMonthOffset):
@@ -1153,9 +1144,9 @@ class SemiMonthEnd(SemiMonthOffset):
 
     Parameters
     ----------
-    n: int
+    n : int
     normalize : bool, default False
-    day_of_month: int, {1, 3,...,27}, default 15
+    day_of_month : int, {1, 3,...,27}, default 15
     """
     _prefix = 'SM'
     _min_day_of_month = 1
@@ -1212,9 +1203,9 @@ class SemiMonthBegin(SemiMonthOffset):
 
     Parameters
     ----------
-    n: int
+    n : int
     normalize : bool, default False
-    day_of_month: int, {2, 3,...,27}, default 15
+    day_of_month : int, {2, 3,...,27}, default 15
     """
     _prefix = 'SMS'
 
@@ -1432,11 +1423,11 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
 
         Parameters
         ----------
-        other: datetime
+        other : datetime
 
         Returns
         -------
-        day: int
+        day : int
         """
         mstart = datetime(other.year, other.month, 1)
         wday = mstart.weekday()
@@ -2203,9 +2194,18 @@ class _Day(SingleConstructorOffset):
 
 
 def _tick_comp(op):
-    def f(self, other):
-        return op(self.delta, other.delta)
+    assert op not in [operator.eq, operator.ne]
 
+    def f(self, other):
+        try:
+            return op(self.delta, other.delta)
+        except AttributeError:
+            # comparing with a non-Tick object
+            raise TypeError("Invalid comparison between {cls} and {typ}"
+                            .format(cls=type(self).__name__,
+                                    typ=type(other).__name__))
+
+    f.__name__ = '__{opname}__'.format(opname=op.__name__)
     return f
 
 
@@ -2224,8 +2224,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     __ge__ = _tick_comp(operator.ge)
     __lt__ = _tick_comp(operator.lt)
     __le__ = _tick_comp(operator.le)
-    __eq__ = _tick_comp(operator.eq)
-    __ne__ = _tick_comp(operator.ne)
 
     def __add__(self, other):
         if isinstance(other, Tick):
@@ -2246,8 +2244,13 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
-
-            other = to_offset(other)
+            try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return False
 
         if isinstance(other, Tick):
             return self.delta == other.delta
@@ -2262,8 +2265,13 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     def __ne__(self, other):
         if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
-
-            other = to_offset(other)
+            try:
+                # GH#23524 if to_offset fails, we are dealing with an
+                #  incomparable type so == is False and != is True
+                other = to_offset(other)
+            except ValueError:
+                # e.g. "infer"
+                return True
 
         if isinstance(other, Tick):
             return self.delta != other.delta

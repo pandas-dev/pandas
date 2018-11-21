@@ -20,6 +20,7 @@ from pandas._libs import Timestamp, groupby as libgroupby
 import pandas.compat as compat
 from pandas.compat import callable, range, set_function_name, zip
 from pandas.compat.numpy import function as nv
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_kwargs
 
@@ -42,7 +43,7 @@ from pandas.core.sorting import get_group_index_sorter
 
 _doc_template = """
 
-        See also
+        See Also
         --------
         pandas.Series.%(name)s
         pandas.DataFrame.%(name)s
@@ -90,7 +91,7 @@ _apply_docs = dict(
     --------
     {examples}
 
-    See also
+    See Also
     --------
     pipe : Apply function to the full GroupBy object instead of to each
         group.
@@ -215,8 +216,8 @@ Examples
 
 See Also
 --------
-pandas.Series.pipe : Apply a function with arguments to a series
-pandas.DataFrame.pipe: Apply a function with arguments to a dataframe
+pandas.Series.pipe : Apply a function with arguments to a series.
+pandas.DataFrame.pipe: Apply a function with arguments to a dataframe.
 apply : Apply function to each group instead of to the
     full %(klass)s object.
 """
@@ -252,7 +253,7 @@ Returns
 -------
 %(klass)s
 
-See also
+See Also
 --------
 aggregate, transform
 
@@ -323,7 +324,7 @@ def _group_selection_context(groupby):
 
 class _GroupBy(PandasObject, SelectionMixin):
     _group_selection = None
-    _apply_whitelist = frozenset([])
+    _apply_whitelist = frozenset()
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
@@ -493,7 +494,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
-            self._group_selection = ax.difference(Index(groupers)).tolist()
+            self._group_selection = ax.difference(Index(groupers),
+                                                  sort=False).tolist()
             self._reset_cache('_selected_obj')
 
     def _set_result_index_ordered(self, result):
@@ -706,7 +708,7 @@ b  2""")
         yield self._selection_name, self._selected_obj
 
     def transform(self, func, *args, **kwargs):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _cumcount_array(self, ascending=True):
         """
@@ -861,7 +863,7 @@ b  2""")
         return self._wrap_aggregated_output(output)
 
     def _wrap_applied_output(self, *args, **kwargs):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _concat_objects(self, keys, values, not_indexed_same=False):
         from pandas.core.reshape.concat import concat
@@ -1306,12 +1308,111 @@ class GroupBy(_GroupBy):
                 return result.T
             return result.unstack()
 
-    @Substitution(name='groupby')
-    @Appender(_doc_template)
     def resample(self, rule, *args, **kwargs):
         """
-        Provide resampling when using a TimeGrouper
-        Return a new grouper with our resampler appended
+        Provide resampling when using a TimeGrouper.
+
+        Given a grouper, the function resamples it according to a string
+        "string" -> "frequency".
+
+        See the :ref:`frequency aliases <timeseries.offset-aliases>`
+        documentation for more details.
+
+        Parameters
+        ----------
+        rule : str or DateOffset
+            The offset string or object representing target grouper conversion.
+        *args, **kwargs
+            Possible arguments are `how`, `fill_method`, `limit`, `kind` and
+            `on`, and other arguments of `TimeGrouper`.
+
+        Returns
+        -------
+        Grouper
+            Return a new grouper with our resampler appended.
+
+        See Also
+        --------
+        pandas.Grouper : Specify a frequency to resample with when
+            grouping by a key.
+        DatetimeIndex.resample : Frequency conversion and resampling of
+            time series.
+
+        Examples
+        --------
+        >>> idx = pd.date_range('1/1/2000', periods=4, freq='T')
+        >>> df = pd.DataFrame(data=4 * [range(2)],
+        ...                   index=idx,
+        ...                   columns=['a', 'b'])
+        >>> df.iloc[2, 0] = 5
+        >>> df
+                            a  b
+        2000-01-01 00:00:00  0  1
+        2000-01-01 00:01:00  0  1
+        2000-01-01 00:02:00  5  1
+        2000-01-01 00:03:00  0  1
+
+        Downsample the DataFrame into 3 minute bins and sum the values of
+        the timestamps falling into a bin.
+
+        >>> df.groupby('a').resample('3T').sum()
+                                 a  b
+        a
+        0   2000-01-01 00:00:00  0  2
+            2000-01-01 00:03:00  0  1
+        5   2000-01-01 00:00:00  5  1
+
+        Upsample the series into 30 second bins.
+
+        >>> df.groupby('a').resample('30S').sum()
+                            a  b
+        a
+        0   2000-01-01 00:00:00  0  1
+            2000-01-01 00:00:30  0  0
+            2000-01-01 00:01:00  0  1
+            2000-01-01 00:01:30  0  0
+            2000-01-01 00:02:00  0  0
+            2000-01-01 00:02:30  0  0
+            2000-01-01 00:03:00  0  1
+        5   2000-01-01 00:02:00  5  1
+
+        Resample by month. Values are assigned to the month of the period.
+
+        >>> df.groupby('a').resample('M').sum()
+                    a  b
+        a
+        0   2000-01-31  0  3
+        5   2000-01-31  5  1
+
+        Downsample the series into 3 minute bins as above, but close the right
+        side of the bin interval.
+
+        >>> df.groupby('a').resample('3T', closed='right').sum()
+                                 a  b
+        a
+        0   1999-12-31 23:57:00  0  1
+            2000-01-01 00:00:00  0  2
+        5   2000-01-01 00:00:00  5  1
+
+        Downsample the series into 3 minute bins and close the right side of
+        the bin interval, but label each bin using the right edge instead of
+        the left.
+
+        >>> df.groupby('a').resample('3T', closed='right', label='right').sum()
+                                 a  b
+        a
+        0   2000-01-01 00:00:00  0  1
+            2000-01-01 00:03:00  0  2
+        5   2000-01-01 00:03:00  5  1
+
+        Add an offset of twenty seconds.
+
+        >>> df.groupby('a').resample('3T', loffset='20s').sum()
+                               a  b
+        a
+        0   2000-01-01 00:00:20  0  2
+            2000-01-01 00:03:20  0  1
+        5   2000-01-01 00:00:20  5  1
         """
         from pandas.core.resample import get_resampler_for_grouping
         return get_resampler_for_grouping(self, rule, *args, **kwargs)
@@ -1623,7 +1724,7 @@ class GroupBy(_GroupBy):
         5    0
         dtype: int64
 
-        See also
+        See Also
         --------
         .cumcount : Number the rows in each group.
         """
@@ -1679,7 +1780,7 @@ class GroupBy(_GroupBy):
         5    0
         dtype: int64
 
-        See also
+        See Also
         --------
         .ngroup : Number the groups themselves.
         """

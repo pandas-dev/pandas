@@ -97,14 +97,16 @@ class TestDatetimeIndexOps(object):
         assert elt.round(freq='H') == expected_elt
 
         msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             rng.round(freq='foo')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             elt.round(freq='foo')
 
         msg = "<MonthEnd> is a non-fixed frequency"
-        tm.assert_raises_regex(ValueError, msg, rng.round, freq='M')
-        tm.assert_raises_regex(ValueError, msg, elt.round, freq='M')
+        with pytest.raises(ValueError, match=msg):
+            rng.round(freq='M')
+        with pytest.raises(ValueError, match=msg):
+            elt.round(freq='M')
 
         # GH#14440 & GH#15578
         index = DatetimeIndex(['2016-10-17 12:00:00.0015'], tz=tz)
@@ -232,6 +234,12 @@ class TestDatetimeIndexOps(object):
 
         assert result.is_normalized
         assert not rng.is_normalized
+
+    def test_normalize_nat(self):
+        dti = DatetimeIndex([pd.NaT, Timestamp('2018-01-01 01:00:00')])
+        result = dti.normalize()
+        expected = DatetimeIndex([pd.NaT, Timestamp('2018-01-01')])
+        tm.assert_index_equal(result, expected)
 
 
 class TestDateTimeIndexToJulianDate(object):

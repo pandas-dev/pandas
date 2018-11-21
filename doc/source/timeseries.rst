@@ -2351,7 +2351,8 @@ can be controlled by the ``nonexistent`` argument. The following options are ava
 * ``shift``: Shifts nonexistent times forward to the closest real time
 
 .. ipython:: python
-    dti = date_range(start='2015-03-29 01:30:00', periods=3, freq='H')
+
+    dti = pd.date_range(start='2015-03-29 01:30:00', periods=3, freq='H')
     # 2:30 is a nonexistent time
 
 Localization of nonexistent times will raise an error by default.
@@ -2364,6 +2365,7 @@ Localization of nonexistent times will raise an error by default.
 Transform nonexistent times to ``NaT`` or the closest real time forward in time.
 
 .. ipython:: python
+
     dti
     dti.tz_localize('Europe/Warsaw', nonexistent='shift')
     dti.tz_localize('Europe/Warsaw', nonexistent='NaT')

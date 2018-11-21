@@ -9,7 +9,6 @@ from __future__ import print_function
 import pytest
 
 import numpy as np
-from numpy import nan
 import pandas as pd
 
 from pandas import (bdate_range, DataFrame, Index, Series, Timestamp,
@@ -36,11 +35,11 @@ import pandas.util.testing as tm
     'max',
 ])
 def test_cythonized_aggers(op_name):
-    data = {'A': [0, 0, 0, 0, 1, 1, 1, 1, 1, 1., nan, nan],
+    data = {'A': [0, 0, 0, 0, 1, 1, 1, 1, 1, 1., np.nan, np.nan],
             'B': ['A', 'B'] * 6,
             'C': np.random.randn(12)}
     df = DataFrame(data)
-    df.loc[2:10:2, 'C'] = nan
+    df.loc[2:10:2, 'C'] = np.nan
 
     op = lambda x: getattr(x, op_name)()
 
@@ -82,12 +81,12 @@ def test_cython_agg_nothing_to_agg():
                        'b': ['foo', 'bar'] * 25})
     msg = "No numeric types to aggregate"
 
-    with tm.assert_raises_regex(DataError, msg):
+    with pytest.raises(DataError, match=msg):
         frame.groupby('a')['b'].mean()
 
     frame = DataFrame({'a': np.random.randint(0, 5, 50),
                        'b': ['foo', 'bar'] * 25})
-    with tm.assert_raises_regex(DataError, msg):
+    with pytest.raises(DataError, match=msg):
         frame[['b']].groupby(frame['a']).mean()
 
 
@@ -96,7 +95,7 @@ def test_cython_agg_nothing_to_agg_with_dates():
                        'b': ['foo', 'bar'] * 25,
                        'dates': pd.date_range('now', periods=50, freq='T')})
     msg = "No numeric types to aggregate"
-    with tm.assert_raises_regex(DataError, msg):
+    with pytest.raises(DataError, match=msg):
         frame.groupby('b').dates.mean()
 
 

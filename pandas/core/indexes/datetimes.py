@@ -1,57 +1,44 @@
 # pylint: disable=E1101
 from __future__ import division
+
+from datetime import datetime, time, timedelta
 import operator
 import warnings
-from datetime import time, datetime, timedelta
 
 import numpy as np
-from pytz import utc
 
-from pandas.core.base import _shared_docs
+from pandas._libs import (
+    Timestamp, index as libindex, join as libjoin, lib, tslib as libts)
+from pandas._libs.tslibs import (
+    ccalendar, conversion, fields, parsing, timezones)
+import pandas.compat as compat
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
-    _INT64_DTYPE,
-    _NS_DTYPE,
-    is_datetime64_dtype,
-    is_datetimetz,
-    is_dtype_equal,
-    is_integer,
-    is_float,
-    is_integer_dtype,
-    is_datetime64_ns_dtype,
-    is_period_dtype,
-    is_string_like,
-    is_list_like,
-    is_scalar,
-    pandas_dtype,
-    ensure_int64)
+    _INT64_DTYPE, _NS_DTYPE, ensure_int64, is_datetime64_dtype,
+    is_datetime64_ns_dtype, is_datetimetz, is_dtype_equal, is_float,
+    is_integer, is_integer_dtype, is_list_like, is_period_dtype, is_scalar,
+    is_string_like, pandas_dtype)
+import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.dtypes.concat as _concat
-from pandas.core.arrays.datetimes import DatetimeArrayMixin, _to_m8
 from pandas.core.arrays import datetimelike as dtl
-
+from pandas.core.arrays.datetimes import (
+    DatetimeArrayMixin as DatetimeArray, _to_m8)
+from pandas.core.base import _shared_docs
+import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.datetimelike import (
+    DatelikeOps, DatetimeIndexOpsMixin, TimelikeOps, wrap_array_method,
+    wrap_field_accessor)
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
-import pandas.compat as compat
-from pandas.tseries.frequencies import to_offset, Resolution
-from pandas.core.indexes.datetimelike import (
-    DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
-    wrap_field_accessor, wrap_array_method)
-from pandas.tseries.offsets import (
-    CDay, prefix_mapping)
-
-from pandas.util._decorators import Appender, cache_readonly, Substitution
-import pandas.core.common as com
-import pandas.tseries.offsets as offsets
 import pandas.core.tools.datetimes as tools
 
-from pandas._libs import (lib, index as libindex, tslib as libts,
-                          join as libjoin, Timestamp)
-from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
-                                 ccalendar)
+from pandas.tseries import offsets
+from pandas.tseries.frequencies import Resolution, to_offset
+from pandas.tseries.offsets import CDay, prefix_mapping
 
 
 def _new_DatetimeIndex(cls, d):
@@ -68,7 +55,7 @@ def _new_DatetimeIndex(cls, d):
     return result
 
 
-class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
+class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                     DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
@@ -176,14 +163,12 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
     See Also
     ---------
-    Index : The base pandas Index type
-    TimedeltaIndex : Index of timedelta64 data
-    PeriodIndex : Index of Period data
-    pandas.to_datetime : Convert argument to datetime
+    Index : The base pandas Index type.
+    TimedeltaIndex : Index of timedelta64 data.
+    PeriodIndex : Index of Period data.
+    pandas.to_datetime : Convert argument to datetime.
 
     """
-    _resolution = cache_readonly(DatetimeArrayMixin._resolution.fget)
-
     _typ = 'datetimeindex'
     _join_precedence = 10
 
@@ -227,8 +212,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
     _is_numeric_dtype = False
     _infer_as_myclass = True
-    _timezone = cache_readonly(DatetimeArrayMixin._timezone.fget)
-    is_normalized = cache_readonly(DatetimeArrayMixin.is_normalized.fget)
 
     # --------------------------------------------------------------------
     # Constructors
@@ -238,6 +221,21 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 normalize=False, closed=None, ambiguous='raise',
                 dayfirst=False, yearfirst=False, dtype=None,
                 copy=False, name=None, verify_integrity=True):
+
+        if data is None:
+            # TODO: Remove this block and associated kwargs; GH#20535
+            result = cls._generate_range(start, end, periods,
+                                         freq=freq, tz=tz, normalize=normalize,
+                                         closed=closed, ambiguous=ambiguous)
+            result.name = name
+            return result
+
+        if is_scalar(data):
+            raise TypeError("{cls}() must be called with a "
+                            "collection of some kind, {data} was passed"
+                            .format(cls=cls.__name__, data=repr(data)))
+
+        # - Cases checked above all return/raise before reaching here - #
 
         # This allows to later ensure that the 'copy' parameter is honored:
         if isinstance(data, Index):
@@ -253,20 +251,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
 
-        if data is None:
-            # TODO: Remove this block and associated kwargs; GH#20535
-            result = cls._generate_range(start, end, periods,
-                                         freq=freq, tz=tz, normalize=normalize,
-                                         closed=closed, ambiguous=ambiguous)
-            result.name = name
-            return result
-
-        if not isinstance(data, (np.ndarray, Index, ABCSeries,
-                                 DatetimeArrayMixin)):
-            if is_scalar(data):
-                raise ValueError('DatetimeIndex() must be called with a '
-                                 'collection of some kind, %s was passed'
-                                 % repr(data))
+        if not isinstance(data, (np.ndarray, Index, ABCSeries, DatetimeArray)):
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
                 data = list(data)
@@ -280,7 +265,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             data = tools.to_datetime(data, dayfirst=dayfirst,
                                      yearfirst=yearfirst)
 
-        if isinstance(data, DatetimeArrayMixin):
+        if isinstance(data, DatetimeArray):
             if tz is None:
                 tz = data.tz
             elif data.tz is None:
@@ -328,9 +313,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 cls._validate_frequency(subarr, freq, ambiguous=ambiguous)
 
         if freq_infer:
-            inferred = subarr.inferred_freq
-            if inferred:
-                subarr.freq = to_offset(inferred)
+            subarr.freq = to_offset(subarr.inferred_freq)
 
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
@@ -490,19 +473,19 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
     def _get_time_micros(self):
         values = self.asi8
-        if self.tz is not None and self.tz is not utc:
+        if self.tz is not None and not timezones.is_utc(self.tz):
             values = self._local_timestamps()
         return fields.get_time_micros(values)
 
-    def to_series(self, keep_tz=False, index=None, name=None):
+    def to_series(self, keep_tz=None, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
         useful with map for returning an indexer based on an index
 
         Parameters
         ----------
-        keep_tz : optional, defaults False.
-            return the data keeping the timezone.
+        keep_tz : optional, defaults False
+            Return the data keeping the timezone.
 
             If keep_tz is True:
 
@@ -516,6 +499,12 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
               Series will have a datetime64[ns] dtype. TZ aware
               objects will have the tz removed.
+
+            .. versionchanged:: 0.24
+                The default value will change to True in a future release.
+                You can set ``keep_tz=True`` to already obtain the future
+                behaviour and silence the warning.
+
         index : Index, optional
             index of resulting Series. If None, defaults to original index
         name : string, optional
@@ -532,6 +521,19 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             index = self._shallow_copy()
         if name is None:
             name = self.name
+
+        if keep_tz is None and self.tz is not None:
+            warnings.warn("The default of the 'keep_tz' keyword will change "
+                          "to True in a future release. You can set "
+                          "'keep_tz=True' to obtain the future behaviour and "
+                          "silence this warning.", FutureWarning, stacklevel=2)
+            keep_tz = False
+        elif keep_tz is False:
+            warnings.warn("Specifying 'keep_tz=False' is deprecated and this "
+                          "option will be removed in a future release. If "
+                          "you want to remove the timezone information, you "
+                          "can do 'idx.tz_convert(None)' before calling "
+                          "'to_series'.", FutureWarning, stacklevel=2)
 
         if keep_tz and self.tz is not None:
             # preserve the tz & copy
@@ -567,16 +569,13 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         # TODO: what about self.name?  if so, use shallow_copy?
 
     def unique(self, level=None):
-        # Override here since IndexOpsMixin.unique uses self._values.unique
-        # For DatetimeIndex with TZ, that's a DatetimeIndex -> recursion error
-        # So we extract the tz-naive DatetimeIndex, unique that, and wrap the
-        # result with out TZ.
-        if self.tz is not None:
-            naive = type(self)(self._ndarray_values, copy=False)
-        else:
-            naive = self
-        result = super(DatetimeIndex, naive).unique(level=level)
-        return self._shallow_copy(result.values)
+        if level is not None:
+            self._validate_index_level(level)
+
+        # TODO(DatetimeArray): change dispatch once inheritance is removed
+        # call DatetimeArray method
+        result = DatetimeArray.unique(self)
+        return self._shallow_copy(result._data)
 
     def union(self, other):
         """
@@ -937,7 +936,10 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
             # needed to localize naive datetimes
             if self.tz is not None:
-                key = Timestamp(key, tz=self.tz)
+                if key.tzinfo is not None:
+                    key = Timestamp(key).tz_convert(self.tz)
+                else:
+                    key = Timestamp(key).tz_localize(self.tz)
 
             return self.get_value_maybe_box(series, key)
 
@@ -963,7 +965,11 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     def get_value_maybe_box(self, series, key):
         # needed to localize naive datetimes
         if self.tz is not None:
-            key = Timestamp(key, tz=self.tz)
+            key = Timestamp(key)
+            if key.tzinfo is not None:
+                key = key.tz_convert(self.tz)
+            else:
+                key = key.tz_localize(self.tz)
         elif not isinstance(key, Timestamp):
             key = Timestamp(key)
         values = self._engine.get_value(com.values_from_object(series),
@@ -986,7 +992,10 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         if isinstance(key, datetime):
             # needed to localize naive datetimes
-            key = Timestamp(key, tz=self.tz)
+            if key.tzinfo is None:
+                key = Timestamp(key, tz=self.tz)
+            else:
+                key = Timestamp(key).tz_convert(self.tz)
             return Index.get_loc(self, key, method, tolerance)
 
         elif isinstance(key, timedelta):
@@ -1010,7 +1019,11 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 pass
 
             try:
-                stamp = Timestamp(key, tz=self.tz)
+                stamp = Timestamp(key)
+                if stamp.tzinfo is not None and self.tz is not None:
+                    stamp = stamp.tz_convert(self.tz)
+                else:
+                    stamp = stamp.tz_localize(self.tz)
                 return Index.get_loc(self, stamp, method, tolerance)
             except KeyError:
                 raise KeyError(key)
@@ -1124,43 +1137,47 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     # --------------------------------------------------------------------
     # Wrapping DatetimeArray
 
-    year = wrap_field_accessor(DatetimeArrayMixin.year)
-    month = wrap_field_accessor(DatetimeArrayMixin.month)
-    day = wrap_field_accessor(DatetimeArrayMixin.day)
-    hour = wrap_field_accessor(DatetimeArrayMixin.hour)
-    minute = wrap_field_accessor(DatetimeArrayMixin.minute)
-    second = wrap_field_accessor(DatetimeArrayMixin.second)
-    microsecond = wrap_field_accessor(DatetimeArrayMixin.microsecond)
-    nanosecond = wrap_field_accessor(DatetimeArrayMixin.nanosecond)
-    weekofyear = wrap_field_accessor(DatetimeArrayMixin.weekofyear)
+    _timezone = cache_readonly(DatetimeArray._timezone.fget)
+    is_normalized = cache_readonly(DatetimeArray.is_normalized.fget)
+    _resolution = cache_readonly(DatetimeArray._resolution.fget)
+
+    year = wrap_field_accessor(DatetimeArray.year)
+    month = wrap_field_accessor(DatetimeArray.month)
+    day = wrap_field_accessor(DatetimeArray.day)
+    hour = wrap_field_accessor(DatetimeArray.hour)
+    minute = wrap_field_accessor(DatetimeArray.minute)
+    second = wrap_field_accessor(DatetimeArray.second)
+    microsecond = wrap_field_accessor(DatetimeArray.microsecond)
+    nanosecond = wrap_field_accessor(DatetimeArray.nanosecond)
+    weekofyear = wrap_field_accessor(DatetimeArray.weekofyear)
     week = weekofyear
-    dayofweek = wrap_field_accessor(DatetimeArrayMixin.dayofweek)
+    dayofweek = wrap_field_accessor(DatetimeArray.dayofweek)
     weekday = dayofweek
 
-    weekday_name = wrap_field_accessor(DatetimeArrayMixin.weekday_name)
+    weekday_name = wrap_field_accessor(DatetimeArray.weekday_name)
 
-    dayofyear = wrap_field_accessor(DatetimeArrayMixin.dayofyear)
-    quarter = wrap_field_accessor(DatetimeArrayMixin.quarter)
-    days_in_month = wrap_field_accessor(DatetimeArrayMixin.days_in_month)
+    dayofyear = wrap_field_accessor(DatetimeArray.dayofyear)
+    quarter = wrap_field_accessor(DatetimeArray.quarter)
+    days_in_month = wrap_field_accessor(DatetimeArray.days_in_month)
     daysinmonth = days_in_month
-    is_month_start = wrap_field_accessor(DatetimeArrayMixin.is_month_start)
-    is_month_end = wrap_field_accessor(DatetimeArrayMixin.is_month_end)
-    is_quarter_start = wrap_field_accessor(DatetimeArrayMixin.is_quarter_start)
-    is_quarter_end = wrap_field_accessor(DatetimeArrayMixin.is_quarter_end)
-    is_year_start = wrap_field_accessor(DatetimeArrayMixin.is_year_start)
-    is_year_end = wrap_field_accessor(DatetimeArrayMixin.is_year_end)
-    is_leap_year = wrap_field_accessor(DatetimeArrayMixin.is_leap_year)
+    is_month_start = wrap_field_accessor(DatetimeArray.is_month_start)
+    is_month_end = wrap_field_accessor(DatetimeArray.is_month_end)
+    is_quarter_start = wrap_field_accessor(DatetimeArray.is_quarter_start)
+    is_quarter_end = wrap_field_accessor(DatetimeArray.is_quarter_end)
+    is_year_start = wrap_field_accessor(DatetimeArray.is_year_start)
+    is_year_end = wrap_field_accessor(DatetimeArray.is_year_end)
+    is_leap_year = wrap_field_accessor(DatetimeArray.is_leap_year)
 
-    tz_localize = wrap_array_method(DatetimeArrayMixin.tz_localize, True)
-    tz_convert = wrap_array_method(DatetimeArrayMixin.tz_convert, True)
-    to_perioddelta = wrap_array_method(DatetimeArrayMixin.to_perioddelta,
+    tz_localize = wrap_array_method(DatetimeArray.tz_localize, True)
+    tz_convert = wrap_array_method(DatetimeArray.tz_convert, True)
+    to_perioddelta = wrap_array_method(DatetimeArray.to_perioddelta,
                                        False)
-    to_period = wrap_array_method(DatetimeArrayMixin.to_period, True)
-    normalize = wrap_array_method(DatetimeArrayMixin.normalize, True)
-    to_julian_date = wrap_array_method(DatetimeArrayMixin.to_julian_date,
+    to_period = wrap_array_method(DatetimeArray.to_period, True)
+    normalize = wrap_array_method(DatetimeArray.normalize, True)
+    to_julian_date = wrap_array_method(DatetimeArray.to_julian_date,
                                        False)
-    month_name = wrap_array_method(DatetimeArrayMixin.month_name, True)
-    day_name = wrap_array_method(DatetimeArrayMixin.day_name, True)
+    month_name = wrap_array_method(DatetimeArray.month_name, True)
+    day_name = wrap_array_method(DatetimeArray.day_name, True)
 
     # --------------------------------------------------------------------
 

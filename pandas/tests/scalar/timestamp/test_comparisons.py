@@ -2,13 +2,11 @@
 from datetime import datetime
 import operator
 
-import pytest
 import numpy as np
+import pytest
 
-from dateutil.tz import tzutc
-from pytz import utc
+from pandas.compat import PY2, long
 
-from pandas.compat import long, PY2
 from pandas import Timestamp
 
 
@@ -69,7 +67,7 @@ class TestTimestampComparison(object):
         assert other >= val
 
     def test_compare_invalid(self):
-        # GH 8058
+        # GH#8058
         val = Timestamp('20130101 12:01:02')
         assert not val == 'foo'
         assert not val == 10.0
@@ -89,65 +87,42 @@ class TestTimestampComparison(object):
         assert val != np.float64(1)
         assert val != np.int64(1)
 
-    def test_cant_compare_tz_naive_w_aware(self):
-        # see gh-1404
+    def test_cant_compare_tz_naive_w_aware(self, utc_fixture):
+        # see GH#1404
         a = Timestamp('3/12/2012')
-        b = Timestamp('3/12/2012', tz='utc')
+        b = Timestamp('3/12/2012', tz=utc_fixture)
 
-        pytest.raises(Exception, a.__eq__, b)
-        pytest.raises(Exception, a.__ne__, b)
-        pytest.raises(Exception, a.__lt__, b)
-        pytest.raises(Exception, a.__gt__, b)
-        pytest.raises(Exception, b.__eq__, a)
-        pytest.raises(Exception, b.__ne__, a)
-        pytest.raises(Exception, b.__lt__, a)
-        pytest.raises(Exception, b.__gt__, a)
+        with pytest.raises(TypeError):
+            a == b
+        with pytest.raises(TypeError):
+            a != b
+        with pytest.raises(TypeError):
+            a < b
+        with pytest.raises(TypeError):
+            a <= b
+        with pytest.raises(TypeError):
+            a > b
+        with pytest.raises(TypeError):
+            a >= b
+
+        with pytest.raises(TypeError):
+            b == a
+        with pytest.raises(TypeError):
+            b != a
+        with pytest.raises(TypeError):
+            b < a
+        with pytest.raises(TypeError):
+            b <= a
+        with pytest.raises(TypeError):
+            b > a
+        with pytest.raises(TypeError):
+            b >= a
 
         if PY2:
-            pytest.raises(Exception, a.__eq__, b.to_pydatetime())
-            pytest.raises(Exception, a.to_pydatetime().__eq__, b)
-        else:
-            assert not a == b.to_pydatetime()
-            assert not a.to_pydatetime() == b
-
-    def test_cant_compare_tz_naive_w_aware_explicit_pytz(self):
-        # see gh-1404
-        a = Timestamp('3/12/2012')
-        b = Timestamp('3/12/2012', tz=utc)
-
-        pytest.raises(Exception, a.__eq__, b)
-        pytest.raises(Exception, a.__ne__, b)
-        pytest.raises(Exception, a.__lt__, b)
-        pytest.raises(Exception, a.__gt__, b)
-        pytest.raises(Exception, b.__eq__, a)
-        pytest.raises(Exception, b.__ne__, a)
-        pytest.raises(Exception, b.__lt__, a)
-        pytest.raises(Exception, b.__gt__, a)
-
-        if PY2:
-            pytest.raises(Exception, a.__eq__, b.to_pydatetime())
-            pytest.raises(Exception, a.to_pydatetime().__eq__, b)
-        else:
-            assert not a == b.to_pydatetime()
-            assert not a.to_pydatetime() == b
-
-    def test_cant_compare_tz_naive_w_aware_dateutil(self):
-        # see gh-1404
-        a = Timestamp('3/12/2012')
-        b = Timestamp('3/12/2012', tz=tzutc())
-
-        pytest.raises(Exception, a.__eq__, b)
-        pytest.raises(Exception, a.__ne__, b)
-        pytest.raises(Exception, a.__lt__, b)
-        pytest.raises(Exception, a.__gt__, b)
-        pytest.raises(Exception, b.__eq__, a)
-        pytest.raises(Exception, b.__ne__, a)
-        pytest.raises(Exception, b.__lt__, a)
-        pytest.raises(Exception, b.__gt__, a)
-
-        if PY2:
-            pytest.raises(Exception, a.__eq__, b.to_pydatetime())
-            pytest.raises(Exception, a.to_pydatetime().__eq__, b)
+            with pytest.raises(TypeError):
+                a == b.to_pydatetime()
+            with pytest.raises(TypeError):
+                a.to_pydatetime() == b
         else:
             assert not a == b.to_pydatetime()
             assert not a.to_pydatetime() == b
