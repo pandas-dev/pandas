@@ -2,10 +2,10 @@ from datetime import timedelta
 from functools import partial
 from operator import attrgetter
 
+import dateutil
 import numpy as np
 import pytest
 import pytz
-import dateutil
 
 from pandas._libs.tslib import OutOfBoundsDatetime
 from pandas._libs.tslibs import conversion
