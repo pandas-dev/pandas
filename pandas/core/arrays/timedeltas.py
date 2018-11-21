@@ -417,9 +417,9 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             return np.array(result)
 
         else:
-            # numeric-dtyped other
-            result = other / self._data
-            return type(self)(result)
+            raise TypeError("Cannot divide {dtype} data by {cls}"
+                            .format(dtype=other.dtype,
+                                    cls=type(self).__name__))
 
     if compat.PY2:
         __div__ = __truediv__

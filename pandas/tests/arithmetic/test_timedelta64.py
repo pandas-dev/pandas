@@ -1283,7 +1283,8 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = idx // 1
         tm.assert_equal(result, idx)
 
-        with pytest.raises(TypeError, match='floor_divide cannot use operands'):
+        pattern = 'floor_divide cannot use operands'
+        with pytest.raises(TypeError, match=pattern):
             1 // idx
 
     def test_td64arr_floordiv_tdlike_scalar(self, two_hours, box_with_array):
