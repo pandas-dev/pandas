@@ -258,18 +258,13 @@ you created the branch, check the section on
 Contributing to the documentation
 =================================
 
-Whether you are someone who loves writing, teaching, or development,
-contributing to the documentation is a huge value. If you don't see yourself
-as a developer type, please don't stress and know that we want you to
-contribute. You don't even have to be an expert on *pandas* to do so!
-Something as simple as rewriting small passages for clarity
-as you reference the docs is a simple but effective way to contribute. The
-next person to read that passage will be in your debt!
-
-Actually, there are sections of the docs that are worse off by being written
-by experts. If something in the docs doesn't make sense to you, updating the
-relevant section after you figure it out is a simple way to ensure it will
-help the next person.
+Contributing to the documentation benefits everyone who uses *pandas*.
+We encourage you to help us improve the documentation, and
+you don't have to be an expert on *pandas* to do so! In fact,
+there are sections of the docs that are worse off after being written by
+experts. If something in the docs doesn't make sense to you, updating the
+relevant section after you figure it out is a great way to ensure it will help
+the next person.
 
 .. contents:: Documentation:
    :local:
@@ -398,31 +393,6 @@ Requirements
 
 First, you need to have a development environment to be able to build pandas
 (see the docs on :ref:`creating a development environment above <contributing.dev_env>`).
-
-To build the pandas docs there are some extra requirements: you will need to
-have ``sphinx`` and ``ipython`` installed. `numpydoc
-<https://github.com/numpy/numpydoc>`_ is used to parse the docstrings that
-follow the Numpy Docstring Standard (see above), but you don't need to install
-this because a local copy of ``numpydoc`` is included in the pandas source
-code. `nbsphinx <https://nbsphinx.readthedocs.io/>`_ is used to convert
-Jupyter notebooks. You will need to install it if you intend to modify any of
-the notebooks included in the documentation.
-
-Building pandas
-^^^^^^^^^^^^^^^
-
-For a step-by-step overview on how to set up your environment, to work with
-the pandas code and git, see `the developer pages
-<http://pandas.pydata.org/developers.html#working-with-the-code>`_.
-When you start to work on some docs, be sure to update your code to the latest
-development version ('master')::
-
-    git fetch upstream
-    git merge upstream/master
-
-Often it will be necessary to rebuild the C extension after updating::
-
-    python setup.py build_ext --inplace
 
 Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
