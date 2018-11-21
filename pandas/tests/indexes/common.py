@@ -283,45 +283,6 @@ class Base(object):
                                             result._ndarray_values,
                                             check_same='same')
 
-    def test_has_duplicates(self, indices):
-        if type(indices) is not self._holder:
-            pytest.skip('Can only check if we have the correct type')
-        if not len(indices) or isinstance(indices, MultiIndex):
-            # MultiIndex tested separately in:
-            # tests/indexes/multi/test_unique_and_duplicates
-            pytest.skip('Skip check for empty Index and MultiIndex')
-
-        idx = self._holder([indices[0]] * 5)
-        assert idx.is_unique is False
-        assert idx.has_duplicates is True
-
-    @pytest.mark.parametrize('keep', ['first', 'last', False])
-    def test_duplicated(self, indices, keep):
-        if type(indices) is not self._holder:
-            pytest.skip('Can only check if we know the index type')
-        if not len(indices) or isinstance(indices, (MultiIndex, RangeIndex)):
-            # MultiIndex tested separately in:
-            # tests/indexes/multi/test_unique_and_duplicates
-            pytest.skip('Skip check for empty Index, MultiIndex, RangeIndex')
-
-        idx = self._holder(indices)
-        if idx.has_duplicates:
-            # We are testing the duplicated-method here, so we need to know
-            # exactly which indices are duplicate and how (for the result).
-            # This is not possible if "idx" has duplicates already, which we
-            # therefore remove. This is seemingly circular, as drop_duplicates
-            # invokes duplicated, but in the end, it all works out because we
-            # cross-check with Series.duplicated, which is tested separately.
-            idx = idx.drop_duplicates()
-
-        n, k = len(idx), 10
-        duplicated_selection = np.random.choice(n, k * n)
-        expected = pd.Series(duplicated_selection).duplicated(keep=keep).values
-        idx = self._holder(idx.values[duplicated_selection])
-
-        result = idx.duplicated(keep=keep)
-        tm.assert_numpy_array_equal(result, expected)
-
     def test_memory_usage(self):
         for name, index in compat.iteritems(self.indices):
             result = index.memory_usage()

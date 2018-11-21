@@ -11,7 +11,7 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import needs_i8_conversion
 
 import pandas as pd
-from pandas import CategoricalIndex, MultiIndex, compat
+from pandas import CategoricalIndex, MultiIndex, RangeIndex, compat
 import pandas.util.testing as tm
 
 
@@ -301,3 +301,41 @@ class TestCommon(object):
         unpickled = tm.round_trip_pickle(indices)
         assert indices.equals(unpickled)
         indices.name = original_name
+
+    @pytest.mark.parametrize('keep', ['first', 'last', False])
+    def test_duplicated(self, indices, keep):
+        if not len(indices) or isinstance(indices, (MultiIndex, RangeIndex)):
+            # MultiIndex tested separately in:
+            # tests/indexes/multi/test_unique_and_duplicates
+            pytest.skip('Skip check for empty Index, MultiIndex, RangeIndex')
+
+        holder = type(indices)
+
+        idx = holder(indices)
+        if idx.has_duplicates:
+            # We are testing the duplicated-method here, so we need to know
+            # exactly which indices are duplicate and how (for the result).
+            # This is not possible if "idx" has duplicates already, which we
+            # therefore remove. This is seemingly circular, as drop_duplicates
+            # invokes duplicated, but in the end, it all works out because we
+            # cross-check with Series.duplicated, which is tested separately.
+            idx = idx.drop_duplicates()
+
+        n, k = len(idx), 10
+        duplicated_selection = np.random.choice(n, k * n)
+        expected = pd.Series(duplicated_selection).duplicated(keep=keep).values
+        idx = holder(idx.values[duplicated_selection])
+
+        result = idx.duplicated(keep=keep)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_has_duplicates(self, indices):
+        holder = type(indices)
+        if not len(indices) or isinstance(indices, MultiIndex):
+            # MultiIndex tested separately in:
+            # tests/indexes/multi/test_unique_and_duplicates
+            pytest.skip('Skip check for empty Index and MultiIndex')
+
+        idx = holder([indices[0]] * 5)
+        assert idx.is_unique is False
+        assert idx.has_duplicates is True
