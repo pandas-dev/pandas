@@ -3,17 +3,17 @@ from warnings import catch_warnings, simplefilter
 
 import numpy as np
 from numpy.random import randn
-
 import pytest
 
+from pandas.compat import (
+    StringIO, lrange, lzip, product as cart_product, range, zip)
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 
 import pandas as pd
+from pandas import (
+    DataFrame, Index, MultiIndex, Panel, Period, Series, Timestamp, concat,
+    date_range, period_range, read_csv)
 import pandas.core.common as com
-from pandas import (DataFrame, Index, MultiIndex, Panel, Period, Series,
-                    Timestamp, concat, date_range, period_range, read_csv)
-from pandas.compat import (range, lrange, StringIO, lzip, product as
-                           cart_product, zip)
 from pandas.tests.indexing.common import _mklbl
 from pandas.util import testing as tm
 
