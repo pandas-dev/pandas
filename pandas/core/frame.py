@@ -1144,7 +1144,7 @@ class DataFrame(NDFrame):
         >>> df = pd.DataFrame({"A": [1, 2], "B": [3.0, 4.5]})
         >>> df.to_numpy()
 
-        When numeric and non-numeric types, the output array will
+        For a mix of numeric and non-numeric types, the output array will
         have object dtype.
 
         >>> df['C'] = pd.date_range('2000', periods=2)

@@ -4928,6 +4928,10 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return a Numpy representation of the DataFrame.
 
+        .. warning::
+
+           We recommend using :meth:`DataFrame.to_numpy` instead.
+
         Only the values in the DataFrame will be returned, the axes labels
         will be removed.
 

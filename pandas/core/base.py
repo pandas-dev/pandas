@@ -778,7 +778,7 @@ class IndexOpsMixin(object):
         Union[ndarray, ExtensionArray]
             This is the actual array stored within this object. This differs
             from ``.values`` which may require converting the data
-            to a different form. We recommend using :
+            to a different form.
 
         Notes
         -----

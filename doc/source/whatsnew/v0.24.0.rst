@@ -67,6 +67,8 @@ as ``.values``).
    ser.array
    ser.to_numpy()
 
+See :ref:`basics.dtypes` and :ref:`dsintro.attrs` for more.
+
 .. _whatsnew_0240.enhancements.extension_array_operators:
 
 ``ExtensionArray`` operator support

@@ -724,8 +724,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         .. warning::
 
-           We recommend you use :attr:`Index.array` or
-           :meth:`Index.to_numpy` instead of ``.values``.
+           We recommend using :attr:`Index.array` or
+           :meth:`Index.to_numpy`, depending on whether you need
+           a reference to the underlying data or a NumPy array.
 
         Returns
         -------

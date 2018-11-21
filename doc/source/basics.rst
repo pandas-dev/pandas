@@ -69,7 +69,7 @@ thought of as containers for arrays, which hold the actual data and do the
 actual computation. For many types, the underlying array is a
 :class:`numpy.ndarray`. However, pandas and 3rd party libraries may *extend*
 NumPy's type system to add support for custom arrays
-(see :ref:`dsintro.data_types`).
+(see :ref:`basics.dtypes`).
 
 To get the actual data inside a :class:`Index` or :class:`Series`, use
 the **array** property
@@ -1951,17 +1951,29 @@ dtypes
 ------
 
 For the most part, pandas uses NumPy arrays and dtypes for Series or individual
-columns of a DataFrame. The main types allowed in pandas objects are ``float``,
-``int``, ``bool``, and ``datetime64[ns]`` (note that NumPy does not support
-timezone-aware datetimes).
+columns of a DataFrame. NumPy provides support for ``float``,
+``int``, ``bool``, ``timedelta64[ns]`` and ``datetime64[ns]`` (note that NumPy
+does not support timezone-aware datetimes).
 
-In addition to NumPy's types, pandas :ref:`extends <extending.extension-types>`
-NumPy's type-system for a few cases.
+Pandas and third-party libraries *extend* NumPy's type system in a few places.
+This section describes the extensions pandas has made internally.
+See :ref:`extending.extension-types` for how to write your own extension that
+works with pandas. See :ref:`ecosystem.extensions` for a list of third-party
+libraries that have implemented an extension.
 
-* :ref:`Categorical <categorical>`
-* :ref:`Datetime with Timezone <timeseries.timezone_series>`
-* :ref:`Period <timeseries.periods>`
-* :ref:`Interval <indexing.intervallindex>`
+The following table lists all of pandas extension types. See the respective
+documentation sections for more on each type.
+
+=================== ========================= ================== ============================= =============================
+Kind of Data        Data Type                 Scalar             Array                         Documentation
+=================== ========================= ================== ============================= =============================
+tz-aware datetime   :class:`DatetimeArray`    :class:`Timestamp` :class:`arrays.DatetimeArray` :ref:`timeseries.timezone`
+Categorical         :class:`CategoricalDtype` (none)             :class:`Categorical`          :ref:`categorical`
+period (time spans) :class:`PeriodDtype`      :class:`Period`    :class:`arrays.PeriodArray`   :ref:`timeseries.periods`
+sparse              :class:`SparseDtype`      (none)             :class:`arrays.SparseArray`   :ref:`sparse`
+intervals           :class:`IntervalDtype`    :class:`Interval`  :class:`arrays.IntervalArray` :ref:`advanced.intervalindex`
+nullable integer    :clsas:`Int64Dtype`, ...  (none)             :class:`arrays.IntegerArray`  :ref:`integer_na`
+=================== ========================= ================== ============================= =============================
 
 Pandas uses the ``object`` dtype for storing strings.
 

@@ -410,8 +410,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @property
     def values(self):
         """
-        Return Series as ndarray or ndarray-like
-        depending on the dtype
+        Return Series as ndarray or ndarray-like depending on the dtype.
+
+        .. warning::
+
+           We recommend using :attr:`Series.array` or
+           :meth:`Series.to_numpy`, depending on whether you need
+           a reference to the underlying data or a NumPy array.
 
         Returns
         -------
