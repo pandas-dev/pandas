@@ -19,7 +19,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,
     ABCPeriodIndex, ABCTimedeltaIndex, ABCDatetimeIndex,
-    ABCDateOffset, ABCIndexClass)
+    ABCDateOffset, ABCIndexClass, ABCTimedeltaArray)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
 from pandas.core.dtypes.common import (
@@ -123,7 +123,8 @@ def _make_arithmetic_op(op, cls):
         elif isinstance(other, ABCTimedeltaIndex):
             # Defer to subclass implementation
             return NotImplemented
-        elif isinstance(other, np.ndarray) and is_timedelta64_dtype(other):
+        elif (isinstance(other, (np.ndarray, ABCTimedeltaArray)) and
+              is_timedelta64_dtype(other)):
             # GH#22390; wrap in Series for op, this will in turn wrap in
             # TimedeltaIndex, but will correctly raise TypeError instead of
             # NullFrequencyError for add/sub ops
@@ -2249,7 +2250,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def hasnans(self):
-        """ return if I have any nans; enables various perf speedups """
+        """
+        Return if I have any nans; enables various perf speedups.
+        """
         if self._can_hold_na:
             return bool(self._isnan.any())
         else:
@@ -2944,17 +2947,20 @@ class Index(IndexOpsMixin, PandasObject):
             taken.name = None
         return taken
 
-    def difference(self, other):
+    def difference(self, other, sort=True):
         """
         Return a new Index with elements from the index that are not in
         `other`.
 
         This is the set difference of two Index objects.
-        It's sorted if sorting is possible.
 
         Parameters
         ----------
         other : Index or array-like
+        sort : bool, default True
+            Sort the resulting index if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2963,10 +2969,12 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
 
-        >>> idx1 = pd.Index([1, 2, 3, 4])
+        >>> idx1 = pd.Index([2, 1, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.difference(idx2)
         Int64Index([1, 2], dtype='int64')
+        >>> idx1.difference(idx2, sort=False)
+        Int64Index([2, 1], dtype='int64')
 
         """
         self._assert_can_do_setop(other)
@@ -2985,10 +2993,11 @@ class Index(IndexOpsMixin, PandasObject):
         label_diff = np.setdiff1d(np.arange(this.size), indexer,
                                   assume_unique=True)
         the_diff = this.values.take(label_diff)
-        try:
-            the_diff = sorting.safe_sort(the_diff)
-        except TypeError:
-            pass
+        if sort:
+            try:
+                the_diff = sorting.safe_sort(the_diff)
+            except TypeError:
+                pass
 
         return this._shallow_copy(the_diff, name=result_name, freq=None)
 
