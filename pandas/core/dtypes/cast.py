@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import OutOfBoundsDatetime, Period, iNaT
-from pandas.compat import PY3, string_types, text_type
+from pandas.compat import PY3, string_types, text_type, to_str
 
 from .common import (
     _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE, _string_dtypes,
@@ -1214,11 +1214,16 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
         if not isinstance(dtype, (np.dtype, type(np.dtype))):
             dtype = dtype.dtype
 
-        # coerce if we have nan for an integer dtype
-        # GH 22858: only cast to float if an index
-        # (passed here as length) is specified
         if length and is_integer_dtype(dtype) and isna(value):
-            dtype = np.float64
+            # coerce if we have nan for an integer dtype
+            dtype = np.dtype('float64')
+        elif isinstance(dtype, np.dtype) and dtype.kind in ("U", "S"):
+            # we need to coerce to object dtype to avoid
+            # to allow numpy to take our string as a scalar value
+            dtype = object
+            if not isna(value):
+                value = to_str(value)
+
         subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)
 
