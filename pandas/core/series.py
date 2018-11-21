@@ -2286,37 +2286,71 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def combine(self, other, func, fill_value=None):
         """
-        Perform elementwise binary operation on two Series using given function
-        with optional fill value when an index is missing from one Series or
-        the other
+        Combine the Series with a Series or scalar according to `func`.
+
+        Combine the Series and `other` using `func` to perform elementwise
+        selection for combined Series.
+        `fill_value` is assumed when value is missing at some index
+        from one of the two objects being combined.
 
         Parameters
         ----------
-        other : Series or scalar value
+        other : Series or scalar
+            The value(s) to be combined with the `Series`.
         func : function
-            Function that takes two scalars as inputs and return a scalar
-        fill_value : scalar value
-            The default specifies to use the appropriate NaN value for
-            the underlying dtype of the Series
+            Function that takes two scalars as inputs and returns an element.
+        fill_value : scalar, optional
+            The value to assume when an index is missing from
+            one Series or the other. The default specifies to use the
+            appropriate NaN value for the underlying dtype of the Series.
 
         Returns
         -------
-        result : Series
-
-        Examples
-        --------
-        >>> s1 = pd.Series([1, 2])
-        >>> s2 = pd.Series([0, 3])
-        >>> s1.combine(s2, lambda x1, x2: x1 if x1 < x2 else x2)
-        0    0
-        1    2
-        dtype: int64
+        Series
+            The result of combining the Series with the other object.
 
         See Also
         --------
         Series.combine_first : Combine Series values, choosing the calling
-            Series's values first.
-        """
+            Series' values first.
+
+        Examples
+        --------
+        Consider 2 Datasets ``s1`` and ``s2`` containing
+        highest clocked speeds of different birds.
+
+        >>> s1 = pd.Series({'falcon': 330.0, 'eagle': 160.0})
+        >>> s1
+        falcon    330.0
+        eagle     160.0
+        dtype: float64
+        >>> s2 = pd.Series({'falcon': 345.0, 'eagle': 200.0, 'duck': 30.0})
+        >>> s2
+        falcon    345.0
+        eagle     200.0
+        duck       30.0
+        dtype: float64
+
+        Now, to combine the two datasets and view the highest speeds
+        of the birds across the two datasets
+
+        >>> s1.combine(s2, max)
+        duck        NaN
+        eagle     200.0
+        falcon    345.0
+        dtype: float64
+
+        In the previous example, the resulting value for duck is missing,
+        because the maximum of a NaN and a float is a NaN.
+        So, in the example, we set ``fill_value=0``,
+        so the maximum value returned will be the value from some dataset.
+
+        >>> s1.combine(s2, max, fill_value=0)
+        duck       30.0
+        eagle     200.0
+        falcon    345.0
+        dtype: float64
+"""
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
 
@@ -2357,16 +2391,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def combine_first(self, other):
         """
-        Combine Series values, choosing the calling Series's values
-        first. Result index will be the union of the two indexes
+        Combine Series values, choosing the calling Series's values first.
 
         Parameters
         ----------
         other : Series
+            The value(s) to be combined with the `Series`.
 
         Returns
         -------
-        combined : Series
+        Series
+            The result of combining the Series with the other object.
+
+        See Also
+        --------
+        Series.combine : Perform elementwise operation on two Series
+            using a given function.
+
+        Notes
+        -----
+        Result index will be the union of the two indexes.
 
         Examples
         --------
@@ -2376,11 +2420,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0    1.0
         1    4.0
         dtype: float64
-
-        See Also
-        --------
-        Series.combine : Perform elementwise operation on two Series
-            using a given function.
         """
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
