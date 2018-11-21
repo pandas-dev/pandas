@@ -725,10 +725,25 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
 
     elif is_object_dtype(arr):
 
+        if np.issubdtype(dtype.type, np.integer):
+            # TODO: this is an old numpy compat branch that is not necessary
+            # anymore for its original purpose (unsafe casting from object to
+            # int, see GH 1987).
+            # Currently, timedelta dtypes get routed through here; whereas
+            # uncommenting them would re-call (see below)
+            # >>> astype_nansafe(to_timedelta(arr).values, dtype, copy=copy),
+            # and end up in the `is_timedelta64_dtype(arr)` above, which
+            # explicitly and deliberately returns a float dtype.
+            # However, the test
+            # reshape/merge/test_merge.py::TestMerge:;test_other_timedelta_unit
+            # expects an explicit timedelta dtype as output.
+            # Once this is fixed, `astype_intsafe` can be deleted from lib.
+            return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
+
         # if we have a datetime/timedelta array of objects
         # then coerce to a proper dtype and recall astype_nansafe
 
-        if is_datetime64_dtype(dtype):
+        elif is_datetime64_dtype(dtype):
             from pandas import to_datetime
             return astype_nansafe(to_datetime(arr).values, dtype, copy=copy)
         elif is_timedelta64_dtype(dtype):
