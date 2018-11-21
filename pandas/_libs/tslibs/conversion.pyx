@@ -540,8 +540,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     elif obj.value == NPY_NAT:
         pass
     elif is_tzlocal(tz):
-        local_val = _tz_convert_tzlocal_utc(obj.value, tz, to_utc=False,
-                                            from_utc=True)
+        local_val = _tz_convert_tzlocal_utc(obj.value, tz, to_utc=False)
         dt64_to_dtstruct(local_val, &obj.dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
@@ -668,8 +667,7 @@ cdef inline int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
 
 
 cdef inline int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz,
-                                            bint to_utc=True,
-                                            bint from_utc=False):
+                                            bint to_utc=True):
     """
     Convert the i8 representation of a datetime from a tzlocal timezone to
     UTC, or vice-versa.
@@ -682,8 +680,6 @@ cdef inline int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz,
     tz : tzinfo
     to_utc : bint
         True if converting tzlocal _to_ UTC, False if going the other direction
-    from_utc: bint
-        True if val is a UTC timestamp, False if val is a wall/naive timestamp
 
     Returns
     -------
@@ -699,7 +695,7 @@ cdef inline int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz,
                   dts.min, dts.sec, dts.us)
     # get_utcoffset (tz.utcoffset under the hood) only makes sense if datetime
     # is _wall time_, so if val is a UTC timestamp convert to wall time
-    if from_utc:
+    if not to_utc:
         dt = dt.replace(tzinfo=tzutc())
         dt = dt.astimezone(tz)
     delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
@@ -720,7 +716,7 @@ cdef inline int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz):
     -------
     local_val : int64_t
     """
-    return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False, from_utc=True)
+    return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False)
 
 
 cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
@@ -764,8 +760,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     if is_utc(get_timezone(tz2)):
         return utc_date
     elif is_tzlocal(tz2):
-        return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False,
-                                       from_utc=True)
+        return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
     else:
         # Convert UTC to other timezone
         arr[0] = utc_date
@@ -779,7 +774,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef inline int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz,
-                                           bint to_utc, bint from_utc=False):
+                                           bint to_utc):
     """
     Convert the given values (in i8) either to UTC or from UTC.
 
@@ -788,9 +783,6 @@ cdef inline int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz,
     vals : int64 ndarray
     tz1 : string / timezone object
     to_utc : bint
-    from_utc : bint
-        True if vals are UTC timestamps, False if vals are wall timestamps
-        Only applicable for tz=dateutil.tz.tzlocal()
 
     Returns
     -------
@@ -809,8 +801,7 @@ cdef inline int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz,
                 if val == NPY_NAT:
                     converted[i] = NPY_NAT
                 else:
-                    converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc,
-                                                           from_utc=from_utc)
+                    converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc)
         else:
             converted = _tz_convert_dst(vals, tz, to_utc)
     else:
@@ -843,8 +834,7 @@ def tz_convert(int64_t[:] vals, object tz1, object tz2):
 
     # Convert to UTC
     utc_dates = _tz_convert_one_way(vals, tz1, to_utc=True)
-    converted = _tz_convert_one_way(utc_dates, tz2, to_utc=False,
-                                    from_utc=True)
+    converted = _tz_convert_one_way(utc_dates, tz2, to_utc=False)
     return np.array(converted, dtype=np.int64)
 
 
