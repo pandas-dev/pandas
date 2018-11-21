@@ -336,9 +336,7 @@ class TestRangeIndex(Numeric):
             # either depending on numpy version
             result = idx.delete(len(idx))
 
-    def test_view(self, indices):
-        super(TestRangeIndex, self).test_view(indices)
-
+    def test_view(self):
         i = RangeIndex(0, name='Foo')
         i_view = i.view()
         assert i_view.name == 'Foo'
