@@ -362,7 +362,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         else:
             # UTC
             obj.value = pydatetime_to_dt64(ts, &obj.dts)
-            obj.tzinfo = pytz.utc
+            obj.tzinfo = tz
     else:
         obj.value = pydatetime_to_dt64(ts, &obj.dts)
         obj.tzinfo = ts.tzinfo
