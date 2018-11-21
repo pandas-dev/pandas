@@ -1137,14 +1137,16 @@ class DataFrame(NDFrame):
         Examples
         --------
         >>> pd.DataFrame({"A": [1, 2], "B": [3, 4]}).to_numpy()
+        array([[1, 3],
+               [2, 4]])
 
         With heterogenous data, the lowest common type will have to
         be used.
 
         >>> df = pd.DataFrame({"A": [1, 2], "B": [3.0, 4.5]})
         >>> df.to_numpy()
-        array([[1, 3],
-               [2, 4]])
+        array([[1. , 3. ],
+               [2. , 4.5]])
 
         For a mix of numeric and non-numeric types, the output array will
         have object dtype.
