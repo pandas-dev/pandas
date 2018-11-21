@@ -115,8 +115,14 @@ class ReadingTestsBase(SharedItems):
                                index_col=0, usecols=3)
 
         with tm.assert_produces_warning(FutureWarning):
-            df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                                   index_col=0, parse_cols=3)
+            with warnings.catch_warnings():
+                # Ignore xlrd time.clock DeprecationWarning in py37
+                warnings.filterwarnings(
+                    action='ignore',
+                    message='time.clock has been deprecated',
+                    category=DeprecationWarning)
+                df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+                                       index_col=0, parse_cols=3)
 
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
@@ -134,8 +140,14 @@ class ReadingTestsBase(SharedItems):
                                index_col=0, usecols=[0, 2, 3])
 
         with tm.assert_produces_warning(FutureWarning):
-            df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                                   index_col=0, parse_cols=[0, 2, 3])
+            with warnings.catch_warnings():
+                # Ignore xlrd time.clock DeprecationWarning in py37
+                warnings.filterwarnings(
+                    action='ignore',
+                    message='time.clock has been deprecated',
+                    category=DeprecationWarning)
+                df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+                                       index_col=0, parse_cols=[0, 2, 3])
 
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
@@ -154,8 +166,14 @@ class ReadingTestsBase(SharedItems):
                                index_col=0, usecols='A:D')
 
         with tm.assert_produces_warning(FutureWarning):
-            df4 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                                   index_col=0, parse_cols='A:D')
+            with warnings.catch_warnings():
+                # Ignore xlrd time.clock DeprecationWarning in py37
+                warnings.filterwarnings(
+                    action='ignore',
+                    message='time.clock has been deprecated',
+                    category=DeprecationWarning)
+                df4 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+                                       index_col=0, parse_cols='A:D')
 
         # TODO add index to xls, read xls ignores index name ?
         tm.assert_frame_equal(df2, df1, check_names=False)
@@ -597,8 +615,14 @@ class ReadingTestsBase(SharedItems):
         df1 = self.get_exceldf(filename, ext,
                                sheet_name=sheet_name, index_col=0)  # doc
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df2 = self.get_exceldf(filename, ext, index_col=0,
-                                   sheetname=sheet_name)  # backward compat
+            with warnings.catch_warnings():
+                # Ignore xlrd time.clock DeprecationWarning in py37
+                warnings.filterwarnings(
+                    action='ignore',
+                    message='time.clock has been deprecated',
+                    category=DeprecationWarning)
+                df2 = self.get_exceldf(filename, ext, index_col=0,
+                                       sheetname=sheet_name)  # backward compat
 
         excel = self.get_excelfile(filename, ext)
         df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
