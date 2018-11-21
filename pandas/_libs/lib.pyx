@@ -517,6 +517,7 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
         object val
         bint is_datelike
         ndarray result
+
     is_datelike = new_dtype == 'm8[ns]'
     result = np.empty(n, dtype=new_dtype)
     for i in range(n):
@@ -525,6 +526,7 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
             result[i] = NPY_NAT
         else:
             result[i] = val
+
     return result
 
 
