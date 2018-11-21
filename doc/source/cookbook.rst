@@ -1038,7 +1038,7 @@ Parsing date components in multi-columns
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Parsing date components in multi-columns is faster with a format
-
+ 
 .. ipython:: python
     i = pd.date_range('20000101', periods=10000)
     df = pd.DataFrame({'year': i.year, 'month': i.month, 'day': i.day})
