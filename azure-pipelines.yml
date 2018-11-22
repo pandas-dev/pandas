@@ -144,3 +144,22 @@ jobs:
     condition: true
     env:
       REPO_DIR: $(Build.ArtifactStagingDirectory)/pandas-docs-travis
+
+  - script: |
+      export PATH=$HOME/miniconda3/bin:$PATH
+      source activate pandas-dev
+      if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
+          cd asv_bench
+          ASV_ERRORS=$(asv dev > /dev/null)
+          if [[ $ASV_ERRORS ]]; then
+              echo "Benchmarks reported errors:"
+              echo $ASV_ERRORS
+              exit 1
+          else
+              echo "Benchmark run without errors"
+          fi
+      else
+          echo "Benchmark not running, no changes detected"
+      fi
+    displayName: 'Running benchmarks'
+    condition: true
