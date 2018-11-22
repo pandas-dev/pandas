@@ -109,6 +109,12 @@ jobs:
     condition: true
 
   - script: |
+      echo "checking different ways to access variables"
+      echo $(TEST_VARIABLE)
+      echo $(pandas.TEST_VARIABLE)
+      echo $TEST_VAR1
+      echo $TEST_VAR2
+      echo "DONE"
       if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
           export NAME="master"
       else
@@ -124,6 +130,8 @@ jobs:
     condition: true
     env:
       CONNECTION_STRING: $(AZURE_STORAGE_CONNECTION_STRING)
+      TEST_VAR1: $(TEST_VARIABLE)
+      TEST_VAR2: $(pandas.TEST_VARIABLE)
       SOURCE: $(Build.SourcesDirectory)/doc/build/html/
       DESTINATION: 'docs'
 
@@ -158,8 +166,12 @@ jobs:
       if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
           cd asv_bench
           asv machine --yes
-          ASV_OUTPUT=$(asv dev)
+          ASV_OUTPUT="$(asv dev)"
+          echo "all output"
+          echo "$ASV_OUTPUT"
+          echo "failure lines"
           echo "$ASV_OUTPUT" | grep "failure"  # TODO remove this when it works
+          echo "end of debug info"
           if [[ $(echo "$ASV_OUTPUT" | grep "failure") ]]; then
               echo "##vso[task.logissue type=error]Benchmarks run with errors"
               echo $ASV_OUTPUT
