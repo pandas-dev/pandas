@@ -2073,7 +2073,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     To specify the sheet name:
 
-    >>> df1.to_excel("output.xlsx", sheet_name='Sheet_name_1')  # doctest: +SKIP
+    >>> df1.to_excel("output.xlsx",
+    ...              sheet_name='Sheet_name_1')  # doctest: +SKIP
 
     If you wish to write to more than one sheet in the workbook, it is
     necessary to specify an ExcelWriter object:
