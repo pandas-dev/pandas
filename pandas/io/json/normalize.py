@@ -23,9 +23,9 @@ def _convert_to_line_delimits(s):
     return convert_json_to_lines(s)
 
 
-def nested_to_record(ds, prefix="", sep=".", level=0, max_level=None, ignore_keys=None):
+def nested_to_record(ds, prefix="", sep=".", level=0,
+                     max_level=None, ignore_keys=None):
     """
-    Function copied from pandas and edited to support normalizing specific keys and max_level
 
     a simplified json_normalize
 
@@ -80,7 +80,9 @@ def nested_to_record(ds, prefix="", sep=".", level=0, max_level=None, ignore_key
             else:
                 newkey = prefix + sep + k
 
-            # only dicts or curr_level < max_level or k not in ignore keys gets recurse-flattend
+            # only dicts
+            # or curr_level < max_level
+            # or k not in ignore keys gets recurse-flattend
             # only at level>1 do we rename the rest of the keys
             if not isinstance(v, dict) or \
                     (max_level is not None and level >= max_level) or \
@@ -91,7 +93,8 @@ def nested_to_record(ds, prefix="", sep=".", level=0, max_level=None, ignore_key
                 continue
             else:
                 v = new_d.pop(k)
-                new_d.update(nested_to_record(v, newkey, sep, level + 1, max_level, ignore_keys))
+                new_d.update(nested_to_record(v, newkey, sep, level + 1,
+                                              max_level, ignore_keys))
         new_ds.append(new_d)
 
     if singleton:
@@ -215,7 +218,9 @@ def json_normalize(data, record_path=None, meta=None,
             #
             # TODO: handle record value which are lists, at least error
             #       reasonably
-            data = nested_to_record(data, sep=sep, max_level=max_level, ignore_keys=ignore_keys)
+            data = nested_to_record(data, sep=sep,
+                                    max_level=max_level,
+                                    ignore_keys=ignore_keys)
         return DataFrame(data)
     elif not isinstance(record_path, list):
         record_path = [record_path]
