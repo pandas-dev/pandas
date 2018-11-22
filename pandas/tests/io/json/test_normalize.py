@@ -440,3 +440,48 @@ class TestNestedToRecord(object):
             'location.country.state.town.info.y': -33.148521423339844,
             'location.country.state.town.info.z': 27.572303771972656}
         assert result == expected
+
+    def test_with_max_level_zero(self):
+        data = [{
+            'CreatedBy': {'Name': 'User001'},
+            'Lookup': {'TextField': 'Some text',
+                       'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+            'Image': {'a': 'b'}
+        }]
+        expected_output = [{
+            'CreatedBy.Name': 'User001',
+            'Lookup.TextField': 'Some text',
+            'Lookup.UserField.Id': 'ID001',
+            'Lookup.UserField.Name': 'Name001',
+            'Image': {'a': 'b'}
+        }]
+        output = nested_to_record(data, max_level=0, ignore_keys=["Image"])
+        assert output == expected_output
+
+    def test_with_max_level_one(self):
+        data = [{
+            'CreatedBy': {'Name': 'User001'},
+            'Lookup': {'TextField': 'Some text',
+                       'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+            'Image': {'a': 'b'}
+        }]
+        expected_output = [{
+            'CreatedBy.Name': 'User001',
+            'Lookup.TextField': 'Some text',
+            'Lookup.UserField': {'Id': 'ID001', 'Name': 'Name001'},
+            'Image': {'a': 'b'}
+        }]
+        output = nested_to_record(data, max_level=1, ignore_keys=["Image"])
+        assert output == expected_output
+
+    def test_with_all_keys_to_ignore(self):
+        data = [{
+            'CreatedBy': {'Name': 'User001'},
+            'Lookup': {'TextField': 'Some text',
+                       'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+            'Image': {'a': 'b'}
+        }]
+        print (data[0].keys())
+        output = nested_to_record(data, ignore_keys=list(data[0].keys()))
+        print (output)
+        assert output == data

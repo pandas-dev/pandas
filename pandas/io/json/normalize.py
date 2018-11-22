@@ -23,8 +23,11 @@ def _convert_to_line_delimits(s):
     return convert_json_to_lines(s)
 
 
-def nested_to_record(ds, prefix="", sep=".", level=0):
-    """a simplified json_normalize
+def nested_to_record(ds, prefix="", sep=".", level=0, max_level=None, ignore_keys=None):
+    """
+    Function copied from pandas and edited to support normalizing specific keys and max_level
+
+    a simplified json_normalize
 
     converts a nested dict into a flat dict ("record"), unlike json_normalize,
     it does not attempt to extract a subset of the data.
@@ -40,6 +43,8 @@ def nested_to_record(ds, prefix="", sep=".", level=0):
         .. versionadded:: 0.20.0
 
     level: the number of levels in the jason string, optional, default: 0
+    max_level: normalize to a maximum level of, optional, default: None
+    ignore_keys: specific keys to normalize, optional, default: None
 
     Returns
     -------
@@ -65,7 +70,6 @@ def nested_to_record(ds, prefix="", sep=".", level=0):
 
     new_ds = []
     for d in ds:
-
         new_d = copy.deepcopy(d)
         for k, v in d.items():
             # each key gets renamed with prefix
@@ -76,16 +80,18 @@ def nested_to_record(ds, prefix="", sep=".", level=0):
             else:
                 newkey = prefix + sep + k
 
-            # only dicts gets recurse-flattend
+            # only dicts or curr_level < max_level or k not in ignore keys gets recurse-flattend
             # only at level>1 do we rename the rest of the keys
-            if not isinstance(v, dict):
+            if not isinstance(v, dict) or \
+                    (max_level and level >= max_level) or \
+                    (ignore_keys and k in ignore_keys):
                 if level != 0:  # so we skip copying for top level, common case
                     v = new_d.pop(k)
                     new_d[newkey] = v
                 continue
             else:
                 v = new_d.pop(k)
-                new_d.update(nested_to_record(v, newkey, sep, level + 1))
+                new_d.update(nested_to_record(v, newkey, sep, level + 1, max_level, ignore_keys))
         new_ds.append(new_d)
 
     if singleton:
