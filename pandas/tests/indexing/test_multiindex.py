@@ -5,14 +5,15 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
+import pandas._libs.index as _index
 from pandas.compat import (
-    StringIO, lrange, lzip, product as cart_product, range, zip)
+    StringIO, lrange, lzip, product as cart_product, range, u, zip)
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 
 import pandas as pd
 from pandas import (
     DataFrame, Index, MultiIndex, Panel, Period, Series, Timestamp, concat,
-    date_range, period_range, read_csv)
+    date_range, isna, notna, period_range, read_csv)
 import pandas.core.common as com
 from pandas.tests.indexing.common import _mklbl
 from pandas.util import testing as tm
@@ -28,6 +29,13 @@ def multiindex_dataframe_random_data():
                        names=['first', 'second'])
     return DataFrame(np.random.randn(10, 3), index=index,
                      columns=Index(['A', 'B', 'C'], name='exp'))
+
+
+@pytest.fixture
+def single_level_multiindex():
+    """single level MultiIndex"""
+    return MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
+                      labels=[[0, 1, 2, 3]], names=['first'])
 
 
 @pytest.fixture
@@ -833,6 +841,22 @@ class TestMultiIndexBasic(object):
         expected = s[s > 0]
         tm.assert_series_equal(result, expected)
 
+    def test_series_setitem(
+            self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
+        s = ymd['A']
+
+        s[2000, 3] = np.nan
+        assert isna(s.values[42:65]).all()
+        assert notna(s.values[:42]).all()
+        assert notna(s.values[65:]).all()
+
+        s[2000, 3, 10] = np.nan
+        assert isna(s[49])
+
+    def test_series_slice_partial(self):
+        pass
+
     def test_frame_getitem_setitem_boolean(
             self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
@@ -911,6 +935,41 @@ class TestMultiIndexBasic(object):
         expected = DataFrame([['1'], ['2'], ['3']], index=f.index,
                              columns=['level3 item1'])
         tm.assert_frame_equal(result, expected)
+
+    def test_frame_setitem_multi_column(self):
+        df = DataFrame(randn(10, 4), columns=[['a', 'a', 'b', 'b'],
+                                              [0, 1, 0, 1]])
+
+        cp = df.copy()
+        cp['a'] = cp['b']
+        tm.assert_frame_equal(cp['a'], cp['b'])
+
+        # set with ndarray
+        cp = df.copy()
+        cp['a'] = cp['b'].values
+        tm.assert_frame_equal(cp['a'], cp['b'])
+
+        # ---------------------------------------
+        # #1803
+        columns = MultiIndex.from_tuples([('A', '1'), ('A', '2'), ('B', '1')])
+        df = DataFrame(index=[1, 3, 5], columns=columns)
+
+        # Works, but adds a column instead of updating the two existing ones
+        df['A'] = 0.0  # Doesn't work
+        assert (df['A'].values == 0).all()
+
+        # it broadcasts
+        df['B', '1'] = [1, 2, 3]
+        df['A'] = df['B', '1']
+
+        sliced_a1 = df['A', '1']
+        sliced_a2 = df['A', '2']
+        sliced_b1 = df['B', '1']
+        tm.assert_series_equal(sliced_a1, sliced_b1, check_names=False)
+        tm.assert_series_equal(sliced_a2, sliced_b1, check_names=False)
+        assert sliced_a1.name == ('A', '1')
+        assert sliced_a2.name == ('A', '2')
+        assert sliced_b1.name == ('B', '1')
 
     def test_getitem_tuple_plus_slice(self):
         # GH #671
@@ -1104,6 +1163,13 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # can do this though
 
+    def test_get_loc_single_level(self, single_level_multiindex):
+        single_level = single_level_multiindex
+        s = Series(np.random.randn(len(single_level)),
+                   index=single_level)
+        for k in single_level.values:
+            s[k]
+
     def test_getitem_toplevel(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
         df = frame.T
@@ -1174,6 +1240,49 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected.columns = expected.columns.droplevel(0).droplevel(0)
         tm.assert_frame_equal(result, expected)
 
+    def test_setitem_change_dtype(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+        dft = frame.T
+        s = dft['foo', 'two']
+        dft['foo', 'two'] = s > s.median()
+        tm.assert_series_equal(dft['foo', 'two'], s > s.median())
+        # assert isinstance(dft._data.blocks[1].items, MultiIndex)
+
+        reindexed = dft.reindex(columns=[('foo', 'two')])
+        tm.assert_series_equal(reindexed['foo', 'two'], s > s.median())
+
+    def test_frame_setitem_ix(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+        frame.loc[('bar', 'two'), 'B'] = 5
+        assert frame.loc[('bar', 'two'), 'B'] == 5
+
+        # with integer labels
+        df = frame.copy()
+        df.columns = lrange(3)
+        df.loc[('bar', 'two'), 1] = 7
+        assert df.loc[('bar', 'two'), 1] == 7
+
+        with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
+            df = frame.copy()
+            df.columns = lrange(3)
+            df.ix[('bar', 'two'), 1] = 7
+        assert df.loc[('bar', 'two'), 1] == 7
+
+    def test_fancy_slice_partial(
+            self, multiindex_dataframe_random_data,
+            multiindex_year_month_day_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+        result = frame.loc['bar':'baz']
+        expected = frame[3:7]
+        tm.assert_frame_equal(result, expected)
+
+        ymd = multiindex_year_month_day_dataframe_random_data
+        result = ymd.loc[(2000, 2):(2000, 4)]
+        lev = ymd.index.labels[1]
+        expected = ymd[(lev >= 1) & (lev <= 3)]
+        tm.assert_frame_equal(result, expected)
+
     def test_getitem_partial_column_select(self):
         idx = MultiIndex(labels=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],
                          levels=[['a', 'b'], ['x', 'y'], ['p', 'q']])
@@ -1221,6 +1330,28 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             pass
         assert (df['foo', 'one'] == 0).all()
 
+    def test_partial_set(
+            self, multiindex_year_month_day_dataframe_random_data):
+        # GH #397
+        ymd = multiindex_year_month_day_dataframe_random_data
+        df = ymd.copy()
+        exp = ymd.copy()
+        df.loc[2000, 4] = 0
+        exp.loc[2000, 4].values[:] = 0
+        tm.assert_frame_equal(df, exp)
+
+        df['A'].loc[2000, 4] = 1
+        exp['A'].loc[2000, 4].values[:] = 1
+        tm.assert_frame_equal(df, exp)
+
+        df.loc[2000] = 5
+        exp.loc[2000].values[:] = 5
+        tm.assert_frame_equal(df, exp)
+
+        # this works...for now
+        df['A'].iloc[14] = 5
+        assert df['A'][14] == 5
+
     def test_getitem_lowerdim_corner(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
         pytest.raises(KeyError, frame.loc.__getitem__,
@@ -1229,6 +1360,196 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # in theory should be inserting in a sorted space????
         frame.loc[('bar', 'three'), 'B'] = 0
         assert frame.sort_index().loc[('bar', 'three'), 'B'] == 0
+
+    # ---------------------------------------------------------------------
+    # AMBIGUOUS CASES!
+
+    def test_partial_ix_missing(
+            self, multiindex_year_month_day_dataframe_random_data):
+        pytest.skip("skipping for now")
+
+        ymd = multiindex_year_month_day_dataframe_random_data
+        result = ymd.loc[2000, 0]
+        expected = ymd.loc[2000]['A']
+        tm.assert_series_equal(result, expected)
+
+        # need to put in some work here
+
+        # self.ymd.loc[2000, 0] = 0
+        # assert (self.ymd.loc[2000]['A'] == 0).all()
+
+        # Pretty sure the second (and maybe even the first) is already wrong.
+        pytest.raises(Exception, ymd.loc.__getitem__, (2000, 6))
+        pytest.raises(Exception, ymd.loc.__getitem__, (2000, 6), 0)
+
+    # ---------------------------------------------------------------------
+
+    def test_int_series_slicing(
+            self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
+        s = ymd['A']
+        result = s[5:]
+        expected = s.reindex(s.index[5:])
+        tm.assert_series_equal(result, expected)
+
+        exp = ymd['A'].copy()
+        s[5:] = 0
+        exp.values[5:] = 0
+        tm.assert_numpy_array_equal(s.values, exp.values)
+
+        result = ymd[5:]
+        expected = ymd.reindex(s.index[5:])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('unicode_strings', [True, False])
+    def test_mixed_depth_get(self, unicode_strings):
+        # If unicode_strings is True, the column labels in dataframe
+        # construction will use unicode strings in Python 2 (pull request
+        # #17099).
+
+        arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
+                  ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
+                  ['', 'wx', 'wy', '', '', '']]
+
+        if unicode_strings:
+            arrays = [[u(s) for s in arr] for arr in arrays]
+
+        tuples = sorted(zip(*arrays))
+        index = MultiIndex.from_tuples(tuples)
+        df = DataFrame(np.random.randn(4, 6), columns=index)
+
+        result = df['a']
+        expected = df['a', '', ''].rename('a')
+        tm.assert_series_equal(result, expected)
+
+        result = df['routine1', 'result1']
+        expected = df['routine1', 'result1', '']
+        expected = expected.rename(('routine1', 'result1'))
+        tm.assert_series_equal(result, expected)
+
+    def test_mixed_depth_insert(self):
+        arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
+                  ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
+                  ['', 'wx', 'wy', '', '', '']]
+
+        tuples = sorted(zip(*arrays))
+        index = MultiIndex.from_tuples(tuples)
+        df = DataFrame(randn(4, 6), columns=index)
+
+        result = df.copy()
+        expected = df.copy()
+        result['b'] = [1, 2, 3, 4]
+        expected['b', '', ''] = [1, 2, 3, 4]
+        tm.assert_frame_equal(result, expected)
+
+    def test_setitem_multiple_partial(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+        expected = frame.copy()
+        result = frame.copy()
+        result.loc[['foo', 'bar']] = 0
+        expected.loc['foo'] = 0
+        expected.loc['bar'] = 0
+        tm.assert_frame_equal(result, expected)
+
+        expected = frame.copy()
+        result = frame.copy()
+        result.loc['foo':'bar'] = 0
+        expected.loc['foo'] = 0
+        expected.loc['bar'] = 0
+        tm.assert_frame_equal(result, expected)
+
+        expected = frame['A'].copy()
+        result = frame['A'].copy()
+        result.loc[['foo', 'bar']] = 0
+        expected.loc['foo'] = 0
+        expected.loc['bar'] = 0
+        tm.assert_series_equal(result, expected)
+
+        expected = frame['A'].copy()
+        result = frame['A'].copy()
+        result.loc['foo':'bar'] = 0
+        expected.loc['foo'] = 0
+        expected.loc['bar'] = 0
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_insert_column_all_na(self):
+        # GH #1534
+        mix = MultiIndex.from_tuples([('1a', '2a'), ('1a', '2b'), ('1a', '2c')
+                                      ])
+        df = DataFrame([[1, 2], [3, 4], [5, 6]], index=mix)
+        s = Series({(1, 1): 1, (1, 2): 2})
+        df['new'] = s
+        assert df['new'].isna().all()
+
+    def test_set_column_scalar_with_ix(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+        subset = frame.index[[1, 4, 5]]
+
+        frame.loc[subset] = 99
+        assert (frame.loc[subset].values == 99).all()
+
+        col = frame['B']
+        col[subset] = 97
+        assert (frame.loc[subset, 'B'] == 97).all()
+
+    def test_indexing_ambiguity_bug_1678(self):
+        columns = MultiIndex.from_tuples([('Ohio', 'Green'), ('Ohio', 'Red'), (
+            'Colorado', 'Green')])
+        index = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b', 2)
+                                        ])
+
+        frame = DataFrame(np.arange(12).reshape((4, 3)), index=index,
+                          columns=columns)
+
+        result = frame.iloc[:, 1]
+        exp = frame.loc[:, ('Ohio', 'Red')]
+        assert isinstance(result, Series)
+        tm.assert_series_equal(result, exp)
+
+    def test_nonunique_assignment_1750(self):
+        df = DataFrame([[1, 1, "x", "X"], [1, 1, "y", "Y"], [1, 2, "z", "Z"]],
+                       columns=list("ABCD"))
+
+        df = df.set_index(['A', 'B'])
+        ix = MultiIndex.from_tuples([(1, 1)])
+
+        df.loc[ix, "C"] = '_'
+
+        assert (df.xs((1, 1))['C'] == '_').all()
+
+    def test_indexing_over_hashtable_size_cutoff(self):
+        n = 10000
+
+        old_cutoff = _index._SIZE_CUTOFF
+        _index._SIZE_CUTOFF = 20000
+
+        s = Series(np.arange(n),
+                   MultiIndex.from_arrays((["a"] * n, np.arange(n))))
+
+        # hai it works!
+        assert s[("a", 5)] == 5
+        assert s[("a", 6)] == 6
+        assert s[("a", 7)] == 7
+
+        _index._SIZE_CUTOFF = old_cutoff
+
+    def test_iloc_mi(self):
+        # GH 13797
+        # Test if iloc can handle integer locations in MultiIndexed DataFrame
+
+        data = [['str00', 'str01'], ['str10', 'str11'], ['str20', 'srt21'],
+                ['str30', 'str31'], ['str40', 'str41']]
+
+        mi = MultiIndex.from_tuples(
+            [('CC', 'A'), ('CC', 'B'), ('CC', 'B'), ('BB', 'a'), ('BB', 'b')])
+
+        expected = DataFrame(data)
+        df_mi = DataFrame(data, index=mi)
+
+        result = DataFrame([[df_mi.iloc[r, c] for c in range(2)]
+                            for r in range(5)])
+
+        tm.assert_frame_equal(result, expected)
 
     def test_getitem_multilevel_index_tuple_not_sorted(self):
         index_columns = list("abc")

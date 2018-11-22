@@ -10,14 +10,13 @@ from numpy.random import randn
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
-from pandas import (Panel, DataFrame, Series, notna, isna, Timestamp)
+from pandas import (Panel, DataFrame, Series, isna, Timestamp)
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.util.testing as tm
 from pandas.compat import (range, lrange, StringIO, lzip, u, product as
                            cart_product, zip)
 import pandas as pd
-import pandas._libs.index as _index
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
                  'std', 'var', 'sem']
@@ -236,98 +235,6 @@ class TestMultiLevel(Base):
 
         lines = repr(df).split('\n')
         assert lines[2].startswith('a 0 foo')
-
-    def test_series_setitem(self):
-        s = self.ymd['A']
-
-        s[2000, 3] = np.nan
-        assert isna(s.values[42:65]).all()
-        assert notna(s.values[:42]).all()
-        assert notna(s.values[65:]).all()
-
-        s[2000, 3, 10] = np.nan
-        assert isna(s[49])
-
-    def test_series_slice_partial(self):
-        pass
-
-    def test_frame_setitem_multi_column(self):
-        df = DataFrame(randn(10, 4), columns=[['a', 'a', 'b', 'b'],
-                                              [0, 1, 0, 1]])
-
-        cp = df.copy()
-        cp['a'] = cp['b']
-        tm.assert_frame_equal(cp['a'], cp['b'])
-
-        # set with ndarray
-        cp = df.copy()
-        cp['a'] = cp['b'].values
-        tm.assert_frame_equal(cp['a'], cp['b'])
-
-        # ---------------------------------------
-        # #1803
-        columns = MultiIndex.from_tuples([('A', '1'), ('A', '2'), ('B', '1')])
-        df = DataFrame(index=[1, 3, 5], columns=columns)
-
-        # Works, but adds a column instead of updating the two existing ones
-        df['A'] = 0.0  # Doesn't work
-        assert (df['A'].values == 0).all()
-
-        # it broadcasts
-        df['B', '1'] = [1, 2, 3]
-        df['A'] = df['B', '1']
-
-        sliced_a1 = df['A', '1']
-        sliced_a2 = df['A', '2']
-        sliced_b1 = df['B', '1']
-        tm.assert_series_equal(sliced_a1, sliced_b1, check_names=False)
-        tm.assert_series_equal(sliced_a2, sliced_b1, check_names=False)
-        assert sliced_a1.name == ('A', '1')
-        assert sliced_a2.name == ('A', '2')
-        assert sliced_b1.name == ('B', '1')
-
-    def test_get_loc_single_level(self):
-        s = Series(np.random.randn(len(self.single_level)),
-                   index=self.single_level)
-        for k in self.single_level.values:
-            s[k]
-
-    def test_setitem_change_dtype(self):
-        dft = self.frame.T
-        s = dft['foo', 'two']
-        dft['foo', 'two'] = s > s.median()
-        tm.assert_series_equal(dft['foo', 'two'], s > s.median())
-        # assert isinstance(dft._data.blocks[1].items, MultiIndex)
-
-        reindexed = dft.reindex(columns=[('foo', 'two')])
-        tm.assert_series_equal(reindexed['foo', 'two'], s > s.median())
-
-    def test_frame_setitem_ix(self):
-        self.frame.loc[('bar', 'two'), 'B'] = 5
-        assert self.frame.loc[('bar', 'two'), 'B'] == 5
-
-        # with integer labels
-        df = self.frame.copy()
-        df.columns = lrange(3)
-        df.loc[('bar', 'two'), 1] = 7
-        assert df.loc[('bar', 'two'), 1] == 7
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
-            df = self.frame.copy()
-            df.columns = lrange(3)
-            df.ix[('bar', 'two'), 1] = 7
-        assert df.loc[('bar', 'two'), 1] == 7
-
-    def test_fancy_slice_partial(self):
-        result = self.frame.loc['bar':'baz']
-        expected = self.frame[3:7]
-        tm.assert_frame_equal(result, expected)
-
-        result = self.ymd.loc[(2000, 2):(2000, 4)]
-        lev = self.ymd.index.labels[1]
-        expected = self.ymd[(lev >= 1) & (lev <= 3)]
-        tm.assert_frame_equal(result, expected)
 
     def test_delevel_infer_dtype(self):
         tuples = [tuple
@@ -1122,26 +1029,6 @@ Thur,Lunch,Yes,51.51,17"""
         assert result.index.name == self.ymd.index.names[2]
         assert result2.index.name == self.ymd.index.names[2]
 
-    def test_partial_set(self):
-        # GH #397
-        df = self.ymd.copy()
-        exp = self.ymd.copy()
-        df.loc[2000, 4] = 0
-        exp.loc[2000, 4].values[:] = 0
-        tm.assert_frame_equal(df, exp)
-
-        df['A'].loc[2000, 4] = 1
-        exp['A'].loc[2000, 4].values[:] = 1
-        tm.assert_frame_equal(df, exp)
-
-        df.loc[2000] = 5
-        exp.loc[2000].values[:] = 5
-        tm.assert_frame_equal(df, exp)
-
-        # this works...for now
-        df['A'].iloc[14] = 5
-        assert df['A'][14] == 5
-
     def test_unstack_preserve_types(self):
         # GH #403
         self.ymd['E'] = 'foo'
@@ -1216,27 +1103,6 @@ Thur,Lunch,Yes,51.51,17"""
         result = index.get_indexer([missing] + [keys[i] for i in idces])
         tm.assert_numpy_array_equal(result, expected)
 
-    # ---------------------------------------------------------------------
-    # AMBIGUOUS CASES!
-
-    def test_partial_ix_missing(self):
-        pytest.skip("skipping for now")
-
-        result = self.ymd.loc[2000, 0]
-        expected = self.ymd.loc[2000]['A']
-        tm.assert_series_equal(result, expected)
-
-        # need to put in some work here
-
-        # self.ymd.loc[2000, 0] = 0
-        # assert (self.ymd.loc[2000]['A'] == 0).all()
-
-        # Pretty sure the second (and maybe even the first) is already wrong.
-        pytest.raises(Exception, self.ymd.loc.__getitem__, (2000, 6))
-        pytest.raises(Exception, self.ymd.loc.__getitem__, (2000, 6), 0)
-
-    # ---------------------------------------------------------------------
-
     def test_to_html(self):
         self.ymd.columns.name = 'foo'
         self.ymd.to_html()
@@ -1286,62 +1152,6 @@ Thur,Lunch,Yes,51.51,17"""
         expected.index = expected.index.droplevel(0)
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
-
-    def test_int_series_slicing(self):
-        s = self.ymd['A']
-        result = s[5:]
-        expected = s.reindex(s.index[5:])
-        tm.assert_series_equal(result, expected)
-
-        exp = self.ymd['A'].copy()
-        s[5:] = 0
-        exp.values[5:] = 0
-        tm.assert_numpy_array_equal(s.values, exp.values)
-
-        result = self.ymd[5:]
-        expected = self.ymd.reindex(s.index[5:])
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize('unicode_strings', [True, False])
-    def test_mixed_depth_get(self, unicode_strings):
-        # If unicode_strings is True, the column labels in dataframe
-        # construction will use unicode strings in Python 2 (pull request
-        # #17099).
-
-        arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
-                  ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
-                  ['', 'wx', 'wy', '', '', '']]
-
-        if unicode_strings:
-            arrays = [[u(s) for s in arr] for arr in arrays]
-
-        tuples = sorted(zip(*arrays))
-        index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.randn(4, 6), columns=index)
-
-        result = df['a']
-        expected = df['a', '', ''].rename('a')
-        tm.assert_series_equal(result, expected)
-
-        result = df['routine1', 'result1']
-        expected = df['routine1', 'result1', '']
-        expected = expected.rename(('routine1', 'result1'))
-        tm.assert_series_equal(result, expected)
-
-    def test_mixed_depth_insert(self):
-        arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
-                  ['', 'OD', 'OD', 'result1', 'result2', 'result1'],
-                  ['', 'wx', 'wy', '', '', '']]
-
-        tuples = sorted(zip(*arrays))
-        index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4, 6), columns=index)
-
-        result = df.copy()
-        expected = df.copy()
-        result['b'] = [1, 2, 3, 4]
-        expected['b', '', ''] = [1, 2, 3, 4]
-        tm.assert_frame_equal(result, expected)
 
     def test_mixed_depth_drop(self):
         arrays = [['a', 'top', 'top', 'routine1', 'routine1', 'routine2'],
@@ -1434,35 +1244,6 @@ Thur,Lunch,Yes,51.51,17"""
         result = self.frame.T.loc[:, ['foo', 'qux']]
         tm.assert_frame_equal(result, expected.T)
 
-    def test_setitem_multiple_partial(self):
-        expected = self.frame.copy()
-        result = self.frame.copy()
-        result.loc[['foo', 'bar']] = 0
-        expected.loc['foo'] = 0
-        expected.loc['bar'] = 0
-        tm.assert_frame_equal(result, expected)
-
-        expected = self.frame.copy()
-        result = self.frame.copy()
-        result.loc['foo':'bar'] = 0
-        expected.loc['foo'] = 0
-        expected.loc['bar'] = 0
-        tm.assert_frame_equal(result, expected)
-
-        expected = self.frame['A'].copy()
-        result = self.frame['A'].copy()
-        result.loc[['foo', 'bar']] = 0
-        expected.loc['foo'] = 0
-        expected.loc['bar'] = 0
-        tm.assert_series_equal(result, expected)
-
-        expected = self.frame['A'].copy()
-        result = self.frame['A'].copy()
-        result.loc['foo':'bar'] = 0
-        expected.loc['foo'] = 0
-        expected.loc['bar'] = 0
-        tm.assert_series_equal(result, expected)
-
     def test_drop_level(self):
         result = self.frame.drop(['bar', 'qux'], level='first')
         expected = self.frame.iloc[[0, 1, 2, 5, 6]]
@@ -1542,15 +1323,6 @@ Thur,Lunch,Yes,51.51,17"""
         repr(s)
         repr(df)
 
-    def test_dataframe_insert_column_all_na(self):
-        # GH #1534
-        mix = MultiIndex.from_tuples([('1a', '2a'), ('1a', '2b'), ('1a', '2c')
-                                      ])
-        df = DataFrame([[1, 2], [3, 4], [5, 6]], index=mix)
-        s = Series({(1, 1): 1, (1, 2): 2})
-        df['new'] = s
-        assert df['new'].isna().all()
-
     def test_join_segfault(self):
         # 1532
         df1 = DataFrame({'a': [1, 1], 'b': [1, 2], 'x': [1, 2]})
@@ -1560,16 +1332,6 @@ Thur,Lunch,Yes,51.51,17"""
         # it works!
         for how in ['left', 'right', 'outer']:
             df1.join(df2, how=how)
-
-    def test_set_column_scalar_with_ix(self):
-        subset = self.frame.index[[1, 4, 5]]
-
-        self.frame.loc[subset] = 99
-        assert (self.frame.loc[subset].values == 99).all()
-
-        col = self.frame['B']
-        col[subset] = 97
-        assert (self.frame.loc[subset, 'B'] == 97).all()
 
     def test_frame_dict_constructor_empty_series(self):
         s1 = Series([
@@ -1583,47 +1345,6 @@ Thur,Lunch,Yes,51.51,17"""
         # it works!
         DataFrame({'foo': s1, 'bar': s2, 'baz': s3})
         DataFrame.from_dict({'foo': s1, 'baz': s3, 'bar': s2})
-
-    def test_indexing_ambiguity_bug_1678(self):
-        columns = MultiIndex.from_tuples([('Ohio', 'Green'), ('Ohio', 'Red'), (
-            'Colorado', 'Green')])
-        index = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1), ('b', 2)
-                                        ])
-
-        frame = DataFrame(np.arange(12).reshape((4, 3)), index=index,
-                          columns=columns)
-
-        result = frame.iloc[:, 1]
-        exp = frame.loc[:, ('Ohio', 'Red')]
-        assert isinstance(result, Series)
-        tm.assert_series_equal(result, exp)
-
-    def test_nonunique_assignment_1750(self):
-        df = DataFrame([[1, 1, "x", "X"], [1, 1, "y", "Y"], [1, 2, "z", "Z"]],
-                       columns=list("ABCD"))
-
-        df = df.set_index(['A', 'B'])
-        ix = MultiIndex.from_tuples([(1, 1)])
-
-        df.loc[ix, "C"] = '_'
-
-        assert (df.xs((1, 1))['C'] == '_').all()
-
-    def test_indexing_over_hashtable_size_cutoff(self):
-        n = 10000
-
-        old_cutoff = _index._SIZE_CUTOFF
-        _index._SIZE_CUTOFF = 20000
-
-        s = Series(np.arange(n),
-                   MultiIndex.from_arrays((["a"] * n, np.arange(n))))
-
-        # hai it works!
-        assert s[("a", 5)] == 5
-        assert s[("a", 6)] == 6
-        assert s[("a", 7)] == 7
-
-        _index._SIZE_CUTOFF = old_cutoff
 
     def test_multiindex_na_repr(self):
         # only an issue with long columns
@@ -1993,24 +1714,6 @@ Thur,Lunch,Yes,51.51,17"""
         data = ['a', 'b', 'c', 'd']
         m_df = Series(data, index=m_idx)
         assert m_df.repeat(3).shape == (3 * len(data), )
-
-    def test_iloc_mi(self):
-        # GH 13797
-        # Test if iloc can handle integer locations in MultiIndexed DataFrame
-
-        data = [['str00', 'str01'], ['str10', 'str11'], ['str20', 'srt21'],
-                ['str30', 'str31'], ['str40', 'str41']]
-
-        mi = MultiIndex.from_tuples(
-            [('CC', 'A'), ('CC', 'B'), ('CC', 'B'), ('BB', 'a'), ('BB', 'b')])
-
-        expected = DataFrame(data)
-        df_mi = DataFrame(data, index=mi)
-
-        result = DataFrame([[df_mi.iloc[r, c] for c in range(2)]
-                            for r in range(5)])
-
-        tm.assert_frame_equal(result, expected)
 
 
 class TestSorted(Base):
