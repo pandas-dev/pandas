@@ -115,15 +115,15 @@ jobs:
 
   - script: |
       az extension add --name storage-preview
-      az storage blob upload-batch --account-name=$(AZURE_STORAGE_ACCOUNT) --account-key=$(AZURE_STORAGE_ACCESS_KEY) -s $SOURCE_PATH -d '$web'
+      az storage blob upload-batch --account-name=$ACCOUNT_NAME --account-key=$ACCOUNT_KEY -s $SOURCE_PATH -d '$web'
     displayName: 'Publishing docs (Azure storage)'
     condition: true
     env:
       SOURCE_PATH: $(Build.SourcesDirectory)/doc/build/html/
       # Moving connection data to arguments
       # AZURE_STORAGE_CONNECTION_STRING: $(AZURE_STORAGE_CONNECTION_STRING)
-      # $(AZURE_STORAGE_ACCOUNT)
-      # $(AZURE_STORAGE_ACCESS_KEY)
+      ACCOUNT_NAME: $(AZURE_STORAGE_ACCOUNT)
+      ACCOUNT_KEY: $(AZURE_STORAGE_ACCESS_KEY)
 
   - script: |
       if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
@@ -151,19 +151,16 @@ jobs:
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
-      git remote -v
-      git branch
-      git branch -a
       git remote add upstream https://github.com/pandas-dev/pandas.git
       git fetch upstream
-      git remote -v
-      git branch
-      git branch -a
       if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
           cd asv_bench
+          asv dev
           ASV_ERRORS=$(asv dev > /dev/null)
+          echo "Captured ASV_ERRORS:"
+          echo $ASV_ERRORS
           if [[ $ASV_ERRORS ]]; then
-              echo "Benchmarks reported errors:"
+              echo "##vso[task.logissue type=error]Benchmarks failed to run"
               echo $ASV_ERRORS
               exit 1
           else
