@@ -5,17 +5,17 @@
 .. ipython:: python
    :suppress:
 
-   import pandas as pd
-   import numpy as np
-   from pandas.compat import StringIO
-   import os
-   import itertools
-   import functools
    import datetime
+   import functools
    import glob
+   import itertools
+   import os
+   import numpy as np
+   import pandas as pd
+   from pandas.compat import StringIO
    np.random.seed(123456)
-   pd.options.display.max_rows = 15
    np.set_printoptions(precision=4, suppress=True)
+   pd.options.display.max_rows = 15
 
 
 ********
