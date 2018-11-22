@@ -4,7 +4,7 @@
 Comparison with SQL
 ********************
 Since many potential pandas users have some familiarity with
-`SQL <http://en.wikipedia.org/wiki/SQL>`_, this page is meant to provide some examples of how
+`SQL <https://en.wikipedia.org/wiki/SQL>`_, this page is meant to provide some examples of how
 various SQL operations would be performed using pandas.
 
 If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
@@ -59,7 +59,7 @@ Filtering in SQL is done via a WHERE clause.
     LIMIT 5;
 
 DataFrames can be filtered in multiple ways; the most intuitive of which is using
-`boolean indexing <http://pandas.pydata.org/pandas-docs/stable/indexing.html#boolean-indexing>`_.
+`boolean indexing <https://pandas.pydata.org/pandas-docs/stable/indexing.html#boolean-indexing>`_.
 
 .. ipython:: python
 

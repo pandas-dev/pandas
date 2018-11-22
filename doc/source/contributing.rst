@@ -138,11 +138,11 @@ steps; you only need to install the compiler.
 
 For Windows developers, the following links may be helpful.
 
-- https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
-- https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
-- https://cowboyprogrammer.org/building-python-wheels-for-windows/
-- https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
-- https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
+* https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
+* https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
+* https://cowboyprogrammer.org/building-python-wheels-for-windows/
+* https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
+* https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
 
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
@@ -155,11 +155,11 @@ Creating a Python Environment
 Now that you have a C compiler, create an isolated pandas development
 environment:
 
-- Install either `Anaconda <https://www.anaconda.com/download/>`_ or `miniconda
+* Install either `Anaconda <https://www.anaconda.com/download/>`_ or `miniconda
   <https://conda.io/miniconda.html>`_
-- Make sure your conda is up to date (``conda update conda``)
-- Make sure that you have :ref:`cloned the repository <contributing.forking>`
-- ``cd`` to the *pandas* source directory
+* Make sure your conda is up to date (``conda update conda``)
+* Make sure that you have :ref:`cloned the repository <contributing.forking>`
+* ``cd`` to the *pandas* source directory
 
 We'll now kick off a three-step process:
 
@@ -170,7 +170,7 @@ We'll now kick off a three-step process:
 .. code-block:: none
 
    # Create and activate the build environment
-   conda env create -f ci/environment-dev.yaml
+   conda env create -f environment.yml
    conda activate pandas-dev
 
    # or with older versions of Anaconda:
@@ -179,9 +179,6 @@ We'll now kick off a three-step process:
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
    python -m pip install -e .
-
-   # Install the rest of the optional dependencies
-   conda install -c defaults -c conda-forge --file=ci/requirements-optional-conda.txt
 
 At this point you should be able to import pandas from your locally built version::
 
@@ -221,13 +218,11 @@ You'll need to have at least python3.5 installed on your system.
    . ~/virtualenvs/pandas-dev/bin/activate
 
    # Install the build dependencies
-   python -m pip install -r ci/requirements_dev.txt
+   python -m pip install -r requirements-dev.txt
+
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
    python -m pip install -e .
-
-   # Install additional dependencies
-   python -m pip install -r ci/requirements-optional-pip.txt
 
 Creating a branch
 -----------------
@@ -286,7 +281,7 @@ complex changes to the documentation as well.
 
 Some other important things to know about the docs:
 
-- The *pandas* documentation consists of two parts: the docstrings in the code
+* The *pandas* documentation consists of two parts: the docstrings in the code
   itself and the docs in this folder ``pandas/doc/``.
 
   The docstrings provide a clear explanation of the usage of the individual
@@ -294,7 +289,7 @@ Some other important things to know about the docs:
   overviews per topic together with some other information (what's new,
   installation, etc).
 
-- The docstrings follow a pandas convention, based on the **Numpy Docstring
+* The docstrings follow a pandas convention, based on the **Numpy Docstring
   Standard**. Follow the :ref:`pandas docstring guide <docstring>` for detailed
   instructions on how to write a correct docstring.
 
@@ -303,7 +298,7 @@ Some other important things to know about the docs:
 
      contributing_docstring.rst
 
-- The tutorials make heavy use of the `ipython directive
+* The tutorials make heavy use of the `ipython directive
   <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
   This directive lets you put code in the documentation which will be run
   during the doc build. For example::
@@ -324,7 +319,7 @@ Some other important things to know about the docs:
   doc build. This approach means that code examples will always be up to date,
   but it does make the doc building a bit more complex.
 
-- Our API documentation in ``doc/source/api.rst`` houses the auto-generated
+* Our API documentation in ``doc/source/api.rst`` houses the auto-generated
   documentation from the docstrings. For classes, there are a few subtleties
   around controlling which methods and attributes have pages auto-generated.
 
@@ -363,6 +358,31 @@ the `API Reference <http://pandas.pydata.org/pandas-docs/stable/api.html>`_ page
 and the actual public methods.
 This will identify methods documented in ``doc/source/api.rst`` that are not actually
 class methods, and existing methods that are not documented in ``doc/source/api.rst``.
+
+
+Updating a *pandas* docstring
+-----------------------------
+
+When improving a single function or method's docstring, it is not necessarily
+needed to build the full documentation (see next section).
+However, there is a script that checks a docstring (for example for the ``DataFrame.mean`` method)::
+
+    python scripts/validate_docstrings.py pandas.DataFrame.mean
+
+This script will indicate some formatting errors if present, and will also
+run and test the examples included in the docstring.
+Check the :ref:`pandas docstring guide <docstring>` for a detailed guide
+on how to format the docstring.
+
+The examples in the docstring ('doctests') must be valid Python code,
+that in a deterministic way returns the presented output, and that can be
+copied and run by users. This can be checked with the script above, and is
+also tested on Travis. A failing doctest will be a blocker for merging a PR.
+Check the :ref:`examples <docstring.examples>` section in the docstring guide
+for some tips and tricks to get the doctests passing.
+
+When doing a PR with a docstring update, it is good to post the
+output of the validation script in a comment on github.
 
 
 How to build the *pandas* documentation
@@ -436,6 +456,25 @@ the documentation are also built by Travis-CI. These docs are then hosted `here
 <http://pandas-docs.github.io/pandas-docs-travis>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
 
+Spell checking documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When contributing to documentation to **pandas** it's good to check if your work
+contains any spelling errors. Sphinx provides an easy way to spell check documentation
+and docstrings.
+
+Running the spell check is easy. Just navigate to your local ``pandas/doc/`` directory and run::
+
+    python make.py spellcheck
+
+The spellcheck will take a few minutes to run (between 1 to 6 minutes). Sphinx will alert you
+with warnings and misspelt words - these misspelt words will be added to a file called
+``output.txt`` and you can find it on your local directory ``pandas/doc/build/spelling/``.
+
+The Sphinx spelling extension uses an EN-US dictionary to correct words, what means that in
+some cases you might need to add a word to this dictionary. You can do so by adding the word to
+the bag-of-words file named ``spelling_wordlist.txt`` located in the folder ``pandas/doc/``.
+
 .. _contributing.code:
 
 Contributing to the code base
@@ -453,6 +492,17 @@ tools will be run to check your code for stylistic errors.
 Generating any warnings will cause the test to fail.
 Thus, good style is a requirement for submitting code to *pandas*.
 
+There is a tool in pandas to help contributors verify their changes before
+contributing them to the project::
+
+   ./ci/code_checks.sh
+
+The script verify the linting of code files, it looks for common mistake patterns
+(like missing spaces around sphinx directives that make the documentation not
+being rendered properly) and it also validates the doctests. It is possible to
+run the checks independently by using the parameters ``lint``, ``patterns`` and
+``doctests`` (e.g. ``./ci/code_checks.sh lint``).
+
 In addition, because a lot of people use our library, it is important that we
 do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
@@ -469,8 +519,8 @@ standard. Google provides an open source style checker called ``cpplint``, but w
 use a fork of it that can be found `here <https://github.com/cpplint/cpplint>`__.
 Here are *some* of the more common ``cpplint`` issues:
 
-  - we restrict line-length to 80 characters to promote readability
-  - every header file must include a header guard to avoid name collisions if re-included
+* we restrict line-length to 80 characters to promote readability
+* every header file must include a header guard to avoid name collisions if re-included
 
 :ref:`Continuous Integration <contributing.ci>` will run the
 `cpplint <https://pypi.org/project/cpplint>`_ tool
@@ -517,15 +567,15 @@ Python (PEP8)
 There are several tools to ensure you abide by this standard. Here are *some* of
 the more common ``PEP8`` issues:
 
-  - we restrict line-length to 79 characters to promote readability
-  - passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
+* we restrict line-length to 79 characters to promote readability
+* passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
 
 :ref:`Continuous Integration <contributing.ci>` will run
 the `flake8 <https://pypi.org/project/flake8>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
 
-   git diff master -u -- "*.py" | flake8 --diff
+   git diff upstream/master -u -- "*.py" | flake8 --diff
 
 This command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
@@ -534,28 +584,69 @@ unused function. However, style-checking the diff will not catch this because
 the actual import is not part of the diff. Thus, for completeness, you should
 run this command, though it will take longer::
 
-   git diff master --name-only -- "*.py" | grep "pandas/" | xargs -r flake8
+   git diff upstream/master --name-only -- "*.py" | xargs -r flake8
 
 Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
-   git diff master --name-only -- "*.py" | grep "pandas/" | xargs flake8
+   git diff upstream/master --name-only -- "*.py" | xargs flake8
 
-Note that on Windows, these commands are unfortunately not possible because
-commands like ``grep`` and ``xargs`` are not available natively. To imitate the
-behavior with the commands above, you should run::
+Windows does not support the ``xargs`` command (unless installed for example
+via the `MinGW <http://www.mingw.org/>`__ toolchain), but one can imitate the
+behaviour as follows::
 
-    git diff master --name-only -- "*.py"
+    for /f %i in ('git diff upstream/master --name-only -- "*.py"') do flake8 %i
 
-This will list all of the Python files that have been modified. The only ones
-that matter during linting are any whose directory filepath begins with "pandas."
-For each filepath, copy and paste it after the ``flake8`` command as shown below:
+This will get all the files being changed by the PR (and ending with ``.py``),
+and run ``flake8`` on them, one after the other.
 
-    flake8 <python-filepath>
+.. _contributing.import-formatting:
 
-Alternatively, you can install the ``grep`` and ``xargs`` commands via the
-`MinGW <http://www.mingw.org/>`__ toolchain, and it will allow you to run the
-commands above.
+Import Formatting
+~~~~~~~~~~~~~~~~~
+*pandas* uses `isort <https://pypi.org/project/isort/>`__ to standardise import
+formatting across the codebase.
+
+A guide to import layout as per pep8 can be found `here <https://www.python.org/dev/peps/pep-0008/#imports/>`__.
+
+A summary of our current import sections ( in order ):
+
+* Future
+* Python Standard Library
+* Third Party
+* ``pandas._libs``, ``pandas.compat``, ``pandas.util._*``, ``pandas.errors`` (largely not dependent on ``pandas.core``)
+* ``pandas.core.dtypes`` (largely not dependent on the rest of ``pandas.core``)
+* Rest of ``pandas.core.*``
+* Non-core ``pandas.io``, ``pandas.plotting``, ``pandas.tseries``
+* Local application/library specific imports
+
+Imports are alphabetically sorted within these sections.
+
+
+As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
+
+    isort --recursive --check-only pandas
+
+to check that imports are correctly formatted as per the `setup.cfg`.
+
+If you see output like the below in :ref:`Continuous Integration <contributing.ci>` checks:
+
+.. code-block:: shell
+
+   Check import format using isort
+   ERROR: /home/travis/build/pandas-dev/pandas/pandas/io/pytables.py Imports are incorrectly sorted
+   Check import format using isort DONE
+   The command "ci/code_checks.sh" exited with 1
+
+You should run::
+
+    isort pandas/io/pytables.py
+
+to automatically format imports correctly. This will modify your local copy of the files.
+
+The `--recursive` flag can be passed to sort all files in a directory.
+
+You can then verify the changes look ok, then git :ref:`commit <contributing.commit-code>` and :ref:`push <contributing.push-code>`.
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -588,18 +679,26 @@ Otherwise, you need to do it manually:
         warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
         new_func()
 
+You'll also need to
+
+1. write a new test that asserts a warning is issued when calling with the deprecated argument
+2. Update all of pandas existing tests and code to use the new argument
+
+See :ref:`contributing.warnings` for more.
+
+
 .. _contributing.ci:
 
 Testing With Continuous Integration
 -----------------------------------
 
 The *pandas* test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__,
-`Appveyor <https://www.appveyor.com/>`__, and `Circle CI <https://circleci.com/>`__ continuous integration
-services, once your pull request is submitted.
+`Azure Pipelines <https://azure.microsoft.com/en-us/services/devops/pipelines/>`__,
+and `Circle CI <https://circleci.com/>`__ continuous integration services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
 then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
 for `Travis-CI <http://about.travis-ci.org/docs/user/getting-started/>`__,
-`Appveyor <https://www.appveyor.com/docs/>`__ , and `CircleCI <https://circleci.com/>`__.
+`Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/>`__, and `CircleCI <https://circleci.com/>`__.
 
 A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
 then you will get a red 'X', where you can click through to see the individual failed tests.
@@ -609,8 +708,8 @@ This is an example of a green build.
 
 .. note::
 
-   Each time you push to *your* fork, a *new* run of the tests will be triggered on the CI. Appveyor will auto-cancel
-   any non-currently-running tests for that same pull-request. You can enable the auto-cancel feature for
+   Each time you push to *your* fork, a *new* run of the tests will be triggered on the CI.
+   You can enable the auto-cancel feature, which removes any non-currently-running tests for that same pull-request, for
    `Travis-CI here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__ and
    for `CircleCI here <https://circleci.com/changelog-legacy/#option-to-auto-cancel-redundant-builds>`__.
 
@@ -621,7 +720,7 @@ Test-driven development/code writing
 ------------------------------------
 
 *pandas* is serious about testing and strongly encourages contributors to embrace
-`test-driven development (TDD) <http://en.wikipedia.org/wiki/Test-driven_development>`_.
+`test-driven development (TDD) <https://en.wikipedia.org/wiki/Test-driven_development>`_.
 This development process "relies on the repetition of a very short development cycle:
 first the developer writes an (initially failing) automated test case that defines a desired
 improvement or new function, then produces the minimum amount of code to pass that test."
@@ -633,13 +732,13 @@ Adding tests is one of the most common requests after code is pushed to *pandas*
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
 Like many packages, *pandas* uses `pytest
-<http://doc.pytest.org/en/latest/>`_ and the convenient
+<http://docs.pytest.org/en/latest/>`_ and the convenient
 extensions in `numpy.testing
 <http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
 
 .. note::
 
-   The earliest supported pytest version is 3.1.0.
+   The earliest supported pytest version is 3.6.0.
 
 Writing tests
 ~~~~~~~~~~~~~
@@ -681,29 +780,29 @@ Transitioning to ``pytest``
 .. code-block:: python
 
     class TestReallyCoolFeature(object):
-        ....
+        pass
 
-Going forward, we are moving to a more *functional* style using the `pytest <http://doc.pytest.org/en/latest/>`__ framework, which offers a richer testing
+Going forward, we are moving to a more *functional* style using the `pytest <http://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
 framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
 
 .. code-block:: python
 
     def test_really_cool_feature():
-        ....
+        pass
 
 Using ``pytest``
 ~~~~~~~~~~~~~~~~
 
 Here is an example of a self-contained set of tests that illustrate multiple features that we like to use.
 
-- functional style: tests are like ``test_*`` and *only* take arguments that are either fixtures or parameters
-- ``pytest.mark`` can be used to set metadata on test functions, e.g. ``skip`` or ``xfail``.
-- using ``parametrize``: allow testing of multiple cases
-- to set a mark on a parameter, ``pytest.param(..., marks=...)`` syntax should be used
-- ``fixture``, code for object construction, on a per-test basis
-- using bare ``assert`` for scalars and truth-testing
-- ``tm.assert_series_equal`` (and its counter part ``tm.assert_frame_equal``), for pandas object comparisons.
-- the typical pattern of constructing an ``expected`` and comparing versus the ``result``
+* functional style: tests are like ``test_*`` and *only* take arguments that are either fixtures or parameters
+* ``pytest.mark`` can be used to set metadata on test functions, e.g. ``skip`` or ``xfail``.
+* using ``parametrize``: allow testing of multiple cases
+* to set a mark on a parameter, ``pytest.param(..., marks=...)`` syntax should be used
+* ``fixture``, code for object construction, on a per-test basis
+* using bare ``assert`` for scalars and truth-testing
+* ``tm.assert_series_equal`` (and its counter part ``tm.assert_frame_equal``), for pandas object comparisons.
+* the typical pattern of constructing an ``expected`` and comparing versus the ``result``
 
 We would name this file ``test_cool_feature.py`` and put in an appropriate place in the ``pandas/tests/`` structure.
 
@@ -714,24 +813,29 @@ We would name this file ``test_cool_feature.py`` and put in an appropriate place
    import pandas as pd
    from pandas.util import testing as tm
 
+
    @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
    def test_dtypes(dtype):
        assert str(np.dtype(dtype)) == dtype
 
-   @pytest.mark.parametrize('dtype', ['float32',
-       pytest.param('int16', marks=pytest.mark.skip),
-       pytest.param('int32',
-                    marks=pytest.mark.xfail(reason='to show how it works'))])
+
+   @pytest.mark.parametrize(
+       'dtype', ['float32', pytest.param('int16', marks=pytest.mark.skip),
+                 pytest.param('int32', marks=pytest.mark.xfail(
+                     reason='to show how it works'))])
    def test_mark(dtype):
        assert str(np.dtype(dtype)) == 'float32'
+
 
    @pytest.fixture
    def series():
        return pd.Series([1, 2, 3])
 
+
    @pytest.fixture(params=['int8', 'int16', 'int32', 'int64'])
    def dtype(request):
        return request.param
+
 
    def test_series(series, dtype):
        result = series.astype(dtype)
@@ -747,7 +851,7 @@ A test run of this yields
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v
    =========================== test session starts ===========================
-   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   platform darwin -- Python 3.6.2, pytest-3.6.0, py-1.4.31, pluggy-0.4.0
    collected 11 items
 
    tester.py::test_dtypes[int8] PASSED
@@ -769,11 +873,101 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v -k int8
    =========================== test session starts ===========================
-   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   platform darwin -- Python 3.6.2, pytest-3.6.0, py-1.4.31, pluggy-0.4.0
    collected 11 items
 
    test_cool_feature.py::test_dtypes[int8] PASSED
    test_cool_feature.py::test_series[int8] PASSED
+
+
+.. _using-hypothesis:
+
+Using ``hypothesis``
+~~~~~~~~~~~~~~~~~~~~
+
+Hypothesis is a library for property-based testing.  Instead of explicitly
+parametrizing a test, you can describe *all* valid inputs and let Hypothesis
+try to find a failing input.  Even better, no matter how many random examples
+it tries, Hypothesis always reports a single minimal counterexample to your
+assertions - often an example that you would never have thought to test.
+
+See `Getting Started with Hypothesis <https://hypothesis.works/articles/getting-started-with-hypothesis/>`_
+for more of an introduction, then `refer to the Hypothesis documentation
+for details <https://hypothesis.readthedocs.io/en/latest/index.html>`_.
+
+.. code-block:: python
+
+    import json
+    from hypothesis import given, strategies as st
+
+    any_json_value = st.deferred(lambda: st.one_of(
+        st.none(), st.booleans(), st.floats(allow_nan=False), st.text(),
+        st.lists(any_json_value), st.dictionaries(st.text(), any_json_value)
+    ))
+
+
+    @given(value=any_json_value)
+    def test_json_roundtrip(value):
+        result = json.loads(json.dumps(value))
+        assert value == result
+
+This test shows off several useful features of Hypothesis, as well as
+demonstrating a good use-case: checking properties that should hold over
+a large or complicated domain of inputs.
+
+To keep the Pandas test suite running quickly, parametrized tests are
+preferred if the inputs or logic are simple, with Hypothesis tests reserved
+for cases with complex logic or where there are too many combinations of
+options or subtle interactions to test (or think of!) all of them.
+
+.. _contributing.warnings:
+
+Testing Warnings
+~~~~~~~~~~~~~~~~
+
+By default, one of pandas CI workers will fail if any unhandled warnings are emitted.
+
+If your change involves checking that a warning is actually emitted, use
+``tm.assert_produces_warning(ExpectedWarning)``.
+
+
+.. code-block:: python
+
+   with tm.assert_produces_warning(FutureWarning):
+       df.some_operation()
+
+We prefer this to the ``pytest.warns`` context manager because ours checks that the warning's
+stacklevel is set correctly. The stacklevel is what ensure the *user's* file name and line number
+is printed in the warning, rather than something internal to pandas. It represents the number of
+function calls from user code (e.g. ``df.some_operation()``) to the function that actually emits
+the warning. Our linter will fail the build if you use ``pytest.warns`` in a test.
+
+If you have a test that would emit a warning, but you aren't actually testing the
+warning itself (say because it's going to be removed in the future, or because we're
+matching a 3rd-party library's behavior), then use ``pytest.mark.filterwarnings`` to
+ignore the error.
+
+.. code-block:: python
+
+   @pytest.mark.filterwarnings("ignore:msg:category")
+   def test_thing(self):
+       ...
+
+If the test generates a warning of class ``category`` whose message starts
+with ``msg``, the warning will be ignored and the test will pass.
+
+If you need finer-grained control, you can use Python's usual
+`warnings module <https://docs.python.org/3/library/warnings.html>`__
+to control whether a warning is ignored / raised at different places within
+a single test.
+
+.. code-block:: python
+
+   with warch.catch_warnings():
+       warnings.simplefilter("ignore", FutureWarning)
+       # Or use warnings.filterwarnings(...)
+
+Alternatively, consider breaking up the unit test.
 
 
 Running the test suite
@@ -818,7 +1012,7 @@ On Windows, one can type::
 This can significantly reduce the time it takes to locally run tests before
 submitting a pull request.
 
-For more, see the `pytest <http://doc.pytest.org/en/latest/>`_ documentation.
+For more, see the `pytest <http://docs.pytest.org/en/latest/>`_ documentation.
 
     .. versionadded:: 0.20.0
 
@@ -902,7 +1096,7 @@ Information on how to write a benchmark and how to use asv can be found in the
 Documenting your code
 ---------------------
 
-Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.txt``.
+Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.rst``.
 This file contains an ongoing change log for each release.  Add an entry to this file to
 document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
 GitHub issue number when adding your entry (using ``:issue:`1234``` where ``1234`` is the
@@ -925,6 +1119,8 @@ or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v
 
 Contributing your changes to *pandas*
 =====================================
+
+.. _contributing.commit-code:
 
 Committing your code
 --------------------
@@ -950,25 +1146,27 @@ Finally, commit your changes to your local repository with an explanatory messag
 uses a convention for commit message prefixes and layout.  Here are
 some common prefixes along with general guidelines for when to use them:
 
-    * ENH: Enhancement, new functionality
-    * BUG: Bug fix
-    * DOC: Additions/updates to documentation
-    * TST: Additions/updates to tests
-    * BLD: Updates to the build process/scripts
-    * PERF: Performance improvement
-    * CLN: Code cleanup
+* ENH: Enhancement, new functionality
+* BUG: Bug fix
+* DOC: Additions/updates to documentation
+* TST: Additions/updates to tests
+* BLD: Updates to the build process/scripts
+* PERF: Performance improvement
+* CLN: Code cleanup
 
 The following defines how a commit message should be structured.  Please reference the
 relevant GitHub issues in your commit message using GH1234 or #1234.  Either style
 is fine, but the former is generally preferred:
 
-    * a subject line with `< 80` chars.
-    * One blank line.
-    * Optionally, a commit message body.
+* a subject line with `< 80` chars.
+* One blank line.
+* Optionally, a commit message body.
 
 Now you can commit your changes in your local repository::
 
     git commit -m
+
+.. _contributing.push-code:
 
 Pushing your changes
 --------------------

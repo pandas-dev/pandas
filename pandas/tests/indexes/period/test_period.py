@@ -1,13 +1,13 @@
+import numpy as np
 import pytest
 
-import numpy as np
+import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util._test_decorators as td
+from pandas import (
+    DataFrame, DatetimeIndex, Index, NaT, Period, PeriodIndex, Series,
+    date_range, offsets, period_range)
 from pandas.util import testing as tm
-from pandas import (PeriodIndex, period_range, DatetimeIndex, NaT,
-                    Index, Period, Series, DataFrame, date_range,
-                    offsets)
 
 from ..datetimelike import DatetimeLike
 
@@ -72,7 +72,8 @@ class TestPeriodIndex(DatetimeLike):
         with pytest.raises(AttributeError):
             DatetimeIndex([]).millisecond
 
-    def test_difference_freq(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_freq(self, sort):
         # GH14323: difference of Period MUST preserve frequency
         # but the ability to union results must be preserved
 
@@ -80,20 +81,20 @@ class TestPeriodIndex(DatetimeLike):
 
         other = period_range("20160921", "20160924", freq="D")
         expected = PeriodIndex(["20160920", "20160925"], freq='D')
-        idx_diff = index.difference(other)
+        idx_diff = index.difference(other, sort)
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal('freq', idx_diff, expected)
 
         other = period_range("20160922", "20160925", freq="D")
-        idx_diff = index.difference(other)
+        idx_diff = index.difference(other, sort)
         expected = PeriodIndex(["20160920", "20160921"], freq='D')
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal('freq', idx_diff, expected)
 
     def test_hash_error(self):
         index = period_range('20010101', periods=10)
-        with tm.assert_raises_regex(TypeError, "unhashable type: %r" %
-                                    type(index).__name__):
+        with pytest.raises(TypeError, match=("unhashable type: %r" %
+                                             type(index).__name__)):
             hash(index)
 
     def test_make_time_series(self):
@@ -338,8 +339,10 @@ class TestPeriodIndex(DatetimeLike):
         assert not index.is_(index[:])
         assert not index.is_(index.asfreq('M'))
         assert not index.is_(index.asfreq('A'))
-        assert not index.is_(index - 2)
-        assert not index.is_(index - 0)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # GH#22535
+            assert not index.is_(index - 2)
+            assert not index.is_(index - 0)
 
     def test_contains(self):
         rng = period_range('2007-01', freq='M', periods=10)
@@ -365,6 +368,19 @@ class TestPeriodIndex(DatetimeLike):
     def test_periods_number_check(self):
         with pytest.raises(ValueError):
             period_range('2011-1-1', '2012-1-1', 'B')
+
+    def test_start_time(self):
+        # GH 17157
+        index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
+        expected_index = date_range('2016-01-01', end='2016-05-31', freq='MS')
+        tm.assert_index_equal(index.start_time, expected_index)
+
+    def test_end_time(self):
+        # GH 17157
+        index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
+        expected_index = date_range('2016-01-01', end='2016-05-31', freq='M')
+        expected_index = expected_index.shift(1, freq='D').shift(-1, freq='ns')
+        tm.assert_index_equal(index.end_time, expected_index)
 
     def test_index_duplicate_periods(self):
         # monotonic
@@ -437,8 +453,8 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_index_equal(np.repeat(index, 2), expected)
 
         msg = "the 'axis' parameter is not supported"
-        tm.assert_raises_regex(
-            ValueError, msg, np.repeat, index, 2, axis=1)
+        with pytest.raises(ValueError, match=msg):
+            np.repeat(index, 2, axis=1)
 
     def test_pindex_multiples(self):
         pi = PeriodIndex(start='1/1/11', end='12/31/11', freq='2M')
@@ -544,3 +560,14 @@ class TestPeriodIndex(DatetimeLike):
         for na in (np.nan, pd.NaT, None):
             result = period_range('2017Q1', periods=4, freq='Q').insert(1, na)
             tm.assert_index_equal(result, expected)
+
+
+def test_maybe_convert_timedelta():
+    pi = PeriodIndex(['2000', '2001'], freq='D')
+    offset = offsets.Day(2)
+    assert pi._maybe_convert_timedelta(offset) == 2
+    assert pi._maybe_convert_timedelta(2) == 2
+
+    offset = offsets.BusinessDay()
+    with pytest.raises(ValueError, match='freq'):
+        pi._maybe_convert_timedelta(offset)

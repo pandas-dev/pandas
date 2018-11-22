@@ -1,6 +1,5 @@
 """ test feather-format compat """
 from distutils.version import LooseVersion
-from warnings import catch_warnings
 
 import numpy as np
 
@@ -9,12 +8,11 @@ import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal, ensure_clean
 
 import pytest
-feather = pytest.importorskip('feather')
-from feather import FeatherError  # noqa:E402
+pyarrow = pytest.importorskip('pyarrow')
 
 from pandas.io.feather_format import to_feather, read_feather  # noqa:E402
 
-fv = LooseVersion(feather.__version__)
+pyarrow_version = LooseVersion(pyarrow.__version__)
 
 
 @pytest.mark.single
@@ -33,8 +31,7 @@ class TestFeather(object):
         with ensure_clean() as path:
             to_feather(df, path)
 
-            with catch_warnings(record=True):
-                result = read_feather(path, **kwargs)
+            result = read_feather(path, **kwargs)
             assert_frame_equal(result, df)
 
     def test_error(self):
@@ -64,13 +61,6 @@ class TestFeather(object):
         assert df.dttz.dtype.tz.zone == 'US/Eastern'
         self.check_round_trip(df)
 
-    @pytest.mark.skipif(fv >= LooseVersion('0.4.0'), reason='fixed in 0.4.0')
-    def test_strided_data_issues(self):
-
-        # strided data issuehttps://github.com/wesm/feather/issues/97
-        df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list('abc'))
-        self.check_error_on_write(df, FeatherError)
-
     def test_duplicate_columns(self):
 
         # https://github.com/wesm/feather/issues/53
@@ -84,28 +74,33 @@ class TestFeather(object):
         df = pd.DataFrame(np.arange(12).reshape(4, 3)).copy()
         self.check_error_on_write(df, ValueError)
 
-    @pytest.mark.skipif(fv >= LooseVersion('0.4.0'), reason='fixed in 0.4.0')
-    def test_unsupported(self):
-
-        # timedelta
-        df = pd.DataFrame({'a': pd.timedelta_range('1 day', periods=3)})
-        self.check_error_on_write(df, FeatherError)
-
-        # non-strings
-        df = pd.DataFrame({'a': ['a', 1, 2.0]})
-        self.check_error_on_write(df, ValueError)
-
     def test_unsupported_other(self):
 
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
-        self.check_error_on_write(df, ValueError)
+        # Some versions raise ValueError, others raise ArrowInvalid.
+        self.check_error_on_write(df, Exception)
 
-    @pytest.mark.skipif(fv < LooseVersion('0.4.0'), reason='new in 0.4.0')
     def test_rw_nthreads(self):
-
         df = pd.DataFrame({'A': np.arange(100000)})
-        self.check_round_trip(df, nthreads=2)
+        expected_warning = (
+            "the 'nthreads' keyword is deprecated, "
+            "use 'use_threads' instead"
+        )
+        with tm.assert_produces_warning(FutureWarning) as w:
+            self.check_round_trip(df, nthreads=2)
+        assert len(w) == 1
+        assert expected_warning in str(w[0])
+
+        with tm.assert_produces_warning(FutureWarning) as w:
+            self.check_round_trip(df, nthreads=1)
+        assert len(w) == 1
+        assert expected_warning in str(w[0])
+
+    def test_rw_use_threads(self):
+        df = pd.DataFrame({'A': np.arange(100000)})
+        self.check_round_trip(df, use_threads=True)
+        self.check_round_trip(df, use_threads=False)
 
     def test_write_with_index(self):
 

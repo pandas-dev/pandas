@@ -1,11 +1,11 @@
 import pytest
 
+from pandas._libs.tslibs.frequencies import (
+    INVALID_FREQ_ERR_MSG, _period_code_map)
 from pandas.errors import OutOfBoundsDatetime
 
-import pandas as pd
 from pandas import Period, offsets
 from pandas.util import testing as tm
-from pandas._libs.tslibs.frequencies import _period_code_map
 
 
 class TestFreqConversion(object):
@@ -16,15 +16,17 @@ class TestFreqConversion(object):
         per = Period('0001-01-01', freq=freq)
         tup1 = (per.year, per.hour, per.day)
 
-        prev = per - 1
-        assert (per - 1).ordinal == per.ordinal - 1
+        with tm.assert_produces_warning(FutureWarning):
+            prev = per - 1
+        assert prev.ordinal == per.ordinal - 1
         tup2 = (prev.year, prev.month, prev.day)
         assert tup2 < tup1
 
     def test_asfreq_near_zero_weekly(self):
         # GH#19834
-        per1 = Period('0001-01-01', 'D') + 6
-        per2 = Period('0001-01-01', 'D') - 6
+        with tm.assert_produces_warning(FutureWarning):
+            per1 = Period('0001-01-01', 'D') + 6
+            per2 = Period('0001-01-01', 'D') - 6
         week1 = per1.asfreq('W')
         week2 = per2.asfreq('W')
         assert week1 != week2
@@ -32,7 +34,8 @@ class TestFreqConversion(object):
         assert week2.asfreq('D', 'S') <= per2
 
     @pytest.mark.xfail(reason='GH#19643 period_helper asfreq functions fail '
-                              'to check for overflows')
+                              'to check for overflows',
+                       strict=True)
     def test_to_timestamp_out_of_bounds(self):
         # GH#19643, currently gives Timestamp('1754-08-30 22:43:41.128654848')
         per = Period('0001-01-01', freq='B')
@@ -325,27 +328,27 @@ class TestFreqConversion(object):
 
         assert ival_W.asfreq('W') == ival_W
 
-        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
-        with tm.assert_raises_regex(ValueError, msg):
+        msg = INVALID_FREQ_ERR_MSG
+        with pytest.raises(ValueError, match=msg):
             ival_W.asfreq('WK')
 
     def test_conv_weekly_legacy(self):
         # frequency conversion tests: from Weekly Frequency
-        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
-        with tm.assert_raises_regex(ValueError, msg):
+        msg = INVALID_FREQ_ERR_MSG
+        with pytest.raises(ValueError, match=msg):
             Period(freq='WK', year=2007, month=1, day=1)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period(freq='WK-SAT', year=2007, month=1, day=6)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period(freq='WK-FRI', year=2007, month=1, day=5)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period(freq='WK-THU', year=2007, month=1, day=4)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period(freq='WK-WED', year=2007, month=1, day=3)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period(freq='WK-TUE', year=2007, month=1, day=2)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             Period(freq='WK-MON', year=2007, month=1, day=1)
 
     def test_conv_business(self):
@@ -738,11 +741,11 @@ class TestFreqConversion(object):
 
         assert initial.asfreq(freq="M", how="S") == Period('2013-01', 'M')
 
-        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
-        with tm.assert_raises_regex(ValueError, msg):
+        msg = INVALID_FREQ_ERR_MSG
+        with pytest.raises(ValueError, match=msg):
             initial.asfreq(freq="MS", how="S")
 
-        with tm.assert_raises_regex(ValueError, msg):
-            pd.Period('2013-01', 'MS')
+        with pytest.raises(ValueError, match=msg):
+            Period('2013-01', 'MS')
 
         assert _period_code_map.get("MS") is None

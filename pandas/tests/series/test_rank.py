@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
-from pandas import compat, Timestamp
+from distutils.version import LooseVersion
+from itertools import chain
 
+import numpy as np
+from numpy import nan
 import pytest
 
-from distutils.version import LooseVersion
-from numpy import nan
-import numpy as np
-
-from pandas import Series, date_range, NaT
-from pandas.api.types import CategoricalDtype
-
-from pandas.compat import product
-from pandas.util.testing import assert_series_equal
-import pandas.util.testing as tm
-from pandas.tests.series.common import TestData
-from pandas._libs.tslib import iNaT
 from pandas._libs.algos import Infinity, NegInfinity
-from itertools import chain
+from pandas._libs.tslib import iNaT
+import pandas.compat as compat
+from pandas.compat import product
 import pandas.util._test_decorators as td
+
+from pandas import NaT, Series, Timestamp, date_range
+from pandas.api.types import CategoricalDtype
+from pandas.tests.series.common import TestData
+import pandas.util.testing as tm
+from pandas.util.testing import assert_series_equal
 
 
 class TestSeriesRank(TestData):
@@ -183,6 +182,16 @@ class TestSeriesRank(TestData):
             exp_keep
         )
 
+        # Test invalid values for na_option
+        msg = "na_option must be one of 'keep', 'top', or 'bottom'"
+
+        with pytest.raises(ValueError, match=msg):
+            na_ser.rank(na_option='bad', ascending=False)
+
+        # invalid type
+        with pytest.raises(ValueError, match=msg):
+            na_ser.rank(na_option=True, ascending=False)
+
         # Test with pct=True
         na_ser = Series(['first', 'second', 'third', 'fourth', np.NaN]).astype(
             CategoricalDtype(['first', 'second', 'third', 'fourth'], True))
@@ -213,7 +222,8 @@ class TestSeriesRank(TestData):
                      'int64',
                      marks=pytest.mark.xfail(
                          reason="iNaT is equivalent to minimum value of dtype"
-                         "int64 pending issue #16674")),
+                                "int64 pending issue GH#16674",
+                         strict=True)),
         ([NegInfinity(), '1', 'A', 'BA', 'Ba', 'C', Infinity()],
          'object')
     ])
@@ -250,7 +260,7 @@ class TestSeriesRank(TestData):
             tm.assert_series_equal(result, Series(expected))
 
         dtypes = [None, object]
-        disabled = set([(object, 'first')])
+        disabled = {(object, 'first')}
         results = self.results
 
         for method, dtype in product(results, dtypes):
@@ -268,7 +278,7 @@ class TestSeriesRank(TestData):
         dtypes = [('object', None, Infinity(), NegInfinity()),
                   ('float64', np.nan, np.inf, -np.inf)]
         chunk = 3
-        disabled = set([('object', 'first')])
+        disabled = {('object', 'first')}
 
         def _check(s, method, na_option, ascending):
             exp_ranks = {
@@ -485,3 +495,11 @@ def test_rank_first_pct(dtype, ser, exp):
         result = s.rank(method='first', pct=True)
         expected = Series(exp).astype(result.dtype)
         assert_series_equal(result, expected)
+
+
+@pytest.mark.single
+def test_pct_max_many_rows():
+        # GH 18271
+        s = Series(np.arange(2**24 + 1))
+        result = s.rank(pct=True).max()
+        assert result == 1

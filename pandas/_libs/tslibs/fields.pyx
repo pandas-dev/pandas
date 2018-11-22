@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 """
 Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
 """
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
 from numpy cimport ndarray, int64_t, int32_t, int8_t
 cnp.import_array()
 
-from ccalendar import get_locale_names, MONTHS_FULL, DAYS_FULL
+from ccalendar import get_locale_names, MONTHS_FULL, DAYS_FULL, DAY_SECONDS
 from ccalendar cimport (get_days_in_month, is_leapyear, dayofweek,
                         get_week_of_year, get_day_of_year)
-from np_datetime cimport (pandas_datetimestruct, pandas_timedeltastruct,
+from np_datetime cimport (npy_datetimestruct, pandas_timedeltastruct,
                           dt64_to_dtstruct, td64_to_tdstruct)
 from nattype cimport NPY_NAT
 
@@ -37,17 +36,20 @@ def get_time_micros(ndarray[int64_t] dtindex):
     cdef:
         ndarray[int64_t] micros
 
-    micros = np.mod(dtindex, 86400000000000, dtype=np.int64) // 1000LL
+    micros = np.mod(dtindex, DAY_SECONDS * 1000000000, dtype=np.int64)
+    micros //= 1000LL
     return micros
 
 
-def build_field_sarray(ndarray[int64_t] dtindex):
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def build_field_sarray(int64_t[:] dtindex):
     """
     Datetime as int64 representation to a structured array of fields
     """
     cdef:
         Py_ssize_t i, count = 0
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         ndarray[int32_t] years, months, days, hours, minutes, seconds, mus
 
     count = len(dtindex)
@@ -85,8 +87,7 @@ def build_field_sarray(ndarray[int64_t] dtindex):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_date_name_field(ndarray[int64_t] dtindex, object field,
-                        object locale=None):
+def get_date_name_field(int64_t[:] dtindex, object field, object locale=None):
     """
     Given a int64-based datetime index, return array of strings of date
     name based on requested field (e.g. weekday_name)
@@ -94,7 +95,7 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field,
     cdef:
         Py_ssize_t i, count = 0
         ndarray[object] out, names
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int dow
 
     count = len(dtindex)
@@ -114,7 +115,7 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field,
             dt64_to_dtstruct(dtindex[i], &dts)
             dow = dayofweek(dts.year, dts.month, dts.day)
             out[i] = names[dow].capitalize()
-        return out
+
     elif field == 'month_name':
         if locale is None:
             names = np.array(MONTHS_FULL, dtype=np.object_)
@@ -128,13 +129,16 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field,
 
             dt64_to_dtstruct(dtindex[i], &dts)
             out[i] = names[dts.month].capitalize()
-        return out
 
-    raise ValueError("Field %s not supported" % field)
+    else:
+        raise ValueError("Field {field} not supported".format(field=field))
+
+    return out
 
 
 @cython.wraparound(False)
-def get_start_end_field(ndarray[int64_t] dtindex, object field,
+@cython.boundscheck(False)
+def get_start_end_field(int64_t[:] dtindex, object field,
                         object freqstr=None, int month_kw=12):
     """
     Given an int64-based datetime index return array of indicators
@@ -150,7 +154,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
         ndarray[int8_t] out
         ndarray[int32_t, ndim=2] _month_offset
         bint isleap
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int mo_off, dom, doy, dow, ldom
 
     _month_offset = np.array(
@@ -163,8 +167,8 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
     if freqstr:
         if freqstr == 'C':
-            raise ValueError(
-                "Custom business days is not supported by %s" % field)
+            raise ValueError("Custom business days is not supported by {field}"
+                             .format(field=field))
         is_business = freqstr[0] == 'B'
 
         # YearBegin(), BYearBegin() use month = starting month of year.
@@ -196,7 +200,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 if (dom == 1 and dow < 5) or (dom <= 3 and dow == 0):
                     out[i] = 1
-            return out.view(bool)
+
         else:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -208,7 +212,6 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 if dom == 1:
                     out[i] = 1
-            return out.view(bool)
 
     elif field == 'is_month_end':
         if is_business:
@@ -228,7 +231,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                 if (ldom == doy and dow < 5) or (
                         dow == 4 and (ldom - doy <= 2)):
                     out[i] = 1
-            return out.view(bool)
+
         else:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -244,7 +247,6 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 if ldom == doy:
                     out[i] = 1
-            return out.view(bool)
 
     elif field == 'is_quarter_start':
         if is_business:
@@ -260,7 +262,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                 if ((dts.month - start_month) % 3 == 0) and (
                         (dom == 1 and dow < 5) or (dom <= 3 and dow == 0)):
                     out[i] = 1
-            return out.view(bool)
+
         else:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -272,7 +274,6 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 if ((dts.month - start_month) % 3 == 0) and dom == 1:
                     out[i] = 1
-            return out.view(bool)
 
     elif field == 'is_quarter_end':
         if is_business:
@@ -293,7 +294,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                         (ldom == doy and dow < 5) or (
                             dow == 4 and (ldom - doy <= 2))):
                     out[i] = 1
-            return out.view(bool)
+
         else:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -309,7 +310,6 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 if ((dts.month - end_month) % 3 == 0) and (ldom == doy):
                     out[i] = 1
-            return out.view(bool)
 
     elif field == 'is_year_start':
         if is_business:
@@ -325,7 +325,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                 if (dts.month == start_month) and (
                         (dom == 1 and dow < 5) or (dom <= 3 and dow == 0)):
                     out[i] = 1
-            return out.view(bool)
+
         else:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -337,7 +337,6 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 if (dts.month == start_month) and dom == 1:
                     out[i] = 1
-            return out.view(bool)
 
     elif field == 'is_year_end':
         if is_business:
@@ -358,7 +357,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
                         (ldom == doy and dow < 5) or (
                             dow == 4 and (ldom - doy <= 2))):
                     out[i] = 1
-            return out.view(bool)
+
         else:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -374,9 +373,11 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
 
                 if (dts.month == end_month) and (ldom == doy):
                     out[i] = 1
-            return out.view(bool)
 
-    raise ValueError("Field %s not supported" % field)
+    else:
+        raise ValueError("Field {field} not supported".format(field=field))
+
+    return out.view(bool)
 
 
 @cython.wraparound(False)
@@ -389,7 +390,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     cdef:
         Py_ssize_t i, count = 0
         ndarray[int32_t] out
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
 
     count = len(dtindex)
     out = np.empty(count, dtype='i4')
@@ -544,7 +545,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_timedelta_field(ndarray[int64_t] tdindex, object field):
+def get_timedelta_field(int64_t[:] tdindex, object field):
     """
     Given a int64-based timedelta index, extract the days, hrs, sec.,
     field and return an array of these values.

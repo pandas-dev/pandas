@@ -1,8 +1,7 @@
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -130,7 +129,7 @@ class BaseGetitemTests(BaseExtensionTests):
         expected = s.iloc[[0, 1]]
         self.assert_series_equal(result, expected)
 
-        assert s.get(-1) == s.iloc[-1]
+        assert s.get(-1) is None
         assert s.get(s.index.max() + 1) is None
 
         s = pd.Series(data[:6], index=list('abcdef'))
@@ -146,6 +145,11 @@ class BaseGetitemTests(BaseExtensionTests):
         assert s.get(4) == s.iloc[4]
         assert s.get(-1) == s.iloc[-1]
         assert s.get(len(s)) is None
+
+        # GH 21257
+        s = pd.Series(data)
+        s2 = s[::2]
+        assert s2.get(1) is None
 
     def test_take_sequence(self, data):
         result = pd.Series(data)[[0, 1, 3]]
@@ -163,7 +167,7 @@ class BaseGetitemTests(BaseExtensionTests):
         assert result[0] == data[0]
         assert na_cmp(result[1], na_value)
 
-        with tm.assert_raises_regex(IndexError, "out of bounds"):
+        with pytest.raises(IndexError, match="out of bounds"):
             data.take([len(data) + 1])
 
     def test_take_empty(self, data, na_value, na_cmp):
@@ -175,7 +179,7 @@ class BaseGetitemTests(BaseExtensionTests):
         with pytest.raises(IndexError):
             empty.take([-1])
 
-        with tm.assert_raises_regex(IndexError, "cannot do a non-empty take"):
+        with pytest.raises(IndexError, match="cannot do a non-empty take"):
             empty.take([0, 1])
 
     def test_take_negative(self, data):
@@ -208,7 +212,7 @@ class BaseGetitemTests(BaseExtensionTests):
         s = pd.Series(data)
         result = s.take([0, -1])
         expected = pd.Series(
-            data._from_sequence([data[0], data[len(data) - 1]]),
+            data._from_sequence([data[0], data[len(data) - 1]], dtype=s.dtype),
             index=[0, len(data) - 1])
         self.assert_series_equal(result, expected)
 
@@ -221,12 +225,14 @@ class BaseGetitemTests(BaseExtensionTests):
         n = len(data)
         result = s.reindex([-1, 0, n])
         expected = pd.Series(
-            data._from_sequence([na_value, data[0], na_value]),
+            data._from_sequence([na_value, data[0], na_value],
+                                dtype=s.dtype),
             index=[-1, 0, n])
         self.assert_series_equal(result, expected)
 
         result = s.reindex([n, n + 1])
-        expected = pd.Series(data._from_sequence([na_value, na_value]),
+        expected = pd.Series(data._from_sequence([na_value, na_value],
+                                                 dtype=s.dtype),
                              index=[n, n + 1])
         self.assert_series_equal(result, expected)
 

@@ -2,17 +2,14 @@
 import re
 import pytest
 
-from itertools import product
-
 import numpy as np
 import pandas as pd
 from pandas import (
     Series, Categorical, CategoricalIndex, IntervalIndex, date_range)
 
-from pandas.compat import string_types
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype, PeriodDtype,
-    IntervalDtype, CategoricalDtype)
+    IntervalDtype, CategoricalDtype, registry, _pandas_registry)
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_categorical,
     is_datetime64tz_dtype, is_datetimetz,
@@ -20,7 +17,10 @@ from pandas.core.dtypes.common import (
     is_dtype_equal, is_datetime64_ns_dtype,
     is_datetime64_dtype, is_interval_dtype,
     is_datetime64_any_dtype, is_string_dtype,
-    _coerce_to_dtype)
+    _coerce_to_dtype,
+    is_bool_dtype,
+)
+from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
@@ -95,8 +95,8 @@ class TestCategoricalDtype(Base):
             TypeError, lambda: CategoricalDtype.construct_from_string('foo'))
 
     def test_constructor_invalid(self):
-        with tm.assert_raises_regex(TypeError,
-                                    "CategoricalIndex.* must be called"):
+        msg = "CategoricalIndex.* must be called"
+        with pytest.raises(TypeError, match=msg):
             CategoricalDtype("category")
 
     def test_is_dtype(self):
@@ -128,6 +128,18 @@ class TestCategoricalDtype(Base):
         categories = [(1, 'a'), (2, 'b'), (3, 'c')]
         result = CategoricalDtype(categories)
         assert all(result.categories == categories)
+
+    @pytest.mark.parametrize("categories, expected", [
+        ([True, False], True),
+        ([True, False, None], True),
+        ([True, False, "a", "b'"], False),
+        ([0, 1], False),
+    ])
+    def test_is_boolean(self, categories, expected):
+        cat = Categorical(categories)
+        assert cat.dtype._is_boolean is expected
+        assert is_bool_dtype(cat) is expected
+        assert is_bool_dtype(cat.dtype) is expected
 
 
 class TestDatetimeTZDtype(Base):
@@ -233,12 +245,14 @@ class TestDatetimeTZDtype(Base):
         assert is_datetimetz(s2)
         assert s1.dtype == s2.dtype
 
-    def test_parser(self):
+    @pytest.mark.parametrize('tz', ['UTC', 'US/Eastern'])
+    @pytest.mark.parametrize('constructor', ['M8', 'datetime64'])
+    def test_parser(self, tz, constructor):
         # pr #11245
-        for tz, constructor in product(('UTC', 'US/Eastern'),
-                                       ('M8', 'datetime64')):
-            assert (DatetimeTZDtype('%s[ns, %s]' % (constructor, tz)) ==
-                    DatetimeTZDtype('ns', tz))
+        dtz_str = '{con}[ns, {tz}]'.format(con=constructor, tz=tz)
+        result = DatetimeTZDtype(dtz_str)
+        expected = DatetimeTZDtype('ns', tz)
+        assert result == expected
 
     def test_empty(self):
         dt = DatetimeTZDtype()
@@ -367,11 +381,9 @@ class TestPeriodDtype(Base):
         assert is_period(pidx)
 
         s = Series(pidx, name='A')
-        # dtypes
-        # series results in object dtype currently,
-        # is_period checks period_arraylike
-        assert not is_period_dtype(s.dtype)
-        assert not is_period_dtype(s)
+
+        assert is_period_dtype(s.dtype)
+        assert is_period_dtype(s)
         assert is_period(s)
 
         assert not is_period_dtype(np.dtype('float64'))
@@ -443,12 +455,12 @@ class TestIntervalDtype(Base):
         # GH 19016
         msg = ('category, object, and string subtypes are not supported '
                'for IntervalDtype')
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)
 
     def test_construction_errors(self):
         msg = 'could not construct IntervalDtype'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(TypeError, match=msg):
             IntervalDtype('xx')
 
     def test_construction_from_string(self):
@@ -458,14 +470,21 @@ class TestIntervalDtype(Base):
         assert is_dtype_equal(self.dtype, result)
 
     @pytest.mark.parametrize('string', [
-        'foo', 'interval[foo]', 'foo[int64]', 0, 3.14, ('a', 'b'), None])
+        'foo', 'foo[int64]', 0, 3.14, ('a', 'b'), None])
     def test_construction_from_string_errors(self, string):
-        if isinstance(string, string_types):
-            error, msg = ValueError, 'could not construct IntervalDtype'
-        else:
-            error, msg = TypeError, 'a string needs to be passed, got type'
+        # these are invalid entirely
+        msg = 'a string needs to be passed, got type'
 
-        with tm.assert_raises_regex(error, msg):
+        with pytest.raises(TypeError, match=msg):
+            IntervalDtype.construct_from_string(string)
+
+    @pytest.mark.parametrize('string', [
+        'interval[foo]'])
+    def test_construction_from_string_error_subtype(self, string):
+        # this is an invalid subtype
+        msg = 'could not construct IntervalDtype'
+
+        with pytest.raises(TypeError, match=msg):
             IntervalDtype.construct_from_string(string)
 
     def test_subclass(self):
@@ -546,10 +565,8 @@ class TestIntervalDtype(Base):
 
         s = Series(ii, name='A')
 
-        # dtypes
-        # series results in object dtype currently,
-        assert not is_interval_dtype(s.dtype)
-        assert not is_interval_dtype(s)
+        assert is_interval_dtype(s.dtype)
+        assert is_interval_dtype(s)
 
     def test_basic_dtype(self):
         assert is_interval_dtype('interval[int64]')
@@ -681,10 +698,10 @@ class TestCategoricalDtypeParametrized(object):
         assert result is expected
 
     def test_invalid_raises(self):
-        with tm.assert_raises_regex(TypeError, 'ordered'):
+        with pytest.raises(TypeError, match='ordered'):
             CategoricalDtype(['a', 'b'], ordered='foo')
 
-        with tm.assert_raises_regex(TypeError, 'collection'):
+        with pytest.raises(TypeError, match='collection'):
             CategoricalDtype('category')
 
     def test_mixed(self):
@@ -765,5 +782,75 @@ class TestCategoricalDtypeParametrized(object):
     def test_update_dtype_errors(self, bad_dtype):
         dtype = CategoricalDtype(list('abc'), False)
         msg = 'a CategoricalDtype must be passed to perform an update, '
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             dtype.update_dtype(bad_dtype)
+
+
+@pytest.mark.parametrize(
+    'dtype',
+    [CategoricalDtype, IntervalDtype])
+def test_registry(dtype):
+    assert dtype in registry.dtypes
+
+
+@pytest.mark.parametrize('dtype', [DatetimeTZDtype, PeriodDtype])
+def test_pandas_registry(dtype):
+    assert dtype not in registry.dtypes
+    assert dtype in _pandas_registry.dtypes
+
+
+@pytest.mark.parametrize(
+    'dtype, expected',
+    [('int64', None),
+     ('interval', IntervalDtype()),
+     ('interval[int64]', IntervalDtype()),
+     ('interval[datetime64[ns]]', IntervalDtype('datetime64[ns]')),
+     ('category', CategoricalDtype())])
+def test_registry_find(dtype, expected):
+    assert registry.find(dtype) == expected
+
+
+@pytest.mark.parametrize(
+    'dtype, expected',
+    [('period[D]', PeriodDtype('D')),
+     ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern'))])
+def test_pandas_registry_find(dtype, expected):
+    assert _pandas_registry.find(dtype) == expected
+
+
+@pytest.mark.parametrize('dtype, expected', [
+    (str, False),
+    (int, False),
+    (bool, True),
+    (np.bool, True),
+    (np.array(['a', 'b']), False),
+    (pd.Series([1, 2]), False),
+    (np.array([True, False]), True),
+    (pd.Series([True, False]), True),
+    (pd.SparseSeries([True, False]), True),
+    (pd.SparseArray([True, False]), True),
+    (SparseDtype(bool), True)
+])
+def test_is_bool_dtype(dtype, expected):
+    result = is_bool_dtype(dtype)
+    assert result is expected
+
+
+@pytest.mark.parametrize("check", [
+    is_categorical_dtype,
+    is_datetime64tz_dtype,
+    is_period_dtype,
+    is_datetime64_ns_dtype,
+    is_datetime64_dtype,
+    is_interval_dtype,
+    is_datetime64_any_dtype,
+    is_string_dtype,
+    is_bool_dtype,
+])
+def test_is_dtype_no_warning(check):
+    data = pd.DataFrame({"A": [1, 2]})
+    with tm.assert_produces_warning(None):
+        check(data)
+
+    with tm.assert_produces_warning(None):
+        check(data["A"])

@@ -1,12 +1,14 @@
 # ---------------------------------------------------------------------
 # JSON normalization routines
 
-import copy
 from collections import defaultdict
+import copy
+
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
-from pandas import compat, DataFrame
+
+from pandas import DataFrame, compat
 
 
 def _convert_to_line_delimits(s):
@@ -80,8 +82,6 @@ def nested_to_record(ds, prefix="", sep=".", level=0):
                 if level != 0:  # so we skip copying for top level, common case
                     v = new_d.pop(k)
                     new_d[newkey] = v
-                if v is None:  # pop the key if the value is None
-                    new_d.pop(k)
                 continue
             else:
                 v = new_d.pop(k)
@@ -110,10 +110,10 @@ def json_normalize(data, record_path=None, meta=None,
         assumed to be an array of records
     meta : list of paths (string or list of strings), default None
         Fields to use as metadata for each record in resulting table
+    meta_prefix : string, default None
     record_prefix : string, default None
         If True, prefix records with dotted (?) path, e.g. foo.bar.field if
         path to records is ['foo', 'bar']
-    meta_prefix : string, default None
     errors : {'raise', 'ignore'}, default 'raise'
 
         * 'ignore' : will ignore KeyError if keys listed in meta are not
@@ -172,6 +172,11 @@ def json_normalize(data, record_path=None, meta=None,
     3      Summit        1234   John Kasich     Ohio        OH
     4    Cuyahoga        1337   John Kasich     Ohio        OH
 
+    >>> data = {'A': [1, 2]}
+    >>> json_normalize(data, 'A', record_prefix='Prefix.')
+        Prefix.0
+    0          1
+    1          2
     """
     def _pull_field(js, spec):
         result = js
@@ -191,8 +196,8 @@ def json_normalize(data, record_path=None, meta=None,
         data = [data]
 
     if record_path is None:
-        if any([[isinstance(x, dict)
-                for x in compat.itervalues(y)] for y in data]):
+        if any([isinstance(x, dict)
+                for x in compat.itervalues(y)] for y in data):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:
@@ -247,11 +252,10 @@ def json_normalize(data, record_path=None, meta=None,
                             if errors == 'ignore':
                                 meta_val = np.nan
                             else:
-                                raise \
-                                    KeyError("Try running with "
-                                             "errors='ignore' as key "
-                                             "{err} is not always present"
-                                             .format(err=e))
+                                raise KeyError("Try running with "
+                                               "errors='ignore' as key "
+                                               "{err} is not always present"
+                                               .format(err=e))
                     meta_vals[key].append(meta_val)
 
                 records.extend(recs)
@@ -261,7 +265,8 @@ def json_normalize(data, record_path=None, meta=None,
     result = DataFrame(records)
 
     if record_prefix is not None:
-        result.rename(columns=lambda x: record_prefix + x, inplace=True)
+        result = result.rename(
+            columns=lambda x: "{p}{c}".format(p=record_prefix, c=x))
 
     # Data types, a problem
     for k, v in compat.iteritems(meta_vals):

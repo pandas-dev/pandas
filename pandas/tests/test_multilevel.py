@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101,W0141
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 import datetime
 import itertools
 import pytest
@@ -10,7 +10,8 @@ from numpy.random import randn
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
-from pandas import Panel, DataFrame, Series, notna, isna, Timestamp
+from pandas import (Panel, DataFrame, Series, notna, isna, Timestamp, concat,
+                    read_csv)
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.core.common as com
@@ -19,6 +20,9 @@ from pandas.compat import (range, lrange, StringIO, lzip, u, product as
                            cart_product, zip)
 import pandas as pd
 import pandas._libs.index as _index
+
+AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
+                 'std', 'var', 'sem']
 
 
 class Base(object):
@@ -190,6 +194,7 @@ class TestMultiLevel(Base):
         tm.assert_frame_equal(reindexed, expected)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             reindexed = self.frame.ix[[('foo', 'one'), ('bar', 'one')]]
         tm.assert_frame_equal(reindexed, expected)
 
@@ -202,6 +207,7 @@ class TestMultiLevel(Base):
         assert chunk.index is new_index
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             chunk = self.ymd.ix[new_index]
         assert chunk.index is new_index
 
@@ -265,6 +271,7 @@ class TestMultiLevel(Base):
         tm.assert_series_equal(result, expected)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
         tm.assert_series_equal(result, expected)
 
@@ -318,7 +325,7 @@ class TestMultiLevel(Base):
         np.putmask(values[:-1], values[:-1] < 0, 2)
         tm.assert_almost_equal(df.values, values)
 
-        with tm.assert_raises_regex(TypeError, 'boolean values only'):
+        with pytest.raises(TypeError, match='boolean values only'):
             df[df * 0] = 2
 
     def test_frame_getitem_setitem_slice(self):
@@ -344,6 +351,7 @@ class TestMultiLevel(Base):
         tm.assert_series_equal(df['value'], result)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             result = df.ix[:, 'value']
         tm.assert_series_equal(df['value'], result)
 
@@ -419,6 +427,7 @@ class TestMultiLevel(Base):
         expected = idf.loc[0, 0]
         expected2 = idf.xs((0, 0))
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             expected3 = idf.ix[0, 0]
 
         tm.assert_series_equal(result, expected)
@@ -483,6 +492,14 @@ class TestMultiLevel(Base):
         expected = df.loc['foo', 'one']
         tm.assert_frame_equal(result, expected)
 
+    def test_xs_with_duplicates(self):
+        # Issue #13719
+        df_dup = concat([self.frame] * 2)
+        assert df_dup.index.is_unique is False
+        expected = concat([self.frame.xs('one', level='second')] * 2)
+        tm.assert_frame_equal(df_dup.xs('one', level='second'), expected)
+        tm.assert_frame_equal(df_dup.xs(['one'], level=['second']), expected)
+
     def test_xs_level(self):
         result = self.frame.xs('two', level='second')
         expected = self.frame[self.frame.index.get_level_values(1) == 'two']
@@ -509,14 +526,13 @@ class TestMultiLevel(Base):
         pytest.raises(com.SettingWithCopyError, f, result)
 
     def test_xs_level_multiple(self):
-        from pandas import read_table
         text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
 a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
-        df = read_table(StringIO(text), sep=r'\s+', engine='python')
+        df = read_csv(StringIO(text), sep=r'\s+', engine='python')
 
         result = df.xs(('a', 4), level=['one', 'four'])
         expected = df.xs('a').xs(4, level='four')
@@ -544,14 +560,13 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tm.assert_frame_equal(rs, xp)
 
     def test_xs_level0(self):
-        from pandas import read_table
         text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
 a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
-        df = read_table(StringIO(text), sep=r'\s+', engine='python')
+        df = read_csv(StringIO(text), sep=r'\s+', engine='python')
 
         result = df.xs('a', level=0)
         expected = df.xs('a')
@@ -674,6 +689,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert df.loc[('bar', 'two'), 1] == 7
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             df = self.frame.copy()
             df.columns = lrange(3)
             df.ix[('bar', 'two'), 1] = 7
@@ -703,6 +719,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tm.assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             result = df.ix[('a', 'y'), [1, 0]]
         tm.assert_frame_equal(result, expected)
 
@@ -723,13 +740,16 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
     def test_reset_index_with_drop(self):
         deleveled = self.ymd.reset_index(drop=True)
         assert len(deleveled.columns) == len(self.ymd.columns)
+        assert deleveled.index.name == self.ymd.index.name
 
         deleveled = self.series.reset_index()
         assert isinstance(deleveled, DataFrame)
         assert len(deleveled.columns) == len(self.series.index.levels) + 1
+        assert deleveled.index.name == self.series.index.name
 
         deleveled = self.series.reset_index(drop=True)
         assert isinstance(deleveled, Series)
+        assert deleveled.index.name == self.series.index.name
 
     def test_count_level(self):
         def _check_counts(frame, axis=0):
@@ -752,8 +772,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         # can't call with level on regular DataFrame
         df = tm.makeTimeDataFrame()
-        tm.assert_raises_regex(
-            TypeError, 'hierarchical', df.count, level=0)
+        with pytest.raises(TypeError, match='hierarchical'):
+            df.count(level=0)
 
         self.frame['D'] = 'foo'
         result = self.frame.count(level=0, numeric_only=True)
@@ -789,10 +809,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tm.assert_frame_equal(result, expected)
 
     def test_get_level_number_out_of_bounds(self):
-        with tm.assert_raises_regex(IndexError, "Too many levels"):
+        with pytest.raises(IndexError, match="Too many levels"):
             self.frame.index._get_level_number(2)
-        with tm.assert_raises_regex(IndexError,
-                                    "not a valid level number"):
+        with pytest.raises(IndexError, match="not a valid level number"):
             self.frame.index._get_level_number(-3)
 
     def test_unstack(self):
@@ -872,7 +891,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         # GH10417
         def check(left, right):
             tm.assert_series_equal(left, right)
-            assert not left.index.is_unique
+            assert left.index.is_unique is False
             li, ri = left.index, right.index
             tm.assert_index_equal(li, ri)
 
@@ -1009,17 +1028,16 @@ Thur,Lunch,Yes,51.51,17"""
         unstacked = self.ymd.unstack(['year', 'month'])
 
         # Can't use mixture of names and numbers to stack
-        with tm.assert_raises_regex(ValueError, "level should contain"):
+        with pytest.raises(ValueError, match="level should contain"):
             unstacked.stack([0, 'month'])
 
     def test_stack_multiple_out_of_bounds(self):
         # nlevels == 3
         unstacked = self.ymd.unstack(['year', 'month'])
 
-        with tm.assert_raises_regex(IndexError, "Too many levels"):
+        with pytest.raises(IndexError, match="Too many levels"):
             unstacked.stack([2, 3])
-        with tm.assert_raises_regex(IndexError,
-                                    "not a valid level number"):
+        with pytest.raises(IndexError, match="not a valid level number"):
             unstacked.stack([-4, -3])
 
     def test_unstack_period_series(self):
@@ -1284,6 +1302,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_swaplevel_panel(self):
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
             expected = panel.copy()
             expected.major_axis = expected.major_axis.swaplevel(0, 1)
@@ -1306,10 +1325,10 @@ Thur,Lunch,Yes,51.51,17"""
         expected = self.ymd.T.swaplevel(0, 1, axis=1).swaplevel(1, 2, axis=1)
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_raises_regex(TypeError, 'hierarchical axis'):
+        with pytest.raises(TypeError, match='hierarchical axis'):
             self.ymd.reorder_levels([1, 2], axis=1)
 
-        with tm.assert_raises_regex(IndexError, 'Too many levels'):
+        with pytest.raises(IndexError, match='Too many levels'):
             self.ymd.index.reorder_levels([1, 2, 3])
 
     def test_insert_index(self):
@@ -1357,7 +1376,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         try:
             df = f()
-        except:
+        except ValueError:
             pass
         assert (df['foo', 'one'] == 0).all()
 
@@ -1389,60 +1408,57 @@ Thur,Lunch,Yes,51.51,17"""
         pytest.raises(KeyError, series.count, 'x')
         pytest.raises(KeyError, frame.count, level='x')
 
-    AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
-                     'mad', 'std', 'var', 'sem']
-
+    @pytest.mark.parametrize('op', AGG_FUNCTIONS)
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('skipna', [True, False])
     @pytest.mark.parametrize('sort', [True, False])
-    def test_series_group_min_max(self, sort):
+    def test_series_group_min_max(self, op, level, skipna, sort):
         # GH 17537
-        for op, level, skipna in cart_product(self.AGG_FUNCTIONS, lrange(2),
-                                              [False, True]):
-            grouped = self.series.groupby(level=level, sort=sort)
-            aggf = lambda x: getattr(x, op)(skipna=skipna)
-            # skipna=True
-            leftside = grouped.agg(aggf)
-            rightside = getattr(self.series, op)(level=level, skipna=skipna)
-            if sort:
-                rightside = rightside.sort_index(level=level)
-            tm.assert_series_equal(leftside, rightside)
+        grouped = self.series.groupby(level=level, sort=sort)
+        # skipna=True
+        leftside = grouped.agg(lambda x: getattr(x, op)(skipna=skipna))
+        rightside = getattr(self.series, op)(level=level, skipna=skipna)
+        if sort:
+            rightside = rightside.sort_index(level=level)
+        tm.assert_series_equal(leftside, rightside)
 
+    @pytest.mark.parametrize('op', AGG_FUNCTIONS)
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('axis', [0, 1])
+    @pytest.mark.parametrize('skipna', [True, False])
     @pytest.mark.parametrize('sort', [True, False])
-    def test_frame_group_ops(self, sort):
+    def test_frame_group_ops(self, op, level, axis, skipna, sort):
         # GH 17537
         self.frame.iloc[1, [1, 2]] = np.nan
         self.frame.iloc[7, [0, 1]] = np.nan
 
-        for op, level, axis, skipna in cart_product(self.AGG_FUNCTIONS,
-                                                    lrange(2), lrange(2),
-                                                    [False, True]):
+        if axis == 0:
+            frame = self.frame
+        else:
+            frame = self.frame.T
 
-            if axis == 0:
-                frame = self.frame
-            else:
-                frame = self.frame.T
+        grouped = frame.groupby(level=level, axis=axis, sort=sort)
 
-            grouped = frame.groupby(level=level, axis=axis, sort=sort)
+        pieces = []
 
-            pieces = []
+        def aggf(x):
+            pieces.append(x)
+            return getattr(x, op)(skipna=skipna, axis=axis)
 
-            def aggf(x):
-                pieces.append(x)
-                return getattr(x, op)(skipna=skipna, axis=axis)
+        leftside = grouped.agg(aggf)
+        rightside = getattr(frame, op)(level=level, axis=axis,
+                                       skipna=skipna)
+        if sort:
+            rightside = rightside.sort_index(level=level, axis=axis)
+            frame = frame.sort_index(level=level, axis=axis)
 
-            leftside = grouped.agg(aggf)
-            rightside = getattr(frame, op)(level=level, axis=axis,
-                                           skipna=skipna)
-            if sort:
-                rightside = rightside.sort_index(level=level, axis=axis)
-                frame = frame.sort_index(level=level, axis=axis)
+        # for good measure, groupby detail
+        level_index = frame._get_axis(axis).levels[level]
 
-            # for good measure, groupby detail
-            level_index = frame._get_axis(axis).levels[level]
+        tm.assert_index_equal(leftside._get_axis(axis), level_index)
+        tm.assert_index_equal(rightside._get_axis(axis), level_index)
 
-            tm.assert_index_equal(leftside._get_axis(axis), level_index)
-            tm.assert_index_equal(rightside._get_axis(axis), level_index)
-
-            tm.assert_frame_equal(leftside, rightside)
+        tm.assert_frame_equal(leftside, rightside)
 
     def test_stat_op_corner(self):
         obj = Series([10.0], index=MultiIndex.from_tuples([(2, 3)]))
@@ -1907,11 +1923,24 @@ Thur,Lunch,Yes,51.51,17"""
         df['tstamp'] = idxdt
         df = df.set_index('tstamp', append=True)
         ts = Timestamp('201603231600')
-        assert not df.index.is_unique
+        assert df.index.is_unique is False
 
         result = df.drop(ts, level='tstamp')
         expected = df.loc[idx != 4]
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('box', [Series, DataFrame])
+    def test_drop_tz_aware_timestamp_across_dst(self, box):
+        # GH 21761
+        start = Timestamp('2017-10-29', tz='Europe/Berlin')
+        end = Timestamp('2017-10-29 04:00:00', tz='Europe/Berlin')
+        index = pd.date_range(start, end, freq='15min')
+        data = box(data=[1] * len(index), index=index)
+        result = data.drop(start)
+        expected_start = Timestamp('2017-10-29 00:15:00', tz='Europe/Berlin')
+        expected_idx = pd.date_range(expected_start, end, freq='15min')
+        expected = box(data=[1] * len(expected_idx), index=expected_idx)
+        tm.assert_equal(result, expected)
 
     def test_drop_preserve_names(self):
         index = MultiIndex.from_arrays([[0, 0, 0, 1, 1, 1],
@@ -2047,14 +2076,14 @@ Thur,Lunch,Yes,51.51,17"""
         df = DataFrame({"a": [1, 2, 3],
                         "b": [4, 5, 6],
                         "c": [7, 8, 9]}).set_index(["a", "b"])
-        l = list(df.index)
-        l[0] = ("faz", "boo")
-        df.index = l
+        index = list(df.index)
+        index[0] = ("faz", "boo")
+        df.index = index
         repr(df)
 
         # this travels an improper code path
-        l[0] = ["faz", "boo"]
-        df.index = l
+        index[0] = ["faz", "boo"]
+        df.index = index
         repr(df)
 
     def test_tuples_have_na(self):
@@ -2320,9 +2349,9 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result, df)
 
         # gh-16120: already existing column
-        with tm.assert_raises_regex(ValueError,
-                                    (r"cannot insert \('A', ''\), "
-                                     "already exists")):
+        with pytest.raises(ValueError,
+                           match=(r"cannot insert \('A', ''\), "
+                                  "already exists")):
             df.rename_axis('A').reset_index()
 
         # gh-16164: multiindex (tuple) full key
@@ -2337,9 +2366,9 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result, expected)
 
         # with index name which is a too long tuple...
-        with tm.assert_raises_regex(ValueError,
-                                    ("Item must have length equal to number "
-                                     "of levels.")):
+        with pytest.raises(ValueError,
+                           match=("Item must have length equal "
+                                  "to number of levels.")):
             df.rename_axis([('C', 'c', 'i')]).reset_index()
 
         # or too short...
@@ -2353,9 +2382,9 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(result, expected)
 
         # ... which is incompatible with col_fill=None
-        with tm.assert_raises_regex(ValueError,
-                                    ("col_fill=None is incompatible with "
-                                     r"incomplete column name \('C', 'c'\)")):
+        with pytest.raises(ValueError,
+                           match=("col_fill=None is incompatible with "
+                                  r"incomplete column name \('C', 'c'\)")):
             df2.rename_axis([('C', 'c')]).reset_index(col_fill=None)
 
         # with col_level != 0

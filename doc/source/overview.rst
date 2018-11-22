@@ -12,19 +12,19 @@ programming language.
 
 :mod:`pandas` consists of the following elements:
 
- * A set of labeled array data structures, the primary of which are
-   Series and DataFrame.
- * Index objects enabling both simple axis indexing and multi-level /
-   hierarchical axis indexing.
- * An integrated group by engine for aggregating and transforming data sets.
- * Date range generation (date_range) and custom date offsets enabling the
-   implementation of customized frequencies.
- * Input/Output tools: loading tabular data from flat files (CSV, delimited,
-   Excel 2003), and saving and loading pandas objects from the fast and
-   efficient PyTables/HDF5 format.
- * Memory-efficient "sparse" versions of the standard data structures for storing
-   data that is mostly missing or mostly constant (some fixed value).
- * Moving window statistics (rolling mean, rolling standard deviation, etc.).
+* A set of labeled array data structures, the primary of which are
+  Series and DataFrame.
+* Index objects enabling both simple axis indexing and multi-level /
+  hierarchical axis indexing.
+* An integrated group by engine for aggregating and transforming data sets.
+* Date range generation (date_range) and custom date offsets enabling the
+  implementation of customized frequencies.
+* Input/Output tools: loading tabular data from flat files (CSV, delimited,
+  Excel 2003), and saving and loading pandas objects from the fast and
+  efficient PyTables/HDF5 format.
+* Memory-efficient "sparse" versions of the standard data structures for storing
+  data that is mostly missing or mostly constant (some fixed value).
+* Moving window statistics (rolling mean, rolling standard deviation, etc.).
 
 Data Structures
 ---------------
@@ -82,7 +82,7 @@ Getting Support
 The first stop for pandas issues and ideas is the `Github Issue Tracker
 <https://github.com/pandas-dev/pandas/issues>`__. If you have a general question,
 pandas community experts can answer through `Stack Overflow
-<http://stackoverflow.com/questions/tagged/pandas>`__.
+<https://stackoverflow.com/questions/tagged/pandas>`__.
 
 Community
 ---------
@@ -92,7 +92,7 @@ the world who contribute their valuable time and energy to help make open source
 pandas possible. Thanks to `all of our contributors <https://github.com/pandas-dev/pandas/graphs/contributors>`__.
 
 If you're interested in contributing, please
-visit `Contributing to pandas webpage <http://pandas.pydata.org/pandas-docs/stable/contributing.html>`__.
+visit `Contributing to pandas webpage <https://pandas.pydata.org/pandas-docs/stable/contributing.html>`__.
 
 pandas is a `NumFOCUS <https://www.numfocus.org/open-source-projects/>`__ sponsored project.
 This will help ensure the success of development of pandas as a world-class open-source

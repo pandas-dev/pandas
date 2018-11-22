@@ -4,20 +4,21 @@ Module for formatting output data in HTML.
 """
 
 from __future__ import print_function
-from distutils.version import LooseVersion
 
+from distutils.version import LooseVersion
 from textwrap import dedent
 
-import pandas.core.common as com
-from pandas.core.index import MultiIndex
+from pandas.compat import OrderedDict, lzip, map, range, u, unichr, zip
+
+from pandas.core.dtypes.generic import ABCMultiIndex
+
 from pandas import compat
-from pandas.compat import (lzip, range, map, zip, u,
-                           OrderedDict, unichr)
+import pandas.core.common as com
 from pandas.core.config import get_option
+
+from pandas.io.formats.format import (
+    TableFormatter, buffer_put_lines, get_level_lengths)
 from pandas.io.formats.printing import pprint_thing
-from pandas.io.formats.format import (get_level_lengths,
-                                      buffer_put_lines)
-from pandas.io.formats.format import TableFormatter
 
 
 class HTMLFormatter(TableFormatter):
@@ -77,7 +78,7 @@ class HTMLFormatter(TableFormatter):
         self.write(u'{start}{rs}</{kind}>'
                    .format(start=start_tag, rs=rs, kind=kind), indent)
 
-    def write_tr(self, line, indent=0, indent_delta=4, header=False,
+    def write_tr(self, line, indent=0, indent_delta=0, header=False,
                  align=None, tags=None, nindex_levels=0):
         if tags is None:
             tags = {}
@@ -117,7 +118,7 @@ class HTMLFormatter(TableFormatter):
                          ('tbody tr th',
                           'vertical-align',
                           'top')]
-        if isinstance(self.columns, MultiIndex):
+        if isinstance(self.columns, ABCMultiIndex):
             element_props.append(('thead tr th',
                                   'text-align',
                                   'left'))
@@ -199,32 +200,11 @@ class HTMLFormatter(TableFormatter):
             # write nothing
             return indent
 
-        def _column_header():
-            if self.fmt.index:
-                row = [''] * (self.frame.index.nlevels - 1)
-            else:
-                row = []
-
-            if isinstance(self.columns, MultiIndex):
-                if self.fmt.has_column_names and self.fmt.index:
-                    row.append(single_column_table(self.columns.names))
-                else:
-                    row.append('')
-                style = "text-align: {just};".format(just=self.fmt.justify)
-                row.extend([single_column_table(c, self.fmt.justify, style)
-                            for c in self.columns])
-            else:
-                if self.fmt.index:
-                    row.append(self.columns.name or '')
-                row.extend(self.columns)
-            return row
-
         self.write('<thead>', indent)
-        row = []
 
         indent += self.indent_delta
 
-        if isinstance(self.columns, MultiIndex):
+        if isinstance(self.columns, ABCMultiIndex):
             template = 'colspan="{span:d}" halign="left"'
 
             if self.fmt.sparsify:
@@ -301,14 +281,21 @@ class HTMLFormatter(TableFormatter):
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
                               header=True)
         else:
-            col_row = _column_header()
+            if self.fmt.index:
+                row = [''] * (self.frame.index.nlevels - 1)
+                row.append(self.columns.name or '')
+            else:
+                row = []
+            row.extend(self.columns)
             align = self.fmt.justify
 
             if truncate_h:
+                if not self.fmt.index:
+                    row_levels = 0
                 ins_col = row_levels + self.fmt.tr_col_num
-                col_row.insert(ins_col, '...')
+                row.insert(ins_col, '...')
 
-            self.write_tr(col_row, indent, self.indent_delta, header=True,
+            self.write_tr(row, indent, self.indent_delta, header=True,
                           align=align)
 
         if all((self.fmt.has_index_names,
@@ -336,15 +323,10 @@ class HTMLFormatter(TableFormatter):
             fmt_values[i] = self.fmt._format_col(i)
 
         # write values
-        if self.fmt.index:
-            if isinstance(self.frame.index, MultiIndex):
-                self._write_hierarchical_rows(fmt_values, indent)
-            else:
-                self._write_regular_rows(fmt_values, indent)
+        if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
+            self._write_hierarchical_rows(fmt_values, indent)
         else:
-            for i in range(min(len(self.frame), self.max_rows)):
-                row = [fmt_values[j][i] for j in range(len(self.columns))]
-                self.write_tr(row, indent, self.indent_delta, tags=None)
+            self._write_regular_rows(fmt_values, indent)
 
         indent -= self.indent_delta
         self.write('</tbody>', indent)
@@ -358,29 +340,35 @@ class HTMLFormatter(TableFormatter):
 
         ncols = len(self.fmt.tr_frame.columns)
         nrows = len(self.fmt.tr_frame)
-        fmt = self.fmt._get_formatter('__index__')
-        if fmt is not None:
-            index_values = self.fmt.tr_frame.index.map(fmt)
+
+        if self.fmt.index:
+            fmt = self.fmt._get_formatter('__index__')
+            if fmt is not None:
+                index_values = self.fmt.tr_frame.index.map(fmt)
+            else:
+                index_values = self.fmt.tr_frame.index.format()
+            row_levels = 1
         else:
-            index_values = self.fmt.tr_frame.index.format()
+            row_levels = 0
 
         row = []
         for i in range(nrows):
 
             if truncate_v and i == (self.fmt.tr_row_num):
-                str_sep_row = ['...' for ele in row]
+                str_sep_row = ['...'] * len(row)
                 self.write_tr(str_sep_row, indent, self.indent_delta,
-                              tags=None, nindex_levels=1)
+                              tags=None, nindex_levels=row_levels)
 
             row = []
-            row.append(index_values[i])
+            if self.fmt.index:
+                row.append(index_values[i])
             row.extend(fmt_values[j][i] for j in range(ncols))
 
             if truncate_h:
-                dot_col_ix = self.fmt.tr_col_num + 1
+                dot_col_ix = self.fmt.tr_col_num + row_levels
                 row.insert(dot_col_ix, '...')
             self.write_tr(row, indent, self.indent_delta, tags=None,
-                          nindex_levels=1)
+                          nindex_levels=row_levels)
 
     def _write_hierarchical_rows(self, fmt_values, indent):
         template = 'rowspan="{span}" valign="top"'
@@ -483,24 +471,3 @@ class HTMLFormatter(TableFormatter):
                     row.insert(row_levels + self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=None,
                               nindex_levels=frame.index.nlevels)
-
-
-def single_column_table(column, align=None, style=None):
-    table = '<table'
-    if align is not None:
-        table += (' align="{align}"'.format(align=align))
-    if style is not None:
-        table += (' style="{style}"'.format(style=style))
-    table += '><tbody>'
-    for i in column:
-        table += ('<tr><td>{i!s}</td></tr>'.format(i=i))
-    table += '</tbody></table>'
-    return table
-
-
-def single_row_table(row):  # pragma: no cover
-    table = '<table><tbody><tr>'
-    for i in row:
-        table += ('<td>{i!s}</td>'.format(i=i))
-    table += '</tr></tbody></table>'
-    return table

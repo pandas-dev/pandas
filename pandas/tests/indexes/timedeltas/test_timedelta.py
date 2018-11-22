@@ -1,17 +1,17 @@
-import warnings
-
-import pytest
+from datetime import timedelta
 
 import numpy as np
-from datetime import timedelta
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import (timedelta_range, date_range, Series, Timedelta,
-                    TimedeltaIndex, Index, DataFrame,
-                    Int64Index)
-from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_index_equal)
+from pandas import (
+    DataFrame, Index, Int64Index, Series, Timedelta, TimedeltaIndex,
+    date_range, timedelta_range
+)
+from pandas.util.testing import (
+    assert_almost_equal, assert_index_equal, assert_series_equal
+)
 
 from ..datetimelike import DatetimeLike
 
@@ -53,20 +53,48 @@ class TestTimedeltaIndex(DatetimeLike):
             [pd.Timedelta('1 day'), 'x', pd.Timedelta('3 day')], dtype=object)
         tm.assert_index_equal(idx.fillna('x'), exp)
 
-    def test_difference_freq(self):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_freq(self, sort):
         # GH14323: Difference of TimedeltaIndex should not preserve frequency
 
         index = timedelta_range("0 days", "5 days", freq="D")
 
         other = timedelta_range("1 days", "4 days", freq="D")
         expected = TimedeltaIndex(["0 days", "5 days"], freq=None)
-        idx_diff = index.difference(other)
+        idx_diff = index.difference(other, sort)
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal('freq', idx_diff, expected)
 
         other = timedelta_range("2 days", "5 days", freq="D")
-        idx_diff = index.difference(other)
+        idx_diff = index.difference(other, sort)
         expected = TimedeltaIndex(["0 days", "1 days"], freq=None)
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal('freq', idx_diff, expected)
+
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_difference_sort(self, sort):
+
+        index = pd.TimedeltaIndex(["5 days", "3 days", "2 days", "4 days",
+                                   "1 days", "0 days"])
+
+        other = timedelta_range("1 days", "4 days", freq="D")
+        idx_diff = index.difference(other, sort)
+
+        expected = TimedeltaIndex(["5 days", "0 days"], freq=None)
+
+        if sort:
+            expected = expected.sort_values()
+
+        tm.assert_index_equal(idx_diff, expected)
+        tm.assert_attr_equal('freq', idx_diff, expected)
+
+        other = timedelta_range("2 days", "5 days", freq="D")
+        idx_diff = index.difference(other, sort)
+        expected = TimedeltaIndex(["1 days", "0 days"], freq=None)
+
+        if sort:
+            expected = expected.sort_values()
+
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal('freq', idx_diff, expected)
 
@@ -147,7 +175,7 @@ class TestTimedeltaIndex(DatetimeLike):
         idx = TimedeltaIndex(['1 day', '2 day', '2 day', '3 day', '3day',
                               '4day'])
 
-        with warnings.catch_warnings(record=True):
+        with tm.assert_produces_warning(FutureWarning):
             # Deprecated - see GH20239
             result = idx.get_duplicates()
 
@@ -199,8 +227,8 @@ class TestTimedeltaIndex(DatetimeLike):
 
     def test_hash_error(self):
         index = timedelta_range('1 days', periods=10)
-        with tm.assert_raises_regex(TypeError, "unhashable type: %r" %
-                                    type(index).__name__):
+        with pytest.raises(TypeError, match=("unhashable type: %r" %
+                                             type(index).__name__)):
             hash(index)
 
     def test_append_join_nondatetimeindex(self):

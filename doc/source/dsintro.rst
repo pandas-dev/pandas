@@ -51,9 +51,9 @@ labels are collectively referred to as the **index**. The basic method to create
 
 Here, ``data`` can be many different things:
 
- - a Python dict
- - an ndarray
- - a scalar value (like 5)
+* a Python dict
+* an ndarray
+* a scalar value (like 5)
 
 The passed **index** is a list of axis labels. Thus, this separates into a few
 cases depending on what **data is**:
@@ -246,12 +246,12 @@ potentially different types. You can think of it like a spreadsheet or SQL
 table, or a dict of Series objects. It is generally the most commonly used
 pandas object. Like Series, DataFrame accepts many different kinds of input:
 
- - Dict of 1D ndarrays, lists, dicts, or Series
- - 2-D numpy.ndarray
- - `Structured or record
-   <http://docs.scipy.org/doc/numpy/user/basics.rec.html>`__ ndarray
- - A ``Series``
- - Another ``DataFrame``
+* Dict of 1D ndarrays, lists, dicts, or Series
+* 2-D numpy.ndarray
+* `Structured or record
+  <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`__ ndarray
+* A ``Series``
+* Another ``DataFrame``
 
 Along with the data, you can optionally pass **index** (row labels) and
 **columns** (column labels) arguments. If you pass an index and / or columns,
@@ -353,7 +353,7 @@ From a list of dicts
 From a dict of tuples
 ~~~~~~~~~~~~~~~~~~~~~
 
-You can automatically create a multi-indexed frame by passing a tuples
+You can automatically create a MultiIndexed frame by passing a tuples
 dictionary.
 
 .. ipython:: python
@@ -476,7 +476,7 @@ Assigning New Columns in Method Chains
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Inspired by `dplyr's
-<http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html#mutate>`__
+<https://dplyr.tidyverse.org/reference/mutate.html>`__
 ``mutate`` verb, DataFrame has an :meth:`~pandas.DataFrame.assign`
 method that allows you to easily create new columns that are potentially
 derived from existing columns.
@@ -566,13 +566,12 @@ To write code compatible with all versions of Python, split the assignment in tw
    .. code-block:: python
 
       >>> dependent = pd.DataFrame({"A": [1, 1, 1]})
-      >>> dependent.assign(A=lambda x: x["A"] + 1,
-                           B=lambda x: x["A"] + 2)
+      >>> dependent.assign(A=lambda x: x["A"] + 1, B=lambda x: x["A"] + 2)
 
    For Python 3.5 and earlier the expression creating ``B`` refers to the
    "old" value of ``A``, ``[1, 1, 1]``. The output is then
 
-   .. code-block:: python
+   .. code-block:: console
 
          A  B
       0  2  3
@@ -582,7 +581,7 @@ To write code compatible with all versions of Python, split the assignment in tw
    For Python 3.6 and later, the expression creating ``A`` refers to the
    "new" value of ``A``, ``[2, 2, 2]``, which results in
 
-   .. code-block:: python
+   .. code-block:: console
 
          A  B
       0  2  4
@@ -815,7 +814,7 @@ accessed like an attribute:
    df
    df.foo1
 
-The columns are also connected to the `IPython <http://ipython.org>`__
+The columns are also connected to the `IPython <https://ipython.org>`__
 completion mechanism so they can be tab-completed:
 
 .. code-block:: ipython
@@ -834,7 +833,7 @@ Panel
     a future version. See the section :ref:`Deprecate Panel <dsintro.deprecate_panel>`.
 
 Panel is a somewhat less-used, but still important container for 3-dimensional
-data. The term `panel data <http://en.wikipedia.org/wiki/Panel_data>`__ is
+data. The term `panel data <https://en.wikipedia.org/wiki/Panel_data>`__ is
 derived from econometrics and is partially responsible for the name pandas:
 pan(el)-da(ta)-s. The names for the 3 axes are intended to give some semantic
 meaning to describing operations involving panel data and, in particular,
@@ -842,10 +841,10 @@ econometric analysis of panel data. However, for the strict purposes of slicing
 and dicing a collection of DataFrame objects, you may find the axis names
 slightly arbitrary:
 
-  - **items**: axis 0, each item corresponds to a DataFrame contained inside
-  - **major_axis**: axis 1, it is the **index** (rows) of each of the
-    DataFrames
-  - **minor_axis**: axis 2, it is the **columns** of each of the DataFrames
+* **items**: axis 0, each item corresponds to a DataFrame contained inside
+* **major_axis**: axis 1, it is the **index** (rows) of each of the
+  DataFrames
+* **minor_axis**: axis 2, it is the **columns** of each of the DataFrames
 
 Construction of Panels works about like you would expect:
 
@@ -1014,7 +1013,7 @@ Deprecate Panel
 Over the last few years, pandas has increased in both breadth and depth, with new features,
 datatype support, and manipulation routines. As a result, supporting efficient indexing and functional
 routines for ``Series``, ``DataFrame`` and ``Panel`` has contributed to an increasingly fragmented and
-difficult-to-understand codebase.
+difficult-to-understand code base.
 
 The 3-D structure of a ``Panel`` is much less common for many types of data analysis,
 than the 1-D of the ``Series`` or the 2-D of the ``DataFrame``. Going forward it makes sense for
@@ -1023,12 +1022,13 @@ pandas to focus on these areas exclusively.
 Oftentimes, one can simply use a MultiIndex ``DataFrame`` for easily working with higher dimensional data.
 
 In addition, the ``xarray`` package was built from the ground up, specifically in order to
-support the multi-dimensional analysis that is one of ``Panel`` s main usecases.
-`Here is a link to the xarray panel-transition documentation <http://xarray.pydata.org/en/stable/pandas.html#panel-transition>`__.
+support the multi-dimensional analysis that is one of ``Panel`` s main use cases.
+`Here is a link to the xarray panel-transition documentation <https://xarray.pydata.org/en/stable/pandas.html#panel-transition>`__.
 
 .. ipython:: python
    :okwarning:
 
+   import pandas.util.testing as tm
    p = tm.makePanel()
    p
 
@@ -1046,4 +1046,4 @@ Alternatively, one can convert to an xarray ``DataArray``.
 
    p.to_xarray()
 
-You can see the full-documentation for the `xarray package <http://xarray.pydata.org/en/stable/>`__.
+You can see the full-documentation for the `xarray package <https://xarray.pydata.org/en/stable/>`__.

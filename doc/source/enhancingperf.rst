@@ -32,7 +32,7 @@ Cython (Writing C extensions for pandas)
 ----------------------------------------
 
 For many use cases writing pandas in pure Python and NumPy is sufficient. In some
-computationally heavy applications however, it can be possible to achieve sizeable
+computationally heavy applications however, it can be possible to achieve sizable
 speed-ups by offloading work to `cython <http://cython.org/>`__.
 
 This tutorial assumes you have refactored as much as possible in Python, for example
@@ -298,7 +298,7 @@ advanced Cython techniques:
 
 Even faster, with the caveat that a bug in our Cython code (an off-by-one error,
 for example) might cause a segfault because memory access isn't checked.
-For more about ``boundscheck`` and ``wraparound``, see the Cython docs on 
+For more about ``boundscheck`` and ``wraparound``, see the Cython docs on
 `compiler directives <http://cython.readthedocs.io/en/latest/src/reference/compilation.html?highlight=wraparound#compiler-directives>`__.
 
 .. _enhancingperf.numba:
@@ -323,39 +323,45 @@ Numba works by generating optimized machine code using the LLVM compiler infrast
 Jit
 ~~~
 
-We demonstrate how to use Numba to just-in-time compile our code. We simply 
+We demonstrate how to use Numba to just-in-time compile our code. We simply
 take the plain Python code from above and annotate with the ``@jit`` decorator.
 
 .. code-block:: python
 
     import numba
 
+
     @numba.jit
     def f_plain(x):
-       return x * (x - 1)
+        return x * (x - 1)
+
 
     @numba.jit
     def integrate_f_numba(a, b, N):
-       s = 0
-       dx = (b - a) / N
-       for i in range(N):
-           s += f_plain(a + i * dx)
-       return s * dx
+        s = 0
+        dx = (b - a) / N
+        for i in range(N):
+            s += f_plain(a + i * dx)
+        return s * dx
+
 
     @numba.jit
     def apply_integrate_f_numba(col_a, col_b, col_N):
-       n = len(col_N)
-       result = np.empty(n, dtype='float64')
-       assert len(col_a) == len(col_b) == n
-       for i in range(n):
-          result[i] = integrate_f_numba(col_a[i], col_b[i], col_N[i])
-       return result
+        n = len(col_N)
+        result = np.empty(n, dtype='float64')
+        assert len(col_a) == len(col_b) == n
+        for i in range(n):
+            result[i] = integrate_f_numba(col_a[i], col_b[i], col_N[i])
+        return result
+
 
     def compute_numba(df):
-       result = apply_integrate_f_numba(df['a'].values, df['b'].values, df['N'].values)
-       return pd.Series(result, index=df.index, name='result')
+        result = apply_integrate_f_numba(df['a'].values, df['b'].values,
+                                         df['N'].values)
+        return pd.Series(result, index=df.index, name='result')
 
-Note that we directly pass NumPy arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a nicer interface by passing/returning pandas objects.
+Note that we directly pass NumPy arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a
+nicer interface by passing/returning pandas objects.
 
 .. code-block:: ipython
 
@@ -375,13 +381,16 @@ Consider the following toy example of doubling each observation:
 
     import numba
 
+
     def double_every_value_nonumba(x):
-        return x*2
+        return x * 2
+
 
     @numba.vectorize
     def double_every_value_withnumba(x):
-        return x*2
+        return x * 2
 
+.. code-block:: ipython
 
     # Custom function without numba
     In [5]: %timeit df['col1_doubled'] = df.a.apply(double_every_value_nonumba)
@@ -402,18 +411,18 @@ Caveats
 
     Numba will execute on any function, but can only accelerate certain classes of functions.
 
-Numba is best at accelerating functions that apply numerical functions to NumPy 
-arrays. When passed a function that only uses operations it knows how to 
+Numba is best at accelerating functions that apply numerical functions to NumPy
+arrays. When passed a function that only uses operations it knows how to
 accelerate, it will execute in ``nopython`` mode.
 
-If Numba is passed a function that includes something it doesn't know how to 
-work with -- a category that currently includes sets, lists, dictionaries, or 
-string functions -- it will revert to ``object mode``. In ``object mode``, 
-Numba will execute but your code will not speed up significantly. If you would 
-prefer that Numba throw an error if it cannot compile a function in a way that 
-speeds up your code, pass Numba the argument 
-``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on 
-troubleshooting Numba modes, see the `Numba troubleshooting page 
+If Numba is passed a function that includes something it doesn't know how to
+work with -- a category that currently includes sets, lists, dictionaries, or
+string functions -- it will revert to ``object mode``. In ``object mode``,
+Numba will execute but your code will not speed up significantly. If you would
+prefer that Numba throw an error if it cannot compile a function in a way that
+speeds up your code, pass Numba the argument
+``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on
+troubleshooting Numba modes, see the `Numba troubleshooting page
 <http://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
 
 Read more in the `Numba docs <http://numba.pydata.org/>`__.
@@ -461,15 +470,15 @@ Supported Syntax
 
 These operations are supported by :func:`pandas.eval`:
 
-- Arithmetic operations except for the left shift (``<<``) and right shift
+* Arithmetic operations except for the left shift (``<<``) and right shift
   (``>>``) operators, e.g., ``df + 2 * pi / s ** 4 % 42 - the_golden_ratio``
-- Comparison operations, including chained comparisons, e.g., ``2 < df < df2``
-- Boolean operations, e.g., ``df < df2 and df3 < df4 or not df_bool``
-- ``list`` and ``tuple`` literals, e.g., ``[1, 2]`` or ``(1, 2)``
-- Attribute access, e.g., ``df.a``
-- Subscript expressions, e.g., ``df[0]``
-- Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
-- Math functions: `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
+* Comparison operations, including chained comparisons, e.g., ``2 < df < df2``
+* Boolean operations, e.g., ``df < df2 and df3 < df4 or not df_bool``
+* ``list`` and ``tuple`` literals, e.g., ``[1, 2]`` or ``(1, 2)``
+* Attribute access, e.g., ``df.a``
+* Subscript expressions, e.g., ``df[0]``
+* Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
+* Math functions: `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
   `sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
   `arcsinh`, `arctanh`, `abs` and `arctan2`.
 
@@ -477,22 +486,22 @@ This Python syntax is **not** allowed:
 
 * Expressions
 
-  - Function calls other than math functions.
-  - ``is``/``is not`` operations
-  - ``if`` expressions
-  - ``lambda`` expressions
-  - ``list``/``set``/``dict`` comprehensions
-  - Literal ``dict`` and ``set`` expressions
-  - ``yield`` expressions
-  - Generator expressions
-  - Boolean expressions consisting of only scalar values
+    * Function calls other than math functions.
+    * ``is``/``is not`` operations
+    * ``if`` expressions
+    * ``lambda`` expressions
+    * ``list``/``set``/``dict`` comprehensions
+    * Literal ``dict`` and ``set`` expressions
+    * ``yield`` expressions
+    * Generator expressions
+    * Boolean expressions consisting of only scalar values
 
 * Statements
 
-  - Neither `simple <https://docs.python.org/3/reference/simple_stmts.html>`__
-    nor `compound <https://docs.python.org/3/reference/compound_stmts.html>`__
-    statements are allowed. This includes things like ``for``, ``while``, and
-    ``if``.
+    * Neither `simple <https://docs.python.org/3/reference/simple_stmts.html>`__
+      nor `compound <https://docs.python.org/3/reference/compound_stmts.html>`__
+      statements are allowed. This includes things like ``for``, ``while``, and
+      ``if``.
 
 
 
@@ -806,7 +815,7 @@ truncate any strings that are more than 60 characters in length. Second, we
 can't pass ``object`` arrays to ``numexpr`` thus string comparisons must be
 evaluated in Python space.
 
-The upshot is that this *only* applies to object-dtype'd expressions. So, if
+The upshot is that this *only* applies to object-dtype expressions. So, if
 you have an expression--for example
 
 .. ipython:: python

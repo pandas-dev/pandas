@@ -17,6 +17,8 @@ Reshaping and Pivot Tables
 Reshaping by pivoting DataFrame objects
 ---------------------------------------
 
+.. image:: _static/reshaping_pivot.png
+
 .. ipython::
    :suppress:
 
@@ -33,8 +35,7 @@ Reshaping by pivoting DataFrame objects
 
    In [3]: df = unpivot(tm.makeTimeDataFrame())
 
-Data is often stored in CSV files or databases in so-called "stacked" or
-"record" format:
+Data is often stored in so-called "stacked" or "record" format:
 
 .. ipython:: python
 
@@ -45,13 +46,19 @@ For the curious here is how the above ``DataFrame`` was created:
 
 .. code-block:: python
 
-   import pandas.util.testing as tm; tm.N = 3
+   import pandas.util.testing as tm
+
+   tm.N = 3
+
+
    def unpivot(frame):
        N, K = frame.shape
-       data = {'value' : frame.values.ravel('F'),
-               'variable' : np.asarray(frame.columns).repeat(N),
-               'date' : np.tile(np.asarray(frame.index), K)}
+       data = {'value': frame.values.ravel('F'),
+               'variable': np.asarray(frame.columns).repeat(N),
+               'date': np.tile(np.asarray(frame.index), K)}
        return pd.DataFrame(data, columns=['date', 'variable', 'value'])
+
+
    df = unpivot(tm.makeTimeDataFrame())
 
 To select out everything for variable ``A`` we could do:
@@ -59,8 +66,6 @@ To select out everything for variable ``A`` we could do:
 .. ipython:: python
 
    df[df['variable'] == 'A']
-
-.. image:: _static/reshaping_pivot.png
 
 But suppose we wish to do time series operations with the variables. A better
 representation would be where the ``columns`` are the unique variables and an
@@ -81,7 +86,7 @@ column:
 .. ipython:: python
 
    df['value2'] = df['value'] * 2
-   pivoted = df.pivot('date', 'variable')
+   pivoted = df.pivot(index='date', columns='variable')
    pivoted
 
 You can then select subsets from the pivoted ``DataFrame``:
@@ -92,6 +97,12 @@ You can then select subsets from the pivoted ``DataFrame``:
 
 Note that this returns a view on the underlying data in the case where the data
 are homogeneously-typed.
+
+.. note::
+   :func:`~pandas.pivot` will error with a ``ValueError: Index contains duplicate
+   entries, cannot reshape`` if the index/column pair is not unique. In this
+   case, consider using :func:`~pandas.pivot_table` which is a generalization
+   of pivot that can handle duplicate values for one index/column pair.
 
 .. _reshaping.stacking:
 
@@ -106,12 +117,12 @@ Closely related to the :meth:`~DataFrame.pivot` method are the related
 ``MultiIndex`` objects (see the section on :ref:`hierarchical indexing
 <advanced.hierarchical>`). Here are essentially what these methods do:
 
-  - ``stack``: "pivot" a level of the (possibly hierarchical) column labels,
-    returning a ``DataFrame`` with an index with a new inner-most level of row
-    labels.
-  - ``unstack``: (inverse operation of ``stack``) "pivot" a level of the
-    (possibly hierarchical) row index to the column axis, producing a reshaped
-    ``DataFrame`` with a new inner-most level of column labels.
+* ``stack``: "pivot" a level of the (possibly hierarchical) column labels,
+  returning a ``DataFrame`` with an index with a new inner-most level of row
+  labels.
+* ``unstack``: (inverse operation of ``stack``) "pivot" a level of the
+  (possibly hierarchical) row index to the column axis, producing a reshaped
+  ``DataFrame`` with a new inner-most level of column labels.
 
 .. image:: _static/reshaping_unstack.png
 
@@ -132,8 +143,8 @@ from the hierarchical indexing section:
 The ``stack`` function "compresses" a level in the ``DataFrame``'s columns to
 produce either:
 
-  - A ``Series``, in the case of a simple column Index.
-  - A ``DataFrame``, in the case of a ``MultiIndex`` in the columns.
+* A ``Series``, in the case of a simple column Index.
+* A ``DataFrame``, in the case of a ``MultiIndex`` in the columns.
 
 If the columns have a ``MultiIndex``, you can choose which level to stack. The
 stacked level becomes the new lowest level in a ``MultiIndex`` on the columns:
@@ -351,13 +362,13 @@ strategies.
 
 It takes a number of arguments:
 
-- ``data``: a DataFrame object.
-- ``values``: a column or a list of columns to aggregate.
-- ``index``: a column, Grouper, array which has the same length as data, or list of them.
+* ``data``: a DataFrame object.
+* ``values``: a column or a list of columns to aggregate.
+* ``index``: a column, Grouper, array which has the same length as data, or list of them.
   Keys to group by on the pivot table index. If an array is passed, it is being used as the same manner as column values.
-- ``columns``: a column, Grouper, array which has the same length as data, or list of them.
+* ``columns``: a column, Grouper, array which has the same length as data, or list of them.
   Keys to group by on the pivot table column. If an array is passed, it is being used as the same manner as column values.
-- ``aggfunc``: function to use for aggregation, defaulting to ``numpy.mean``.
+* ``aggfunc``: function to use for aggregation, defaulting to ``numpy.mean``.
 
 Consider a data set like this:
 
@@ -431,17 +442,17 @@ unless an array of values and an aggregation function are passed.
 
 It takes a number of arguments
 
-- ``index``: array-like, values to group by in the rows.
-- ``columns``: array-like, values to group by in the columns.
-- ``values``: array-like, optional, array of values to aggregate according to
+* ``index``: array-like, values to group by in the rows.
+* ``columns``: array-like, values to group by in the columns.
+* ``values``: array-like, optional, array of values to aggregate according to
   the factors.
-- ``aggfunc``: function, optional, If no values array is passed, computes a
+* ``aggfunc``: function, optional, If no values array is passed, computes a
   frequency table.
-- ``rownames``: sequence, default ``None``, must match number of row arrays passed.
-- ``colnames``: sequence, default ``None``, if passed, must match number of column
+* ``rownames``: sequence, default ``None``, must match number of row arrays passed.
+* ``colnames``: sequence, default ``None``, if passed, must match number of column
   arrays passed.
-- ``margins``: boolean, default ``False``, Add row/column margins (subtotals)
-- ``normalize``: boolean, {'all', 'index', 'columns'}, or {0,1}, default ``False``.
+* ``margins``: boolean, default ``False``, Add row/column margins (subtotals)
+* ``normalize``: boolean, {'all', 'index', 'columns'}, or {0,1}, default ``False``.
   Normalize by dividing all values by the sum of values.
 
 
@@ -615,10 +626,10 @@ As with the ``Series`` version, you can pass values for the ``prefix`` and
 ``prefix_sep``. By default the column name is used as the prefix, and '_' as
 the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:
 
-- string: Use the same value for ``prefix`` or ``prefix_sep`` for each column
+* string: Use the same value for ``prefix`` or ``prefix_sep`` for each column
   to be encoded.
-- list: Must be the same length as the number of columns being encoded.
-- dict: Mapping column name to prefix.
+* list: Must be the same length as the number of columns being encoded.
+* dict: Mapping column name to prefix.
 
 .. ipython:: python
 
@@ -654,7 +665,7 @@ When a column contains only one level, it will be omitted in the result.
     pd.get_dummies(df, drop_first=True)
 
 By default new columns will have ``np.uint8`` dtype.
-To choose another dtype, use the``dtype`` argument:
+To choose another dtype, use the ``dtype`` argument:
 
 .. ipython:: python
 
@@ -698,10 +709,103 @@ handling of NaN:
     In [3]: np.unique(x, return_inverse=True)[::-1]
     Out[3]: (array([3, 3, 0, 4, 1, 2]), array([nan, 3.14, inf, 'A', 'B'], dtype=object))
 
-
 .. note::
     If you just want to handle one column as a categorical variable (like R's factor),
     you can use  ``df["cat_col"] = pd.Categorical(df["col"])`` or
     ``df["cat_col"] = df["col"].astype("category")``. For full docs on :class:`~pandas.Categorical`,
     see the :ref:`Categorical introduction <categorical>` and the
     :ref:`API documentation <api.categorical>`.
+
+Examples
+--------
+
+In this section, we will review frequently asked questions and examples. The
+column names and relevant column values are named to correspond with how this
+DataFrame will be pivoted in the answers below.
+
+.. ipython:: python
+
+   np.random.seed([3, 1415])
+   n = 20
+
+   cols = np.array(['key', 'row', 'item', 'col'])
+   df = cols + pd.DataFrame((np.random.randint(5, size=(n, 4)) // [2, 1, 2, 1]).astype(str))
+   df.columns = cols
+   df = df.join(pd.DataFrame(np.random.rand(n, 2).round(2)).add_prefix('val'))
+
+   df
+
+Pivoting with Single Aggregations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Suppose we wanted to pivot ``df`` such that the ``col`` values are columns,
+``row`` values are the index, and the mean of ``val0`` are the values? In
+particular, the resulting DataFrame should look like:
+
+.. code-block:: ipython
+
+   col   col0   col1   col2   col3  col4
+   row
+   row0  0.77  0.605    NaN  0.860  0.65
+   row2  0.13    NaN  0.395  0.500  0.25
+   row3   NaN  0.310    NaN  0.545   NaN
+   row4   NaN  0.100  0.395  0.760  0.24
+
+This solution uses :func:`~pandas.pivot_table`. Also note that
+``aggfunc='mean'`` is the default. It is included here to be explicit.
+
+.. ipython:: python
+
+   df.pivot_table(
+       values='val0', index='row', columns='col', aggfunc='mean')
+
+Note that we can also replace the missing values by using the ``fill_value``
+parameter.
+
+.. ipython:: python
+
+   df.pivot_table(
+       values='val0', index='row', columns='col', aggfunc='mean', fill_value=0)
+
+Also note that we can pass in other aggregation functions as well. For example,
+we can also pass in ``sum``.
+
+.. ipython:: python
+
+   df.pivot_table(
+       values='val0', index='row', columns='col', aggfunc='sum', fill_value=0)
+
+Another aggregation we can do is calculate the frequency in which the columns
+and rows occur together a.k.a. "cross tabulation". To do this, we can pass
+``size`` to the ``aggfunc`` parameter.
+
+.. ipython:: python
+
+   df.pivot_table(index='row', columns='col', fill_value=0, aggfunc='size')
+
+Pivoting with Multiple Aggregations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We can also perform multiple aggregations. For example, to perform both a
+``sum`` and ``mean``, we can pass in a list to the ``aggfunc`` argument.
+
+.. ipython:: python
+
+   df.pivot_table(
+       values='val0', index='row', columns='col', aggfunc=['mean', 'sum'])
+
+Note to aggregate over multiple value columns, we can pass in a list to the
+``values`` parameter.
+
+.. ipython:: python
+
+   df.pivot_table(
+       values=['val0', 'val1'], index='row', columns='col', aggfunc=['mean'])
+
+Note to subdivide over multiple columns we can pass in a list to the
+``columns`` parameter.
+
+.. ipython:: python
+
+   df.pivot_table(
+       values=['val0'], index='row', columns=['item', 'col'], aggfunc=['mean'])

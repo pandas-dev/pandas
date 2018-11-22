@@ -1,10 +1,10 @@
-from pandas.compat import callable, signature, PY2
-from pandas._libs.properties import cache_readonly  # noqa
+from functools import WRAPPER_ASSIGNMENTS, update_wrapper, wraps
 import inspect
-import types
-import warnings
 from textwrap import dedent, wrap
-from functools import wraps, update_wrapper, WRAPPER_ASSIGNMENTS
+import warnings
+
+from pandas._libs.properties import cache_readonly  # noqa
+from pandas.compat import PY2, callable, signature
 
 
 def deprecate(name, alternative, version, alt_name=None,
@@ -140,8 +140,8 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
             if new_arg_name is None and old_arg_value is not None:
                 msg = (
                     "the '{old_name}' keyword is deprecated and will be "
-                    "removed in a future version "
-                    "please takes steps to stop use of '{old_name}'"
+                    "removed in a future version. "
+                    "Please take steps to stop the use of '{old_name}'"
                 ).format(old_name=old_arg_name)
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
                 kwargs[old_arg_name] = old_arg_value
@@ -314,14 +314,15 @@ def indent(text, indents=1):
 
 def make_signature(func):
     """
-    Returns a string repr of the arg list of a func call, with any defaults.
+    Returns a tuple containing the paramenter list with defaults
+    and parameter list.
 
     Examples
     --------
-    >>> def f(a,b,c=2) :
-    >>>     return a*b*c
-    >>> print(_make_signature(f))
-    a,b,c=2
+    >>> def f(a, b, c=2):
+    >>>     return a * b * c
+    >>> print(make_signature(f))
+    (['a', 'b', 'c=2'], ['a', 'b', 'c'])
     """
 
     spec = signature(func)
@@ -332,55 +333,10 @@ def make_signature(func):
         n_wo_defaults = len(spec.args) - len(spec.defaults)
         defaults = ('',) * n_wo_defaults + tuple(spec.defaults)
     args = []
-    for i, (var, default) in enumerate(zip(spec.args, defaults)):
+    for var, default in zip(spec.args, defaults):
         args.append(var if default == '' else var + '=' + repr(default))
     if spec.varargs:
         args.append('*' + spec.varargs)
     if spec.keywords:
         args.append('**' + spec.keywords)
     return args, spec.args
-
-
-class docstring_wrapper(object):
-    """
-    Decorator to wrap a function and provide
-    a dynamically evaluated doc-string.
-
-    Parameters
-    ----------
-    func : callable
-    creator : callable
-        return the doc-string
-    default : str, optional
-        return this doc-string on error
-    """
-    _attrs = ['__module__', '__name__',
-              '__qualname__', '__annotations__']
-
-    def __init__(self, func, creator, default=None):
-        self.func = func
-        self.creator = creator
-        self.default = default
-        update_wrapper(
-            self, func, [attr for attr in self._attrs
-                         if hasattr(func, attr)])
-
-    def __get__(self, instance, cls=None):
-
-        # we are called with a class
-        if instance is None:
-            return self
-
-        # we want to return the actual passed instance
-        return types.MethodType(self, instance)
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
-
-    @property
-    def __doc__(self):
-        try:
-            return self.creator()
-        except Exception as exc:
-            msg = self.default or str(exc)
-            return msg

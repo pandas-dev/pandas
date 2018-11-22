@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import pytest
 from datetime import datetime, date
 
@@ -27,7 +28,7 @@ class TestRegistration(object):
                 "import pandas as pd; "
                 "units = dict(matplotlib.units.registry); "
                 "assert pd.Timestamp in units)'")
-        call = ['python', '-c', code]
+        call = [sys.executable, '-c', code]
         assert subprocess.check_call(call) == 0
 
     def test_warns(self):
@@ -284,11 +285,11 @@ class TestDateTimeConverter(object):
         _assert_less(ts, ts + Micro(50))
 
     def test_convert_nested(self):
-        inner = [Timestamp('2017-01-01', Timestamp('2017-01-02'))]
+        inner = [Timestamp('2017-01-01'), Timestamp('2017-01-02')]
         data = [inner, inner]
         result = self.dtc.convert(data, None, None)
         expected = [self.dtc.convert(x, None, None) for x in data]
-        assert result == expected
+        assert (np.array(result) == expected).all()
 
 
 class TestPeriodConverter(object):

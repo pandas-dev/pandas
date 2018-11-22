@@ -1,0 +1,32 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: continuumio/miniconda:latest
+      # databases configuration
+      - image: circleci/postgres:9.6.5-alpine-ram
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_DB: pandas_nosetest
+      - image: circleci/mysql:8-ram
+        environment:
+          MYSQL_USER: "root"
+          MYSQL_HOST: "localhost"
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+          MYSQL_DATABASE: "pandas_nosetest"
+
+    environment:
+      JOB: "3.6_LOCALE"
+      ENV_FILE: "ci/deps/circle-36-locale.yaml"
+      LOCALE_OVERRIDE: "zh_CN.UTF-8"
+      MINICONDA_DIR: /home/ubuntu/miniconda3
+    steps:
+      - checkout
+      - run:
+          name: build
+          command: |
+            ./ci/circle/install_circle.sh
+            ./ci/circle/show_circle.sh
+      - run:
+          name: test
+          command: ./ci/circle/run_circle.sh  --skip-slow --skip-network

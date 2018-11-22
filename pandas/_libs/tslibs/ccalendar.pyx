@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 # cython: boundscheck=False
 """
 Cython implementations of functions resembling the stdlib calendar module
 """
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
-cimport numpy as cnp
 from numpy cimport int64_t, int32_t
-cnp.import_array()
 
 from locale import LC_TIME
 from strptime import LocaleTime
@@ -52,12 +49,15 @@ DAYS_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday',
 int_to_weekday = {num: name for num, name in enumerate(DAYS)}
 weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
 
+DAY_SECONDS = 86400
+HOUR_SECONDS = 3600
+
 # ----------------------------------------------------------------------
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef inline int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
+cpdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
     """Return the number of days in the given month of the given year.
 
     Parameters

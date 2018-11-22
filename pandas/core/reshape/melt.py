@@ -1,21 +1,21 @@
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
+import re
+
 import numpy as np
 
-from pandas.core.dtypes.common import is_list_like
-from pandas import compat
-from pandas.core.arrays import Categorical
-
-from pandas.core.dtypes.generic import ABCMultiIndex
-
-from pandas.core.frame import _shared_docs
 from pandas.util._decorators import Appender
 
-import re
+from pandas.core.dtypes.common import is_extension_type, is_list_like
+from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import notna
-from pandas.core.dtypes.common import is_extension_type
-from pandas.core.tools.numeric import to_numeric
+
+from pandas import compat
+from pandas.core.arrays import Categorical
+from pandas.core.frame import _shared_docs
+from pandas.core.indexes.base import Index
 from pandas.core.reshape.concat import concat
+from pandas.core.tools.numeric import to_numeric
 
 
 @Appender(_shared_docs['melt'] %
@@ -25,6 +25,12 @@ from pandas.core.reshape.concat import concat
 def melt(frame, id_vars=None, value_vars=None, var_name=None,
          value_name='value', col_level=None):
     # TODO: what about the existing index?
+    # If multiindex, gather names of columns on all level for checking presence
+    # of `id_vars` and `value_vars`
+    if isinstance(frame.columns, ABCMultiIndex):
+        cols = [x for c in frame.columns for x in c]
+    else:
+        cols = list(frame.columns)
     if id_vars is not None:
         if not is_list_like(id_vars):
             id_vars = [id_vars]
@@ -33,7 +39,13 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
             raise ValueError('id_vars must be a list of tuples when columns'
                              ' are a MultiIndex')
         else:
+            # Check that `id_vars` are in frame
             id_vars = list(id_vars)
+            missing = Index(np.ravel(id_vars)).difference(cols)
+            if not missing.empty:
+                raise KeyError("The following 'id_vars' are not present"
+                               " in the DataFrame: {missing}"
+                               "".format(missing=list(missing)))
     else:
         id_vars = []
 
@@ -46,6 +58,12 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
                              ' columns are a MultiIndex')
         else:
             value_vars = list(value_vars)
+            # Check that `value_vars` are in frame
+            missing = Index(np.ravel(value_vars)).difference(cols)
+            if not missing.empty:
+                raise KeyError("The following 'value_vars' are not present in"
+                               " the DataFrame: {missing}"
+                               "".format(missing=list(missing)))
         frame = frame.loc[:, id_vars + value_vars]
     else:
         frame = frame.copy()
@@ -103,7 +121,6 @@ def lreshape(data, groups, dropna=True, label=None):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> data = pd.DataFrame({'hr1': [514, 573], 'hr2': [545, 526],
     ...                      'team': ['Red Sox', 'Yankees'],
     ...                      'year1': [2007, 2007], 'year2': [2008, 2008]})
@@ -166,7 +183,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
     With stubnames ['A', 'B'], this function expects to find one or more
-    group of columns with format Asuffix1, Asuffix2,..., Bsuffix1, Bsuffix2,...
+    group of columns with format
+    A-suffix1, A-suffix2,..., B-suffix1, B-suffix2,...
     You specify what you want to call this suffix in the resulting long format
     with `j` (for example `j='year'`)
 
@@ -185,7 +203,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     i : str or list-like
         Column(s) to use as id variable(s)
     j : str
-        The name of the subobservation variable. What you wish to name your
+        The name of the sub-observation variable. What you wish to name your
         suffix in the long format.
     sep : str, default ""
         A character indicating the separation of the variable names
@@ -200,7 +218,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
         numeric suffixes. Suffixes with no numbers could be specified with the
         negated character class '\\D+'. You can also further disambiguate
         suffixes, for example, if your wide variables are of the form
-        Aone, Btwo,.., and you have an unrelated column Arating, you can
+        A-one, B-two,.., and you have an unrelated column A-rating, you can
         ignore the last one by specifying `suffix='(!?one|two)'`
 
         .. versionadded:: 0.20.0
@@ -216,8 +234,6 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
 
     Examples
     --------
-    >>> import pandas as pd
-    >>> import numpy as np
     >>> np.random.seed(123)
     >>> df = pd.DataFrame({"A1970" : {0 : "a", 1 : "b", 2 : "c"},
     ...                    "A1980" : {0 : "d", 1 : "e", 2 : "f"},
@@ -242,7 +258,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     1  1980  0.997345  e  1.3
     2  1980  0.282978  f  0.1
 
-    With multuple id columns
+    With multiple id columns
 
     >>> df = pd.DataFrame({
     ...     'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],
@@ -411,13 +427,13 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
 
         return newdf.set_index(i + [j])
 
-    if any(col in stubnames for col in df.columns):
-        raise ValueError("stubname can't be identical to a column name")
-
     if not is_list_like(stubnames):
         stubnames = [stubnames]
     else:
         stubnames = list(stubnames)
+
+    if any(col in stubnames for col in df.columns):
+        raise ValueError("stubname can't be identical to a column name")
 
     if not is_list_like(i):
         i = [i]

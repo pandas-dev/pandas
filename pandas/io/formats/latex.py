@@ -2,14 +2,17 @@
 """
 Module for formatting output data in Latex.
 """
-
 from __future__ import print_function
 
-from pandas.core.index import MultiIndex
-from pandas import compat
-from pandas.compat import range, map, zip, u
-from pandas.io.formats.format import TableFormatter
 import numpy as np
+
+from pandas.compat import map, range, u, zip
+
+from pandas.core.dtypes.generic import ABCMultiIndex
+
+from pandas import compat
+
+from pandas.io.formats.format import TableFormatter
 
 
 class LatexFormatter(TableFormatter):
@@ -63,7 +66,7 @@ class LatexFormatter(TableFormatter):
                 return 'l'
 
         # reestablish the MultiIndex that has been joined by _to_str_column
-        if self.fmt.index and isinstance(self.frame.index, MultiIndex):
+        if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
             out = self.frame.index.format(
                 adjoin=False, sparsify=self.fmt.sparsify,
                 names=self.fmt.has_index_names, na_rep=self.fmt.na_rep

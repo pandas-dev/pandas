@@ -10,7 +10,8 @@ import numpy as np
 import pandas as pd
 
 from pandas import concat, DataFrame, Index, MultiIndex, Series
-from pandas.core.groupby.groupby import Grouping, SpecificationError
+from pandas.core.groupby.grouper import Grouping
+from pandas.core.base import SpecificationError
 from pandas.compat import OrderedDict
 import pandas.util.testing as tm
 
@@ -26,9 +27,9 @@ def test_agg_must_agg(df):
     grouped = df.groupby('A')['C']
 
     msg = "Must produce aggregated value"
-    with tm.assert_raises_regex(Exception, msg):
+    with pytest.raises(Exception, match=msg):
         grouped.agg(lambda x: x.describe())
-    with tm.assert_raises_regex(Exception, msg):
+    with pytest.raises(Exception, match=msg):
         grouped.agg(lambda x: x.index[:2])
 
 
@@ -216,7 +217,7 @@ def test_agg_multiple_functions_too_many_lambdas(df):
     funcs = ['mean', lambda x: x.mean(), lambda x: x.std()]
 
     msg = 'Function names must be unique, found multiple named <lambda>'
-    with tm.assert_raises_regex(SpecificationError, msg):
+    with pytest.raises(SpecificationError, match=msg):
         grouped.agg(funcs)
 
 

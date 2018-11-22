@@ -16,7 +16,7 @@ function or method, so programmers can understand what it does without having
 to read the details of the implementation.
 
 Also, it is a common practice to generate online (html) documentation
-automatically from docstrings. `Sphinx <http://www.sphinx-doc.org>`_ serves
+automatically from docstrings. `Sphinx <https://www.sphinx-doc.org>`_ serves
 this purpose.
 
 Next example gives an idea on how a docstring looks like:
@@ -68,7 +68,7 @@ As PEP-257 is quite open, and some other standards exist on top of it. In the
 case of pandas, the numpy docstring convention is followed. The conventions is
 explained in this document:
 
-- `numpydoc docstring guide <http://numpydoc.readthedocs.io/en/latest/format.html>`_
+* `numpydoc docstring guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_
   (which is based in the original `Guide to NumPy/SciPy documentation
   <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_)
 
@@ -78,9 +78,9 @@ The standard uses reStructuredText (reST). reStructuredText is a markup
 language that allows encoding styles in plain text files. Documentation
 about reStructuredText can be found in:
 
-- `Sphinx reStructuredText primer <http://www.sphinx-doc.org/en/stable/rest.html>`_
-- `Quick reStructuredText reference <http://docutils.sourceforge.net/docs/user/rst/quickref.html>`_
-- `Full reStructuredText specification <http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html>`_
+* `Sphinx reStructuredText primer <https://www.sphinx-doc.org/en/stable/rest.html>`_
+* `Quick reStructuredText reference <http://docutils.sourceforge.net/docs/user/rst/quickref.html>`_
+* `Full reStructuredText specification <http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html>`_
 
 Pandas has some helpers for sharing docstrings between related classes, see
 :ref:`docstring.sharing`.
@@ -103,23 +103,23 @@ left before or after the docstring. The text starts in the next line after the
 opening quotes. The closing quotes have their own line
 (meaning that they are not at the end of the last sentence).
 
-In rare occasions reST styles like bold text or itallics will be used in
+In rare occasions reST styles like bold text or italics will be used in
 docstrings, but is it common to have inline code, which is presented between
 backticks. It is considered inline code:
 
-- The name of a parameter
-- Python code, a module, function, built-in, type, literal... (e.g. ``os``,
+* The name of a parameter
+* Python code, a module, function, built-in, type, literal... (e.g. ``os``,
   ``list``, ``numpy.abs``, ``datetime.date``, ``True``)
-- A pandas class (in the form ``:class:`pandas.Series```)
-- A pandas method (in the form ``:meth:`pandas.Series.sum```)
-- A pandas function (in the form ``:func:`pandas.to_datetime```)
+* A pandas class (in the form ``:class:`pandas.Series```)
+* A pandas method (in the form ``:meth:`pandas.Series.sum```)
+* A pandas function (in the form ``:func:`pandas.to_datetime```)
 
 .. note::
     To display only the last component of the linked class, method or
     function, prefix it with ``~``. For example, ``:class:`~pandas.Series```
     will link to ``pandas.Series`` but only display the last part, ``Series``
     as the link text. See `Sphinx cross-referencing syntax
-    <http://www.sphinx-doc.org/en/stable/domains.html#cross-referencing-syntax>`_
+    <https://www.sphinx-doc.org/en/stable/domains.html#cross-referencing-syntax>`_
     for details.
 
 **Good:**
@@ -197,6 +197,8 @@ infinitive verb.
         """
         pass
 
+.. code-block:: python
+
     def astype(dtype):
         """
         Method to cast Series type.
@@ -205,6 +207,8 @@ infinitive verb.
         """
         pass
 
+.. code-block:: python
+
     def astype(dtype):
         """
         Cast Series type
@@ -212,6 +216,8 @@ infinitive verb.
         Missing dot at the end.
         """
         pass
+
+.. code-block:: python
 
     def astype(dtype):
         """
@@ -243,7 +249,7 @@ their use cases, if it is not too generic.
         """
         Pivot a row index to columns.
 
-        When using a multi-index, a level can be pivoted so each value in
+        When using a MultiIndex, a level can be pivoted so each value in
         the index becomes a column. This is especially useful when a subindex
         is repeated for the main index, and data is easier to visualize as a
         pivot table.
@@ -352,71 +358,71 @@ When specifying the parameter types, Python built-in data types can be used
 directly (the Python type is preferred to the more verbose string, integer,
 boolean, etc):
 
-- int
-- float
-- str
-- bool
+* int
+* float
+* str
+* bool
 
 For complex types, define the subtypes. For `dict` and `tuple`, as more than
 one type is present, we use the brackets to help read the type (curly brackets
 for `dict` and normal brackets for `tuple`):
 
-- list of int
-- dict of {str : int}
-- tuple of (str, int, int)
-- tuple of (str,)
-- set of str
+* list of int
+* dict of {str : int}
+* tuple of (str, int, int)
+* tuple of (str,)
+* set of str
 
 In case where there are just a set of values allowed, list them in curly
 brackets and separated by commas (followed by a space). If the values are
 ordinal and they have an order, list them in this order. Otherwise, list
 the default value first, if there is one:
 
-- {0, 10, 25}
-- {'simple', 'advanced'}
-- {'low', 'medium', 'high'}
-- {'cat', 'dog', 'bird'}
+* {0, 10, 25}
+* {'simple', 'advanced'}
+* {'low', 'medium', 'high'}
+* {'cat', 'dog', 'bird'}
 
 If the type is defined in a Python module, the module must be specified:
 
-- datetime.date
-- datetime.datetime
-- decimal.Decimal
+* datetime.date
+* datetime.datetime
+* decimal.Decimal
 
 If the type is in a package, the module must be also specified:
 
-- numpy.ndarray
-- scipy.sparse.coo_matrix
+* numpy.ndarray
+* scipy.sparse.coo_matrix
 
 If the type is a pandas type, also specify pandas except for Series and
 DataFrame:
 
-- Series
-- DataFrame
-- pandas.Index
-- pandas.Categorical
-- pandas.SparseArray
+* Series
+* DataFrame
+* pandas.Index
+* pandas.Categorical
+* pandas.SparseArray
 
 If the exact type is not relevant, but must be compatible with a numpy
 array, array-like can be specified. If Any type that can be iterated is
 accepted, iterable can be used:
 
-- array-like
-- iterable
+* array-like
+* iterable
 
 If more than one type is accepted, separate them by commas, except the
 last two types, that need to be separated by the word 'or':
 
-- int or float
-- float, decimal.Decimal or None
-- str or list of str
+* int or float
+* float, decimal.Decimal or None
+* str or list of str
 
 If ``None`` is one of the accepted values, it always needs to be the last in
 the list.
 
 For axis, the convention is to use something like:
 
-- axis : {0 or 'index', 1 or 'columns', None}, default None
+* axis : {0 or 'index', 1 or 'columns', None}, default None
 
 .. _docstring.returns:
 
@@ -624,6 +630,7 @@ A simple example could be:
 .. code-block:: python
 
     class Series:
+
         def head(self, n=5):
             """
             Return the first elements of the Series.
@@ -681,12 +688,11 @@ shown:
 
 .. code-block:: python
 
-    import numpy as np
-    import pandas as pd
-
+    import numpy as np          # noqa: F401
+    import pandas as pd         # noqa: F401
 
 Any other module used in the examples must be explicitly imported, one per line (as
-recommended in `PEP-8 <https://www.python.org/dev/peps/pep-0008/#imports>`_)
+recommended in :pep:`8#imports`)
 and avoiding aliases. Avoid excessive imports, but if needed, imports from
 the standard library go first, followed by third-party libraries (like
 matplotlib).
@@ -706,7 +712,7 @@ than 5, to show the example with the default values. If doing the ``mean``, we
 could use something like ``[1, 2, 3]``, so it is easy to see that the value
 returned is the mean.
 
-For more complex examples (groupping for example), avoid using data without
+For more complex examples (grouping for example), avoid using data without
 interpretation, like a matrix of random numbers with columns A, B, C, D...
 And instead use a meaningful example, which makes it easier to understand the
 concept. Unless required by the example, use names of animals, to keep examples
@@ -720,6 +726,7 @@ positional arguments ``head(3)``.
 .. code-block:: python
 
     class Series:
+
         def mean(self):
             """
             Compute the mean of the input.
@@ -877,7 +884,7 @@ be tricky. Here are some attention points:
   the actual error only the error name is sufficient.
 
 * If there is a small part of the result that can vary (e.g. a hash in an object
-  represenation), you can use ``...`` to represent this part.
+  representation), you can use ``...`` to represent this part.
 
   If you want to show that ``s.plot()`` returns a matplotlib AxesSubplot object,
   this will fail the doctest ::
@@ -946,11 +953,13 @@ substitute the children's class names in this docstring.
            """Apply my function to %(klass)s."""
            ...
 
+
    class ChildA(Parent):
        @Substitution(klass="ChildA")
        @Appender(Parent.my_function.__doc__)
        def my_function(self):
            ...
+
 
    class ChildB(Parent):
        @Substitution(klass="ChildB")

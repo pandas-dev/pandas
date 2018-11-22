@@ -11,12 +11,8 @@ except ImportError:
     except ImportError:
         pass
 
-from .pandas_vb_common import setup # noqa
-
 
 class Concat(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**5
@@ -33,8 +29,6 @@ class Concat(object):
 
 
 class Constructor(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**5
@@ -77,8 +71,6 @@ class Constructor(object):
 
 class ValueCounts(object):
 
-    goal_time = 0.2
-
     params = [True, False]
     param_names = ['dropna']
 
@@ -93,8 +85,6 @@ class ValueCounts(object):
 
 class Repr(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.sel = pd.Series(['s1234']).astype('category')
 
@@ -103,8 +93,6 @@ class Repr(object):
 
 
 class SetCategories(object):
-
-    goal_time = 0.2
 
     def setup(self):
         n = 5 * 10**5
@@ -116,8 +104,6 @@ class SetCategories(object):
 
 
 class Rank(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 10**5
@@ -156,8 +142,6 @@ class Rank(object):
 
 class Isin(object):
 
-    goal_time = 0.2
-
     params = ['object', 'int64']
     param_names = ['dtype']
 
@@ -193,3 +177,55 @@ class IsMonotonic(object):
 
     def time_categorical_series_is_monotonic_decreasing(self):
         self.s.is_monotonic_decreasing
+
+
+class Contains(object):
+
+    def setup(self):
+        N = 10**5
+        self.ci = tm.makeCategoricalIndex(N)
+        self.c = self.ci.values
+        self.key = self.ci.categories[0]
+
+    def time_categorical_index_contains(self):
+        self.key in self.ci
+
+    def time_categorical_contains(self):
+        self.key in self.c
+
+
+class CategoricalSlicing(object):
+
+    params = ['monotonic_incr', 'monotonic_decr', 'non_monotonic']
+    param_names = ['index']
+
+    def setup(self, index):
+        N = 10**6
+        values = list('a' * N + 'b' * N + 'c' * N)
+        indices = {
+            'monotonic_incr': pd.Categorical(values),
+            'monotonic_decr': pd.Categorical(reversed(values)),
+            'non_monotonic': pd.Categorical(list('abc' * N))}
+        self.data = indices[index]
+
+        self.scalar = 10000
+        self.list = list(range(10000))
+        self.cat_scalar = 'b'
+
+    def time_getitem_scalar(self, index):
+        self.data[self.scalar]
+
+    def time_getitem_slice(self, index):
+        self.data[:self.scalar]
+
+    def time_getitem_list_like(self, index):
+        self.data[[self.scalar]]
+
+    def time_getitem_list(self, index):
+        self.data[self.list]
+
+    def time_getitem_bool_array(self, index):
+        self.data[self.data == self.cat_scalar]
+
+
+from .pandas_vb_common import setup  # noqa: F401

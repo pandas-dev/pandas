@@ -1,4 +1,5 @@
 """ test parquet compat """
+import os
 
 import pytest
 import datetime
@@ -41,22 +42,6 @@ def engine(request):
 
 @pytest.fixture
 def pa():
-    if not _HAVE_PYARROW:
-        pytest.skip("pyarrow is not installed")
-    return 'pyarrow'
-
-
-@pytest.fixture
-def pa_lt_070():
-    if not _HAVE_PYARROW:
-        pytest.skip("pyarrow is not installed")
-    if LooseVersion(pyarrow.__version__) >= LooseVersion('0.7.0'):
-        pytest.skip("pyarrow is >= 0.7.0")
-    return 'pyarrow'
-
-
-@pytest.fixture
-def pa_ge_070():
     if not _HAVE_PYARROW:
         pytest.skip("pyarrow is not installed")
     if LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'):
@@ -216,7 +201,8 @@ def test_options_get_engine(fp, pa):
 
 
 @pytest.mark.xfail(is_platform_windows() or is_platform_mac(),
-                   reason="reading pa metadata failing on Windows/mac")
+                   reason="reading pa metadata failing on Windows/mac",
+                   strict=True)
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
@@ -336,9 +322,9 @@ class TestBasic(Base):
         df.index.name = 'foo'
         check_round_trip(df, engine)
 
-    def test_write_multiindex(self, pa_ge_070):
+    def test_write_multiindex(self, pa):
         # Not suppoprted in fastparquet as of 0.1.3 or older pyarrow version
-        engine = pa_ge_070
+        engine = pa
 
         df = pd.DataFrame({'A': [1, 2, 3]})
         index = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)])
@@ -351,8 +337,8 @@ class TestBasic(Base):
         df = pd.DataFrame(np.random.randn(4, 3), columns=mi_columns)
         self.check_error_on_write(df, engine, ValueError)
 
-    def test_multiindex_with_columns(self, pa_ge_070):
-        engine = pa_ge_070
+    def test_multiindex_with_columns(self, pa):
+        engine = pa
         dates = pd.date_range('01-Jan-2018', '01-Dec-2018', freq='MS')
         df = pd.DataFrame(np.random.randn(2 * len(dates), 3),
                           columns=list('ABC'))
@@ -366,6 +352,40 @@ class TestBasic(Base):
             check_round_trip(df, engine)
             check_round_trip(df, engine, read_kwargs={'columns': ['A', 'B']},
                              expected=df[['A', 'B']])
+
+    def test_write_ignoring_index(self, engine):
+        # ENH 20768
+        # Ensure index=False omits the index from the written Parquet file.
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': ['q', 'r', 's']})
+
+        write_kwargs = {
+            'compression': None,
+            'index': False,
+        }
+
+        # Because we're dropping the index, we expect the loaded dataframe to
+        # have the default integer index.
+        expected = df.reset_index(drop=True)
+
+        check_round_trip(df, engine, write_kwargs=write_kwargs,
+                         expected=expected)
+
+        # Ignore custom index
+        df = pd.DataFrame({'a': [1, 2, 3], 'b': ['q', 'r', 's']},
+                          index=['zyx', 'wvu', 'tsr'])
+
+        check_round_trip(df, engine, write_kwargs=write_kwargs,
+                         expected=expected)
+
+        # Ignore multi-indexes as well.
+        arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+                  ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+        df = pd.DataFrame({'one': [i for i in range(8)],
+                           'two': [-i for i in range(8)]}, index=arrays)
+
+        expected = df.reset_index(drop=True)
+        check_round_trip(df, engine, write_kwargs=write_kwargs,
+                         expected=expected)
 
 
 class TestParquetPyArrow(Base):
@@ -383,6 +403,7 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
+    # TODO: This doesn't fail on all systems; track down which
     @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)")
     def test_basic_subset_columns(self, pa, df_full):
         # GH18628
@@ -401,10 +422,13 @@ class TestParquetPyArrow(Base):
                           columns=list('aaa')).copy()
         self.check_error_on_write(df, pa, ValueError)
 
+    @pytest.mark.xfail(reason="failing for pyarrow < 0.11.0")
     def test_unsupported(self, pa):
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
-        self.check_error_on_write(df, pa, ValueError)
+        # pyarrow 0.11 raises ArrowTypeError
+        # older pyarrows raise ArrowInvalid
+        self.check_error_on_write(df, pa, Exception)
 
         # timedelta
         df = pd.DataFrame({'a': pd.timedelta_range('1 day',
@@ -413,10 +437,11 @@ class TestParquetPyArrow(Base):
 
         # mixed python objects
         df = pd.DataFrame({'a': ['a', 1, 2.0]})
-        self.check_error_on_write(df, pa, ValueError)
+        # pyarrow 0.11 raises ArrowTypeError
+        # older pyarrows raise ArrowInvalid
+        self.check_error_on_write(df, pa, Exception)
 
-    def test_categorical(self, pa_ge_070):
-        pa = pa_ge_070
+    def test_categorical(self, pa):
 
         # supported in >= 0.7.0
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
@@ -425,17 +450,22 @@ class TestParquetPyArrow(Base):
         expected = df.assign(a=df.a.astype(object))
         check_round_trip(df, pa, expected=expected)
 
-    def test_categorical_unsupported(self, pa_lt_070):
-        pa = pa_lt_070
-
-        # supported in >= 0.7.0
-        df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
-        self.check_error_on_write(df, pa, NotImplementedError)
-
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
         check_round_trip(df_compat, pa,
                          path='s3://pandas-test/pyarrow.parquet')
+
+    def test_partition_cols_supported(self, pa, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, partition_cols=partition_cols,
+                          compression=None)
+            import pyarrow.parquet as pq
+            dataset = pq.ParquetDataset(path, validate_schema=False)
+            assert len(dataset.partitions.partition_names) == 2
+            assert dataset.partitions.partition_names == set(partition_cols)
 
 
 class TestParquetFastParquet(Base):
@@ -502,3 +532,37 @@ class TestParquetFastParquet(Base):
         # GH #19134
         check_round_trip(df_compat, fp,
                          path='s3://pandas-test/fastparquet.parquet')
+
+    def test_partition_cols_supported(self, fp, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, engine="fastparquet",
+                          partition_cols=partition_cols, compression=None)
+            assert os.path.exists(path)
+            import fastparquet
+            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
+            assert len(actual_partition_cols) == 2
+
+    def test_partition_on_supported(self, fp, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with tm.ensure_clean_dir() as path:
+            df.to_parquet(path, engine="fastparquet", compression=None,
+                          partition_on=partition_cols)
+            assert os.path.exists(path)
+            import fastparquet
+            actual_partition_cols = fastparquet.ParquetFile(path, False).cats
+            assert len(actual_partition_cols) == 2
+
+    def test_error_on_using_partition_cols_and_partition_on(self, fp, df_full):
+        # GH #23283
+        partition_cols = ['bool', 'int']
+        df = df_full
+        with pytest.raises(ValueError):
+            with tm.ensure_clean_dir() as path:
+                df.to_parquet(path, engine="fastparquet", compression=None,
+                              partition_on=partition_cols,
+                              partition_cols=partition_cols)

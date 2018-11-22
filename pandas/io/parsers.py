@@ -1,50 +1,51 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
+
 from __future__ import print_function
+
 from collections import defaultdict
-import re
 import csv
-import sys
-import warnings
 import datetime
+import re
+import sys
 from textwrap import fill
+import warnings
 
 import numpy as np
 
-from pandas import compat
-from pandas.compat import (range, lrange, PY3, StringIO, lzip,
-                           zip, string_types, map, u)
-from pandas.core.dtypes.common import (
-    is_integer, _ensure_object,
-    is_list_like, is_integer_dtype,
-    is_float, is_dtype_equal,
-    is_object_dtype, is_string_dtype,
-    is_scalar, is_categorical_dtype)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.cast import astype_nansafe
-from pandas.core.index import (Index, MultiIndex, RangeIndex,
-                               _ensure_index_from_sequences)
-from pandas.core.series import Series
-from pandas.core.frame import DataFrame
-from pandas.core.arrays import Categorical
-from pandas.core import algorithms
-import pandas.core.common as com
-from pandas.io.date_converters import generic_parser
-from pandas.errors import ParserWarning, ParserError, EmptyDataError
-from pandas.io.common import (get_filepath_or_buffer, is_file_like,
-                              _validate_header_arg, _get_handle,
-                              UnicodeReader, UTF8Recoder, _NA_VALUES,
-                              BaseIterator, _infer_compression)
-from pandas.core.tools import datetimes as tools
-
+import pandas._libs.lib as lib
+import pandas._libs.ops as libops
+import pandas._libs.parsers as parsers
+from pandas._libs.tslibs import parsing
+import pandas.compat as compat
+from pandas.compat import (
+    PY3, StringIO, lrange, lzip, map, range, string_types, u, zip)
+from pandas.errors import (
+    AbstractMethodError, EmptyDataError, ParserError, ParserWarning)
 from pandas.util._decorators import Appender
 
-import pandas._libs.lib as lib
-import pandas._libs.parsers as parsers
-import pandas._libs.ops as libops
-from pandas._libs.tslibs import parsing
+from pandas.core.dtypes.cast import astype_nansafe
+from pandas.core.dtypes.common import (
+    ensure_object, is_categorical_dtype, is_dtype_equal, is_float, is_integer,
+    is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
+    is_string_dtype)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.missing import isna
+
+from pandas.core import algorithms
+from pandas.core.arrays import Categorical
+from pandas.core.frame import DataFrame
+from pandas.core.index import (
+    Index, MultiIndex, RangeIndex, ensure_index_from_sequences)
+from pandas.core.series import Series
+from pandas.core.tools import datetimes as tools
+
+from pandas.io.common import (
+    _NA_VALUES, BaseIterator, UnicodeReader, UTF8Recoder, _get_handle,
+    _infer_compression, _validate_header_arg, get_filepath_or_buffer,
+    is_file_like)
+from pandas.io.date_converters import generic_parser
 
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness
@@ -52,7 +53,10 @@ from pandas._libs.tslibs import parsing
 # so we need to remove it if we see it.
 _BOM = u('\ufeff')
 
-_parser_params = r"""Also supports optionally iterating or breaking of the file
+_doc_read_csv_and_table = r"""
+{summary}
+
+Also supports optionally iterating or breaking of the file
 into chunks.
 
 Additional help can be found in the `online docs for IO Tools
@@ -60,21 +64,27 @@ Additional help can be found in the `online docs for IO Tools
 
 Parameters
 ----------
-filepath_or_buffer : str, pathlib.Path, py._path.local.LocalPath or any \
-object with a read() method (such as a file handle or StringIO)
-    The string could be a URL. Valid URL schemes include http, ftp, s3, and
-    file. For file URLs, a host is expected. For instance, a local file could
-    be file://localhost/path/to/table.csv
-%s
-delim_whitespace : boolean, default False
-    Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
-    used as the sep. Equivalent to setting ``sep='\s+'``. If this option
-    is set to True, nothing should be passed in for the ``delimiter``
-    parameter.
+filepath_or_buffer : str, path object, or file-like object
+    Any valid string path is acceptable. The string could be a URL. Valid
+    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    expected. A local file could be: file://localhost/path/to/table.csv.
 
-    .. versionadded:: 0.18.1 support for the Python parser.
+    If you want to pass in a path object, pandas accepts either
+    ``pathlib.Path`` or ``py._path.local.LocalPath``.
 
-header : int or list of ints, default 'infer'
+    By file-like object, we refer to objects with a ``read()`` method, such as
+    a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
+sep : str, default {_default_sep}
+    Delimiter to use. If sep is None, the C engine cannot automatically detect
+    the separator, but the Python parsing engine can, meaning the latter will
+    be used and automatically detect the separator by Python's builtin sniffer
+    tool, ``csv.Sniffer``. In addition, separators longer than 1 character and
+    different from ``'\s+'`` will be interpreted as regular expressions and
+    will also force the use of the Python parsing engine. Note that regex
+    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``.
+delimiter : str, default ``None``
+    Alias for sep.
+header : int, list of int, default 'infer'
     Row number(s) to use as the column names, and the start of the
     data.  Default behavior is to infer the column names: if no names
     are passed the behavior is identical to ``header=0`` and column
@@ -86,24 +96,24 @@ header : int or list of ints, default 'infer'
     e.g. [0,1,3]. Intervening rows that are not specified will be
     skipped (e.g. 2 in this example is skipped). Note that this
     parameter ignores commented lines and empty lines if
-    ``skip_blank_lines=True``, so header=0 denotes the first line of
+    ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
     data rather than the first line of the file.
-names : array-like, default None
+names : array-like, optional
     List of column names to use. If file contains no header row, then you
-    should explicitly pass header=None. Duplicates in this list will cause
+    should explicitly pass ``header=None``. Duplicates in this list will cause
     a ``UserWarning`` to be issued.
-index_col : int or sequence or False, default None
+index_col : int, sequence or bool, optional
     Column to use as the row labels of the DataFrame. If a sequence is given, a
     MultiIndex is used. If you have a malformed file with delimiters at the end
-    of each line, you might consider index_col=False to force pandas to _not_
-    use the first column as the index (row names)
-usecols : list-like or callable, default None
+    of each line, you might consider ``index_col=False`` to force pandas to
+    not use the first column as the index (row names).
+usecols : list-like or callable, optional
     Return a subset of the columns. If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in `names` or
     inferred from the document header row(s). For example, a valid list-like
-    `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
-    order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
+    `usecols` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
+    Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
     To instantiate a DataFrame from ``data`` with element order preserved use
     ``pd.read_csv(data, usecols=['foo', 'bar'])[['foo', 'bar']]`` for columns
     in ``['foo', 'bar']`` order or
@@ -115,31 +125,33 @@ usecols : list-like or callable, default None
     example of a valid callable argument would be ``lambda x: x.upper() in
     ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
     parsing time and lower memory usage.
-squeeze : boolean, default False
-    If the parsed data only contains one column then return a Series
-prefix : str, default None
+squeeze : bool, default False
+    If the parsed data only contains one column then return a Series.
+prefix : str, optional
     Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
-mangle_dupe_cols : boolean, default True
+mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
-dtype : Type name or dict of column -> type, default None
-    Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
+dtype : Type name or dict of column -> type, optional
+    Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
     Use `str` or `object` together with suitable `na_values` settings
     to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
-%s
-converters : dict, default None
+engine : {{'c', 'python'}}, optional
+    Parser engine to use. The C engine is faster while the python engine is
+    currently more feature-complete.
+converters : dict, optional
     Dict of functions for converting values in certain columns. Keys can either
-    be integers or column labels
-true_values : list, default None
-    Values to consider as True
-false_values : list, default None
-    Values to consider as False
-skipinitialspace : boolean, default False
+    be integers or column labels.
+true_values : list, optional
+    Values to consider as True.
+false_values : list, optional
+    Values to consider as False.
+skipinitialspace : bool, default False
     Skip spaces after delimiter.
-skiprows : list-like or integer or callable, default None
+skiprows : list-like, int or callable, optional
     Line numbers to skip (0-indexed) or number of lines to skip (int)
     at the start of the file.
 
@@ -147,10 +159,10 @@ skiprows : list-like or integer or callable, default None
     indices, returning True if the row should be skipped and False otherwise.
     An example of a valid callable argument would be ``lambda x: x in [0, 2]``.
 skipfooter : int, default 0
-    Number of lines at bottom of file to skip (Unsupported with engine='c')
-nrows : int, default None
-    Number of rows of file to read. Useful for reading pieces of large files
-na_values : scalar, str, list-like, or dict, default None
+    Number of lines at bottom of file to skip (Unsupported with engine='c').
+nrows : int, optional
+    Number of rows of file to read. Useful for reading pieces of large files.
+na_values : scalar, str, list-like, or dict, optional
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values.  By default the following values are interpreted as
     NaN: '""" + fill("', '".join(sorted(_NA_VALUES)),
@@ -170,39 +182,40 @@ keep_default_na : bool, default True
 
     Note that if `na_filter` is passed in as False, the `keep_default_na` and
     `na_values` parameters will be ignored.
-na_filter : boolean, default True
+na_filter : bool, default True
     Detect missing value markers (empty strings and the value of na_values). In
     data without any NAs, passing na_filter=False can improve the performance
-    of reading a large file
-verbose : boolean, default False
-    Indicate number of NA values placed in non-numeric columns
-skip_blank_lines : boolean, default True
-    If True, skip over blank lines rather than interpreting as NaN values
-parse_dates : boolean or list of ints or names or list of lists or dict, \
+    of reading a large file.
+verbose : bool, default False
+    Indicate number of NA values placed in non-numeric columns.
+skip_blank_lines : bool, default True
+    If True, skip over blank lines rather than interpreting as NaN values.
+parse_dates : bool or list of int or names or list of lists or dict, \
 default False
+    The behavior is as follows:
 
     * boolean. If True -> try parsing the index.
-    * list of ints or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
+    * list of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
       each as a separate date column.
     * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
       a single date column.
-    * dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result
-      'foo'
+    * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+      result 'foo'
 
     If a column or index contains an unparseable date, the entire column or
     index will be returned unaltered as an object data type. For non-standard
     datetime parsing, use ``pd.to_datetime`` after ``pd.read_csv``
 
     Note: A fast-path exists for iso8601-formatted dates.
-infer_datetime_format : boolean, default False
+infer_datetime_format : bool, default False
     If True and `parse_dates` is enabled, pandas will attempt to infer the
     format of the datetime strings in the columns, and if it can be inferred,
     switch to a faster method of parsing them. In some cases this can increase
     the parsing speed by 5-10x.
-keep_date_col : boolean, default False
+keep_date_col : bool, default False
     If True and `parse_dates` specifies combining multiple columns then
     keep the original columns.
-date_parser : function, default None
+date_parser : function, optional
     Function to use for converting a sequence of string columns to an array of
     datetime instances. The default uses ``dateutil.parser.parser`` to do the
     conversion. Pandas will try to call `date_parser` in three different ways,
@@ -212,17 +225,17 @@ date_parser : function, default None
     and pass that; and 3) call `date_parser` once for each row using one or
     more strings (corresponding to the columns defined by `parse_dates`) as
     arguments.
-dayfirst : boolean, default False
-    DD/MM format dates, international and European format
-iterator : boolean, default False
+dayfirst : bool, default False
+    DD/MM format dates, international and European format.
+iterator : bool, default False
     Return TextFileReader object for iteration or getting chunks with
     ``get_chunk()``.
-chunksize : int, default None
+chunksize : int, optional
     Return TextFileReader object for iteration.
     See the `IO Tools docs
     <http://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
-compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
+compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and
     `filepath_or_buffer` is path-like, then detect compression from the
     following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
@@ -231,16 +244,11 @@ compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
 
     .. versionadded:: 0.18.1 support for 'zip' and 'xz' compression.
 
-thousands : str, default None
-    Thousands separator
+thousands : str, optional
+    Thousands separator.
 decimal : str, default '.'
     Character to recognize as decimal point (e.g. use ',' for European data).
-float_precision : string, default None
-    Specifies which converter the C engine should use for floating-point
-    values. The options are `None` for the ordinary converter,
-    `high` for the high-precision converter, and `round_trip` for the
-    round-trip converter.
-lineterminator : str (length 1), default None
+lineterminator : str (length 1), optional
     Character to break file into lines. Only valid with C parser.
 quotechar : str (length 1), optional
     The character used to denote the start and end of a quoted item. Quoted
@@ -248,13 +256,13 @@ quotechar : str (length 1), optional
 quoting : int or csv.QUOTE_* instance, default 0
     Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
     QUOTE_MINIMAL (0), QUOTE_ALL (1), QUOTE_NONNUMERIC (2) or QUOTE_NONE (3).
-doublequote : boolean, default ``True``
+doublequote : bool, default ``True``
    When quotechar is specified and quoting is not ``QUOTE_NONE``, indicate
    whether or not to interpret two consecutive quotechar elements INSIDE a
    field as a single ``quotechar`` element.
-escapechar : str (length 1), default None
+escapechar : str (length 1), optional
     One-character string used to escape delimiter when quoting is QUOTE_NONE.
-comment : str, default None
+comment : str, optional
     Indicates remainder of line should not be parsed. If found at the beginning
     of a line, the line will be ignored altogether. This parameter must be a
     single character. Like empty lines (as long as ``skip_blank_lines=True``),
@@ -262,97 +270,72 @@ comment : str, default None
     `skiprows`. For example, if ``comment='#'``, parsing
     ``#empty\\na,b,c\\n1,2,3`` with ``header=0`` will result in 'a,b,c' being
     treated as the header.
-encoding : str, default None
+encoding : str, optional
     Encoding to use for UTF when reading/writing (ex. 'utf-8'). `List of Python
     standard encodings
-    <https://docs.python.org/3/library/codecs.html#standard-encodings>`_
-dialect : str or csv.Dialect instance, default None
+    <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
+dialect : str or csv.Dialect, optional
     If provided, this parameter will override values (default or not) for the
     following parameters: `delimiter`, `doublequote`, `escapechar`,
     `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
     override values, a ParserWarning will be issued. See csv.Dialect
     documentation for more details.
-tupleize_cols : boolean, default False
+tupleize_cols : bool, default False
+    Leave a list of tuples on columns as is (default is to convert to
+    a MultiIndex on the columns).
+
     .. deprecated:: 0.21.0
        This argument will be removed and will always convert to MultiIndex
 
-    Leave a list of tuples on columns as is (default is to convert to
-    a MultiIndex on the columns)
-error_bad_lines : boolean, default True
+error_bad_lines : bool, default True
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
     If False, then these "bad lines" will dropped from the DataFrame that is
     returned.
-warn_bad_lines : boolean, default True
+warn_bad_lines : bool, default True
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
     "bad line" will be output.
-low_memory : boolean, default True
+delim_whitespace : bool, default False
+    Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
+    used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
+    is set to True, nothing should be passed in for the ``delimiter``
+    parameter.
+
+    .. versionadded:: 0.18.1 support for the Python parser.
+
+low_memory : bool, default True
     Internally process the file in chunks, resulting in lower memory use
     while parsing, but possibly mixed type inference.  To ensure no mixed
     types either set False, or specify the type with the `dtype` parameter.
     Note that the entire file is read into a single DataFrame regardless,
     use the `chunksize` or `iterator` parameter to return the data in chunks.
-    (Only valid with C parser)
-memory_map : boolean, default False
+    (Only valid with C parser).
+memory_map : bool, default False
     If a filepath is provided for `filepath_or_buffer`, map the file object
     directly onto memory and access the data directly from there. Using this
     option can improve performance because there is no longer any I/O overhead.
+float_precision : str, optional
+    Specifies which converter the C engine should use for floating-point
+    values. The options are `None` for the ordinary converter,
+    `high` for the high-precision converter, and `round_trip` for the
+    round-trip converter.
 
 Returns
 -------
-result : DataFrame or TextParser
+DataFrame or TextParser
+    A comma-separated values (csv) file is returned as two-dimensional
+    data structure with labeled axes.
+
+See Also
+--------
+to_csv : Write DataFrame to a comma-separated values (csv) file.
+read_csv : Read a comma-separated values (csv) file into DataFrame.
+read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
+Examples
+--------
+>>> pd.{func_name}('data.csv')  # doctest: +SKIP
 """
-
-# engine is not used in read_fwf() so is factored out of the shared docstring
-_engine_doc = """engine : {'c', 'python'}, optional
-    Parser engine to use. The C engine is faster while the python engine is
-    currently more feature-complete."""
-
-_sep_doc = r"""sep : str, default {default}
-    Delimiter to use. If sep is None, the C engine cannot automatically detect
-    the separator, but the Python parsing engine can, meaning the latter will
-    be used and automatically detect the separator by Python's builtin sniffer
-    tool, ``csv.Sniffer``. In addition, separators longer than 1 character and
-    different from ``'\s+'`` will be interpreted as regular expressions and
-    will also force the use of the Python parsing engine. Note that regex
-    delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``
-delimiter : str, default ``None``
-    Alternative argument name for sep."""
-
-_read_csv_doc = """
-Read CSV (comma-separated) file into DataFrame
-
-%s
-""" % (_parser_params % (_sep_doc.format(default="','"), _engine_doc))
-
-_read_table_doc = """
-Read general delimited file into DataFrame
-
-%s
-""" % (_parser_params % (_sep_doc.format(default="\\t (tab-stop)"),
-                         _engine_doc))
-
-_fwf_widths = """\
-colspecs : list of pairs (int, int) or 'infer'. optional
-    A list of pairs (tuples) giving the extents of the fixed-width
-    fields of each line as half-open intervals (i.e.,  [from, to[ ).
-    String value 'infer' can be used to instruct the parser to try
-    detecting the column specifications from the first 100 rows of
-    the data which are not being skipped via skiprows (default='infer').
-widths : list of ints. optional
-    A list of field widths which can be used instead of 'colspecs' if
-    the intervals are contiguous.
-delimiter : str, default ``'\t' + ' '``
-    Characters to consider as filler characters in the fixed-width file.
-    Can be used to specify the filler character of the fields
-    if it is not spaces (e.g., '~').
-"""
-
-_read_fwf_doc = """
-Read a table of fixed-width formatted lines into DataFrame
-
-%s
-""" % (_parser_params % (_fwf_widths, ''))
 
 
 def _validate_integer(name, val, min_val=0):
@@ -450,7 +433,7 @@ def _read(filepath_or_buffer, kwds):
     if should_close:
         try:
             filepath_or_buffer.close()
-        except:  # noqa: flake8
+        except ValueError:
             pass
 
     return data
@@ -459,10 +442,10 @@ def _read(filepath_or_buffer, kwds):
 _parser_defaults = {
     'delimiter': None,
 
-    'doublequote': True,
     'escapechar': None,
     'quotechar': '"',
     'quoting': csv.QUOTE_MINIMAL,
+    'doublequote': True,
     'skipinitialspace': False,
     'lineterminator': None,
 
@@ -471,14 +454,16 @@ _parser_defaults = {
     'names': None,
     'prefix': None,
     'skiprows': None,
+    'skipfooter': 0,
+    'nrows': None,
     'na_values': None,
+    'keep_default_na': True,
+
     'true_values': None,
     'false_values': None,
     'converters': None,
     'dtype': None,
-    'skipfooter': 0,
 
-    'keep_default_na': True,
     'thousands': None,
     'comment': None,
     'decimal': b'.',
@@ -488,10 +473,8 @@ _parser_defaults = {
     'keep_date_col': False,
     'dayfirst': False,
     'date_parser': None,
-
     'usecols': None,
 
-    'nrows': None,
     # 'iterator': False,
     'chunksize': None,
     'verbose': False,
@@ -535,9 +518,13 @@ _deprecated_args = {
 }
 
 
-def _make_parser_function(name, sep=','):
+def _make_parser_function(name, default_sep=','):
 
-    default_sep = sep
+    # prepare read_table deprecation
+    if name == "read_table":
+        sep = False
+    else:
+        sep = default_sep
 
     def parser_f(filepath_or_buffer,
                  sep=sep,
@@ -560,6 +547,7 @@ def _make_parser_function(name, sep=','):
                  false_values=None,
                  skipinitialspace=False,
                  skiprows=None,
+                 skipfooter=0,
                  nrows=None,
 
                  # NA and Missing Data Handling
@@ -587,6 +575,7 @@ def _make_parser_function(name, sep=','):
                  lineterminator=None,
                  quotechar='"',
                  quoting=csv.QUOTE_MINIMAL,
+                 doublequote=True,
                  escapechar=None,
                  comment=None,
                  encoding=None,
@@ -597,20 +586,48 @@ def _make_parser_function(name, sep=','):
                  error_bad_lines=True,
                  warn_bad_lines=True,
 
-                 skipfooter=0,
-
                  # Internal
-                 doublequote=True,
                  delim_whitespace=False,
                  low_memory=_c_parser_defaults['low_memory'],
                  memory_map=False,
                  float_precision=None):
 
+        # deprecate read_table GH21948
+        if name == "read_table":
+            if sep is False and delimiter is None:
+                warnings.warn("read_table is deprecated, use read_csv "
+                              "instead, passing sep='\\t'.",
+                              FutureWarning, stacklevel=2)
+            else:
+                warnings.warn("read_table is deprecated, use read_csv "
+                              "instead.",
+                              FutureWarning, stacklevel=2)
+            if sep is False:
+                sep = default_sep
+
+        # gh-23761
+        #
+        # When a dialect is passed, it overrides any of the overlapping
+        # parameters passed in directly. We don't want to warn if the
+        # default parameters were passed in (since it probably means
+        # that the user didn't pass them in explicitly in the first place).
+        #
+        # "delimiter" is the annoying corner case because we alias it to
+        # "sep" before doing comparison to the dialect values later on.
+        # Thus, we need a flag to indicate that we need to "override"
+        # the comparison to dialect values by checking if default values
+        # for BOTH "delimiter" and "sep" were provided.
+        if dialect is not None:
+            sep_override = delimiter is None and sep == default_sep
+            kwds = dict(sep_override=sep_override)
+        else:
+            kwds = dict()
+
         # Alias sep -> delimiter.
         if delimiter is None:
             delimiter = sep
 
-        if delim_whitespace and delimiter is not default_sep:
+        if delim_whitespace and delimiter != default_sep:
             raise ValueError("Specified a delimiter with both sep and"
                              " delim_whitespace=True; you can only"
                              " specify one.")
@@ -621,7 +638,7 @@ def _make_parser_function(name, sep=','):
             engine = 'c'
             engine_specified = False
 
-        kwds = dict(delimiter=delimiter,
+        kwds.update(delimiter=delimiter,
                     engine=engine,
                     dialect=dialect,
                     compression=compression,
@@ -639,6 +656,7 @@ def _make_parser_function(name, sep=','):
                     names=names,
                     prefix=prefix,
                     skiprows=skiprows,
+                    skipfooter=skipfooter,
                     na_values=na_values,
                     true_values=true_values,
                     false_values=false_values,
@@ -655,7 +673,6 @@ def _make_parser_function(name, sep=','):
                     nrows=nrows,
                     iterator=iterator,
                     chunksize=chunksize,
-                    skipfooter=skipfooter,
                     converters=converters,
                     dtype=dtype,
                     usecols=usecols,
@@ -682,15 +699,78 @@ def _make_parser_function(name, sep=','):
     return parser_f
 
 
-read_csv = _make_parser_function('read_csv', sep=',')
-read_csv = Appender(_read_csv_doc)(read_csv)
+read_csv = _make_parser_function('read_csv', default_sep=',')
+read_csv = Appender(_doc_read_csv_and_table.format(
+                    func_name='read_csv',
+                    summary=('Read a comma-separated values (csv) file '
+                             'into DataFrame.'),
+                    _default_sep="','")
+                    )(read_csv)
 
-read_table = _make_parser_function('read_table', sep='\t')
-read_table = Appender(_read_table_doc)(read_table)
+read_table = _make_parser_function('read_table', default_sep='\t')
+read_table = Appender(_doc_read_csv_and_table.format(
+                      func_name='read_table',
+                      summary="""Read general delimited file into DataFrame.
+
+.. deprecated:: 0.24.0
+Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
+                      _default_sep=r"'\\t' (tab-stop)")
+                      )(read_table)
 
 
-@Appender(_read_fwf_doc)
-def read_fwf(filepath_or_buffer, colspecs='infer', widths=None, **kwds):
+def read_fwf(filepath_or_buffer, colspecs='infer',
+             widths=None, **kwds):
+
+    r"""
+    Read a table of fixed-width formatted lines into DataFrame.
+
+    Also supports optionally iterating or breaking of the file
+    into chunks.
+
+    Additional help can be found in the `online docs for IO Tools
+    <http://pandas.pydata.org/pandas-docs/stable/io.html>`_.
+
+    Parameters
+    ----------
+    filepath_or_buffer : str, path object, or file-like object
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be: file://localhost/path/to/table.csv.
+
+        If you want to pass in a path object, pandas accepts either
+        ``pathlib.Path`` or ``py._path.local.LocalPath``.
+
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handler (e.g. via builtin ``open`` function)
+        or ``StringIO``.
+    colspecs : list of tuple (int, int) or 'infer'. optional
+        A list of tuples giving the extents of the fixed-width
+        fields of each line as half-open intervals (i.e.,  [from, to[ ).
+        String value 'infer' can be used to instruct the parser to try
+        detecting the column specifications from the first 100 rows of
+        the data which are not being skipped via skiprows (default='infer').
+    widths : list of int, optional
+        A list of field widths which can be used instead of 'colspecs' if
+        the intervals are contiguous.
+    **kwds : optional
+        Optional keyword arguments can be passed to ``TextFileReader``.
+
+    Returns
+    -------
+    DataFrame or TextParser
+        A comma-separated values (csv) file is returned as two-dimensional
+        data structure with labeled axes.
+
+    See Also
+    --------
+    to_csv : Write DataFrame to a comma-separated values (csv) file.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+
+    Examples
+    --------
+    >>> pd.read_fwf('data.csv')  # doctest: +SKIP
+    """
+
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
@@ -743,23 +823,38 @@ class TextFileReader(BaseIterator):
                 except AttributeError:
                     raise ValueError("Invalid dialect '{dialect}' provided"
                                      .format(dialect=kwds['dialect']))
-                provided = kwds.get(param, _parser_defaults[param])
+                parser_default = _parser_defaults[param]
+                provided = kwds.get(param, parser_default)
 
-                # Messages for conflicting values between the dialect instance
-                # and the actual parameters provided.
+                # Messages for conflicting values between the dialect
+                # instance and the actual parameters provided.
                 conflict_msgs = []
 
-                if dialect_val != provided:
-                    conflict_msgs.append((
-                        "Conflicting values for '{param}': '{val}' was "
-                        "provided, but the dialect specifies '{diaval}'. "
-                        "Using the dialect-specified value.".format(
-                            param=param, val=provided, diaval=dialect_val)))
+                # Don't warn if the default parameter was passed in,
+                # even if it conflicts with the dialect (gh-23761).
+                if provided != parser_default and provided != dialect_val:
+                    msg = ("Conflicting values for '{param}': '{val}' was "
+                           "provided, but the dialect specifies '{diaval}'. "
+                           "Using the dialect-specified value.".format(
+                               param=param, val=provided, diaval=dialect_val))
+
+                    # Annoying corner case for not warning about
+                    # conflicts between dialect and delimiter parameter.
+                    # Refer to the outer "_read_" function for more info.
+                    if not (param == "delimiter" and
+                            kwds.pop("sep_override", False)):
+                        conflict_msgs.append(msg)
 
                 if conflict_msgs:
                     warnings.warn('\n\n'.join(conflict_msgs), ParserWarning,
                                   stacklevel=2)
                 kwds[param] = dialect_val
+
+        if kwds.get("skipfooter"):
+            if kwds.get("iterator") or kwds.get("chunksize"):
+                raise ValueError("'skipfooter' not supported for 'iteration'")
+            if kwds.get("nrows"):
+                raise ValueError("'skipfooter' not supported with 'nrows'")
 
         if kwds.get('header', 'infer') == 'infer':
             kwds['header'] = 0 if kwds.get('names') is None else None
@@ -857,15 +952,15 @@ class TextFileReader(BaseIterator):
         # C engine not supported yet
         if engine == 'c':
             if options['skipfooter'] > 0:
-                fallback_reason = "the 'c' engine does not support"\
-                                  " skipfooter"
+                fallback_reason = ("the 'c' engine does not support"
+                                   " skipfooter")
                 engine = 'python'
 
         encoding = sys.getfilesystemencoding() or 'utf-8'
         if sep is None and not delim_whitespace:
             if engine == 'c':
-                fallback_reason = "the 'c' engine does not support"\
-                                  " sep=None with delim_whitespace=False"
+                fallback_reason = ("the 'c' engine does not support"
+                                   " sep=None with delim_whitespace=False")
                 engine = 'python'
         elif sep is not None and len(sep) > 1:
             if engine == 'c' and sep == r'\s+':
@@ -873,10 +968,10 @@ class TextFileReader(BaseIterator):
                 del result['delimiter']
             elif engine not in ('python', 'python-fwf'):
                 # wait until regex engine integrated
-                fallback_reason = "the 'c' engine does not support"\
-                                  " regex separators (separators > 1 char and"\
-                                  r" different from '\s+' are"\
-                                  " interpreted as regex)"
+                fallback_reason = ("the 'c' engine does not support"
+                                   " regex separators (separators > 1 char and"
+                                   r" different from '\s+' are"
+                                   " interpreted as regex)")
                 engine = 'python'
         elif delim_whitespace:
             if 'python' in engine:
@@ -889,10 +984,10 @@ class TextFileReader(BaseIterator):
             except UnicodeDecodeError:
                 encodeable = False
             if not encodeable and engine not in ('python', 'python-fwf'):
-                fallback_reason = "the separator encoded in {encoding}" \
-                                  " is > 1 char long, and the 'c' engine" \
-                                  " does not support such separators".format(
-                                      encoding=encoding)
+                fallback_reason = ("the separator encoded in {encoding}"
+                                   " is > 1 char long, and the 'c' engine"
+                                   " does not support such separators"
+                                   .format(encoding=encoding))
                 engine = 'python'
 
         quotechar = options['quotechar']
@@ -1024,15 +1119,10 @@ class TextFileReader(BaseIterator):
             self._engine = klass(self.f, **self.options)
 
     def _failover_to_python(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def read(self, nrows=None):
         nrows = _validate_integer('nrows', nrows)
-
-        if nrows is not None:
-            if self.options.get('skipfooter'):
-                raise ValueError('skipfooter not supported for iteration')
-
         ret = self._engine.read(nrows)
 
         # May alter columns / col_dict
@@ -1239,6 +1329,7 @@ class ParserBase(object):
         self.prefix = kwds.pop('prefix', None)
 
         self.index_col = kwds.get('index_col', None)
+        self.unnamed_cols = set()
         self.index_names = None
         self.col_names = None
 
@@ -1348,7 +1439,8 @@ class ParserBase(object):
         # clean the index_names
         index_names = header.pop(-1)
         index_names, names, index_col = _clean_index_names(index_names,
-                                                           self.index_col)
+                                                           self.index_col,
+                                                           self.unnamed_cols)
 
         # extract the columns
         field_count = len(header[0])
@@ -1359,22 +1451,20 @@ class ParserBase(object):
         columns = lzip(*[extract(r) for r in header])
         names = ic + columns
 
-        def tostr(x):
-            return str(x) if not isinstance(x, compat.string_types) else x
-
-        # if we find 'Unnamed' all of a single level, then our header was too
-        # long
+        # If we find unnamed columns all in a single
+        # level, then our header was too long.
         for n in range(len(columns[0])):
-            if all('Unnamed' in tostr(c[n]) for c in columns):
+            if all(compat.to_str(c[n]) in self.unnamed_cols for c in columns):
                 raise ParserError(
                     "Passed header=[%s] are too many rows for this "
                     "multi_index of columns"
                     % ','.join(str(x) for x in self.header)
                 )
 
-        # clean the column names (if we have an index_col)
+        # Clean the column names (if we have an index_col).
         if len(ic):
-            col_names = [r[0] if len(r[0]) and 'Unnamed' not in r[0] else None
+            col_names = [r[0] if (len(r[0]) and
+                                  r[0] not in self.unnamed_cols) else None
                          for r in header]
         else:
             col_names = [None] * len(header)
@@ -1428,7 +1518,8 @@ class ParserBase(object):
             if not self._name_processed:
                 (self.index_names, _,
                  self.index_col) = _clean_index_names(list(columns),
-                                                      self.index_col)
+                                                      self.index_col,
+                                                      self.unnamed_cols)
                 self._name_processed = True
             index = self._get_complex_date_index(data, columns)
             index = self._agg_index(index, try_parse_dates=False)
@@ -1521,7 +1612,7 @@ class ParserBase(object):
             arrays.append(arr)
 
         names = self.index_names
-        index = _ensure_index_from_sequences(arrays, names)
+        index = ensure_index_from_sequences(arrays, names)
 
         return index
 
@@ -1594,7 +1685,6 @@ class ParserBase(object):
         converted : ndarray
         na_count : int
         """
-
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
             mask = algorithms.isin(values, list(na_values))
@@ -1612,15 +1702,15 @@ class ParserBase(object):
             except Exception:
                 result = values
                 if values.dtype == np.object_:
-                    na_count = parsers.sanitize_objects(result, na_values,
-                                                        False)
+                    na_count = parsers.sanitize_objects(result,
+                                                        na_values, False)
         else:
             result = values
             if values.dtype == np.object_:
                 na_count = parsers.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
-            result = libops.maybe_convert_bool(values,
+            result = libops.maybe_convert_bool(np.asarray(values),
                                                true_values=self.true_values,
                                                false_values=self.false_values)
 
@@ -1660,7 +1750,8 @@ class ParserBase(object):
 
         else:
             try:
-                values = astype_nansafe(values, cast_type, copy=True)
+                values = astype_nansafe(values, cast_type,
+                                        copy=True, skipna=True)
             except ValueError:
                 raise ValueError("Unable to convert column %s to "
                                  "type %s" % (column, cast_type))
@@ -1706,6 +1797,7 @@ class CParserWrapper(ParserBase):
         kwds['usecols'] = self.usecols
 
         self._reader = parsers.TextReader(src, **kwds)
+        self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
 
@@ -1766,7 +1858,8 @@ class CParserWrapper(ParserBase):
                 self._name_processed = True
                 (index_names, self.names,
                  self.index_col) = _clean_index_names(self.names,
-                                                      self.index_col)
+                                                      self.index_col,
+                                                      self.unnamed_cols)
 
                 if self.index_names is None:
                     self.index_names = index_names
@@ -1783,7 +1876,7 @@ class CParserWrapper(ParserBase):
         # close additional handles opened by C parser (for compression)
         try:
             self._reader.close()
-        except:
+        except ValueError:
             pass
 
     def _set_noconvert_columns(self):
@@ -1889,7 +1982,7 @@ class CParserWrapper(ParserBase):
                                                  try_parse_dates=True)
                 arrays.append(values)
 
-            index = _ensure_index_from_sequences(arrays)
+            index = ensure_index_from_sequences(arrays)
 
             if self.usecols is not None:
                 names = self._filter_usecols(names)
@@ -1940,7 +2033,8 @@ class CParserWrapper(ParserBase):
 
         if self._reader.leading_cols == 0 and self.index_col is not None:
             (idx_names, names,
-             self.index_col) = _clean_index_names(names, self.index_col)
+             self.index_col) = _clean_index_names(names, self.index_col,
+                                                  self.unnamed_cols)
 
         return names, idx_names
 
@@ -1960,45 +2054,45 @@ def TextParser(*args, **kwds):
     ----------
     data : file-like object or list
     delimiter : separator character to use
-    dialect : str or csv.Dialect instance, default None
+    dialect : str or csv.Dialect instance, optional
         Ignored if delimiter is longer than 1 character
     names : sequence, default
     header : int, default 0
         Row to use to parse column labels. Defaults to the first row. Prior
         rows will be discarded
-    index_col : int or list, default None
+    index_col : int or list, optional
         Column or columns to use as the (possibly hierarchical) index
-    has_index_names: boolean, default False
+    has_index_names: bool, default False
         True if the cols defined in index_col have an index name and are
-        not in the header
-    na_values : scalar, str, list-like, or dict, default None
+        not in the header.
+    na_values : scalar, str, list-like, or dict, optional
         Additional strings to recognize as NA/NaN.
     keep_default_na : bool, default True
-    thousands : str, default None
+    thousands : str, optional
         Thousands separator
-    comment : str, default None
+    comment : str, optional
         Comment out remainder of line
-    parse_dates : boolean, default False
-    keep_date_col : boolean, default False
-    date_parser : function, default None
+    parse_dates : bool, default False
+    keep_date_col : bool, default False
+    date_parser : function, optional
     skiprows : list of integers
         Row numbers to skip
     skipfooter : int
         Number of line at bottom of file to skip
-    converters : dict, default None
+    converters : dict, optional
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels, values are functions that take one
         input argument, the cell (not column) content, and return the
         transformed content.
-    encoding : string, default None
+    encoding : str, optional
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
-    squeeze : boolean, default False
-        returns Series if only one column
-    infer_datetime_format: boolean, default False
+    squeeze : bool, default False
+        returns Series if only one column.
+    infer_datetime_format: bool, default False
         If True and `parse_dates` is True for a column, try to infer the
         datetime format based on the first datetime string. If the format
         can be inferred, there often will be a large parsing speed-up.
-    float_precision : string, default None
+    float_precision : str, optional
         Specifies which converter the C engine should use for floating-point
         values. The options are None for the ordinary converter,
         'high' for the high-precision converter, and 'round_trip' for the
@@ -2086,7 +2180,8 @@ class PythonParser(ParserBase):
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
         self._col_indices = None
-        self.columns, self.num_original_columns = self._infer_columns()
+        (self.columns, self.num_original_columns,
+         self.unnamed_cols) = self._infer_columns()
 
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.
@@ -2341,6 +2436,8 @@ class PythonParser(ParserBase):
         names = self.names
         num_original_columns = 0
         clear_buffer = True
+        unnamed_cols = set()
+
         if self.header is not None:
             header = self.header
 
@@ -2374,7 +2471,7 @@ class PythonParser(ParserBase):
                         if clear_buffer:
                             self._clear_buffer()
                         columns.append([None] * len(columns[-1]))
-                        return columns, num_original_columns
+                        return columns, num_original_columns, unnamed_cols
 
                     if not self.names:
                         raise EmptyDataError(
@@ -2382,16 +2479,19 @@ class PythonParser(ParserBase):
 
                     line = self.names[:]
 
-                unnamed_count = 0
                 this_columns = []
+                this_unnamed_cols = []
+
                 for i, c in enumerate(line):
                     if c == '':
                         if have_mi_columns:
-                            this_columns.append('Unnamed: %d_level_%d'
-                                                % (i, level))
+                            col_name = ("Unnamed: {i}_level_{level}"
+                                        .format(i=i, level=level))
                         else:
-                            this_columns.append('Unnamed: %d' % i)
-                        unnamed_count += 1
+                            col_name = "Unnamed: {i}".format(i=i)
+
+                        this_unnamed_cols.append(i)
+                        this_columns.append(col_name)
                     else:
                         this_columns.append(c)
 
@@ -2417,12 +2517,17 @@ class PythonParser(ParserBase):
                         lc = len(this_columns)
                         ic = (len(self.index_col)
                               if self.index_col is not None else 0)
+                        unnamed_count = len(this_unnamed_cols)
+
                         if lc != unnamed_count and lc - ic > unnamed_count:
                             clear_buffer = False
                             this_columns = [None] * lc
                             self.buf = [self.buf[-1]]
 
                 columns.append(this_columns)
+                unnamed_cols.update({this_columns[i]
+                                     for i in this_unnamed_cols})
+
                 if len(columns) == 1:
                     num_original_columns = len(this_columns)
 
@@ -2487,7 +2592,7 @@ class PythonParser(ParserBase):
                     columns = [names]
                     num_original_columns = ncols
 
-        return columns, num_original_columns
+        return columns, num_original_columns, unnamed_cols
 
     def _handle_usecols(self, columns, usecols_key):
         """
@@ -2702,9 +2807,6 @@ class PythonParser(ParserBase):
                            'cannot be processed in Python\'s '
                            'native csv library at the moment, '
                            'so please pass in engine=\'c\' instead')
-                elif 'newline inside string' in msg:
-                    msg = ('EOF inside string starting with '
-                           'line ' + str(row_num))
 
                 if self.skipfooter > 0:
                     reason = ('Error could possibly be due to '
@@ -2856,7 +2958,8 @@ class PythonParser(ParserBase):
         else:
             # Case 2
             (index_name, columns_,
-             self.index_col) = _clean_index_names(columns, self.index_col)
+             self.index_col) = _clean_index_names(columns, self.index_col,
+                                                  self.unnamed_cols)
 
         return index_name, orig_names, columns
 
@@ -3005,14 +3108,14 @@ def _make_date_converter(date_parser=None, dayfirst=False,
 
             try:
                 return tools.to_datetime(
-                    _ensure_object(strs),
+                    ensure_object(strs),
                     utc=None,
                     box=False,
                     dayfirst=dayfirst,
                     errors='ignore',
                     infer_datetime_format=infer_datetime_format
                 )
-            except:
+            except ValueError:
                 return tools.to_datetime(
                     parsing.try_parse_dates(strs, dayfirst=dayfirst))
         else:
@@ -3142,8 +3245,7 @@ def _clean_na_values(na_values, keep_default_na=True):
                 v = set(v) | _NA_VALUES
 
             na_values[k] = v
-        na_fvalues = dict((k, _floatify_na_values(v))
-                          for k, v in na_values.items())
+        na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
@@ -3156,7 +3258,7 @@ def _clean_na_values(na_values, keep_default_na=True):
     return na_values, na_fvalues
 
 
-def _clean_index_names(columns, index_col):
+def _clean_index_names(columns, index_col, unnamed_cols):
     if not _is_index_col(index_col):
         return None, columns, index_col
 
@@ -3181,10 +3283,10 @@ def _clean_index_names(columns, index_col):
             columns.remove(name)
             index_names.append(name)
 
-    # hack
-    if isinstance(index_names[0], compat.string_types)\
-            and 'Unnamed' in index_names[0]:
-        index_names[0] = None
+    # Only clean index names that were placeholders.
+    for i, name in enumerate(index_names):
+        if isinstance(name, compat.string_types) and name in unnamed_cols:
+            index_names[i] = None
 
     return index_names, columns, index_col
 
@@ -3209,12 +3311,22 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
             col = columns[k] if is_integer(k) else k
             dtype[col] = v
 
-    if index_col is None or index_col is False:
+    # Even though we have no data, the "index" of the empty DataFrame
+    # could for example still be an empty MultiIndex. Thus, we need to
+    # check whether we have any index columns specified, via either:
+    #
+    # 1) index_col (column indices)
+    # 2) index_names (column names)
+    #
+    # Both must be non-null to ensure a successful construction. Otherwise,
+    # we have to create a generic emtpy Index.
+    if (index_col is None or index_col is False) or index_names is None:
         index = Index([])
     else:
         data = [Series([], dtype=dtype[name]) for name in index_names]
-        index = _ensure_index_from_sequences(data, names=index_names)
+        index = ensure_index_from_sequences(data, names=index_names)
         index_col.sort()
+
         for i, n in enumerate(index_col):
             columns.pop(n - i)
 
@@ -3232,7 +3344,7 @@ def _floatify_na_values(na_values):
             v = float(v)
             if not np.isnan(v):
                 result.add(v)
-        except:
+        except (TypeError, ValueError, OverflowError):
             pass
     return result
 
@@ -3253,11 +3365,11 @@ def _stringify_na_values(na_values):
                 result.append(str(v))
 
             result.append(v)
-        except:
+        except (TypeError, ValueError, OverflowError):
             pass
         try:
             result.append(int(x))
-        except:
+        except (TypeError, ValueError, OverflowError):
             pass
     return set(result)
 

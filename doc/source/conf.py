@@ -16,9 +16,11 @@ import os
 import re
 import inspect
 import importlib
-from sphinx.ext.autosummary import _import_by_name
+import logging
 import warnings
+from sphinx.ext.autosummary import _import_by_name
 
+logger = logging.getLogger(__name__)
 
 try:
     raw_input          # Python 2
@@ -38,7 +40,6 @@ sys.setrecursionlimit(5000)
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.append(os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../sphinxext'))
-
 sys.path.extend([
 
     # numpy standard doc extensions
@@ -73,9 +74,21 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.ifconfig',
               'sphinx.ext.linkcode',
               'nbsphinx',
+              'contributors',  # custom pandas extension
               ]
 
+try:
+    import sphinxcontrib.spelling  # noqa
+except ImportError as err:
+    logger.warn(('sphinxcontrib.spelling failed to import with error "{}". '
+                '`spellcheck` command is not available.'.format(err)))
+else:
+    extensions.append('sphinxcontrib.spelling')
+
 exclude_patterns = ['**.ipynb_checkpoints']
+
+spelling_word_list_filename = ['spelling_wordlist.txt', 'names_wordlist.txt']
+spelling_ignore_pypi_package_names = True
 
 with open("index.rst") as f:
     index_rst_lines = f.readlines()
@@ -86,7 +99,7 @@ with open("index.rst") as f:
 # JP: added from sphinxdocs
 autosummary_generate = False
 
-if any(re.match("\s*api\s*", l) for l in index_rst_lines):
+if any(re.match(r"\s*api\s*", l) for l in index_rst_lines):
     autosummary_generate = True
 
 # numpydoc
@@ -107,7 +120,9 @@ import pandas as pd"""
 templates_path = ['../_templates']
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = [
+    '.rst',
+]
 
 # The encoding of source files.
 source_encoding = 'utf-8'
@@ -200,15 +215,15 @@ html_theme_path = ['themes']
 # of the sidebar.
 # html_logo = None
 
-# The name of an image file (within the static path) to use as favicon of the
-# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
-# pixels large.
-# html_favicon = None
-
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# The name of an image file (within the static path) to use as favicon of the
+# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
+# pixels large.
+html_favicon = os.path.join(html_static_path[0], 'favicon.ico')
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -285,8 +300,26 @@ html_additional_pages = {
     for page in moved_api_pages
 }
 
+
+common_imports = """\
+.. currentmodule:: pandas
+
+.. ipython:: python
+   :suppress:
+
+   import numpy as np
+   from pandas import *
+   import pandas as pd
+   randn = np.random.randn
+   np.set_printoptions(precision=4, suppress=True)
+   options.display.max_rows = 15
+   from pandas.compat import StringIO
+"""
+
+
 html_context = {
-    'redirects': {old: new for old, new in moved_api_pages}
+    'redirects': {old: new for old, new in moved_api_pages},
+    'common_imports': common_imports,
 }
 
 # If false, no module index is generated.
@@ -328,8 +361,8 @@ nbsphinx_allow_errors = True
 # file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
     ('index', 'pandas.tex',
-     u'pandas: powerful Python data analysis toolkit',
-     u'Wes McKinney\n\& PyData Development Team', 'manual'),
+     'pandas: powerful Python data analysis toolkit',
+     r'Wes McKinney\n\& PyData Development Team', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -375,6 +408,7 @@ warnings.filterwarnings("ignore", message="\nPanel is deprecated",
                         category=FutureWarning)
 
 
+ipython_warning_is_error = False
 ipython_exec_lines = [
     'import numpy as np',
     'import pandas as pd',
@@ -552,19 +586,23 @@ def linkcode_resolve(domain, info):
     for part in fullname.split('.'):
         try:
             obj = getattr(obj, part)
-        except:
+        except AttributeError:
             return None
 
     try:
-        fn = inspect.getsourcefile(obj)
-    except:
+        # inspect.unwrap() was added in Python version 3.4
+        if sys.version_info >= (3, 5):
+            fn = inspect.getsourcefile(inspect.unwrap(obj))
+        else:
+            fn = inspect.getsourcefile(obj)
+    except TypeError:
         fn = None
     if not fn:
         return None
 
     try:
         source, lineno = inspect.getsourcelines(obj)
-    except:
+    except OSError:
         lineno = None
 
     if lineno:
@@ -636,7 +674,23 @@ suppress_warnings = [
 ]
 
 
+def rstjinja(app, docname, source):
+    """
+    Render our pages as a jinja template for fancy templating goodness.
+    """
+    # http://ericholscher.com/blog/2016/jul/25/integrating-jinja-rst-sphinx/
+    # Make sure we're outputting HTML
+    if app.builder.format != 'html':
+        return
+    src = source[0]
+    rendered = app.builder.templates.render_string(
+        src, app.config.html_context
+    )
+    source[0] = rendered
+
+
 def setup(app):
+    app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.add_autodocumenter(AccessorDocumenter)
