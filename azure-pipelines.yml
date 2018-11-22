@@ -120,7 +120,9 @@ jobs:
     condition: true
     env:
       SOURCE_PATH: $(Build.SourcesDirectory)/doc/build/html/
-      AZURE_STORAGE_CONNECTION_STRING: $(AZURE_STORAGE_CONNECTION_STRING)
+      # removing, to see if the job picks it directly, and the problem is
+      # in assigning a variable to itself
+      # AZURE_STORAGE_CONNECTION_STRING: $(AZURE_STORAGE_CONNECTION_STRING)
 
   - script: |
       if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
@@ -148,6 +150,7 @@ jobs:
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
+      git remote add upstream https://github.com/pandas-dev/pandas.git
       if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
           cd asv_bench
           ASV_ERRORS=$(asv dev > /dev/null)
