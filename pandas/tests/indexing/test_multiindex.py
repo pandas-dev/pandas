@@ -24,8 +24,8 @@ def multiindex_dataframe_random_data():
     """DataFrame with 2 level MultiIndex with random data"""
     index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
                                                               'three']],
-                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                              [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                        names=['first', 'second'])
     return DataFrame(np.random.randn(10, 3), index=index,
                      columns=Index(['A', 'B', 'C'], name='exp'))
@@ -35,7 +35,7 @@ def multiindex_dataframe_random_data():
 def single_level_multiindex():
     """single level MultiIndex"""
     return MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
-                      labels=[[0, 1, 2, 3]], names=['first'])
+                      codes=[[0, 1, 2, 3]], names=['first'])
 
 
 @pytest.fixture
@@ -900,8 +900,8 @@ class TestMultiIndexBasic(object):
 
     def test_frame_getitem_setitem_multislice(self):
         levels = [['t1', 't2'], ['a', 'b', 'c']]
-        labels = [[0, 0, 0, 1, 1], [0, 1, 2, 0, 1]]
-        midx = MultiIndex(labels=labels, levels=levels, names=[None, 'id'])
+        codes = [[0, 0, 0, 1, 1], [0, 1, 2, 0, 1]]
+        midx = MultiIndex(codes=codes, levels=levels, names=[None, 'id'])
         df = DataFrame({'value': [1, 2, 3, 7, 8]}, index=midx)
 
         result = df.loc[:, 'value']
@@ -1044,9 +1044,9 @@ class TestMultiIndexBasic(object):
 
         # ex from #1796
         index = MultiIndex(levels=[['foo', 'bar'], ['one', 'two'], [-1, 1]],
-                           labels=[[0, 0, 0, 0, 1, 1, 1, 1],
-                                   [0, 0, 1, 1, 0, 0, 1, 1], [0, 1, 0, 1, 0, 1,
-                                                              0, 1]])
+                           codes=[[0, 0, 0, 0, 1, 1, 1, 1],
+                                  [0, 0, 1, 1, 0, 0, 1, 1], [0, 1, 0, 1, 0, 1,
+                                                             0, 1]])
         df = DataFrame(np.random.randn(8, 4), index=index,
                        columns=list('abcd'))
 
@@ -1189,7 +1189,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
     def test_getitem_setitem_slice_integers(self):
         index = MultiIndex(levels=[[0, 1, 2], [0, 2]],
-                           labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]])
+                           codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]])
 
         frame = DataFrame(np.random.randn(len(index), 4), index=index,
                           columns=['a', 'b', 'c', 'd'])
@@ -1211,8 +1211,8 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
     def test_getitem_int(self, multiindex_dataframe_random_data):
         levels = [[0, 1], [0, 1, 2]]
-        labels = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
-        index = MultiIndex(levels=levels, labels=labels)
+        codes = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
+        index = MultiIndex(levels=levels, codes=codes)
 
         frame = DataFrame(np.random.randn(6, 2), index=index)
 
@@ -1236,7 +1236,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         ymd = ymd.T
         result = ymd[2000, 2]
 
-        expected = ymd.reindex(columns=ymd.columns[ymd.columns.labels[1] == 1])
+        expected = ymd.reindex(columns=ymd.columns[ymd.columns.codes[1] == 1])
         expected.columns = expected.columns.droplevel(0).droplevel(0)
         tm.assert_frame_equal(result, expected)
 
@@ -1279,12 +1279,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         ymd = multiindex_year_month_day_dataframe_random_data
         result = ymd.loc[(2000, 2):(2000, 4)]
-        lev = ymd.index.labels[1]
+        lev = ymd.index.codes[1]
         expected = ymd[(lev >= 1) & (lev <= 3)]
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_partial_column_select(self):
-        idx = MultiIndex(labels=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],
+        idx = MultiIndex(codes=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],
                          levels=[['a', 'b'], ['x', 'y'], ['p', 'q']])
         df = DataFrame(np.random.rand(3, 2), index=idx)
 
@@ -1582,7 +1582,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         df2_original = df2.copy()
 
         df2.index.set_levels(['b', 'd', 'a'], level='col1', inplace=True)
-        df2.index.set_labels([0, 1, 0, 2], level='col1', inplace=True)
+        df2.index.set_codes([0, 1, 0, 2], level='col1', inplace=True)
         assert not df2.index.is_lexsorted()
         assert not df2.index.is_monotonic
 

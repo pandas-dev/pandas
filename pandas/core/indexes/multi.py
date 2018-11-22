@@ -11,7 +11,7 @@ import pandas.compat as compat
 from pandas.compat import lrange, lzip, map, range, zip
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning, UnsortedIndexError
-from pandas.util._decorators import Appender, cache_readonly
+from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_int64, ensure_platform_int, is_categorical_dtype, is_hashable,
@@ -30,8 +30,6 @@ from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
 import pandas.core.missing as missing
 
 from pandas.io.formats.printing import pprint_thing
-
-from pandas.util._decorators import deprecate_kwarg
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -655,19 +653,19 @@ class MultiIndex(Index):
         >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
                                             (2, u'one'), (2, u'two')],
                                             names=['foo', 'bar'])
-        >>> idx.set_labels([[1,0,1,0], [0,0,1,1]])
+        >>> idx.set_codes([[1,0,1,0], [0,0,1,1]])
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
                    labels=[[1, 0, 1, 0], [0, 0, 1, 1]],
                    names=[u'foo', u'bar'])
-        >>> idx.set_labels([1,0,1,0], level=0)
+        >>> idx.set_codes([1,0,1,0], level=0)
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
                    labels=[[1, 0, 1, 0], [0, 1, 0, 1]],
                    names=[u'foo', u'bar'])
-        >>> idx.set_labels([0,0,1,1], level='bar')
+        >>> idx.set_codes([0,0,1,1], level='bar')
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
                    labels=[[0, 0, 1, 1], [0, 0, 1, 1]],
                    names=[u'foo', u'bar'])
-        >>> idx.set_labels([[1,0,1,0], [0,0,1,1]], level=[0,1])
+        >>> idx.set_codes([[1,0,1,0], [0,0,1,1]], level=[0,1])
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
                    labels=[[1, 0, 1, 0], [0, 0, 1, 1]],
                    names=[u'foo', u'bar'])

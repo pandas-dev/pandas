@@ -31,10 +31,10 @@ class FrameMultiIndexOps(object):
 
     def setup(self, level, op):
         levels = [np.arange(10), np.arange(100), np.arange(100)]
-        labels = [np.arange(10).repeat(10000),
-                  np.tile(np.arange(100).repeat(100), 10),
-                  np.tile(np.tile(np.arange(100), 100), 10)]
-        index = pd.MultiIndex(levels=levels, labels=labels)
+        codes = [np.arange(10).repeat(10000),
+                 np.tile(np.arange(100).repeat(100), 10),
+                 np.tile(np.tile(np.arange(100), 100), 10)]
+        index = pd.MultiIndex(levels=levels, codes=codes)
         df = pd.DataFrame(np.random.randn(len(index), 4), index=index)
         self.df_func = getattr(df, op)
 
@@ -67,10 +67,10 @@ class SeriesMultiIndexOps(object):
 
     def setup(self, level, op):
         levels = [np.arange(10), np.arange(100), np.arange(100)]
-        labels = [np.arange(10).repeat(10000),
-                  np.tile(np.arange(100).repeat(100), 10),
-                  np.tile(np.tile(np.arange(100), 100), 10)]
-        index = pd.MultiIndex(levels=levels, labels=labels)
+        codes = [np.arange(10).repeat(10000),
+                 np.tile(np.arange(100).repeat(100), 10),
+                 np.tile(np.tile(np.arange(100), 100), 10)]
+        index = pd.MultiIndex(levels=levels, codes=codes)
         s = pd.Series(np.random.randn(len(index)), index=index)
         self.s_func = getattr(s, op)
 
