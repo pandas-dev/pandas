@@ -115,14 +115,15 @@ jobs:
 
   - script: |
       az extension add --name storage-preview
-      az storage blob upload-batch -s $SOURCE_PATH -d '$web'
+      az storage blob upload-batch --account-name=$(AZURE_STORAGE_ACCOUNT) --account-key=$(AZURE_STORAGE_ACCESS_KEY) -s $SOURCE_PATH -d '$web'
     displayName: 'Publishing docs (Azure storage)'
     condition: true
     env:
       SOURCE_PATH: $(Build.SourcesDirectory)/doc/build/html/
-      # removing, to see if the job picks it directly, and the problem is
-      # in assigning a variable to itself
+      # Moving connection data to arguments
       # AZURE_STORAGE_CONNECTION_STRING: $(AZURE_STORAGE_CONNECTION_STRING)
+      # $(AZURE_STORAGE_ACCOUNT)
+      # $(AZURE_STORAGE_ACCESS_KEY)
 
   - script: |
       if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
@@ -150,7 +151,14 @@ jobs:
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
       source activate pandas-dev
+      git remote -v
+      git branch
+      git branch -a
       git remote add upstream https://github.com/pandas-dev/pandas.git
+      git fetch upstream
+      git remote -v
+      git branch
+      git branch -a
       if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
           cd asv_bench
           ASV_ERRORS=$(asv dev > /dev/null)
