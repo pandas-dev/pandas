@@ -167,12 +167,7 @@ jobs:
           cd asv_bench
           asv machine --yes
           ASV_OUTPUT="$(asv dev)"
-          echo "all output"
-          echo "$ASV_OUTPUT"
-          echo "failure lines"
-          echo "$ASV_OUTPUT" | grep "failure"  # TODO remove this when it works
-          echo "end of debug info"
-          if [[ $(echo "$ASV_OUTPUT" | grep "failure") ]]; then
+          if [[ $(echo "$ASV_OUTPUT" | grep "failed") ]]; then
               echo "##vso[task.logissue type=error]Benchmarks run with errors"
               echo $ASV_OUTPUT
               exit 1
