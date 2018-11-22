@@ -149,9 +149,10 @@ either match on the *index* or *columns* via the **axis** keyword:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'one' : pd.Series(np.random.randn(3), index=['a', 'b', 'c']),
-                      'two' : pd.Series(np.random.randn(4), index=['a', 'b', 'c', 'd']),
-                      'three' : pd.Series(np.random.randn(3), index=['b', 'c', 'd'])})
+   df = pd.DataFrame({
+       'one': pd.Series(np.random.randn(3), index=['a', 'b', 'c']),
+       'two': pd.Series(np.random.randn(4), index=['a', 'b', 'c', 'd']),
+       'three': pd.Series(np.random.randn(3), index=['b', 'c', 'd'])})
    df
    row = df.iloc[1]
    column = df['two']
@@ -172,8 +173,8 @@ Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
 .. ipython:: python
 
    dfmi = df.copy()
-   dfmi.index = pd.MultiIndex.from_tuples([(1,'a'),(1,'b'),(1,'c'),(2,'a')],
-                                          names=['first','second'])
+   dfmi.index = pd.MultiIndex.from_tuples([
+       (1, 'a'), (1, 'b'), (1, 'c'), (2, 'a')], names=['first', 'second'])
    dfmi.sub(column, axis=0, level='second')
 
 With Panel, describing the matching behavior is a bit more difficult, so
@@ -306,14 +307,14 @@ To evaluate single-element pandas objects in a boolean context, use the method
 
    .. code-block:: python
 
-       >>> if df:                         # noqa: E999
-               ...
+      >>> if df:
+      ...     pass
 
    Or
 
    .. code-block:: python
 
-       >>> df and df2
+      >>> df and df2
 
    These will both raise errors, as you are trying to compare multiple values.
 
@@ -329,17 +330,17 @@ Comparing if objects are equivalent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Often you may find that there is more than one way to compute the same
-result.  As a simple example, consider ``df+df`` and ``df*2``. To test
+result.  As a simple example, consider ``df + df`` and ``df * 2``. To test
 that these two computations produce the same result, given the tools
-shown above, you might imagine using ``(df+df == df*2).all()``. But in
+shown above, you might imagine using ``(df + df == df * 2).all()``. But in
 fact, this expression is False:
 
 .. ipython:: python
 
-   df+df == df*2
-   (df+df == df*2).all()
+   df + df == df * 2
+   (df + df == df * 2).all()
 
-Notice that the boolean DataFrame ``df+df == df*2`` contains some False values!
+Notice that the boolean DataFrame ``df + df == df * 2`` contains some False values!
 This is because NaNs do not compare as equals:
 
 .. ipython:: python
@@ -352,15 +353,15 @@ corresponding locations treated as equal.
 
 .. ipython:: python
 
-   (df+df).equals(df*2)
+   (df + df).equals(df * 2)
 
 Note that the Series or DataFrame index needs to be in the same order for
 equality to be True:
 
 .. ipython:: python
 
-   df1 = pd.DataFrame({'col':['foo', 0, np.nan]})
-   df2 = pd.DataFrame({'col':[np.nan, 0, 'foo']}, index=[2,1,0])
+   df1 = pd.DataFrame({'col': ['foo', 0, np.nan]})
+   df2 = pd.DataFrame({'col': [np.nan, 0, 'foo']}, index=[2, 1, 0])
    df1.equals(df2)
    df1.equals(df2.sort_index())
 
@@ -423,10 +424,10 @@ which we illustrate:
 
 .. ipython:: python
 
-   df1 = pd.DataFrame({'A' : [1., np.nan, 3., 5., np.nan],
-                       'B' : [np.nan, 2., 3., np.nan, 6.]})
-   df2 = pd.DataFrame({'A' : [5., 2., 4., np.nan, 3., 7.],
-                       'B' : [np.nan, np.nan, 3., 4., 6., 8.]})
+   df1 = pd.DataFrame({'A': [1., np.nan, 3., 5., np.nan],
+                       'B': [np.nan, 2., 3., np.nan, 6.]})
+   df2 = pd.DataFrame({'A': [5., 2., 4., np.nan, 3., 7.],
+                       'B': [np.nan, np.nan, 3., 4., 6., 8.]})
    df1
    df2
    df1.combine_first(df2)
@@ -443,7 +444,8 @@ So, for instance, to reproduce :meth:`~DataFrame.combine_first` as above:
 
 .. ipython:: python
 
-   combiner = lambda x, y: np.where(pd.isna(x), y, x)
+   def combiner(x, y):
+       np.where(pd.isna(x), y, x)
    df1.combine(df2, combiner)
 
 .. _basics.stats:
@@ -546,7 +548,7 @@ Series:
 
    series = pd.Series(np.random.randn(500))
    series[20:500] = np.nan
-   series[10:20]  = 5
+   series[10:20] = 5
    series.nunique()
 
 .. _basics.describe:
@@ -563,7 +565,8 @@ course):
     series = pd.Series(np.random.randn(1000))
     series[::2] = np.nan
     series.describe()
-    frame = pd.DataFrame(np.random.randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
+    frame = pd.DataFrame(
+        np.random.randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
     frame.iloc[::2] = np.nan
     frame.describe()
 
@@ -619,7 +622,7 @@ corresponding values:
    s1
    s1.idxmin(), s1.idxmax()
 
-   df1 = pd.DataFrame(np.random.randn(5,3), columns=['A','B','C'])
+   df1 = pd.DataFrame(np.random.randn(5, 3), columns=['A', 'B', 'C'])
    df1
    df1.idxmin(axis=0)
    df1.idxmax(axis=1)
@@ -753,11 +756,11 @@ For example, we can fit a regression using statsmodels. Their API expects a form
    bb = pd.read_csv('data/baseball.csv', index_col='id')
 
    (bb.query('h > 0')
-      .assign(ln_h = lambda df: np.log(df.h))
+      .assign(ln_h=lambda df: np.log(df.h))
       .pipe((sm.ols, 'data'), 'hr ~ ln_h + year + g + C(lg)')
       .fit()
       .summary()
-   )
+    )
 
 The pipe method is inspired by unix pipes and more recently dplyr_ and magrittr_, which
 have introduced the popular ``(%>%)`` (read pipe) operator for R_.
@@ -880,7 +883,8 @@ output:
 
    tsdf.agg('sum')
 
-   # these are equivalent to a ``.sum()`` because we are aggregating on a single function
+   # these are equivalent to a ``.sum()`` because we are aggregating
+   # on a single function
    tsdf.sum()
 
 Single aggregations on a ``Series`` this will return a scalar value:
@@ -924,7 +928,7 @@ Passing a named function will yield that name for the row:
 .. ipython:: python
 
    def mymean(x):
-      return x.mean()
+       return x.mean()
 
    tsdf.A.agg(['sum', mymean])
 
@@ -1038,14 +1042,14 @@ will be the names of the transforming functions.
 
 .. ipython:: python
 
-   tsdf.transform([np.abs, lambda x: x+1])
+   tsdf.transform([np.abs, lambda x: x + 1])
 
 Passing multiple functions to a Series will yield a DataFrame. The
 resulting column names will be the transforming functions.
 
 .. ipython:: python
 
-   tsdf.A.transform([np.abs, lambda x: x+1])
+   tsdf.A.transform([np.abs, lambda x: x + 1])
 
 
 Transforming with a dict
@@ -1056,7 +1060,7 @@ Passing a dict of functions will allow selective transforming per column.
 
 .. ipython:: python
 
-   tsdf.transform({'A': np.abs, 'B': lambda x: x+1})
+   tsdf.transform({'A': np.abs, 'B': lambda x: x + 1})
 
 Passing a dict of lists will generate a MultiIndexed DataFrame with these
 selective transforms.
@@ -1064,7 +1068,7 @@ selective transforms.
 .. ipython:: python
    :okwarning:
 
-   tsdf.transform({'A': np.abs, 'B': [lambda x: x+1, 'sqrt']})
+   tsdf.transform({'A': np.abs, 'B': [lambda x: x + 1, 'sqrt']})
 
 .. _basics.elementwise:
 
@@ -1084,7 +1088,8 @@ a single value and returning a single value. For example:
 .. ipython:: python
 
    df4
-   f = lambda x: len(str(x))
+   def f(x):
+       len(str(x))
    df4['one'].map(f)
    df4.applymap(f)
 
@@ -1096,83 +1101,9 @@ to :ref:`merging/joining functionality <merging>`:
 
    s = pd.Series(['six', 'seven', 'six', 'seven', 'six'],
                  index=['a', 'b', 'c', 'd', 'e'])
-   t = pd.Series({'six' : 6., 'seven' : 7.})
+   t = pd.Series({'six': 6., 'seven': 7.})
    s
    s.map(t)
-
-
-.. _basics.apply_panel:
-
-Applying with a Panel
-~~~~~~~~~~~~~~~~~~~~~
-
-Applying with a ``Panel`` will pass a ``Series`` to the applied function. If the applied
-function returns a ``Series``, the result of the application will be a ``Panel``. If the applied function
-reduces to a scalar, the result of the application will be a ``DataFrame``.
-
-.. ipython:: python
-
-   import pandas.util.testing as tm
-   panel = tm.makePanel(5)
-   panel
-   panel['ItemA']
-
-A transformational apply.
-
-.. ipython:: python
-
-   result = panel.apply(lambda x: x*2, axis='items')
-   result
-   result['ItemA']
-
-A reduction operation.
-
-.. ipython:: python
-
-   panel.apply(lambda x: x.dtype, axis='items')
-
-A similar reduction type operation.
-
-.. ipython:: python
-
-   panel.apply(lambda x: x.sum(), axis='major_axis')
-
-This last reduction is equivalent to:
-
-.. ipython:: python
-
-   panel.sum('major_axis')
-
-A transformation operation that returns a ``Panel``, but is computing
-the z-score across the ``major_axis``.
-
-.. ipython:: python
-
-   result = panel.apply(
-              lambda x: (x-x.mean())/x.std(),
-              axis='major_axis')
-   result
-   result['ItemA']
-
-Apply can also accept multiple axes in the ``axis`` argument. This will pass a
-``DataFrame`` of the cross-section to the applied function.
-
-.. ipython:: python
-
-   f = lambda x: ((x.T-x.mean(1))/x.std(1)).T
-
-   result = panel.apply(f, axis = ['items','major_axis'])
-   result
-   result.loc[:,:,'ItemA']
-
-This is equivalent to the following:
-
-.. ipython:: python
-
-   result = pd.Panel(dict([ (ax, f(panel.loc[:,:,ax]))
-                           for ax in panel.minor_axis ]))
-   result
-   result.loc[:,:,'ItemA']
 
 
 .. _basics.reindexing:
@@ -1500,14 +1431,16 @@ In short, basic iteration (``for i in object``) produces:
 
 Thus, for example, iterating over a DataFrame gives you the column names:
 
-.. ipython::
+.. ipython:: python
 
-    In [0]: df = pd.DataFrame({'col1' : np.random.randn(3), 'col2' : np.random.randn(3)},
-       ...:                   index=['a', 'b', 'c'])
+   df = pd.DataFrame({
+       'col1': np.random.randn(3),
+       'col2': np.random.randn(3)},
+       index=['a', 'b', 'c'])
 
-    In [0]: for col in df:
-       ...:     print(col)
-       ...:
+   for col in df:
+       print(col)
+
 
 Pandas objects also have the dict-like :meth:`~DataFrame.iteritems` method to
 iterate over the (key, value) pairs.
@@ -1570,12 +1503,11 @@ through key-value pairs:
 
 For example:
 
-.. ipython::
+.. ipython:: python
 
-   In [0]: for item, frame in wp.iteritems():
-      ...:     print(item)
-      ...:     print(frame)
-      ...:
+   for item, frame in wp.iteritems():
+       print(item)
+       print(frame)
 
 .. _basics.iterrows:
 
@@ -1586,11 +1518,10 @@ iterrows
 DataFrame as Series objects. It returns an iterator yielding each
 index value along with a Series containing the data in each row:
 
-.. ipython::
+.. ipython:: python
 
-   In [0]: for row_index, row in df.iterrows():
-      ...:     print('%s\n%s' % (row_index, row))
-      ...:
+   for row_index, row in df.iterrows():
+       print(row_index, row, sep='\n')
 
 .. note::
 
@@ -1625,7 +1556,7 @@ For instance, a contrived way to transpose the DataFrame would be:
    print(df2)
    print(df2.T)
 
-   df2_t = pd.DataFrame(dict((idx,values) for idx, values in df2.iterrows()))
+   df2_t = pd.DataFrame(dict((idx, values) for idx, values in df2.iterrows()))
    print(df2_t)
 
 itertuples
@@ -1676,7 +1607,7 @@ This enables nice expressions like this:
 
 .. ipython:: python
 
-   s[s.dt.day==2]
+   s[s.dt.day == 2]
 
 You can easily produces tz aware transformations:
 
@@ -1772,9 +1703,10 @@ used to sort a pandas object by its index levels.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'one' : pd.Series(np.random.randn(3), index=['a', 'b', 'c']),
-                      'two' : pd.Series(np.random.randn(4), index=['a', 'b', 'c', 'd']),
-                      'three' : pd.Series(np.random.randn(3), index=['b', 'c', 'd'])})
+   df = pd.DataFrame({
+       'one': pd.Series(np.random.randn(3), index=['a', 'b', 'c']),
+       'two': pd.Series(np.random.randn(4), index=['a', 'b', 'c', 'd']),
+       'three': pd.Series(np.random.randn(3), index=['b', 'c', 'd'])})
 
    unsorted_df = df.reindex(index=['a', 'd', 'c', 'b'],
                             columns=['three', 'two', 'one'])
@@ -1800,14 +1732,15 @@ to use to determine the sorted order.
 
 .. ipython:: python
 
-   df1 = pd.DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
+   df1 = pd.DataFrame({
+       'one': [2, 1, 1, 1], 'two': [1, 3, 2, 4], 'three': [5, 4, 3, 2]})
    df1.sort_values(by='two')
 
 The ``by`` parameter can take a list of column names, e.g.:
 
 .. ipython:: python
 
-   df1[['one', 'two', 'three']].sort_values(by=['one','two'])
+   df1[['one', 'two', 'three']].sort_values(by=['one', 'two'])
 
 These methods have special treatment of NA values via the ``na_position``
 argument:
@@ -1910,8 +1843,9 @@ all levels to ``by``.
 
 .. ipython:: python
 
-   df1.columns = pd.MultiIndex.from_tuples([('a','one'),('a','two'),('b','three')])
-   df1.sort_values(by=('a','two'))
+   df1.columns = pd.MultiIndex.from_tuples([
+       ('a', 'one'), ('a', 'two'), ('b', 'three')])
+   df1.sort_values(by=('a', 'two'))
 
 
 Copying
@@ -1960,13 +1894,13 @@ with the data type of each column.
 
 .. ipython:: python
 
-   dft = pd.DataFrame(dict(A = np.random.rand(3),
-                           B = 1,
-                           C = 'foo',
-                           D = pd.Timestamp('20010102'),
-                           E = pd.Series([1.0]*3).astype('float32'),
-			               F = False,
-			               G = pd.Series([1]*3,dtype='int8')))
+   dft = pd.DataFrame(dict(A=np.random.rand(3),
+                           B=1,
+                           C='foo',
+                           D=pd.Timestamp('20010102'),
+                           E=pd.Series([1.0] * 3).astype('float32'),
+                           F=False,
+                           G=pd.Series([1] * 3, dtype='int8')))
    dft
    dft.dtypes
 
@@ -2005,9 +1939,10 @@ different numeric dtypes will **NOT** be combined. The following example will gi
    df1 = pd.DataFrame(np.random.randn(8, 1), columns=['A'], dtype='float32')
    df1
    df1.dtypes
-   df2 = pd.DataFrame(dict( A = pd.Series(np.random.randn(8), dtype='float16'),
-                           B = pd.Series(np.random.randn(8)),
-                           C = pd.Series(np.array(np.random.randn(8), dtype='uint8')) ))
+   df2 = pd.DataFrame(dict(A=pd.Series(np.random.randn(8), dtype='float16'),
+                           B=pd.Series(np.random.randn(8)),
+                           C=pd.Series(np.array(np.random.randn(8),
+                                                dtype='uint8'))))
    df2
    df2.dtypes
 
@@ -2022,7 +1957,7 @@ The following will all result in ``int64`` dtypes.
 
    pd.DataFrame([1, 2], columns=['a']).dtypes
    pd.DataFrame({'a': [1, 2]}).dtypes
-   pd.DataFrame({'a': 1 }, index=list(range(2))).dtypes
+   pd.DataFrame({'a': 1}, index=list(range(2))).dtypes
 
 Note that Numpy will choose *platform-dependent* types when creating arrays.
 The following **WILL** result in ``int32`` on 32-bit platform.
@@ -2077,8 +2012,8 @@ Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`.
 
 .. ipython:: python
 
-   dft = pd.DataFrame({'a': [1,2,3], 'b': [4,5,6], 'c': [7, 8, 9]})
-   dft[['a','b']] = dft[['a','b']].astype(np.uint8)
+   dft = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6], 'c': [7, 8, 9]})
+   dft[['a', 'b']] = dft[['a', 'b']].astype(np.uint8)
    dft
    dft.dtypes
 
@@ -2088,7 +2023,7 @@ Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFra
 
 .. ipython:: python
 
-   dft1 = pd.DataFrame({'a': [1,0,1], 'b': [4,5,6], 'c': [7, 8, 9]})
+   dft1 = pd.DataFrame({'a': [1, 0, 1], 'b': [4, 5, 6], 'c': [7, 8, 9]})
    dft1 = dft1.astype({'a': np.bool, 'c': np.float64})
    dft1
    dft1.dtypes
@@ -2101,7 +2036,7 @@ Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFra
 
     .. ipython:: python
 
-       dft = pd.DataFrame({'a': [1,2,3], 'b': [4,5,6], 'c': [7, 8, 9]})
+       dft = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6], 'c': [7, 8, 9]})
        dft.loc[:, ['a', 'b']].astype(np.uint8).dtypes
        dft.loc[:, ['a', 'b']] = dft.loc[:, ['a', 'b']].astype(np.uint8)
        dft.dtypes
@@ -2121,7 +2056,8 @@ to the correct type.
      import datetime
      df = pd.DataFrame([[1, 2],
                         ['a', 'b'],
-                        [datetime.datetime(2016, 3, 2), datetime.datetime(2016, 3, 2)]])
+                        [datetime.datetime(2016, 3, 2),
+                        datetime.datetime(2016, 3, 2)]])
      df = df.T
      df
      df.dtypes
@@ -2209,7 +2145,8 @@ as DataFrames. However, with :meth:`~pandas.DataFrame.apply`, we can "apply" the
 .. ipython:: python
 
     import datetime
-    df = pd.DataFrame([['2016-07-09', datetime.datetime(2016, 3, 2)]] * 2, dtype='O')
+    df = pd.DataFrame([
+        ['2016-07-09', datetime.datetime(2016, 3, 2)]] * 2, dtype='O')
     df
     df.apply(pd.to_datetime)
 
@@ -2235,7 +2172,7 @@ See also :ref:`Support for integer NA <gotchas.intna>`.
    dfi
    dfi.dtypes
 
-   casted = dfi[dfi>0]
+   casted = dfi[dfi > 0]
    casted
    casted.dtypes
 
@@ -2247,7 +2184,7 @@ While float dtypes are unchanged.
    dfa['A'] = dfa['A'].astype('float32')
    dfa.dtypes
 
-   casted = dfa[df2>0]
+   casted = dfa[df2 > 0]
    casted
    casted.dtypes
 

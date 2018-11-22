@@ -1197,13 +1197,23 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
     return True
 
 
-def assert_extension_array_equal(left, right):
+def assert_extension_array_equal(left, right, check_dtype=True,
+                                 check_less_precise=False,
+                                 check_exact=False):
     """Check that left and right ExtensionArrays are equal.
 
     Parameters
     ----------
     left, right : ExtensionArray
         The two arrays to compare
+    check_dtype : bool, default True
+        Whether to check if the ExtensionArray dtypes are identical.
+    check_less_precise : bool or int, default False
+        Specify comparison precision. Only used when check_exact is False.
+        5 digits (False) or 3 digits (True) after decimal points are compared.
+        If int, then specify the digits to compare.
+    check_exact : bool, default False
+        Whether to compare number exactly.
 
     Notes
     -----
@@ -1211,17 +1221,24 @@ def assert_extension_array_equal(left, right):
     A mask of missing values is computed for each and checked to match.
     The remaining all-valid values are cast to object dtype and checked.
     """
-    assert isinstance(left, ExtensionArray)
-    assert left.dtype == right.dtype
+    assert isinstance(left, ExtensionArray), 'left is not an ExtensionArray'
+    assert isinstance(right, ExtensionArray), 'right is not an ExtensionArray'
+    if check_dtype:
+        assert_attr_equal('dtype', left, right, obj='ExtensionArray')
+
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
-
-    assert_numpy_array_equal(left_na, right_na)
+    assert_numpy_array_equal(left_na, right_na, obj='ExtensionArray NA mask')
 
     left_valid = np.asarray(left[~left_na].astype(object))
     right_valid = np.asarray(right[~right_na].astype(object))
-
-    assert_numpy_array_equal(left_valid, right_valid)
+    if check_exact:
+        assert_numpy_array_equal(left_valid, right_valid, obj='ExtensionArray')
+    else:
+        _testing.assert_almost_equal(left_valid, right_valid,
+                                     check_dtype=check_dtype,
+                                     check_less_precise=check_less_precise,
+                                     obj='ExtensionArray')
 
 
 # This could be refactored to use the NDFrame.equals method
