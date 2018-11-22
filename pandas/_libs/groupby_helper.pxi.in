@@ -588,7 +588,16 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                 if out[i, 0] != out[i, 0] or out[i, 0] == NAN:
                     out[i, 0] = NAN
                 else:
-                    out[i, 0] = out[i, 0] / grp_sizes[i, 0]
+                    with gil:
+                        try:
+                            out[i, 0] = out[i, 0] / grp_sizes[i, 0]
+                        except ZeroDivisionError:
+                            # BUG 23666 - tie-breaking for dense causes the
+                            # group sizes for groups of count 1 to become 0
+                            # causing a divide by zero error. The correct
+                            # behaviour should be divide by 1 a.k.a no change
+                            # to out[i, 0]
+                            pass
 {{endif}}
 {{endfor}}
 
