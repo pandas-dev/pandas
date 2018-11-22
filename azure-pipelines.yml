@@ -27,12 +27,8 @@ jobs:
 - job: 'Checks_and_doc'
   pool:
     vmImage: ubuntu-16.04
+  timeoutInMinutes: 90
   steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.7'
-      architecture: 'x64'
-
   - script: |
       # XXX not sure why setting $PATH here does not work
       # echo '##vso[task.setvariable variable=PATH]$HOME/miniconda3/bin:$PATH'
@@ -44,7 +40,6 @@ jobs:
   # Do not require a conda environment
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
-      source activate pandas-dev
       ci/code_checks.sh patterns
     displayName: 'Looking for unwanted patterns'
     condition: true
@@ -114,16 +109,23 @@ jobs:
     condition: true
 
   - script: |
+      if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
+          export NAME="master"
+      else
+          export NAME=$(System.PullRequest.PullRequestId)
+      fi
+      echo $CONNECTION_STRING | wc -c
       az extension add --name storage-preview
-      az storage blob upload-batch --account-name=$ACCOUNT_NAME --account-key=$ACCOUNT_KEY -s $SOURCE_PATH -d '$web'
+      az storage blob upload-batch --connection-string $CONNECTION_STRING \
+                                   --source $SOURCE \
+                                   --destination $DESTINATION \
+                                   --destination-path $NAME
     displayName: 'Publishing docs (Azure storage)'
     condition: true
     env:
-      SOURCE_PATH: $(Build.SourcesDirectory)/doc/build/html/
-      # Moving connection data to arguments
-      # AZURE_STORAGE_CONNECTION_STRING: $(AZURE_STORAGE_CONNECTION_STRING)
-      ACCOUNT_NAME: $(AZURE_STORAGE_ACCOUNT)
-      ACCOUNT_KEY: "$(AZURE_STORAGE_ACCESS_KEY)="
+      CONNECTION_STRING: $(AZURE_STORAGE_CONNECTION_STRING)
+      SOURCE: $(Build.SourcesDirectory)/doc/build/html/
+      DESTINATION: 'docs'
 
   - script: |
       if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
@@ -156,19 +158,16 @@ jobs:
       if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
           cd asv_bench
           asv machine --yes
-          asv dev
-          ASV_ERRORS=$(asv dev > /dev/null)
-          echo "Captured ASV_ERRORS:"
-          echo $ASV_ERRORS
-          if [[ $ASV_ERRORS ]]; then
-              echo "##vso[task.logissue type=error]Benchmarks failed to run"
+          ASV_OUTPUT=$(asv dev)
+          if [[ $(echo $ASV_OUTPUT | grep "failure") ]]; then
+              echo "##vso[task.logissue type=error]Benchmarks run with errors"
               echo $ASV_ERRORS
               exit 1
           else
-              echo "Benchmark run without errors"
+              echo "Benchmarks run without errors"
           fi
       else
-          echo "Benchmark not running, no changes detected"
+          echo "Benchmarks did not run, no changes detected"
       fi
     displayName: 'Running benchmarks'
     condition: true
