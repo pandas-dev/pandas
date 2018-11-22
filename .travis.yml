@@ -104,6 +104,7 @@ before_script:
   - ci/before_script_travis.sh
 
 script:
+  - source activate $CONDA_ENV
   - echo "script start"
   - ci/run_build_docs.sh
   - ci/script_single.sh
