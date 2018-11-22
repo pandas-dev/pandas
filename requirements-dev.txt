@@ -1,6 +1,7 @@
 NumPy
 python-dateutil>=2.5.0
 pytz
+asv
 Cython>=0.28.2
 flake8
 flake8-comprehensions

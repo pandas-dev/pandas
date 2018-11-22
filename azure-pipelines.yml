@@ -114,12 +114,12 @@ jobs:
       else
           export NAME=$(System.PullRequest.PullRequestId)
       fi
-      echo $CONNECTION_STRING | wc -c
       az extension add --name storage-preview
       az storage blob upload-batch --connection-string $CONNECTION_STRING \
                                    --source $SOURCE \
                                    --destination $DESTINATION \
                                    --destination-path $NAME
+      echo "Documentation uploaded to https://pandas.blob.core.windows.net/docs/$NAME"
     displayName: 'Publishing docs (Azure storage)'
     condition: true
     env:
@@ -159,9 +159,10 @@ jobs:
           cd asv_bench
           asv machine --yes
           ASV_OUTPUT=$(asv dev)
-          if [[ $(echo $ASV_OUTPUT | grep "failure") ]]; then
+          echo "$ASV_OUTPUT" | grep "failure"  # TODO remove this when it works
+          if [[ $(echo "$ASV_OUTPUT" | grep "failure") ]]; then
               echo "##vso[task.logissue type=error]Benchmarks run with errors"
-              echo $ASV_ERRORS
+              echo $ASV_OUTPUT
               exit 1
           else
               echo "Benchmarks run without errors"
