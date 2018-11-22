@@ -261,6 +261,23 @@ class TestJSONNormalize(object):
         expected = DataFrame(ex_data)
         tm.assert_frame_equal(result, expected)
 
+    def test_with_max_level_one(self):
+        data = [{
+            'CreatedBy': {'Name': 'User001'},
+            'Lookup': {'TextField': 'Some text',
+                       'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+            'Image': {'a': 'b'}
+        }]
+        expected_output = [{
+            'CreatedBy.Name': 'User001',
+            'Lookup.TextField': 'Some text',
+            'Lookup.UserField': {'Id': 'ID001', 'Name': 'Name001'},
+            'Image': {'a': 'b'}
+        }]
+        expected = DataFrame(expected_output)
+        result = json_normalize(data, max_level=1, ignore_keys=["Image"])
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord(object):
 
@@ -441,7 +458,7 @@ class TestNestedToRecord(object):
             'location.country.state.town.info.z': 27.572303771972656}
         assert result == expected
 
-    def test_with_max_level_zero(self):
+    def test_with_max_level_none(self):
         data = [{
             'CreatedBy': {'Name': 'User001'},
             'Lookup': {'TextField': 'Some text',
@@ -455,8 +472,18 @@ class TestNestedToRecord(object):
             'Lookup.UserField.Name': 'Name001',
             'Image': {'a': 'b'}
         }]
-        output = nested_to_record(data, max_level=0, ignore_keys=["Image"])
+        output = nested_to_record(data, ignore_keys=["Image"])
         assert output == expected_output
+
+    def test_with_max_level_zero(self):
+        data = [{
+            'CreatedBy': {'Name': 'User001'},
+            'Lookup': {'TextField': 'Some text',
+                       'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
+            'Image': {'a': 'b'}
+        }]
+        output = nested_to_record(data, max_level=0, ignore_keys=["Image"])
+        assert output == data
 
     def test_with_max_level_one(self):
         data = [{
@@ -481,7 +508,5 @@ class TestNestedToRecord(object):
                        'UserField': {'Id': 'ID001', 'Name': 'Name001'}},
             'Image': {'a': 'b'}
         }]
-        print (data[0].keys())
         output = nested_to_record(data, ignore_keys=list(data[0].keys()))
-        print (output)
         assert output == data

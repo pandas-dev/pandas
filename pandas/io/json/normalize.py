@@ -83,8 +83,8 @@ def nested_to_record(ds, prefix="", sep=".", level=0, max_level=None, ignore_key
             # only dicts or curr_level < max_level or k not in ignore keys gets recurse-flattend
             # only at level>1 do we rename the rest of the keys
             if not isinstance(v, dict) or \
-                    (max_level and level >= max_level) or \
-                    (ignore_keys and k in ignore_keys):
+                    (max_level is not None and level >= max_level) or \
+                    (ignore_keys is not None and k in ignore_keys):
                 if level != 0:  # so we skip copying for top level, common case
                     v = new_d.pop(k)
                     new_d[newkey] = v
@@ -103,7 +103,9 @@ def json_normalize(data, record_path=None, meta=None,
                    meta_prefix=None,
                    record_prefix=None,
                    errors='raise',
-                   sep='.'):
+                   sep='.',
+                   max_level=None,
+                   ignore_keys=None):
     """
     "Normalize" semi-structured JSON data into a flat table
 
@@ -121,6 +123,8 @@ def json_normalize(data, record_path=None, meta=None,
         If True, prefix records with dotted (?) path, e.g. foo.bar.field if
         path to records is ['foo', 'bar']
     errors : {'raise', 'ignore'}, default 'raise'
+    max_level: integer, max depth to normalize
+    ignore_keys: list, keys to ignore
 
         * 'ignore' : will ignore KeyError if keys listed in meta are not
           always present
@@ -211,7 +215,7 @@ def json_normalize(data, record_path=None, meta=None,
             #
             # TODO: handle record value which are lists, at least error
             #       reasonably
-            data = nested_to_record(data, sep=sep)
+            data = nested_to_record(data, sep=sep, max_level=max_level, ignore_keys=ignore_keys)
         return DataFrame(data)
     elif not isinstance(record_path, list):
         record_path = [record_path]
@@ -244,10 +248,8 @@ def json_normalize(data, record_path=None, meta=None,
         else:
             for obj in data:
                 recs = _pull_field(obj, path[0])
-
                 # For repeating the metadata later
                 lengths.append(len(recs))
-
                 for val, key in zip(meta, meta_keys):
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
