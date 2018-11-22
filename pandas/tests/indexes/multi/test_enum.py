@@ -5,7 +5,7 @@ import pandas.util._test_decorators as td
 
 
 @td.skip_if_no('enum')
-def test_enum_in_multiindex(self):
+def test_enum_in_multiindex():
     # GH 21298
     # Allow use of Enums as one of the factors in a MultiIndex.
     from enum import Enum
