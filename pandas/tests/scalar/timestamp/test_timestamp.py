@@ -1,29 +1,28 @@
 """ test the scalar Timestamp """
 
-import pytz
-import pytest
-import dateutil
 import calendar
+from datetime import datetime, timedelta
 import locale
 import unicodedata
-import numpy as np
 
+import dateutil
 from dateutil.tz import tzutc
+import numpy as np
+import pytest
+import pytz
 from pytz import timezone, utc
-from datetime import datetime, timedelta
-
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
-
-from pandas.tseries import offsets
 
 from pandas._libs.tslibs import conversion
-from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
-
-from pandas.errors import OutOfBoundsDatetime
-from pandas.compat import long, PY3, PY2
+from pandas._libs.tslibs.timezones import dateutil_gettz as gettz, get_timezone
+from pandas.compat import PY2, PY3, long
 from pandas.compat.numpy import np_datetime64_compat
-from pandas import Timestamp, Period, Timedelta, NaT
+from pandas.errors import OutOfBoundsDatetime
+import pandas.util._test_decorators as td
+
+from pandas import NaT, Period, Timedelta, Timestamp
+import pandas.util.testing as tm
+
+from pandas.tseries import offsets
 
 
 class TestTimestampProperties(object):

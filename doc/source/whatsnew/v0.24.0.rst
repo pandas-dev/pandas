@@ -466,6 +466,7 @@ For situations where you need an ``ndarray`` of ``Interval`` objects, use
    np.asarray(idx)
    idx.values.astype(object)
 
+
 .. _whatsnew_0240.api.timezone_offset_parsing:
 
 Parsing Datetime Strings with Timezone Offsets
@@ -1281,7 +1282,7 @@ Strings
 
 - Bug in :meth:`Index.str.partition` was not nan-safe (:issue:`23558`).
 - Bug in :meth:`Index.str.split` was not nan-safe (:issue:`23677`).
--
+- Bug :func:`Series.str.contains` not respecting the ``na`` argument for a ``Categorical`` dtype ``Series`` (:issue:`22158`)
 
 Interval
 ^^^^^^^^
@@ -1442,7 +1443,9 @@ Reshaping
 - Bug in :func:`pandas.concat` when concatenating a multicolumn DataFrame with tz-aware data against a DataFrame with a different number of columns (:issue:`22796`)
 - Bug in :func:`merge_asof` where confusing error message raised when attempting to merge with missing values (:issue:`23189`)
 - Bug in :meth:`DataFrame.nsmallest` and :meth:`DataFrame.nlargest` for dataframes that have a :class:`MultiIndex` for columns (:issue:`23033`).
+- Bug in :func:`pandas.melt` when passing column names that are not present in ``DataFrame`` (:issue:`23575`)
 - Bug in :meth:`DataFrame.append` with a :class:`Series` with a dateutil timezone would raise a ``TypeError`` (:issue:`23682`)
+- Bug in ``Series`` construction when passing no data and ``dtype=str`` (:issue:`22477`)
 
 .. _whatsnew_0240.bug_fixes.sparse:
 
@@ -1475,6 +1478,7 @@ Other
 - :meth:`DataFrame.nlargest` and :meth:`DataFrame.nsmallest` now returns the correct n values when keep != 'all' also when tied on the first columns (:issue:`22752`)
 - :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax`` (:issue:`21548` and :issue:`21526`). ``NaN`` values are also handled properly.
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
+- Checking PEP 3141 numbers in :func:`~pandas.api.types.is_scalar` function returns ``True`` (:issue:`22903`)
 - Bug in :meth:`DataFrame.combine_first` in which column types were unexpectedly converted to float (:issue:`20699`)
 
 .. _whatsnew_0.24.0.contributors:
@@ -1483,3 +1487,4 @@ Contributors
 ~~~~~~~~~~~~
 
 .. contributors:: v0.23.4..HEAD
+

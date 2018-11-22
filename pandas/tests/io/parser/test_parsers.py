@@ -12,24 +12,12 @@ from pandas import DataFrame, read_csv, read_table
 import pandas.util.testing as tm
 
 from .common import ParserTests
-from .dtypes import DtypeTests
-from .header import HeaderTests
-from .index_col import IndexColTests
-from .mangle_dupes import DupeColumnTests
-from .multithread import MultithreadTests
-from .na_values import NAvaluesTests
-from .parse_dates import ParseDatesTests
 from .python_parser_only import PythonParserTests
 from .quoting import QuotingTests
-from .skiprows import SkipRowsTests
 from .usecols import UsecolsTests
 
 
-class BaseParser(DtypeTests, DupeColumnTests,
-                 HeaderTests, IndexColTests,
-                 MultithreadTests, NAvaluesTests,
-                 ParseDatesTests, ParserTests,
-                 SkipRowsTests, UsecolsTests,
+class BaseParser(ParserTests, UsecolsTests,
                  QuotingTests):
 
     def read_csv(self, *args, **kwargs):
