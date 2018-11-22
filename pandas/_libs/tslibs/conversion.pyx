@@ -602,7 +602,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
         return dt
     elif not PyDateTime_CheckExact(dt):
         # i.e. is a Timestamp
-        return dt.tz_localize(tz)
+        return dt.tz_localize(tz, nonexistent='shift')
     elif tz == 'UTC' or tz is UTC:
         return UTC.localize(dt)
     try:
