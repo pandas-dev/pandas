@@ -177,6 +177,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                                          passed=freq.freqstr))
             elif freq is None:
                 # TODO: should this be the stronger condition `if freq_infer`?
+                #  i.e what if the user passed `freq=None` and specifically
+                #  wanted freq=None in the result?
                 freq = inferred_freq
                 freq_infer = False
 
