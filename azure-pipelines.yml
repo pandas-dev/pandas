@@ -123,7 +123,7 @@ jobs:
       # Moving connection data to arguments
       # AZURE_STORAGE_CONNECTION_STRING: $(AZURE_STORAGE_CONNECTION_STRING)
       ACCOUNT_NAME: $(AZURE_STORAGE_ACCOUNT)
-      ACCOUNT_KEY: $(AZURE_STORAGE_ACCESS_KEY)
+      ACCOUNT_KEY: "$(AZURE_STORAGE_ACCESS_KEY)="
 
   - script: |
       if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
@@ -155,6 +155,7 @@ jobs:
       git fetch upstream
       if git diff upstream/master --name-only | grep -q "^asv_bench/"; then
           cd asv_bench
+          asv machine --yes
           asv dev
           ASV_ERRORS=$(asv dev > /dev/null)
           echo "Captured ASV_ERRORS:"
