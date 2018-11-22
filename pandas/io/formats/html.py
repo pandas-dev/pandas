@@ -36,12 +36,19 @@ class HTMLFormatter(TableFormatter):
         self.bold_rows = self.fmt.kwds.get('bold_rows', False)
         self.escape = self.fmt.kwds.get('escape', True)
         self.show_dimensions = self.fmt.show_dimensions
-        self.is_truncated = self.fmt.is_truncated
         self.notebook = notebook
         if border is None:
             border = get_option('display.html.border')
         self.border = border
         self.table_id = table_id
+
+    @property
+    def is_truncated(self):
+        return self.fmt.is_truncated
+
+    @property
+    def ncols(self):
+        return len(self.fmt.tr_frame.columns)
 
     def write(self, s, indent=0):
         rs = pprint_thing(s)
@@ -297,9 +304,8 @@ class HTMLFormatter(TableFormatter):
         if all((self.fmt.has_index_names,
                 self.fmt.index,
                 self.fmt.show_index_names)):
-            ncols = len(self.fmt.tr_frame.columns)
             row = ([x if x is not None else '' for x in self.frame.index.names]
-                   + [''] * (ncols + (1 if truncate_h else 0)))
+                   + [''] * (self.ncols + (1 if truncate_h else 0)))
             self.write_tr(row, indent, self.indent_delta, header=True)
 
         indent -= self.indent_delta
@@ -311,8 +317,7 @@ class HTMLFormatter(TableFormatter):
         self.write('<tbody>', indent)
         indent += self.indent_delta
 
-        ncols = len(self.fmt.tr_frame.columns)
-        fmt_values = {i: self.fmt._format_col(i) for i in range(ncols)}
+        fmt_values = {i: self.fmt._format_col(i) for i in range(self.ncols)}
 
         # write values
         if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
@@ -330,7 +335,6 @@ class HTMLFormatter(TableFormatter):
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
 
-        ncols = len(self.fmt.tr_frame.columns)
         nrows = len(self.fmt.tr_frame)
 
         if self.fmt.index:
@@ -354,7 +358,7 @@ class HTMLFormatter(TableFormatter):
             row = []
             if self.fmt.index:
                 row.append(index_values[i])
-            row.extend(fmt_values[j][i] for j in range(ncols))
+            row.extend(fmt_values[j][i] for j in range(self.ncols))
 
             if truncate_h:
                 dot_col_ix = self.fmt.tr_col_num + row_levels
@@ -368,7 +372,6 @@ class HTMLFormatter(TableFormatter):
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
         frame = self.fmt.tr_frame
-        ncols = len(frame.columns)
         nrows = len(frame)
         row_levels = self.frame.index.nlevels
 
@@ -446,7 +449,7 @@ class HTMLFormatter(TableFormatter):
                     j += 1
                     row.append(v)
 
-                row.extend(fmt_values[j][i] for j in range(ncols))
+                row.extend(fmt_values[j][i] for j in range(self.ncols))
                 if truncate_h:
                     row.insert(row_levels - sparse_offset +
                                self.fmt.tr_col_num, '...')
@@ -458,7 +461,7 @@ class HTMLFormatter(TableFormatter):
                     sparsify=False, adjoin=False, names=False)))
                 row = []
                 row.extend(idx_values[i])
-                row.extend(fmt_values[j][i] for j in range(ncols))
+                row.extend(fmt_values[j][i] for j in range(self.ncols))
                 if truncate_h:
                     row.insert(row_levels + self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=None,
