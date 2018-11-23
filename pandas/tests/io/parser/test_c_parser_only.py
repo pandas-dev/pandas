@@ -8,6 +8,7 @@ further arguments when parsing.
 """
 
 from io import TextIOWrapper
+import mmap
 import os
 import sys
 import tarfile
@@ -381,7 +382,7 @@ def test_internal_null_byte(c_parser_only):
     # character, only as a placeholder to indicate that
     # none was specified.
     #
-    # This test should be moved to common.py ONLY when
+    # This test should be moved to test_common.py ONLY when
     # Python's csv class supports parsing '\x00'.
     parser = c_parser_only
 
@@ -544,3 +545,33 @@ def test_bytes_exceed_2gb(c_parser_only):
         ["x" * (1 << 20) for _ in range(2100)]))
     df = parser.read_csv(csv)
     assert not df.empty
+
+
+def test_chunk_whitespace_on_boundary(c_parser_only):
+    # see gh-9735: this issue is C parser-specific (bug when
+    # parsing whitespace and characters at chunk boundary)
+    #
+    # This test case has a field too large for the Python parser / CSV library.
+    parser = c_parser_only
+
+    chunk1 = "a" * (1024 * 256 - 2) + "\na"
+    chunk2 = "\n a"
+    result = parser.read_csv(StringIO(chunk1 + chunk2), header=None)
+
+    expected = DataFrame(["a" * (1024 * 256 - 2), "a", " a"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_file_handles_mmap(c_parser_only, csv1):
+    # gh-14418
+    #
+    # Don't close user provided file handles.
+    parser = c_parser_only
+
+    with open(csv1, "r") as f:
+        m = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+        parser.read_csv(m)
+
+        if PY3:
+            assert not m.closed
+        m.close()

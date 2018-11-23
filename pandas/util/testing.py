@@ -625,7 +625,7 @@ def capture_stdout(f):
     AssertionError: assert 'foo\n' == 'bar\n'
     """
 
-    @wraps(f)
+    @compat.wraps(f)
     def wrapper(*args, **kwargs):
         try:
             sys.stdout = StringIO()
