@@ -131,16 +131,15 @@ class FrameApply(object):
 
         # ufunc
         elif isinstance(self.f, np.ufunc):
-            for dtype in self.obj.dtypes:
-                # Column-by-column construction is slow, so only use
-                # when necessary (e.g. to preserve special dtypes)
-                if is_sparse(dtype):  # GH 23744
-                    result = self.obj._constructor(index=self.index,
-                                                   copy=False)
-                    with np.errstate(all='ignore'):
-                        for col in self.columns:
-                            result[col] = self.f(self.obj[col].values)
-                    return result
+            if any(is_sparse(dtype) for dtype in self.obj.dtypes):
+                # Column-by-column construction is slow, so only use when
+                # necessary (e.g. to preserve special dtypes) GH 23744
+                result = self.obj._constructor(index=self.index,
+                                               copy=False)
+                with np.errstate(all='ignore'):
+                    for col in self.columns:
+                        result[col] = self.f(self.obj[col].values)
+                return result
 
             with np.errstate(all='ignore'):
                 results = self.f(self.values)
