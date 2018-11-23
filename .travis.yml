@@ -92,6 +92,7 @@ before_install:
   - git tag
 
 install:
+  - call activate pandas-dev
   - echo "install start"
   - ci/prep_cython_cache.sh
   - ci/install_travis.sh
