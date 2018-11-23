@@ -2507,6 +2507,8 @@ class TestPeriodIndex(Base):
         expected = Series(1, index=expected_index)
         assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(reason='Day as calendar day will raise on '
+                              'NonExistentTimeError')
     def test_resample_nonexistent_time_bin_edge(self):
         # GH 19375
         index = date_range('2017-03-12', '2017-03-12 1:45:00', freq='15T')
