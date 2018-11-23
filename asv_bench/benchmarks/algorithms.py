@@ -1,8 +1,7 @@
 import warnings
 from importlib import import_module
 
-# making the benchmarks fail, to see if this is detected by the CI:
-# import numpy as np
+import numpy as np
 import pandas as pd
 from pandas.util import testing as tm
 

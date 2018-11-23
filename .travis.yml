@@ -86,8 +86,7 @@ install:
 
 before_script:
   - ci/install_db_travis.sh
-  # XXX checking if this is still required now that doctests are in azure
-  # - export DISPLAY=":99.0"
+  - export DISPLAY=":99.0"
   - ci/before_script_travis.sh
 
 script:
