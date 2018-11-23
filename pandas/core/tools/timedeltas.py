@@ -2,8 +2,9 @@
 timedelta support tools
 """
 
-import numpy as np
 import warnings
+import numpy as np
+
 
 from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
 
@@ -91,7 +92,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
         raise ValueError("errors must be one of 'ignore', "
                          "'raise', or 'coerce'}")
 
-    if unit in ['Y', 'y', 'M']:
+    if unit in {'Y', 'y', 'M'}:
         warnings.warn("M and Y units are deprecated.",
                       FutureWarning, stacklevel=2)
 

@@ -373,11 +373,10 @@ class TestTimedeltas(object):
 
     @pytest.mark.parametrize('units', ['Y', 'y', 'M'])
     def test_unit_M_Y_deprecated(self, units):
-        for unit in units:
-            with tm.assert_produces_warning(FutureWarning):
-                to_timedelta(10, unit)
-                TimedeltaIndex([1, 1, 1], unit)
-                Timedelta(10, unit)
+        with tm.assert_produces_warning(FutureWarning):
+            to_timedelta(10, units)
+            TimedeltaIndex([1, 1, 1], units)
+            Timedelta(10, units)
 
     def test_numeric_conversions(self):
         assert Timedelta(0) == np.timedelta64(0, 'ns')
