@@ -94,6 +94,7 @@ before_install:
 install:
   - echo "install start"
   - ci/prep_cython_cache.sh
+  - source activate pandas-dev
   - ci/install_travis.sh
   - ci/submit_cython_cache.sh
   - echo "install done"
