@@ -3,8 +3,11 @@ import warnings
 
 import numpy as np
 from numpy.lib.format import read_array, write_array
-from pandas.compat import BytesIO, cPickle as pkl, pickle_compat as pc, PY3
-from pandas.core.dtypes.common import is_datetime64_dtype, _NS_DTYPE
+
+from pandas.compat import PY3, BytesIO, cPickle as pkl, pickle_compat as pc
+
+from pandas.core.dtypes.common import _NS_DTYPE, is_datetime64_dtype
+
 from pandas.io.common import _get_handle, _stringify_path
 
 
@@ -163,18 +166,20 @@ def read_pickle(path, compression='infer'):
                 # We want to silence any warnings about, e.g. moved modules.
                 warnings.simplefilter("ignore", Warning)
                 return read_wrapper(lambda f: pkl.load(f))
-        except Exception:
+        except Exception:  # noqa: E722
             # reg/patched pickle
+            # compat not used in pandas/compat/pickle_compat.py::load
+            # TODO: remove except block OR modify pc.load to use compat
             try:
                 return read_wrapper(
                     lambda f: pc.load(f, encoding=encoding, compat=False))
             # compat pickle
-            except:
+            except Exception:  # noqa: E722
                 return read_wrapper(
                     lambda f: pc.load(f, encoding=encoding, compat=True))
     try:
         return try_read(path)
-    except:
+    except Exception:  # noqa: E722
         if PY3:
             return try_read(path, encoding='latin1')
         raise

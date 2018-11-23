@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
 
-from .pandas_vb_common import setup  # noqa
-
 
 class Methods(object):
 
@@ -77,3 +75,6 @@ class Quantile(object):
     def time_quantile(self, constructor, window, dtype, percentile,
                       interpolation):
         self.roll.quantile(percentile, interpolation=interpolation)
+
+
+from .pandas_vb_common import setup  # noqa: F401

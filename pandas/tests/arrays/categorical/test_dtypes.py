@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 import pytest
 
-import numpy as np
-
-import pandas.util.testing as tm
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.compat import long
-from pandas import Categorical, Index, CategoricalIndex, Series, Timestamp
+
+from pandas.core.dtypes.dtypes import CategoricalDtype
+
+from pandas import Categorical, CategoricalIndex, Index, Series, Timestamp
+import pandas.util.testing as tm
 
 
 class TestCategoricalDtypes(object):
@@ -119,7 +120,7 @@ class TestCategoricalDtypes(object):
         tm.assert_numpy_array_equal(result, expected)
 
         msg = 'could not convert string to float'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             cat.astype(float)
 
         # numeric

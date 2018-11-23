@@ -1,17 +1,16 @@
 """ test partial slicing on Series/Frame """
 
-import pytest
-
 from datetime import datetime
-import numpy as np
-import pandas as pd
 import operator as op
 
-from pandas import (DatetimeIndex, Series, DataFrame,
-                    date_range, Index, Timedelta, Timestamp)
-from pandas.util import testing as tm
+import numpy as np
+import pytest
 
+import pandas as pd
+from pandas import (
+    DataFrame, DatetimeIndex, Index, Series, Timedelta, Timestamp, date_range)
 from pandas.core.indexing import IndexingError
+from pandas.util import testing as tm
 
 
 class TestSlicing(object):
@@ -67,12 +66,12 @@ class TestSlicing(object):
     def test_slice_with_zero_step_raises(self):
         ts = Series(np.arange(20),
                     date_range('2014-01-01', periods=20, freq='MS'))
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: ts[::0])
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: ts.loc[::0])
-        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
-                               lambda: ts.loc[::0])
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            ts[::0]
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            ts.loc[::0]
+        with pytest.raises(ValueError, match='slice step cannot be zero'):
+            ts.loc[::0]
 
     def test_slice_bounds_empty(self):
         # GH 14354
@@ -223,8 +222,8 @@ class TestSlicing(object):
         tm.assert_series_equal(s['2005-1-1 00:01:00'], s.iloc[10:])
 
         assert s[Timestamp('2005-1-1 00:00:59.999990')] == s.iloc[0]
-        tm.assert_raises_regex(KeyError, '2005-1-1 00:00:00',
-                               lambda: s['2005-1-1 00:00:00'])
+        with pytest.raises(KeyError, match='2005-1-1 00:00:00'):
+            s['2005-1-1 00:00:00']
 
     def test_partial_slicing_dataframe(self):
         # GH14856
@@ -350,14 +349,14 @@ class TestSlicing(object):
         timestamp = pd.Timestamp('2014-01-10')
 
         tm.assert_series_equal(nonmonotonic['2014-01-10':], expected)
-        tm.assert_raises_regex(KeyError,
-                               r"Timestamp\('2014-01-10 00:00:00'\)",
-                               lambda: nonmonotonic[timestamp:])
+        with pytest.raises(KeyError,
+                           match=r"Timestamp\('2014-01-10 00:00:00'\)"):
+            nonmonotonic[timestamp:]
 
         tm.assert_series_equal(nonmonotonic.loc['2014-01-10':], expected)
-        tm.assert_raises_regex(KeyError,
-                               r"Timestamp\('2014-01-10 00:00:00'\)",
-                               lambda: nonmonotonic.loc[timestamp:])
+        with pytest.raises(KeyError,
+                           match=r"Timestamp\('2014-01-10 00:00:00'\)"):
+            nonmonotonic.loc[timestamp:]
 
     def test_loc_datetime_length_one(self):
         # GH16071

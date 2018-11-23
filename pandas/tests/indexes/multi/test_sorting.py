@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import pytest
-from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, RangeIndex
+
 from pandas.compat import lrange
 from pandas.errors import PerformanceWarning, UnsortedIndexError
+
+import pandas as pd
+from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, RangeIndex
+import pandas.util.testing as tm
 
 
 def test_sortlevel(idx):
@@ -78,16 +80,16 @@ def test_numpy_argsort(idx):
     # backwards compatibility concerns
     if isinstance(type(idx), (CategoricalIndex, RangeIndex)):
         msg = "the 'axis' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg,
-                               np.argsort, idx, axis=1)
+        with pytest.raises(ValueError, match=msg):
+            np.argsort(idx, axis=1)
 
         msg = "the 'kind' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.argsort,
-                               idx, kind='mergesort')
+        with pytest.raises(ValueError, match=msg):
+            np.argsort(idx, kind='mergesort')
 
         msg = "the 'order' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.argsort,
-                               idx, order=('a', 'b'))
+        with pytest.raises(ValueError, match=msg):
+            np.argsort(idx, order=('a', 'b'))
 
 
 def test_unsortedindex():

@@ -2,11 +2,13 @@
 
 
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import pytest
-from pandas import CategoricalIndex, Index, MultiIndex
+
 from pandas.compat import range
+
+import pandas as pd
+from pandas import CategoricalIndex, Index, MultiIndex
+import pandas.util.testing as tm
 
 
 def assert_matching(actual, expected, check_dtype=False):
@@ -24,8 +26,8 @@ def test_get_level_number_integer(idx):
     assert idx._get_level_number(1) == 0
     assert idx._get_level_number(0) == 1
     pytest.raises(IndexError, idx._get_level_number, 2)
-    tm.assert_raises_regex(KeyError, 'Level fourth not found',
-                           idx._get_level_number, 'fourth')
+    with pytest.raises(KeyError, match='Level fourth not found'):
+        idx._get_level_number('fourth')
 
 
 def test_get_level_values(idx):
@@ -123,7 +125,7 @@ def test_set_name_methods(idx, index_names):
     ind = idx.set_names(new_names)
     assert idx.names == index_names
     assert ind.names == new_names
-    with tm.assert_raises_regex(ValueError, "^Length"):
+    with pytest.raises(ValueError, match="^Length"):
         ind.set_names(new_names + new_names)
     new_names2 = [name + "SUFFIX2" for name in new_names]
     res = ind.set_names(new_names2, inplace=True)
@@ -224,23 +226,23 @@ def test_set_levels(idx):
     # GH 13754
     original_index = idx.copy()
     for inplace in [True, False]:
-        with tm.assert_raises_regex(ValueError, "^On"):
+        with pytest.raises(ValueError, match="^On"):
             idx.set_levels(['c'], level=0, inplace=inplace)
         assert_matching(idx.levels, original_index.levels,
                         check_dtype=True)
 
-        with tm.assert_raises_regex(ValueError, "^On"):
+        with pytest.raises(ValueError, match="^On"):
             idx.set_labels([0, 1, 2, 3, 4, 5], level=0,
                            inplace=inplace)
         assert_matching(idx.labels, original_index.labels,
                         check_dtype=True)
 
-        with tm.assert_raises_regex(TypeError, "^Levels"):
+        with pytest.raises(TypeError, match="^Levels"):
             idx.set_levels('c', level=0, inplace=inplace)
         assert_matching(idx.levels, original_index.levels,
                         check_dtype=True)
 
-        with tm.assert_raises_regex(TypeError, "^Labels"):
+        with pytest.raises(TypeError, match="^Labels"):
             idx.set_labels(1, level=0, inplace=inplace)
         assert_matching(idx.labels, original_index.labels,
                         check_dtype=True)
@@ -321,46 +323,46 @@ def test_set_levels_labels_names_bad_input(idx):
     levels, labels = idx.levels, idx.labels
     names = idx.names
 
-    with tm.assert_raises_regex(ValueError, 'Length of levels'):
+    with pytest.raises(ValueError, match='Length of levels'):
         idx.set_levels([levels[0]])
 
-    with tm.assert_raises_regex(ValueError, 'Length of labels'):
+    with pytest.raises(ValueError, match='Length of labels'):
         idx.set_labels([labels[0]])
 
-    with tm.assert_raises_regex(ValueError, 'Length of names'):
+    with pytest.raises(ValueError, match='Length of names'):
         idx.set_names([names[0]])
 
     # shouldn't scalar data error, instead should demand list-like
-    with tm.assert_raises_regex(TypeError, 'list of lists-like'):
+    with pytest.raises(TypeError, match='list of lists-like'):
         idx.set_levels(levels[0])
 
     # shouldn't scalar data error, instead should demand list-like
-    with tm.assert_raises_regex(TypeError, 'list of lists-like'):
+    with pytest.raises(TypeError, match='list of lists-like'):
         idx.set_labels(labels[0])
 
     # shouldn't scalar data error, instead should demand list-like
-    with tm.assert_raises_regex(TypeError, 'list-like'):
+    with pytest.raises(TypeError, match='list-like'):
         idx.set_names(names[0])
 
     # should have equal lengths
-    with tm.assert_raises_regex(TypeError, 'list of lists-like'):
+    with pytest.raises(TypeError, match='list of lists-like'):
         idx.set_levels(levels[0], level=[0, 1])
 
-    with tm.assert_raises_regex(TypeError, 'list-like'):
+    with pytest.raises(TypeError, match='list-like'):
         idx.set_levels(levels, level=0)
 
     # should have equal lengths
-    with tm.assert_raises_regex(TypeError, 'list of lists-like'):
+    with pytest.raises(TypeError, match='list of lists-like'):
         idx.set_labels(labels[0], level=[0, 1])
 
-    with tm.assert_raises_regex(TypeError, 'list-like'):
+    with pytest.raises(TypeError, match='list-like'):
         idx.set_labels(labels, level=0)
 
     # should have equal lengths
-    with tm.assert_raises_regex(ValueError, 'Length of names'):
+    with pytest.raises(ValueError, match='Length of names'):
         idx.set_names(names[0], level=[0, 1])
 
-    with tm.assert_raises_regex(TypeError, 'Names must be a'):
+    with pytest.raises(TypeError, match='Names must be a'):
         idx.set_names(names, level=0)
 
 
@@ -414,3 +416,17 @@ def test_set_value_keeps_names():
     df.at[('grethe', '4'), 'one'] = 99.34
     assert df._is_copy is None
     assert df.index.names == ('Name', 'Number')
+
+
+def test_set_levels_with_iterable():
+    # GH23273
+    sizes = [1, 2, 3]
+    colors = ['black'] * 3
+    index = pd.MultiIndex.from_arrays([sizes, colors], names=['size', 'color'])
+
+    result = index.set_levels(map(int, ['3', '2', '1']), level='size')
+
+    expected_sizes = [3, 2, 1]
+    expected = pd.MultiIndex.from_arrays([expected_sizes, colors],
+                                         names=['size', 'color'])
+    tm.assert_index_equal(result, expected)

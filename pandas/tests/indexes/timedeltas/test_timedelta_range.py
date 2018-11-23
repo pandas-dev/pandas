@@ -1,9 +1,10 @@
-import pytest
 import numpy as np
+import pytest
+
 import pandas as pd
 import pandas.util.testing as tm
+from pandas import timedelta_range, to_timedelta
 from pandas.tseries.offsets import Day, Second
-from pandas import to_timedelta, timedelta_range
 
 
 class TestTimedeltas(object):
@@ -35,10 +36,10 @@ class TestTimedeltas(object):
         arr = np.arange(10).reshape(2, 5)
         df = pd.DataFrame(np.arange(10).reshape(2, 5))
         for arg in (arr, df):
-            with tm.assert_raises_regex(TypeError, "1-d array"):
+            with pytest.raises(TypeError, match="1-d array"):
                 to_timedelta(arg)
             for errors in ['ignore', 'raise', 'coerce']:
-                with tm.assert_raises_regex(TypeError, "1-d array"):
+                with pytest.raises(TypeError, match="1-d array"):
                     to_timedelta(arg, errors=errors)
 
         # issue10583
@@ -64,18 +65,18 @@ class TestTimedeltas(object):
         # not enough params
         msg = ('Of the four parameters: start, end, periods, and freq, '
                'exactly three must be specified')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             timedelta_range(start='0 days')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             timedelta_range(end='5 days')
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             timedelta_range(periods=2)
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             timedelta_range()
 
         # too many params
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             timedelta_range(start='0 days', end='5 days', periods=10, freq='H')

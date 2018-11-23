@@ -14,16 +14,16 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
 import numpy as np
-import pandas as pd
 import pytest
 
-from pandas.tests.extension import base
 from pandas.core.dtypes.common import is_extension_array_dtype
 
+import pandas as pd
 from pandas.core.arrays import integer_array
 from pandas.core.arrays.integer import (
-    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,
-    UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype)
+    Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype, UInt8Dtype, UInt16Dtype,
+    UInt32Dtype, UInt64Dtype)
+from pandas.tests.extension import base
 
 
 def make_data():
@@ -45,14 +45,6 @@ def data(dtype):
 @pytest.fixture
 def data_missing(dtype):
     return integer_array([np.nan, 1], dtype=dtype)
-
-
-@pytest.fixture
-def data_repeated(data):
-    def gen(count):
-        for _ in range(count):
-            yield data
-    yield gen
 
 
 @pytest.fixture
@@ -209,18 +201,12 @@ class TestCasting(base.BaseCastingTests):
 
 
 class TestGroupby(base.BaseGroupbyTests):
+    pass
 
-    @pytest.mark.xfail(reason="groupby not working", strict=True)
-    def test_groupby_extension_no_sort(self, data_for_grouping):
-        super(TestGroupby, self).test_groupby_extension_no_sort(
-            data_for_grouping)
 
-    @pytest.mark.parametrize('as_index', [
-        pytest.param(True,
-                     marks=pytest.mark.xfail(reason="groupby not working",
-                                             strict=True)),
-        False
-    ])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        super(TestGroupby, self).test_groupby_extension_agg(
-            as_index, data_for_grouping)
+class TestNumericReduce(base.BaseNumericReduceTests):
+    pass
+
+
+class TestBooleanReduce(base.BaseBooleanReduceTests):
+    pass

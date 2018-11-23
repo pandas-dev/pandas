@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-
+import pytest
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import MultiIndex
@@ -92,23 +92,22 @@ def test_names(idx, index_names):
 
     # setting bad names on existing
     index = idx
-    tm.assert_raises_regex(ValueError, "^Length of names",
-                           setattr, index, "names",
-                           list(index.names) + ["third"])
-    tm.assert_raises_regex(ValueError, "^Length of names",
-                           setattr, index, "names", [])
+    with pytest.raises(ValueError, match="^Length of names"):
+        setattr(index, "names", list(index.names) + ["third"])
+    with pytest.raises(ValueError, match="^Length of names"):
+        setattr(index, "names", [])
 
     # initializing with bad names (should always be equivalent)
     major_axis, minor_axis = idx.levels
     major_labels, minor_labels = idx.labels
-    tm.assert_raises_regex(ValueError, "^Length of names", MultiIndex,
-                           levels=[major_axis, minor_axis],
-                           labels=[major_labels, minor_labels],
-                           names=['first'])
-    tm.assert_raises_regex(ValueError, "^Length of names", MultiIndex,
-                           levels=[major_axis, minor_axis],
-                           labels=[major_labels, minor_labels],
-                           names=['first', 'second', 'third'])
+    with pytest.raises(ValueError, match="^Length of names"):
+        MultiIndex(levels=[major_axis, minor_axis],
+                   labels=[major_labels, minor_labels],
+                   names=['first'])
+    with pytest.raises(ValueError, match="^Length of names"):
+        MultiIndex(levels=[major_axis, minor_axis],
+                   labels=[major_labels, minor_labels],
+                   names=['first', 'second', 'third'])
 
     # names are assigned
     index.names = ["a", "b"]
@@ -120,5 +119,5 @@ def test_names(idx, index_names):
 def test_duplicate_level_names_access_raises(idx):
     # GH19029
     idx.names = ['foo', 'foo']
-    tm.assert_raises_regex(ValueError, 'name foo occurs multiple times',
-                           idx._get_level_number, 'foo')
+    with pytest.raises(ValueError, match='name foo occurs multiple times'):
+        idx._get_level_number('foo')

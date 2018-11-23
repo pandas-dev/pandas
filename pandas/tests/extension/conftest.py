@@ -31,12 +31,24 @@ def all_data(request, data, data_missing):
 
 
 @pytest.fixture
-def data_repeated():
-    """Return different versions of data for count times"""
+def data_repeated(data):
+    """
+    Generate many datasets.
+
+    Parameters
+    ----------
+    data : fixture implementing `data`
+
+    Returns
+    -------
+    Callable[[int], Generator]:
+        A callable that takes a `count` argument and
+        returns a generator yielding `count` datasets.
+    """
     def gen(count):
         for _ in range(count):
-            yield NotImplementedError
-    yield gen
+            yield data
+    return gen
 
 
 @pytest.fixture
@@ -86,3 +98,9 @@ def data_for_grouping():
     Where A < B < C and NA is missing
     """
     raise NotImplementedError
+
+
+@pytest.fixture(params=[True, False])
+def box_in_series(request):
+    """Whether to box the data in a Series"""
+    return request.param

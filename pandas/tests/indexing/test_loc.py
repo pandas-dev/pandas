@@ -1,18 +1,18 @@
 """ test label based indexing with loc """
 
 import itertools
+from warnings import catch_warnings, filterwarnings
+
+import numpy as np
 import pytest
 
-from warnings import catch_warnings, filterwarnings
-import numpy as np
+from pandas.compat import PY2, StringIO, lrange
 
 import pandas as pd
-from pandas.compat import lrange, StringIO
-from pandas import Series, DataFrame, Timestamp, date_range, MultiIndex, Index
-from pandas.util import testing as tm
-from pandas.tests.indexing.common import Base
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
 from pandas.api.types import is_scalar
-from pandas.compat import PY2
+from pandas.tests.indexing.common import Base
+from pandas.util import testing as tm
 
 
 class TestLoc(Base):
@@ -668,15 +668,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
                           index=[0] * l2, columns=columns)])
 
         def gen_expected(df, mask):
-            l = len(mask)
+            len_mask = len(mask)
             return pd.concat([df.take([0]),
-                              DataFrame(np.ones((l, len(columns))),
-                                        index=[0] * l,
+                              DataFrame(np.ones((len_mask, len(columns))),
+                                        index=[0] * len_mask,
                                         columns=columns),
                               df.take(mask[1:])])
 
         df = gen_test(900, 100)
-        assert not df.index.is_unique
+        assert df.index.is_unique is False
 
         mask = np.arange(100)
         result = df.loc[mask]
@@ -684,7 +684,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         tm.assert_frame_equal(result, expected)
 
         df = gen_test(900000, 100000)
-        assert not df.index.is_unique
+        assert df.index.is_unique is False
 
         mask = np.arange(100000)
         result = df.loc[mask]
@@ -804,3 +804,35 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = s.loc[[np.iinfo('uint64').max - 1,
                        np.iinfo('uint64').max]]
         tm.assert_series_equal(result, s)
+
+    def test_loc_setitem_empty_append(self):
+        # GH6173, various appends to an empty dataframe
+
+        data = [1, 2, 3]
+        expected = DataFrame({'x': data, 'y': [None] * len(data)})
+
+        # appends to fit length of data
+        df = DataFrame(columns=['x', 'y'])
+        df.loc[:, 'x'] = data
+        tm.assert_frame_equal(df, expected)
+
+        # only appends one value
+        expected = DataFrame({'x': [1.0], 'y': [np.nan]})
+        df = DataFrame(columns=['x', 'y'],
+                       dtype=np.float)
+        df.loc[0, 'x'] = expected.loc[0, 'x']
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_empty_append_raises(self):
+        # GH6173, various appends to an empty dataframe
+
+        data = [1, 2]
+        df = DataFrame(columns=['x', 'y'])
+        msg = (r"None of \[Int64Index\(\[0, 1\], dtype='int64'\)\] "
+               r"are in the \[index\]")
+        with pytest.raises(KeyError, match=msg):
+            df.loc[[0, 1], 'x'] = data
+
+        msg = "cannot copy sequence with size 2 to array axis with dimension 0"
+        with pytest.raises(ValueError, match=msg):
+            df.loc[0:2, 'x'] = data
