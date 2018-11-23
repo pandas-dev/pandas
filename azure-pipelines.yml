@@ -129,26 +129,32 @@ jobs:
 
   - script: |
       if [ "$(Build.SourceBranch)" == "refs/heads/master" ]; then
-          export NAME="master"
-      else
-          export NAME=$(System.PullRequest.PullRequestId)
+          mkdir -p $REPO_DIR
+          rm -rf $REPO_DIR/*
+          cp -r doc/build/html/* $REPO_DIR/
+          cd $REPO_DIR
+          git config --global user.email "pandas-docs-bot@localhost.foo"
+          git config --global user.name "pandas-docs-bot"
+          git init
+          touch README
+          git add README
+          git commit -m "Initial commit" --allow-empty
+          git branch gh-pages
+          git checkout gh-pages
+          touch .nojekyll
+          git add --all .
+          git commit -m "Version" --allow-empty
+          git remote remove origin
+          git remote add origin "https://${TOKEN}@github.com/pandas-dev/pandas-docs-travis.git"
+          git fetch origin
+          git remote -v
+          git push origin gh-pages -f
       fi
-      export PR_DIR=$REPO_DIR/pr/$NAME
-      git clone https://$(GITHUB_DOC_TOKEN)@github.com/pandas-dev/pandas-docs-travis.git $REPO_DIR
-      mkdir -p $PR_DIR
-      rm -rf $PR_DIR/*
-      cp -r doc/build/html/* $PR_DIR/
-      cp LICENSE $PR_DIR/
-      cd $REPO_DIR
-      git add --all .
-      git config user.email "pandas-docs-bot@localhost"
-      git config user.name "pandas-docs-bot"
-      git commit -m "Added pandas documentation for $NAME"
-      git push
     displayName: 'Publishing docs (GitHub pages)'
     condition: true
     env:
       REPO_DIR: $(Build.ArtifactStagingDirectory)/pandas-docs-travis
+      TOKEN: $(GITHUB_DOCS_TOKEN)
 
   - script: |
       export PATH=$HOME/miniconda3/bin:$PATH
