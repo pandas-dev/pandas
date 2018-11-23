@@ -99,7 +99,6 @@ install:
   - echo "install done"
 
 before_script:
-  - source activate pandas-dev
   - ci/install_db_travis.sh
   - export DISPLAY=":99.0"
   - ci/before_script_travis.sh
