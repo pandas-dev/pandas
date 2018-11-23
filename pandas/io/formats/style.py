@@ -637,7 +637,6 @@ class Styler(object):
         See Also
         --------
         Styler.where
-
         """
         self._todo.append((lambda instance: getattr(instance, '_applymap'),
                            (func, subset), kwargs))
@@ -672,7 +671,6 @@ class Styler(object):
         See Also
         --------
         Styler.applymap
-
         """
 
         if other is None:
@@ -1103,7 +1101,6 @@ class Styler(object):
             When None (default): the maximum value of the data will be used.
 
             .. versionadded:: 0.24.0
-
 
         Returns
         -------
