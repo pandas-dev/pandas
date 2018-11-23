@@ -681,42 +681,6 @@ class TestSeriesAnalytics(object):
         pytest.raises(NotImplementedError, s.any, bool_only=True)
         pytest.raises(NotImplementedError, s.all, bool_only=True)
 
-    def test_modulo(self):
-        with np.errstate(all='ignore'):
-
-            # GH3590, modulo as ints
-            p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-            result = p['first'] % p['second']
-            expected = Series(p['first'].values % p['second'].values,
-                              dtype='float64')
-            expected.iloc[0:3] = np.nan
-            assert_series_equal(result, expected)
-
-            result = p['first'] % 0
-            expected = Series(np.nan, index=p.index, name='first')
-            assert_series_equal(result, expected)
-
-            p = p.astype('float64')
-            result = p['first'] % p['second']
-            expected = Series(p['first'].values % p['second'].values)
-            assert_series_equal(result, expected)
-
-            p = p.astype('float64')
-            result = p['first'] % p['second']
-            result2 = p['second'] % p['first']
-            assert not result.equals(result2)
-
-            # GH 9144
-            s = Series([0, 1])
-
-            result = s % 0
-            expected = Series([nan, nan])
-            assert_series_equal(result, expected)
-
-            result = 0 % s
-            expected = Series([nan, 0.0])
-            assert_series_equal(result, expected)
-
     @td.skip_if_no_scipy
     def test_corr(self, datetime_series):
         import scipy.stats as stats
