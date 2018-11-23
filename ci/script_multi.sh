@@ -23,7 +23,10 @@ fi
 export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
 echo PYTHONHASHSEED=$PYTHONHASHSEED
 
-if [ "$COVERAGE" ]; then
+if [ "$DOC" ]; then
+    echo "We are not running pytest as this is a doc-build"
+
+elif [ "$COVERAGE" ]; then
     echo pytest -s -n 2 -m "not single" --durations=10 --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
     pytest      -s -n 2 -m "not single" --durations=10 --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
 

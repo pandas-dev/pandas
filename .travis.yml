@@ -14,6 +14,13 @@ cache:
   - $HOME/.cache # cython cache
   - $HOME/.ccache # compiler cache
 
+env:
+  global:
+    # create a github personal access token
+    # cd pandas-dev/pandas
+    # travis encrypt 'PANDAS_GH_TOKEN=personal_access_token' -r pandas-dev/pandas
+    - secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
+
 git:
     # for cloning
     depth: 1500
