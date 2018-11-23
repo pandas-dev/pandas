@@ -104,11 +104,12 @@ before_script:
   - ci/before_script_travis.sh
 
 script:
-  - source activate pandas-dev
   - echo "script start"
+  - source activate pandas-dev
   - ci/run_build_docs.sh
   - ci/script_single.sh
   - ci/script_multi.sh
+  - source activate pandas-dev
   - ci/code_checks.sh
 
 after_success:
