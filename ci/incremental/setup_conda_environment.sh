@@ -12,16 +12,12 @@ conda list
 # Clean up any left-over from a previous build
 # (note workaround for https://github.com/conda/conda/issues/2679:
 #  `conda env remove` issue)
-conda remove --all -q -y
+conda remove --all -q -y -n pandas-dev
 
 echo
 echo "[create env]"
 time conda env create -q --file="${ENV_FILE}" || exit 1
 
-# Activate first
-set +v
-source activate pandas-dev
-set -v
 
 # remove any installed pandas package
 # w/o removing anything else
