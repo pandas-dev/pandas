@@ -28,6 +28,8 @@ jobs:
   pool:
     vmImage: ubuntu-16.04
   timeoutInMinutes: 90
+  variables:
+  - group: pandas
   steps:
   - script: |
       # XXX not sure why setting $PATH here does not work
