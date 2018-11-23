@@ -276,7 +276,6 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
     Returns
     -------
     DataFrame
-
     """
 
     impl = get_engine(engine)

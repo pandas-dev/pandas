@@ -805,7 +805,6 @@ class Panel(NDFrame):
         MultiIndex Slicers is a generic way to get/set values on any level or
         levels and is a superset of major_xs functionality, see
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
-
         """
         return self.xs(key, axis=self._AXIS_LEN - 2)
 
@@ -830,7 +829,6 @@ class Panel(NDFrame):
         MultiIndex Slicers is a generic way to get/set values on any level or
         levels and is a superset of minor_xs functionality, see
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
-
         """
         return self.xs(key, axis=self._AXIS_LEN - 1)
 
@@ -855,7 +853,6 @@ class Panel(NDFrame):
         MultiIndex Slicers is a generic way to get/set values on any level or
         levels and is a superset of xs functionality, see
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
-
         """
         axis = self._get_axis_number(axis)
         if axis == 0:
