@@ -1,68 +1,49 @@
 from datetime import datetime, timedelta
-import warnings
 import operator
 from textwrap import dedent
+import warnings
 
 import numpy as np
-from pandas._libs import (lib, index as libindex, tslibs,
-                          algos as libalgos, join as libjoin,
-                          Timedelta)
+
+from pandas._libs import (
+    Timedelta, algos as libalgos, index as libindex, join as libjoin, lib,
+    tslibs)
 from pandas._libs.lib import is_datetime_array
-
-from pandas.compat import range, u, set_function_name
+import pandas.compat as compat
+from pandas.compat import range, set_function_name, u
 from pandas.compat.numpy import function as nv
-from pandas import compat
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 
-from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray
-from pandas.core.dtypes.generic import (
-    ABCSeries, ABCDataFrame,
-    ABCMultiIndex,
-    ABCPeriodIndex, ABCTimedeltaIndex, ABCDatetimeIndex,
-    ABCDateOffset, ABCIndexClass, ABCTimedeltaArray)
-from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
 from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_object,
-    ensure_categorical,
-    ensure_platform_int,
-    is_integer,
-    is_float,
-    is_dtype_equal,
-    is_dtype_union_equal,
-    is_object_dtype,
-    is_categorical,
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_period_dtype,
-    is_bool,
-    is_bool_dtype,
-    is_signed_integer_dtype,
-    is_unsigned_integer_dtype,
-    is_integer_dtype, is_float_dtype,
-    is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
-    is_timedelta64_dtype,
-    is_extension_array_dtype,
-    is_hashable,
-    is_iterator, is_list_like,
-    is_scalar)
-
-from pandas.core.base import PandasObject, IndexOpsMixin
-import pandas.core.common as com
-from pandas.core import ops
-from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly)
-from pandas.core.indexes.frozen import FrozenList
+    ensure_categorical, ensure_int64, ensure_object, ensure_platform_int,
+    is_bool, is_bool_dtype, is_categorical, is_categorical_dtype,
+    is_datetime64_any_dtype, is_datetime64tz_dtype, is_dtype_equal,
+    is_dtype_union_equal, is_extension_array_dtype, is_float, is_float_dtype,
+    is_hashable, is_integer, is_integer_dtype, is_interval_dtype, is_iterator,
+    is_list_like, is_object_dtype, is_period_dtype, is_scalar,
+    is_signed_integer_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype)
 import pandas.core.dtypes.concat as _concat
-import pandas.core.missing as missing
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
+    ABCMultiIndex, ABCPeriodIndex, ABCSeries, ABCTimedeltaArray,
+    ABCTimedeltaIndex)
+from pandas.core.dtypes.missing import array_equivalent, isna
+
+from pandas.core import ops
+from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
+from pandas.core.base import IndexOpsMixin, PandasObject
+import pandas.core.common as com
+from pandas.core.indexes.frozen import FrozenList
+import pandas.core.missing as missing
+from pandas.core.ops import get_op_result_name, make_invalid_op
 import pandas.core.sorting as sorting
-from pandas.io.formats.printing import (
-    pprint_thing, default_pprint, format_object_summary, format_object_attrs)
-from pandas.core.ops import make_invalid_op, get_op_result_name
 from pandas.core.strings import StringMethods
+
+from pandas.io.formats.printing import (
+    default_pprint, format_object_attrs, format_object_summary, pprint_thing)
 
 __all__ = ['Index']
 
