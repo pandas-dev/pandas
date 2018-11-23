@@ -685,12 +685,12 @@ class MPLPlot(object):
         or return the error DataFrame/dict
 
         Error bars can be specified in several ways:
-            Series : the user provides a pandas.Series object of the same
+            Series: the user provides a pandas.Series object of the same
                     length as the data
-            ndarray : provides a np.ndarray of the same length as the data
-            DataFrame/dict : error values are paired with keys matching the
+            ndarray: provides a np.ndarray of the same length as the data
+            DataFrame/dict: error values are paired with keys matching the
                     key in the plotted DataFrame
-            str : the name of the column within the plotted DataFrame
+            str: the name of the column within the plotted DataFrame
         """
 
         if err is None:

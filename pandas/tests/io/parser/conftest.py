@@ -1,7 +1,8 @@
+import os
+
 import pytest
 
 from pandas import read_csv, read_table
-import pandas.util.testing as tm
 
 
 class BaseParser(object):
@@ -22,8 +23,7 @@ class BaseParser(object):
 
     def read_table(self, *args, **kwargs):
         kwargs = self.update_kwargs(kwargs)
-        with tm.assert_produces_warning(FutureWarning):
-            return read_table(*args, **kwargs)
+        return read_table(*args, **kwargs)
 
 
 class CParser(BaseParser):
@@ -41,12 +41,17 @@ class CParserLowMemory(CParser):
 
 class PythonParser(BaseParser):
     engine = "python"
-    float_precision_choices = []
+    float_precision_choices = [None]
 
 
 @pytest.fixture
 def csv_dir_path(datapath):
     return datapath("io", "parser", "data")
+
+
+@pytest.fixture
+def csv1(csv_dir_path):
+    return os.path.join(csv_dir_path, "test1.csv")
 
 
 _cParserHighMemory = CParserHighMemory()

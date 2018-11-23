@@ -25,6 +25,11 @@ from pandas.compat import product
 from pandas.tests.frame.common import TestData
 
 
+@pytest.fixture(params=product([True, False], [True, False]))
+def close_open_fixture(request):
+    return request.param
+
+
 class TestDataFrameTimeSeriesMethods(TestData):
 
     def test_diff(self):
@@ -638,33 +643,49 @@ class TestDataFrameTimeSeriesMethods(TestData):
         with pytest.raises(TypeError):  # index is not a DatetimeIndex
             df.at_time('00:00')
 
-    def test_between_time(self):
+    @pytest.mark.parametrize('axis', ['index', 'columns', 0, 1])
+    def test_at_time_axis(self, axis):
+        # issue 8839
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = DataFrame(np.random.randn(len(rng), len(rng)))
+        ts.index, ts.columns = rng, rng
+
+        indices = rng[(rng.hour == 9) & (rng.minute == 30) & (rng.second == 0)]
+
+        if axis in ['index', 0]:
+            expected = ts.loc[indices, :]
+        elif axis in ['columns', 1]:
+            expected = ts.loc[:, indices]
+
+        result = ts.at_time('9:30', axis=axis)
+        assert_frame_equal(result, expected)
+
+    def test_between_time(self, close_open_fixture):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         stime = time(0, 0)
         etime = time(1, 0)
+        inc_start, inc_end = close_open_fixture
 
-        close_open = product([True, False], [True, False])
-        for inc_start, inc_end in close_open:
-            filtered = ts.between_time(stime, etime, inc_start, inc_end)
-            exp_len = 13 * 4 + 1
-            if not inc_start:
-                exp_len -= 5
-            if not inc_end:
-                exp_len -= 4
+        filtered = ts.between_time(stime, etime, inc_start, inc_end)
+        exp_len = 13 * 4 + 1
+        if not inc_start:
+            exp_len -= 5
+        if not inc_end:
+            exp_len -= 4
 
-            assert len(filtered) == exp_len
-            for rs in filtered.index:
-                t = rs.time()
-                if inc_start:
-                    assert t >= stime
-                else:
-                    assert t > stime
+        assert len(filtered) == exp_len
+        for rs in filtered.index:
+            t = rs.time()
+            if inc_start:
+                assert t >= stime
+            else:
+                assert t > stime
 
-                if inc_end:
-                    assert t <= etime
-                else:
-                    assert t < etime
+            if inc_end:
+                assert t <= etime
+            else:
+                assert t < etime
 
         result = ts.between_time('00:00', '01:00')
         expected = ts.between_time(stime, etime)
@@ -676,33 +697,65 @@ class TestDataFrameTimeSeriesMethods(TestData):
         stime = time(22, 0)
         etime = time(9, 0)
 
-        close_open = product([True, False], [True, False])
-        for inc_start, inc_end in close_open:
-            filtered = ts.between_time(stime, etime, inc_start, inc_end)
-            exp_len = (12 * 11 + 1) * 4 + 1
-            if not inc_start:
-                exp_len -= 4
-            if not inc_end:
-                exp_len -= 4
+        filtered = ts.between_time(stime, etime, inc_start, inc_end)
+        exp_len = (12 * 11 + 1) * 4 + 1
+        if not inc_start:
+            exp_len -= 4
+        if not inc_end:
+            exp_len -= 4
 
-            assert len(filtered) == exp_len
-            for rs in filtered.index:
-                t = rs.time()
-                if inc_start:
-                    assert (t >= stime) or (t <= etime)
-                else:
-                    assert (t > stime) or (t <= etime)
+        assert len(filtered) == exp_len
+        for rs in filtered.index:
+            t = rs.time()
+            if inc_start:
+                assert (t >= stime) or (t <= etime)
+            else:
+                assert (t > stime) or (t <= etime)
 
-                if inc_end:
-                    assert (t <= etime) or (t >= stime)
-                else:
-                    assert (t < etime) or (t >= stime)
+            if inc_end:
+                assert (t <= etime) or (t >= stime)
+            else:
+                assert (t < etime) or (t >= stime)
 
     def test_between_time_raises(self):
         # GH20725
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
         with pytest.raises(TypeError):  # index is not a DatetimeIndex
             df.between_time(start_time='00:00', end_time='12:00')
+
+    def test_between_time_axis(self, axis):
+        # issue 8839
+        rng = date_range('1/1/2000', periods=100, freq='10min')
+        ts = DataFrame(np.random.randn(len(rng), len(rng)))
+        stime, etime = ('08:00:00', '09:00:00')
+        exp_len = 7
+
+        if axis in ['index', 0]:
+            ts.index = rng
+            assert len(ts.between_time(stime, etime)) == exp_len
+            assert len(ts.between_time(stime, etime, axis=0)) == exp_len
+
+        if axis in ['columns', 1]:
+            ts.columns = rng
+            selected = ts.between_time(stime, etime, axis=1).columns
+            assert len(selected) == exp_len
+
+    def test_between_time_axis_raises(self, axis):
+        # issue 8839
+        rng = date_range('1/1/2000', periods=100, freq='10min')
+        mask = np.arange(0, len(rng))
+        rand_data = np.random.randn(len(rng), len(rng))
+        ts = DataFrame(rand_data, index=rng, columns=rng)
+        stime, etime = ('08:00:00', '09:00:00')
+
+        if axis in ['columns', 1]:
+            ts.index = mask
+            pytest.raises(TypeError, ts.between_time, stime, etime)
+            pytest.raises(TypeError, ts.between_time, stime, etime, axis=0)
+
+        if axis in ['index', 0]:
+            ts.columns = mask
+            pytest.raises(TypeError, ts.between_time, stime, etime, axis=1)
 
     def test_operation_on_NaT(self):
         # Both NaT and Timestamp are in DataFrame.

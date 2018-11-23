@@ -5,7 +5,7 @@ Module parse to/from Excel
 # ---------------------------------------------------------------------
 # ExcelFile class
 import abc
-from datetime import MINYEAR, date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from distutils.version import LooseVersion
 from io import UnsupportedOperation
 import os
@@ -375,15 +375,14 @@ class ExcelFile(object):
 
     def __init__(self, io, **kwds):
 
-        err_msg = "Install xlrd >= 0.9.0 for Excel support"
+        err_msg = "Install xlrd >= 1.0.0 for Excel support"
 
         try:
             import xlrd
         except ImportError:
             raise ImportError(err_msg)
         else:
-            ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
-            if ver < (0, 9):  # pragma: no cover
+            if xlrd.__VERSION__ < LooseVersion("1.0.0"):
                 raise ImportError(err_msg +
                                   ". Current version " + xlrd.__VERSION__)
 
@@ -515,7 +514,6 @@ class ExcelFile(object):
             raise NotImplementedError("chunksize keyword of read_excel "
                                       "is not implemented")
 
-        import xlrd
         from xlrd import (xldate, XL_CELL_DATE,
                           XL_CELL_ERROR, XL_CELL_BOOLEAN,
                           XL_CELL_NUMBER)
@@ -528,36 +526,23 @@ class ExcelFile(object):
 
             if cell_typ == XL_CELL_DATE:
 
-                if xlrd_0_9_3:
-                    # Use the newer xlrd datetime handling.
-                    try:
-                        cell_contents = \
-                            xldate.xldate_as_datetime(cell_contents,
-                                                      epoch1904)
-                    except OverflowError:
-                        return cell_contents
-                    # Excel doesn't distinguish between dates and time,
-                    # so we treat dates on the epoch as times only.
-                    # Also, Excel supports 1900 and 1904 epochs.
-                    year = (cell_contents.timetuple())[0:3]
-                    if ((not epoch1904 and year == (1899, 12, 31)) or
-                            (epoch1904 and year == (1904, 1, 1))):
-                        cell_contents = time(cell_contents.hour,
-                                             cell_contents.minute,
-                                             cell_contents.second,
-                                             cell_contents.microsecond)
-                else:
-                    # Use the xlrd <= 0.9.2 date handling.
-                    try:
-                        dt = xldate.xldate_as_tuple(cell_contents, epoch1904)
+                # Use the newer xlrd datetime handling.
+                try:
+                    cell_contents = xldate.xldate_as_datetime(
+                        cell_contents, epoch1904)
+                except OverflowError:
+                    return cell_contents
 
-                    except xldate.XLDateTooLarge:
-                        return cell_contents
-
-                    if dt[0] < MINYEAR:
-                        cell_contents = time(*dt[3:])
-                    else:
-                        cell_contents = datetime(*dt)
+                # Excel doesn't distinguish between dates and time,
+                # so we treat dates on the epoch as times only.
+                # Also, Excel supports 1900 and 1904 epochs.
+                year = (cell_contents.timetuple())[0:3]
+                if ((not epoch1904 and year == (1899, 12, 31)) or
+                        (epoch1904 and year == (1904, 1, 1))):
+                    cell_contents = time(cell_contents.hour,
+                                         cell_contents.minute,
+                                         cell_contents.second,
+                                         cell_contents.microsecond)
 
             elif cell_typ == XL_CELL_ERROR:
                 cell_contents = np.nan
@@ -570,12 +555,6 @@ class ExcelFile(object):
                 if val == cell_contents:
                     cell_contents = val
             return cell_contents
-
-        # xlrd >= 0.9.3 can return datetime objects directly.
-        if LooseVersion(xlrd.__VERSION__) >= LooseVersion("0.9.3"):
-            xlrd_0_9_3 = True
-        else:
-            xlrd_0_9_3 = False
 
         ret_dict = False
 
@@ -630,11 +609,12 @@ class ExcelFile(object):
                     if is_integer(skiprows):
                         row += skiprows
 
-                    data[row], control_row = _fill_mi_header(
-                        data[row], control_row)
-                    header_name, _ = _pop_header_name(
-                        data[row], index_col)
-                    header_names.append(header_name)
+                    data[row], control_row = _fill_mi_header(data[row],
+                                                             control_row)
+
+                    if index_col is not None:
+                        header_name, _ = _pop_header_name(data[row], index_col)
+                        header_names.append(header_name)
 
             if is_list_like(index_col):
                 # Forward fill values for MultiIndex index.
@@ -682,7 +662,8 @@ class ExcelFile(object):
 
                 output[asheetname] = parser.read(nrows=nrows)
 
-                if not squeeze or isinstance(output[asheetname], DataFrame):
+                if ((not squeeze or isinstance(output[asheetname], DataFrame))
+                        and header_names):
                     output[asheetname].columns = output[
                         asheetname].columns.set_names(header_names)
             except EmptyDataError:
@@ -863,16 +844,30 @@ def _fill_mi_header(row, control_row):
 
 
 def _pop_header_name(row, index_col):
-    """ (header, new_data) for header rows in MultiIndex parsing"""
-    none_fill = lambda x: None if x == '' else x
+    """
+    Pop the header name for MultiIndex parsing.
 
-    if index_col is None:
-        # no index col specified, trim data for inference path
-        return none_fill(row[0]), row[1:]
-    else:
-        # pop out header name and fill w/ blank
-        i = index_col if not is_list_like(index_col) else max(index_col)
-        return none_fill(row[i]), row[:i] + [''] + row[i + 1:]
+    Parameters
+    ----------
+    row : list
+        The data row to parse for the header name.
+    index_col : int, list
+        The index columns for our data. Assumed to be non-null.
+
+    Returns
+    -------
+    header_name : str
+        The extracted header name.
+    trimmed_row : list
+        The original data row with the header name removed.
+    """
+    # Pop out header name and fill w/blank.
+    i = index_col if not is_list_like(index_col) else max(index_col)
+
+    header_name = row[i]
+    header_name = None if header_name == "" else header_name
+
+    return header_name, row[:i] + [''] + row[i + 1:]
 
 
 @add_metaclass(abc.ABCMeta)
@@ -1652,15 +1647,15 @@ class _XlwtWriter(ExcelWriter):
         for example:
 
             hstyle = {"font": {"bold": True},
-            "border" : {"top": "thin",
-                        "right": "thin",
-                        "bottom": "thin",
-                        "left": "thin"},
-            "align" : {"horiz": "center"}}
+            "border": {"top": "thin",
+                    "right": "thin",
+                    "bottom": "thin",
+                    "left": "thin"},
+            "align": {"horiz": "center"}}
             will be converted to
-            font : bold on; \
-                    border : top thin, right thin, bottom thin, left thin; \
-                    align : horiz center;
+            font: bold on; \
+                    border: top thin, right thin, bottom thin, left thin; \
+                    align: horiz center;
         """
         if hasattr(item, 'items'):
             if firstlevel:

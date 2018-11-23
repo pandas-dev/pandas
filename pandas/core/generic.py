@@ -1,64 +1,52 @@
 # pylint: disable=W0231,E1101
 import collections
 import functools
-import warnings
-import operator
-import weakref
 import gc
 import json
+import operator
+import warnings
+import weakref
 
 import numpy as np
-import pandas as pd
 
-from pandas._libs import properties, Timestamp, iNaT
+from pandas._libs import Timestamp, iNaT, properties
+import pandas.compat as compat
+from pandas.compat import (
+    cPickle as pkl, isidentifier, lrange, lzip, map, set_function_name,
+    string_types, to_str, zip)
+from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import (
+    Appender, Substitution, rewrite_axis_style_signature)
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
-from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_object,
-    is_scalar,
-    is_number,
-    is_integer, is_bool,
-    is_bool_dtype,
-    is_numeric_dtype,
-    is_datetime64_any_dtype,
-    is_timedelta64_dtype,
-    is_datetime64tz_dtype,
-    is_list_like,
-    is_dict_like,
-    is_re_compilable,
-    is_period_arraylike,
-    is_object_dtype,
-    is_extension_array_dtype,
-    pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
+from pandas.core.dtypes.common import (
+    ensure_int64, ensure_object, is_bool, is_bool_dtype,
+    is_datetime64_any_dtype, is_datetime64tz_dtype, is_dict_like,
+    is_extension_array_dtype, is_integer, is_list_like, is_number,
+    is_numeric_dtype, is_object_dtype, is_period_arraylike, is_re_compilable,
+    is_scalar, is_timedelta64_dtype, pandas_dtype)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
-from pandas.core.base import PandasObject, SelectionMixin
-from pandas.core.index import (Index, MultiIndex, ensure_index,
-                               InvalidIndexError, RangeIndex)
-import pandas.core.indexing as indexing
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex, Period
-from pandas.core.internals import BlockManager
+import pandas as pd
+from pandas.core import config, missing, nanops
 import pandas.core.algorithms as algos
+from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
-import pandas.core.missing as missing
-from pandas.io.formats.printing import pprint_thing
-from pandas.io.formats.format import format_percentiles, DataFrameFormatter
-from pandas.tseries.frequencies import to_offset
-from pandas import compat
-from pandas.compat.numpy import function as nv
-from pandas.compat import (map, zip, lzip, lrange, string_types, to_str,
-                           isidentifier, set_function_name, cPickle as pkl)
+from pandas.core.index import (
+    Index, InvalidIndexError, MultiIndex, RangeIndex, ensure_index)
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.period import Period, PeriodIndex
+import pandas.core.indexing as indexing
+from pandas.core.internals import BlockManager
 from pandas.core.ops import _align_method_FRAME
-import pandas.core.nanops as nanops
-from pandas.util._decorators import (Appender, Substitution,
-                                     rewrite_axis_style_signature)
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
-from pandas.core import config
+
+from pandas.io.formats.format import DataFrameFormatter, format_percentiles
+from pandas.io.formats.printing import pprint_thing
+from pandas.tseries.frequencies import to_offset
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -1109,16 +1097,15 @@ class NDFrame(PandasObject, SelectionMixin):
                                              ('inplace', False)])
     def rename_axis(self, mapper=None, **kwargs):
         """
-        Alter the name of the index or name of Index object that is the
-        columns.
+        Set the name of the axis for the index or columns.
 
         Parameters
         ----------
         mapper : scalar, list-like, optional
             Value to set the axis name attribute.
         index, columns : scalar, list-like, dict-like or function, optional
-            dict-like or functions transformations to apply to
-            that axis' values.
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
 
             Use either ``mapper`` and ``axis`` to
             specify the axis to target with ``mapper``, or ``index``
@@ -1126,17 +1113,24 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionchanged:: 0.24.0
 
-        axis : int or string, default 0
-        copy : boolean, default True
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to rename.
+        copy : bool, default True
             Also copy underlying data.
-        inplace : boolean, default False
+        inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
             or DataFrame.
 
         Returns
         -------
-        renamed : Series, DataFrame, or None
+        Series, DataFrame, or None
             The same type as the caller or None if `inplace` is True.
+
+        See Also
+        --------
+        Series.rename : Alter Series index labels or name.
+        DataFrame.rename : Alter DataFrame index labels or name.
+        Index.rename : Set new names on index.
 
         Notes
         -----
@@ -1162,75 +1156,73 @@ class NDFrame(PandasObject, SelectionMixin):
         We *highly* recommend using keyword arguments to clarify your
         intent.
 
-        See Also
-        --------
-        Series.rename : Alter Series index labels or name.
-        DataFrame.rename : Alter DataFrame index labels or name.
-        Index.rename : Set new names on index.
-
         Examples
         --------
         **Series**
 
-        >>> s = pd.Series([1, 2, 3])
-        >>> s.rename_axis("foo")
-        foo
-        0    1
-        1    2
-        2    3
-        dtype: int64
+        >>> s = pd.Series(["dog", "cat", "monkey"])
+        >>> s
+        0       dog
+        1       cat
+        2    monkey
+        dtype: object
+        >>> s.rename_axis("animal")
+        animal
+        0    dog
+        1    cat
+        2    monkey
+        dtype: object
 
         **DataFrame**
 
-        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.rename_axis("foo")
-             A  B
-        foo
-        0    1  4
-        1    2  5
-        2    3  6
+        >>> df = pd.DataFrame({"num_legs": [4, 4, 2],
+        ...                    "num_arms": [0, 0, 2]},
+        ...                   ["dog", "cat", "monkey"])
+        >>> df
+                num_legs  num_arms
+        dog            4         0
+        cat            4         0
+        monkey         2         2
+        >>> df = df.rename_axis("animal")
+        >>> df
+                num_legs  num_arms
+        animal
+        dog            4         0
+        cat            4         0
+        monkey         2         2
+        >>> df = df.rename_axis("limbs", axis="columns")
+        >>> df
+        limbs   num_legs  num_arms
+        animal
+        dog            4         0
+        cat            4         0
+        monkey         2         2
 
-        >>> df.rename_axis("bar", axis="columns")
-        bar  A  B
-        0    1  4
-        1    2  5
-        2    3  6
+        **MultiIndex**
 
-        >>> mi = pd.MultiIndex.from_product([['a', 'b', 'c'], [1, 2]],
-        ...                                 names=['let','num'])
-        >>> df = pd.DataFrame({'x': [i for i in range(len(mi))],
-        ...                    'y' : [i*10 for i in range(len(mi))]},
-        ...                    index=mi)
-        >>> df.rename_axis(index={'num' : 'n'})
-               x   y
-        let n
-        a   1  0   0
-            2  1  10
-        b   1  2  20
-            2  3  30
-        c   1  4  40
-            2  5  50
+        >>> df.index = pd.MultiIndex.from_product([['mammal'],
+        ...                                        ['dog', 'cat', 'monkey']],
+        ...                                       names=['type', 'name'])
+        >>> df
+        limbs          num_legs  num_arms
+        type   name
+        mammal dog            4         0
+               cat            4         0
+               monkey         2         2
 
-        >>> cdf = df.rename_axis(columns='col')
-        >>> cdf
-        col      x   y
-        let num
-        a   1    0   0
-            2    1  10
-        b   1    2  20
-            2    3  30
-        c   1    4  40
-            2    5  50
+        >>> df.rename_axis(index={'type': 'class'})
+        limbs          num_legs  num_arms
+        class  name
+        mammal dog            4         0
+               cat            4         0
+               monkey         2         2
 
-        >>> cdf.rename_axis(columns=str.upper)
-        COL      x   y
-        let num
-        a   1    0   0
-            2    1  10
-        b   1    2  20
-            2    3  30
-        c   1    4  40
-            2    5  50
+        >>> df.rename_axis(columns=str.upper)
+        LIMBS          num_legs  num_arms
+        type   name
+        mammal dog            4         0
+               cat            4         0
+               monkey         2         2
         """
         axes, kwargs = self._construct_axes_from_arguments((), kwargs)
         copy = kwargs.pop('copy', True)
@@ -1285,45 +1277,57 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _set_axis_name(self, name, axis=0, inplace=False):
         """
-        Alter the name or names of the axis.
+        Set the name(s) of the axis.
 
         Parameters
         ----------
         name : str or list of str
-            Name for the Index, or list of names for the MultiIndex
-        axis : int or str
-           0 or 'index' for the index; 1 or 'columns' for the columns
-        inplace : bool
-            whether to modify `self` directly or return a copy
+            Name(s) to set.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to set the label. The value 0 or 'index' specifies index,
+            and the value 1 or 'columns' specifies columns.
+        inplace : bool, default False
+            If `True`, do operation inplace and return None.
 
             .. versionadded:: 0.21.0
 
         Returns
         -------
-        renamed : same type as caller or None if inplace=True
+        Series, DataFrame, or None
+            The same type as the caller or `None` if `inplace` is `True`.
 
         See Also
         --------
-        pandas.DataFrame.rename
-        pandas.Series.rename
-        pandas.Index.rename
+        DataFrame.rename : Alter the axis labels of :class:`DataFrame`.
+        Series.rename : Alter the index labels or set the index name
+            of :class:`Series`.
+        Index.rename : Set the name of :class:`Index` or :class:`MultiIndex`.
 
         Examples
         --------
-        >>> df._set_axis_name("foo")
-             A
-        foo
-        0    1
-        1    2
-        2    3
-        >>> df.index = pd.MultiIndex.from_product([['A'], ['a', 'b', 'c']])
-        >>> df._set_axis_name(["bar", "baz"])
-                 A
-        bar baz
-        A   a    1
-            b    2
-            c    3
+        >>> df = pd.DataFrame({"num_legs": [4, 4, 2]},
+        ...                   ["dog", "cat", "monkey"])
+        >>> df
+                num_legs
+        dog            4
+        cat            4
+        monkey         2
+        >>> df._set_axis_name("animal")
+                num_legs
+        animal
+        dog            4
+        cat            4
+        monkey         2
+        >>> df.index = pd.MultiIndex.from_product(
+        ...                [["mammal"], ['dog', 'cat', 'monkey']])
+        >>> df._set_axis_name(["type", "name"])
+                       legs
+        type   name
+        mammal dog        4
+               cat        4
+               monkey     2
         """
+        pd.MultiIndex.from_product([["mammal"], ['dog', 'cat', 'monkey']])
         axis = self._get_axis_number(axis)
         idx = self._get_axis(axis).set_names(name)
 
@@ -2053,17 +2057,18 @@ class NDFrame(PandasObject, SelectionMixin):
     >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
     ...                   index=['row 1', 'row 2'],
     ...                   columns=['col 1', 'col 2'])
-    >>> df1.to_excel("output.xlsx")
+    >>> df1.to_excel("output.xlsx")  # doctest: +SKIP
 
     To specify the sheet name:
 
-    >>> df1.to_excel("output.xlsx", sheet_name='Sheet_name_1')
+    >>> df1.to_excel("output.xlsx",
+    ...              sheet_name='Sheet_name_1')  # doctest: +SKIP
 
     If you wish to write to more than one sheet in the workbook, it is
     necessary to specify an ExcelWriter object:
 
     >>> df2 = df1.copy()
-    >>> with pd.ExcelWriter('output.xlsx') as writer:
+    >>> with pd.ExcelWriter('output.xlsx') as writer:  # doctest: +SKIP
     ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
     ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
 
@@ -2071,7 +2076,7 @@ class NDFrame(PandasObject, SelectionMixin):
     you can pass the `engine` keyword (the default engine is
     automatically chosen depending on the file extension):
 
-    >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')
+    >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
@@ -2326,7 +2331,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_msgpack(self, path_or_buf=None, encoding='utf-8', **kwargs):
         """
-        msgpack (serialize) object to input file path
+        Serialize object to input file path using msgpack format.
 
         THIS IS AN EXPERIMENTAL LIBRARY and the storage format
         may not be stable until a future release.
@@ -7381,7 +7386,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return asfreq(self, freq, method=method, how=how, normalize=normalize,
                       fill_value=fill_value)
 
-    def at_time(self, time, asof=False):
+    def at_time(self, time, asof=False, axis=None):
         """
         Select values at particular time of day (e.g. 9:30AM).
 
@@ -7393,6 +7398,10 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         time : datetime.time or string
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+
+            .. versionadded:: 0.24.0
+
 
         Returns
         -------
@@ -7422,14 +7431,20 @@ class NDFrame(PandasObject, SelectionMixin):
         DatetimeIndex.indexer_at_time : Get just the index locations for
             values at particular time of the day.
         """
+        if axis is None:
+            axis = self._stat_axis_number
+        axis = self._get_axis_number(axis)
+
+        index = self._get_axis(axis)
         try:
-            indexer = self.index.indexer_at_time(time, asof=asof)
-            return self._take(indexer)
+            indexer = index.indexer_at_time(time, asof=asof)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 
+        return self._take(indexer, axis=axis)
+
     def between_time(self, start_time, end_time, include_start=True,
-                     include_end=True):
+                     include_end=True, axis=None):
         """
         Select values between particular times of the day (e.g., 9:00-9:30 AM).
 
@@ -7447,6 +7462,9 @@ class NDFrame(PandasObject, SelectionMixin):
         end_time : datetime.time or string
         include_start : boolean, default True
         include_end : boolean, default True
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -7484,13 +7502,19 @@ class NDFrame(PandasObject, SelectionMixin):
         DatetimeIndex.indexer_between_time : Get just the index locations for
             values between particular times of the day.
         """
+        if axis is None:
+            axis = self._stat_axis_number
+        axis = self._get_axis_number(axis)
+
+        index = self._get_axis(axis)
         try:
-            indexer = self.index.indexer_between_time(
+            indexer = index.indexer_between_time(
                 start_time, end_time, include_start=include_start,
                 include_end=include_end)
-            return self._take(indexer)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
+
+        return self._take(indexer, axis=axis)
 
     def resample(self, rule, how=None, axis=0, fill_method=None, closed=None,
                  label=None, convention='start', kind=None, loffset=None,
@@ -9336,8 +9360,14 @@ class NDFrame(PandasObject, SelectionMixin):
                 if is_datetime64_any_dtype(data):
                     tz = data.dt.tz
                     asint = data.dropna().values.view('i8')
+                    top = Timestamp(top)
+                    if top.tzinfo is not None and tz is not None:
+                        # Don't tz_localize(None) if key is already tz-aware
+                        top = top.tz_convert(tz)
+                    else:
+                        top = top.tz_localize(tz)
                     names += ['top', 'freq', 'first', 'last']
-                    result += [Timestamp(top, tz=tz), freq,
+                    result += [top, freq,
                                Timestamp(asint.min(), tz=tz),
                                Timestamp(asint.max(), tz=tz)]
                 else:

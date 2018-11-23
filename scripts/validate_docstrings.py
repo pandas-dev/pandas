@@ -67,7 +67,9 @@ ERROR_MSGS = {
             'in the docstring (do not close the quotes in the same line as '
             'the text, or leave a blank line between the last text and the '
             'quotes)',
-    'GL03': 'Use only one blank line to separate sections or paragraphs',
+    'GL03': 'Double line break found; please use only one blank line to '
+            'separate sections or paragraphs, and do not leave blank lines '
+            'at the end of docstrings',
     'GL04': 'Private classes ({mentioned_private_classes}) should not be '
             'mentioned in public docstrings',
     'GL05': 'Tabs found at the start of line "{line_with_tabs}", please use '
@@ -716,7 +718,7 @@ def validate_one(func_name):
             'examples_errors': examples_errs}
 
 
-def validate_all(prefix):
+def validate_all(prefix, ignore_deprecated=False):
     """
     Execute the validation of all docstrings, and return a dict with the
     results.
@@ -726,6 +728,8 @@ def validate_all(prefix):
     prefix : str or None
         If provided, only the docstrings that start with this pattern will be
         validated. If None, all docstrings will be validated.
+    ignore_deprecated: bool, default False
+        If True, deprecated objects are ignored when validating docstrings.
 
     Returns
     -------
@@ -744,6 +748,8 @@ def validate_all(prefix):
         if prefix and not func_name.startswith(prefix):
             continue
         doc_info = validate_one(func_name)
+        if ignore_deprecated and doc_info['deprecated']:
+            continue
         result[func_name] = doc_info
 
         shared_code_key = doc_info['file'], doc_info['file_line']
@@ -765,13 +771,15 @@ def validate_all(prefix):
                 if prefix and not func_name.startswith(prefix):
                     continue
                 doc_info = validate_one(func_name)
+                if ignore_deprecated and doc_info['deprecated']:
+                    continue
                 result[func_name] = doc_info
                 result[func_name]['in_api'] = False
 
     return result
 
 
-def main(func_name, prefix, errors, output_format):
+def main(func_name, prefix, errors, output_format, ignore_deprecated):
     def header(title, width=80, char='#'):
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
@@ -785,7 +793,7 @@ def main(func_name, prefix, errors, output_format):
 
     exit_status = 0
     if func_name is None:
-        result = validate_all(prefix)
+        result = validate_all(prefix, ignore_deprecated)
 
         if output_format == 'json':
             output = json.dumps(result)
@@ -876,8 +884,13 @@ if __name__ == '__main__':
                            'list of error codes to validate. By default it '
                            'validates all errors (ignored when validating '
                            'a single docstring)')
+    argparser.add_argument('--ignore_deprecated', default=False,
+                           action='store_true', help='if this flag is set, '
+                           'deprecated objects are ignored when validating '
+                           'all docstrings')
 
     args = argparser.parse_args()
     sys.exit(main(args.function, args.prefix,
                   args.errors.split(',') if args.errors else None,
-                  args.format))
+                  args.format,
+                  args.ignore_deprecated))
