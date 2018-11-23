@@ -39,6 +39,7 @@ jobs:
       displayName: 'Before Install'
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
         ci/incremental/build.sh
       displayName: 'Build'
     - script: |
