@@ -294,9 +294,11 @@ def test_rank_empty_group():
 
 def test_rank_zero_div():
     # GH 23666
-    df = pd.DataFrame({
+    df = DataFrame({
         "A": [1, 2],
         "B": [1, 1]
     })
 
-    df.groupby("A")["B"].rank(pct=True, method="dense")
+    result = df.groupby("A").rank(pct=True, method="dense")
+    expected = DataFrame({"B": [1.0, 1.0]})
+    tm.assert_frame_equal(result, expected)
