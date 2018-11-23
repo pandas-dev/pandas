@@ -45,7 +45,7 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
     level: the number of levels in the jason string, optional, default: 0
 
     max_level: normalize to a maximum level of, optional, default: None
-    ignore_keys: specific keys to normalize, optional, default: None
+    ignore_keys: keys to ignore while flattening the records, optional, default: None
 
          .. versionadded:: 0.24.0
 

@@ -501,6 +501,39 @@ class TestNestedToRecord(object):
         output = nested_to_record(data, max_level=1, ignore_keys=["Image"])
         assert output == expected_output
 
+    def test_with_large_max_level(self):
+        print ("*"*100)
+        data = [{
+            'CreatedBy': {
+                "user": {
+                    "name":
+                        {"firstname":"Leo",
+                         "LastName": "Thomson"},
+                    "family_tree":{
+                        "father":{
+                            "name": "Father001",
+                            "father":{
+                                "Name": "Father002",
+                                "father": {
+                                    "name": "Father003",
+                                    "father": {
+                                        "Name": "Father004",
+                                    },
+                            },
+                        }
+                    }
+            }}}}
+        ]
+        expected_output = [{'CreatedBy.user.name.firstname': 'Leo',
+                            'CreatedBy.user.name.LastName': 'Thomson',
+                            'CreatedBy.user.family_tree.father.name': 'Father001',
+                            'CreatedBy.user.family_tree.father.father.Name': 'Father002',
+                            'CreatedBy.user.family_tree.father.father.father.name': 'Father003',
+                            'CreatedBy.user.family_tree.father.father.father.father.Name': 'Father004'}]
+
+        output = nested_to_record(data, max_level=100)
+        assert output == expected_output
+
     def test_with_all_keys_to_ignore(self):
         data = [{
             'CreatedBy': {'Name': 'User001'},
