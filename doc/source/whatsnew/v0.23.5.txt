@@ -23,8 +23,16 @@ Fixed Regressions
 - Constructing a DataFrame with an index argument that wasn't already an
   instance of :class:`~pandas.core.Index` was broken in `4efb39f
   <https://github.com/pandas-dev/pandas/commit/4efb39f01f5880122fa38d91e12d217ef70fad9e>`_ (:issue:`22227`).
+- Calling :meth:`DataFrameGroupBy.rank` and :meth:`SeriesGroupBy.rank` with empty groups
+  and ``pct=True`` was raising a ``ZeroDivisionError`` due to `c1068d9
+  <https://github.com/pandas-dev/pandas/commit/c1068d9d242c22cb2199156f6fb82eb5759178ae>`_ (:issue:`22519`)
 -
 -
+
+
+Development
+~~~~~~~~~~~
+- The minimum required pytest version has been increased to 3.6 (:issue:`22319`)
 
 .. _whatsnew_0235.bug_fixes:
 

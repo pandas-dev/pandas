@@ -1,36 +1,24 @@
-from functools import partial
-from datetime import datetime, time
 from collections import MutableMapping
+from datetime import datetime, time
+from functools import partial
 
 import numpy as np
 
 from pandas._libs import tslib, tslibs
-from pandas._libs.tslibs.strptime import array_strptime
-from pandas._libs.tslibs import parsing, conversion, Timestamp
+from pandas._libs.tslibs import Timestamp, conversion, parsing
 from pandas._libs.tslibs.parsing import (  # noqa
-    parse_time_string,
-    DateParseError,
-    _format_is_iso,
-    _guess_datetime_format)
+    DateParseError, _format_is_iso, _guess_datetime_format, parse_time_string)
+from pandas._libs.tslibs.strptime import array_strptime
+from pandas.compat import zip
 
 from pandas.core.dtypes.common import (
-    ensure_object,
-    is_datetime64_ns_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_integer_dtype,
-    is_integer,
-    is_float,
-    is_list_like,
-    is_scalar,
-    is_numeric_dtype,
-    is_object_dtype)
-from pandas.core.dtypes.generic import (
-    ABCIndexClass, ABCSeries,
-    ABCDataFrame)
+    ensure_object, is_datetime64_dtype, is_datetime64_ns_dtype,
+    is_datetime64tz_dtype, is_float, is_integer, is_integer_dtype,
+    is_list_like, is_numeric_dtype, is_object_dtype, is_scalar)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import notna
+
 from pandas.core import algorithms
-from pandas.compat import zip
 
 
 def _guess_datetime_format_for_array(arr, **kwargs):
@@ -99,13 +87,13 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
     result = Series(arg).map(cache_array)
     if box:
         if errors == 'ignore':
-            return Index(result)
+            return Index(result, name=name)
         else:
             return DatetimeIndex(result, name=name)
     return result.values
 
 
-def _return_parsed_timezone_results(result, timezones, box, tz):
+def _return_parsed_timezone_results(result, timezones, box, tz, name):
     """
     Return results from array_strptime if a %z or %Z directive was passed.
 
@@ -119,6 +107,9 @@ def _return_parsed_timezone_results(result, timezones, box, tz):
         True boxes result as an Index-like, False returns an ndarray
     tz : object
         None or pytz timezone object
+    name : string, default None
+        Name for a DatetimeIndex
+
     Returns
     -------
     tz_result : ndarray of parsed dates with timezone
@@ -136,7 +127,7 @@ def _return_parsed_timezone_results(result, timezones, box, tz):
                            in zip(result, timezones)])
     if box:
         from pandas import Index
-        return Index(tz_results)
+        return Index(tz_results, name=name)
     return tz_results
 
 
@@ -209,7 +200,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         if box:
             if errors == 'ignore':
                 from pandas import Index
-                return Index(result)
+                return Index(result, name=name)
 
             return DatetimeIndex(result, tz=tz, name=name)
         return result
@@ -241,7 +232,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
             if format == '%Y%m%d':
                 try:
                     result = _attempt_YYYYMMDD(arg, errors=errors)
-                except:
+                except (ValueError, TypeError, tslibs.OutOfBoundsDatetime):
                     raise ValueError("cannot convert the input to "
                                      "'%Y%m%d' date format")
 
@@ -252,7 +243,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                         arg, format, exact=exact, errors=errors)
                     if '%Z' in format or '%z' in format:
                         return _return_parsed_timezone_results(
-                            result, timezones, box, tz)
+                            result, timezones, box, tz, name)
                 except tslibs.OutOfBoundsDatetime:
                     if errors == 'raise':
                         raise
@@ -275,14 +266,25 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                 yearfirst=yearfirst,
                 require_iso8601=require_iso8601
             )
-            if tz_parsed is not None and box:
-                return DatetimeIndex._simple_new(result, name=name,
-                                                 tz=tz_parsed)
+            if tz_parsed is not None:
+                if box:
+                    # We can take a shortcut since the datetime64 numpy array
+                    # is in UTC
+                    return DatetimeIndex._simple_new(result, name=name,
+                                                     tz=tz_parsed)
+                else:
+                    # Convert the datetime64 numpy array to an numpy array
+                    # of datetime objects
+                    result = [Timestamp(ts, tz=tz_parsed).to_pydatetime()
+                              for ts in result]
+                    return np.array(result, dtype=object)
 
         if box:
+            # Ensure we return an Index in all cases where box=True
             if is_datetime64_dtype(result):
                 return DatetimeIndex(result, tz=tz, name=name)
             elif is_object_dtype(result):
+                # e.g. an Index of datetime objects
                 from pandas import Index
                 return Index(result, name=name)
         return result
@@ -320,7 +322,7 @@ def _adjust_to_origin(arg, origin, unit):
             raise ValueError("unit must be 'D' for origin='julian'")
         try:
             arg = arg - j0
-        except:
+        except TypeError:
             raise ValueError("incompatible 'arg' type for given "
                              "'origin'='julian'")
 
@@ -529,7 +531,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1    1960-01-03
     2    1960-01-04
 
-    See also
+    See Also
     --------
     pandas.DataFrame.astype : Cast argument to a specified dtype.
     pandas.to_timedelta : Convert argument to timedelta.
@@ -710,28 +712,29 @@ def _attempt_YYYYMMDD(arg, errors):
         result = np.empty(carg.shape, dtype='M8[ns]')
         iresult = result.view('i8')
         iresult[~mask] = tslibs.iNaT
-        result[mask] = calc(carg[mask].astype(np.float64).astype(np.int64)). \
-            astype('M8[ns]')
+
+        masked_result = calc(carg[mask].astype(np.float64).astype(np.int64))
+        result[mask] = masked_result.astype('M8[ns]')
         return result
 
     # try intlike / strings that are ints
     try:
         return calc(arg.astype(np.int64))
-    except:
+    except ValueError:
         pass
 
     # a float with actual np.nan
     try:
         carg = arg.astype(np.float64)
         return calc_with_mask(carg, notna(carg))
-    except:
+    except ValueError:
         pass
 
     # string with NaN-like
     try:
         mask = ~algorithms.isin(arg, list(tslib.nat_strings))
         return calc_with_mask(arg, mask)
-    except:
+    except ValueError:
         pass
 
     return None

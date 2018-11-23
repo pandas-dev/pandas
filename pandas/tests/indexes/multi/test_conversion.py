@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-
+import pytest
 import numpy as np
+
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import DataFrame, MultiIndex, date_range
@@ -37,6 +38,27 @@ def test_to_frame():
     expected.index = index
     tm.assert_frame_equal(result, expected)
 
+    # See GH-22580
+    index = MultiIndex.from_tuples(tuples)
+    result = index.to_frame(index=False, name=['first', 'second'])
+    expected = DataFrame(tuples)
+    expected.columns = ['first', 'second']
+    tm.assert_frame_equal(result, expected)
+
+    result = index.to_frame(name=['first', 'second'])
+    expected.index = index
+    expected.columns = ['first', 'second']
+    tm.assert_frame_equal(result, expected)
+
+    msg = "'name' must be a list / sequence of column names."
+    with pytest.raises(TypeError, match=msg):
+        index.to_frame(name='first')
+
+    msg = "'name' should have same length as number of levels on index."
+    with pytest.raises(ValueError, match=msg):
+        index.to_frame(name=['first'])
+
+    # Tests for datetime index
     index = MultiIndex.from_product([range(5),
                                      pd.date_range('20130101', periods=3)])
     result = index.to_frame(index=False)
@@ -45,9 +67,18 @@ def test_to_frame():
             1: np.tile(pd.date_range('20130101', periods=3), 5)})
     tm.assert_frame_equal(result, expected)
 
-    index = MultiIndex.from_product([range(5),
-                                     pd.date_range('20130101', periods=3)])
     result = index.to_frame()
+    expected.index = index
+    tm.assert_frame_equal(result, expected)
+
+    # See GH-22580
+    result = index.to_frame(index=False, name=['first', 'second'])
+    expected = DataFrame(
+        {'first': np.repeat(np.arange(5, dtype='int64'), 3),
+         'second': np.tile(pd.date_range('20130101', periods=3), 5)})
+    tm.assert_frame_equal(result, expected)
+
+    result = index.to_frame(name=['first', 'second'])
     expected.index = index
     tm.assert_frame_equal(result, expected)
 
@@ -139,3 +170,11 @@ def test_to_series_with_arguments(idx):
     assert s.values is not idx.values
     assert s.index is not idx
     assert s.name != idx.name
+
+
+def test_to_flat_index(idx):
+    expected = pd.Index((('foo', 'one'), ('foo', 'two'), ('bar', 'one'),
+                         ('baz', 'two'), ('qux', 'one'), ('qux', 'two')),
+                        tupleize_cols=False)
+    result = idx.to_flat_index()
+    tm.assert_index_equal(result, expected)

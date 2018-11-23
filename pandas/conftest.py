@@ -1,13 +1,30 @@
-import os
 import importlib
+import os
 
-import pytest
-
-import pandas
+from dateutil.tz import tzutc
+import hypothesis
+from hypothesis import strategies as st
 import numpy as np
-import pandas as pd
+import pytest
+from pytz import utc
+
 from pandas.compat import PY3
 import pandas.util._test_decorators as td
+
+import pandas as pd
+
+hypothesis.settings.register_profile(
+    "ci",
+    # Hypothesis timing checks are tuned for scalars by default, so we bump
+    # them from 200ms to 500ms per test case as the global default.  If this
+    # is too short for a specific test, (a) try to make it faster, and (b)
+    # if it really is slow add `@settings(deadline=...)` with a working value,
+    # or `deadline=None` to entirely disable timeouts for that test.
+    deadline=500,
+    timeout=hypothesis.unlimited,
+    suppress_health_check=(hypothesis.HealthCheck.too_slow,)
+)
+hypothesis.settings.load_profile("ci")
 
 
 def pytest_addoption(parser):
@@ -123,13 +140,34 @@ def all_arithmetic_operators(request):
     return request.param
 
 
-# use sorted as dicts in py<3.6 have random order, which xdist doesn't like
-_cython_table = sorted(((key, value) for key, value in
-                        pd.core.base.SelectionMixin._cython_table.items()),
-                       key=lambda x: x[0].__name__)
+_all_numeric_reductions = ['sum', 'max', 'min',
+                           'mean', 'prod', 'std', 'var', 'median',
+                           'kurt', 'skew']
 
 
-@pytest.fixture(params=_cython_table)
+@pytest.fixture(params=_all_numeric_reductions)
+def all_numeric_reductions(request):
+    """
+    Fixture for numeric reduction names
+    """
+    return request.param
+
+
+_all_boolean_reductions = ['all', 'any']
+
+
+@pytest.fixture(params=_all_boolean_reductions)
+def all_boolean_reductions(request):
+    """
+    Fixture for boolean reduction names
+    """
+    return request.param
+
+
+_cython_table = pd.core.base.SelectionMixin._cython_table.items()
+
+
+@pytest.fixture(params=list(_cython_table))
 def cython_table_items(request):
     return request.param
 
@@ -207,6 +245,20 @@ def datetime_tz_utc():
     return timezone.utc
 
 
+utc_objs = ['utc', utc, tzutc()]
+if PY3:
+    from datetime import timezone
+    utc_objs.append(timezone.utc)
+
+
+@pytest.fixture(params=utc_objs)
+def utc_fixture(request):
+    """
+    Fixture to provide variants of UTC timezone strings and tzinfo objects
+    """
+    return request.param
+
+
 @pytest.fixture(params=['inner', 'outer', 'left', 'right'])
 def join_type(request):
     """
@@ -251,7 +303,7 @@ def datapath(request):
 @pytest.fixture
 def iris(datapath):
     """The iris dataset as a DataFrame."""
-    return pandas.read_csv(datapath('data', 'iris.csv'))
+    return pd.read_csv(datapath('data', 'iris.csv'))
 
 
 @pytest.fixture(params=['nlargest', 'nsmallest'])
@@ -270,6 +322,14 @@ def closed(request):
     return request.param
 
 
+@pytest.fixture(params=['left', 'right', 'both', 'neither'])
+def other_closed(request):
+    """
+    Secondary closed fixture to allow parametrizing over all pairs of closed
+    """
+    return request.param
+
+
 @pytest.fixture(params=[None, np.nan, pd.NaT, float('nan'), np.float('NaN')])
 def nulls_fixture(request):
     """
@@ -279,6 +339,18 @@ def nulls_fixture(request):
 
 
 nulls_fixture2 = nulls_fixture  # Generate cartesian product of nulls_fixture
+
+
+@pytest.fixture(params=[None, np.nan, pd.NaT])
+def unique_nulls_fixture(request):
+    """
+    Fixture for each null type in pandas, each null type exactly once
+    """
+    return request.param
+
+
+# Generate cartesian product of unique_nulls_fixture:
+unique_nulls_fixture2 = unique_nulls_fixture
 
 
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
@@ -453,3 +525,36 @@ def mock():
         return importlib.import_module("unittest.mock")
     else:
         return pytest.importorskip("mock")
+
+
+# ----------------------------------------------------------------
+# Global setup for tests using Hypothesis
+
+
+# Registering these strategies makes them globally available via st.from_type,
+# which is use for offsets in tests/tseries/offsets/test_offsets_properties.py
+for name in 'MonthBegin MonthEnd BMonthBegin BMonthEnd'.split():
+    cls = getattr(pd.tseries.offsets, name)
+    st.register_type_strategy(cls, st.builds(
+        cls,
+        n=st.integers(-99, 99),
+        normalize=st.booleans(),
+    ))
+
+for name in 'YearBegin YearEnd BYearBegin BYearEnd'.split():
+    cls = getattr(pd.tseries.offsets, name)
+    st.register_type_strategy(cls, st.builds(
+        cls,
+        n=st.integers(-5, 5),
+        normalize=st.booleans(),
+        month=st.integers(min_value=1, max_value=12),
+    ))
+
+for name in 'QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd'.split():
+    cls = getattr(pd.tseries.offsets, name)
+    st.register_type_strategy(cls, st.builds(
+        cls,
+        n=st.integers(-24, 24),
+        normalize=st.booleans(),
+        startingMonth=st.integers(min_value=1, max_value=12)
+    ))
