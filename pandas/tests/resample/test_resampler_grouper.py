@@ -4,16 +4,13 @@ from textwrap import dedent
 
 import numpy as np
 
-import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-
-import pandas as pd
-
-from pandas import Series, DataFrame, Timestamp
-
 from pandas.compat import range
 
+import pandas as pd
+from pandas import DataFrame, Series, Timestamp
 from pandas.core.indexes.datetimes import date_range
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestResamplerGrouper(object):

@@ -3,20 +3,17 @@
 from datetime import datetime
 from operator import methodcaller
 
-import pytest
 import numpy as np
-
-import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal, assert_frame_equal
-
-import pandas as pd
-
-from pandas import Series, DataFrame, Panel
+import pytest
 
 from pandas.compat import zip
 
+import pandas as pd
+from pandas import DataFrame, Panel, Series
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.resample import TimeGrouper
+import pandas.util.testing as tm
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 class TestTimeGrouper(object):

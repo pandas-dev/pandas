@@ -1,37 +1,34 @@
 # pylint: disable=E1101
 
-from warnings import catch_warnings, simplefilter
 from datetime import datetime, timedelta
 from functools import partial
+from warnings import catch_warnings, simplefilter
 
-import pytz
-import pytest
 import dateutil
 import numpy as np
+import pytest
+import pytz
 
-from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
-
-import pandas.util.testing as tm
-from pandas.util.testing import (assert_series_equal, assert_almost_equal,
-                                 assert_frame_equal, assert_index_equal)
+from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas.compat import OrderedDict, lrange, range, zip
+from pandas.errors import AbstractMethodError, UnsupportedFunctionCall
 
 import pandas as pd
-
-from pandas import (Series, DataFrame, Panel, Index, isna,
-                    notna, Timestamp, Timedelta)
-
-from pandas.compat import range, lrange, zip, OrderedDict
-from pandas.errors import AbstractMethodError, UnsupportedFunctionCall
-import pandas.tseries.offsets as offsets
-from pandas.tseries.offsets import Minute, BDay
-
+from pandas import (
+    DataFrame, Index, Panel, Series, Timedelta, Timestamp, isna, notna)
 from pandas.core.groupby.groupby import DataError
-
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import period_range, PeriodIndex, Period
+from pandas.core.indexes.period import Period, PeriodIndex, period_range
+from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.resample import DatetimeIndex, TimeGrouper
-from pandas.core.indexes.timedeltas import timedelta_range, TimedeltaIndex
+import pandas.util.testing as tm
+from pandas.util.testing import (
+    assert_almost_equal, assert_frame_equal, assert_index_equal,
+    assert_series_equal)
+
+import pandas.tseries.offsets as offsets
+from pandas.tseries.offsets import BDay, Minute
 
 bday = BDay()
 
