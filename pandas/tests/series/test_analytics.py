@@ -338,7 +338,7 @@ class TestSeriesAnalytics(object):
     def test_describe_with_tz(self, tz_naive_fixture):
         # GH 21332
         tz = tz_naive_fixture
-        name = tz_naive_fixture
+        name = str(tz_naive_fixture)
         start = Timestamp(2018, 1, 1)
         end = Timestamp(2018, 1, 5)
         s = Series(date_range(start, end, tz=tz), name=name)

@@ -36,6 +36,7 @@ from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
 from timezones cimport (
     get_timezone, is_utc, maybe_get_tz, treat_tz_as_pytz, tz_compare)
+from timezones import UTC
 
 # ----------------------------------------------------------------------
 # Constants
@@ -416,7 +417,7 @@ cdef class _Timestamp(datetime):
             int64_t val
         val = self.value
         if self.tz is not None and not is_utc(self.tz):
-            val = tz_convert_single(self.value, 'UTC', self.tz)
+            val = tz_convert_single(self.value, UTC, self.tz)
         return val
 
     cpdef bint _get_start_end_field(self, str field):
@@ -633,7 +634,7 @@ class Timestamp(_Timestamp):
 
         Return a new Timestamp representing UTC day and time.
         """
-        return cls.now('UTC')
+        return cls.now(UTC)
 
     @classmethod
     def utcfromtimestamp(cls, ts):
@@ -1108,7 +1109,7 @@ class Timestamp(_Timestamp):
         else:
             if tz is None:
                 # reset tz
-                value = tz_convert_single(self.value, 'UTC', self.tz)
+                value = tz_convert_single(self.value, UTC, self.tz)
                 return Timestamp(value, tz=None)
             else:
                 raise TypeError('Cannot localize tz-aware Timestamp, use '
@@ -1178,7 +1179,7 @@ class Timestamp(_Timestamp):
         _tzinfo = self.tzinfo
         value = self.value
         if _tzinfo is not None:
-            value_tz = tz_convert_single(value, _tzinfo, 'UTC')
+            value_tz = tz_convert_single(value, _tzinfo, UTC)
             value += value - value_tz
 
         # setup components

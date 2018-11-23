@@ -1249,6 +1249,9 @@ Timezones
 - Bug when indexing a :class:`Series` with a DST transition (:issue:`21846`)
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` where an ``AmbiguousTimeError`` or ``NonExistentTimeError`` would raise if a timezone aware timeseries ended on a DST transition (:issue:`19375`, :issue:`10117`)
 - Bug in :meth:`DataFrame.drop` and :meth:`Series.drop` when specifying a tz-aware Timestamp key to drop from a :class:`DatetimeIndex` with a DST transition (:issue:`21761`)
+- Bug in :class:`DatetimeIndex` constructor where :class:`NaT` and ``dateutil.tz.tzlocal`` would raise an ``OutOfBoundsDatetime`` error (:issue:`23807`)
+- Bug in :meth:`DatetimeIndex.tz_localize` and :meth:`Timestamp.tz_localize` with ``dateutil.tz.tzlocal`` near a DST transition that would return an incorrectly localized datetime (:issue:`23807`)
+- Bug in :class:`Timestamp` constructor where a ``dateutil.tz.tzutc`` timezone passed with a ``datetime.datetime`` argument would be converted to a ``pytz.UTC`` timezone (:issue:`23807`)
 
 Offsets
 ^^^^^^^

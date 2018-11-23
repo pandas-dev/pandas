@@ -1,12 +1,12 @@
 import importlib
 import os
 
-from dateutil.tz import tzutc
+from dateutil.tz import tzlocal, tzutc
 import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import utc
+from pytz import FixedOffset, utc
 
 from pandas.compat import PY3
 import pandas.util._test_decorators as td
@@ -245,7 +245,7 @@ def datetime_tz_utc():
     return timezone.utc
 
 
-utc_objs = ['utc', utc, tzutc()]
+utc_objs = ['utc', 'dateutil/UTC', utc, tzutc()]
 if PY3:
     from datetime import timezone
     utc_objs.append(timezone.utc)
@@ -354,7 +354,8 @@ unique_nulls_fixture2 = unique_nulls_fixture
 
 
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
-             'dateutil/Asia/Singapore']
+             'dateutil/Asia/Singapore', tzutc(), tzlocal(), FixedOffset(300),
+             FixedOffset(0), FixedOffset(-300)]
 
 
 @td.parametrize_fixture_doc(str(TIMEZONES))

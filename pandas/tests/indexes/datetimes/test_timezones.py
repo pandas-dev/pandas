@@ -774,10 +774,7 @@ class TestDatetimeIndexTimezones(object):
 
     def test_timetz_accessor(self, tz_naive_fixture):
         # GH21358
-        if tz_naive_fixture is not None:
-            tz = dateutil.tz.gettz(tz_naive_fixture)
-        else:
-            tz = None
+        tz = timezones.maybe_get_tz(tz_naive_fixture)
 
         expected = np.array([time(10, 20, 30, tzinfo=tz), pd.NaT])
 

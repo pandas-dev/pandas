@@ -33,6 +33,7 @@ from tslibs.parsing import parse_datetime_string
 
 from tslibs.timedeltas cimport cast_from_unit
 from tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
+from tslibs.timezones import UTC
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos,
@@ -211,7 +212,7 @@ def _test_parse_iso8601(object ts):
     check_dts_bounds(&obj.dts)
     if out_local == 1:
         obj.tzinfo = pytz.FixedOffset(out_tzoffset)
-        obj.value = tz_convert_single(obj.value, obj.tzinfo, 'UTC')
+        obj.value = tz_convert_single(obj.value, obj.tzinfo, UTC)
         return Timestamp(obj.value, tz=obj.tzinfo)
     else:
         return Timestamp(obj.value)
@@ -673,7 +674,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         # dateutil.tz.tzoffset objects
                         out_tzoffset_vals.add(out_tzoffset * 60.)
                         tz = pytz.FixedOffset(out_tzoffset)
-                        value = tz_convert_single(value, tz, 'UTC')
+                        value = tz_convert_single(value, tz, UTC)
                     else:
                         # Add a marker for naive string, to track if we are
                         # parsing mixed naive and aware strings
