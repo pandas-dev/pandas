@@ -1,47 +1,37 @@
 
 # pylint: disable=E1101,E1103,W0232
 import datetime
-import warnings
 from sys import getsizeof
+import warnings
 
 import numpy as np
-from pandas._libs import algos as libalgos, index as libindex, lib, Timestamp
-from pandas._libs import tslibs
 
-from pandas.compat import range, zip, lrange, lzip, map
+from pandas._libs import (
+    Timestamp, algos as libalgos, index as libindex, lib, tslibs)
+import pandas.compat as compat
+from pandas.compat import lrange, lzip, map, range, zip
 from pandas.compat.numpy import function as nv
-from pandas import compat
-
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype, PandasExtensionDtype)
-from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_platform_int,
-    is_categorical_dtype,
-    is_object_dtype,
-    is_hashable,
-    is_integer,
-    is_iterator,
-    is_list_like,
-    pandas_dtype,
-    is_scalar)
-from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
-
 from pandas.util._decorators import Appender, cache_readonly
-import pandas.core.common as com
-import pandas.core.missing as missing
+
+from pandas.core.dtypes.common import (
+    ensure_int64, ensure_platform_int, is_categorical_dtype, is_hashable,
+    is_integer, is_iterator, is_list_like, is_object_dtype, is_scalar,
+    pandas_dtype)
+from pandas.core.dtypes.dtypes import ExtensionDtype, PandasExtensionDtype
+from pandas.core.dtypes.missing import array_equivalent, isna
+
 import pandas.core.algorithms as algos
+import pandas.core.common as com
+from pandas.core.config import get_option
+import pandas.core.indexes.base as ibase
+from pandas.core.indexes.base import (
+    Index, InvalidIndexError, _index_shared_docs, ensure_index)
+from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
+import pandas.core.missing as missing
+
 from pandas.io.formats.printing import pprint_thing
 
-from pandas.core.config import get_option
-
-from pandas.core.indexes.base import (
-    Index, ensure_index,
-    InvalidIndexError,
-    _index_shared_docs)
-from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
-import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(klass='MultiIndex',
