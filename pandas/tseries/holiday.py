@@ -1,12 +1,15 @@
+from datetime import datetime, timedelta
 import warnings
 
-from pandas import DateOffset, DatetimeIndex, Series, Timestamp
-from pandas.errors import PerformanceWarning
-from pandas.compat import add_metaclass
-from datetime import datetime, timedelta
-from dateutil.relativedelta import MO, TU, WE, TH, FR, SA, SU  # noqa
-from pandas.tseries.offsets import Easter, Day
+from dateutil.relativedelta import FR, MO, SA, SU, TH, TU, WE  # noqa
 import numpy as np
+
+from pandas.compat import add_metaclass
+from pandas.errors import PerformanceWarning
+
+from pandas import DateOffset, DatetimeIndex, Series, Timestamp
+
+from pandas.tseries.offsets import Day, Easter
 
 
 def next_monday(dt):
@@ -294,7 +297,7 @@ holiday_calendars = {}
 def register(cls):
     try:
         name = cls.name
-    except:
+    except AttributeError:
         name = cls.__name__
     holiday_calendars[name] = cls
 
@@ -426,7 +429,7 @@ class AbstractHolidayCalendar(object):
         """
         try:
             other = other.rules
-        except:
+        except AttributeError:
             pass
 
         if not isinstance(other, list):
@@ -435,7 +438,7 @@ class AbstractHolidayCalendar(object):
 
         try:
             base = base.rules
-        except:
+        except AttributeError:
             pass
 
         if not isinstance(base, list):

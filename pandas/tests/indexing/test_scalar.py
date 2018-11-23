@@ -1,13 +1,11 @@
 """ test scalar indexing, including at and iat """
 
+import numpy as np
 import pytest
 
-import numpy as np
-
-from pandas import (Series, DataFrame, Timestamp,
-                    Timedelta, date_range)
-from pandas.util import testing as tm
+from pandas import DataFrame, Series, Timedelta, Timestamp, date_range
 from pandas.tests.indexing.common import Base
+from pandas.util import testing as tm
 
 
 class TestScalar(Base):
@@ -153,8 +151,8 @@ class TestScalar(Base):
         df.columns = ['x', 'x', 'z']
 
         # Check that we get the correct value in the KeyError
-        tm.assert_raises_regex(KeyError, r"\['y'\] not in index",
-                               lambda: df[['x', 'y', 'z']])
+        with pytest.raises(KeyError, match=r"\['y'\] not in index"):
+            df[['x', 'y', 'z']]
 
     def test_at_with_tz(self):
         # gh-15822

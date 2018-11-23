@@ -6,10 +6,11 @@ from __future__ import print_function
 
 import numpy as np
 
-from pandas import compat
-from pandas.compat import range, map, zip, u
+from pandas.compat import map, range, u, zip
 
 from pandas.core.dtypes.generic import ABCMultiIndex
+
+from pandas import compat
 
 from pandas.io.formats.format import TableFormatter
 

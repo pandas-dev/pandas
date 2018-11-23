@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
 
-import pytest
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import TimedeltaIndex, timedelta_range, compat, Index, Timedelta
+from pandas import Index, Timedelta, TimedeltaIndex, compat, timedelta_range
 
 
 class TestGetItem(object):
@@ -101,16 +101,16 @@ class TestTake(object):
         indices = [1, 6, 5, 9, 10, 13, 15, 3]
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        tm.assert_raises_regex(TypeError, msg, idx.take,
-                               indices, foo=2)
+        with pytest.raises(TypeError, match=msg):
+            idx.take(indices, foo=2)
 
         msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, idx.take,
-                               indices, out=indices)
+        with pytest.raises(ValueError, match=msg):
+            idx.take(indices, out=indices)
 
         msg = "the 'mode' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, idx.take,
-                               indices, mode='clip')
+        with pytest.raises(ValueError, match=msg):
+            idx.take(indices, mode='clip')
 
     # TODO: This method came from test_timedelta; de-dup with version above
     def test_take2(self):
@@ -151,9 +151,9 @@ class TestTake(object):
 
         msg = ('When allow_fill=True and fill_value is not None, '
                'all indices must be >= -1')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
         with pytest.raises(IndexError):
@@ -239,8 +239,8 @@ class TestTimedeltaIndex(object):
             assert result.freq == expected.freq
 
         with pytest.raises((IndexError, ValueError)):
-            # either depeidnig on numpy version
-            result = idx.delete(5)
+            # either depending on numpy version
+            idx.delete(5)
 
     def test_delete_slice(self):
         idx = timedelta_range(start='1 days', periods=10, freq='D', name='idx')
@@ -285,8 +285,7 @@ class TestTimedeltaIndex(object):
         assert idx.get_loc(idx[1], 'pad',
                            tolerance=timedelta(0)) == 1
 
-        with tm.assert_raises_regex(ValueError,
-                                    'unit abbreviation w/o a number'):
+        with pytest.raises(ValueError, match='unit abbreviation w/o a number'):
             idx.get_loc(idx[1], method='nearest', tolerance='foo')
 
         with pytest.raises(

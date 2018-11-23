@@ -141,6 +141,7 @@ if PY3:
     Mapping = collections.abc.Mapping
     Sequence = collections.abc.Sequence
     Sized = collections.abc.Sized
+    Set = collections.abc.Set
 
 else:
     # Python 2
@@ -201,6 +202,7 @@ else:
     Mapping = collections.Mapping
     Sequence = collections.Sequence
     Sized = collections.Sized
+    Set = collections.Set
 
 if PY2:
     def iteritems(obj, **kw):
