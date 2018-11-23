@@ -1795,7 +1795,10 @@ def _get_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype
     elif isinstance(arr_or_dtype, type):
-        return np.dtype(arr_or_dtype)
+        try:
+            return pandas_dtype(arr_or_dtype)
+        except TypeError:
+            return np.dtype(arr_or_dtype)
     elif isinstance(arr_or_dtype, ExtensionDtype):
         return arr_or_dtype
     elif isinstance(arr_or_dtype, DatetimeTZDtype):
@@ -1813,6 +1816,11 @@ def _get_dtype(arr_or_dtype):
             return PeriodDtype.construct_from_string(arr_or_dtype)
         elif is_interval_dtype(arr_or_dtype):
             return IntervalDtype.construct_from_string(arr_or_dtype)
+        else:
+            try:
+                return pandas_dtype(arr_or_dtype)
+            except TypeError:
+                pass
     elif isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex,
                                    ABCSparseArray, ABCSparseSeries)):
         return arr_or_dtype.dtype
@@ -1843,7 +1851,15 @@ def _get_dtype_type(arr_or_dtype):
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype.type
     elif isinstance(arr_or_dtype, type):
-        return np.dtype(arr_or_dtype).type
+        try:
+            dtype = pandas_dtype(arr_or_dtype)
+            try:
+                return dtype.type
+            except AttributeError:
+                raise TypeError
+        except TypeError:
+            return np.dtype(arr_or_dtype).type
+
     elif isinstance(arr_or_dtype, CategoricalDtype):
         return CategoricalDtypeType
     elif isinstance(arr_or_dtype, DatetimeTZDtype):

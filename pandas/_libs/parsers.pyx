@@ -1231,7 +1231,11 @@ cdef class TextReader:
 
             if result is not None and dtype != 'int64':
                 if is_extension_array_dtype(dtype):
-                    result = result.astype(dtype.numpy_dtype)
+                    try:
+                        result = dtype.construct_array_type()._from_sequence(
+                                result, dtype=dtype)
+                    except Exception as e:
+                        raise
                 else:
                     result = result.astype(dtype)
 
@@ -1243,7 +1247,11 @@ cdef class TextReader:
 
             if result is not None and dtype != 'float64':
                 if is_extension_array_dtype(dtype):
-                    result = result.astype(dtype.numpy_dtype)
+                    try:
+                        result = dtype.construct_array_type()._from_sequence(
+                                result)
+                    except Exception as e:
+                        raise
                 else:
                     result = result.astype(dtype)
             return result, na_count

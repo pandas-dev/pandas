@@ -154,7 +154,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             dtype = dtype.lower()
         if not issubclass(type(dtype), _IntegerDtype):
             try:
-                dtype = _dtypes[str(np.dtype(dtype))]
+                dtype = _dtypes[str(np.dtype(dtype.name.lower()))]
             except KeyError:
                 raise ValueError("invalid dtype specified {}".format(dtype))
 
@@ -260,6 +260,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return integer_array(scalars, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+        return cls._from_sequence([int(x) for x in strings], dtype, copy)
 
     @classmethod
     def _from_factorized(cls, values, original):

@@ -29,7 +29,7 @@ from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     ensure_object, is_bool_dtype, is_categorical_dtype, is_dtype_equal,
     is_float, is_integer, is_integer_dtype, is_list_like, is_object_dtype,
-    is_scalar, is_string_dtype)
+    is_scalar, is_string_dtype, is_extension_array_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
@@ -1660,7 +1660,8 @@ class ParserBase(object):
                     try_num_bool=False)
             else:
                 # skip inference if specified dtype is object
-                try_num_bool = not (cast_type and is_string_dtype(cast_type))
+                try_num_bool = not (cast_type and (is_string_dtype(cast_type)
+                                                   or is_extension_array_dtype(cast_type)))
 
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
@@ -1668,7 +1669,8 @@ class ParserBase(object):
                     try_num_bool)
 
                 # type specified in dtype param
-                if cast_type and not is_dtype_equal(cvals, cast_type):
+                if cast_type and not (is_dtype_equal(cvals, cast_type)
+                        or is_extension_array_dtype(cast_type)):
                     try:
                         if (is_bool_dtype(cast_type) and
                                 not is_categorical_dtype(cast_type)
