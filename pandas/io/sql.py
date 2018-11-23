@@ -226,7 +226,6 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     --------
     read_sql_query : Read SQL query into a DataFrame.
     read_sql
-
     """
 
     con = _engine_builder(con)
@@ -306,7 +305,6 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     --------
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql
-
     """
     pandas_sql = pandasSQL_builder(con)
     return pandas_sql.read_query(
@@ -370,7 +368,6 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     --------
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql_query : Read SQL query into a DataFrame.
-
     """
     pandas_sql = pandasSQL_builder(con)
 
@@ -432,7 +429,6 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
         If all columns are of the same type, one single value can be used.
-
     """
     if if_exists not in ('fail', 'replace', 'append'):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))

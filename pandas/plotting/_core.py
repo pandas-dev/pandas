@@ -3436,7 +3436,6 @@ class FramePlotMethods(BasePlotMethods):
             :context: close-figs
 
             >>> plot = df.plot.pie(subplots=True, figsize=(6, 3))
-
         """
         return self(kind='pie', y=y, **kwds)
 

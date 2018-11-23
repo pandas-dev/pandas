@@ -203,7 +203,6 @@ def merge_ordered(left, right, on=None,
     --------
     merge
     merge_asof
-
     """
     def _merger(x, y):
         # perform the ordered merge operation
@@ -311,7 +310,6 @@ def merge_asof(left, right, on=None,
         Whether to search for prior, subsequent, or closest matches.
 
         .. versionadded:: 0.20.0
-
 
     Returns
     -------
@@ -451,7 +449,6 @@ def merge_asof(left, right, on=None,
     --------
     merge
     merge_ordered
-
     """
     op = _AsOfMerge(left, right,
                     on=on, left_on=left_on, right_on=right_on,

@@ -2067,7 +2067,6 @@ def pandas_dtype(dtype):
     Raises
     ------
     TypeError if not a dtype
-
     """
     # short-circuit
     if isinstance(dtype, np.ndarray):

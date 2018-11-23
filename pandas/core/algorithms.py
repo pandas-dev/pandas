@@ -343,7 +343,6 @@ def unique(values):
     --------
     pandas.Index.unique
     pandas.Series.unique
-
     """
 
     values = _ensure_arraylike(values)

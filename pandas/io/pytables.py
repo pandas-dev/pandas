@@ -709,7 +709,6 @@ class HDFStore(StringMixin):
         Returns
         -------
         The selected object
-
         """
         group = self.get_node(key)
         if group is None:
@@ -1126,7 +1125,6 @@ class HDFStore(StringMixin):
             names of the groups contained in `path`
         leaves : list of str
             names of the pandas objects contained in `path`
-
         """
         _tables()
         self._check_if_open()

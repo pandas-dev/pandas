@@ -110,7 +110,6 @@ class Resampler(_GroupBy):
         See Also
         --------
         GroupBy.__iter__
-
         """
         self._set_binner()
         return super(Resampler, self).__iter__()
@@ -204,7 +203,6 @@ one pass, you can do
         return super(Resampler, self).pipe(func, *args, **kwargs)
 
     _agg_doc = dedent("""
-
     Examples
     --------
     >>> s = pd.Series([1,2,3,4,5],
@@ -244,7 +242,6 @@ one pass, you can do
     pandas.DataFrame.groupby.aggregate
     pandas.DataFrame.resample.transform
     pandas.DataFrame.aggregate
-
     """)
 
     @Appender(_agg_doc)

@@ -107,7 +107,6 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
       warnings.warn(msg, FutureWarning)
     yes!
 
-
     To raise a warning that a keyword will be removed entirely in the future
 
     >>> @deprecate_kwarg(old_arg_name='cols', new_arg_name=None)

@@ -433,7 +433,6 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
 
         .. versionadded:: 0.18.1
 
-
     Notes
     -----
     Any Series passed will have their name attributes used unless row or column
