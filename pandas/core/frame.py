@@ -1241,9 +1241,9 @@ class DataFrame(NDFrame):
             raise ValueError("orient '{o}' not understood".format(o=orient))
 
     def to_gbq(self, destination_table, project_id=None, chunksize=None,
-               reauth=False, if_exists='fail', private_key=None,
-               auth_local_webserver=False, table_schema=None, location=None,
-               progress_bar=True, verbose=None):
+               reauth=False, if_exists='fail', auth_local_webserver=False,
+               table_schema=None, location=None, progress_bar=True,
+               credentials=None, verbose=None, private_key=None):
         """
         Write a DataFrame to a Google BigQuery table.
 
@@ -1311,10 +1311,31 @@ class DataFrame(NDFrame):
             chunk by chunk.
 
             *New in version 0.5.0 of pandas-gbq*.
+        credentials : google.auth.credentials.Credentials, optional
+            Credentials for accessing Google APIs. Use this parameter to
+            override default credentials, such as to use Compute Engine
+            :class:`google.auth.compute_engine.Credentials` or Service
+            Account :class:`google.oauth2.service_account.Credentials`
+            directly.
+
+            *New in version 0.8.0 of pandas-gbq*.
+
+            .. versionadded:: 0.24.0
         verbose : bool, deprecated
-            Deprecated in Pandas-GBQ 0.4.0. Use the `logging module
+            Deprecated in pandas-gbq version 0.4.0. Use the `logging module
             to adjust verbosity instead
             <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
+        private_key : str, deprecated
+            Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
+            parameter and
+            :func:`google.oauth2.service_account.Credentials.from_service_account_info`
+            or
+            :func:`google.oauth2.service_account.Credentials.from_service_account_file`
+            instead.
+
+            Service account private key in JSON format. Can be file path
+            or string contents. This is useful for remote server
+            authentication (eg. Jupyter/IPython notebook on remote host).
 
         See Also
         --------
@@ -1324,11 +1345,11 @@ class DataFrame(NDFrame):
         from pandas.io import gbq
         return gbq.to_gbq(
             self, destination_table, project_id=project_id,
-            chunksize=chunksize, reauth=reauth,
-            if_exists=if_exists, private_key=private_key,
+            chunksize=chunksize, reauth=reauth, if_exists=if_exists,
             auth_local_webserver=auth_local_webserver,
             table_schema=table_schema, location=location,
-            progress_bar=progress_bar, verbose=verbose)
+            progress_bar=progress_bar, credentials=credentials,
+            verbose=verbose, private_key=private_key)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
@@ -1689,7 +1710,7 @@ class DataFrame(NDFrame):
         tupleize_cols : boolean, default False
             write multi_index columns as a list of tuples (if True)
             or new (expanded format) if False)
-        infer_datetime_format: boolean, default False
+        infer_datetime_format : boolean, default False
             If True and `parse_dates` is True for a column, try to infer the
             datetime format based on the first datetime string. If the format
             can be inferred, there often will be a large parsing speed-up.
@@ -1835,13 +1856,16 @@ class DataFrame(NDFrame):
                  data_label=None, variable_labels=None, version=114,
                  convert_strl=None):
         """
-        Export Stata binary dta files.
+        Export DataFrame object to Stata dta format.
+
+        Writes the DataFrame to a Stata dataset file.
+        "dta" files contain a Stata dataset.
 
         Parameters
         ----------
-        fname : path (string), buffer or path object
-            string, path object (pathlib.Path or py._path.local.LocalPath) or
-            object implementing a binary write() functions. If using a buffer
+        fname : str, buffer or path object
+            String, path object (pathlib.Path or py._path.local.LocalPath) or
+            object implementing a binary write() function. If using a buffer
             then the buffer will not be automatically closed after the file
             data has been written.
         convert_dates : dict
@@ -1860,7 +1884,7 @@ class DataFrame(NDFrame):
         time_stamp : datetime
             A datetime to use as file creation date.  Default is the current
             time.
-        data_label : str
+        data_label : str, optional
             A label for the data set.  Must be 80 characters or smaller.
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
@@ -1868,7 +1892,7 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.19.0
 
-        version : {114, 117}
+        version : {114, 117}, default 114
             Version to use in the output dta file.  Version 114 can be used
             read by Stata 10 and later.  Version 117 can be read by Stata 13
             or later. Version 114 limits string variables to 244 characters or
@@ -1900,28 +1924,16 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.read_stata : Import Stata data files.
-        pandas.io.stata.StataWriter : Low-level writer for Stata data files.
-        pandas.io.stata.StataWriter117 : Low-level writer for version 117
-            files.
+        read_stata : Import Stata data files.
+        io.stata.StataWriter : Low-level writer for Stata data files.
+        io.stata.StataWriter117 : Low-level writer for version 117 files.
 
         Examples
         --------
-        >>> data.to_stata('./data_file.dta')
-
-        Or with dates
-
-        >>> data.to_stata('./date_data_file.dta', {2 : 'tw'})
-
-        Alternatively you can create an instance of the StataWriter class
-
-        >>> writer = StataWriter('./data_file.dta', data)
-        >>> writer.write_file()
-
-        With dates:
-
-        >>> writer = StataWriter('./date_data_file.dta', data, {2 : 'tw'})
-        >>> writer.write_file()
+        >>> df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
+        ...                               'parrot'],
+        ...                    'speed': [350, 18, 361, 15]})
+        >>> df.to_stata('animals.dta')  # doctest: +SKIP
         """
         kwargs = {}
         if version not in (114, 117):
@@ -2016,8 +2028,9 @@ class DataFrame(NDFrame):
         Examples
         --------
         >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
-        >>> df.to_parquet('df.parquet.gzip', compression='gzip')
-        >>> pd.read_parquet('df.parquet.gzip')
+        >>> df.to_parquet('df.parquet.gzip',
+        ...               compression='gzip')  # doctest: +SKIP
+        >>> pd.read_parquet('df.parquet.gzip')  # doctest: +SKIP
            col1  col2
         0     1     3
         1     2     4
@@ -2231,7 +2244,8 @@ class DataFrame(NDFrame):
         >>> buffer = io.StringIO()
         >>> df.info(buf=buffer)
         >>> s = buffer.getvalue()
-        >>> with open("df_info.txt", "w", encoding="utf-8") as f:
+        >>> with open("df_info.txt", "w",
+        ...           encoding="utf-8") as f:  # doctest: +SKIP
         ...     f.write(s)
         260
 

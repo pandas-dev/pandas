@@ -1,37 +1,37 @@
-from datetime import timedelta
-import numpy as np
-import warnings
 import copy
+from datetime import timedelta
 from textwrap import dedent
+import warnings
 
-import pandas as pd
-from pandas.core.groupby.base import GroupByMixin
-from pandas.core.groupby.ops import BinGrouper
-from pandas.core.groupby.groupby import (
-    _GroupBy, GroupBy, groupby, _pipe_template
-)
-from pandas.core.groupby.grouper import Grouper
-from pandas.core.groupby.generic import SeriesGroupBy, PanelGroupBy
-
-from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
-from pandas.core.indexes.datetimes import DatetimeIndex, date_range
-from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.tseries.offsets import (DateOffset, Tick, Day,
-                                    delta_to_nanoseconds, Nano)
-from pandas.core.indexes.period import PeriodIndex
-from pandas.errors import AbstractMethodError
-import pandas.core.algorithms as algos
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-
-import pandas.compat as compat
-from pandas.compat.numpy import function as nv
+import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import Timestamp, NaT
+from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
-
+import pandas.compat as compat
+from pandas.compat.numpy import function as nv
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
+
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+
+import pandas as pd
+import pandas.core.algorithms as algos
 from pandas.core.generic import _shared_docs
+from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.generic import PanelGroupBy, SeriesGroupBy
+from pandas.core.groupby.groupby import (
+    GroupBy, _GroupBy, _pipe_template, groupby)
+from pandas.core.groupby.grouper import Grouper
+from pandas.core.groupby.ops import BinGrouper
+from pandas.core.indexes.datetimes import DatetimeIndex, date_range
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+
+from pandas.tseries.frequencies import is_subperiod, is_superperiod, to_offset
+from pandas.tseries.offsets import (
+    DateOffset, Day, Nano, Tick, delta_to_nanoseconds)
+
 _shared_docs_kwargs = dict()
 
 
@@ -418,23 +418,63 @@ one pass, you can do
 
     def nearest(self, limit=None):
         """
-        Fill values with nearest neighbor starting from center
+        Resample by using the nearest value.
+
+        When resampling data, missing values may appear (e.g., when the
+        resampling frequency is higher than the original frequency).
+        The `nearest` method will replace ``NaN`` values that appeared in
+        the resampled data with the value from the nearest member of the
+        sequence, based on the index value.
+        Missing values that existed in the original data will not be modified.
+        If `limit` is given, fill only this many values in each direction for
+        each of the original values.
 
         Parameters
         ----------
-        limit : integer, optional
-            limit of how many values to fill
+        limit : int, optional
+            Limit of how many values to fill.
 
             .. versionadded:: 0.21.0
 
         Returns
         -------
-        an upsampled Series
+        Series or DataFrame
+            An upsampled Series or DataFrame with ``NaN`` values filled with
+            their nearest value.
 
         See Also
         --------
-        Series.fillna
-        DataFrame.fillna
+        backfill : Backward fill the new missing values in the resampled data.
+        pad : Forward fill ``NaN`` values.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2],
+        ...               index=pd.date_range('20180101',
+        ...                                   periods=2,
+        ...                                   freq='1h'))
+        >>> s
+        2018-01-01 00:00:00    1
+        2018-01-01 01:00:00    2
+        Freq: H, dtype: int64
+
+        >>> s.resample('15min').nearest()
+        2018-01-01 00:00:00    1
+        2018-01-01 00:15:00    1
+        2018-01-01 00:30:00    2
+        2018-01-01 00:45:00    2
+        2018-01-01 01:00:00    2
+        Freq: 15T, dtype: int64
+
+        Limit the number of upsampled values imputed by the nearest:
+
+        >>> s.resample('15min').nearest(limit=1)
+        2018-01-01 00:00:00    1.0
+        2018-01-01 00:15:00    1.0
+        2018-01-01 00:30:00    NaN
+        2018-01-01 00:45:00    2.0
+        2018-01-01 01:00:00    2.0
+        Freq: 15T, dtype: float64
         """
         return self._upsample('nearest', limit=limit)
 
@@ -725,7 +765,7 @@ one pass, you can do
 
         Parameters
         ----------
-        fill_value: scalar, optional
+        fill_value : scalar, optional
             Value to use for missing values, applied during upsampling (note
             this does not fill NaNs that already were present).
 
