@@ -9,6 +9,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import (
     is_dict_like, is_extension_type, is_list_like, is_sequence, is_sparse)
 from pandas.core.dtypes.generic import ABCSeries
+from pandas import concat
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -131,20 +132,13 @@ class FrameApply(object):
 
         # ufunc
         elif isinstance(self.f, np.ufunc):
-            if any(is_sparse(dtype) for dtype in self.obj.dtypes):
-                # Column-by-column construction is slow, so only use when
-                # necessary (e.g. to preserve special dtypes) GH 23744
-                result = self.obj._constructor(index=self.index,
-                                               copy=False)
-                with np.errstate(all='ignore'):
-                    for col in self.columns:
-                        result[col] = self.f(self.obj[col].values)
-                return result
-
-            with np.errstate(all='ignore'):
-                results = self.f(self.values)
-            return self.obj._constructor(data=results, index=self.index,
-                                         columns=self.columns, copy=False)
+            result = [self.f(self.obj[col])
+                      .to_sparse(
+                      fill_value=self.f(self.obj.dtypes[col].fill_value))
+                      if is_sparse(self.obj.dtypes[col])
+                      else self.f(self.obj[col])
+                      for col in self.columns]
+            return concat(result, axis=1, copy=False).set_index(self.index)
 
         # broadcasting
         if self.result_type == 'broadcast':
