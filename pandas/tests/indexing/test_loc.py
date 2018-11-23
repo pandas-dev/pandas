@@ -804,3 +804,35 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = s.loc[[np.iinfo('uint64').max - 1,
                        np.iinfo('uint64').max]]
         tm.assert_series_equal(result, s)
+
+    def test_loc_setitem_empty_append(self):
+        # GH6173, various appends to an empty dataframe
+
+        data = [1, 2, 3]
+        expected = DataFrame({'x': data, 'y': [None] * len(data)})
+
+        # appends to fit length of data
+        df = DataFrame(columns=['x', 'y'])
+        df.loc[:, 'x'] = data
+        tm.assert_frame_equal(df, expected)
+
+        # only appends one value
+        expected = DataFrame({'x': [1.0], 'y': [np.nan]})
+        df = DataFrame(columns=['x', 'y'],
+                       dtype=np.float)
+        df.loc[0, 'x'] = expected.loc[0, 'x']
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_empty_append_raises(self):
+        # GH6173, various appends to an empty dataframe
+
+        data = [1, 2]
+        df = DataFrame(columns=['x', 'y'])
+        msg = (r"None of \[Int64Index\(\[0, 1\], dtype='int64'\)\] "
+               r"are in the \[index\]")
+        with pytest.raises(KeyError, match=msg):
+            df.loc[[0, 1], 'x'] = data
+
+        msg = "cannot copy sequence with size 2 to array axis with dimension 0"
+        with pytest.raises(ValueError, match=msg):
+            df.loc[0:2, 'x'] = data
