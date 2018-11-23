@@ -1,5 +1,5 @@
 #!/bin/bash
-
+source activate pandas-dev
 
 # Make sure any error below is reported as such
 set -v -e

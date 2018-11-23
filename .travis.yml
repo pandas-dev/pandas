@@ -110,7 +110,6 @@ script:
   - ci/run_build_docs.sh
   - ci/script_single.sh
   - ci/script_multi.sh
-  - source activate pandas-dev
   - ci/code_checks.sh
 
 after_success:
