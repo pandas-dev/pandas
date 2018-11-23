@@ -132,13 +132,15 @@ class FrameApply(object):
 
         # ufunc
         elif isinstance(self.f, np.ufunc):
-            result = [self.f(self.obj[col])
-                      .to_sparse(
-                      fill_value=self.f(self.obj.dtypes[col].fill_value))
-                      if is_sparse(self.obj.dtypes[col])
-                      else self.f(self.obj[col])
-                      for col in self.columns]
-            return concat(result, axis=1, copy=False).set_index(self.index)
+            results = []
+            for col in self.columns:
+                if is_sparse(self.obj.dtypes[col]):
+                    fill = self.f(self.obj.dtypes[col].fill_value)
+                    result = self.f(self.obj[col]).to_sparse(fill_value=fill)
+                else:
+                    result = self.f(self.obj[col])
+                results.append(result)
+            return concat(results, axis=1, copy=False).set_index(self.index)
 
         # broadcasting
         if self.result_type == 'broadcast':
