@@ -44,8 +44,8 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
 
     level: the number of levels in the jason string, optional, default: 0
 
-    max_level: normalize to a maximum level of, optional, default: None
-    ignore_keys: keys to ignore while flattening the records, optional, default: None
+    max_level: int, normalize to a maximum level of, optional, default: None
+    ignore_keys: list, keys to ignore, default None, optional, default: None
 
          .. versionadded:: 0.24.0
 
@@ -83,13 +83,13 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
             else:
                 newkey = prefix + sep + k
 
-            # only dicts
-            # or curr_level < max_level
-            # or k not in ignore keys gets recurse-flattend
+            # flatten if type is dict and
+            # current dict level  < maximum level provided and
+            # current dict key not in ignore keys list flatten it
             # only at level>1 do we rename the rest of the keys
-            if not isinstance(v, dict) or \
-                    (max_level is not None and level >= max_level) or \
-                    (ignore_keys is not None and k in ignore_keys):
+            if (not isinstance(v, dict) or
+                    (max_level is not None and level >= max_level) or
+                    (ignore_keys is not None and k in ignore_keys)):
                 if level != 0:  # so we skip copying for top level, common case
                     v = new_d.pop(k)
                     new_d[newkey] = v
