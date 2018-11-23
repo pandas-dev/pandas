@@ -35,6 +35,7 @@ jobs:
         ci/incremental/install_miniconda.sh
         export PATH=$HOME/miniconda3/bin:$PATH
         echo "Setting up Conda environment"
+        source activate pandas-dev
         ci/incremental/setup_conda_environment.sh
       displayName: 'Before Install'
     - script: |
