@@ -17,6 +17,7 @@ from pandas._libs.tslibs.frequencies import (  # noqa, semi-public API
 from pandas._libs.tslibs.offsets import _offset_to_period_map  # noqa:E402
 import pandas._libs.tslibs.resolution as libresolution
 from pandas._libs.tslibs.resolution import Resolution
+from pandas._libs.tslibs.timezones import UTC
 import pandas.compat as compat
 from pandas.compat import zip
 from pandas.util._decorators import cache_readonly
@@ -287,7 +288,7 @@ class _FrequencyInferer(object):
         # the timezone so they are in local time
         if hasattr(index, 'tz'):
             if index.tz is not None:
-                self.values = tz_convert(self.values, 'UTC', index.tz)
+                self.values = tz_convert(self.values, UTC, index.tz)
 
         self.warn = warn
 
