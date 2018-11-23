@@ -263,23 +263,10 @@ def maybe_promote(dtype, fill_value=np.nan):
             fill_value = np.nan
 
     # returns tuple of (dtype, fill_value)
-    if issubclass(dtype.type, (np.datetime64, np.timedelta64)):
-        if isna(fill_value):
-            fill_value = iNaT
-        elif issubclass(dtype.type, np.datetime64):
-            try:
-                fill_value = tslibs.Timestamp(fill_value).value
-            except Exception:
-                dtype = np.object_
-                fill_value = np.nan
-        elif issubclass(dtype.type, np.timedelta64):
-            try:
-                fill_value = tslibs.Timedelta(fill_value).value
-            except Exception:
-                dtype = np.object_
-                fill_value = np.nan
-        else:
-            fill_value = iNaT
+    if issubclass(dtype.type, np.datetime64):
+        fill_value = tslibs.Timestamp(fill_value).value
+    elif issubclass(dtype.type, np.timedelta64):
+        fill_value = tslibs.Timedelta(fill_value).value
     elif is_datetimetz(dtype):
         if isna(fill_value):
             fill_value = iNaT
@@ -718,37 +705,25 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
 
     elif is_object_dtype(arr):
 
-        # if we have a datetime/timedelta array of objects
-        # then coerce to a proper dtype and recall astype_nansafe
-
-        if (is_timedelta64_dtype(dtype)
-                or np.issubdtype(dtype.type, np.integer)):
+        if np.issubdtype(dtype.type, np.integer):
             # TODO: this is an old numpy compat branch that is not necessary
             # anymore for its original purpose (unsafe casting from object to
-            # int, see GH 1987).
-            # Currently, timedelta dtypes get routed through here; whereas
-            # uncommenting them would re-call (see below)
-            # >>> astype_nansafe(to_timedelta(arr).values, dtype, copy=copy),
-            # and end up in the `is_timedelta64_dtype(arr)` above, which
-            # deliberately returns a float dtype. However, the test
-            # reshape/merge/test_merge.py::TestMerge:;test_other_timedelta_unit
-            # expects an explicit timedelta dtype as output - a contradiction.
-
-            # TODO: the case of np.issubdtype(dtype.type, np.integer) is only
-            # relevant anymore for IntegerArray, and should be solved by having
-            # consistent astyping for extension arrays, see GH 22384, as well
-            # as a branch here for `is_extension_array_dtype(arr)`
-
-            # TODO: Once those things are fixed, `astype_intsafe` can be
-            # removed completely from _libs.lib.
+            # int, see GH 1987). However, it is currently necessary for
+            # timedelta and IntegerArray tests (the dedicated timedelta branch
+            # below contradicts TestMerge::test_other_timedelta_unit and the
+            # IntegerArray tests would need a `is_extension_array_dtype(arr)`
+            # branch in this method).
             return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
+
+        # if we have a datetime/timedelta array of objects
+        # then coerce to a proper dtype and recall astype_nansafe
 
         elif is_datetime64_dtype(dtype):
             from pandas import to_datetime
             return astype_nansafe(to_datetime(arr).values, dtype, copy=copy)
-        # elif is_timedelta64_dtype(dtype):
-        #     from pandas import to_timedelta
-        #     return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
+        elif is_timedelta64_dtype(dtype):
+            from pandas import to_timedelta
+            return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
 
     if dtype.name in ("datetime64", "timedelta64"):
         msg = ("The '{dtype}' dtype has no unit. "
