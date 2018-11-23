@@ -15,8 +15,7 @@ from pandas.errors import PerformanceWarning
 from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, is_datetime64_dtype, is_datetime64tz_dtype, is_int64_dtype,
-    is_object_dtype)
+    _NS_DTYPE, is_datetime64_dtype, is_datetime64tz_dtype, is_object_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
