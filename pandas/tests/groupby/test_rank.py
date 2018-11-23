@@ -290,3 +290,16 @@ def test_rank_empty_group():
     result = df.groupby(column).rank(pct=True)
     expected = DataFrame({"B": [0.5, np.nan, 1.0]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_rank_zero_div():
+    # GH 23666
+    df = pd.DataFrame({
+                   "A": [1, 1, 1, 2, 2, 2],
+                   "B": [1, 1, 1, 1, 2, 2],
+                   "C": [1, 2, 1, 1, 1, 2]})
+
+    try:
+        df.groupby(["A", "B"])["C"].rank(pct=True, method="dense")
+    except ZeroDivisionError:
+        pytest.fail("Unexpected zero division error with groupby rank")
