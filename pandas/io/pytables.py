@@ -941,7 +941,7 @@ class HDFStore(StringMixin):
         ----------
         key : object
         value : {Series, DataFrame, Panel}
-        format: 'table' is the default
+        format : 'table' is the default
             table(t) : table format
                        Write as a PyTables Table structure which may perform
                        worse but allow more flexible operations like searching

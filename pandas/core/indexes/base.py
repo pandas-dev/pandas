@@ -1,68 +1,49 @@
 from datetime import datetime, timedelta
-import warnings
 import operator
 from textwrap import dedent
+import warnings
 
 import numpy as np
-from pandas._libs import (lib, index as libindex, tslibs,
-                          algos as libalgos, join as libjoin,
-                          Timedelta)
+
+from pandas._libs import (
+    Timedelta, algos as libalgos, index as libindex, join as libjoin, lib,
+    tslibs)
 from pandas._libs.lib import is_datetime_array
-
-from pandas.compat import range, u, set_function_name
+import pandas.compat as compat
+from pandas.compat import range, set_function_name, u
 from pandas.compat.numpy import function as nv
-from pandas import compat
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 
-from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import ExtensionArray
-from pandas.core.dtypes.generic import (
-    ABCSeries, ABCDataFrame,
-    ABCMultiIndex,
-    ABCPeriodIndex, ABCTimedeltaIndex, ABCDatetimeIndex,
-    ABCDateOffset, ABCIndexClass)
-from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
 from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_object,
-    ensure_categorical,
-    ensure_platform_int,
-    is_integer,
-    is_float,
-    is_dtype_equal,
-    is_dtype_union_equal,
-    is_object_dtype,
-    is_categorical,
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_period_dtype,
-    is_bool,
-    is_bool_dtype,
-    is_signed_integer_dtype,
-    is_unsigned_integer_dtype,
-    is_integer_dtype, is_float_dtype,
-    is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
-    is_timedelta64_dtype,
-    is_extension_array_dtype,
-    is_hashable,
-    is_iterator, is_list_like,
-    is_scalar)
-
-from pandas.core.base import PandasObject, IndexOpsMixin
-import pandas.core.common as com
-from pandas.core import ops
-from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly)
-from pandas.core.indexes.frozen import FrozenList
+    ensure_categorical, ensure_int64, ensure_object, ensure_platform_int,
+    is_bool, is_bool_dtype, is_categorical, is_categorical_dtype,
+    is_datetime64_any_dtype, is_datetime64tz_dtype, is_dtype_equal,
+    is_dtype_union_equal, is_extension_array_dtype, is_float, is_float_dtype,
+    is_hashable, is_integer, is_integer_dtype, is_interval_dtype, is_iterator,
+    is_list_like, is_object_dtype, is_period_dtype, is_scalar,
+    is_signed_integer_dtype, is_timedelta64_dtype, is_unsigned_integer_dtype)
 import pandas.core.dtypes.concat as _concat
-import pandas.core.missing as missing
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCDateOffset, ABCDatetimeIndex, ABCIndexClass,
+    ABCMultiIndex, ABCPeriodIndex, ABCSeries, ABCTimedeltaArray,
+    ABCTimedeltaIndex)
+from pandas.core.dtypes.missing import array_equivalent, isna
+
+from pandas.core import ops
+from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
+from pandas.core.arrays import ExtensionArray
+from pandas.core.base import IndexOpsMixin, PandasObject
+import pandas.core.common as com
+from pandas.core.indexes.frozen import FrozenList
+import pandas.core.missing as missing
+from pandas.core.ops import get_op_result_name, make_invalid_op
 import pandas.core.sorting as sorting
-from pandas.io.formats.printing import (
-    pprint_thing, default_pprint, format_object_summary, format_object_attrs)
-from pandas.core.ops import make_invalid_op, get_op_result_name
 from pandas.core.strings import StringMethods
+
+from pandas.io.formats.printing import (
+    default_pprint, format_object_attrs, format_object_summary, pprint_thing)
 
 __all__ = ['Index']
 
@@ -123,7 +104,8 @@ def _make_arithmetic_op(op, cls):
         elif isinstance(other, ABCTimedeltaIndex):
             # Defer to subclass implementation
             return NotImplemented
-        elif isinstance(other, np.ndarray) and is_timedelta64_dtype(other):
+        elif (isinstance(other, (np.ndarray, ABCTimedeltaArray)) and
+              is_timedelta64_dtype(other)):
             # GH#22390; wrap in Series for op, this will in turn wrap in
             # TimedeltaIndex, but will correctly raise TypeError instead of
             # NullFrequencyError for add/sub ops
@@ -2248,7 +2230,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def hasnans(self):
-        """ return if I have any nans; enables various perf speedups """
+        """
+        Return if I have any nans; enables various perf speedups.
+        """
         if self._can_hold_na:
             return bool(self._isnan.any())
         else:
@@ -2940,17 +2924,20 @@ class Index(IndexOpsMixin, PandasObject):
             taken.name = None
         return taken
 
-    def difference(self, other):
+    def difference(self, other, sort=True):
         """
         Return a new Index with elements from the index that are not in
         `other`.
 
         This is the set difference of two Index objects.
-        It's sorted if sorting is possible.
 
         Parameters
         ----------
         other : Index or array-like
+        sort : bool, default True
+            Sort the resulting index if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2959,10 +2946,12 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
 
-        >>> idx1 = pd.Index([1, 2, 3, 4])
+        >>> idx1 = pd.Index([2, 1, 3, 4])
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.difference(idx2)
         Int64Index([1, 2], dtype='int64')
+        >>> idx1.difference(idx2, sort=False)
+        Int64Index([2, 1], dtype='int64')
         """
         self._assert_can_do_setop(other)
 
@@ -2980,10 +2969,11 @@ class Index(IndexOpsMixin, PandasObject):
         label_diff = np.setdiff1d(np.arange(this.size), indexer,
                                   assume_unique=True)
         the_diff = this.values.take(label_diff)
-        try:
-            the_diff = sorting.safe_sort(the_diff)
-        except TypeError:
-            pass
+        if sort:
+            try:
+                the_diff = sorting.safe_sort(the_diff)
+            except TypeError:
+                pass
 
         return this._shallow_copy(the_diff, name=result_name, freq=None)
 

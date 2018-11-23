@@ -58,7 +58,7 @@ class DatelikeOps(object):
 
     See Also
     --------
-    pandas.to_datetime : Convert the given argument to datetime.
+    to_datetime : Convert the given argument to datetime.
     DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
     DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
     DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
@@ -80,7 +80,7 @@ class TimelikeOps(object):
 
     _round_doc = (
         """
-        {op} the data to the specified `freq`.
+        Perform {op} operation on the data to the specified `freq`.
 
         Parameters
         ----------

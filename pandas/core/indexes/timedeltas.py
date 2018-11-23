@@ -41,7 +41,7 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     ----------
     data  : array-like (1-dimensional), optional
         Optional timedelta-like data to construct index with
-    unit: unit of the arg (D,h,m,s,ms,us,ns) denote the unit, optional
+    unit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, optional
         which is an integer/float number
     freq : string or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
@@ -226,6 +226,14 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
 
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
+
+    __mul__ = Index.__mul__
+    __rmul__ = Index.__rmul__
+    __truediv__ = Index.__truediv__
+    __floordiv__ = Index.__floordiv__
+    __rfloordiv__ = Index.__rfloordiv__
+    if compat.PY2:
+        __div__ = Index.__div__
 
     days = wrap_field_accessor(TimedeltaArray.days)
     seconds = wrap_field_accessor(TimedeltaArray.seconds)

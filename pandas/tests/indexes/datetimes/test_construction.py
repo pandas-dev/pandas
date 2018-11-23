@@ -521,6 +521,12 @@ class TestDatetimeIndex(object):
                                     tz='Australia/Melbourne')
         tm.assert_index_equal(result, expected)
 
+    def test_construction_with_tz_and_tz_aware_dti(self):
+        # GH 23579
+        dti = date_range('2016-01-01', periods=3, tz='US/Central')
+        with pytest.raises(TypeError):
+            DatetimeIndex(dti, tz='Asia/Tokyo')
+
 
 class TestTimeSeries(object):
 
