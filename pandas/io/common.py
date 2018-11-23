@@ -106,11 +106,11 @@ def _urlopen(url, session=None):
             r = requests.get(url)
         r.raise_for_status()
         content = r.content
+        r.close()
     except ImportError:
-        r = urlopen(url)
-        content = r.read()
-        content_encoding = r.headers.get('Content-Encoding', None)
-    r.close()
+        with urlopen(url) as r:
+            content = r.read()
+            content_encoding = r.headers.get('Content-Encoding', None)
     if content_encoding == 'gzip':
         # Override compression based on Content-Encoding header.
         compression = 'gzip'
