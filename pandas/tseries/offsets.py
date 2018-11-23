@@ -9,7 +9,7 @@ import numpy as np
 from pandas._libs.tslibs import (
     NaT, OutOfBoundsDatetime, Timedelta, Timestamp, ccalendar, conversion,
     delta_to_nanoseconds, frequencies as libfrequencies, normalize_date,
-    offsets as liboffsets)
+    offsets as liboffsets, timezones)
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError, BaseOffset, _get_calendar, _is_normalized, _to_dt64,
     apply_index_wraps, as_datetime, roll_yearday, shift_month)
@@ -81,7 +81,7 @@ def apply_wraps(func):
                     if result.tz is not None:
                         # convert to UTC
                         value = conversion.tz_convert_single(
-                            result.value, 'UTC', result.tz)
+                            result.value, timezones.UTC, result.tz)
                     else:
                         value = result.value
                     result = Timestamp(value + nano)
