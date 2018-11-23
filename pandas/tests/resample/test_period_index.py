@@ -16,10 +16,10 @@ from pandas import DataFrame, Series, Timestamp
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.resample import DatetimeIndex
+from pandas.tests.resample.test_base import Base, _simple_pts, resample_methods
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
-from test_resample import Base, _simple_pts, resample_methods
 
 import pandas.tseries.offsets as offsets
 

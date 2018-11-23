@@ -6,9 +6,9 @@ import pytest
 import pandas as pd
 from pandas import DataFrame, Series
 from pandas.core.indexes.timedeltas import timedelta_range
+from pandas.tests.resample.test_base import Base
 import pandas.util.testing as tm
 from pandas.util.testing import assert_frame_equal
-from test_resample import Base
 
 
 class TestTimedeltaIndex(Base):

@@ -18,11 +18,11 @@ from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import DatetimeIndex, TimeGrouper
+from pandas.tests.resample.test_base import (
+    Base, _simple_pts, _simple_ts, bday, downsample_methods)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
-from test_resample import (
-    Base, _simple_pts, _simple_ts, bday, downsample_methods)
 
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import Minute
