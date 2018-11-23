@@ -295,9 +295,10 @@ def test_rank_empty_group():
 def test_rank_zero_div():
     # GH 23666
     df = pd.DataFrame({
-                   "A": [1, 1, 1, 2, 2, 2],
-                   "B": [1, 1, 1, 1, 2, 2],
-                   "C": [1, 2, 1, 1, 1, 2]})
+        "A": [1, 1, 1, 2, 2, 2],
+        "B": [1, 1, 1, 1, 2, 2],
+        "C": [1, 2, 1, 1, 1, 2]
+    })
 
     try:
         df.groupby(["A", "B"])["C"].rank(pct=True, method="dense")
