@@ -778,7 +778,6 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
     DateOffset subclass representing possibly n business days
 
     .. versionadded:: 0.16.1
-
     """
     _prefix = 'BH'
     _anchor = 0
@@ -863,7 +862,6 @@ class CustomBusinessHour(_CustomMixin, BusinessHourMixin,
     DateOffset subclass representing possibly n custom business days
 
     .. versionadded:: 0.18.1
-
     """
     _prefix = 'CBH'
     _anchor = 0
@@ -1469,7 +1467,6 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
         4: Fridays
         5: Saturdays
         6: Sundays
-
     """
     _prefix = 'LWOM'
     _adjust_dst = True

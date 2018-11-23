@@ -877,7 +877,6 @@ class DataFrame(NDFrame):
         --------
         itertuples : Iterate over DataFrame rows as namedtuples of the values.
         iteritems : Iterate over (column name, Series) pairs.
-
         """
         columns = self.columns
         klass = self._constructor_sliced
@@ -1722,7 +1721,6 @@ class DataFrame(NDFrame):
         Returns
         -------
         y : DataFrame
-
         """
 
         warnings.warn("from_csv is deprecated. Please use read_csv(...) "
@@ -1963,7 +1961,6 @@ class DataFrame(NDFrame):
         ----------
         fname : str
             string file path
-
         """
         from pandas.io.feather_format import to_feather
         to_feather(self, fname)
@@ -3578,7 +3575,6 @@ class DataFrame(NDFrame):
         --------
         values : ndarray
             The found values
-
         """
         n = len(row_labels)
         if n != len(col_labels):
@@ -4881,7 +4877,6 @@ class DataFrame(NDFrame):
 
            The indexes ``i`` and ``j`` are now optional, and default to
            the two innermost levels of the index.
-
         """
         result = self.copy()
 
@@ -7115,7 +7110,6 @@ class DataFrame(NDFrame):
         John      2
         Lewis     1
         Myla      1
-
         """
         axis = self._get_axis_number(axis)
         if level is not None:

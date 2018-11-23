@@ -129,7 +129,6 @@ def json_normalize(data, record_path=None, meta=None,
 
         .. versionadded:: 0.20.0
 
-
     Returns
     -------
     frame : DataFrame
