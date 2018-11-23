@@ -16,7 +16,8 @@ from pandas import DataFrame, Series, Timestamp
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.resample import DatetimeIndex
-from pandas.tests.resample.test_base import Base, _simple_pts, resample_methods
+from pandas.tests.resample.test_base import (
+    Base, resample_methods, simple_period_range_series)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
@@ -128,7 +129,8 @@ class TestPeriodIndex(Base):
 
     def _check_annual_upsample_cases(self, targ, conv, meth, end='12/31/1991'):
         for month in MONTHS:
-            ts = _simple_pts('1/1/1990', end, freq='A-%s' % month)
+            ts = simple_period_range_series(
+                '1/1/1990', end, freq='A-%s' % month)
 
             result = getattr(ts.resample(targ, convention=conv), meth)()
             expected = result.to_timestamp(targ, how=conv)
@@ -136,7 +138,7 @@ class TestPeriodIndex(Base):
             assert_series_equal(result, expected)
 
     def test_basic_downsample(self):
-        ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
+        ts = simple_period_range_series('1/1/1990', '6/30/1995', freq='M')
         result = ts.resample('a-dec').mean()
 
         expected = ts.groupby(ts.index.year).mean()
@@ -149,7 +151,7 @@ class TestPeriodIndex(Base):
 
     def test_not_subperiod(self):
         # These are incompatible period rules for resampling
-        ts = _simple_pts('1/1/1990', '6/30/1995', freq='w-wed')
+        ts = simple_period_range_series('1/1/1990', '6/30/1995', freq='w-wed')
         pytest.raises(ValueError, lambda: ts.resample('a-dec').mean())
         pytest.raises(ValueError, lambda: ts.resample('q-mar').mean())
         pytest.raises(ValueError, lambda: ts.resample('M').mean())
@@ -157,7 +159,7 @@ class TestPeriodIndex(Base):
 
     @pytest.mark.parametrize('freq', ['D', '2D'])
     def test_basic_upsample(self, freq):
-        ts = _simple_pts('1/1/1990', '6/30/1995', freq='M')
+        ts = simple_period_range_series('1/1/1990', '6/30/1995', freq='M')
         result = ts.resample('a-dec').mean()
 
         resampled = result.resample(freq, convention='end').ffill()
@@ -175,7 +177,7 @@ class TestPeriodIndex(Base):
         assert_series_equal(result, expected)
 
     def test_annual_upsample(self):
-        ts = _simple_pts('1/1/1990', '12/31/1995', freq='A-DEC')
+        ts = simple_period_range_series('1/1/1990', '12/31/1995', freq='A-DEC')
         df = DataFrame({'a': ts})
         rdf = df.resample('D').ffill()
         exp = df['a'].resample('D').ffill()
@@ -196,7 +198,7 @@ class TestPeriodIndex(Base):
     @pytest.mark.parametrize('convention', ['start', 'end'])
     def test_quarterly_upsample(self, month, target, convention):
         freq = 'Q-{month}'.format(month=month)
-        ts = _simple_pts('1/1/1990', '12/31/1995', freq=freq)
+        ts = simple_period_range_series('1/1/1990', '12/31/1995', freq=freq)
         result = ts.resample(target, convention=convention).ffill()
         expected = result.to_timestamp(target, how=convention)
         expected = expected.asfreq(target, 'ffill').to_period()
@@ -205,7 +207,7 @@ class TestPeriodIndex(Base):
     @pytest.mark.parametrize('target', ['D', 'B'])
     @pytest.mark.parametrize('convention', ['start', 'end'])
     def test_monthly_upsample(self, target, convention):
-        ts = _simple_pts('1/1/1990', '12/31/1995', freq='M')
+        ts = simple_period_range_series('1/1/1990', '12/31/1995', freq='M')
         result = ts.resample(target, convention=convention).ffill()
         expected = result.to_timestamp(target, how=convention)
         expected = expected.asfreq(target, 'ffill').to_period()
@@ -351,14 +353,14 @@ class TestPeriodIndex(Base):
     @pytest.mark.parametrize('convention', ['start', 'end'])
     def test_weekly_upsample(self, day, target, convention):
         freq = 'W-{day}'.format(day=day)
-        ts = _simple_pts('1/1/1990', '12/31/1995', freq=freq)
+        ts = simple_period_range_series('1/1/1990', '12/31/1995', freq=freq)
         result = ts.resample(target, convention=convention).ffill()
         expected = result.to_timestamp(target, how=convention)
         expected = expected.asfreq(target, 'ffill').to_period()
         assert_series_equal(result, expected)
 
     def test_resample_to_timestamps(self):
-        ts = _simple_pts('1/1/1990', '12/31/1995', freq='M')
+        ts = simple_period_range_series('1/1/1990', '12/31/1995', freq='M')
 
         result = ts.resample('A-DEC', kind='timestamp').mean()
         expected = ts.to_timestamp(how='start').resample('A-DEC').mean()
@@ -366,7 +368,8 @@ class TestPeriodIndex(Base):
 
     def test_resample_to_quarterly(self):
         for month in MONTHS:
-            ts = _simple_pts('1990', '1992', freq='A-%s' % month)
+            ts = simple_period_range_series(
+                '1990', '1992', freq='A-%s' % month)
             quar_ts = ts.resample('Q-%s' % month).ffill()
 
             stamps = ts.to_timestamp('D', how='start')
@@ -381,7 +384,7 @@ class TestPeriodIndex(Base):
             assert_series_equal(quar_ts, expected)
 
         # conforms, but different month
-        ts = _simple_pts('1990', '1992', freq='A-JUN')
+        ts = simple_period_range_series('1990', '1992', freq='A-JUN')
 
         for how in ['start', 'end']:
             result = ts.resample('Q-MAR', convention=how).ffill()
@@ -420,13 +423,13 @@ class TestPeriodIndex(Base):
         assert_series_equal(result, expected)
 
     def test_upsample_daily_business_daily(self):
-        ts = _simple_pts('1/1/2000', '2/1/2000', freq='B')
+        ts = simple_period_range_series('1/1/2000', '2/1/2000', freq='B')
 
         result = ts.resample('D').asfreq()
         expected = ts.asfreq('D').reindex(period_range('1/3/2000', '2/1/2000'))
         assert_series_equal(result, expected)
 
-        ts = _simple_pts('1/1/2000', '2/1/2000')
+        ts = simple_period_range_series('1/1/2000', '2/1/2000')
         result = ts.resample('H', convention='s').asfreq()
         exp_rng = period_range('1/1/2000', '2/1/2000 23:00', freq='H')
         expected = ts.asfreq('H', how='s').reindex(exp_rng)

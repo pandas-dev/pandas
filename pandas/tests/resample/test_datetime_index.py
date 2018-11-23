@@ -19,7 +19,8 @@ from pandas.core.indexes.period import Period, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import DatetimeIndex, TimeGrouper
 from pandas.tests.resample.test_base import (
-    Base, _simple_pts, _simple_ts, bday, downsample_methods)
+    Base, business_day_offset, downsample_methods, simple_date_range_series,
+    simple_period_range_series)
 import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
@@ -431,8 +432,8 @@ class TestDatetimeIndex(Base):
 
         # to weekly
         result = ser.resample('w-sun').last()
-        expected = ser.resample('w-sun', loffset=-bday).last()
-        assert result.index[0] - bday == expected.index[0]
+        expected = ser.resample('w-sun', loffset=-business_day_offset).last()
+        assert result.index[0] - business_day_offset == expected.index[0]
 
     def test_resample_loffset_upsample(self):
         # GH 20744
@@ -628,7 +629,7 @@ class TestDatetimeIndex(Base):
         assert result.index.freq == offsets.Hour(8)
 
     def test_resample_timestamp_to_period(self):
-        ts = _simple_ts('1/1/1990', '1/1/2000')
+        ts = simple_date_range_series('1/1/1990', '1/1/2000')
 
         result = ts.resample('A-DEC', kind='period').mean()
         expected = ts.resample('A-DEC').mean()
@@ -979,12 +980,13 @@ class TestDatetimeIndex(Base):
         expected.index += Timedelta(1, 'ns') - Timedelta(1, 'D')
         tm.assert_frame_equal(result, expected)
 
-        ts = _simple_ts('2012-04-29 23:00', '2012-04-30 5:00', freq='h')
+        ts = simple_date_range_series('2012-04-29 23:00', '2012-04-30 5:00',
+                                      freq='h')
         resampled = ts.resample('M').mean()
         assert len(resampled) == 1
 
     def test_resample_anchored_monthstart(self):
-        ts = _simple_ts('1/1/2000', '12/31/2002')
+        ts = simple_date_range_series('1/1/2000', '12/31/2002')
 
         freqs = ['MS', 'BMS', 'QS-MAR', 'AS-DEC', 'AS-JUN']
 
@@ -1023,13 +1025,15 @@ class TestDatetimeIndex(Base):
         ex_index = date_range('1999-12-31 23:55', periods=4, freq='5t')
         tm.assert_index_equal(result.index, ex_index)
 
-        len0pts = _simple_pts('2007-01', '2010-05', freq='M')[:0]
+        len0pts = simple_period_range_series(
+            '2007-01', '2010-05', freq='M')[:0]
         # it works
         result = len0pts.resample('A-DEC').mean()
         assert len(result) == 0
 
         # resample to periods
-        ts = _simple_ts('2000-04-28', '2000-04-30 11:00', freq='h')
+        ts = simple_date_range_series(
+            '2000-04-28', '2000-04-30 11:00', freq='h')
         result = ts.resample('M', kind='period').mean()
         assert len(result) == 1
         assert result.index[0] == Period('2000-04', freq='M')
@@ -1076,7 +1080,7 @@ class TestDatetimeIndex(Base):
 
     def test_how_lambda_functions(self):
 
-        ts = _simple_ts('1/1/2000', '4/1/2000')
+        ts = simple_date_range_series('1/1/2000', '4/1/2000')
 
         result = ts.resample('M').apply(lambda x: x.mean())
         exp = ts.resample('M').mean()
