@@ -1237,6 +1237,66 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(res, expected)
 
     # ------------------------------------------------------------------
+    # mod, divmod
+    # TODO: operations with timedelta-like arrays, numeric arrays,
+    #  reversed ops
+
+    def test_td64arr_mod_tdscalar(self, box_with_array, three_days):
+        tdi = timedelta_range('1 Day', '9 days')
+        tdarr = tm.box_expected(tdi, box_with_array)
+
+        expected = TimedeltaIndex(['1 Day', '2 Days', '0 Days'] * 3)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = tdarr % three_days
+        tm.assert_equal(result, expected)
+
+        if box_with_array is pd.DataFrame:
+            pytest.xfail("DataFrame does not have __divmod__ or __rdivmod__")
+
+        result = divmod(tdarr, three_days)
+        tm.assert_equal(result[1], expected)
+        tm.assert_equal(result[0], tdarr // three_days)
+
+    def test_td64arr_mod_int(self, box_with_array):
+        tdi = timedelta_range('1 ns', '10 ns', periods=10)
+        tdarr = tm.box_expected(tdi, box_with_array)
+
+        expected = TimedeltaIndex(['1 ns', '0 ns'] * 5)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = tdarr % 2
+        tm.assert_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            2 % tdarr
+
+        if box_with_array is pd.DataFrame:
+            pytest.xfail("DataFrame does not have __divmod__ or __rdivmod__")
+
+        result = divmod(tdarr, 2)
+        tm.assert_equal(result[1], expected)
+        tm.assert_equal(result[0], tdarr // 2)
+
+    def test_td64arr_rmod_tdscalar(self, box_with_array, three_days):
+        tdi = timedelta_range('1 Day', '9 days')
+        tdarr = tm.box_expected(tdi, box_with_array)
+
+        expected = ['0 Days', '1 Day', '0 Days'] + ['3 Days'] * 6
+        expected = TimedeltaIndex(expected)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = three_days % tdarr
+        tm.assert_equal(result, expected)
+
+        if box_with_array is pd.DataFrame:
+            pytest.xfail("DataFrame does not have __divmod__ or __rdivmod__")
+
+        result = divmod(three_days, tdarr)
+        tm.assert_equal(result[1], expected)
+        tm.assert_equal(result[0], three_days // tdarr)
+
+    # ------------------------------------------------------------------
     # Operations with invalid others
 
     def test_td64arr_mul_tdscalar_invalid(self, box_with_array, scalar_td):

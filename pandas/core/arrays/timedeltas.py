@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import tslibs
+from pandas._libs import algos, lib, tslibs
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
@@ -17,14 +17,13 @@ from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
     _TD_DTYPE, ensure_int64, is_datetime64_dtype, is_float_dtype,
-    is_integer_dtype, is_list_like, is_object_dtype, is_string_dtype,
-    is_timedelta64_dtype)
+    is_integer_dtype, is_list_like, is_object_dtype, is_scalar,
+    is_string_dtype, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCDataFrame, ABCIndexClass, ABCSeries, ABCTimedeltaIndex)
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import ops
-from pandas.core.algorithms import checked_add_with_arr
+from pandas.core.algorithms import checked_add_with_arr, unique1d
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
@@ -227,6 +226,18 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
 
+    @property
+    def is_monotonic_increasing(self):
+        return algos.is_monotonic(self.asi8, timelike=True)[0]
+
+    @property
+    def is_monotonic_decreasing(self):
+        return algos.is_monotonic(self.asi8, timelike=True)[1]
+
+    @property
+    def is_unique(self):
+        return len(unique1d(self.asi8)) == len(self)
+
     # ----------------------------------------------------------------
     # Arithmetic Methods
 
@@ -325,11 +336,158 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     __mul__ = _wrap_tdi_op(operator.mul)
     __rmul__ = __mul__
     __truediv__ = _wrap_tdi_op(operator.truediv)
-    __floordiv__ = _wrap_tdi_op(operator.floordiv)
-    __rfloordiv__ = _wrap_tdi_op(ops.rfloordiv)
 
     if compat.PY2:
         __div__ = __truediv__
+
+    def __floordiv__(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+
+        if is_scalar(other):
+            if isinstance(other, (timedelta, np.timedelta64, Tick)):
+                other = Timedelta(other)
+                if other is NaT:
+                    # treat this specifically as timedelta-NaT
+                    result = np.empty(self.shape, dtype=np.float64)
+                    result.fill(np.nan)
+                    return result
+
+                # dispatch to Timedelta implementation
+                result = other.__rfloordiv__(self._data)
+                return result
+
+            # at this point we should only have numeric scalars; anything
+            #  else will raise
+            result = self.asi8 // other
+            result[self._isnan] = iNaT
+            freq = None
+            if self.freq is not None:
+                # Note: freq gets division, not floor-division
+                freq = self.freq / other
+            return type(self)(result.view('m8[ns]'), freq=freq)
+
+        if not hasattr(other, "dtype"):
+            # list, tuple
+            other = np.array(other)
+        if len(other) != len(self):
+            raise ValueError("Cannot divide with unequal lengths")
+
+        elif is_timedelta64_dtype(other):
+            other = type(self)(other)
+
+            # numpy timedelta64 does not natively support floordiv, so operate
+            #  on the i8 values
+            result = self.asi8 // other.asi8
+            mask = self._isnan | other._isnan
+            if mask.any():
+                result = result.astype(np.int64)
+                result[mask] = np.nan
+            return result
+
+        elif is_object_dtype(other):
+            result = [self[n] // other[n] for n in range(len(self))]
+            result = np.array(result)
+            if lib.infer_dtype(result) == 'timedelta':
+                result, _ = sequence_to_td64ns(result)
+                return type(self)(result)
+            return result
+
+        elif is_integer_dtype(other) or is_float_dtype(other):
+            result = self._data // other
+            return type(self)(result)
+
+        else:
+            dtype = getattr(other, "dtype", type(other).__name__)
+            raise TypeError("Cannot divide {typ} by {cls}"
+                            .format(typ=dtype, cls=type(self).__name__))
+
+    def __rfloordiv__(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+
+        if is_scalar(other):
+            if isinstance(other, (timedelta, np.timedelta64, Tick)):
+                other = Timedelta(other)
+                if other is NaT:
+                    # treat this specifically as timedelta-NaT
+                    result = np.empty(self.shape, dtype=np.float64)
+                    result.fill(np.nan)
+                    return result
+
+                # dispatch to Timedelta implementation
+                result = other.__floordiv__(self._data)
+                return result
+
+            raise TypeError("Cannot divide {typ} by {cls}"
+                            .format(typ=type(other).__name__,
+                                    cls=type(self).__name__))
+
+        if not hasattr(other, "dtype"):
+            # list, tuple
+            other = np.array(other)
+        if len(other) != len(self):
+            raise ValueError("Cannot divide with unequal lengths")
+
+        elif is_timedelta64_dtype(other):
+            other = type(self)(other)
+
+            # numpy timedelta64 does not natively support floordiv, so operate
+            #  on the i8 values
+            result = other.asi8 // self.asi8
+            mask = self._isnan | other._isnan
+            if mask.any():
+                result = result.astype(np.int64)
+                result[mask] = np.nan
+            return result
+
+        elif is_object_dtype(other):
+            result = [other[n] // self[n] for n in range(len(self))]
+            result = np.array(result)
+            return result
+
+        else:
+            dtype = getattr(other, "dtype", type(other).__name__)
+            raise TypeError("Cannot divide {typ} by {cls}"
+                            .format(typ=dtype, cls=type(self).__name__))
+
+    def __mod__(self, other):
+        # Note: This is a naive implementation, can likely be optimized
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            other = Timedelta(other)
+        return self - (self // other) * other
+
+    def __rmod__(self, other):
+        # Note: This is a naive implementation, can likely be optimized
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            other = Timedelta(other)
+        return other - (other // self) * self
+
+    def __divmod__(self, other):
+        # Note: This is a naive implementation, can likely be optimized
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            other = Timedelta(other)
+
+        res1 = self // other
+        res2 = self - res1 * other
+        return res1, res2
+
+    def __rdivmod__(self, other):
+        # Note: This is a naive implementation, can likely be optimized
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndexClass)):
+            return NotImplemented
+        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            other = Timedelta(other)
+
+        res1 = other // self
+        res2 = other - res1 * self
+        return res1, res2
 
     # Note: TimedeltaIndex overrides this in call to cls._add_numeric_methods
     def __neg__(self):
