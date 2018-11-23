@@ -4,36 +4,37 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 # pylint: disable=E1103,W0231,W0212,W0621
 from __future__ import division
 
-import numpy as np
 import warnings
-from pandas.core.dtypes.cast import (
-    infer_dtype_from_scalar,
-    cast_scalar_to_array,
-    maybe_cast_item)
-from pandas.core.dtypes.common import (
-    is_integer, is_list_like,
-    is_string_like, is_scalar)
-from pandas.core.dtypes.missing import notna
 
-import pandas.core.ops as ops
-import pandas.core.common as com
-import pandas.core.indexes.base as ibase
-from pandas import compat
-from pandas.compat import (map, zip, range, u, OrderedDict)
+import numpy as np
+
+import pandas.compat as compat
+from pandas.compat import OrderedDict, map, range, u, zip
 from pandas.compat.numpy import function as nv
-from pandas.core.frame import DataFrame
-from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.index import (Index, MultiIndex, ensure_index,
-                               _get_objs_combined_axis)
-from pandas.io.formats.printing import pprint_thing
-from pandas.core.indexing import maybe_droplevels
-from pandas.core.internals import (BlockManager,
-                                   create_block_manager_from_arrays,
-                                   create_block_manager_from_blocks)
-from pandas.core.series import Series
-from pandas.core.reshape.util import cartesian_product
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.util._validators import validate_axis_style_args
+
+from pandas.core.dtypes.cast import (
+    cast_scalar_to_array, infer_dtype_from_scalar, maybe_cast_item)
+from pandas.core.dtypes.common import (
+    is_integer, is_list_like, is_scalar, is_string_like)
+from pandas.core.dtypes.missing import notna
+
+import pandas.core.common as com
+from pandas.core.frame import DataFrame
+from pandas.core.generic import NDFrame, _shared_docs
+from pandas.core.index import (
+    Index, MultiIndex, _get_objs_combined_axis, ensure_index)
+import pandas.core.indexes.base as ibase
+from pandas.core.indexing import maybe_droplevels
+from pandas.core.internals import (
+    BlockManager, create_block_manager_from_arrays,
+    create_block_manager_from_blocks)
+import pandas.core.ops as ops
+from pandas.core.reshape.util import cartesian_product
+from pandas.core.series import Series
+
+from pandas.io.formats.printing import pprint_thing
 
 _shared_doc_kwargs = dict(
     axes='items, major_axis, minor_axis',

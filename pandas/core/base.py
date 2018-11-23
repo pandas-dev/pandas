@@ -1,32 +1,28 @@
 """
 Base and utility classes for pandas objects.
 """
-import warnings
 import textwrap
-from pandas import compat
-from pandas.compat import builtins
+import warnings
+
 import numpy as np
 
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
-from pandas.core.dtypes.common import (
-    is_datetimelike,
-    is_object_dtype,
-    is_list_like,
-    is_scalar,
-    is_extension_type,
-    is_extension_array_dtype)
-
-from pandas.util._validators import validate_bool_kwarg
-from pandas.errors import AbstractMethodError
-from pandas.core import common as com, algorithms
-import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
+import pandas.compat as compat
+from pandas.compat import PYPY, OrderedDict, builtins
 from pandas.compat.numpy import function as nv
-from pandas.compat import PYPY, OrderedDict
-from pandas.util._decorators import Appender, cache_readonly, Substitution
+from pandas.errors import AbstractMethodError
+from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.dtypes.common import (
+    is_datetimelike, is_extension_array_dtype, is_extension_type, is_list_like,
+    is_object_dtype, is_scalar)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.missing import isna
+
+from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
+import pandas.core.nanops as nanops
 
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',

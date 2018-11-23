@@ -1,26 +1,22 @@
 import warnings
 
 import numpy as np
+
 from pandas._libs import index as libindex
+import pandas.compat as compat
+from pandas.util._decorators import Appender, cache_readonly
+
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    pandas_dtype,
-    needs_i8_conversion,
-    is_integer_dtype,
-    is_float,
-    is_bool,
-    is_bool_dtype,
-    is_scalar)
+    is_bool, is_bool_dtype, is_dtype_equal, is_float, is_integer_dtype,
+    is_scalar, needs_i8_conversion, pandas_dtype)
+import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
-from pandas import compat
 from pandas.core import algorithms
 import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
-from pandas.util._decorators import Appender, cache_readonly
-import pandas.core.dtypes.concat as _concat
-import pandas.core.indexes.base as ibase
 from pandas.core.ops import get_op_result_name
 
 _num_index_shared_docs = dict()

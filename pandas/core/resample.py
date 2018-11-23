@@ -1,37 +1,37 @@
-from datetime import timedelta
-import numpy as np
-import warnings
 import copy
+from datetime import timedelta
 from textwrap import dedent
+import warnings
 
-import pandas as pd
-from pandas.core.groupby.base import GroupByMixin
-from pandas.core.groupby.ops import BinGrouper
-from pandas.core.groupby.groupby import (
-    _GroupBy, GroupBy, groupby, _pipe_template
-)
-from pandas.core.groupby.grouper import Grouper
-from pandas.core.groupby.generic import SeriesGroupBy, PanelGroupBy
-
-from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
-from pandas.core.indexes.datetimes import DatetimeIndex, date_range
-from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.tseries.offsets import (DateOffset, Tick, Day,
-                                    delta_to_nanoseconds, Nano)
-from pandas.core.indexes.period import PeriodIndex
-from pandas.errors import AbstractMethodError
-import pandas.core.algorithms as algos
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
-
-import pandas.compat as compat
-from pandas.compat.numpy import function as nv
+import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import Timestamp, NaT
+from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
-
+import pandas.compat as compat
+from pandas.compat.numpy import function as nv
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
+
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+
+import pandas as pd
+import pandas.core.algorithms as algos
 from pandas.core.generic import _shared_docs
+from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.generic import PanelGroupBy, SeriesGroupBy
+from pandas.core.groupby.groupby import (
+    GroupBy, _GroupBy, _pipe_template, groupby)
+from pandas.core.groupby.grouper import Grouper
+from pandas.core.groupby.ops import BinGrouper
+from pandas.core.indexes.datetimes import DatetimeIndex, date_range
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+
+from pandas.tseries.frequencies import is_subperiod, is_superperiod, to_offset
+from pandas.tseries.offsets import (
+    DateOffset, Day, Nano, Tick, delta_to_nanoseconds)
+
 _shared_docs_kwargs = dict()
 
 

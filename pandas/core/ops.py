@@ -5,49 +5,40 @@ This is not a public API.
 """
 # necessary to enforce truediv in Python 2.X
 from __future__ import division
+
 import datetime
 import operator
 import textwrap
 import warnings
 
 import numpy as np
-import pandas as pd
 
-from pandas._libs import lib, algos as libalgos, ops as libops
-
-from pandas import compat
+from pandas._libs import algos as libalgos, lib, ops as libops
+import pandas.compat as compat
+from pandas.compat import bind_method
+from pandas.errors import NullFrequencyError
 from pandas.util._decorators import Appender
 
-from pandas.compat import bind_method
-import pandas.core.missing as missing
-import pandas.core.common as com
-
-from pandas.errors import NullFrequencyError
-from pandas.core.dtypes.missing import notna, isna
-from pandas.core.dtypes.common import (
-    needs_i8_conversion,
-    is_datetimelike_v_numeric,
-    is_period_dtype,
-    is_integer_dtype, is_categorical_dtype,
-    is_object_dtype, is_timedelta64_dtype,
-    is_datetime64_dtype, is_datetime64tz_dtype,
-    is_bool_dtype,
-    is_list_like,
-    is_scalar,
-    is_extension_array_dtype,
-    ensure_object)
 from pandas.core.dtypes.cast import (
-    maybe_upcast_putmask, find_common_type,
-    construct_1d_object_array_from_listlike)
+    construct_1d_object_array_from_listlike, find_common_type,
+    maybe_upcast_putmask)
+from pandas.core.dtypes.common import (
+    ensure_object, is_bool_dtype, is_categorical_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_datetimelike_v_numeric, is_extension_array_dtype,
+    is_integer_dtype, is_list_like, is_object_dtype, is_period_dtype,
+    is_scalar, is_timedelta64_dtype, needs_i8_conversion)
 from pandas.core.dtypes.generic import (
-    ABCSeries,
-    ABCDataFrame, ABCPanel,
-    ABCIndex, ABCIndexClass,
-    ABCSparseSeries, ABCSparseArray)
+    ABCDataFrame, ABCIndex, ABCIndexClass, ABCPanel, ABCSeries, ABCSparseArray,
+    ABCSparseSeries)
+from pandas.core.dtypes.missing import isna, notna
 
+import pandas as pd
+import pandas.core.common as com
+import pandas.core.missing as missing
 
 # -----------------------------------------------------------------------------
 # Ops Wrapping Utilities
+
 
 def get_op_result_name(left, right):
     """

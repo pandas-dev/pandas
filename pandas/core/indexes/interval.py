@@ -4,48 +4,34 @@ import warnings
 
 import numpy as np
 
+from pandas._libs import Timedelta, Timestamp
+from pandas._libs.interval import Interval, IntervalMixin, IntervalTree
 from pandas.compat import add_metaclass
-from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.cast import (
-    find_common_type, maybe_downcast_to_dtype, infer_dtype_from_scalar)
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_list_like,
-    is_datetime_or_timedelta_dtype,
-    is_datetime64tz_dtype,
-    is_dtype_equal,
-    is_integer_dtype,
-    is_float_dtype,
-    is_interval_dtype,
-    is_object_dtype,
-    is_scalar,
-    is_float,
-    is_number,
-    is_integer)
-from pandas.core.indexes.base import (
-    Index, ensure_index,
-    default_pprint, _index_shared_docs)
-from pandas.core.ops import get_op_result_name
-
-from pandas._libs import Timestamp, Timedelta
-from pandas._libs.interval import (
-    Interval, IntervalMixin, IntervalTree,
-)
-
-from pandas.core.indexes.datetimes import date_range, DatetimeIndex
-from pandas.core.indexes.timedeltas import timedelta_range, TimedeltaIndex
-from pandas.core.indexes.multi import MultiIndex
-import pandas.core.common as com
-from pandas.util._decorators import cache_readonly, Appender
+from pandas.util._decorators import Appender, cache_readonly
 from pandas.util._doctools import _WritableDoc
 from pandas.util._exceptions import rewrite_exception
+
+from pandas.core.dtypes.cast import (
+    find_common_type, infer_dtype_from_scalar, maybe_downcast_to_dtype)
+from pandas.core.dtypes.common import (
+    ensure_platform_int, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype,
+    is_dtype_equal, is_float, is_float_dtype, is_integer, is_integer_dtype,
+    is_interval_dtype, is_list_like, is_number, is_object_dtype, is_scalar)
+from pandas.core.dtypes.missing import isna
+
+from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
+import pandas.core.common as com
 from pandas.core.config import get_option
+import pandas.core.indexes.base as ibase
+from pandas.core.indexes.base import (
+    Index, _index_shared_docs, default_pprint, ensure_index)
+from pandas.core.indexes.datetimes import DatetimeIndex, date_range
+from pandas.core.indexes.multi import MultiIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
+from pandas.core.ops import get_op_result_name
+
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
-
-import pandas.core.indexes.base as ibase
-from pandas.core.arrays.interval import (IntervalArray,
-                                         _interval_shared_docs)
 
 _VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
