@@ -45,6 +45,9 @@ def nested_to_record(ds, prefix="", sep=".", level=0,
     level: the number of levels in the jason string, optional, default: 0
 
     max_level: int, normalize to a maximum level of, optional, default: None
+
+        .. versionadded:: 0.24.0
+
     ignore_keys: list, keys to ignore, default None, optional, default: None
 
          .. versionadded:: 0.24.0
@@ -142,8 +145,11 @@ def json_normalize(data, record_path=None, meta=None,
 
         .. versionadded:: 0.20.0
 
-    max_level: integer, max depth to normalize, default sNone
-    ignore_keys: list, keys to ignore, default None
+    max_level : integer, max depth to normalize, default sNone
+
+        .. versionadded:: 0.24.0
+
+    ignore_keys : list, keys to ignore, default None
 
         .. versionadded:: 0.24.0
 
@@ -164,6 +170,19 @@ def json_normalize(data, record_path=None, meta=None,
     0  1.0         NaN         NaN     Coleen        NaN      Volk
     1  NaN         NaN      Regner        NaN       Mose       NaN
     2  2.0  Faye Raker         NaN        NaN        NaN       NaN
+
+    >>> from pandas.io.json import json_normalize
+    >>> data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'},
+    ...          "fitness":{"height":130, "weight":60}},
+    ...         {'name': {'given': 'Mose', 'family': 'Regner'},
+    ...          "fitness":{"height":130, "weight":60}},},
+    ...         {'id': 2, 'name': 'Faye Raker',
+    ...          "fitness":{"height":130, "weight":60}}}]
+    >>> json_normalize(data, mex_level=1, ignore_keys=["name"])
+        id      name                                 fitness.height  fitness.weight
+    0  1.0    {'first': 'Coleen', 'last': 'Volk'}      130               60
+    1  NaN    {'given': 'Mose', 'family': 'Regner'}    130               60
+    2  2.0     Faye Raker                              130               60
 
     >>> data = [{'state': 'Florida',
     ...          'shortname': 'FL',
