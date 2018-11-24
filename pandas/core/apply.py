@@ -9,6 +9,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import (
     is_dict_like, is_extension_type, is_list_like, is_sequence, is_sparse)
 from pandas.core.dtypes.generic import ABCSeries
+
 from pandas import concat
 
 from pandas.io.formats.printing import pprint_thing
