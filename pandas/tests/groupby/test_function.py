@@ -694,34 +694,24 @@ def test_is_monotonic_decreasing(in_vals, out_vals):
 
 # describe
 # --------------------------------
-
 def test_describe():
-    df = DataFrame(
-        [[1, 2, 'foo'],
-         [1, np.nan, 'bar'],
-         [3, np.nan, 'baz']],
-        columns=['A', 'B', 'C'])
-    g = df.groupby('A')
-    gni = df.groupby('A', as_index=False)
+    df = DataFrame([
+        [1, 2, 'foo'],
+        [1, np.nan, 'bar'],
+        [3, np.nan, 'baz']
+    ], columns=['A', 'B', 'C'])
+    grp = df.groupby('A')
 
-    # describe
-    expected_index = pd.Index([1, 3], name='A')
-    expected_col = pd.MultiIndex(levels=[['B'],
-                                         ['count', 'mean', 'std', 'min',
-                                          '25%', '50%', '75%', 'max']],
-                                 labels=[[0] * 8, list(range(8))])
-    expected = pd.DataFrame([[1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
-                             [0.0, np.nan, np.nan, np.nan, np.nan, np.nan,
-                              np.nan, np.nan]],
-                            index=expected_index,
-                            columns=expected_col)
-    result = g.describe()
-    tm.assert_frame_equal(result, expected)
+    index = pd.Index([1, 3], name='A')
+    columns = pd.MultiIndex.from_product([
+        ['B'], ['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']])
 
-    expected = pd.concat([df[df.A == 1].describe().unstack().to_frame().T,
-                          df[df.A == 3].describe().unstack().to_frame().T])
-    expected.index = pd.Index([0, 1])
-    result = gni.describe()
+    expected = pd.DataFrame([
+        [1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
+        [0.0, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+    ], index=index, columns=columns)
+
+    result = grp.describe()
     tm.assert_frame_equal(result, expected)
 
 
@@ -1089,7 +1079,7 @@ def test_size(df):
 # --------------------------------
 @pytest.mark.parametrize("interpolation", [
     "linear", "lower", "higher", "nearest", "midpoint"])
-@pytest.mark.parametrize("bar_vals,foo_vals", [
+@pytest.mark.parametrize("a_vals,b_vals", [
     # Ints
     ([1, 2, 3, 4, 5], [5, 4, 3, 2, 1]),
     ([1, 2, 3, 4], [4, 3, 2, 1]),
@@ -1101,35 +1091,33 @@ def test_size(df):
     ([np.nan, 4., np.nan, 2., np.nan], [np.nan, 4., np.nan, 2., np.nan]),
     # Timestamps
     ([x for x in pd.date_range('1/1/18', freq='D', periods=5)],
-     [x for x in pd.date_range('1/1/18', freq='D', periods=5)[::-1]])
+     [x for x in pd.date_range('1/1/18', freq='D', periods=5)][::-1]),
+    # All NA
+    ([np.nan] * 5, [np.nan] * 5),
 ])
 @pytest.mark.parametrize('q', [0, .25, .5, .75, 1])
-def test_quantile(interpolation, bar_vals, foo_vals, q):
-    # Fringe test case was not working as expected?
-    if (interpolation == 'nearest' and q == 0.5 and foo_vals == [
-            4, 3, 2, 1]):
+def test_quantile(interpolation, a_vals, b_vals, q):
+    if interpolation == 'nearest' and q == 0.5 and b_vals == [4, 3, 2, 1]:
         pytest.skip("Unclear numpy expectation for nearest result with "
                     "equidistant data")
-    bar_ser = pd.Series(bar_vals)
-    bar_exp = bar_ser.quantile(q, interpolation=interpolation)
-    foo_ser = pd.Series(foo_vals)
-    foo_exp = foo_ser.quantile(q, interpolation=interpolation)
+
+    a_expected = pd.Series(a_vals).quantile(q, interpolation=interpolation)
+    b_expected = pd.Series(b_vals).quantile(q, interpolation=interpolation)
 
     df = pd.DataFrame({
-        'key': ['bar'] * len(bar_vals) + ['foo'] * len(foo_vals),
-        'val': bar_vals + foo_vals})
+        'key': ['a'] * len(a_vals) + ['b'] * len(b_vals),
+        'val': a_vals + b_vals})
 
-    exp = DataFrame([bar_exp, foo_exp], columns=['val'],
-                    index=Index(['bar', 'foo'], name='key'))
-    res = df.groupby('key').quantile(q, interpolation=interpolation)
-    tm.assert_frame_equal(exp, res)
+    expected = DataFrame([a_expected, b_expected], columns=['val'],
+                         index=Index(['a', 'b'], name='key'))
+    result = df.groupby('key').quantile(q, interpolation=interpolation)
+
+    tm.assert_frame_equal(result, expected)
 
 
 def test_quantile_raises():
-    df = pd.DataFrame(
-        [['foo', 'a'],
-         ['foo', 'b'],
-         ['foo', 'c']], columns=['key', 'val'])
+    df = pd.DataFrame([
+        ['foo', 'a'], ['foo', 'b'], ['foo', 'c']], columns=['key', 'val'])
 
     with tm.assert_raises_regex(TypeError, "cannot be performed against "
                                 "'object' dtypes"):
