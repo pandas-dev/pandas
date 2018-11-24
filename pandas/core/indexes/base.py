@@ -4863,8 +4863,6 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__radd__ = _make_arithmetic_op(ops.radd, cls)
         cls.__sub__ = _make_arithmetic_op(operator.sub, cls)
         cls.__rsub__ = _make_arithmetic_op(ops.rsub, cls)
-        cls.__mul__ = _make_arithmetic_op(operator.mul, cls)
-        cls.__rmul__ = _make_arithmetic_op(ops.rmul, cls)
         cls.__rpow__ = _make_arithmetic_op(ops.rpow, cls)
         cls.__pow__ = _make_arithmetic_op(operator.pow, cls)
         cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
@@ -4879,6 +4877,8 @@ class Index(IndexOpsMixin, PandasObject):
             cls.__floordiv__ = _make_arithmetic_op(operator.floordiv, cls)
             cls.__rfloordiv__ = _make_arithmetic_op(ops.rfloordiv, cls)
             cls.__divmod__ = _make_arithmetic_op(divmod, cls)
+            cls.__mul__ = _make_arithmetic_op(operator.mul, cls)
+            cls.__rmul__ = _make_arithmetic_op(ops.rmul, cls)
 
     @classmethod
     def _add_numeric_methods_unary(cls):

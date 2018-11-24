@@ -243,12 +243,12 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
-    __mul__ = Index.__mul__
-    __rmul__ = Index.__rmul__
     __truediv__ = Index.__truediv__
     if compat.PY2:
         __div__ = Index.__div__
 
+    __mul__ = _make_wrapped_arith_op("__mul__")
+    __rmul__ = _make_wrapped_arith_op("__rmul__")
     __floordiv__ = _make_wrapped_arith_op("__floordiv__")
     __rfloordiv__ = _make_wrapped_arith_op("__rfloordiv__")
     __mod__ = _make_wrapped_arith_op("__mod__")

@@ -333,7 +333,27 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         return NotImplemented
 
-    __mul__ = _wrap_tdi_op(operator.mul)
+    def __mul__(self, other):
+        if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
+            return NotImplemented
+
+        if is_scalar(other):
+            # numpy will accept float and int, raise TypeError for others
+            result = self._data * other
+            freq = None
+            if self.freq is not None and not isna(other):
+                freq = self.freq * other
+            return type(self)(result, freq=freq)
+
+        if not hasattr(other, "dtype"):
+            # list, tuple
+            other = np.array(other)
+
+        # numpy will accept float or int dtype, raise TypError for others
+        # TODO: handle object-dtype?
+        result = self._data * other
+        return type(self)(result)
+
     __rmul__ = __mul__
     __truediv__ = _wrap_tdi_op(operator.truediv)
 
