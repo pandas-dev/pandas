@@ -2,6 +2,7 @@ from datetime import timedelta
 from functools import partial
 from operator import attrgetter
 
+import dateutil
 import numpy as np
 import pytest
 import pytz
@@ -526,6 +527,12 @@ class TestDatetimeIndex(object):
         dti = date_range('2016-01-01', periods=3, tz='US/Central')
         with pytest.raises(TypeError):
             DatetimeIndex(dti, tz='Asia/Tokyo')
+
+    def test_construction_with_nat_and_tzlocal(self):
+        tz = dateutil.tz.tzlocal()
+        result = DatetimeIndex(['2018', 'NaT'], tz=tz)
+        expected = DatetimeIndex([Timestamp('2018', tz=tz), pd.NaT])
+        tm.assert_index_equal(result, expected)
 
 
 class TestTimeSeries(object):

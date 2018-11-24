@@ -42,7 +42,6 @@ from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 
 _doc_template = """
-
         See Also
         --------
         pandas.Series.%(name)s
@@ -494,7 +493,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         if len(groupers):
             # GH12839 clear selected obj cache when group selection changes
-            self._group_selection = ax.difference(Index(groupers)).tolist()
+            self._group_selection = ax.difference(Index(groupers),
+                                                  sort=False).tolist()
             self._reset_cache('_selected_obj')
 
     def _set_result_index_ordered(self, result):
@@ -1048,7 +1048,8 @@ class GroupBy(_GroupBy):
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def all(self, skipna=True):
-        """Returns True if all values in the group are truthful, else False
+        """
+        Returns True if all values in the group are truthful, else False
 
         Parameters
         ----------
