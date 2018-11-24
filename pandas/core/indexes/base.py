@@ -824,7 +824,7 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(repeats))
 
-    _index_shared_docs['where'] = """ 
+    _index_shared_docs['where'] = """
         Return an Index of same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from
         other.
