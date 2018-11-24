@@ -20,6 +20,7 @@ jobs:
         packageSpecs: ''
 
     - script: |
+        source activate $CONDA_ENV
         ci\\incremental\\setup_conda_environment.cmd
       displayName: 'Before Install'
     - script: |
