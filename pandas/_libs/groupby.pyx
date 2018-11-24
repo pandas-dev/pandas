@@ -408,13 +408,12 @@ def group_quantile(ndarray[float64_t] out,
     provided `out` parameter.
     """
     cdef:
-        Py_ssize_t i, N=len(labels)
-        int64_t lab, ngroups, grp_sz, non_na_sz, grp_start=0, idx=0
-        uint8_t interp, offset
-        numeric val, next_val
-        float64_t q_idx, frac
-        ndarray[int64_t] counts, non_na_counts
-        ndarray[int64_t] sort_arr
+        Py_ssize_t i, N=len(labels), ngroups, grp_sz, non_na_sz
+        Py_ssize_t grp_start=0, idx=0
+        int64_t lab
+        uint8_t interp
+        float64_t q_idx, frac, val, next_val
+        ndarray[int64_t] counts, non_na_counts, sort_arr
 
     assert values.shape[0] == N
     inter_methods = {

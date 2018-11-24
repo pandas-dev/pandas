@@ -1104,7 +1104,7 @@ def test_quantile(interpolation, a_vals, b_vals, q):
     a_expected = pd.Series(a_vals).quantile(q, interpolation=interpolation)
     b_expected = pd.Series(b_vals).quantile(q, interpolation=interpolation)
 
-    df = pd.DataFrame({
+    df = DataFrame({
         'key': ['a'] * len(a_vals) + ['b'] * len(b_vals),
         'val': a_vals + b_vals})
 
