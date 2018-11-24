@@ -2,8 +2,6 @@
 
 echo "[script multi]"
 
-source activate pandas
-
 if [ -n "$LOCALE_OVERRIDE" ]; then
     export LC_ALL="$LOCALE_OVERRIDE";
     echo "Setting LC_ALL to $LOCALE_OVERRIDE"

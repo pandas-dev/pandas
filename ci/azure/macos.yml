@@ -12,7 +12,6 @@ jobs:
       py35_np_120:
         ENV_FILE: ci/deps/azure-macos-35.yaml
         CONDA_PY: "35"
-        CONDA_ENV: pandas
         TEST_ARGS: "--skip-slow --skip-network"
 
   steps:
