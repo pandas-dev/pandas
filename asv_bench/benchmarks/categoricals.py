@@ -46,6 +46,7 @@ class Constructor(object):
         self.values_some_nan = list(np.tile(self.categories + [np.nan], N))
         self.values_all_nan = [np.nan] * len(self.values)
         self.values_all_int8 = np.ones(N, 'int8')
+        self.categorical = pd.Categorical(self.values, self.categories)
 
     def time_regular(self):
         pd.Categorical(self.values, self.categories)
@@ -67,6 +68,9 @@ class Constructor(object):
 
     def time_from_codes_all_int8(self):
         pd.Categorical.from_codes(self.values_all_int8, self.categories)
+
+    def time_existing_categorical(self):
+        pd.Categorical(self.categorical)
 
 
 class ValueCounts(object):
