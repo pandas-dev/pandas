@@ -292,13 +292,16 @@ def test_rank_empty_group():
     tm.assert_frame_equal(result, expected)
 
 
-def test_rank_zero_div():
+@pytest.mark.parametrize("df_dicts", [
+    ({"A": [1, 2], "B": [1, 1]}, {"B": [1.0, 1.0]}),
+    ({"A": [1, 1, 2, 2], "B": [1, 2, 1, 2]}, {"B": [0.5, 1.0, 0.5, 1.0]}),
+    ({"A": [1, 1, 2, 2], "B": [1, 2, 1, np.nan]}, {"B": [0.5, 1.0, 1.0, np.nan]}),
+    ({"A": [1, 1, 2], "B": [1, 2, np.nan]}, {"B": [0.5, 1.0, np.nan]})
+])
+def test_rank_zero_div(df_dicts):
     # GH 23666
-    df = DataFrame({
-        "A": [1, 2],
-        "B": [1, 1]
-    })
+    df = DataFrame(df_dicts[0])
 
-    result = df.groupby("A").rank(pct=True, method="dense")
-    expected = DataFrame({"B": [1.0, 1.0]})
+    result = df.groupby("A").rank(method="dense", pct=True)
+    expected = DataFrame(df_dicts[1])
     tm.assert_frame_equal(result, expected)
