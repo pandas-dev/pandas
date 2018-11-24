@@ -448,7 +448,6 @@ def group_quantile(ndarray[float64_t] out,
             grp_sz = counts[i]
             non_na_sz = non_na_counts[i]
 
-            # If we have a group of all NA data we need to bail out
             if non_na_sz == 0:
                 out[i] = NaN
             else:
@@ -473,7 +472,7 @@ def group_quantile(ndarray[float64_t] out,
                     elif interp == INTERPOLATION_MIDPOINT:
                         out[i] = (val + next_val) / 2.0
                     elif interp == INTERPOLATION_NEAREST:
-                        if frac > .5 or (frac == .5 and q > .5):  # Always safe?
+                        if frac > .5 or (frac == .5 and q > .5):  # Always OK?
                             out[i] = next_val
                         else:
                             out[i] = val
