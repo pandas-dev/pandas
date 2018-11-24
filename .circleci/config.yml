@@ -27,7 +27,7 @@ jobs:
           command: |
             ./ci/circle/install_circle.sh
             export PATH="$MINICONDA_DIR/bin:$PATH"
-            source activate pandas
+            source activate pandas-dev
             python -c "import pandas; pandas.show_versions();"
       - run:
           name: test
