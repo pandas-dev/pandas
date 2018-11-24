@@ -1953,7 +1953,7 @@ class DataFrame(NDFrame):
 
     def to_feather(self, fname):
         """
-        write out the binary feather-format for DataFrames
+        Write out the binary feather-format for DataFrames
 
         .. versionadded:: 0.20.0
 

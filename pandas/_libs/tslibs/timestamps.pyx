@@ -579,7 +579,7 @@ class Timestamp(_Timestamp):
         """
         Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
-        passed an ordinal, translate and convert to a ts
+        Passed an ordinal, translate and convert to a ts.
         note: by definition there cannot be any tz info on the ordinal itself
 
         Parameters
@@ -802,7 +802,7 @@ class Timestamp(_Timestamp):
 
     def floor(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp floored to this resolution
+        Return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
@@ -834,7 +834,7 @@ class Timestamp(_Timestamp):
 
     def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp ceiled to this resolution
+        Return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
@@ -1148,7 +1148,7 @@ class Timestamp(_Timestamp):
                 hour=None, minute=None, second=None, microsecond=None,
                 nanosecond=None, tzinfo=object, fold=0):
         """
-        implements datetime.replace, handles nanoseconds
+        Implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------

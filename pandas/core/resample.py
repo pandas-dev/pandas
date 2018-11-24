@@ -394,7 +394,7 @@ one pass, you can do
 
     def pad(self, limit=None):
         """
-        Forward fill the values
+        Forward fill the values.
 
         Parameters
         ----------
@@ -757,8 +757,8 @@ one pass, you can do
 
     def asfreq(self, fill_value=None):
         """
-        return the values at the new freq,
-        essentially a reindex
+        Return the values at the new freq,
+        essentially a reindex.
 
         Parameters
         ----------
@@ -777,7 +777,7 @@ one pass, you can do
 
     def std(self, ddof=1, *args, **kwargs):
         """
-        Compute standard deviation of groups, excluding missing values
+        Compute standard deviation of groups, excluding missing values.
 
         Parameters
         ----------
@@ -789,7 +789,7 @@ one pass, you can do
 
     def var(self, ddof=1, *args, **kwargs):
         """
-        Compute variance of groups, excluding missing values
+        Compute variance of groups, excluding missing values.
 
         Parameters
         ----------

@@ -122,7 +122,9 @@ class RangeIndex(Int64Index):
 
     @classmethod
     def from_range(cls, data, name=None, dtype=None, **kwargs):
-        """ create RangeIndex from a range (py3), or xrange (py2) object """
+        """
+        Create RangeIndex from a range (py3), or xrange (py2) object.
+        """
         if not isinstance(data, range):
             raise TypeError(
                 '{0}(...) must be called with object coercible to a '
@@ -206,14 +208,14 @@ class RangeIndex(Int64Index):
         """
         Return the number of bytes in the underlying data
         On implementations where this is undetermined (PyPy)
-        assume 24 bytes for each value
+        assume 24 bytes for each value.
         """
         return sum(getsizeof(getattr(self, v), 24) for v in
                    ['_start', '_stop', '_step'])
 
     def memory_usage(self, deep=False):
         """
-        Memory usage of my values
+        Memory usage of my values.
 
         Parameters
         ----------

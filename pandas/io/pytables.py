@@ -1217,7 +1217,7 @@ class HDFStore(StringMixin):
 
     def info(self):
         """
-        print detailed information on the store
+        Print detailed information on the store
 
         .. versionadded:: 0.21.0
         """

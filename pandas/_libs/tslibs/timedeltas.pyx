@@ -97,8 +97,8 @@ _no_input = object()
 @cython.wraparound(False)
 def ints_to_pytimedelta(int64_t[:] arr, box=False):
     """
-    convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
-    True)
+    Convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
+    True).
 
     Parameters
     ----------
@@ -823,7 +823,9 @@ cdef class _Timedelta(timedelta):
         return self.value / 1e9
 
     def view(self, dtype):
-        """ array view compat """
+        """
+        Array view compat.
+        """
         return np.timedelta64(self.value).view(dtype)
 
     @property
@@ -1226,7 +1228,7 @@ class Timedelta(_Timedelta):
 
     def floor(self, freq):
         """
-        return a new Timedelta floored to this resolution
+        Return a new Timedelta floored to this resolution.
 
         Parameters
         ----------
@@ -1236,7 +1238,7 @@ class Timedelta(_Timedelta):
 
     def ceil(self, freq):
         """
-        return a new Timedelta ceiled to this resolution
+        Return a new Timedelta ceiled to this resolution.
 
         Parameters
         ----------

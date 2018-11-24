@@ -384,7 +384,9 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     @property
     def groups(self):
-        """ dict {group name -> group labels} """
+        """
+        Dict {group name -> group labels}.
+        """
         self._assure_grouper()
         return self.grouper.groups
 
@@ -395,7 +397,9 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     @property
     def indices(self):
-        """ dict {group name -> group indices} """
+        """
+        Dict {group name -> group indices}
+        """
         self._assure_grouper()
         return self.grouper.indices
 

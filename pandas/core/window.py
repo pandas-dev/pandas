@@ -995,7 +995,7 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_sum', 'sum', **kwargs)
 
     _shared_docs['max'] = dedent("""
-    %(name)s maximum
+    Calculate the %(name)s maximum.
     """)
 
     def max(self, *args, **kwargs):

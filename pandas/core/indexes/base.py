@@ -690,17 +690,23 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def dtype(self):
-        """ return the dtype object of the underlying data """
+        """
+        Return the dtype object of the underlying data.
+        """
         return self._data.dtype
 
     @cache_readonly
     def dtype_str(self):
-        """ return the dtype str of the underlying data """
+        """
+        Return the dtype str of the underlying data.
+        """
         return str(self.dtype)
 
     @property
     def values(self):
-        """ return the underlying data as an ndarray """
+        """
+        Return the underlying data as an ndarray.
+        """
         return self._data.view(np.ndarray)
 
     @property
@@ -825,11 +831,11 @@ class Index(IndexOpsMixin, PandasObject):
         return self._shallow_copy(self._values.repeat(repeats))
 
     _index_shared_docs['where'] = """
-        .. versionadded:: 0.19.0
-
         Return an Index of same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from
         other.
+
+        .. versionadded:: 0.19.0
 
         Parameters
         ----------
@@ -862,7 +868,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def ravel(self, order='C'):
         """
-        return an ndarray of the flattened values of the underlying data
+        Return an ndarray of the flattened values of the underlying data
 
         See Also
         --------
@@ -1124,7 +1130,7 @@ class Index(IndexOpsMixin, PandasObject):
     def to_series(self, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
-        useful with map for returning an indexer based on an index
+        useful with map for returning an indexer based on an index.
 
         Parameters
         ----------
@@ -1493,13 +1499,15 @@ class Index(IndexOpsMixin, PandasObject):
     # introspection
     @property
     def is_monotonic(self):
-        """ alias for is_monotonic_increasing (deprecated) """
+        """
+        Alias for is_monotonic_increasing (deprecated).
+        """
         return self.is_monotonic_increasing
 
     @property
     def is_monotonic_increasing(self):
         """
-        return if the index is monotonic increasing (only equal or
+        Return if the index is monotonic increasing (only equal or
         increasing) values.
 
         Examples
@@ -1516,7 +1524,7 @@ class Index(IndexOpsMixin, PandasObject):
     @property
     def is_monotonic_decreasing(self):
         """
-        return if the index is monotonic decreasing (only equal or
+        Return if the index is monotonic decreasing (only equal or
         decreasing) values.
 
         Examples
@@ -1567,7 +1575,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def is_unique(self):
-        """ return if the index has unique values """
+        """
+        Return if the index has unique values.
+        """
         return self._engine.is_unique
 
     @property
@@ -1958,7 +1968,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def inferred_type(self):
-        """ return a string of the type inferred from the values """
+        """ Return a string of the type inferred from the values. """
         return lib.infer_dtype(self)
 
     def _is_memory_usage_qualified(self):
@@ -2034,7 +2044,7 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
     _index_shared_docs['contains'] = """
-        return a boolean if this key is IN the index
+        Return a boolean if this key is IN the index.
 
         Parameters
         ----------
@@ -2109,7 +2119,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def append(self, other):
         """
-        Append a collection of Index options together
+        Append a collection of Index options together.
 
         Parameters
         ----------
@@ -2152,7 +2162,7 @@ class Index(IndexOpsMixin, PandasObject):
         return _concat._concat_index_asobject(to_concat, name)
 
     _index_shared_docs['take'] = """
-        return a new %(klass)s of the values selected by the indices
+        Return a new %(klass)s of the values selected by the indices.
 
         For internal compatibility with numpy arrays.
 
@@ -2345,7 +2355,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def putmask(self, mask, value):
         """
-        return a new Index of the values set with the mask
+        Return a new Index of the values set with the mask.
 
         See Also
         --------
@@ -2364,7 +2374,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def format(self, name=False, formatter=None, **kwargs):
         """
-        Render a string representation of the Index
+        Render a string representation of the Index.
         """
         header = []
         if name:
@@ -2461,8 +2471,9 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
     def identical(self, other):
-        """Similar to equals, but check that other comparable attributes are
-        also equal
+        """
+        Similar to equals, but check that other comparable attributes are
+        also equal.
         """
         return (self.equals(other) and
                 all((getattr(self, c, None) == getattr(other, c, None)
