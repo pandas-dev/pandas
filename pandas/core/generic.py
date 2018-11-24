@@ -1,64 +1,52 @@
 # pylint: disable=W0231,E1101
 import collections
 import functools
-import warnings
-import operator
-import weakref
 import gc
 import json
+import operator
+import warnings
+import weakref
 
 import numpy as np
-import pandas as pd
 
-from pandas._libs import properties, Timestamp, iNaT
+from pandas._libs import Timestamp, iNaT, properties
+import pandas.compat as compat
+from pandas.compat import (
+    cPickle as pkl, isidentifier, lrange, lzip, map, set_function_name,
+    string_types, to_str, zip)
+from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import (
+    Appender, Substitution, rewrite_axis_style_signature)
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 
-from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_object,
-    is_scalar,
-    is_number,
-    is_integer, is_bool,
-    is_bool_dtype,
-    is_numeric_dtype,
-    is_datetime64_any_dtype,
-    is_timedelta64_dtype,
-    is_datetime64tz_dtype,
-    is_list_like,
-    is_dict_like,
-    is_re_compilable,
-    is_period_arraylike,
-    is_object_dtype,
-    is_extension_array_dtype,
-    pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
+from pandas.core.dtypes.common import (
+    ensure_int64, ensure_object, is_bool, is_bool_dtype,
+    is_datetime64_any_dtype, is_datetime64tz_dtype, is_dict_like,
+    is_extension_array_dtype, is_integer, is_list_like, is_number,
+    is_numeric_dtype, is_object_dtype, is_period_arraylike, is_re_compilable,
+    is_scalar, is_timedelta64_dtype, pandas_dtype)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
-from pandas.core.base import PandasObject, SelectionMixin
-from pandas.core.index import (Index, MultiIndex, ensure_index,
-                               InvalidIndexError, RangeIndex)
-import pandas.core.indexing as indexing
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex, Period
-from pandas.core.internals import BlockManager
+import pandas as pd
+from pandas.core import config, missing, nanops
 import pandas.core.algorithms as algos
+from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
-import pandas.core.missing as missing
-from pandas.io.formats.printing import pprint_thing
-from pandas.io.formats.format import format_percentiles, DataFrameFormatter
-from pandas.tseries.frequencies import to_offset
-from pandas import compat
-from pandas.compat.numpy import function as nv
-from pandas.compat import (map, zip, lzip, lrange, string_types, to_str,
-                           isidentifier, set_function_name, cPickle as pkl)
+from pandas.core.index import (
+    Index, InvalidIndexError, MultiIndex, RangeIndex, ensure_index)
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.period import Period, PeriodIndex
+import pandas.core.indexing as indexing
+from pandas.core.internals import BlockManager
 from pandas.core.ops import _align_method_FRAME
-import pandas.core.nanops as nanops
-from pandas.util._decorators import (Appender, Substitution,
-                                     rewrite_axis_style_signature)
-from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
-from pandas.core import config
+
+from pandas.io.formats.format import DataFrameFormatter, format_percentiles
+from pandas.io.formats.printing import pprint_thing
+from pandas.tseries.frequencies import to_offset
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -2069,17 +2057,18 @@ class NDFrame(PandasObject, SelectionMixin):
     >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
     ...                   index=['row 1', 'row 2'],
     ...                   columns=['col 1', 'col 2'])
-    >>> df1.to_excel("output.xlsx")
+    >>> df1.to_excel("output.xlsx")  # doctest: +SKIP
 
     To specify the sheet name:
 
-    >>> df1.to_excel("output.xlsx", sheet_name='Sheet_name_1')
+    >>> df1.to_excel("output.xlsx",
+    ...              sheet_name='Sheet_name_1')  # doctest: +SKIP
 
     If you wish to write to more than one sheet in the workbook, it is
     necessary to specify an ExcelWriter object:
 
     >>> df2 = df1.copy()
-    >>> with pd.ExcelWriter('output.xlsx') as writer:
+    >>> with pd.ExcelWriter('output.xlsx') as writer:  # doctest: +SKIP
     ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
     ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
 
@@ -2087,7 +2076,7 @@ class NDFrame(PandasObject, SelectionMixin):
     you can pass the `engine` keyword (the default engine is
     automatically chosen depending on the file extension):
 
-    >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')
+    >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
