@@ -3,13 +3,16 @@
 import re
 
 import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import pytest
-from pandas import Index, MultiIndex, date_range
+
 from pandas._libs.tslib import Timestamp
 from pandas.compat import lrange, range
+
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+
+import pandas as pd
+from pandas import Index, MultiIndex, date_range
+import pandas.util.testing as tm
 
 
 def test_constructor_single_level():
@@ -22,13 +25,14 @@ def test_constructor_single_level():
 
 
 def test_constructor_no_levels():
-    tm.assert_raises_regex(ValueError, "non-zero number "
-                           "of levels/labels",
-                           MultiIndex, levels=[], labels=[])
+    msg = "non-zero number of levels/labels"
+    with pytest.raises(ValueError, match=msg):
+        MultiIndex(levels=[], labels=[])
+
     both_re = re.compile('Must pass both levels and labels')
-    with tm.assert_raises_regex(TypeError, both_re):
+    with pytest.raises(TypeError, match=both_re):
         MultiIndex(levels=[])
-    with tm.assert_raises_regex(TypeError, both_re):
+    with pytest.raises(TypeError, match=both_re):
         MultiIndex(labels=[])
 
 
@@ -36,44 +40,48 @@ def test_constructor_nonhashable_names():
     # GH 20527
     levels = [[1, 2], [u'one', u'two']]
     labels = [[0, 0, 1, 1], [0, 1, 0, 1]]
-    names = ((['foo'], ['bar']))
+    names = (['foo'], ['bar'])
     message = "MultiIndex.name must be a hashable type"
-    tm.assert_raises_regex(TypeError, message,
-                           MultiIndex, levels=levels,
-                           labels=labels, names=names)
+    with pytest.raises(TypeError, match=message):
+        MultiIndex(levels=levels, labels=labels, names=names)
 
     # With .rename()
     mi = MultiIndex(levels=[[1, 2], [u'one', u'two']],
                     labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                     names=('foo', 'bar'))
     renamed = [['foor'], ['barr']]
-    tm.assert_raises_regex(TypeError, message, mi.rename, names=renamed)
+    with pytest.raises(TypeError, match=message):
+        mi.rename(names=renamed)
+
     # With .set_names()
-    tm.assert_raises_regex(TypeError, message, mi.set_names, names=renamed)
+    with pytest.raises(TypeError, match=message):
+        mi.set_names(names=renamed)
 
 
 def test_constructor_mismatched_label_levels(idx):
     labels = [np.array([1]), np.array([2]), np.array([3])]
     levels = ["a"]
-    tm.assert_raises_regex(ValueError, "Length of levels and labels "
-                           "must be the same", MultiIndex,
-                           levels=levels, labels=labels)
+
+    msg = "Length of levels and labels must be the same"
+    with pytest.raises(ValueError, match=msg):
+        MultiIndex(levels=levels, labels=labels)
+
     length_error = re.compile('>= length of level')
     label_error = re.compile(r'Unequal label lengths: \[4, 2\]')
 
     # important to check that it's looking at the right thing.
-    with tm.assert_raises_regex(ValueError, length_error):
+    with pytest.raises(ValueError, match=length_error):
         MultiIndex(levels=[['a'], ['b']],
                    labels=[[0, 1, 2, 3], [0, 3, 4, 1]])
 
-    with tm.assert_raises_regex(ValueError, label_error):
+    with pytest.raises(ValueError, match=label_error):
         MultiIndex(levels=[['a'], ['b']], labels=[[0, 0, 0, 0], [0, 0]])
 
     # external API
-    with tm.assert_raises_regex(ValueError, length_error):
+    with pytest.raises(ValueError, match=length_error):
         idx.copy().set_levels([['a'], ['b']])
 
-    with tm.assert_raises_regex(ValueError, label_error):
+    with pytest.raises(ValueError, match=label_error):
         idx.copy().set_labels([[0, 0, 0, 0], [0, 0]])
 
 
@@ -118,8 +126,8 @@ def test_from_arrays_iterator(idx):
     tm.assert_index_equal(result, idx)
 
     # invalid iterator input
-    with tm.assert_raises_regex(
-            TypeError, "Input must be a list / sequence of array-likes."):
+    msg = "Input must be a list / sequence of array-likes."
+    with pytest.raises(TypeError, match=msg):
         MultiIndex.from_arrays(0)
 
 
@@ -214,8 +222,8 @@ def test_from_arrays_index_series_categorical():
 
 def test_from_arrays_empty():
     # 0 levels
-    with tm.assert_raises_regex(
-            ValueError, "Must pass non-zero number of levels/labels"):
+    msg = "Must pass non-zero number of levels/labels"
+    with pytest.raises(ValueError, match=msg):
         MultiIndex.from_arrays(arrays=[])
 
     # 1 level
@@ -258,15 +266,15 @@ def test_from_arrays_invalid_input(invalid_array):
 ])
 def test_from_arrays_different_lengths(idx1, idx2):
     # see gh-13599
-    tm.assert_raises_regex(ValueError, '^all arrays must '
-                           'be same length$',
-                           MultiIndex.from_arrays, [idx1, idx2])
+    msg = '^all arrays must be same length$'
+    with pytest.raises(ValueError, match=msg):
+        MultiIndex.from_arrays([idx1, idx2])
 
 
 def test_from_tuples():
-    tm.assert_raises_regex(TypeError, 'Cannot infer number of levels '
-                           'from empty list',
-                           MultiIndex.from_tuples, [])
+    msg = 'Cannot infer number of levels from empty list'
+    with pytest.raises(TypeError, match=msg):
+        MultiIndex.from_tuples([])
 
     expected = MultiIndex(levels=[[1, 3], [2, 4]],
                           labels=[[0, 1], [0, 1]],
@@ -288,8 +296,8 @@ def test_from_tuples_iterator():
     tm.assert_index_equal(result, expected)
 
     # input non-iterables
-    with tm.assert_raises_regex(
-            TypeError, 'Input must be a list / sequence of tuple-likes.'):
+    msg = 'Input must be a list / sequence of tuple-likes.'
+    with pytest.raises(TypeError, match=msg):
         MultiIndex.from_tuples(0)
 
 
@@ -308,8 +316,8 @@ def test_from_tuples_index_values(idx):
 
 def test_from_product_empty_zero_levels():
     # 0 levels
-    with tm.assert_raises_regex(
-            ValueError, "Must pass non-zero number of levels/labels"):
+    msg = "Must pass non-zero number of levels/labels"
+    with pytest.raises(ValueError, match=msg):
         MultiIndex.from_product([])
 
 
@@ -419,8 +427,8 @@ def test_from_product_iterator():
     tm.assert_index_equal(result, expected)
 
     # Invalid non-iterable input
-    with tm.assert_raises_regex(
-            TypeError, "Input must be a list / sequence of iterables."):
+    msg = "Input must be a list / sequence of iterables."
+    with pytest.raises(TypeError, match=msg):
         MultiIndex.from_product(0)
 
 

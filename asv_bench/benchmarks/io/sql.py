@@ -8,7 +8,6 @@ from sqlalchemy import create_engine
 
 class SQL(object):
 
-    goal_time = 0.2
     params = ['sqlalchemy', 'sqlite']
     param_names = ['connection']
 
@@ -41,7 +40,6 @@ class SQL(object):
 
 class WriteSQLDtypes(object):
 
-    goal_time = 0.2
     params = (['sqlalchemy', 'sqlite'],
               ['float', 'float_with_nan', 'string', 'bool', 'int', 'datetime'])
     param_names = ['connection', 'dtype']
@@ -75,8 +73,6 @@ class WriteSQLDtypes(object):
 
 class ReadSQLTable(object):
 
-    goal_time = 0.2
-
     def setup(self):
         N = 10000
         self.table_name = 'test'
@@ -103,8 +99,6 @@ class ReadSQLTable(object):
 
 
 class ReadSQLTableDtypes(object):
-
-    goal_time = 0.2
 
     params = ['float', 'float_with_nan', 'string', 'bool', 'int', 'datetime']
     param_names = ['dtype']

@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import itertools
-import pytest
+
 import numpy as np
+import pytest
+
+import pandas.compat as compat
 
 import pandas as pd
 import pandas.util.testing as tm
-import pandas.compat as compat
-
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions
@@ -373,14 +374,14 @@ class TestInsertIndexCoercion(CoercionBase):
 
         msg = "Passed item and index have different timezone"
         if fill_val.tz:
-            with tm.assert_raises_regex(ValueError, msg):
+            with pytest.raises(ValueError, match=msg):
                 obj.insert(1, pd.Timestamp('2012-01-01'))
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             obj.insert(1, pd.Timestamp('2012-01-01', tz='Asia/Tokyo'))
 
         msg = "cannot insert DatetimeIndex with incompatible label"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             obj.insert(1, 1)
 
         pytest.xfail("ToDo: must coerce to object")
@@ -396,12 +397,12 @@ class TestInsertIndexCoercion(CoercionBase):
 
         # ToDo: must coerce to object
         msg = "cannot insert TimedeltaIndex with incompatible label"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             obj.insert(1, pd.Timestamp('2012-01-01'))
 
         # ToDo: must coerce to object
         msg = "cannot insert TimedeltaIndex with incompatible label"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             obj.insert(1, 1)
 
     @pytest.mark.parametrize("insert, coerced_val, coerced_dtype", [
@@ -602,7 +603,7 @@ class TestWhereCoercion(CoercionBase):
 
         msg = ("Index\\(\\.\\.\\.\\) must be called with a collection "
                "of some kind")
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             obj.where(cond, fill_val)
 
         values = pd.Index(pd.date_range(fill_val, periods=4))
@@ -627,7 +628,7 @@ class TestWhereCoercion(CoercionBase):
 
         msg = ("Index\\(\\.\\.\\.\\) must be called with a collection "
                "of some kind")
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             obj.where(cond, fill_val)
 
         values = pd.Index(pd.date_range(fill_val, periods=4))

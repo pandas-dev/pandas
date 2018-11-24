@@ -156,7 +156,7 @@ class TestDataFrameSubclassing(TestData):
             @property
             def bar(self):
                 return self.i_dont_exist
-        with tm.assert_raises_regex(AttributeError, '.*i_dont_exist.*'):
+        with pytest.raises(AttributeError, match='.*i_dont_exist.*'):
             A().bar
 
     def test_subclass_align(self):

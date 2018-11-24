@@ -2,34 +2,43 @@
 
 
 import numpy as np
-import pandas.util.testing as tm
 import pytest
-from pandas import MultiIndex
+
 from pandas.compat import PY3, long
+
+from pandas import MultiIndex
+import pandas.util.testing as tm
 
 
 def test_numeric_compat(idx):
-    tm.assert_raises_regex(TypeError, "cannot perform __mul__",
-                           lambda: idx * 1)
-    tm.assert_raises_regex(TypeError, "cannot perform __rmul__",
-                           lambda: 1 * idx)
+    with pytest.raises(TypeError, match="cannot perform __mul__"):
+        idx * 1
 
-    div_err = "cannot perform __truediv__" if PY3 \
-        else "cannot perform __div__"
-    tm.assert_raises_regex(TypeError, div_err, lambda: idx / 1)
-    div_err = div_err.replace(' __', ' __r')
-    tm.assert_raises_regex(TypeError, div_err, lambda: 1 / idx)
-    tm.assert_raises_regex(TypeError, "cannot perform __floordiv__",
-                           lambda: idx // 1)
-    tm.assert_raises_regex(TypeError, "cannot perform __rfloordiv__",
-                           lambda: 1 // idx)
+    with pytest.raises(TypeError, match="cannot perform __rmul__"):
+        1 * idx
+
+    div_err = ("cannot perform __truediv__" if PY3
+               else "cannot perform __div__")
+    with pytest.raises(TypeError, match=div_err):
+        idx / 1
+
+    div_err = div_err.replace(" __", " __r")
+    with pytest.raises(TypeError, match=div_err):
+        1 / idx
+
+    with pytest.raises(TypeError, match="cannot perform __floordiv__"):
+        idx // 1
+
+    with pytest.raises(TypeError, match="cannot perform __rfloordiv__"):
+        1 // idx
 
 
-def test_logical_compat(idx):
-    tm.assert_raises_regex(TypeError, 'cannot perform all',
-                           lambda: idx.all())
-    tm.assert_raises_regex(TypeError, 'cannot perform any',
-                           lambda: idx.any())
+@pytest.mark.parametrize("method", ["all", "any"])
+def test_logical_compat(idx, method):
+    msg = "cannot perform {method}".format(method=method)
+
+    with pytest.raises(TypeError, match=msg):
+        getattr(idx, method)()
 
 
 def test_boolean_context_compat(idx):
