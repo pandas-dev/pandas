@@ -10,9 +10,12 @@
    import glob
    import itertools
    import os
+
    import numpy as np
    import pandas as pd
    from pandas.compat import StringIO
+
+
    np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
    pd.options.display.max_rows = 15
