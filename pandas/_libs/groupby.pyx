@@ -416,6 +416,7 @@ def group_quantile(ndarray[float64_t] out,
         ndarray[int64_t] counts, non_na_counts
         ndarray[int64_t] sort_arr
 
+    assert <Py_ssize_t>len(values) == N
     inter_methods = {
         'linear': INTERPOLATION_LINEAR,
         'lower': INTERPOLATION_LOWER,
@@ -438,7 +439,6 @@ def group_quantile(ndarray[float64_t] out,
                 non_na_counts[lab] += 1
 
     # Get an index of values sorted by labels and then values
-    assert len(values) == len(labels)
     order = (values, labels)
     sort_arr = np.lexsort(order).astype(np.int64, copy=False)
 
