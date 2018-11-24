@@ -19,6 +19,9 @@ echo
 echo "[create env]"
 time conda env create -q --file="${ENV_FILE}" || exit 1
 
+set +v
+source activate pandas-dev
+set -v
 
 # remove any installed pandas package
 # w/o removing anything else
