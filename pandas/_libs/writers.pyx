@@ -86,7 +86,7 @@ def convert_json_to_lines(object arr):
         Py_ssize_t i = 0, num_open_brackets_seen = 0, length
         bint in_quotes = 0, is_escaping = 0
         ndarray[uint8_t, ndim=1] narr
-        unsigned char v, newline, comma, left_bracket, right_bracket, quote
+        unsigned char val, newline, comma, left_bracket, right_bracket, quote
         unsigned char backslash
 
     newline = ord('\n')
@@ -99,18 +99,18 @@ def convert_json_to_lines(object arr):
     narr = np.frombuffer(arr.encode('utf-8'), dtype='u1').copy()
     length = narr.shape[0]
     for i in range(length):
-        v = narr[i]
-        if v == quote and i > 0 and not is_escaping:
+        val = narr[i]
+        if val == quote and i > 0 and not is_escaping:
             in_quotes = ~in_quotes
-        if v == backslash or is_escaping:
+        if val == backslash or is_escaping:
             is_escaping = ~is_escaping
-        if v == comma:  # commas that should be \n
+        if val == comma:  # commas that should be \n
             if num_open_brackets_seen == 0 and not in_quotes:
                 narr[i] = newline
-        elif v == left_bracket:
+        elif val == left_bracket:
             if not in_quotes:
                 num_open_brackets_seen += 1
-        elif v == right_bracket:
+        elif val == right_bracket:
             if not in_quotes:
                 num_open_brackets_seen -= 1
 
