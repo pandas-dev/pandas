@@ -157,7 +157,7 @@ class Panel(NDFrame):
     def _init_data(self, data, copy, dtype, **kwargs):
         """
         Generate ND initialization; axes are passed
-        as required objects to __init__
+        as required objects to __init__.
         """
         if data is None:
             data = {}
@@ -242,7 +242,7 @@ class Panel(NDFrame):
     @classmethod
     def from_dict(cls, data, intersect=False, orient='items', dtype=None):
         """
-        Construct Panel from dict of DataFrame objects
+        Construct Panel from dict of DataFrame objects.
 
         Parameters
         ----------
@@ -348,7 +348,7 @@ class Panel(NDFrame):
 
     def __unicode__(self):
         """
-        Return a string representation for a particular Panel
+        Return a string representation for a particular Panel.
 
         Invoked by unicode(df) in py2 only.
         Yields a Unicode String in both py2/py3.
@@ -377,7 +377,7 @@ class Panel(NDFrame):
         """
         Get my plane axes indexes: these are already
         (as compared with higher level planes),
-        as we are returning a DataFrame axes indexes
+        as we are returning a DataFrame axes indexes.
         """
         axis_name = self._get_axis_name(axis)
 
@@ -397,7 +397,7 @@ class Panel(NDFrame):
         """
         Get my plane axes indexes: these are already
         (as compared with higher level planes),
-        as we are returning a DataFrame axes
+        as we are returning a DataFrame axes.
         """
         return [self._get_axis(axi)
                 for axi in self._get_plane_axes_index(axis)]
@@ -473,7 +473,8 @@ class Panel(NDFrame):
     # Getting and setting elements
 
     def get_value(self, *args, **kwargs):
-        """Quickly retrieve single value at (item, major, minor) location
+        """
+        Quickly retrieve single value at (item, major, minor) location.
 
         .. deprecated:: 0.21.0
 
@@ -787,7 +788,7 @@ class Panel(NDFrame):
 
     def major_xs(self, key):
         """
-        Return slice of panel along major axis
+        Return slice of panel along major axis.
 
         Parameters
         ----------
@@ -811,7 +812,7 @@ class Panel(NDFrame):
 
     def minor_xs(self, key):
         """
-        Return slice of panel along minor axis
+        Return slice of panel along minor axis.
 
         Parameters
         ----------
@@ -835,7 +836,7 @@ class Panel(NDFrame):
 
     def xs(self, key, axis=1):
         """
-        Return slice of panel along selected axis
+        Return slice of panel along selected axis.
 
         Parameters
         ----------
@@ -898,7 +899,7 @@ class Panel(NDFrame):
 
     def groupby(self, function, axis='major'):
         """
-        Group data on given axis, returning GroupBy object
+        Group data on given axis, returning GroupBy object.
 
         Parameters
         ----------
@@ -993,7 +994,7 @@ class Panel(NDFrame):
 
     def apply(self, func, axis='major', **kwargs):
         """
-        Applies function along axis (or axes) of the Panel
+        Applies function along axis (or axes) of the Panel.
 
         Parameters
         ----------
@@ -1115,7 +1116,7 @@ class Panel(NDFrame):
         return self._construct_return_type(results, planes)
 
     def _apply_2d(self, func, axis):
-        """ handle 2-d slices, equiv to iterating over the other axis """
+        """ Handle 2-d slices, equiv to iterating over the other axis. """
 
         ndim = self.ndim
         axis = [self._get_axis_number(a) for a in axis]
@@ -1172,7 +1173,7 @@ class Panel(NDFrame):
         return self._construct_return_type(result, axes)
 
     def _construct_return_type(self, result, axes=None):
-        """ return the type for the ndim of the result """
+        """ Return the type for the ndim of the result. """
         ndim = getattr(result, 'ndim', None)
 
         # need to assume they are the same
@@ -1333,7 +1334,7 @@ class Panel(NDFrame):
 
     def join(self, other, how='left', lsuffix='', rsuffix=''):
         """
-        Join items with other Panel either on major and minor axes column
+        Join items with other Panel either on major and minor axes column.
 
         Parameters
         ----------
@@ -1440,13 +1441,13 @@ class Panel(NDFrame):
     # miscellaneous data creation
     @staticmethod
     def _extract_axes(self, data, axes, **kwargs):
-        """ return a list of the axis indices """
+        """ Return a list of the axis indices. """
         return [self._extract_axis(self, data, axis=i, **kwargs)
                 for i, a in enumerate(axes)]
 
     @staticmethod
     def _extract_axes_for_slice(self, axes):
-        """ return the slice dictionary for these axes """
+        """ Return the slice dictionary for these axes. """
         return {self._AXIS_SLICEMAP[i]: a for i, a in
                 zip(self._AXIS_ORDERS[self._AXIS_LEN - len(axes):], axes)}
 

@@ -291,7 +291,7 @@ Examples
 
 class GroupByPlot(PandasObject):
     """
-    Class implementing the .plot attribute for groupby objects
+    Class implementing the .plot attribute for groupby objects.
     """
 
     def __init__(self, groupby):
@@ -314,7 +314,7 @@ class GroupByPlot(PandasObject):
 @contextmanager
 def _group_selection_context(groupby):
     """
-    set / reset the _group_selection_context
+    Set / reset the _group_selection_context.
     """
     groupby._set_group_selection()
     yield groupby
@@ -377,14 +377,14 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     def _assure_grouper(self):
         """
-        we create the grouper on instantiation
-        sub-classes may have a different policy
+        We create the grouper on instantiation
+        sub-classes may have a different policy.
         """
         pass
 
     @property
     def groups(self):
-        """ dict {group name -> group labels} """
+        """ Dict {group name -> group labels} """
         self._assure_grouper()
         return self.grouper.groups
 
@@ -395,14 +395,14 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     @property
     def indices(self):
-        """ dict {group name -> group indices} """
+        """ Dict {group name -> group indices} """
         self._assure_grouper()
         return self.grouper.indices
 
     def _get_indices(self, names):
         """
-        safe get multiple indices, translate keys for
-        datelike to underlying repr
+        Safe get multiple indices, translate keys for
+        datelike to underlying repr.
         """
 
         def get_converter(s):
@@ -450,7 +450,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         return [self.indices.get(name, []) for name in names]
 
     def _get_index(self, name):
-        """ safe get index, translate keys for datelike to underlying repr """
+        """ Safe get index, translate keys for datelike to underlying repr ."""
         return self._get_indices([name])[0]
 
     @cache_readonly
@@ -1127,7 +1127,7 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def median(self, **kwargs):
         """
-        Compute median of groups, excluding missing values
+        Compute median of groups, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
         """
@@ -1148,9 +1148,9 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def std(self, ddof=1, *args, **kwargs):
         """
-        Compute standard deviation of groups, excluding missing values
+        Compute standard deviation of groups, excluding missing values.
 
-        For multiple groupings, the result index will be a MultiIndex
+        For multiple groupings, the result index will be a MultiIndex.
 
         Parameters
         ----------
@@ -1166,9 +1166,9 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def var(self, ddof=1, *args, **kwargs):
         """
-        Compute variance of groups, excluding missing values
+        Compute variance of groups, excluding missing values.
 
-        For multiple groupings, the result index will be a MultiIndex
+        For multiple groupings, the result index will be a MultiIndex.
 
         Parameters
         ----------
@@ -1192,9 +1192,9 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def sem(self, ddof=1):
         """
-        Compute standard error of the mean of groups, excluding missing values
+        Compute standard error of the mean of groups, excluding missing values.
 
-        For multiple groupings, the result index will be a MultiIndex
+        For multiple groupings, the result index will be a MultiIndex.
 
         Parameters
         ----------

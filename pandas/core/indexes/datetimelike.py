@@ -34,7 +34,7 @@ _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
 class DatelikeOps(object):
-    """ common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex """
+    """ Common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex. """
 
     def strftime(self, date_format):
         return Index(self.format(date_format=date_format),
@@ -76,7 +76,7 @@ class DatelikeOps(object):
 
 
 class TimelikeOps(object):
-    """ common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex """
+    """ Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex. """
 
     _round_doc = (
         """

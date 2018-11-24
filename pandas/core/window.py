@@ -161,7 +161,7 @@ class _Window(PandasObject, SelectionMixin):
         return self.__class__.__name__
 
     def __unicode__(self):
-        """ provide a nice str repr of our rolling object """
+        """ Provide a nice str repr of our rolling object. """
 
         attrs = ["{k}={v}".format(k=k, v=getattr(self, k))
                  for k in self._attributes
@@ -175,7 +175,7 @@ class _Window(PandasObject, SelectionMixin):
 
     def _get_index(self, index=None):
         """
-        Return index as ndarrays
+        Return index as ndarrays.
 
         Returns
         -------
@@ -776,8 +776,8 @@ class _GroupByMixin(GroupByMixin):
     def _apply(self, func, name, window=None, center=None,
                check_minp=None, **kwargs):
         """
-        dispatch to apply; we are stripping all of the _apply kwargs and
-        performing the original function call on the grouped object
+        Dispatch to apply; we are stripping all of the _apply kwargs and
+        performing the original function call on the grouped object.
         """
 
         def f(x, name=name, *args):
@@ -995,7 +995,7 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_sum', 'sum', **kwargs)
 
     _shared_docs['max'] = dedent("""
-    %(name)s maximum
+    Calculate the %(name)s maximum
     """)
 
     def max(self, *args, **kwargs):
@@ -1259,7 +1259,7 @@ class _Rolling_and_Expanding(_Rolling):
                            check_minp=_require_min_periods(4), **kwargs)
 
     _shared_docs['quantile'] = dedent("""
-    %(name)s quantile.
+    Calculate the %(name)s quantile.
 
     Parameters
     ----------
@@ -1333,7 +1333,7 @@ class _Rolling_and_Expanding(_Rolling):
                            **kwargs)
 
     _shared_docs['cov'] = dedent("""
-    %(name)s sample covariance
+    Calculate the %(name)s sample covariance
 
     Parameters
     ----------
@@ -1760,7 +1760,7 @@ class Rolling(_Rolling_and_Expanding):
 
 class RollingGroupby(_GroupByMixin, Rolling):
     """
-    Provides a rolling groupby implementation
+    Provides a rolling groupby implementation.
 
     .. versionadded:: 0.18.1
 
@@ -1781,7 +1781,7 @@ class RollingGroupby(_GroupByMixin, Rolling):
 
     def _validate_monotonic(self):
         """
-        validate that on is monotonic;
+        Validate that on is monotonic;
         we don't care for groupby.rolling
         because we have already validated at a higher
         level
@@ -2031,7 +2031,7 @@ class Expanding(_Rolling_and_Expanding):
 
 class ExpandingGroupby(_GroupByMixin, Expanding):
     """
-    Provides a expanding groupby implementation
+    Provides a expanding groupby implementation.
 
     .. versionadded:: 0.18.1
 
@@ -2069,7 +2069,7 @@ bias : bool, default False
 
 class EWM(_Rolling):
     r"""
-    Provides exponential weighted functions
+    Provides exponential weighted functions.
 
     .. versionadded:: 0.18.0
 
@@ -2219,7 +2219,8 @@ class EWM(_Rolling):
     agg = aggregate
 
     def _apply(self, func, **kwargs):
-        """Rolling statistical measure using supplied function. Designed to be
+        """
+        Rolling statistical measure using supplied function. Designed to be
         used with passed-in Cython array-based functions.
 
         Parameters
@@ -2261,7 +2262,7 @@ class EWM(_Rolling):
     @Substitution(name='ewm')
     @Appender(_doc_template)
     def mean(self, *args, **kwargs):
-        """exponential weighted moving average"""
+        """ Exponential weighted moving average. """
         nv.validate_window_func('mean', args, kwargs)
         return self._apply('ewma', **kwargs)
 
@@ -2269,7 +2270,7 @@ class EWM(_Rolling):
     @Appender(_doc_template)
     @Appender(_bias_template)
     def std(self, bias=False, *args, **kwargs):
-        """exponential weighted moving stddev"""
+        """ Exponential weighted moving stddev. """
         nv.validate_window_func('std', args, kwargs)
         return _zsqrt(self.var(bias=bias, **kwargs))
 
@@ -2279,7 +2280,7 @@ class EWM(_Rolling):
     @Appender(_doc_template)
     @Appender(_bias_template)
     def var(self, bias=False, *args, **kwargs):
-        """exponential weighted moving variance"""
+        """ Exponential weighted moving variance. """
         nv.validate_window_func('var', args, kwargs)
 
         def f(arg):
@@ -2293,7 +2294,7 @@ class EWM(_Rolling):
     @Appender(_doc_template)
     @Appender(_pairwise_template)
     def cov(self, other=None, pairwise=None, bias=False, **kwargs):
-        """exponential weighted sample covariance"""
+        """ Exponential weighted sample covariance. """
         if other is None:
             other = self._selected_obj
             # only default unset
@@ -2316,7 +2317,7 @@ class EWM(_Rolling):
     @Appender(_doc_template)
     @Appender(_pairwise_template)
     def corr(self, other=None, pairwise=None, **kwargs):
-        """exponential weighted sample correlation"""
+        """ Exponential weighted sample correlation. """
         if other is None:
             other = self._selected_obj
             # only default unset

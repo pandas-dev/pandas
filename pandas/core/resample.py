@@ -757,8 +757,8 @@ one pass, you can do
 
     def asfreq(self, fill_value=None):
         """
-        return the values at the new freq,
-        essentially a reindex
+        Return the values at the new freq,
+        essentially a reindex.
 
         Parameters
         ----------
@@ -777,7 +777,7 @@ one pass, you can do
 
     def std(self, ddof=1, *args, **kwargs):
         """
-        Compute standard deviation of groups, excluding missing values
+        Compute standard deviation of groups, excluding missing values.
 
         Parameters
         ----------
@@ -789,7 +789,7 @@ one pass, you can do
 
     def var(self, ddof=1, *args, **kwargs):
         """
-        Compute variance of groups, excluding missing values
+        Compute variance of groups, excluding missing values.
 
         Parameters
         ----------
@@ -909,7 +909,7 @@ def _maybe_process_deprecations(r, how=None, fill_method=None, limit=None):
 
 
 class _GroupByMixin(GroupByMixin):
-    """ provide the groupby facilities """
+    """ Provide the groupby facilities. """
 
     def __init__(self, obj, *args, **kwargs):
 
@@ -931,8 +931,8 @@ class _GroupByMixin(GroupByMixin):
 
     def _apply(self, f, grouper=None, *args, **kwargs):
         """
-        dispatch to _upsample; we are stripping all of the _upsample kwargs and
-        performing the original function call on the grouped object
+        Dispatch to _upsample; we are stripping all of the _upsample kwargs and
+        performing the original function call on the grouped object.
         """
 
         def func(x):
@@ -966,7 +966,7 @@ class DatetimeIndexResampler(Resampler):
 
     def _downsample(self, how, **kwargs):
         """
-        Downsample the cython defined function
+        Downsample the cython defined function.
 
         Parameters
         ----------
@@ -1106,7 +1106,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     def _downsample(self, how, **kwargs):
         """
-        Downsample the cython defined function
+        Downsample the cython defined function.
 
         Parameters
         ----------
@@ -1177,7 +1177,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
 class PeriodIndexResamplerGroupby(_GroupByMixin, PeriodIndexResampler):
     """
-    Provides a resample of a groupby implementation
+    Provides a resample of a groupby implementation.
 
     .. versionadded:: 0.18.1
 
@@ -1207,7 +1207,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 
 class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
     """
-    Provides a resample of a groupby implementation
+    Provides a resample of a groupby implementation.
 
     .. versionadded:: 0.18.1
 
@@ -1218,7 +1218,7 @@ class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
 
 
 def resample(obj, kind=None, **kwds):
-    """ create a TimeGrouper and return our resampler """
+    """ Create a TimeGrouper and return our resampler. """
     tg = TimeGrouper(**kwds)
     return tg._get_resampler(obj, kind=kind)
 
@@ -1244,7 +1244,7 @@ def get_resampler_for_grouping(groupby, rule, how=None, fill_method=None,
 
 class TimeGrouper(Grouper):
     """
-    Custom groupby class for time-interval grouping
+    Custom groupby class for time-interval grouping.
 
     Parameters
     ----------

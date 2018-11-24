@@ -1953,7 +1953,7 @@ class DataFrame(NDFrame):
 
     def to_feather(self, fname):
         """
-        write out the binary feather-format for DataFrames
+        Write out the binary feather-format for DataFrames.
 
         .. versionadded:: 0.20.0
 
@@ -5839,7 +5839,7 @@ class DataFrame(NDFrame):
         return unstack(self, level, fill_value)
 
     _shared_docs['melt'] = ("""
-    "Unpivots" a DataFrame from wide format to long format, optionally
+    'Unpivots' a DataFrame from wide format to long format, optionally
     leaving identifier variables set.
 
     This function is useful to massage a DataFrame into a format where one
@@ -6045,7 +6045,7 @@ class DataFrame(NDFrame):
                  ):
         # type: (...) -> Union[Series, DataFrame]
         """
-        sub-classes to define
+        Sub-classes to define
         return a sliced object
 
         Parameters

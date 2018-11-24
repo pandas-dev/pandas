@@ -690,17 +690,17 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def dtype(self):
-        """ return the dtype object of the underlying data """
+        """ Return the dtype object of the underlying data. """
         return self._data.dtype
 
     @cache_readonly
     def dtype_str(self):
-        """ return the dtype str of the underlying data """
+        """ Return the dtype str of the underlying data. """
         return str(self.dtype)
 
     @property
     def values(self):
-        """ return the underlying data as an ndarray """
+        """ Return the underlying data as an ndarray. """
         return self._data.view(np.ndarray)
 
     @property
@@ -824,12 +824,12 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(repeats))
 
-    _index_shared_docs['where'] = """
-        .. versionadded:: 0.19.0
-
+    _index_shared_docs['where'] = """        
         Return an Index of same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from
         other.
+        
+        .. versionadded:: 0.19.0
 
         Parameters
         ----------
@@ -862,7 +862,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def ravel(self, order='C'):
         """
-        return an ndarray of the flattened values of the underlying data
+        Return an ndarray of the flattened values of the underlying data.
 
         See Also
         --------
@@ -1493,13 +1493,14 @@ class Index(IndexOpsMixin, PandasObject):
     # introspection
     @property
     def is_monotonic(self):
-        """ alias for is_monotonic_increasing (deprecated) """
+        """ Alias for is_monotonic_increasing.
+        .. deprecated :: """
         return self.is_monotonic_increasing
 
     @property
     def is_monotonic_increasing(self):
         """
-        return if the index is monotonic increasing (only equal or
+        Return if the index is monotonic increasing (only equal or
         increasing) values.
 
         Examples
@@ -1516,7 +1517,7 @@ class Index(IndexOpsMixin, PandasObject):
     @property
     def is_monotonic_decreasing(self):
         """
-        return if the index is monotonic decreasing (only equal or
+        Return if the index is monotonic decreasing (only equal or
         decreasing) values.
 
         Examples
@@ -1532,8 +1533,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def _is_strictly_monotonic_increasing(self):
-        """return if the index is strictly monotonic increasing
-        (only increasing) values
+        """Return if the index is strictly monotonic increasing
+        (only increasing) values.
 
         Examples
         --------
@@ -1548,8 +1549,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def _is_strictly_monotonic_decreasing(self):
-        """return if the index is strictly monotonic decreasing
-        (only decreasing) values
+        """Return if the index is strictly monotonic decreasing
+        (only decreasing) values.
 
         Examples
         --------
@@ -1567,7 +1568,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def is_unique(self):
-        """ return if the index has unique values """
+        """ Return if the index has unique values. """
         return self._engine.is_unique
 
     @property
@@ -1958,11 +1959,11 @@ class Index(IndexOpsMixin, PandasObject):
 
     @cache_readonly
     def inferred_type(self):
-        """ return a string of the type inferred from the values """
+        """ Return a string of the type inferred from the values, """
         return lib.infer_dtype(self)
 
     def _is_memory_usage_qualified(self):
-        """ return a boolean if we need a qualified .info display """
+        """ Return a boolean if we need a qualified .info display. """
         return self.is_object()
 
     def is_type_compatible(self, kind):
@@ -1980,7 +1981,7 @@ class Index(IndexOpsMixin, PandasObject):
         return _new_Index, (self.__class__, d), None
 
     def __setstate__(self, state):
-        """Necessary for making this object picklable"""
+        """ Necessary for making this object picklable. """
 
         if isinstance(state, dict):
             self._data = state.pop('data')
@@ -2014,7 +2015,7 @@ class Index(IndexOpsMixin, PandasObject):
     __bool__ = __nonzero__
 
     _index_shared_docs['__contains__'] = """
-        return a boolean if this key is IN the index
+        Return a boolean if this key is IN the index.
 
         Parameters
         ----------
@@ -2034,7 +2035,7 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
     _index_shared_docs['contains'] = """
-        return a boolean if this key is IN the index
+        Return a boolean if this key is IN the index.
 
         Parameters
         ----------
@@ -2152,7 +2153,7 @@ class Index(IndexOpsMixin, PandasObject):
         return _concat._concat_index_asobject(to_concat, name)
 
     _index_shared_docs['take'] = """
-        return a new %(klass)s of the values selected by the indices
+        Return a new %(klass)s of the values selected by the indices.
 
         For internal compatibility with numpy arrays.
 
@@ -2345,7 +2346,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def putmask(self, mask, value):
         """
-        return a new Index of the values set with the mask
+        Return a new Index of the values set with the mask.
 
         See Also
         --------
@@ -2536,12 +2537,17 @@ class Index(IndexOpsMixin, PandasObject):
 
     def asof_locs(self, where, mask):
         """
-        where : array of timestamps
-        mask : array of booleans where data is not NA
+        Parameters
+        ----------
+        where : array
+            Array of timestamps.
+        mask : array-like
+            Array of booleans denoting where values in the original
+            data are not NA.
         """
         locs = self.values[mask].searchsorted(where.values, side='right')
-
         locs = np.where(locs > 0, locs - 1, 0)
+
         result = np.arange(len(self))[mask].take(locs)
 
         first = mask.argmax()
@@ -3501,8 +3507,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def get_indexer_for(self, target, **kwargs):
         """
-        guaranteed return of an indexer even when non-unique
-        This dispatches to get_indexer or get_indexer_nonunique as appropriate
+        Guaranteed return of an indexer even when non-unique.
+        This dispatches to get_indexer or get_indexer_nonunique
+        as appropriate.
         """
         if self.is_unique:
             return self.get_indexer(target, **kwargs)
@@ -3817,11 +3824,11 @@ class Index(IndexOpsMixin, PandasObject):
         new_index = self._shallow_copy_with_infer(new_labels, freq=None)
         return new_index, indexer, new_indexer
 
-    _index_shared_docs['join'] = """
-        *this is an internal non-public method*
-
+    _index_shared_docs['join'] = """        
         Compute join_index and indexers to conform data
         structures to the new index.
+        
+        *This is an internal non-public method*
 
         Parameters
         ----------
@@ -4281,9 +4288,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _validate_indexer(self, form, key, kind):
         """
-        if we are positional indexer
+        If we are positional indexer
         validate that we have appropriate typed bounds
-        must be an integer
+        must be an integer.
         """
         assert kind in ['ix', 'loc', 'getitem', 'iloc']
 
@@ -4493,7 +4500,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def delete(self, loc):
         """
-        Make new Index with passed location(-s) deleted
+        Make new Index with passed location(-s) deleted.
 
         Returns
         -------
@@ -4504,7 +4511,7 @@ class Index(IndexOpsMixin, PandasObject):
     def insert(self, loc, item):
         """
         Make new Index inserting new item at location. Follows
-        Python list.append semantics for negative values
+        Python list.append semantics for negative values.
 
         Parameters
         ----------
@@ -4522,7 +4529,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def drop(self, labels, errors='raise'):
         """
-        Make new Index with passed list of labels deleted
+        Make new Index with passed list of labels deleted.
 
         Parameters
         ----------

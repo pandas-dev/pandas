@@ -417,7 +417,8 @@ class Styler(object):
         return self
 
     def render(self, **kwargs):
-        """Render the built up styles to HTML
+        """
+        Render the built up styles to HTML.
 
         Parameters
         ----------
@@ -504,7 +505,8 @@ class Styler(object):
         return self._copy(deepcopy=True)
 
     def clear(self):
-        """"Reset" the styler, removing any previously applied styles.
+        """
+        'Reset' the styler, removing any previously applied styles.
         Returns None.
         """
         self.ctx.clear()
