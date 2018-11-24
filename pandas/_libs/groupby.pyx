@@ -416,7 +416,7 @@ def group_quantile(ndarray[float64_t] out,
         ndarray[int64_t] counts, non_na_counts
         ndarray[int64_t] sort_arr
 
-    assert <Py_ssize_t>len(values) == N
+    assert values.shape[0] == N
     inter_methods = {
         'linear': INTERPOLATION_LINEAR,
         'lower': INTERPOLATION_LOWER,
