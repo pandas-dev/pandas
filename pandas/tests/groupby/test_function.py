@@ -1119,8 +1119,8 @@ def test_quantile_raises():
     df = pd.DataFrame([
         ['foo', 'a'], ['foo', 'b'], ['foo', 'c']], columns=['key', 'val'])
 
-    with tm.assert_raises_regex(TypeError, "cannot be performed against "
-                                "'object' dtypes"):
+    with pytest.raises(TypeError, message="cannot be performed against "
+                       "'object' dtypes"):
         df.groupby('key').quantile()
 
 
