@@ -2,7 +2,6 @@
 
 echo "[script_single]"
 
-
 if [ -n "$LOCALE_OVERRIDE" ]; then
     echo "Setting LC_ALL and LANG to $LOCALE_OVERRIDE"
     export LC_ALL="$LOCALE_OVERRIDE";

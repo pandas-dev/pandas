@@ -17,7 +17,7 @@ conda remove --all -q -y -n pandas-dev
 
 echo
 echo "[create env]"
-time conda env create -q -n pandas-dev --file="${ENV_FILE}" || exit 1
+time conda env create -q --file="${ENV_FILE}" || exit 1
 
 
 # remove any installed pandas package
