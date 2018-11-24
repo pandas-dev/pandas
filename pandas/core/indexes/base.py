@@ -824,11 +824,11 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(repeats))
 
-    _index_shared_docs['where'] = """        
+    _index_shared_docs['where'] = """ 
         Return an Index of same shape as self and whose corresponding
         entries are from self where cond is True and otherwise are from
         other.
-        
+
         .. versionadded:: 0.19.0
 
         Parameters
@@ -3824,10 +3824,10 @@ class Index(IndexOpsMixin, PandasObject):
         new_index = self._shallow_copy_with_infer(new_labels, freq=None)
         return new_index, indexer, new_indexer
 
-    _index_shared_docs['join'] = """        
+    _index_shared_docs['join'] = """
         Compute join_index and indexers to conform data
         structures to the new index.
-        
+
         *This is an internal non-public method*
 
         Parameters
