@@ -356,7 +356,6 @@ class MultiIndex(Index):
         -------
         new index (of same type and class...etc)
 
-
         Examples
         --------
         >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
@@ -1519,7 +1518,6 @@ class MultiIndex(Index):
         MultiIndex(levels=[[0, 1], ['a', 'b']],
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
 
-
         >>> i[2:]
         MultiIndex(levels=[[0, 1], ['a', 'b']],
                    labels=[[1, 1], [0, 1]])
@@ -1530,7 +1528,6 @@ class MultiIndex(Index):
         >>> i[2:].remove_unused_levels()
         MultiIndex(levels=[[1], ['a', 'b']],
                    labels=[[0, 0], [0, 1]])
-
         """
 
         new_levels = []
@@ -1912,7 +1909,6 @@ class MultiIndex(Index):
             Resulting index
         indexer : np.ndarray
             Indices of output values in original index
-
         """
         from pandas.core.sorting import indexer_from_factorized
 

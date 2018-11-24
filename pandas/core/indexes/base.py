@@ -1224,7 +1224,6 @@ class Index(IndexOpsMixin, PandasObject):
             or the original Index is returned.
 
             .. versionadded:: 0.19.0
-
         """
 
     @Appender(_index_shared_docs['astype'])
@@ -2539,7 +2538,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         where : array of timestamps
         mask : array of booleans where data is not NA
-
         """
         locs = self.values[mask].searchsorted(where.values, side='right')
 
@@ -2785,7 +2783,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.union(idx2)
         Int64Index([1, 2, 3, 4, 5, 6], dtype='int64')
-
         """
         self._assert_can_do_setop(other)
         other = ensure_index(other)
@@ -2884,7 +2881,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx2 = pd.Index([3, 4, 5, 6])
         >>> idx1.intersection(idx2)
         Int64Index([3, 4], dtype='int64')
-
         """
         self._assert_can_do_setop(other)
         other = ensure_index(other)
@@ -2956,7 +2952,6 @@ class Index(IndexOpsMixin, PandasObject):
         Int64Index([1, 2], dtype='int64')
         >>> idx1.difference(idx2, sort=False)
         Int64Index([2, 1], dtype='int64')
-
         """
         self._assert_can_do_setop(other)
 
@@ -3342,7 +3337,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Notice that the return value is an array of locations in ``index``
         and ``x`` is marked by -1, as it is not in ``index``.
-
         """
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
@@ -4374,7 +4368,6 @@ class Index(IndexOpsMixin, PandasObject):
         label : object
         side : {'left', 'right'}
         kind : {'ix', 'loc', 'getitem'}
-
         """
         assert kind in ['ix', 'loc', 'getitem', None]
 
