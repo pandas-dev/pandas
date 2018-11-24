@@ -10,7 +10,8 @@ from hypothesis import given, assume, example, strategies as st
 
 from pandas import Timedelta, Timestamp
 from pandas.tseries import offsets
-from pandas.tseries.offsets import Hour, Minute, Second, Milli, Micro, Nano
+from pandas.tseries.offsets import (Day, Hour, Minute, Second, Milli, Micro,
+                                    Nano)
 
 from .common import assert_offset_equal
 
@@ -211,6 +212,13 @@ def test_Nanosecond():
     assert Micro(5) + Nano(1) == Nano(5001)
 
 
+def test_Day_equals_24_Hours():
+    ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+    result = ts + Day(1)
+    expected = ts + Hour(24)
+    assert result == expected
+
+
 @pytest.mark.parametrize('kls, expected',
                          [(Hour, Timedelta(hours=5)),
                           (Minute, Timedelta(hours=2, minutes=3)),
@@ -259,3 +267,25 @@ def test_compare_ticks(cls):
     assert cls(4) > three
     assert cls(3) == cls(3)
     assert cls(3) != cls(4)
+
+
+@pytest.mark.parametrize('cls', tick_classes)
+def test_compare_ticks_to_strs(cls):
+    # GH#23524
+    off = cls(19)
+
+    # These tests should work with any strings, but we particularly are
+    #  interested in "infer" as that comparison is convenient to make in
+    #  Datetime/Timedelta Array/Index constructors
+    assert not off == "infer"
+    assert not "foo" == off
+
+    for left, right in [("infer", off), (off, "infer")]:
+        with pytest.raises(TypeError):
+            left < right
+        with pytest.raises(TypeError):
+            left <= right
+        with pytest.raises(TypeError):
+            left > right
+        with pytest.raises(TypeError):
+            left >= right

@@ -6,8 +6,6 @@ from pandas import Series, timedelta_range, to_timedelta, Timestamp, Timedelta
 
 class TimedeltaConstructor(object):
 
-    goal_time = 0.2
-
     def time_from_int(self):
         Timedelta(123456789)
 
@@ -36,8 +34,6 @@ class TimedeltaConstructor(object):
 
 class ToTimedelta(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.ints = np.random.randint(0, 60, size=10000)
         self.str_days = []
@@ -58,7 +54,6 @@ class ToTimedelta(object):
 
 class ToTimedeltaErrors(object):
 
-    goal_time = 0.2
     params = ['coerce', 'ignore']
     param_names = ['errors']
 
@@ -73,8 +68,6 @@ class ToTimedeltaErrors(object):
 
 class TimedeltaOps(object):
 
-    goal_time = 0.2
-
     def setup(self):
         self.td = to_timedelta(np.arange(1000000))
         self.ts = Timestamp('2000')
@@ -84,8 +77,6 @@ class TimedeltaOps(object):
 
 
 class TimedeltaProperties(object):
-
-    goal_time = 0.2
 
     def setup_cache(self):
         td = Timedelta(days=365, minutes=35, seconds=25, milliseconds=35)
@@ -105,8 +96,6 @@ class TimedeltaProperties(object):
 
 
 class DatetimeAccessor(object):
-
-    goal_time = 0.2
 
     def setup_cache(self):
         N = 100000

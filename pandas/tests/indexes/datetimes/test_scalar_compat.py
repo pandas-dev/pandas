@@ -7,10 +7,11 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util.testing as tm
 import pandas as pd
+from pandas import DatetimeIndex, Timestamp, date_range
+import pandas.util.testing as tm
 
-from pandas import date_range, Timestamp, DatetimeIndex
+from pandas.tseries.frequencies import to_offset
 
 
 class TestDatetimeIndexOps(object):
@@ -96,14 +97,16 @@ class TestDatetimeIndexOps(object):
         assert elt.round(freq='H') == expected_elt
 
         msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             rng.round(freq='foo')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             elt.round(freq='foo')
 
         msg = "<MonthEnd> is a non-fixed frequency"
-        tm.assert_raises_regex(ValueError, msg, rng.round, freq='M')
-        tm.assert_raises_regex(ValueError, msg, elt.round, freq='M')
+        with pytest.raises(ValueError, match=msg):
+            rng.round(freq='M')
+        with pytest.raises(ValueError, match=msg):
+            elt.round(freq='M')
 
         # GH#14440 & GH#15578
         index = DatetimeIndex(['2016-10-17 12:00:00.0015'], tz=tz)
@@ -124,7 +127,7 @@ class TestDatetimeIndexOps(object):
         expected = DatetimeIndex(['2016-10-17 12:00:00.001501030'])
         tm.assert_index_equal(result, expected)
 
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(False):
             ts = '2016-10-17 12:00:00.001501031'
             DatetimeIndex([ts]).round('1010ns')
 
@@ -169,6 +172,46 @@ class TestDatetimeIndexOps(object):
         expected = DatetimeIndex(list(expected))
         assert expected.equals(result)
 
+    @pytest.mark.parametrize('start, index_freq, periods', [
+        ('2018-01-01', '12H', 25),
+        ('2018-01-01 0:0:0.124999', '1ns', 1000),
+    ])
+    @pytest.mark.parametrize('round_freq', [
+        '2ns', '3ns', '4ns', '5ns', '6ns', '7ns',
+        '250ns', '500ns', '750ns',
+        '1us', '19us', '250us', '500us', '750us',
+        '1s', '2s', '3s',
+        '12H', '1D',
+    ])
+    def test_round_int64(self, start, index_freq, periods, round_freq):
+        dt = DatetimeIndex(start=start, freq=index_freq, periods=periods)
+        unit = to_offset(round_freq).nanos
+
+        # test floor
+        result = dt.floor(round_freq)
+        diff = dt.asi8 - result.asi8
+        mod = result.asi8 % unit
+        assert (mod == 0).all(), "floor not a {} multiple".format(round_freq)
+        assert (0 <= diff).all() and (diff < unit).all(), "floor error"
+
+        # test ceil
+        result = dt.ceil(round_freq)
+        diff = result.asi8 - dt.asi8
+        mod = result.asi8 % unit
+        assert (mod == 0).all(), "ceil not a {} multiple".format(round_freq)
+        assert (0 <= diff).all() and (diff < unit).all(), "ceil error"
+
+        # test round
+        result = dt.round(round_freq)
+        diff = abs(result.asi8 - dt.asi8)
+        mod = result.asi8 % unit
+        assert (mod == 0).all(), "round not a {} multiple".format(round_freq)
+        assert (diff <= unit // 2).all(), "round error"
+        if unit % 2 == 0:
+            assert (
+                result.asi8[diff == unit // 2] % 2 == 0
+            ).all(), "round half to even error"
+
     # ----------------------------------------------------------------
     # DatetimeIndex.normalize
 
@@ -191,6 +234,12 @@ class TestDatetimeIndexOps(object):
 
         assert result.is_normalized
         assert not rng.is_normalized
+
+    def test_normalize_nat(self):
+        dti = DatetimeIndex([pd.NaT, Timestamp('2018-01-01 01:00:00')])
+        result = dti.normalize()
+        expected = DatetimeIndex([pd.NaT, Timestamp('2018-01-01')])
+        tm.assert_index_equal(result, expected)
 
 
 class TestDateTimeIndexToJulianDate(object):

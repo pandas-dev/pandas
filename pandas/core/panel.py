@@ -4,36 +4,37 @@ Contains data structures designed for manipulating panel (3-dimensional) data
 # pylint: disable=E1103,W0231,W0212,W0621
 from __future__ import division
 
-import numpy as np
 import warnings
+
+import numpy as np
+
+import pandas.compat as compat
+from pandas.compat import OrderedDict, map, range, u, zip
+from pandas.compat.numpy import function as nv
+from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
+from pandas.util._validators import validate_axis_style_args
+
 from pandas.core.dtypes.cast import (
-    infer_dtype_from_scalar,
-    cast_scalar_to_array,
-    maybe_cast_item)
+    cast_scalar_to_array, infer_dtype_from_scalar, maybe_cast_item)
 from pandas.core.dtypes.common import (
-    is_integer, is_list_like,
-    is_string_like, is_scalar)
+    is_integer, is_list_like, is_scalar, is_string_like)
 from pandas.core.dtypes.missing import notna
 
-import pandas.core.ops as ops
 import pandas.core.common as com
-import pandas.core.indexes.base as ibase
-from pandas import compat
-from pandas.compat import (map, zip, range, u, OrderedDict)
-from pandas.compat.numpy import function as nv
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.index import (Index, MultiIndex, ensure_index,
-                               _get_objs_combined_axis)
-from pandas.io.formats.printing import pprint_thing
+from pandas.core.index import (
+    Index, MultiIndex, _get_objs_combined_axis, ensure_index)
+import pandas.core.indexes.base as ibase
 from pandas.core.indexing import maybe_droplevels
-from pandas.core.internals import (BlockManager,
-                                   create_block_manager_from_arrays,
-                                   create_block_manager_from_blocks)
-from pandas.core.series import Series
+from pandas.core.internals import (
+    BlockManager, create_block_manager_from_arrays,
+    create_block_manager_from_blocks)
+import pandas.core.ops as ops
 from pandas.core.reshape.util import cartesian_product
-from pandas.util._decorators import Appender, Substitution
-from pandas.util._validators import validate_axis_style_args
+from pandas.core.series import Series
+
+from pandas.io.formats.printing import pprint_thing
 
 _shared_doc_kwargs = dict(
     axes='items, major_axis, minor_axis',
@@ -106,14 +107,14 @@ def panel_index(time, panels, names=None):
 
 class Panel(NDFrame):
     """
-    Represents wide format panel data, stored as 3-dimensional array
+    Represents wide format panel data, stored as 3-dimensional array.
 
-   .. deprecated:: 0.20.0
-       The recommended way to represent 3-D data are with a MultiIndex on a
-       DataFrame via the :attr:`~Panel.to_frame()` method or with the
-       `xarray package <http://xarray.pydata.org/en/stable/>`__.
-       Pandas provides a :attr:`~Panel.to_xarray()` method to automate this
-       conversion.
+    .. deprecated:: 0.20.0
+        The recommended way to represent 3-D data are with a MultiIndex on a
+        DataFrame via the :attr:`~Panel.to_frame()` method or with the
+        `xarray package <http://xarray.pydata.org/en/stable/>`__.
+        Pandas provides a :attr:`~Panel.to_xarray()` method to automate this
+        conversion.
 
     Parameters
     ----------
@@ -330,7 +331,7 @@ class Panel(NDFrame):
     # ----------------------------------------------------------------------
     # Comparison methods
 
-    def _compare_constructor(self, other, func, try_cast=True):
+    def _compare_constructor(self, other, func):
         if not self._indexed_same(other):
             raise Exception('Can only compare identically-labeled '
                             'same type objects')
@@ -745,13 +746,13 @@ class Panel(NDFrame):
                 "{otype!s} is not supported in combine operation with "
                 "{selftype!s}".format(otype=type(other), selftype=type(self)))
 
-    def _combine_const(self, other, func, try_cast=True):
+    def _combine_const(self, other, func):
         with np.errstate(all='ignore'):
             new_values = func(self.values, other)
         d = self._construct_axes_dict()
         return self._constructor(new_values, **d)
 
-    def _combine_frame(self, other, func, axis=0, try_cast=True):
+    def _combine_frame(self, other, func, axis=0):
         index, columns = self._get_plane_axes(axis)
         axis = self._get_axis_number(axis)
 
@@ -770,7 +771,7 @@ class Panel(NDFrame):
         return self._constructor(new_values, self.items, self.major_axis,
                                  self.minor_axis)
 
-    def _combine_panel(self, other, func, try_cast=True):
+    def _combine_panel(self, other, func):
         items = self.items.union(other.items)
         major = self.major_axis.union(other.major_axis)
         minor = self.minor_axis.union(other.minor_axis)
@@ -805,7 +806,6 @@ class Panel(NDFrame):
         MultiIndex Slicers is a generic way to get/set values on any level or
         levels and is a superset of major_xs functionality, see
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
-
         """
         return self.xs(key, axis=self._AXIS_LEN - 2)
 
@@ -830,7 +830,6 @@ class Panel(NDFrame):
         MultiIndex Slicers is a generic way to get/set values on any level or
         levels and is a superset of minor_xs functionality, see
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
-
         """
         return self.xs(key, axis=self._AXIS_LEN - 1)
 
@@ -855,7 +854,6 @@ class Panel(NDFrame):
         MultiIndex Slicers is a generic way to get/set values on any level or
         levels and is a superset of xs functionality, see
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
-
         """
         axis = self._get_axis_number(axis)
         if axis == 0:
@@ -1013,21 +1011,21 @@ class Panel(NDFrame):
 
         Returns a Panel with the square root of each element
 
-        >>> p = pd.Panel(np.random.rand(4,3,2))
+        >>> p = pd.Panel(np.random.rand(4, 3, 2))  # doctest: +SKIP
         >>> p.apply(np.sqrt)
 
         Equivalent to p.sum(1), returning a DataFrame
 
-        >>> p.apply(lambda x: x.sum(), axis=1)
+        >>> p.apply(lambda x: x.sum(), axis=1)  # doctest: +SKIP
 
         Equivalent to previous:
 
-        >>> p.apply(lambda x: x.sum(), axis='major')
+        >>> p.apply(lambda x: x.sum(), axis='major')  # doctest: +SKIP
 
         Return the shapes of each DataFrame over axis 2 (i.e the shapes of
         items x major), as a Series
 
-        >>> p.apply(lambda x: x.shape, axis=(0,1))
+        >>> p.apply(lambda x: x.shape, axis=(0,1))  # doctest: +SKIP
 
         Returns
         -------
@@ -1215,7 +1213,8 @@ class Panel(NDFrame):
 
         return self._construct_return_type(result, axes)
 
-    @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.reindex.__doc__)
     def reindex(self, *args, **kwargs):
         major = kwargs.pop("major", None)
         minor = kwargs.pop('minor', None)
@@ -1234,9 +1233,15 @@ class Panel(NDFrame):
         kwargs.update(axes)
         kwargs.pop('axis', None)
         kwargs.pop('labels', None)
-        return super(Panel, self).reindex(**kwargs)
 
-    @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            # do not warn about constructing Panel when reindexing
+            result = super(Panel, self).reindex(**kwargs)
+        return result
+
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.rename.__doc__)
     def rename(self, items=None, major_axis=None, minor_axis=None, **kwargs):
         major_axis = (major_axis if major_axis is not None else
                       kwargs.pop('major', None))
@@ -1253,7 +1258,8 @@ class Panel(NDFrame):
                                                copy=copy, limit=limit,
                                                fill_value=fill_value)
 
-    @Appender(_shared_docs['transpose'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.transpose.__doc__)
     def transpose(self, *args, **kwargs):
         # check if a list of axes was passed in instead as a
         # single *args element
@@ -1374,25 +1380,37 @@ class Panel(NDFrame):
             return concat([self] + list(other), axis=0, join=how,
                           join_axes=join_axes, verify_integrity=True)
 
+    @deprecate_kwarg(old_arg_name='raise_conflict', new_arg_name='errors',
+                     mapping={False: 'ignore', True: 'raise'})
     def update(self, other, join='left', overwrite=True, filter_func=None,
-               raise_conflict=False):
+               errors='ignore'):
         """
-        Modify Panel in place using non-NA values from passed
-        Panel, or object coercible to Panel. Aligns on items
+        Modify Panel in place using non-NA values from other Panel.
+
+        May also use object coercible to Panel. Will align on items.
 
         Parameters
         ----------
         other : Panel, or object coercible to Panel
-        join : How to join individual DataFrames
-            {'left', 'right', 'outer', 'inner'}, default 'left'
-        overwrite : boolean, default True
-            If True then overwrite values for common keys in the calling panel
-        filter_func : callable(1d-array) -> 1d-array<boolean>, default None
+            The object from which the caller will be udpated.
+        join : {'left', 'right', 'outer', 'inner'}, default 'left'
+            How individual DataFrames are joined.
+        overwrite : bool, default True
+            If True then overwrite values for common keys in the calling Panel.
+        filter_func : callable(1d-array) -> 1d-array<bool>, default None
             Can choose to replace values other than NA. Return True for values
-            that should be updated
-        raise_conflict : bool
-            If True, will raise an error if a DataFrame and other both
-            contain data in the same place.
+            that should be updated.
+        errors : {'raise', 'ignore'}, default 'ignore'
+            If 'raise', will raise an error if a DataFrame and other both.
+
+            .. versionchanged :: 0.24.0
+               Changed from `raise_conflict=False|True`
+               to `errors='ignore'|'raise'`.
+
+        See Also
+        --------
+        DataFrame.update : Similar method for DataFrames.
+        dict.update : Similar method for dictionaries.
         """
 
         if not isinstance(other, self._constructor):
@@ -1403,8 +1421,8 @@ class Panel(NDFrame):
         other = other.reindex(**{axis_name: axis_values})
 
         for frame in axis_values:
-            self[frame].update(other[frame], join, overwrite, filter_func,
-                               raise_conflict)
+            self[frame].update(other[frame], join=join, overwrite=overwrite,
+                               filter_func=filter_func, errors=errors)
 
     def _get_join_index(self, other, how):
         if how == 'left':
@@ -1535,6 +1553,13 @@ class Panel(NDFrame):
             index = Index([])
 
         return ensure_index(index)
+
+    def sort_values(self, *args, **kwargs):
+        """
+        NOT IMPLEMENTED: do not call this method, as sorting values is not
+        supported for Panel objects and will raise an error.
+        """
+        super(Panel, self).sort_values(*args, **kwargs)
 
 
 Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,

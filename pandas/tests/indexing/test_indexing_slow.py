@@ -3,15 +3,17 @@
 import warnings
 
 import numpy as np
-import pandas as pd
-from pandas.core.api import Series, DataFrame, MultiIndex
-import pandas.util.testing as tm
 import pytest
+
+import pandas as pd
+from pandas.core.api import DataFrame, MultiIndex, Series
+import pandas.util.testing as tm
 
 
 class TestIndexingSlow(object):
 
     @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_multiindex_get_loc(self):  # GH7724, GH2646
 
         with warnings.catch_warnings(record=True):

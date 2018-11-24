@@ -6,6 +6,7 @@ source activate pandas
 
 if [ -n "$LOCALE_OVERRIDE" ]; then
     export LC_ALL="$LOCALE_OVERRIDE";
+    export LANG="$LOCALE_OVERRIDE";
     echo "Setting LC_ALL to $LOCALE_OVERRIDE"
 
     pycmd='import pandas; print("pandas detected console encoding: %s" % pandas.get_option("display.encoding"))'
@@ -27,17 +28,21 @@ if [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
 
 elif [ "$COVERAGE" ]; then
-    echo pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
-    pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
+    echo pytest -s -n 2 -m "not single" --durations=10 --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
+    pytest      -s -n 2 -m "not single" --durations=10 --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
 
 elif [ "$SLOW" ]; then
     TEST_ARGS="--only-slow --skip-network"
-    echo pytest -r xX -m "not single and slow" -v --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
-    pytest -r xX -m "not single and slow" -v --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
+    # The `-m " and slow"` is redundant here, as `--only-slow` is already used (via $TEST_ARGS). But is needed, because with
+    # `--only-slow` fast tests are skipped, but each of them is printed in the log (which can be avoided with `-q`),
+    # and also added to `test-data-multiple.xml`, and then printed in the log in the call to `ci/print_skipped.py`.
+    # Printing them to the log makes the log exceed the maximum size allowed by Travis and makes the build fail.
+    echo pytest -n 2 -m "not single and slow" --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
+    pytest      -n 2 -m "not single and slow" --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
 
 else
-    echo pytest -n 2 -r xX -m "not single" --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
-    pytest -n 2 -r xX -m "not single" --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas # TODO: doctest
+    echo pytest -n 2 -m "not single" --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas
+    pytest      -n 2 -m "not single" --durations=10 --junitxml=test-data-multiple.xml --strict $TEST_ARGS pandas # TODO: doctest
 
 fi
 

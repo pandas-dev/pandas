@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta, date
 
-cimport cython
-
-from cpython cimport PyTuple_Check, PyList_Check
-from cpython.slice cimport PySlice_Check
+import cython
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, float64_t, int32_t,
-                    int64_t, uint8_t, uint64_t, intp_t,
+from numpy cimport (ndarray, intp_t,
+                    float64_t, float32_t,
+                    int64_t, int32_t, int16_t, int8_t,
+                    uint64_t, uint32_t, uint16_t, uint8_t,
                     # Note: NPY_DATETIME, NPY_TIMEDELTA are only available
                     # for cimport in cython>=0.27.3
                     NPY_DATETIME, NPY_TIMEDELTA)
@@ -26,19 +25,19 @@ from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
-cdef int64_t iNaT = util.get_nat()
+cdef int64_t NPY_NAT = util.get_nat()
 
 
 cdef inline bint is_definitely_invalid_key(object val):
-    if PyTuple_Check(val):
+    if isinstance(val, tuple):
         try:
             hash(val)
         except TypeError:
             return True
 
     # we have a _data, means we are a NDFrame
-    return (PySlice_Check(val) or util.is_array(val)
-            or PyList_Check(val) or hasattr(val, '_data'))
+    return (isinstance(val, slice) or util.is_array(val)
+            or isinstance(val, list) or hasattr(val, '_data'))
 
 
 cpdef get_value_at(ndarray arr, object loc, object tz=None):
@@ -49,7 +48,7 @@ cpdef get_value_at(ndarray arr, object loc, object tz=None):
     return util.get_value_at(arr, loc)
 
 
-cpdef object get_value_box(ndarray arr, object loc):
+def get_value_box(arr: ndarray, loc: object) -> object:
     return get_value_at(arr, loc, tz=None)
 
 
@@ -88,7 +87,7 @@ cdef class IndexEngine:
             void* data_ptr
 
         loc = self.get_loc(key)
-        if PySlice_Check(loc) or util.is_array(loc):
+        if isinstance(loc, slice) or util.is_array(loc):
             return arr[loc]
         else:
             return get_value_at(arr, loc, tz=tz)
@@ -104,10 +103,7 @@ cdef class IndexEngine:
         loc = self.get_loc(key)
         value = convert_scalar(arr, value)
 
-        if PySlice_Check(loc) or util.is_array(loc):
-            arr[loc] = value
-        else:
-            util.set_value_at(arr, loc, value)
+        arr[loc] = value
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
@@ -117,6 +113,8 @@ cdef class IndexEngine:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
+
+            self._check_type(val)
             loc = _bin_search(values, val)  # .searchsorted(val, side='left')
             if loc >= len(values):
                 raise KeyError(val)
@@ -300,14 +298,23 @@ cdef class IndexEngine:
         result = np.empty(n_alloc, dtype=np.int64)
         missing = np.empty(n_t, dtype=np.int64)
 
-        # form the set of the results (like ismember)
-        members = np.empty(n, dtype=np.uint8)
-        for i in range(n):
-            val = values[i]
-            if val in stargets:
-                if val not in d:
-                    d[val] = []
-                d[val].append(i)
+        # map each starget to its position in the index
+        if stargets and len(stargets) < 5 and self.is_monotonic_increasing:
+            # if there are few enough stargets and the index is monotonically
+            # increasing, then use binary search for each starget
+            for starget in stargets:
+                start = values.searchsorted(starget, side='left')
+                end = values.searchsorted(starget, side='right')
+                if start != end:
+                    d[starget] = list(range(start, end))
+        else:
+            # otherwise, map by iterating through all items in the index
+            for i in range(n):
+                val = values[i]
+                if val in stargets:
+                    if val not in d:
+                        d[val] = []
+                    d[val].append(i)
 
         for i in range(n_t):
             val = targets[i]
@@ -515,7 +522,7 @@ cpdef convert_scalar(ndarray arr, object value):
         elif isinstance(value, (datetime, np.datetime64, date)):
             return Timestamp(value).value
         elif value is None or value != value:
-            return iNaT
+            return NPY_NAT
         elif util.is_string_object(value):
             return Timestamp(value).value
         raise ValueError("cannot set a Timestamp with a non-timestamp")
@@ -526,7 +533,7 @@ cpdef convert_scalar(ndarray arr, object value):
         elif isinstance(value, timedelta):
             return Timedelta(value).value
         elif value is None or value != value:
-            return iNaT
+            return NPY_NAT
         elif util.is_string_object(value):
             return Timedelta(value).value
         raise ValueError("cannot set a Timedelta with a non-timedelta")
@@ -643,7 +650,7 @@ cdef class BaseMultiIndexCodesEngine:
     def get_loc(self, object key):
         if is_definitely_invalid_key(key):
             raise TypeError("'{key}' is an invalid key".format(key=key))
-        if not PyTuple_Check(key):
+        if not isinstance(key, tuple):
             raise KeyError(key)
         try:
             indices = [0 if checknull(v) else lev.get_loc(v) + 1
