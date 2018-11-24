@@ -1,31 +1,31 @@
-# pylint: disable=E1101
-import os
-import warnings
-from datetime import datetime, date, time, timedelta
+from collections import OrderedDict
+import contextlib
+from datetime import date, datetime, time, timedelta
 from distutils.version import LooseVersion
 from functools import partial
+import os
+import warnings
 from warnings import catch_warnings
-from collections import OrderedDict
 
 import numpy as np
-import pytest
 from numpy import nan
+import pytest
+
+from pandas.compat import PY36, BytesIO, iteritems, map, range, u
+import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 from pandas import DataFrame, Index, MultiIndex, Series
-from pandas.compat import u, range, map, BytesIO, iteritems, PY36
-from pandas.core.config import set_option, get_option
-from pandas.io.common import URLError
-from pandas.io.excel import (
-    ExcelFile, ExcelWriter, read_excel, _XlwtWriter, _OpenpyxlWriter,
-    register_writer, _XlsxWriter
-)
-from pandas.io.formats.excel import ExcelFormatter
-from pandas.io.parsers import read_csv
+from pandas.core.config import get_option, set_option
+import pandas.util.testing as tm
 from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 
+from pandas.io.common import URLError
+from pandas.io.excel import (
+    ExcelFile, ExcelWriter, _OpenpyxlWriter, _XlsxWriter, _XlwtWriter,
+    read_excel, register_writer)
+from pandas.io.formats.excel import ExcelFormatter
+from pandas.io.parsers import read_csv
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
@@ -34,6 +34,20 @@ _frame2 = DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])[:10]
 _tsframe = tm.makeTimeDataFrame()[:5]
 _mixed_frame = _frame.copy()
 _mixed_frame['foo'] = 'bar'
+
+
+@contextlib.contextmanager
+def ignore_xlrd_time_clock_warning():
+    """
+    Context manager to ignore warnings raised by the xlrd library,
+    regarding the deprecation of `time.clock` in Python 3.7.
+    """
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            action='ignore',
+            message='time.clock has been deprecated',
+            category=DeprecationWarning)
+        yield
 
 
 @td.skip_if_no('xlrd', '1.0.0')
@@ -114,20 +128,23 @@ class ReadingTestsBase(SharedItems):
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            df1 = self.get_exceldf("test1", ext, "Sheet1",
-                                   index_col=0, usecols=3)
+            with ignore_xlrd_time_clock_warning():
+                df1 = self.get_exceldf("test1", ext, "Sheet1",
+                                       index_col=0, usecols=3)
 
         # usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            df2 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
-                                   index_col=0, usecols=3)
+            with ignore_xlrd_time_clock_warning():
+                df2 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
+                                       index_col=0, usecols=3)
 
         # parse_cols instead of usecols, usecols as int
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
-            df3 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
-                                   index_col=0, parse_cols=3)
+            with ignore_xlrd_time_clock_warning():
+                df3 = self.get_exceldf("test1", ext, "Sheet2", skiprows=[1],
+                                       index_col=0, parse_cols=3)
 
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, df_ref, check_names=False)
@@ -145,8 +162,9 @@ class ReadingTestsBase(SharedItems):
                                index_col=0, usecols=[0, 2, 3])
 
         with tm.assert_produces_warning(FutureWarning):
-            df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                                   index_col=0, parse_cols=[0, 2, 3])
+            with ignore_xlrd_time_clock_warning():
+                df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+                                       index_col=0, parse_cols=[0, 2, 3])
 
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
@@ -165,8 +183,9 @@ class ReadingTestsBase(SharedItems):
                                index_col=0, usecols='A:D')
 
         with tm.assert_produces_warning(FutureWarning):
-            df4 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                                   index_col=0, parse_cols='A:D')
+            with ignore_xlrd_time_clock_warning():
+                df4 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+                                       index_col=0, parse_cols='A:D')
 
         # TODO add index to xls, read xls ignores index name ?
         tm.assert_frame_equal(df2, df1, check_names=False)
@@ -618,8 +637,9 @@ class ReadingTestsBase(SharedItems):
         df1 = self.get_exceldf(filename, ext,
                                sheet_name=sheet_name, index_col=0)  # doc
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df2 = self.get_exceldf(filename, ext, index_col=0,
-                                   sheetname=sheet_name)  # backward compat
+            with ignore_xlrd_time_clock_warning():
+                df2 = self.get_exceldf(filename, ext, index_col=0,
+                                       sheetname=sheet_name)  # backward compat
 
         excel = self.get_excelfile(filename, ext)
         df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc

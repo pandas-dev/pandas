@@ -15,7 +15,7 @@ jobs:
         CONDA_ENV: pandas
         TEST_ARGS: "--skip-slow --skip-network"
 
-      py36_locale:
+      py37_locale:
         ENV_FILE: ci/deps/azure-37-locale.yaml
         CONDA_PY: "37"
         CONDA_ENV: pandas
@@ -27,6 +27,7 @@ jobs:
         CONDA_PY: "36"
         CONDA_ENV: pandas
         TEST_ARGS: "--only-slow --skip-network"
+        LOCALE_OVERRIDE: "it_IT.UTF-8"
 
   steps:
     - script: |
