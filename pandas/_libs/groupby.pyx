@@ -448,31 +448,35 @@ def group_quantile(ndarray[float64_t] out,
             grp_sz = counts[i]
             non_na_sz = non_na_counts[i]
 
-            # Calculate where to retrieve the desired value
-            # Casting to int will intentionaly truncate result
-            idx = grp_start + <int64_t>(q * <float64_t>(non_na_sz - 1))
-
-            val = values[sort_arr[idx]]
-            # If requested quantile falls evenly on a particular index
-            # then write that index's value out. Otherwise interpolate
-            q_idx = q * (non_na_sz - 1)
-            frac = q_idx % 1
-
-            if frac == 0.0 or interp == INTERPOLATION_LOWER:
-                out[i] = val
+            # If we have a group of all NA data we need to bail out
+            if non_na_sz == 0:
+                out[i] = NaN
             else:
-                next_val = values[sort_arr[idx + 1]]
-                if interp == INTERPOLATION_LINEAR:
-                    out[i] = val + (next_val - val) * frac
-                elif interp == INTERPOLATION_HIGHER:
-                    out[i] = next_val
-                elif interp == INTERPOLATION_MIDPOINT:
-                    out[i] = (val + next_val) / 2.0
-                elif interp == INTERPOLATION_NEAREST:
-                    if frac > .5 or (frac == .5 and q > .5):  # Always safe?
+                # Calculate where to retrieve the desired value
+                # Casting to int will intentionaly truncate result
+                idx = grp_start + <int64_t>(q * <float64_t>(non_na_sz - 1))
+
+                val = values[sort_arr[idx]]
+                # If requested quantile falls evenly on a particular index
+                # then write that index's value out. Otherwise interpolate
+                q_idx = q * (non_na_sz - 1)
+                frac = q_idx % 1
+
+                if frac == 0.0 or interp == INTERPOLATION_LOWER:
+                    out[i] = val
+                else:
+                    next_val = values[sort_arr[idx + 1]]
+                    if interp == INTERPOLATION_LINEAR:
+                        out[i] = val + (next_val - val) * frac
+                    elif interp == INTERPOLATION_HIGHER:
                         out[i] = next_val
-                    else:
-                        out[i] = val
+                    elif interp == INTERPOLATION_MIDPOINT:
+                        out[i] = (val + next_val) / 2.0
+                    elif interp == INTERPOLATION_NEAREST:
+                        if frac > .5 or (frac == .5 and q > .5):  # Always safe?
+                            out[i] = next_val
+                        else:
+                            out[i] = val
 
             # Increment the index reference in sorted_arr for the next group
             grp_start += grp_sz
