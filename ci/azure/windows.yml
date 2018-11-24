@@ -24,11 +24,11 @@ jobs:
         ci\\incremental\\setup_conda_environment.cmd
       displayName: 'Before Install'
     - script: |
-        call activate pandas-dev
+        source activate $CONDA_ENV
         ci\\incremental\\build.cmd
       displayName: 'Build'
     - script: |
-        call activate pandas-dev
+        source activate $CONDA_ENV
         pytest --junitxml=test-data.xml --skip-slow --skip-network pandas -n 2 -r sxX --strict --durations=10 %*
       displayName: 'Test'
     - task: PublishTestResults@2
