@@ -1619,22 +1619,6 @@ def is_float_dtype(arr_or_dtype):
     return issubclass(tipo, np.floating)
 
 
-def is_floating_dtype(arr_or_dtype):
-    """Check whether the provided array or dtype is an instance of
-    numpy's float dtype.
-
-    .. deprecated:: 0.20.0
-
-    Unlike, `is_float_dtype`, this check is a lot stricter, as it requires
-    `isinstance` of `np.floating` and not `issubclass`.
-    """
-
-    if arr_or_dtype is None:
-        return False
-    tipo = _get_dtype_type(arr_or_dtype)
-    return isinstance(tipo, np.floating)
-
-
 def is_bool_dtype(arr_or_dtype):
     """
     Check whether the provided array or dtype is of a boolean dtype.
