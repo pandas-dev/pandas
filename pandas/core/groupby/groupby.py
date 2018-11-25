@@ -1997,13 +1997,11 @@ class GroupBy(_GroupBy):
                                                      fill_method=fill_method,
                                                      limit=limit, freq=freq,
                                                      axis=axis))
-        with _group_selection_context(self) as new:
-            if fill_method:
-                new = copy.copy(new)
-                new.obj = getattr(new, fill_method)(limit=limit)
-            obj = new.obj.drop(self.grouper.names, axis=1)
-            shifted = new.shift(periods=periods, freq=freq)
-            return (obj / shifted) - 1
+        filled = getattr(self, fill_method)(limit=limit)
+        filled = filled.drop(self.grouper.names, axis=1)
+        fill_grp = filled.groupby(self.grouper.labels)
+        shifted = fill_grp.shift(periods=periods, freq=freq)
+        return (filled/shifted)-1
 
     @Substitution(name='groupby')
     @Appender(_doc_template)

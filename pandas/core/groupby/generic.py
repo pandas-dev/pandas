@@ -1222,13 +1222,14 @@ class SeriesGroupBy(GroupBy):
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
         """Calcuate pct_change of each value to previous entry in group"""
-        with _group_selection_context(self) as new:
-            if fill_method:
-                new = copy.copy(new)
-                new.obj = getattr(new, fill_method)(limit=limit)
-                new._reset_cache('_selected_obj')
-            shifted = new.shift(periods=periods, freq=freq)
-            return (new.obj / shifted) - 1
+        if freq:
+            return self.apply(lambda x: x.pct_change(periods=periods,
+                                                     fill_method=fill_method,
+                                                     limit=limit, freq=freq))
+        filled = getattr(self, fill_method)(limit=limit)
+        fill_grp = filled.groupby(self.grouper.labels)
+        shifted = fill_grp.shift(periods=periods, freq=freq)
+        return (filled / shifted) - 1
 
 
 class DataFrameGroupBy(NDFrameGroupBy):

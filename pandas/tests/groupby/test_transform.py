@@ -765,19 +765,27 @@ def test_pad_stable_sorting(fill_method):
 
 
 @pytest.mark.parametrize("test_series", [True, False])
+@pytest.mark.parametrize("test_freq", [True, False])
 @pytest.mark.parametrize("periods,fill_method,limit", [
-    (1, None, None), (1, None, 1),
     (1, 'ffill', None), (1, 'ffill', 1),
     (1, 'bfill', None), (1, 'bfill', 1),
     (-1, 'ffill', None), (-1, 'ffill', 1),
     (-1, 'bfill', None), (-1, 'bfill', 1),
 ])
-def test_pct_change(test_series, periods, fill_method, limit):
+def test_pct_change(test_series, test_freq, periods, fill_method, limit):
     # GH  21200, 21621
     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ['a', 'b']
     key_v = np.repeat(keys, len(vals))
     df = DataFrame({'key': key_v, 'vals': vals * 2})
+
+    if test_freq:
+        freq = 'D'
+        dt_idx = pd.DatetimeIndex(start='2010-01-01', freq=freq,
+                                  periods=len(vals))
+        df.index = np.concatenate([dt_idx.values]*2)
+    else:
+        freq = None
 
     if fill_method:
         df_g = getattr(df.groupby('key'), fill_method)(limit=limit)
@@ -790,14 +798,15 @@ def test_pct_change(test_series, periods, fill_method, limit):
     if test_series:
         result = df.groupby('key')['vals'].pct_change(periods=periods,
                                                       fill_method=fill_method,
-                                                      limit=limit)
+                                                      limit=limit,
+                                                      freq=freq)
         tm.assert_series_equal(result, expected)
     else:
         result = df.groupby('key').pct_change(periods=periods,
                                               fill_method=fill_method,
-                                              limit=limit)
+                                              limit=limit,
+                                              freq=freq)
         tm.assert_frame_equal(result, expected.to_frame('vals'))
-
 
 
 @pytest.mark.parametrize("func", [np.any, np.all])
