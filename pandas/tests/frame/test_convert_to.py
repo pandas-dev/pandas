@@ -282,16 +282,32 @@ class TestDataFrameConvertTo(TestData):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_to_dict_box_scalars(self):
-        # 14216
+        # 14216, 23753
         # make sure that we are boxing properly
-        d = {'a': [1], 'b': ['b']}
+        df =  DataFrame({'a': [1, 2], 'b': [.1, .2]})
 
-        result = DataFrame(d).to_dict()
-        assert isinstance(list(result['a'])[0], (int, long))
-        assert isinstance(list(result['b'])[0], (int, long))
+        result = df.to_dict()
+        assert isinstance(result['a'][0], (int, long))
+        assert isinstance(result['b'][0], float)
 
-        result = DataFrame(d).to_dict(orient='records')
+        result = df.to_dict(orient='records')
         assert isinstance(result[0]['a'], (int, long))
+        assert isinstance(result[0]['b'], float)
+
+        result = df.to_dict(orient='list')
+        assert isinstance(result['a'][0], (int, long))
+        assert isinstance(result['b'][0], float)
+
+        result = df.to_dict(orient='split')
+        assert isinstance(result['data'][0][0], (int, long))
+        assert isinstance(result['data'][0][1], float)
+
+        result = df.to_dict(orient='index')
+        assert isinstance(result[0]['a'], (int, long))
+        assert isinstance(result[0]['b'], float)
+
+
+
 
     def test_frame_to_dict_tz(self):
         # GH18372 When converting to dict with orient='records' columns of
