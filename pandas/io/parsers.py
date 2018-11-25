@@ -3451,8 +3451,8 @@ class FixedWidthReader(BaseIterator):
         self.delimiter = '\r\n' + delimiter if delimiter else '\n\r\t '
         self.comment = comment
         if colspecs == 'infer':
-            self.colspecs = self.detect_colspecs(skiprows=skiprows,
-                                                 infer_nrows=infer_nrows)
+            self.colspecs = self.detect_colspecs(infer_nrows=infer_nrows,
+                                                 skiprows=skiprows)
         else:
             self.colspecs = colspecs
 
@@ -3468,19 +3468,20 @@ class FixedWidthReader(BaseIterator):
                 raise TypeError('Each column specification must be '
                                 '2 element tuple or list of integers')
 
-    def get_rows(self, n, skiprows=None):
+    def get_rows(self, infer_nrows, skiprows=None):
         """
         Read rows from self.f, skipping as specified.
 
-        We distinguish buffer_rows (the first <= n lines)
-        from the rows returned to detect_colspecs because
-        it's simpler to leave the other locations with
-        skiprows logic alone than to modify them to deal
-        with the fact we skipped some rows here as well.
+        We distinguish buffer_rows (the first <= infer_nrows
+        lines) from the rows returned to detect_colspecs
+        because it's simpler to leave the other locations
+        with skiprows logic alone than to modify them to
+        deal with the fact we skipped some rows here as
+        well.
 
         Parameters
         ----------
-        n : int
+        infer_nrows : int
             Number of rows to read from self.f, not counting
             rows that are skipped.
         skiprows: set, optional
@@ -3500,18 +3501,15 @@ class FixedWidthReader(BaseIterator):
             if i not in skiprows:
                 detect_rows.append(row)
             buffer_rows.append(row)
-            if len(detect_rows) >= n:
+            if len(detect_rows) >= infer_nrows:
                 break
         self.buffer = iter(buffer_rows)
         return detect_rows
 
-    def detect_colspecs(self, n=None, skiprows=None, infer_nrows=100):
-        # infer_nrows replaces n, see GH15138
+    def detect_colspecs(self, infer_nrows=100, skiprows=None):
         # Regex escape the delimiters
         delimiters = ''.join(r'\%s' % x for x in self.delimiter)
         pattern = re.compile('([^%s]+)' % delimiters)
-        if n:
-            infer_nrows = n
         rows = self.get_rows(infer_nrows, skiprows)
         if not rows:
             raise EmptyDataError("No rows from which to infer column width")
