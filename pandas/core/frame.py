@@ -1220,9 +1220,9 @@ class DataFrame(NDFrame):
         elif orient.lower().startswith('sp'):
             return into_c((('index', self.index.tolist()),
                            ('columns', self.columns.tolist()),
-                           ('data', lib.map_infer(self.values.ravel(),
-                                                  com.maybe_box_datetimelike)
-                            .reshape(self.values.shape).tolist())))
+                           ('data', [
+                               [com.maybe_box_datetimelike(v) for v in t] for t in self.itertuples(index=False)]
+                            )))
         elif orient.lower().startswith('s'):
             return into_c((k, com.maybe_box_datetimelike(v))
                           for k, v in compat.iteritems(self))
