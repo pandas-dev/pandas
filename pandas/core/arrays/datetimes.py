@@ -791,7 +791,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         if self.tz is not None:
             if tz is None:
-                new_dates = conversion.tz_convert(self.asi8, 'UTC', self.tz)
+                new_dates = conversion.tz_convert(self.asi8, timezones.UTC,
+                                                  self.tz)
             else:
                 raise TypeError("Already tz-aware, use tz_convert to convert.")
         else:
