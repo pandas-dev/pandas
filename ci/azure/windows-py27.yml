@@ -12,7 +12,6 @@ jobs:
       py36_np121:
         ENV_FILE: ci/deps/azure-windows-27.yaml
         CONDA_PY: "27"
-        CONDA_ENV: pandas
 
   steps:
     - task: CondaEnvironment@1
@@ -33,10 +32,11 @@ jobs:
         ci\\incremental\\setup_conda_environment.cmd
       displayName: 'Before Install'
     - script: |
+        call activate pandas-dev
         ci\\incremental\\build.cmd
       displayName: 'Build'
     - script: |
-        call activate %CONDA_ENV%
+        call activate pandas-dev
         pytest --junitxml=test-data.xml --skip-slow --skip-network pandas -n 2 -r sxX --strict --durations=10 %*
       displayName: 'Test'
     - task: PublishTestResults@2
