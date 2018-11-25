@@ -19,7 +19,6 @@ from pandas.core.dtypes.cast import (
     cast_scalar_to_array,
     infer_dtype_from_scalar,
     infer_dtype_from_array,
-    maybe_convert_string_to_object,
     find_common_type,
     construct_1d_object_array_from_listlike,
     construct_1d_ndarray_preserving_na,
@@ -241,31 +240,6 @@ class TestInferDtype(object):
 
 
 class TestMaybe(object):
-
-    def test_maybe_convert_string_to_array(self):
-        result = maybe_convert_string_to_object('x')
-        tm.assert_numpy_array_equal(result, np.array(['x'], dtype=object))
-        assert result.dtype == object
-
-        result = maybe_convert_string_to_object(1)
-        assert result == 1
-
-        arr = np.array(['x', 'y'], dtype=str)
-        result = maybe_convert_string_to_object(arr)
-        tm.assert_numpy_array_equal(result, np.array(['x', 'y'], dtype=object))
-        assert result.dtype == object
-
-        # unicode
-        arr = np.array(['x', 'y']).astype('U')
-        result = maybe_convert_string_to_object(arr)
-        tm.assert_numpy_array_equal(result, np.array(['x', 'y'], dtype=object))
-        assert result.dtype == object
-
-        # object
-        arr = np.array(['x', 2], dtype=object)
-        result = maybe_convert_string_to_object(arr)
-        tm.assert_numpy_array_equal(result, np.array(['x', 2], dtype=object))
-        assert result.dtype == object
 
     def test_maybe_infer_to_datetimelike(self):
         # GH16362

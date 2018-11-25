@@ -564,20 +564,6 @@ def invalidate_string_dtypes(dtype_set):
         raise TypeError("string dtypes are not allowed, use 'object' instead")
 
 
-def maybe_convert_string_to_object(values):
-    """
-
-    Convert string-like and string-like array to convert object dtype.
-    This is to avoid numpy to handle the array as str dtype.
-    """
-    if isinstance(values, string_types):
-        values = np.array([values], dtype=object)
-    elif (isinstance(values, np.ndarray) and
-          issubclass(values.dtype.type, (np.string_, np.unicode_))):
-        values = values.astype(object)
-    return values
-
-
 def coerce_indexer_dtype(indexer, categories):
     """ coerce the indexer input array to the smallest dtype possible """
     length = len(categories)
