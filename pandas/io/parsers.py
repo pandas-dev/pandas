@@ -719,8 +719,8 @@ Use :func:`pandas.read_csv` instead, passing ``sep='\\t'`` if necessary.""",
                       )(read_table)
 
 
-def read_fwf(filepath_or_buffer, colspecs='infer',
-             widths=None, **kwds):
+def read_fwf(filepath_or_buffer, colspecs='infer', widths=None,
+             infer_nrows=100, **kwds):
 
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
@@ -753,6 +753,11 @@ def read_fwf(filepath_or_buffer, colspecs='infer',
     widths : list of int, optional
         A list of field widths which can be used instead of 'colspecs' if
         the intervals are contiguous.
+    infer_nrows : int, default 100
+        The number of rows to consider when letting the parser determine the
+        `colspecs`.
+
+        .. versionadded:: 0.24.0
     **kwds : optional
         Optional keyword arguments can be passed to ``TextFileReader``.
 
