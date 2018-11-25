@@ -378,18 +378,22 @@ class TestPeriodDtype(Base):
 
         assert is_period_dtype(pidx.dtype)
         assert is_period_dtype(pidx)
-        assert is_period(pidx)
+        with tm.assert_produces_warning(FutureWarning):
+            assert is_period(pidx)
 
         s = Series(pidx, name='A')
 
         assert is_period_dtype(s.dtype)
         assert is_period_dtype(s)
-        assert is_period(s)
+        with tm.assert_produces_warning(FutureWarning):
+            assert is_period(s)
 
         assert not is_period_dtype(np.dtype('float64'))
         assert not is_period_dtype(1.0)
-        assert not is_period(np.dtype('float64'))
-        assert not is_period(1.0)
+        with tm.assert_produces_warning(FutureWarning):
+            assert not is_period(np.dtype('float64'))
+        with tm.assert_produces_warning(FutureWarning):
+            assert not is_period(1.0)
 
     def test_empty(self):
         dt = PeriodDtype()

@@ -10,6 +10,7 @@ from pandas.core.sparse.api import SparseDtype
 
 import pandas.core.dtypes.common as com
 import pandas.util._test_decorators as td
+import pandas.util.testing as tm
 
 
 class TestPandasDtype(object):
@@ -172,9 +173,10 @@ def test_is_datetimetz():
 
 
 def test_is_period():
-    assert not com.is_period([1, 2, 3])
-    assert not com.is_period(pd.Index([1, 2, 3]))
-    assert com.is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
+    with tm.assert_produces_warning(FutureWarning):
+        assert not com.is_period([1, 2, 3])
+        assert not com.is_period(pd.Index([1, 2, 3]))
+        assert com.is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
 
 
 def test_is_datetime64_dtype():

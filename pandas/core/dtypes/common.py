@@ -1,4 +1,6 @@
 """ common type operations """
+import warnings
+
 import numpy as np
 
 from pandas._libs import algos, lib
@@ -363,6 +365,8 @@ def is_period(arr):
     """
     Check whether an array-like is a periodical index.
 
+    .. deprecated:: 0.24.0
+
     Parameters
     ----------
     arr : array-like
@@ -381,6 +385,11 @@ def is_period(arr):
     >>> is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
     True
     """
+
+    warnings.warn(FutureWarning,
+                  "'is_period' is deprecated and will be removed in a future "
+                  "version.  Use 'is_period_dtype' or is_period_arraylike' "
+                  "instead.")
 
     # TODO: do we need this function?
     # It seems like a repeat of is_period_arraylike.
