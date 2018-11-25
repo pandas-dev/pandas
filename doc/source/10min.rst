@@ -2,6 +2,23 @@
 
 .. currentmodule:: pandas
 
+.. ipython:: python
+   :suppress:
+
+   import os
+   import numpy as np
+
+   import pandas as pd
+
+   np.random.seed(123456)
+   np.set_printoptions(precision=4, suppress=True)
+   pd.options.display.max_rows = 15
+
+   # portions of this were borrowed from the
+   # Pandas cheatsheet
+   # created during the PyData Workshop-Sprint 2012
+   # Hannah Chen, Henry Chow, Eric Cox, Robert Mauriello
+
 
 ********************
 10 Minutes to pandas
@@ -16,20 +33,6 @@ Customarily, we import as follows:
 
    import numpy as np
    import pandas as pd
-
-.. ipython:: python
-   :suppress:
-
-   import os
-
-   np.random.seed(123456)
-   np.set_printoptions(precision=4, suppress=True)
-   pd.options.display.max_rows = 15
-
-   # portions of this were borrowed from the
-   # Pandas cheatsheet
-   # created during the PyData Workshop-Sprint 2012
-   # Hannah Chen, Henry Chow, Eric Cox, Robert Mauriello
 
 Object Creation
 ---------------
@@ -717,8 +720,10 @@ of the columns with labels:
                      columns=['A', 'B', 'C', 'D'])
    df = df.cumsum()
 
+   plt.figure()
+   df.plot()
    @savefig frame_plot_basic.png
-   plt.figure(); df.plot(); plt.legend(loc='best')
+   plt.legend(loc='best')
 
 Getting Data In/Out
 -------------------
