@@ -5,9 +5,9 @@
    :suppress:
 
    import numpy as np
-   import pandas as pd
-
    import matplotlib.pyplot as plt
+
+   import pandas as pd
 
    plt.close('all')
 
@@ -410,8 +410,8 @@ natural and functions similarly to :py:func:`itertools.groupby`:
    In [4]: grouped = df.groupby('A')
 
    In [5]: for name, group in grouped:
-      ...:        print(name)
-      ...:        print(group)
+      ...:     print(name)
+      ...:     print(group)
       ...:
 
 In the case of grouping by multiple keys, the group name will be a tuple:
@@ -419,8 +419,8 @@ In the case of grouping by multiple keys, the group name will be a tuple:
 .. ipython::
 
    In [5]: for name, group in df.groupby(['A', 'B']):
-      ...:        print(name)
-      ...:        print(group)
+      ...:     print(name)
+      ...:     print(group)
       ...:
 
 See :ref:`timeseries.iterating-label`.
@@ -925,8 +925,8 @@ The dimension of the returned result can also change:
     In [8]: grouped = df.groupby('A')['C']
 
     In [10]: def f(group):
-       ....:     return pd.DataFrame({'original' : group,
-       ....:                          'demeaned' : group - group.mean()})
+       ....:     return pd.DataFrame({'original': group,
+       ....:                          'demeaned': group - group.mean()})
        ....:
 
     In [11]: grouped.apply(f)
@@ -937,7 +937,8 @@ that is itself a series, and possibly upcast the result to a DataFrame:
 .. ipython:: python
 
     def f(x):
-        return pd.Series([x, x**2], index=['x', 'x^2'])
+        return pd.Series([x, x ** 2], index=['x', 'x^2'])
+
     s = pd.Series(np.random.rand(5))
     s
     s.apply(f)
