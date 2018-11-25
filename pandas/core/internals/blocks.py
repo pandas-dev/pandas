@@ -2300,10 +2300,7 @@ class ObjectBlock(Block):
                          'convert_timedeltas']
         fn_inputs += ['copy']
 
-        fn_kwargs = {}
-        for key in fn_inputs:
-            if key in kwargs:
-                fn_kwargs[key] = kwargs[key]
+        fn_kwargs = {key: kwargs[key] for key in fn_inputs if key in kwargs}
 
         # operate column-by-column
         def f(m, v, i):

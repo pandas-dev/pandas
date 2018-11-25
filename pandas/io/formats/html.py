@@ -318,9 +318,8 @@ class HTMLFormatter(TableFormatter):
         self.write('<tbody>', indent)
         indent += self.indent_delta
 
-        fmt_values = {}
-        for i in range(min(len(self.columns), self.max_cols)):
-            fmt_values[i] = self.fmt._format_col(i)
+        fmt_values = {i: self.fmt._format_col(i)
+                      for i in range(min(len(self.columns), self.max_cols))}
 
         # write values
         if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):

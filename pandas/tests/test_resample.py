@@ -1470,9 +1470,7 @@ class TestDatetimeIndex(Base):
             result = panel.resample('M', axis=1).mean()
 
             def p_apply(panel, f):
-                result = {}
-                for item in panel.items:
-                    result[item] = f(panel[item])
+                result = {item: f(panel[item]) for item in panel.items}
                 return Panel(result, items=panel.items)
 
             expected = p_apply(panel, lambda x: x.resample('M').mean())

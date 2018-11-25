@@ -348,9 +348,7 @@ def test_attr_wrapper(ts):
 
     # this is pretty cool
     result = grouped.describe()
-    expected = {}
-    for name, gp in grouped:
-        expected[name] = gp.describe()
+    expected = {name: gp.describe() for name, gp in grouped}
     expected = DataFrame(expected).T
     assert_frame_equal(result, expected)
 
