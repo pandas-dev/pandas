@@ -783,7 +783,7 @@ def test_pct_change(test_series, test_freq, periods, fill_method, limit):
         freq = 'D'
         dt_idx = pd.DatetimeIndex(start='2010-01-01', freq=freq,
                                   periods=len(vals))
-        df.index = np.concatenate([dt_idx.values]*2)
+        df.index = np.concatenate([dt_idx.values] * 2)
     else:
         freq = None
 

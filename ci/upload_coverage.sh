@@ -5,7 +5,6 @@ if [ -z "$COVERAGE" ]; then
    exit 0
 fi
 
-source activate pandas
 
 echo "uploading coverage"
 bash <(curl -s https://codecov.io/bash) -Z -c -F single -f /tmp/cov-single.xml

@@ -1229,6 +1229,10 @@ class SeriesGroupBy(GroupBy):
         filled = getattr(self, fill_method)(limit=limit)
         fill_grp = filled.groupby(self.grouper.labels)
         shifted = fill_grp.shift(periods=periods, freq=freq)
+
+        # TODO: Remove this conditional when #23918 is fixed
+        if isinstance(shifted.index, MultiIndex):
+            shifted.reset_index(level=0, drop=True, inplace=True)
         return (filled / shifted) - 1
 
 
@@ -1298,7 +1302,6 @@ class DataFrameGroupBy(NDFrameGroupBy):
     pandas.DataFrame.groupby.apply
     pandas.DataFrame.groupby.transform
     pandas.DataFrame.aggregate
-
     """)
 
     @Appender(_agg_doc)
