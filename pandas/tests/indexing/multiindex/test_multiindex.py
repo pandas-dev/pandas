@@ -999,24 +999,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         reindexed = dft.reindex(columns=[('foo', 'two')])
         tm.assert_series_equal(reindexed['foo', 'two'], s > s.median())
 
-    def test_frame_setitem_ix(self, multiindex_dataframe_random_data):
-        frame = multiindex_dataframe_random_data
-        frame.loc[('bar', 'two'), 'B'] = 5
-        assert frame.loc[('bar', 'two'), 'B'] == 5
-
-        # with integer labels
-        df = frame.copy()
-        df.columns = lrange(3)
-        df.loc[('bar', 'two'), 1] = 7
-        assert df.loc[('bar', 'two'), 1] == 7
-
-        with catch_warnings(record=True):
-            simplefilter("ignore", DeprecationWarning)
-            df = frame.copy()
-            df.columns = lrange(3)
-            df.ix[('bar', 'two'), 1] = 7
-        assert df.loc[('bar', 'two'), 1] == 7
-
     def test_fancy_slice_partial(
             self, multiindex_dataframe_random_data,
             multiindex_year_month_day_dataframe_random_data):
