@@ -10,8 +10,6 @@ from pandas.core.dtypes.common import (
     is_dict_like, is_extension_type, is_list_like, is_sequence, is_sparse)
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas import concat
-
 from pandas.io.formats.printing import pprint_thing
 
 
@@ -133,7 +131,7 @@ class FrameApply(object):
 
         # ufunc
         elif isinstance(self.f, np.ufunc):
-            results = []
+            results = {}
             with np.errstate(all='ignore'):
                 for col in self.columns:
                     if is_sparse(self.obj.dtypes[col]):
@@ -142,8 +140,9 @@ class FrameApply(object):
                         result = result.to_sparse(fill_value=fill)
                     else:
                         result = self.f(self.obj[col])
-                    results.append(result)
-            return concat(results, axis=1, copy=False).set_index(self.index)
+                    results[col] = result
+            return self.obj._constructor(data=results, index=self.index,
+                                         copy=False)
 
         # broadcasting
         if self.result_type == 'broadcast':
