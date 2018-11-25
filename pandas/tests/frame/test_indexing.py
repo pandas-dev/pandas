@@ -1770,11 +1770,9 @@ class TestDataFrameIndexing(TestData):
 
     def test_lookup(self):
         def alt(df, rows, cols, dtype):
-            result = []
-            for r, c in zip(rows, cols):
-                with tm.assert_produces_warning(FutureWarning,
-                                                check_stacklevel=False):
-                    result.append(df.get_value(r, c))
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = [df.get_value(r, c) for r, c in zip(rows, cols)]
             return np.array(result, dtype=dtype)
 
         def testit(df):
