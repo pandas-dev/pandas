@@ -1,4 +1,3 @@
-from datetime import datetime
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
@@ -12,8 +11,8 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
-    DataFrame, Index, MultiIndex, Period, Series, Timestamp, concat,
-    date_range, isna, notna, period_range, read_csv)
+    DataFrame, Index, MultiIndex, Series, Timestamp, concat, date_range, isna,
+    notna, read_csv)
 import pandas.core.common as com
 from pandas.util import testing as tm
 
@@ -1350,20 +1349,3 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         expected.index = expected.index.droplevel(0)
         tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result2, expected)
-
-
-def test_multiindex_period_datetime():
-    # GH4861, using datetime in period of multiindex raises exception
-
-    idx1 = Index(['a', 'a', 'a', 'b', 'b'])
-    idx2 = period_range('2012-01', periods=len(idx1), freq='M')
-    s = Series(np.random.randn(len(idx1)), [idx1, idx2])
-
-    # try Period as index
-    expected = s.iloc[0]
-    result = s.loc['a', Period('2012-01')]
-    assert result == expected
-
-    # try datetime as index
-    result = s.loc['a', datetime(2012, 1, 1)]
-    assert result == expected
