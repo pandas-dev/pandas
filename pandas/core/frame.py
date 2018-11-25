@@ -7281,8 +7281,7 @@ class DataFrame(NDFrame):
         """
         Return Series with number of distinct observations.
 
-        Return Series with number of distinct observations over requested
-        axis. Can ignore NaN values.
+        Count distinct observations over requested axis. Can ignore NaN values.
 
         .. versionadded:: 0.20.0
 
