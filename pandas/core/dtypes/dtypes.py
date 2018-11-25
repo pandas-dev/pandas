@@ -5,7 +5,7 @@ import re
 import numpy as np
 
 from pandas._libs.interval import Interval
-from pandas._libs.tslibs import NaT, Period, Timestamp
+from pandas._libs.tslibs import NaT, Period, Timestamp, timezones
 
 from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
 
@@ -511,7 +511,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 m = cls._match.search(unit)
                 if m is not None:
                     unit = m.groupdict()['unit']
-                    tz = m.groupdict()['tz']
+                    tz = timezones.maybe_get_tz(m.groupdict()['tz'])
             except TypeError:
                 raise ValueError("could not construct DatetimeTZDtype")
 
