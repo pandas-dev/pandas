@@ -7279,9 +7279,10 @@ class DataFrame(NDFrame):
 
     def nunique(self, axis=0, dropna=True):
         """
-        Return Series with number of distinct observations.
+        Count distinct observations over requested axis.
 
-        Count distinct observations over requested axis. Can ignore NaN values.
+        Return Series with number of distinct observations. Can ignore NaN
+        values.
 
         .. versionadded:: 0.20.0
 
