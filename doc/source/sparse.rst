@@ -5,9 +5,9 @@
    :suppress:
 
    import numpy as np
-   np.random.seed(123456)
    import pandas as pd
-   import pandas.util.testing as tm
+
+   np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
    pd.options.display.max_rows = 15
 
@@ -26,7 +26,7 @@ data structures have a ``to_sparse`` method:
 
 .. ipython:: python
 
-   ts = pd.Series(randn(10))
+   ts = pd.Series(np.random.randn(10))
    ts[2:-2] = np.nan
    sts = ts.to_sparse()
    sts
@@ -44,7 +44,7 @@ large, mostly NA ``DataFrame``:
 
 .. ipython:: python
 
-   df = pd.DataFrame(randn(10000, 4))
+   df = pd.DataFrame(np.random.randn(10000, 4))
    df.iloc[:9998] = np.nan
    sdf = df.to_sparse()
    sdf
@@ -94,7 +94,8 @@ distinct from the ``fill_value``:
 .. ipython:: python
 
    arr = np.random.randn(10)
-   arr[2:5] = np.nan; arr[7:8] = np.nan
+   arr[2:5] = np.nan
+   arr[7:8] = np.nan
    sparr = pd.SparseArray(arr)
    sparr
 
@@ -244,7 +245,7 @@ The method requires a ``MultiIndex`` with two or more levels.
                                         (1, 1, 'b', 1),
                                         (2, 1, 'b', 0),
                                         (2, 1, 'b', 1)],
-                                        names=['A', 'B', 'C', 'D'])
+                                       names=['A', 'B', 'C', 'D'])
 
    s
    # SparseSeries
