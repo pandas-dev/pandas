@@ -1613,7 +1613,6 @@ class Rolling(_Rolling_and_Expanding):
     8 -0.289082  2.454418  1.416871
     9  0.212668  0.403198 -0.093924
 
-
     >>> df.rolling(3).agg({'A':'sum', 'B':'min'})
               A         B
     0       NaN       NaN
@@ -1631,7 +1630,6 @@ class Rolling(_Rolling_and_Expanding):
     --------
     pandas.Series.rolling
     pandas.DataFrame.rolling
-
     """)
 
     @Appender(_agg_doc)
@@ -1908,7 +1906,6 @@ class Expanding(_Rolling_and_Expanding):
     pandas.DataFrame.expanding.aggregate
     pandas.DataFrame.rolling.aggregate
     pandas.DataFrame.aggregate
-
     """)
 
     @Appender(_agg_doc)
@@ -2209,7 +2206,6 @@ class EWM(_Rolling):
     See Also
     --------
     pandas.DataFrame.rolling.aggregate
-
     """)
 
     @Appender(_agg_doc)
@@ -2233,7 +2229,6 @@ class EWM(_Rolling):
         Returns
         -------
         y : same type as input argument
-
         """
         blocks, obj, index = self._create_blocks()
         results = []
