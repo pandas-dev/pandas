@@ -555,6 +555,12 @@ class TestPeriodIndex(DatetimeLike):
             result = period_range('2017Q1', periods=4, freq='Q').insert(1, na)
             tm.assert_index_equal(result, expected)
 
+    def test_comp_op(self):
+        # GH 23078
+        index = period_range('2017', periods=12, freq="A-DEC")
+        with pytest.raises(ValueError, match="Lengths must match"):
+            index <= index[[0]]
+
 
 def test_maybe_convert_timedelta():
     pi = PeriodIndex(['2000', '2001'], freq='D')
