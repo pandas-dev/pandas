@@ -176,9 +176,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                                  .format(inferred=inferred_freq,
                                          passed=freq.freqstr))
             elif freq is None:
-                # TODO: should this be the stronger condition `if freq_infer`?
-                #  i.e what if the user passed `freq=None` and specifically
-                #  wanted freq=None in the result?
                 freq = inferred_freq
                 freq_infer = False
 
@@ -244,15 +241,19 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
 
-    @property
+    # is_monotonic_increasing, is_monotonic_decreasing, and is_unique
+    #  are needed by `frequencies.infer_freq`, which is called when accessing
+    #  the `inferred_freq` property inside the TimedeltaArray constructor
+
+    @property  # NB: override with cache_readonly in immutable subclasses
     def is_monotonic_increasing(self):
         return algos.is_monotonic(self.asi8, timelike=True)[0]
 
-    @property
+    @property  # NB: override with cache_readonly in immutable subclasses
     def is_monotonic_decreasing(self):
         return algos.is_monotonic(self.asi8, timelike=True)[1]
 
-    @property
+    @property  # NB: override with cache_readonly in immutable subclasses
     def is_unique(self):
         return len(unique1d(self.asi8)) == len(self)
 
