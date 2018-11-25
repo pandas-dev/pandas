@@ -705,14 +705,8 @@ def astype_nansafe(arr, dtype, copy=True, skipna=False):
 
     elif is_object_dtype(arr):
 
+        # work around NumPy brokenness, #1987
         if np.issubdtype(dtype.type, np.integer):
-            # TODO: this is an old numpy compat branch that is not necessary
-            # anymore for its original purpose (unsafe casting from object to
-            # int, see GH 1987). However, it is currently necessary for
-            # timedelta and IntegerArray tests (the dedicated timedelta branch
-            # below contradicts TestMerge::test_other_timedelta_unit and the
-            # IntegerArray tests would need a `is_extension_array_dtype(arr)`
-            # branch in this method).
             return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
 
         # if we have a datetime/timedelta array of objects
