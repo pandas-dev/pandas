@@ -546,7 +546,7 @@ class TestSeriesAnalytics(object):
 
         assert NaT in dti
         assert NaT in dtarr
-        # assert NaT in ds  # FIXME: fails
+        # it is not the case that `NaT in ds`
 
         for obj in [dti, ds, dtarr]:
             assert obj.mean(skipna=True) == Timestamp('2001-01-06', tz=tz)
