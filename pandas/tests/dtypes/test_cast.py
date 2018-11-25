@@ -20,7 +20,6 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     infer_dtype_from_array,
     maybe_convert_string_to_object,
-    maybe_convert_scalar,
     find_common_type,
     construct_1d_object_array_from_listlike,
     construct_1d_ndarray_preserving_na,
@@ -267,36 +266,6 @@ class TestMaybe(object):
         result = maybe_convert_string_to_object(arr)
         tm.assert_numpy_array_equal(result, np.array(['x', 2], dtype=object))
         assert result.dtype == object
-
-    def test_maybe_convert_scalar(self):
-
-        # pass thru
-        result = maybe_convert_scalar('x')
-        assert result == 'x'
-        result = maybe_convert_scalar(np.array([1]))
-        assert result == np.array([1])
-
-        # leave scalar dtype
-        result = maybe_convert_scalar(np.int64(1))
-        assert result == np.int64(1)
-        result = maybe_convert_scalar(np.int32(1))
-        assert result == np.int32(1)
-        result = maybe_convert_scalar(np.float32(1))
-        assert result == np.float32(1)
-        result = maybe_convert_scalar(np.int64(1))
-        assert result == np.float64(1)
-
-        # coerce
-        result = maybe_convert_scalar(1)
-        assert result == np.int64(1)
-        result = maybe_convert_scalar(1.0)
-        assert result == np.float64(1)
-        result = maybe_convert_scalar(Timestamp('20130101'))
-        assert result == Timestamp('20130101').value
-        result = maybe_convert_scalar(datetime(2013, 1, 1))
-        assert result == Timestamp('20130101').value
-        result = maybe_convert_scalar(Timedelta('1 day 1 min'))
-        assert result == Timedelta('1 day 1 min').value
 
     def test_maybe_infer_to_datetimelike(self):
         # GH16362

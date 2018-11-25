@@ -578,20 +578,6 @@ def maybe_convert_string_to_object(values):
     return values
 
 
-def maybe_convert_scalar(values):
-    """
-    Convert a python scalar to the appropriate numpy dtype if possible
-    This avoids numpy directly converting according to platform preferences
-    """
-    if is_scalar(values):
-        dtype, values = infer_dtype_from_scalar(values)
-        try:
-            values = dtype(values)
-        except TypeError:
-            pass
-    return values
-
-
 def coerce_indexer_dtype(indexer, categories):
     """ coerce the indexer input array to the smallest dtype possible """
     length = len(categories)
