@@ -3278,9 +3278,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        key : object
+        key : label
             Some label contained in the index, or partially in a MultiIndex.
-        axis : int, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Axis to retrieve cross-section on.
         level : object, defaults to first n levels (n=1 or len(key))
             In case of a key partially contained in a MultiIndex, indicate
