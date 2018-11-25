@@ -5,6 +5,7 @@
 
    import numpy as np
    import pandas as pd
+
    np.set_printoptions(precision=4, suppress=True)
    pd.options.display.max_rows = 15
 
@@ -173,8 +174,9 @@ Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
 .. ipython:: python
 
    dfmi = df.copy()
-   dfmi.index = pd.MultiIndex.from_tuples([
-       (1, 'a'), (1, 'b'), (1, 'c'), (2, 'a')], names=['first', 'second'])
+   dfmi.index = pd.MultiIndex.from_tuples([(1, 'a'), (1, 'b'),
+                                           (1, 'c'), (2, 'a')],
+                                          names=['first', 'second'])
    dfmi.sub(column, axis=0, level='second')
 
 With Panel, describing the matching behavior is a bit more difficult, so
@@ -565,8 +567,8 @@ course):
     series = pd.Series(np.random.randn(1000))
     series[::2] = np.nan
     series.describe()
-    frame = pd.DataFrame(
-        np.random.randn(1000, 5), columns=['a', 'b', 'c', 'd', 'e'])
+    frame = pd.DataFrame(np.random.randn(1000, 5),
+                         columns=['a', 'b', 'c', 'd', 'e'])
     frame.iloc[::2] = np.nan
     frame.describe()
 
@@ -1088,8 +1090,10 @@ a single value and returning a single value. For example:
 .. ipython:: python
 
    df4
+
    def f(x):
-       len(str(x))
+       return len(str(x))
+
    df4['one'].map(f)
    df4.applymap(f)
 
@@ -1433,10 +1437,8 @@ Thus, for example, iterating over a DataFrame gives you the column names:
 
 .. ipython:: python
 
-   df = pd.DataFrame({
-       'col1': np.random.randn(3),
-       'col2': np.random.randn(3)},
-       index=['a', 'b', 'c'])
+   df = pd.DataFrame({'col1': np.random.randn(3),
+                      'col2': np.random.randn(3)}, index=['a', 'b', 'c'])
 
    for col in df:
        print(col)
@@ -1556,7 +1558,7 @@ For instance, a contrived way to transpose the DataFrame would be:
    print(df2)
    print(df2.T)
 
-   df2_t = pd.DataFrame(dict((idx, values) for idx, values in df2.iterrows()))
+   df2_t = pd.DataFrame({idx: values for idx, values in df2.iterrows()})
    print(df2_t)
 
 itertuples
@@ -1732,8 +1734,9 @@ to use to determine the sorted order.
 
 .. ipython:: python
 
-   df1 = pd.DataFrame({
-       'one': [2, 1, 1, 1], 'two': [1, 3, 2, 4], 'three': [5, 4, 3, 2]})
+   df1 = pd.DataFrame({'one': [2, 1, 1, 1],
+                       'two': [1, 3, 2, 4],
+                       'three': [5, 4, 3, 2]})
    df1.sort_values(by='two')
 
 The ``by`` parameter can take a list of column names, e.g.:
@@ -1843,8 +1846,9 @@ all levels to ``by``.
 
 .. ipython:: python
 
-   df1.columns = pd.MultiIndex.from_tuples([
-       ('a', 'one'), ('a', 'two'), ('b', 'three')])
+   df1.columns = pd.MultiIndex.from_tuples([('a', 'one'),
+                                            ('a', 'two'),
+                                            ('b', 'three')])
    df1.sort_values(by=('a', 'two'))
 
 
@@ -1894,13 +1898,13 @@ with the data type of each column.
 
 .. ipython:: python
 
-   dft = pd.DataFrame(dict(A=np.random.rand(3),
-                           B=1,
-                           C='foo',
-                           D=pd.Timestamp('20010102'),
-                           E=pd.Series([1.0] * 3).astype('float32'),
-                           F=False,
-                           G=pd.Series([1] * 3, dtype='int8')))
+   dft = pd.DataFrame({'A': np.random.rand(3),
+                       'B': 1,
+                       'C': 'foo',
+                       'D': pd.Timestamp('20010102'),
+                       'E': pd.Series([1.0] * 3).astype('float32'),
+                       'F': False,
+                       'G': pd.Series([1] * 3, dtype='int8')})
    dft
    dft.dtypes
 
@@ -1939,10 +1943,10 @@ different numeric dtypes will **NOT** be combined. The following example will gi
    df1 = pd.DataFrame(np.random.randn(8, 1), columns=['A'], dtype='float32')
    df1
    df1.dtypes
-   df2 = pd.DataFrame(dict(A=pd.Series(np.random.randn(8), dtype='float16'),
-                           B=pd.Series(np.random.randn(8)),
-                           C=pd.Series(np.array(np.random.randn(8),
-                                                dtype='uint8'))))
+   df2 = pd.DataFrame({'A': pd.Series(np.random.randn(8), dtype='float16'),
+                       'B': pd.Series(np.random.randn(8)),
+                       'C': pd.Series(np.array(np.random.randn(8),
+                                               dtype='uint8'))})
    df2
    df2.dtypes
 
@@ -2057,7 +2061,7 @@ to the correct type.
      df = pd.DataFrame([[1, 2],
                         ['a', 'b'],
                         [datetime.datetime(2016, 3, 2),
-                        datetime.datetime(2016, 3, 2)]])
+                         datetime.datetime(2016, 3, 2)]])
      df = df.T
      df
      df.dtypes
