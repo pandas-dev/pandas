@@ -6,7 +6,6 @@ import operator
 import warnings
 
 import numpy as np
-from pytz import utc
 
 from pandas._libs import (
     Timestamp, index as libindex, join as libjoin, lib, tslib as libts)
@@ -168,7 +167,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     TimedeltaIndex : Index of timedelta64 data.
     PeriodIndex : Index of Period data.
     pandas.to_datetime : Convert argument to datetime.
-
     """
     _typ = 'datetimeindex'
     _join_precedence = 10
@@ -474,7 +472,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
     def _get_time_micros(self):
         values = self.asi8
-        if self.tz is not None and self.tz is not utc:
+        if self.tz is not None and not timezones.is_utc(self.tz):
             values = self._local_timestamps()
         return fields.get_time_micros(values)
 
@@ -547,7 +545,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     def snap(self, freq='S'):
         """
         Snap time stamps to nearest occurring frequency
-
         """
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)

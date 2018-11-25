@@ -575,7 +575,7 @@ the `flake8 <https://pypi.org/project/flake8>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
 
-   git diff master -u -- "*.py" | flake8 --diff
+   git diff upstream/master -u -- "*.py" | flake8 --diff
 
 This command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
@@ -584,21 +584,21 @@ unused function. However, style-checking the diff will not catch this because
 the actual import is not part of the diff. Thus, for completeness, you should
 run this command, though it will take longer::
 
-   git diff master --name-only -- "*.py" | grep "pandas/" | xargs -r flake8
+   git diff upstream/master --name-only -- "*.py" | xargs -r flake8
 
 Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
-   git diff master --name-only -- "*.py" | grep "pandas/" | xargs flake8
+   git diff upstream/master --name-only -- "*.py" | xargs flake8
 
-Windows does not support the ``grep`` and ``xargs`` commands (unless installed
-for example via the `MinGW <http://www.mingw.org/>`__ toolchain), but one can
-imitate the behaviour as follows::
+Windows does not support the ``xargs`` command (unless installed for example
+via the `MinGW <http://www.mingw.org/>`__ toolchain), but one can imitate the
+behaviour as follows::
 
-    for /f %i in ('git diff upstream/master --name-only ^| findstr pandas/') do flake8 %i
+    for /f %i in ('git diff upstream/master --name-only -- "*.py"') do flake8 %i
 
-This will also get all the files being changed by the PR (and within the
-``pandas/`` folder), and run ``flake8`` on them one after the other.
+This will get all the files being changed by the PR (and ending with ``.py``),
+and run ``flake8`` on them, one after the other.
 
 .. _contributing.import-formatting:
 

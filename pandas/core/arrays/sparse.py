@@ -1861,6 +1861,10 @@ def _make_index(length, indices, kind):
                               'sp_values'],
                 typ='property')
 class SparseAccessor(PandasDelegate):
+    """
+    Accessor for SparseSparse from other sparse matrix data types.
+    """
+
     def __init__(self, data=None):
         self._validate(data)
         # Store the Series since we need that for to_coo
