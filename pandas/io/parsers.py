@@ -2396,9 +2396,11 @@ class PythonParser(ParserBase):
         # apply converters
         def _clean_mapping(mapping):
             "converts col numbers to names"
-            clean = {self.orig_names[col]: v
-                     for col, v in compat.iteritems(mapping)
-                     if isinstance(col, int) and col not in self.orig_names}
+            clean = {}
+            for col, v in compat.iteritems(mapping):
+                if isinstance(col, int) and col not in self.orig_names:
+                    col = self.orig_names[col]
+                clean[col] = v
             return clean
 
         clean_conv = _clean_mapping(self.converters)
