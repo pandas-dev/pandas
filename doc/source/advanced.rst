@@ -7,8 +7,6 @@
 
    import numpy as np
    import pandas as pd
-   import random
-   from pandas.api.types import CategoricalDtype
    np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
    pd.options.display.max_rows = 15
@@ -237,7 +235,7 @@ keys take the form of tuples. For example, the following works as you would expe
 
    df = df.T
    df
-   df.loc[('bar', 'two'), ]
+   df.loc[('bar', 'two')]
 
 Note that ``df.loc['bar', 'two']`` would also work in this example, but this shorthand
 notation can lead to ambiguity in general.
@@ -341,7 +339,7 @@ As usual, **both sides** of the slicers are included as this is label indexing.
                                           ('b', 'foo'), ('b', 'bah')],
                                          names=['lvl0', 'lvl1'])
    dfmi = pd.DataFrame(np.arange(len(miindex) * len(micolumns))
-                       .reshape((len(miindex), len(micolumns))),
+                         .reshape((len(miindex), len(micolumns))),
                        index=miindex,
                        columns=micolumns).sort_index().sort_index(axis=1)
    dfmi
@@ -555,7 +553,7 @@ they need to be sorted. As with any index, you can use :meth:`~DataFrame.sort_in
 
 .. ipython:: python
 
-   random.shuffle(tuples)
+   import random; random.shuffle(tuples)
    s = pd.Series(np.random.randn(8), index=pd.MultiIndex.from_tuples(tuples))
    s
    s.sort_index()
@@ -691,12 +689,12 @@ faster than fancy indexing.
    indexer = np.arange(10000)
    random.shuffle(indexer)
 
-   timeit(arr[indexer])
-   timeit(arr.take(indexer, axis=0))
+   %timeit arr[indexer]
+   %timeit arr.take(indexer, axis=0)
 
    ser = pd.Series(arr[:, 0])
-   timeit(ser.iloc[indexer])
-   timeit(ser.take(indexer))
+   %timeit ser.iloc[indexer]
+   %timeit ser.take(indexer)
 
 .. _indexing.index_types:
 
@@ -720,6 +718,7 @@ and allows efficient indexing and storage of an index with a large number of dup
 
 .. ipython:: python
 
+   from pandas.api.types import CategoricalDtype
    df = pd.DataFrame({'A': np.arange(6),
                       'B': list('aabbca')})
    df['B'] = df['B'].astype(CategoricalDtype(list('cab')))
