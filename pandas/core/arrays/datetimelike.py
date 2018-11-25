@@ -12,6 +12,7 @@ from pandas._libs.tslibs.period import (
 from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import maybe_integer_op_deprecated
 import pandas.compat as compat
+from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
 from pandas.util._decorators import deprecate_kwarg
@@ -27,11 +28,53 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import checked_add_with_arr, take, unique1d
 import pandas.core.common as com
+from pandas.core.nanops import nanstd
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import DateOffset, Tick
 
 from .base import ExtensionOpsMixin
+
+
+def _get_reduction_vals(obj, skipna):
+    if not len(obj):
+        return NaT
+
+    if obj.hasnans:
+        if not skipna:
+            return NaT
+        vals = obj.asi8[~obj._isnan]
+    else:
+        vals = obj.asi8
+    return vals
+
+
+def _make_reduction(op, diff=False, only_timedelta=False):
+    """
+    Make a unary reduction method that handles NaT appropriately.
+    """
+
+    def method(self, skipna=True, **kwargs):
+        if only_timedelta:
+            raise TypeError('"{meth}" reduction is not valid for {cls}'
+                            .format(meth=op.__name__, cls=type(self).__name__))
+
+        vals = _get_reduction_vals(self, skipna)
+        if vals is NaT:
+            return NaT
+
+        # Try to minimize floating point error by rounding before casting
+        #  to int64
+        result = op(vals, **kwargs)
+        result = np.float64(result).round()
+        result = np.int64(result)
+        if diff:
+            return self._box_func(result) - self._box_func(0)
+        return self._box_func(result)
+
+    method.__name__ = op.__name__
+    # TODO: __doc__
+    return method
 
 
 def _make_comparison_op(cls, op):
@@ -363,6 +406,19 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             raise ValueError('Inferred frequency {infer} from passed values '
                              'does not conform to passed frequency {passed}'
                              .format(infer=inferred, passed=freq.freqstr))
+
+    # ----------------------------------------------------------------
+    # Reductions
+
+    min = _make_reduction(np.min)
+    max = _make_reduction(np.max)
+
+    mean = _make_reduction(np.mean)
+    median = _make_reduction(np.median)
+    std = _make_reduction(nanstd, diff=True)
+
+    sum = _make_reduction(np.sum, only_timedelta=True)
+    # cumsum = _make_reduction(np.cumsum, only_timedelta=True)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods

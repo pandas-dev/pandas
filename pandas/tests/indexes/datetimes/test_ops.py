@@ -47,6 +47,20 @@ class TestDatetimeIndexOps(Ops):
         assert s.day == 10
         pytest.raises(AttributeError, lambda: s.weekday)
 
+    def test_mean(self, tz_naive_fixture):
+        tz = tz_naive_fixture
+        idx1 = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
+                                 '2011-01-03'], tz=tz)
+        assert idx1.mean() == pd.Timestamp('2011-01-02', tz=tz)
+
+        idx2 = pd.DatetimeIndex(['2011-01-01', '2011-01-02', pd.NaT,
+                                 '2011-01-03'], tz=tz)
+        assert idx2.mean(skipna=False) is pd.NaT
+        assert idx2.mean(skipna=True) == pd.Timestamp('2011-01-02', tz=tz)
+
+        idx3 = pd.DatetimeIndex([])
+        assert idx3.mean() is pd.NaT
+
     def test_minmax_tz(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # monotonic

@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_datetime64_any_dtype,
     is_bool_dtype,
+    is_scalar,
     pandas_dtype
 )
 from pandas.core.ops import get_op_result_name
@@ -81,6 +82,9 @@ class PeriodDelegateMixin(PandasDelegate):
 
     def _delegate_method(self, name, *args, **kwargs):
         result = operator.methodcaller(name, *args, **kwargs)(self._data)
+        if is_scalar(result):
+            # e.g. min, max, mean, ...
+            return result
         return Index(result, name=self.name)
 
 

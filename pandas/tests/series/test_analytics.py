@@ -1,5 +1,6 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
+from __future__ import division
 
 from distutils.version import LooseVersion
 from itertools import product
@@ -15,7 +16,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     Categorical, CategoricalIndex, DataFrame, Series, bdate_range, compat,
-    date_range, isna, notna)
+    date_range, isna, NaT, notna)
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
@@ -24,6 +25,7 @@ import pandas.util.testing as tm
 from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_index_equal,
     assert_series_equal)
+from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
 
 
 class TestSeriesAnalytics(object):
@@ -507,6 +509,81 @@ class TestSeriesAnalytics(object):
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
+    @pytest.mark.parametrize('tz', [None, 'US/Mountain'])
+    def test_reductions_datetime64(self, tz):
+        dti = date_range('2001-01-01', periods=11, tz=tz)
+        # shuffle so that we are not just working with monotone-increasing
+        dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
+        dtarr = DatetimeArray(dti)
+        ds = Series(dti)
+
+        for obj in [dti, ds, dtarr]:
+            assert obj.mean() == Timestamp('2001-01-06', tz=tz)
+            assert obj.median() == Timestamp('2001-01-06', tz=tz)
+            assert obj.min() == Timestamp('2001-01-01', tz=tz)
+            assert obj.max() == Timestamp('2001-01-11', tz=tz)
+
+        assert dti.argmin() == 8
+        assert dti.argmax() == 3
+        # TODO: implement these
+        # assert dtarr.argmin() == 8
+        # assert dtarr.argmax() == 3
+        assert ds.idxmin() == 8
+        assert ds.idxmax() == 3
+
+        diff = dti - dti.mean()
+        days_std = np.std(diff.days)
+        adj_std = days_std * np.sqrt(11. / 10)
+        nanos = round(adj_std * 24 * 3600 * 1e9)
+        expected = Timedelta(nanos)
+        assert dti.std() == expected
+        assert ds.std() == expected
+        assert dtarr.std() == expected
+
+        dti = dti.insert(3, NaT)
+        dtarr = DatetimeArray(dti)
+        ds = Series(dti)
+
+        assert NaT in dti
+        assert NaT in dtarr
+        # assert NaT in ds  # FIXME: fails
+
+        for obj in [dti, ds, dtarr]:
+            assert obj.mean(skipna=True) == Timestamp('2001-01-06', tz=tz)
+            assert obj.median(skipna=True) == Timestamp('2001-01-06', tz=tz)
+            if obj is not dti:
+                assert obj.min(skipna=True) == Timestamp('2001-01-01', tz=tz)
+                assert obj.max(skipna=True) == Timestamp('2001-01-11', tz=tz)
+            else:
+                # FIXME: signature mismatch in DatetimeIndexOpsMixin
+                assert obj.min() == Timestamp('2001-01-01', tz=tz)
+                assert obj.max() == Timestamp('2001-01-11', tz=tz)
+
+            if obj is not ds:
+                assert obj.mean(skipna=False) is NaT
+                assert obj.median(skipna=False) is NaT
+            else:
+                # FIXME: broken for Series
+                pass
+
+            if obj is not dti and obj is not ds:
+                assert obj.min(skipna=False) is NaT
+                assert obj.max(skipna=False) is NaT
+            else:
+                # FIXME: signature mismatch in DatetimeIndexOpsMixin,
+                #  no way to not-skip NaTs
+                # assert obj.min() is NaT
+                # assert obj.max() is NaT
+                pass
+
+        assert dti.std(skipna=True) == expected
+        assert ds.std(skipna=True) == expected
+        assert dtarr.std(skipna=True) == expected
+
+        assert dti.std(skipna=False) is NaT
+        assert ds.std(skipna=False) is NaT
+        assert dtarr.std(skipna=False) is NaT
+
     def _check_stat_op(self, name, alternate, string_series_,
                        check_objects=False, check_allna=False):
 
@@ -516,10 +593,11 @@ class TestSeriesAnalytics(object):
             # add some NaNs
             string_series_[5:15] = np.NaN
 
-            # idxmax, idxmin, min, and max are valid for dates
-            if name not in ['max', 'min']:
+            # mean, idxmax, idxmin, min, and max are valid for dates
+            if name not in ['max', 'min', 'mean', 'median', 'std']:
                 ds = Series(date_range('1/1/2001', periods=10))
-                pytest.raises(TypeError, f, ds)
+                with pytest.raises(TypeError):
+                    f(ds)
 
             # skipna or no
             assert notna(f(string_series_))

@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
     is_complex_dtype, is_integer_dtype,
     is_bool_dtype, is_object_dtype,
     is_numeric_dtype,
-    is_datetime64_dtype, is_timedelta64_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_timedelta64_dtype,
     is_datetime_or_timedelta_dtype,
     is_int_or_datetime_dtype, is_any_int_dtype)
 from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
@@ -427,7 +427,6 @@ def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
     return _wrap_results(the_sum, dtype)
 
 
-@disallow('M8')
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True, mask=None):
     """
@@ -463,6 +462,14 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     elif is_float_dtype(dtype):
         dtype_sum = dtype
         dtype_count = dtype
+    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
+        from pandas import DatetimeIndex
+        masked_vals = values
+        if mask is not None:
+            masked_vals = values[~mask]
+        the_mean = DatetimeIndex(masked_vals).mean(skipna=skipna)
+        return the_mean
+
     count = _get_counts(mask, axis, dtype=dtype_count)
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
 
@@ -477,7 +484,6 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     return _wrap_results(the_mean, dtype)
 
 
-@disallow('M8')
 @bottleneck_switch()
 def nanmedian(values, axis=None, skipna=True, mask=None):
     """
@@ -509,6 +515,14 @@ def nanmedian(values, axis=None, skipna=True, mask=None):
         return np.nanmedian(x[mask])
 
     values, mask, dtype, dtype_max, _ = _get_values(values, skipna, mask=mask)
+
+    if is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
+        from pandas import DatetimeIndex
+        masked_vals = values
+        if mask is not None:
+            masked_vals = values[~mask]
+        return DatetimeIndex(masked_vals).median(skipna=skipna)
+
     if not is_float_dtype(values):
         values = values.astype('f8')
         values[mask] = np.nan
@@ -562,7 +576,6 @@ def _get_counts_nanvar(mask, axis, ddof, dtype=float):
     return count, d
 
 
-@disallow('M8')
 @bottleneck_switch(ddof=1)
 def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     """
@@ -592,6 +605,14 @@ def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     >>> nanops.nanstd(s)
     1.0
     """
+    if is_datetime64_dtype(values) or is_datetime64tz_dtype(values):
+        from pandas import DatetimeIndex
+        masked_vals = values
+        if mask is not None:
+            masked_vals = values[~mask]
+        return DatetimeIndex(masked_vals).std(skipna=skipna)
+        # TODO: adjust by ddof?
+
     result = np.sqrt(nanvar(values, axis=axis, skipna=skipna, ddof=ddof,
                             mask=mask))
     return _wrap_results(result, values.dtype)

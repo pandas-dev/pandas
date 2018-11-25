@@ -29,7 +29,8 @@ from pandas.core.dtypes.common import (
     is_integer, is_integer_dtype, is_iterator, is_list_like, is_object_dtype,
     is_scalar, is_string_like, is_timedelta64_dtype, pandas_dtype)
 from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCIndexClass, ABCSeries, ABCSparseArray, ABCSparseSeries)
+    ABCDataFrame, ABCDatetimeIndex, ABCIndexClass, ABCSeries, ABCSparseArray,
+    ABCSparseSeries)
 from pandas.core.dtypes.missing import (
     isna, na_value_for_dtype, notna, remove_na_arraylike)
 
@@ -3383,6 +3384,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # dispatch to ExtensionArray interface
         if isinstance(delegate, ExtensionArray):
             return delegate._reduce(name, skipna=skipna, **kwds)
+        if (isinstance(delegate, ABCDatetimeIndex) and
+                name in ['mean', 'median', 'std', 'min', 'max']):
+            if numeric_only or filter_type:
+                raise TypeError
+            method = getattr(delegate, name)
+            try:
+                return method(skipna=skipna, **kwds)
+            except TypeError:
+                # kludge because not all reduction implementations take skipna
+                return method(**kwds)
 
         # dispatch to numpy arrays
         elif isinstance(delegate, np.ndarray):
