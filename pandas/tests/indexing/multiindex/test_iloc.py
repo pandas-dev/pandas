@@ -7,6 +7,7 @@ from pandas import DataFrame, MultiIndex, Series
 from pandas.util import testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
 class TestMultiIndexIloc(object):
 
     def test_iloc_getitem_multiindex2(self):

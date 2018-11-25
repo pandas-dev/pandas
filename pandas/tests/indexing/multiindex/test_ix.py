@@ -6,7 +6,7 @@ from pandas.compat import lrange
 
 
 @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
-class TestMultiIndexBasic(object):
+class TestMultiIndexIx(object):
 
     def test_frame_setitem_ix(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
