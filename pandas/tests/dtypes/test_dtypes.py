@@ -229,20 +229,25 @@ class TestDatetimeTZDtype(Base):
         assert not is_datetime64tz_dtype(np.dtype('float64'))
         assert not is_datetime64tz_dtype(1.0)
 
-        assert is_datetimetz(s)
-        assert is_datetimetz(s.dtype)
-        assert not is_datetimetz(np.dtype('float64'))
-        assert not is_datetimetz(1.0)
+        with tm.assert_produces_warning(FutureWarning):
+            assert is_datetimetz(s)
+            assert is_datetimetz(s.dtype)
+            assert not is_datetimetz(np.dtype('float64'))
+            assert not is_datetimetz(1.0)
 
     def test_dst(self):
 
         dr1 = date_range('2013-01-01', periods=3, tz='US/Eastern')
         s1 = Series(dr1, name='A')
-        assert is_datetimetz(s1)
+        assert is_datetime64tz_dtype(s1)
+        with tm.assert_produces_warning(FutureWarning):
+            assert is_datetimetz(s1)
 
         dr2 = date_range('2013-08-01', periods=3, tz='US/Eastern')
         s2 = Series(dr2, name='A')
-        assert is_datetimetz(s2)
+        assert is_datetime64tz_dtype(s2)
+        with tm.assert_produces_warning(FutureWarning):
+            assert is_datetimetz(s2)
         assert s1.dtype == s2.dtype
 
     @pytest.mark.parametrize('tz', ['UTC', 'US/Eastern'])

@@ -289,6 +289,8 @@ def is_datetimetz(arr):
     Check whether an array-like is a datetime array-like with a timezone
     component in its dtype.
 
+    .. deprecated:: 0.24.0
+
     Parameters
     ----------
     arr : array-like
@@ -322,8 +324,9 @@ def is_datetimetz(arr):
     True
     """
 
-    # TODO: do we need this function?
-    # It seems like a repeat of is_datetime64tz_dtype.
+    warnings.warn(FutureWarning,
+                  "'is_datetimetz' is deprecated and will be removed in a "
+                  "future version.  Use 'is_datetime64tz_dtype' instead.")
 
     return ((isinstance(arr, ABCDatetimeIndex) and
              getattr(arr, 'tz', None) is not None) or
@@ -391,8 +394,6 @@ def is_period(arr):
                   "version.  Use 'is_period_dtype' or is_period_arraylike' "
                   "instead.")
 
-    # TODO: do we need this function?
-    # It seems like a repeat of is_period_arraylike.
     return isinstance(arr, ABCPeriodIndex) or is_period_arraylike(arr)
 
 
@@ -752,8 +753,7 @@ def is_datetimelike(arr):
 
     return (is_datetime64_dtype(arr) or is_datetime64tz_dtype(arr) or
             is_timedelta64_dtype(arr) or
-            isinstance(arr, ABCPeriodIndex) or
-            is_datetimetz(arr))
+            isinstance(arr, ABCPeriodIndex))
 
 
 def is_dtype_equal(source, target):
@@ -1751,7 +1751,7 @@ def is_extension_type(arr):
         return True
     elif is_sparse(arr):
         return True
-    elif is_datetimetz(arr):
+    elif is_datetime64tz_dtype(arr):
         return True
     return False
 
@@ -1984,7 +1984,7 @@ def _get_dtype_from_object(dtype):
         return dtype
     elif is_categorical(dtype):
         return CategoricalDtype().type
-    elif is_datetimetz(dtype):
+    elif is_datetime64tz_dtype(dtype):
         return DatetimeTZDtype(dtype).type
     elif isinstance(dtype, np.dtype):  # dtype object
         try:

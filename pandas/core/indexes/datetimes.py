@@ -16,7 +16,7 @@ from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 from pandas.core.dtypes.common import (
     _INT64_DTYPE, _NS_DTYPE, ensure_int64, is_datetime64_dtype,
-    is_datetime64_ns_dtype, is_datetimetz, is_dtype_equal, is_float,
+    is_datetime64_ns_dtype, is_datetime64tz_dtype, is_dtype_equal, is_float,
     is_integer, is_integer_dtype, is_list_like, is_period_dtype, is_scalar,
     is_string_like, pandas_dtype)
 import pandas.core.dtypes.concat as _concat
@@ -259,7 +259,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             data = data._values
 
         # data must be Index or np.ndarray here
-        if not (is_datetime64_dtype(data) or is_datetimetz(data) or
+        if not (is_datetime64_dtype(data) or is_datetime64tz_dtype(data) or
                 is_integer_dtype(data) or lib.infer_dtype(data) == 'integer'):
             data = tools.to_datetime(data, dayfirst=dayfirst,
                                      yearfirst=yearfirst)

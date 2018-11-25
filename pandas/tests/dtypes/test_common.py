@@ -162,14 +162,15 @@ def test_is_categorical():
 
 
 def test_is_datetimetz():
-    assert not com.is_datetimetz([1, 2, 3])
-    assert not com.is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
+    with tm.assert_produces_warning(FutureWarning):
+        assert not com.is_datetimetz([1, 2, 3])
+        assert not com.is_datetimetz(pd.DatetimeIndex([1, 2, 3]))
 
-    assert com.is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
+        assert com.is_datetimetz(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
 
-    dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
-    assert com.is_datetimetz(s)
+        dtype = DatetimeTZDtype("ns", tz="US/Eastern")
+        s = pd.Series([], dtype=dtype)
+        assert com.is_datetimetz(s)
 
 
 def test_is_period():

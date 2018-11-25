@@ -13,11 +13,11 @@ from .common import (
     ensure_int8, ensure_int16, ensure_int32, ensure_int64, ensure_object,
     is_bool, is_bool_dtype, is_categorical_dtype, is_complex, is_complex_dtype,
     is_datetime64_dtype, is_datetime64_ns_dtype, is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype, is_datetimelike, is_datetimetz,
-    is_dtype_equal, is_extension_array_dtype, is_extension_type, is_float,
-    is_float_dtype, is_integer, is_integer_dtype, is_object_dtype, is_scalar,
-    is_string_dtype, is_timedelta64_dtype, is_timedelta64_ns_dtype,
-    is_unsigned_integer_dtype, pandas_dtype)
+    is_datetime_or_timedelta_dtype, is_datetimelike, is_dtype_equal,
+    is_extension_array_dtype, is_extension_type, is_float, is_float_dtype,
+    is_integer, is_integer_dtype, is_object_dtype, is_scalar, is_string_dtype,
+    is_timedelta64_dtype, is_timedelta64_ns_dtype, is_unsigned_integer_dtype,
+    pandas_dtype)
 from .dtypes import (
     DatetimeTZDtype, ExtensionDtype, PandasExtensionDtype, PeriodDtype)
 from .generic import ABCDatetimeIndex, ABCPeriodIndex, ABCSeries
@@ -285,7 +285,7 @@ def maybe_promote(dtype, fill_value=np.nan):
                     fill_value = iNaT
             else:
                 fill_value = iNaT
-    elif is_datetimetz(dtype):
+    elif is_datetime64tz_dtype(dtype):
         if isna(fill_value):
             fill_value = iNaT
     elif is_extension_array_dtype(dtype) and isna(fill_value):
@@ -328,7 +328,7 @@ def maybe_promote(dtype, fill_value=np.nan):
     # in case we have a string that looked like a number
     if is_extension_array_dtype(dtype):
         pass
-    elif is_datetimetz(dtype):
+    elif is_datetime64tz_dtype(dtype):
         pass
     elif issubclass(np.dtype(dtype).type, string_types):
         dtype = np.object_
@@ -1178,7 +1178,7 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
     np.ndarray / pandas type of length, filled with value
 
     """
-    if is_datetimetz(dtype):
+    if is_datetime64tz_dtype(dtype):
         from pandas import DatetimeIndex
         subarr = DatetimeIndex([value] * length, dtype=dtype)
     elif is_categorical_dtype(dtype):
