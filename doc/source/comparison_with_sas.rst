@@ -129,8 +129,8 @@ The pandas method is :func:`read_csv`, which works similarly.
 
 .. ipython:: python
 
-   url = 'https://raw.github.com/pandas-dev/' \
-         'pandas/master/pandas/tests/data/tips.csv'
+   url = ('https://raw.github.com/pandas-dev/'
+          'pandas/master/pandas/tests/data/tips.csv')
    tips = pd.read_csv(url)
    tips.head()
 
