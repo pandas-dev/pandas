@@ -3270,23 +3270,40 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def xs(self, key, axis=0, level=None, drop_level=True):
         """
-        Returns a cross-section (row(s) or column(s)) from the
-        Series/DataFrame. Defaults to cross-section on the rows (axis=0).
+        Return cross-section from the Series/DataFrame.
+
+        Returns a cross-section (row(s) or column(s))
+        from the Series/DataFrame.
+        Defaults to cross-section on the rows (axis=0).
 
         Parameters
         ----------
         key : object
-            Some label contained in the index, or partially in a MultiIndex
+            Some label contained in the index, or partially in a MultiIndex.
         axis : int, default 0
-            Axis to retrieve cross-section on
+            Axis to retrieve cross-section on.
         level : object, defaults to first n levels (n=1 or len(key))
             In case of a key partially contained in a MultiIndex, indicate
             which levels are used. Levels can be referred by label or position.
-        drop_level : boolean, default True
+        drop_level : bool, default True
             If False, returns object with same levels as self.
+
+        Returns
+        -------
+        xs : Series or DataFrame
+
+        Notes
+        -----
+        xs is only for getting, not setting values.
+
+        MultiIndex Slicers is a generic way to get/set values on any level or
+        levels.  It is a superset of xs functionality, see
+        :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         Examples
         --------
+        >>> d = {'A': [4, 4, 9], 'B': [5, 0, 7], 'C': [2, 9, 3]}
+        >>> df = pd.DataFrame(data=d, index=['a', 'b', 'c'])
         >>> df
            A  B  C
         a  4  5  2
@@ -3296,13 +3313,21 @@ class NDFrame(PandasObject, SelectionMixin):
         A    4
         B    5
         C    2
-        Name: a
+        Name: a, dtype: int64
         >>> df.xs('C', axis=1)
         a    2
         b    9
         c    3
-        Name: C
-
+        Name: C, dtype: int64
+        >>> d = {'A': [4, 7, 6, 5],
+        ...      'B': [1, 5, 6, 3],
+        ...      'C': [8, 5, 8, 5],
+        ...      'D': [9, 0, 0, 3],
+        ...      'first': ['bar', 'bar', 'baz', 'baz'],
+        ...      'second': ['one', 'two', 'one', 'three'],
+        ...      'third': [1, 1, 1, 2]}
+        >>> df = pd.DataFrame(data=d)
+        >>> df = df.set_index(['first', 'second', 'third'])
         >>> df
                             A  B  C  D
         first second third
@@ -3323,18 +3348,6 @@ class NDFrame(PandasObject, SelectionMixin):
                 A  B  C  D
         second
         three   5  3  5  3
-
-        Returns
-        -------
-        xs : Series or DataFrame
-
-        Notes
-        -----
-        xs is only for getting, not setting values.
-
-        MultiIndex Slicers is a generic way to get/set values on any level or
-        levels.  It is a superset of xs functionality, see
-        :ref:`MultiIndex Slicers <advanced.mi_slicers>`
         """
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
