@@ -9,14 +9,13 @@ from numpy import nan as NA
 import numpy as np
 from numpy.random import randint
 
-from pandas.compat import range, u
+from pandas.compat import range, u, PY3
 import pandas.compat as compat
 from pandas import Index, Series, DataFrame, isna, MultiIndex, notna, concat
 
 from pandas.util.testing import assert_series_equal, assert_index_equal
 import pandas.util.testing as tm
 
-import pandas.conftest as top_level_conftest
 import pandas.core.strings as strings
 
 
@@ -119,11 +118,15 @@ def any_string_method(request):
     return request.param
 
 
+# subset of the full set from pandas/conftest.py
 _any_allowed_skipna_inferred_dtype = [
-    (dtype, values) for dtype, values
-    in top_level_conftest._any_skipna_inferred_dtype
-    if dtype in {'series', 'unicode', 'empty',
-                 'bytes', 'mixed', 'mixed-integer'}]
+    ('string', ['a', np.nan, 'c']),
+    ('unicode' if not PY3 else 'string', [u('a'), np.nan, u('c')]),
+    ('bytes' if PY3 else 'string', [b'a', np.nan, b'c']),
+    ('empty', [np.nan, np.nan, np.nan]),
+    ('empty', []),
+    ('mixed-integer', ['a', np.nan, 2])
+]
 ids, _ = zip(*_any_allowed_skipna_inferred_dtype)  # use inferred type as id
 
 
@@ -245,10 +248,6 @@ class TestStringMethods(object):
         if box == Index and dtype == 'category':
             pytest.xfail(reason='Broken methods on CategoricalIndex; '
                          'see GH 23556')
-        if (method_name == 'split' and box == Index
-                and inferred_dtype in ['unicode', 'mixed', 'mixed-integer']
-                and dtype == object and kwargs.get('expand', None) is True):
-            pytest.xfail(reason='Method not nan-safe on Index; see GH 23677')
 
         t = box(values, dtype=dtype)  # explicit dtype to avoid casting
         method = getattr(t.str, method_name)
