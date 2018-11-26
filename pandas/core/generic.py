@@ -3310,14 +3310,14 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> df = pd.DataFrame({"num_legs": [4, 4, 2],
-        ...                    "num_arms": [0, 0, 2],
+        ...                    "num_arms": [0, 0, 0],
         ...                    "num_wings": [0, 0, 2]},
         ...                   ["dog", "cat", "duck"])
         >>> df
               num_legs  num_arms  num_wings
         dog          4         0          0
         cat          4         0          0
-        duck         2         2          2
+        duck         2         0          2
         >>> df.xs('dog')
         num_legs     4
         num_arms     0
