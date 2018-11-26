@@ -1256,8 +1256,8 @@ def infer_dtype(value: object, skipna: bool=False) -> str:
             return 'timedelta'
 
     elif util.is_integer_object(val):
-        # numpy timedelta64 objects are caught in the previous branch;
-        #  ordering matters here
+        # ordering matters here; this check must come after the is_timedelta
+        #  check otherwise numpy timedelta64 objects would come through here
 
         if is_integer_array(values):
             return 'integer'

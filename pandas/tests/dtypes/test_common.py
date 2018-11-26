@@ -173,7 +173,7 @@ def test_is_datetimetz():
         assert com.is_datetimetz(s)
 
 
-def test_is_period():
+def test_is_period_deprecated():
     with tm.assert_produces_warning(FutureWarning):
         assert not com.is_period([1, 2, 3])
         assert not com.is_period(pd.Index([1, 2, 3]))

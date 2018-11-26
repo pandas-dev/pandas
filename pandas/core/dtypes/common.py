@@ -327,10 +327,7 @@ def is_datetimetz(arr):
     warnings.warn("'is_datetimetz' is deprecated and will be removed in a "
                   "future version.  Use 'is_datetime64tz_dtype' instead.",
                   FutureWarning, stacklevel=2)
-
-    return ((isinstance(arr, ABCDatetimeIndex) and
-             getattr(arr, 'tz', None) is not None) or
-            is_datetime64tz_dtype(arr))
+    return is_datetime64tz_dtype(arr)
 
 
 def is_offsetlike(arr_or_obj):
