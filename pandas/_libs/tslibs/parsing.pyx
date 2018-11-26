@@ -361,7 +361,7 @@ cdef dateutil_parse(object timestr, object default, ignoretz=False,
     return ret, reso
 
 
-cpdef object _get_rule_month(object source, object default='DEC'):
+cdef object _get_rule_month(object source, object default='DEC'):
     """
     Return starting month of given freq, default is December.
 
@@ -537,7 +537,7 @@ except (ImportError, AttributeError):
     pass
 
 
-def _format_is_iso(f):
+def _format_is_iso(f) -> bint:
     """
     Does format match the iso8601 set that can be handled by the C parser?
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different

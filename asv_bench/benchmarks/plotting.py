@@ -7,12 +7,8 @@ except ImportError:
 import matplotlib
 matplotlib.use('Agg')
 
-from .pandas_vb_common import setup  # noqa
-
 
 class Plotting(object):
-
-    goal_time = 0.2
 
     def setup(self):
         self.s = Series(np.random.randn(1000000))
@@ -26,8 +22,6 @@ class Plotting(object):
 
 
 class TimeseriesPlotting(object):
-
-    goal_time = 0.2
 
     def setup(self):
         N = 2000
@@ -52,8 +46,6 @@ class TimeseriesPlotting(object):
 
 class Misc(object):
 
-    goal_time = 0.6
-
     def setup(self):
         N = 500
         M = 10
@@ -62,3 +54,6 @@ class Misc(object):
 
     def time_plot_andrews_curves(self):
         andrews_curves(self.df, "Name")
+
+
+from .pandas_vb_common import setup  # noqa: F401

@@ -1,17 +1,14 @@
 from __future__ import division
 
-import pytest
 import numpy as np
-from pandas import (
-    Index,
-    IntervalIndex,
-    interval_range,
-    CategoricalIndex,
-    Timestamp,
-    Timedelta,
-    NaT)
-from pandas.core.dtypes.dtypes import CategoricalDtype, IntervalDtype
+import pytest
+
 import pandas.util.testing as tm
+from pandas import (
+    CategoricalIndex, Index, IntervalIndex, NaT, Timedelta, Timestamp,
+    interval_range
+)
+from pandas.core.dtypes.dtypes import CategoricalDtype, IntervalDtype
 
 
 class Base(object):
@@ -52,12 +49,12 @@ class Base(object):
         'datetime64[ns, US/Eastern]'])
     def test_astype_cannot_cast(self, index, dtype):
         msg = 'Cannot cast IntervalIndex to dtype'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
 
     def test_astype_invalid_dtype(self, index):
         msg = "data type 'fake_dtype' not understood"
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             index.astype('fake_dtype')
 
 
@@ -130,7 +127,7 @@ class TestFloatSubtype(Base):
 
         # raises with NA
         msg = 'Cannot convert NA to integer'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             index.insert(0, np.nan).astype(dtype)
 
     @pytest.mark.xfail(reason='GH#15832', strict=True)
@@ -155,7 +152,7 @@ class TestFloatSubtype(Base):
     def test_subtype_datetimelike(self, index, subtype):
         dtype = IntervalDtype(subtype)
         msg = 'Cannot convert .* to .*; subtypes are incompatible'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
 
 
@@ -186,7 +183,7 @@ class TestDatetimelikeSubtype(Base):
     def test_subtype_float(self, index):
         dtype = IntervalDtype('float64')
         msg = 'Cannot convert .* to .*; subtypes are incompatible'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
 
     def test_subtype_datetimelike(self):
@@ -195,15 +192,15 @@ class TestDatetimelikeSubtype(Base):
         msg = 'Cannot convert .* to .*; subtypes are incompatible'
 
         index = interval_range(Timestamp('2018-01-01'), periods=10)
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
 
         index = interval_range(Timestamp('2018-01-01', tz='CET'), periods=10)
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
 
         # timedelta -> datetime raises
         dtype = IntervalDtype('datetime64[ns]')
         index = interval_range(Timedelta('0 days'), periods=10)
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             index.astype(dtype)

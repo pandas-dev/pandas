@@ -15,6 +15,7 @@ from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network,
                                  ensure_clean, assert_index_equal)
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
@@ -343,8 +344,7 @@ class TestPandasContainer(object):
         json = StringIO('{"badkey":["A","B"],'
                         '"index":["2","3"],'
                         '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}')
-        with tm.assert_raises_regex(ValueError,
-                                    r"unexpected key\(s\): badkey"):
+        with pytest.raises(ValueError, match=r"unexpected key\(s\): badkey"):
             read_json(json, orient="split")
 
     def test_frame_from_json_nones(self):
@@ -838,7 +838,7 @@ class TestPandasContainer(object):
 DataFrame\\.index values are different \\(100\\.0 %\\)
 \\[left\\]:  Index\\(\\[u?'a', u?'b'\\], dtype='object'\\)
 \\[right\\]: RangeIndex\\(start=0, stop=2, step=1\\)"""
-        with tm.assert_raises_regex(AssertionError, error_msg):
+        with pytest.raises(AssertionError, match=error_msg):
             assert_frame_equal(result, expected, check_index_type=False)
 
         result = read_json('[{"a": 1, "b": 2}, {"b":2, "a" :1}]')
@@ -1047,6 +1047,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
         assert_frame_equal(result, expected)
 
+    @td.skip_if_not_us_locale
     def test_read_s3_jsonl(self, s3_resource):
         # GH17200
 
@@ -1120,9 +1121,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
     def test_latin_encoding(self):
         if compat.PY2:
-            tm.assert_raises_regex(
-                TypeError, r'\[unicode\] is not implemented as a table column')
-            return
+            pytest.skip("[unicode] is not implemented as a table column")
 
         # GH 13774
         pytest.skip("encoding not implemented in .to_json(), "
@@ -1227,7 +1226,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         df = pd.DataFrame([[1, 2], [4, 5]], columns=['a', 'b'])
 
-        with tm.assert_raises_regex(ValueError, "'index=False' is only "
-                                                "valid when 'orient' is "
-                                                "'split' or 'table'"):
+        msg = ("'index=False' is only valid when "
+               "'orient' is 'split' or 'table'")
+        with pytest.raises(ValueError, match=msg):
             df.to_json(orient=orient, index=False)

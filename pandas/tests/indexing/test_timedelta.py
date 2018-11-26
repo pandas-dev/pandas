@@ -1,8 +1,8 @@
+import numpy as np
 import pytest
 
 import pandas as pd
 from pandas.util import testing as tm
-import numpy as np
 
 
 class TestTimedeltaIndexing(object):
@@ -80,3 +80,18 @@ class TestTimedeltaIndexing(object):
         result = s.loc[slice(start, stop)]
         expected = s.iloc[expected_slice]
         tm.assert_series_equal(result, expected)
+
+    def test_roundtrip_thru_setitem(self):
+        # PR 23462
+        dt1 = pd.Timedelta(0)
+        dt2 = pd.Timedelta(28767471428571405)
+        df = pd.DataFrame({'dt': pd.Series([dt1, dt2])})
+        df_copy = df.copy()
+        s = pd.Series([dt1])
+
+        expected = df['dt'].iloc[1].value
+        df.loc[[True, False]] = s
+        result = df['dt'].iloc[1].value
+
+        assert expected == result
+        tm.assert_frame_equal(df, df_copy)
