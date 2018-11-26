@@ -234,8 +234,9 @@ def test_td_constructor_value_error():
     # No units
     ("",
      None,
-     pytest.raises(ValueError,
-                   message="number string without units")),
+     pytest.warns(DeprecationWarning,
+                   message="number string without units is deprecated and "
+            " will raise an exception in future versions. Considering as nanoseconds.")),
 ])
 def test_string_with_unit(value, str_unit, unit, expectation):
     with expectation:

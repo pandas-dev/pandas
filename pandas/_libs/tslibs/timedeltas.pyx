@@ -486,7 +486,9 @@ cpdef inline parse_timedelta_string(object ts, specified_unit=None):
         if have_value:
             raise ValueError("have leftover units")
         if len(number):
-            raise ValueError("number string without units")
+            warnings.warn("number string without units is deprecated and
+            " will raise an exception in future versions. Considering as nanoseconds.")
+            result = timedelta_from_spec(number, frac, 'ns')
 
     return result
 
