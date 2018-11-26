@@ -18,7 +18,7 @@ class TestTimedeltaIndex(object):
     def test_range_kwargs_deprecated(self):
         # GH#23919
         with tm.assert_produces_warning(FutureWarning):
-            timedelta_range(start='1 Day', end='3 Days', freq='D')
+            TimedeltaIndex(start='1 Day', end='3 Days', freq='D')
 
     def test_int64_nocopy(self):
         # GH#23539 check that a copy isn't made when we pass int64 data
