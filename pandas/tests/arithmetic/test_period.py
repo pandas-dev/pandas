@@ -1099,6 +1099,7 @@ class TestPeriodArithmetic(object):
         (pd.offsets.YearEnd, 1),
     ])
     def test_period_diff(self, freq, expected):
+        #GH 23878
         for i in range(1, 4):
             p1 = pd.Period('19910905', freq=freq(i))
             p2 = pd.Period('19920406', freq=freq(i))
