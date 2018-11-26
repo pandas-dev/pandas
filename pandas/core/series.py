@@ -1810,7 +1810,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ndarray compat
     argmin = deprecate(
         'argmin', idxmin, '0.21.0',
-        msg=dedent("""\
+        msg=dedent("""
         The current behaviour of 'Series.argmin' is deprecated, use 'idxmin'
         instead.
         The behavior of 'argmin' will be corrected to return the positional
@@ -1820,7 +1820,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     )
     argmax = deprecate(
         'argmax', idxmax, '0.21.0',
-        msg=dedent("""\
+        msg=dedent("""
         The current behaviour of 'Series.argmax' is deprecated, use 'idxmax'
         instead.
         The behavior of 'argmax' will be corrected to return the positional

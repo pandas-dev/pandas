@@ -1527,7 +1527,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Alias for is_monotonic_increasing.
 
-        .. deprecated :: """
+        .. deprecated ::
+        """
         return self.is_monotonic_increasing
 
     @property
@@ -1566,7 +1567,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     @property
     def _is_strictly_monotonic_increasing(self):
-        """Return if the index is strictly monotonic increasing
+        """
+        Return if the index is strictly monotonic increasing
         (only increasing) values.
 
         Examples
@@ -2610,7 +2612,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        result: array
+        numpy.ndarray
             An array of locations (indices) of the labels from the Index
             which correspond to the return values of the `asof` function
             for every element in `where`.
@@ -3266,8 +3268,11 @@ class Index(IndexOpsMixin, PandasObject):
 
     def set_value(self, arr, key, value):
         """
-        Fast lookup of value from 1-dimensional ndarray. Only use this if you
-        know what you're doing.
+        Fast lookup of value from 1-dimensional ndarray.
+
+        Notes
+        -----
+        Only use this if you know what you're doing.
         """
         self._engine.set_value(com.values_from_object(arr),
                                com.values_from_object(key), value)
@@ -3763,8 +3768,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Check if we are allowing reindexing with this particular indexer.
 
-        *this is an internal non-public method*
-
         Parameters
         ----------
         indexer : an integer indexer
@@ -3842,8 +3845,6 @@ class Index(IndexOpsMixin, PandasObject):
         Create a new index with target's values (move/add/delete values as
         necessary) use with non-unique Index and a possibly non-unique target.
 
-        *this is an internal non-public method*
-
         Parameters
         ----------
         target : an iterable
@@ -3901,8 +3902,6 @@ class Index(IndexOpsMixin, PandasObject):
     _index_shared_docs['join'] = """
         Compute join_index and indexers to conform data
         structures to the new index.
-
-        *This is an internal non-public method*
 
         Parameters
         ----------
@@ -4118,7 +4117,7 @@ class Index(IndexOpsMixin, PandasObject):
         MultiIndex. Otherwise it just exactly aligns the Index data to the
         labels of the level in the MultiIndex.
 
-        If `keep_order` == True, the order of the data indexed by the
+        If ```keep_order == True```, the order of the data indexed by the
         MultiIndex will not be changed; otherwise, it will tie out
         with `other`.
         """
@@ -4910,7 +4909,9 @@ class Index(IndexOpsMixin, PandasObject):
         Return valid other; evaluate or raise TypeError if we are not of
         the appropriate type.
 
-        *this is an internal method called by ops*
+        Notes
+        -----
+        This is an internal method called by ops.
         """
         opstr = '__{opname}__'.format(opname=op.__name__)
         # if we are an inheritor of numeric,
