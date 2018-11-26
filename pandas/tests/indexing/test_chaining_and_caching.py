@@ -1,10 +1,11 @@
+import numpy as np
 import pytest
 
-import numpy as np
 import pandas as pd
+from pandas import (
+    DataFrame, MultiIndex, Series, Timestamp, compat, date_range,
+    option_context)
 from pandas.core import common as com
-from pandas import (compat, DataFrame, option_context,
-                    Series, MultiIndex, date_range, Timestamp)
 from pandas.util import testing as tm
 
 
@@ -336,13 +337,24 @@ class TestChaining(object):
         df2['y'] = ['g', 'h', 'i']
 
     def test_detect_chained_assignment_warnings(self):
+        with option_context("chained_assignment", "warn"):
+            df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
 
-        # warnings
-        with option_context('chained_assignment', 'warn'):
-            df = DataFrame({'A': ['aaa', 'bbb', 'ccc'], 'B': [1, 2, 3]})
-            with tm.assert_produces_warning(
-                    expected_warning=com.SettingWithCopyWarning):
-                df.loc[0]['A'] = 111
+            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+                df.loc[0]["A"] = 111
+
+    def test_detect_chained_assignment_warnings_filter_and_dupe_cols(self):
+        # xref gh-13017.
+        with option_context("chained_assignment", "warn"):
+            df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, -9]],
+                              columns=["a", "a", "c"])
+
+            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+                df.c.loc[df.c > 0] = None
+
+            expected = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, -9]],
+                                    columns=["a", "a", "c"])
+            tm.assert_frame_equal(df, expected)
 
     def test_chained_getitem_with_lists(self):
 

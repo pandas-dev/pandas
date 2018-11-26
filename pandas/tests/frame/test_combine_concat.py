@@ -31,6 +31,24 @@ class TestDataFrameConcatCommon(TestData):
         expected = Series(dict(float64=2, float32=2))
         assert_series_equal(results, expected)
 
+    @pytest.mark.parametrize('data', [
+        pd.date_range('2000', periods=4),
+        pd.date_range('2000', periods=4, tz="US/Central"),
+        pd.period_range('2000', periods=4),
+        pd.timedelta_range(0, periods=4),
+    ])
+    def test_combine_datetlike_udf(self, data):
+        # https://github.com/pandas-dev/pandas/issues/23079
+        df = pd.DataFrame({"A": data})
+        other = df.copy()
+        df.iloc[1, 0] = None
+
+        def combiner(a, b):
+            return b
+
+        result = df.combine(other, combiner)
+        tm.assert_frame_equal(result, other)
+
     def test_concat_multiple_tzs(self):
         # GH 12467
         # combining datetime tz-aware and naive DataFrames
@@ -109,13 +127,13 @@ class TestDataFrameConcatCommon(TestData):
                        columns=['foo', 'bar', 'baz', 'qux'])
 
         series = df.loc[4]
-        with tm.assert_raises_regex(ValueError,
-                                    'Indexes have overlapping values'):
+        msg = 'Indexes have overlapping values'
+        with pytest.raises(ValueError, match=msg):
             df.append(series, verify_integrity=True)
+
         series.name = None
-        with tm.assert_raises_regex(TypeError,
-                                    'Can only append a Series if '
-                                    'ignore_index=True'):
+        msg = 'Can only append a Series if ignore_index=True'
+        with pytest.raises(TypeError, match=msg):
             df.append(series, verify_integrity=True)
 
         result = df.append(series[::-1], ignore_index=True)
@@ -295,7 +313,17 @@ class TestDataFrameConcatCommon(TestData):
                               [1.5, nan, 7.]])
         assert_frame_equal(df, expected)
 
-    def test_update_raise(self):
+    @pytest.mark.parametrize('bad_kwarg, exception, msg', [
+        # errors must be 'ignore' or 'raise'
+        ({'errors': 'something'}, ValueError, 'The parameter errors must.*'),
+        ({'join': 'inner'}, NotImplementedError, 'Only left join is supported')
+    ])
+    def test_update_raise_bad_parameter(self, bad_kwarg, exception, msg):
+        df = DataFrame([[1.5, 1, 3.]])
+        with pytest.raises(exception, match=msg):
+            df.update(df, **bad_kwarg)
+
+    def test_update_raise_on_overlap(self):
         df = DataFrame([[1.5, 1, 3.],
                         [1.5, nan, 3.],
                         [1.5, nan, 3],
@@ -303,8 +331,15 @@ class TestDataFrameConcatCommon(TestData):
 
         other = DataFrame([[2., nan],
                            [nan, 7]], index=[1, 3], columns=[1, 2])
-        with tm.assert_raises_regex(ValueError, "Data overlaps"):
-            df.update(other, raise_conflict=True)
+        with pytest.raises(ValueError, match="Data overlaps"):
+            df.update(other, errors='raise')
+
+    @pytest.mark.parametrize('raise_conflict', [True, False])
+    def test_update_deprecation(self, raise_conflict):
+        df = DataFrame([[1.5, 1, 3.]])
+        other = DataFrame()
+        with tm.assert_produces_warning(FutureWarning):
+            df.update(other, raise_conflict=raise_conflict)
 
     def test_update_from_non_df(self):
         d = {'a': Series([1, 2, 3, 4]), 'b': Series([5, 6, 7, 8])}
@@ -452,7 +487,7 @@ class TestDataFrameConcatCommon(TestData):
         assert_frame_equal(concatted_1_series, expected_columns_series)
 
         # Testing ValueError
-        with tm.assert_raises_regex(ValueError, 'No axis named'):
+        with pytest.raises(ValueError, match='No axis named'):
             pd.concat([series1, series2], axis='something')
 
     def test_concat_numerical_names(self):
@@ -755,7 +790,7 @@ class TestDataFrameCombineFirst(TestData):
                                  freq='M')
         exp = pd.DataFrame({'P': exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
-        assert res['P'].dtype == 'object'
+        assert res['P'].dtype == data1.dtype
 
         # different freq
         dts2 = pd.PeriodIndex(['2012-01-01', '2012-01-02',

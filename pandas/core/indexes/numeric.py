@@ -1,25 +1,23 @@
+import warnings
+
 import numpy as np
+
 from pandas._libs import index as libindex
+import pandas.compat as compat
+from pandas.util._decorators import Appender, cache_readonly
+
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    pandas_dtype,
-    needs_i8_conversion,
-    is_integer_dtype,
-    is_float,
-    is_bool,
-    is_bool_dtype,
-    is_scalar)
+    is_bool, is_bool_dtype, is_dtype_equal, is_float, is_integer_dtype,
+    is_scalar, needs_i8_conversion, pandas_dtype)
+import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.missing import isna
 
-from pandas import compat
 from pandas.core import algorithms
 import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
-from pandas.util._decorators import Appender, cache_readonly
-import pandas.core.dtypes.concat as _concat
-import pandas.core.indexes.base as ibase
-
+from pandas.core.ops import get_op_result_name
 
 _num_index_shared_docs = dict()
 
@@ -34,10 +32,14 @@ class NumericIndex(Index):
     _is_numeric_dtype = True
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
-                fastpath=False):
+                fastpath=None):
 
-        if fastpath:
-            return cls._simple_new(data, name=name)
+        if fastpath is not None:
+            warnings.warn("The 'fastpath' keyword is deprecated, and will be "
+                          "removed in a future version.",
+                          FutureWarning, stacklevel=2)
+            if fastpath:
+                return cls._simple_new(data, name=name)
 
         # is_scalar, generators handled in coerce_to_ndarray
         data = cls._coerce_to_ndarray(data)
@@ -149,9 +151,9 @@ _num_index_shared_docs['class_descr'] = """
     -----
     An Index instance can **only** contain hashable objects.
 
-    See also
+    See Also
     --------
-    Index : The base pandas Index type
+    Index : The base pandas Index type.
 """
 
 _int64_descr_args = dict(
@@ -209,7 +211,7 @@ class Int64Index(IntegerIndex):
                 ._convert_scalar_indexer(key, kind=kind))
 
     def _wrap_joined_index(self, joined, other):
-        name = self.name if self.name == other.name else None
+        name = get_op_result_name(self, other)
         return Int64Index(joined, name=name)
 
     @classmethod
@@ -282,7 +284,7 @@ class UInt64Index(IntegerIndex):
         return keyarr
 
     def _wrap_joined_index(self, joined, other):
-        name = self.name if self.name == other.name else None
+        name = get_op_result_name(self, other)
         return UInt64Index(joined, name=name)
 
     @classmethod

@@ -5,15 +5,18 @@
    This is an experimental API and subject to breaking changes
    without warning.
 """
-import numpy as np
-
 import operator
 
-from pandas.errors import AbstractMethodError
+import numpy as np
+
+from pandas.compat import PY3, set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.compat import set_function_name, PY3
-from pandas.core import ops
+from pandas.errors import AbstractMethodError
+
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+
+from pandas.core import ops
 
 _not_implemented_message = "{} does not implement {}."
 
@@ -109,6 +112,7 @@ class ExtensionArray(object):
             compatible with the ExtensionArray.
         copy : boolean, default False
             If True, copy the underlying data.
+
         Returns
         -------
         ExtensionArray
@@ -724,7 +728,13 @@ class ExtensionArray(object):
 
 class ExtensionOpsMixin(object):
     """
-    A base class for linking the operators to their dunder names
+    A base class for linking the operators to their dunder names.
+
+    .. note::
+
+       You may want to set ``__array_priority__`` if you want your
+       implementation to be called when involved in binary operations
+       with NumPy arrays.
     """
 
     @classmethod
@@ -761,12 +771,14 @@ class ExtensionOpsMixin(object):
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
-    """A mixin for defining the arithmetic and logical operations on
-    an ExtensionArray class, where it is assumed that the underlying objects
-    have the operators already defined.
+    """
+    A mixin for defining  ops on an ExtensionArray.
 
-    Usage
-    ------
+    It is assumed that the underlying scalar objects have the operators
+    already defined.
+
+    Notes
+    -----
     If you have defined a subclass MyExtensionArray(ExtensionArray), then
     use MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin) to
     get the arithmetic operators.  After the definition of MyExtensionArray,
@@ -776,6 +788,12 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     MyExtensionArray._add_comparison_ops()
 
     to link the operators to your class.
+
+    .. note::
+
+       You may want to set ``__array_priority__`` if you want your
+       implementation to be called when involved in binary operations
+       with NumPy arrays.
     """
 
     @classmethod
@@ -825,6 +843,11 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                 else:  # Assume its an object
                     ovalues = [param] * len(self)
                 return ovalues
+
+            if isinstance(other, (ABCSeries, ABCIndexClass)):
+                # rely on pandas to unbox and dispatch to us
+                return NotImplemented
+
             lvalues = self
             rvalues = convert_values(other)
 

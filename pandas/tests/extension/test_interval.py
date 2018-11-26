@@ -13,14 +13,14 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
-import pytest
 import numpy as np
+import pytest
+
+from pandas.core.dtypes.dtypes import IntervalDtype
 
 from pandas import Interval
 from pandas.core.arrays import IntervalArray
-from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data():
@@ -108,6 +108,10 @@ class TestMethods(BaseInterval, base.BaseMethodsTests):
     def test_combine_add(self, data_repeated):
         pass
 
+    @pytest.mark.skip(reason="Not Applicable")
+    def test_fillna_length_mismatch(self, data_missing):
+        pass
+
 
 class TestMissing(BaseInterval, base.BaseMissingTests):
     # Index.fillna only accepts scalar `value`, so we have to skip all
@@ -132,7 +136,7 @@ class TestMissing(BaseInterval, base.BaseMissingTests):
 
     def test_non_scalar_raises(self, data_missing):
         msg = "Got a 'list' instead."
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             data_missing.fillna([1, 1])
 
 

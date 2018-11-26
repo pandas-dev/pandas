@@ -1,16 +1,17 @@
 """ test positional based indexing with iloc """
 
+from warnings import catch_warnings, filterwarnings, simplefilter
+
+import numpy as np
 import pytest
 
-from warnings import catch_warnings, filterwarnings, simplefilter
-import numpy as np
+from pandas.compat import lmap, lrange
 
 import pandas as pd
-from pandas.compat import lrange, lmap
-from pandas import Series, DataFrame, date_range, concat, isna
-from pandas.util import testing as tm
-from pandas.tests.indexing.common import Base
+from pandas import DataFrame, Series, concat, date_range, isna
 from pandas.api.types import is_scalar
+from pandas.tests.indexing.common import Base
+from pandas.util import testing as tm
 
 
 class TestiLoc(Base):
@@ -20,12 +21,10 @@ class TestiLoc(Base):
         # GH6296
         # iloc should allow indexers that exceed the bounds
         df = DataFrame(np.random.random_sample((20, 5)), columns=list('ABCDE'))
-        expected = df
 
         # lists of positions should raise IndexErrror!
-        with tm.assert_raises_regex(IndexError,
-                                    'positional indexers '
-                                    'are out-of-bounds'):
+        msg = 'positional indexers are out-of-bounds'
+        with pytest.raises(IndexError, match=msg):
             df.iloc[:, [0, 1, 2, 3, 4, 5]]
         pytest.raises(IndexError, lambda: df.iloc[[1, 30]])
         pytest.raises(IndexError, lambda: df.iloc[[1, -30]])
@@ -37,14 +36,14 @@ class TestiLoc(Base):
 
         # still raise on a single indexer
         msg = 'single positional indexer is out-of-bounds'
-        with tm.assert_raises_regex(IndexError, msg):
+        with pytest.raises(IndexError, match=msg):
             df.iloc[30]
         pytest.raises(IndexError, lambda: df.iloc[-30])
 
         # GH10779
         # single positive/negative indexer exceeding Series bounds should raise
         # an IndexError
-        with tm.assert_raises_regex(IndexError, msg):
+        with pytest.raises(IndexError, match=msg):
             s.iloc[30]
         pytest.raises(IndexError, lambda: s.iloc[-30])
 
@@ -135,8 +134,8 @@ class TestiLoc(Base):
         else:
             s = DataFrame(np.arange(100).reshape(10, 10))
 
-        tm.assert_raises_regex(TypeError, 'Cannot index by location index',
-                               lambda: s.iloc['a'])
+        with pytest.raises(TypeError, match='Cannot index by location index'):
+            s.iloc['a']
 
     def test_iloc_array_not_mutating_negative_indices(self):
 
