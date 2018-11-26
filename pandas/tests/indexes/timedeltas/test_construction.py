@@ -6,6 +6,7 @@ import pytest
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import TimedeltaIndex, timedelta_range, to_timedelta, Timedelta
+from pandas.core.arrays import TimedeltaArrayMixin as TimdeltaArray
 
 
 class TestTimedeltaIndex(object):
@@ -40,6 +41,10 @@ class TestTimedeltaIndex(object):
                "not conform to passed frequency")
         with pytest.raises(ValueError, match=msg):
             TimedeltaIndex(tdi, freq='D')
+
+        with pytest.raises(ValueError, match=msg):
+            # GH#23789
+            TimedeltaArray(tdi, freq='D')
 
     def test_dt64_data_invalid(self):
         # GH#23539
