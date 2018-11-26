@@ -5839,7 +5839,7 @@ class DataFrame(NDFrame):
         return unstack(self, level, fill_value)
 
     _shared_docs['melt'] = ("""
-    'Unpivots' a DataFrame from wide format to long format, optionally
+    Unpivots a DataFrame from wide format to long format, optionally
     leaving identifier variables set.
 
     This function is useful to massage a DataFrame into a format where one

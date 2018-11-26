@@ -1,9 +1,6 @@
 """
-
-provide a generic structure to support window functions,
-similar to how we have a Groupby object
-
-
+Provide a generic structure to support window functions,
+similar to how we have a Groupby object.
 """
 from __future__ import division
 
@@ -95,14 +92,17 @@ class _Window(PandasObject, SelectionMixin):
                              "'neither'")
 
     def _convert_freq(self):
-        """ resample according to the how, return a new object """
-
+        """
+        Resample according to the how, return a new object.
+        """
         obj = self._selected_obj
         index = None
         return obj, index
 
     def _create_blocks(self):
-        """ split data into blocks & return conformed data """
+        """
+        Split data into blocks & return conformed data.
+        """
 
         obj, index = self._convert_freq()
         if index is not None:
@@ -119,8 +119,7 @@ class _Window(PandasObject, SelectionMixin):
 
     def _gotitem(self, key, ndim, subset=None):
         """
-        sub-classes to define
-        return a sliced object
+        Sub-classes to define. Return a sliced object.
 
         Parameters
         ----------
@@ -161,7 +160,9 @@ class _Window(PandasObject, SelectionMixin):
         return self.__class__.__name__
 
     def __unicode__(self):
-        """ Provide a nice str repr of our rolling object. """
+        """
+        Provide a nice str repr of our rolling object.
+        """
 
         attrs = ["{k}={v}".format(k=k, v=getattr(self, k))
                  for k in self._attributes
@@ -219,7 +220,9 @@ class _Window(PandasObject, SelectionMixin):
         return values
 
     def _wrap_result(self, result, block=None, obj=None):
-        """ wrap a single result """
+        """
+        Wrap a single result.
+        """
 
         if obj is None:
             obj = self._selected_obj
@@ -243,7 +246,7 @@ class _Window(PandasObject, SelectionMixin):
 
     def _wrap_results(self, results, blocks, obj):
         """
-        wrap the results
+        Wrap the results.
 
         Parameters
         ----------
@@ -288,7 +291,9 @@ class _Window(PandasObject, SelectionMixin):
         return concat(final, axis=1).reindex(columns=columns, copy=False)
 
     def _center_window(self, result, window):
-        """ center the result in the window """
+        """
+        Center the result in the window.
+        """
         if self.axis > result.ndim - 1:
             raise ValueError("Requested axis is larger then no. of argument "
                              "dimensions")
@@ -606,8 +611,8 @@ class Window(_Window):
 
     def _prep_window(self, **kwargs):
         """
-        provide validation for our window type, return the window
-        we have already been validated
+        Provide validation for our window type, return the window
+        we have already been validated.
         """
 
         window = self._get_window()
@@ -757,7 +762,9 @@ class Window(_Window):
 
 
 class _GroupByMixin(GroupByMixin):
-    """ provide the groupby facilities """
+    """
+    Provide the groupby facilities.
+    """
 
     def __init__(self, obj, *args, **kwargs):
         parent = kwargs.pop('parent', None)  # noqa
@@ -800,8 +807,9 @@ class _Rolling(_Window):
     def _apply(self, func, name=None, window=None, center=None,
                check_minp=None, **kwargs):
         """
-        Rolling statistical measure using supplied function. Designed to be
-        used with passed-in Cython array-based functions.
+        Rolling statistical measure using supplied function.
+
+        Designed to be used with passed-in Cython array-based functions.
 
         Parameters
         ----------
@@ -937,7 +945,7 @@ class _Rolling_and_Expanding(_Rolling):
         return self._wrap_results(results, blocks, obj)
 
     _shared_docs['apply'] = dedent(r"""
-    %(name)s function apply
+    %(name)s function apply.
 
     Parameters
     ----------
@@ -995,7 +1003,7 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_sum', 'sum', **kwargs)
 
     _shared_docs['max'] = dedent("""
-    Calculate the %(name)s maximum
+    Calculate the %(name)s maximum.
     """)
 
     def max(self, *args, **kwargs):
@@ -1333,7 +1341,7 @@ class _Rolling_and_Expanding(_Rolling):
                            **kwargs)
 
     _shared_docs['cov'] = dedent("""
-    Calculate the %(name)s sample covariance
+    Calculate the %(name)s sample covariance.
 
     Parameters
     ----------
@@ -1485,7 +1493,7 @@ class _Rolling_and_Expanding(_Rolling):
       Y  0.626300  1.000000
     4 X  1.000000  0.555368
       Y  0.555368  1.000000
-""")
+    """)
 
     def corr(self, other=None, pairwise=None, **kwargs):
         if other is None:
@@ -1566,14 +1574,18 @@ class Rolling(_Rolling_and_Expanding):
                              "and offset based windows")
 
     def _validate_monotonic(self):
-        """ validate on is monotonic """
+        """
+        Validate on is_monotonic.
+        """
         if not self._on.is_monotonic:
             formatted = self.on or 'index'
             raise ValueError("{0} must be "
                              "monotonic".format(formatted))
 
     def _validate_freq(self):
-        """ validate & return window frequency """
+        """
+        Validate & return window frequency.
+        """
         from pandas.tseries.frequencies import to_offset
         try:
             return to_offset(self.window)
@@ -1784,7 +1796,7 @@ class RollingGroupby(_GroupByMixin, Rolling):
         Validate that on is monotonic;
         we don't care for groupby.rolling
         because we have already validated at a higher
-        level
+        level.
         """
         pass
 
@@ -2262,7 +2274,9 @@ class EWM(_Rolling):
     @Substitution(name='ewm')
     @Appender(_doc_template)
     def mean(self, *args, **kwargs):
-        """ Exponential weighted moving average. """
+        """
+        Exponential weighted moving average.
+        """
         nv.validate_window_func('mean', args, kwargs)
         return self._apply('ewma', **kwargs)
 
@@ -2270,7 +2284,9 @@ class EWM(_Rolling):
     @Appender(_doc_template)
     @Appender(_bias_template)
     def std(self, bias=False, *args, **kwargs):
-        """ Exponential weighted moving stddev. """
+        """
+        Exponential weighted moving stddev.
+        """
         nv.validate_window_func('std', args, kwargs)
         return _zsqrt(self.var(bias=bias, **kwargs))
 
@@ -2280,7 +2296,9 @@ class EWM(_Rolling):
     @Appender(_doc_template)
     @Appender(_bias_template)
     def var(self, bias=False, *args, **kwargs):
-        """ Exponential weighted moving variance. """
+        """
+        Exponential weighted moving variance.
+        """
         nv.validate_window_func('var', args, kwargs)
 
         def f(arg):
@@ -2294,7 +2312,9 @@ class EWM(_Rolling):
     @Appender(_doc_template)
     @Appender(_pairwise_template)
     def cov(self, other=None, pairwise=None, bias=False, **kwargs):
-        """ Exponential weighted sample covariance. """
+        """
+        Exponential weighted sample covariance.
+        """
         if other is None:
             other = self._selected_obj
             # only default unset
@@ -2317,7 +2337,9 @@ class EWM(_Rolling):
     @Appender(_doc_template)
     @Appender(_pairwise_template)
     def corr(self, other=None, pairwise=None, **kwargs):
-        """ Exponential weighted sample correlation. """
+        """
+        Exponential weighted sample correlation.
+        """
         if other is None:
             other = self._selected_obj
             # only default unset
