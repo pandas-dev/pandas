@@ -255,7 +255,8 @@ def _isfinite(values):
 
 def _na_ok_dtype(dtype):
     # TODO: what about datetime64tz?  PeriodDtype?
-    return not issubclass(dtype, (np.integer, np.timedelta64, np.datetime64))
+    return not issubclass(dtype.type,
+                          (np.integer, np.timedelta64, np.datetime64))
 
 
 def _view_if_needed(values):
