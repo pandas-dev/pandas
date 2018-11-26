@@ -324,9 +324,9 @@ def is_datetimetz(arr):
     True
     """
 
-    warnings.warn(FutureWarning,
-                  "'is_datetimetz' is deprecated and will be removed in a "
-                  "future version.  Use 'is_datetime64tz_dtype' instead.")
+    warnings.warn("'is_datetimetz' is deprecated and will be removed in a "
+                  "future version.  Use 'is_datetime64tz_dtype' instead.",
+                  FutureWarning, stacklevel=2)
 
     return ((isinstance(arr, ABCDatetimeIndex) and
              getattr(arr, 'tz', None) is not None) or
@@ -389,10 +389,9 @@ def is_period(arr):
     True
     """
 
-    warnings.warn(FutureWarning,
-                  "'is_period' is deprecated and will be removed in a future "
+    warnings.warn("'is_period' is deprecated and will be removed in a future "
                   "version.  Use 'is_period_dtype' or is_period_arraylike' "
-                  "instead.")
+                  "instead.", FutureWarning, stacklevel=2)
 
     return isinstance(arr, ABCPeriodIndex) or is_period_arraylike(arr)
 
