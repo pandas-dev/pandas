@@ -227,12 +227,6 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
     # -------------------------------------------------------------------
     # Wrapping TimedeltaArray
 
-    # override non-caching implementations from TimedeltaArray with
-    #  _engine-based implementations that take advantage of Index immutability
-    is_monotonic_increasing = Index.is_monotonic_increasing
-    is_monotonic_decreasing = Index.is_monotonic_decreasing
-    is_unique = Index.is_unique
-
     __mul__ = Index.__mul__
     __rmul__ = Index.__rmul__
     __truediv__ = Index.__truediv__
