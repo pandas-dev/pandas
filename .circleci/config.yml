@@ -21,7 +21,7 @@ jobs:
 
     environment:
       JOB: "3.6_LOCALE"
-      ENV_FILE: "ci/circle-36-locale.yaml"
+      ENV_FILE: "ci/deps/circle-36-locale.yaml"
       LOCALE_OVERRIDE: "zh_CN.UTF-8"
       MINICONDA_DIR: /home/ubuntu/miniconda3
     steps:
