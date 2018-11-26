@@ -77,7 +77,8 @@ class TestSlicing(object):
         assert_slices_equivalent(SLC['7 hours':'15 hours':-1], SLC[:0])
 
     def test_slice_with_zero_step_raises(self):
-        ts = Series(np.arange(20), timedelta_range('0ns', periods=20, freq='H'))
+        ts = Series(np.arange(20),
+                    timedelta_range('0ns', periods=20, freq='H'))
         with pytest.raises(ValueError, match='slice step cannot be zero'):
             ts[::0]
         with pytest.raises(ValueError, match='slice step cannot be zero'):

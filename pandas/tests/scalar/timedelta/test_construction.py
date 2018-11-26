@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas import Timedelta, offsets, to_timedelta
+from pandas.util.testing import do_not_raise
 
 
 def test_construction():
@@ -214,7 +215,7 @@ def test_td_constructor_value_error():
     # Expected case
     ("",
      "s",
-     tm.do_not_raise),
+     do_not_raise),
 
     # Units doubly defined
     ("s",
@@ -235,8 +236,9 @@ def test_td_constructor_value_error():
     ("",
      None,
      pytest.warns(DeprecationWarning,
-                   message="number string without units is deprecated and "
-            " will raise an exception in future versions. Considering as nanoseconds.")),
+                  message="number string without units is deprecated and "
+                  " will raise an exception in future versions. "
+                  "Considering as nanoseconds.")),
 ])
 def test_string_with_unit(value, str_unit, unit, expectation):
     with expectation:
@@ -244,6 +246,6 @@ def test_string_with_unit(value, str_unit, unit, expectation):
         expected_td = Timedelta(value, unit=unit)
 
         assert Timedelta(val_str, unit=unit) == expected_td
-        assert pd.to_timedelta(val_str, unit=unit) == expected_td
-        assert all(pd.to_timedelta([val_str, val_str], unit=unit) ==
-                   pd.to_timedelta([expected_td, expected_td]))
+        assert to_timedelta(val_str, unit=unit) == expected_td
+        assert all(to_timedelta([val_str, val_str], unit=unit) ==
+                   to_timedelta([expected_td, expected_td]))
