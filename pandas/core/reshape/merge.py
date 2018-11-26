@@ -1604,8 +1604,10 @@ def _factorize_keys(lk, rk, sort=True):
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
-    elif (issubclass(lk.dtype, (np.integer, np.timedelta64, np.datetime64)) and
-          issubclass(rk.dtype, (np.integer, np.timedelta64, np.datetime64))):
+    elif (issubclass(lk.dtype.type, (np.integer, np.timedelta64,
+                                     np.datetime64)) and
+          issubclass(rk.dtype.type, (np.integer, np.timedelta64,
+                                     np.datetime64))):
         klass = libhashtable.Int64Factorizer
         lk = ensure_int64(com.values_from_object(lk))
         rk = ensure_int64(com.values_from_object(rk))
