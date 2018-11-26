@@ -96,7 +96,7 @@ def test_applymap(frame):
 def test_apply_keep_sparse_dtype():
     # GH 23744
     expected = SparseDataFrame(np.array([[0, 1, 0], [0, 0, 0], [0, 0, 1]]),
-                               columns=['a', 'b', 'c'], default_fill_value=1)
+                               columns=['b', 'a', 'c'], default_fill_value=1)
     result = DataFrame(expected)
 
     expected = expected.apply(np.exp)

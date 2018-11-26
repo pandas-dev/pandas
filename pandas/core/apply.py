@@ -7,7 +7,7 @@ import pandas.compat as compat
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
-    is_dict_like, is_extension_type, is_list_like, is_sequence, is_sparse)
+    is_dict_like, is_extension_type, is_list_like, is_sequence)
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.io.formats.printing import pprint_thing
@@ -131,18 +131,10 @@ class FrameApply(object):
 
         # ufunc
         elif isinstance(self.f, np.ufunc):
-            results = {}
             with np.errstate(all='ignore'):
-                for col in self.columns:
-                    if is_sparse(self.obj.dtypes[col]):
-                        fill = self.f(self.obj.dtypes[col].fill_value)
-                        result = self.f(self.obj[col])
-                        result = result.to_sparse(fill_value=fill)
-                    else:
-                        result = self.f(self.obj[col])
-                    results[col] = result
+                results = self.obj._data.apply('apply', func=self.f)
             return self.obj._constructor(data=results, index=self.index,
-                                         copy=False)
+                                         columns=self.columns, copy=False)
 
         # broadcasting
         if self.result_type == 'broadcast':
