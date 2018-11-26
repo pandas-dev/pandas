@@ -1526,8 +1526,6 @@ class Index(IndexOpsMixin, PandasObject):
     def is_monotonic(self):
         """
         Alias for is_monotonic_increasing.
-
-        .. deprecated ::
         """
         return self.is_monotonic_increasing
 
