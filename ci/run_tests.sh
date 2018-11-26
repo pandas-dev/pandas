@@ -41,6 +41,7 @@ do
     pytest -m "$TYPE_PATTERN$PATTERN" -n $NUM_JOBS -s --strict --durations=10 --junitxml=test-data-$TYPE.xml $TEST_ARGS $COVERAGE pandas
 
     if [[ "$COVERAGE" && $? == 0 ]]; then
+        echo "uploading coverage for $TYPE tests"
         bash <(curl -s https://codecov.io/bash) -Z -c -F $TYPE -f $COVERAGE_FNAME
     fi
 done
