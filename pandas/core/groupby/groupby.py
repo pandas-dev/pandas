@@ -17,6 +17,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import Timestamp, groupby as libgroupby
+from pandas.api.types import is_integer_dtype, is_datetime64_dtype
 import pandas.compat as compat
 from pandas.compat import callable, range, set_function_name, zip
 from pandas.compat.numpy import function as nv
@@ -1710,9 +1711,9 @@ class GroupBy(_GroupBy):
             if vals.dtype == np.object:
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
-            elif vals.dtype == np.int:
+            elif is_integer_dtype(vals):
                 inferences['is_int'] = True
-            elif vals.dtype == 'datetime64[ns]':
+            elif is_datetime64_dtype(vals):
                 vals = vals.astype(np.float)
                 inferences['is_dt'] = True
 
@@ -1723,7 +1724,7 @@ class GroupBy(_GroupBy):
                 vals = vals.astype('datetime64[ns]')
             elif inferences['is_int'] and interpolation in [
                     'lower', 'higher', 'nearest']:
-                vals = vals.astype(np.int)
+                vals = vals.astype(np.int64)
 
             return vals
 
