@@ -4093,7 +4093,7 @@ class DataFrame(NDFrame):
 
         Reset the index of the DataFrame, and use the default one instead.
         If the DataFrame has a MultiIndex, this method can remove one or more
-        of them.
+        levels.
 
         Parameters
         ----------
