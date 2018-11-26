@@ -1506,7 +1506,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def summary(self, name=None):
         """
-        Return a summarized representation
+        Return a summarized representation.
 
         .. deprecated:: 0.23.0
         """
