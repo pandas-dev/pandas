@@ -307,6 +307,16 @@ class TestDatetimeIndex(object):
                                  freq='B')
         tm.assert_index_equal(result, expected)
 
+    def test_verify_integrity_deprecated(self):
+        # GH#23919
+        with tm.assert_produces_warning(FutureWarning):
+            DatetimeIndex(['1/1/2000'], verify_integrity=False)
+
+    def test_range_kwargs_deprecated(self):
+        # GH#23919
+        with tm.assert_produces_warning(FutureWarning):
+            DatetimeIndex(start='1/1/2000', end='1/10/2000', freq='D')
+
     def test_constructor_coverage(self):
         rng = date_range('1/1/2000', periods=10.5)
         exp = date_range('1/1/2000', periods=10)

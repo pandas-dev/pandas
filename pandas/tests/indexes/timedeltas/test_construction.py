@@ -10,6 +10,16 @@ from pandas import TimedeltaIndex, timedelta_range, to_timedelta, Timedelta
 
 class TestTimedeltaIndex(object):
 
+    def test_verify_integrity_deprecated(self):
+        # GH#23919
+        with tm.assert_produces_warning(FutureWarning):
+            TimedeltaIndex(['1 Day'], verify_integrity=False)
+
+    def test_range_kwargs_deprecated(self):
+        # GH#23919
+        with tm.assert_produces_warning(FutureWarning):
+            timedelta_range(start='1 Day', end='3 Days', freq='D')
+
     def test_int64_nocopy(self):
         # GH#23539 check that a copy isn't made when we pass int64 data
         #  and copy=False
