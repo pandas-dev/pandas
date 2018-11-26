@@ -105,9 +105,7 @@ and the values are the data.
 
 .. ipython:: python
 
-   df = pd.DataFrame({
-             'x': [1, 3, 5],
-             'y': [2, 4, 6]})
+   df = pd.DataFrame({'x': [1, 3, 5], 'y': [2, 4, 6]})
    df
 
 
@@ -131,7 +129,8 @@ The pandas method is :func:`read_csv`, which works similarly.
 
 .. ipython:: python
 
-   url = 'https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/tips.csv'
+   url = ('https://raw.github.com/pandas-dev/'
+          'pandas/master/pandas/tests/data/tips.csv')
    tips = pd.read_csv(url)
    tips.head()
 
@@ -289,17 +288,17 @@ see the :ref:`timeseries documentation<timeseries>` for more details.
    tips['date1_year'] = tips['date1'].dt.year
    tips['date2_month'] = tips['date2'].dt.month
    tips['date1_next'] = tips['date1'] + pd.offsets.MonthBegin()
-   tips['months_between'] = (tips['date2'].dt.to_period('M') -
-                             tips['date1'].dt.to_period('M'))
+   tips['months_between'] = (
+       tips['date2'].dt.to_period('M') - tips['date1'].dt.to_period('M'))
 
-   tips[['date1','date2','date1_year','date2_month',
-         'date1_next','months_between']].head()
+   tips[['date1', 'date2', 'date1_year', 'date2_month',
+         'date1_next', 'months_between']].head()
 
 .. ipython:: python
    :suppress:
 
-   tips = tips.drop(['date1','date2','date1_year',
-      'date2_month','date1_next','months_between'], axis=1)
+   tips = tips.drop(['date1', 'date2', 'date1_year',
+                     'date2_month', 'date1_next', 'months_between'], axis=1)
 
 Selection of Columns
 ~~~~~~~~~~~~~~~~~~~~
@@ -335,7 +334,7 @@ The same operations are expressed in pandas below.
    tips.drop('sex', axis=1).head()
 
    # rename
-   tips.rename(columns={'total_bill':'total_bill_2'}).head()
+   tips.rename(columns={'total_bill': 'total_bill_2'}).head()
 
 
 Sorting by Values
@@ -508,7 +507,7 @@ The following tables will be used in the merge examples
                        'value': np.random.randn(4)})
    df1
    df2 = pd.DataFrame({'key': ['B', 'D', 'D', 'E'],
-                        'value': np.random.randn(4)})
+                       'value': np.random.randn(4)})
    df2
 
 In SAS, data must be explicitly sorted before merging.  Different
@@ -695,7 +694,7 @@ In pandas this would be written as:
 
 .. ipython:: python
 
-   tips.groupby(['sex','smoker']).first()
+   tips.groupby(['sex', 'smoker']).first()
 
 
 Other Considerations

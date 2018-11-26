@@ -6,10 +6,9 @@
 
    import numpy as np
    import pandas as pd
-   randn = np.random.randn
+
    np.set_printoptions(precision=4, suppress=True)
-   from pandas.compat import lrange
-   pd.options.display.max_rows=15
+   pd.options.display.max_rows = 15
 
 ======================
 Working with Text Data
@@ -43,8 +42,8 @@ leading or trailing whitespace:
 
 .. ipython:: python
 
-   df = pd.DataFrame(randn(3, 2), columns=[' Column A ', ' Column B '],
-                     index=range(3))
+   df = pd.DataFrame(np.random.randn(3, 2),
+                     columns=[' Column A ', ' Column B '], index=range(3))
    df
 
 Since ``df.columns`` is an Index object, we can use the ``.str`` accessor
@@ -169,12 +168,18 @@ positional argument (a regex object) and return a string.
 
    # Reverse every lowercase alphabetic word
    pat = r'[a-z]+'
-   repl = lambda m: m.group(0)[::-1]
+
+   def repl(m):
+       return m.group(0)[::-1]
+
    pd.Series(['foo 123', 'bar baz', np.nan]).str.replace(pat, repl)
 
    # Using regex groups
    pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
-   repl = lambda m: m.group('two').swapcase()
+
+   def repl(m):
+       return m.group('two').swapcase()
+
    pd.Series(['Foo Bar Baz', np.nan]).str.replace(pat, repl)
 
 .. versionadded:: 0.20.0
@@ -216,7 +221,7 @@ The content of a ``Series`` (or ``Index``) can be concatenated:
 
     s = pd.Series(['a', 'b', 'c', 'd'])
     s.str.cat(sep=',')
-    
+
 If not specified, the keyword ``sep`` for the separator defaults to the empty string, ``sep=''``:
 
 .. ipython:: python
@@ -239,7 +244,7 @@ The first argument to :meth:`~Series.str.cat` can be a list-like object, provide
 .. ipython:: python
 
     s.str.cat(['A', 'B', 'C', 'D'])
-    
+
 Missing values on either side will result in missing values in the result as well, *unless* ``na_rep`` is specified:
 
 .. ipython:: python
@@ -260,7 +265,7 @@ The parameter ``others`` can also be two-dimensional. In this case, the number o
     s
     d
     s.str.cat(d, na_rep='-')
-    
+
 Concatenating a Series and an indexed object into a Series, with alignment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -375,7 +380,7 @@ DataFrame with one column per group.
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)', expand=False)
+   pd.Series(['a1', 'b2', 'c3']).str.extract(r'([ab])(\d)', expand=False)
 
 Elements that do not match return a row filled with ``NaN``. Thus, a
 Series of messy strings can be "converted" into a like-indexed Series
@@ -388,13 +393,14 @@ Named groups like
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract('(?P<letter>[ab])(?P<digit>\d)', expand=False)
+   pd.Series(['a1', 'b2', 'c3']).str.extract(r'(?P<letter>[ab])(?P<digit>\d)',
+                                             expand=False)
 
 and optional groups like
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', '3']).str.extract('([ab])?(\d)', expand=False)
+   pd.Series(['a1', 'b2', '3']).str.extract(r'([ab])?(\d)', expand=False)
 
 can also be used. Note that any capture group names in the regular
 expression will be used for column names; otherwise capture group
@@ -405,13 +411,13 @@ with one column if ``expand=True``.
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=True)
+   pd.Series(['a1', 'b2', 'c3']).str.extract(r'[ab](\d)', expand=True)
 
 It returns a Series if ``expand=False``.
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=False)
+   pd.Series(['a1', 'b2', 'c3']).str.extract(r'[ab](\d)', expand=False)
 
 Calling on an ``Index`` with a regex with exactly one capture group
 returns a ``DataFrame`` with one column if ``expand=True``.
