@@ -49,7 +49,13 @@ def _new_DatetimeIndex(cls, d):
     # so need to localize
     tz = d.pop('tz', None)
 
-    result = cls.__new__(cls, verify_integrity=False, **d)
+    with warnings.catch_warnings():
+        # we ignore warnings from passing verify_integrity=False
+        # TODO: If we knew what was going in to **d, we might be able to
+        #  go through _simple_new instead
+        warnings.simplefilter("ignore")
+        result = cls.__new__(cls, verify_integrity=False, **d)
+
     if tz is not None:
         result = result.tz_localize('UTC').tz_convert(tz)
     return result
@@ -569,8 +575,9 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             snapped[i] = s
 
         # we know it conforms; skip check
-        return DatetimeIndex(snapped, freq=freq, verify_integrity=False)
+        return DatetimeIndex._simple_new(snapped, freq=freq)
         # TODO: what about self.name?  if so, use shallow_copy?
+        # TODO: What about tz?
 
     def unique(self, level=None):
         if level is not None:
