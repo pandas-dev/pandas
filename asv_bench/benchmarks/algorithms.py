@@ -113,4 +113,20 @@ class Hashing(object):
         hashing.hash_pandas_object(df['dates'])
 
 
+class Quantile(object):
+    params = [[0, 0.5, 1],
+              ['linear', 'nearest', 'lower', 'higher', 'midpoint'],
+              ['float', 'int']]
+    param_names = ['quantile', 'interpolation', 'dtype']
+
+    def setup(self, quantile, interpolation, dtype):
+        N = 10**5
+        data = {'int': np.arange(N),
+                'float': np.random.randn(N)}
+        self.idx = pd.Series(data[dtype].repeat(5))
+
+    def time_quantile(self, quantile, interpolation, dtype):
+        self.idx.quantile(quantile, interpolation=interpolation)
+
+
 from .pandas_vb_common import setup  # noqa: F401
