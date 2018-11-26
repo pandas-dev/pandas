@@ -11,22 +11,6 @@ from pandas import compat, DataFrame, MultiIndex, option_context, Index
 from pandas.compat import u, lrange, StringIO
 from pandas.util import testing as tm
 import pandas.io.formats.format as fmt
-import pandas.core.common as com
-
-
-@pytest.fixture(params=[True, False], ids=['index_true', 'index_false'])
-def index(request):
-    # to_html() parameter values for index
-    # whether to print index (row) labels, default True
-    return request.param
-
-
-@pytest.fixture(params=[True, False], ids=['index_names_true',
-                                           'index_names_false'])
-def index_names(request):
-    # to_html() parameter values for index_names
-    # prints the names of the indexes, default True
-    return request.param
 
 
 def expected_html(datapath, name):
@@ -458,23 +442,38 @@ class TestToHTML(object):
         expected = expected_html(datapath, expected_output)
         assert result == expected
 
+    @pytest.mark.parametrize(
+        'index_names', [True, False], ids=['index_names_true',
+                                           'index_names_false'])
+    @pytest.mark.parametrize(
+        'index', [True, False], ids=['index_true', 'index_false'])
     @pytest.mark.parametrize('col_idx_type', [
-        Index([0, 1]),
-        Index([0, 1], name='columns.name'),
-        MultiIndex.from_product([['a'], ['b', 'c']]),
-        MultiIndex.from_product([['a'], ['b', 'c']], names=['columns.name.0',
-                                                            'columns.name.1'])
+        (Index([0, 1]),
+         'columns_unnamed_standard'),
+        (Index([0, 1], name='columns.name'),
+         'columns_named_standard'),
+        (MultiIndex.from_product([['a'], ['b', 'c']]),
+         'columns_unnamed_multi'),
+        (MultiIndex.from_product([['a'], ['b', 'c']],
+                                 names=['columns.name.0',
+                                        'columns.name.1']),
+         'columns_named_multi')
     ],
         ids=['columns_unnamed_standard',
              'columns_named_standard',
              'columns_unnamed_multi',
              'columns_named_multi'])
     @pytest.mark.parametrize('idx_type', [
-        Index([0, 1]),
-        Index([0, 1], name='index.name'),
-        MultiIndex.from_product([['a'], ['b', 'c']]),
-        MultiIndex.from_product([['a'], ['b', 'c']], names=['index.name.0',
-                                                            'index.name.1'])
+        (Index([0, 1]),
+         'index_unnamed_standard'),
+        (Index([0, 1], name='index.name'),
+         'index_named_standard'),
+        (MultiIndex.from_product([['a'], ['b', 'c']]),
+         'index_unnamed_multi'),
+        (MultiIndex.from_product([['a'], ['b', 'c']],
+                                 names=['index.name.0',
+                                        'index.name.1']),
+         'index_named_multi')
     ],
         ids=['index_unnamed_standard',
              'index_named_standard',
@@ -483,27 +482,21 @@ class TestToHTML(object):
     def test_to_html_basic_alignment(self, datapath, idx_type, col_idx_type,
                                      index, index_names):
         # GH 22747, GH 22579
-        def _exp_name(idx_type, index, index_names):
-            # helper function to map test parameters to expected output
-            if not index:
-                return 'none'
-            is_multi_index = idx_type.nlevels > 1
-            if is_multi_index:
-                has_names = com._any_not_none(*idx_type.names)
-            else:
-                has_names = idx_type.name is not None
-            return '_'.join([
-                'named' if (has_names and index_names) else 'unnamed',
-                'multi' if is_multi_index else 'standard'])
+        idx_type, idx_type_id = idx_type
+        col_idx_type, col_idx_type_id = col_idx_type
 
         df = DataFrame(np.zeros((2, 2), dtype=int),
                        index=idx_type, columns=col_idx_type)
         result = df.to_html(index=index, index_names=index_names)
-        filename = '_'.join(['index',
-                             _exp_name(idx_type, index, index_names),
-                             'columns',
-                             _exp_name(col_idx_type, True, index_names)
-                             ])
+
+        if not index:
+            idx_type_id = 'index_none'
+        elif not index_names:
+            idx_type_id = idx_type_id.replace('index_named', 'index_unnamed')
+        if not index_names:
+            col_idx_type_id = col_idx_type_id.replace(
+                'columns_named', 'columns_unnamed')
+        filename = idx_type_id + '_' + col_idx_type_id
         expected = expected_html(datapath, filename)
         assert result == expected
 
