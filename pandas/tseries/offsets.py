@@ -1173,9 +1173,9 @@ class SemiMonthEnd(SemiMonthOffset):
 
     Parameters
     ----------
-        n : int
-        normalize : bool, default False
-        day_of_month : int, {1, 3,...,27}, default 15
+    n : int
+    normalize : bool, default False
+    day_of_month : int, {1, 3,...,27}, default 15
     """
     _prefix = 'SM'
     _min_day_of_month = 1
