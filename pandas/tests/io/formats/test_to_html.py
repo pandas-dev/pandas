@@ -465,3 +465,15 @@ class TestToHTML(object):
                                                   name='myindexname'))
         result = df.to_html(index_names=False, table_id="TEST_ID")
         assert ' id="TEST_ID"' in result
+
+    def test_to_html_float_format_no_fixed_width(self, datapath):
+
+        # GH 21625
+        df = DataFrame({'x': [0.19999]})
+        expected = expected_html(datapath, 'gh21625_expected_output')
+        assert df.to_html(float_format='%.3f') == expected
+
+        # GH 22270
+        df = DataFrame({'x': [100.0]})
+        expected = expected_html(datapath, 'gh22270_expected_output')
+        assert df.to_html(float_format='%.0f') == expected
