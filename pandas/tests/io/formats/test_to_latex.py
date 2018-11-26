@@ -708,3 +708,29 @@ NaN & 2 &  4 \\
 \end{tabular}
 """
         assert observed == expected
+
+    def test_to_latex_float_format_no_fixed_width(self):
+
+        # GH 21625
+        df = DataFrame({'x': [0.19999]})
+        expected = r"""\begin{tabular}{lr}
+\toprule
+{} &     x \\
+\midrule
+0 & 0.200 \\
+\bottomrule
+\end{tabular}
+"""
+        assert df.to_latex(float_format='%.3f') == expected
+
+        # GH 22270
+        df = DataFrame({'x': [100.0]})
+        expected = r"""\begin{tabular}{lr}
+\toprule
+{} &   x \\
+\midrule
+0 & 100 \\
+\bottomrule
+\end{tabular}
+"""
+        assert df.to_latex(float_format='%.0f') == expected
