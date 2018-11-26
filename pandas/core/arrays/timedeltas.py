@@ -368,12 +368,11 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         elif is_object_dtype(other):
             result = [self[n] / other[n] for n in range(len(self))]
             result = np.array(result)
-            if lib.infer_dtype(result) == 'timedelta':
-                # TODO: keep inferred freq?
-                result, _ = sequence_to_td64ns(result)
+
+            if all(isinstance(x, Timedelta) or x is NaT for x in result):
                 return type(self)(result)
 
-            return np.array(result)
+            return result
 
         else:
             result = self._data / other
