@@ -2,6 +2,7 @@ from datetime import timedelta
 from functools import partial
 from operator import attrgetter
 
+import dateutil
 import numpy as np
 import pytest
 import pytz
@@ -253,8 +254,7 @@ class TestDatetimeIndex(object):
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           name='idx')
 
-        with tm.assert_raises_regex(TypeError,
-                                    'data is already tz-aware'):
+        with pytest.raises(TypeError, match='data is already tz-aware'):
             DatetimeIndex([Timestamp('2011-01-01 10:00'),
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='Asia/Tokyo', name='idx')
@@ -264,8 +264,7 @@ class TestDatetimeIndex(object):
                            Timestamp('2011-01-02 10:00', tz='US/Eastern')],
                           tz='US/Eastern', name='idx')
 
-        with tm.assert_raises_regex(TypeError,
-                                    'data is already tz-aware'):
+        with pytest.raises(TypeError, match='data is already tz-aware'):
             # passing tz should results in DatetimeIndex, then mismatch raises
             # TypeError
             Index([pd.NaT, Timestamp('2011-01-01 10:00'),
@@ -314,13 +313,14 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(rng, exp)
 
         msg = 'periods must be a number, got foo'
-        with tm.assert_raises_regex(TypeError, msg):
+        with pytest.raises(TypeError, match=msg):
             DatetimeIndex(start='1/1/2000', periods='foo', freq='D')
 
         pytest.raises(ValueError, DatetimeIndex, start='1/1/2000',
                       end='1/10/2000')
 
-        pytest.raises(ValueError, DatetimeIndex, '1/1/2000')
+        with pytest.raises(TypeError):
+            DatetimeIndex('1/1/2000')
 
         # generator expression
         gen = (datetime(2000, 1, 1) + timedelta(i) for i in range(10))
@@ -520,6 +520,18 @@ class TestDatetimeIndex(object):
                                      '2004-06-01 00:00:00',
                                      '2005-06-01 00:00:00'],
                                     tz='Australia/Melbourne')
+        tm.assert_index_equal(result, expected)
+
+    def test_construction_with_tz_and_tz_aware_dti(self):
+        # GH 23579
+        dti = date_range('2016-01-01', periods=3, tz='US/Central')
+        with pytest.raises(TypeError):
+            DatetimeIndex(dti, tz='Asia/Tokyo')
+
+    def test_construction_with_nat_and_tzlocal(self):
+        tz = dateutil.tz.tzlocal()
+        result = DatetimeIndex(['2018', 'NaT'], tz=tz)
+        expected = DatetimeIndex([Timestamp('2018', tz=tz), pd.NaT])
         tm.assert_index_equal(result, expected)
 
 

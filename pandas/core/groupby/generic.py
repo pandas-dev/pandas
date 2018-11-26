@@ -18,6 +18,7 @@ from pandas._libs import Timestamp, lib
 import pandas.compat as compat
 from pandas.compat import lzip, map
 from pandas.compat.numpy import _np_version_under1p13
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -240,7 +241,7 @@ class NDFrameGroupBy(GroupBy):
         return self._wrap_generic_output(result, obj)
 
     def _wrap_aggregated_output(self, output, names=None):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _aggregate_item_by_item(self, func, *args, **kwargs):
         # only for axis==0
@@ -733,7 +734,7 @@ class SeriesGroupBy(GroupBy):
     1    1    2
     2    3    4
 
-    See also
+    See Also
     --------
     pandas.Series.groupby.apply
     pandas.Series.groupby.transform
@@ -1288,12 +1289,11 @@ class DataFrameGroupBy(NDFrameGroupBy):
     1   1   2  0.590716
     2   3   4  0.704907
 
-    See also
+    See Also
     --------
     pandas.DataFrame.groupby.apply
     pandas.DataFrame.groupby.transform
     pandas.DataFrame.aggregate
-
     """)
 
     @Appender(_agg_doc)
@@ -1659,4 +1659,4 @@ class PanelGroupBy(NDFrameGroupBy):
             raise ValueError("axis value must be greater than 0")
 
     def _wrap_aggregated_output(self, output, names=None):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)

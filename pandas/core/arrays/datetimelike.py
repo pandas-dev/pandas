@@ -5,44 +5,33 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib, iNaT, NaT
+from pandas._libs import NaT, iNaT, lib
 from pandas._libs.tslibs import timezones
-from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
-from pandas._libs.tslibs.timestamps import maybe_integer_op_deprecated
 from pandas._libs.tslibs.period import (
-    Period, DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
-
+    DIFFERENT_FREQ_INDEX, IncompatibleFrequency, Period)
+from pandas._libs.tslibs.timedeltas import Timedelta, delta_to_nanoseconds
+from pandas._libs.tslibs.timestamps import maybe_integer_op_deprecated
+import pandas.compat as compat
 from pandas.errors import (
     AbstractMethodError, NullFrequencyError, PerformanceWarning)
-from pandas import compat
-
-from pandas.tseries import frequencies
-from pandas.tseries.offsets import Tick, DateOffset
+from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
-    pandas_dtype,
-    needs_i8_conversion,
-    is_list_like,
-    is_offsetlike,
-    is_extension_array_dtype,
-    is_datetime64_dtype,
-    is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_bool_dtype,
-    is_period_dtype,
-    is_timedelta64_dtype,
-    is_object_dtype)
-from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame, ABCIndexClass
+    is_bool_dtype, is_datetime64_any_dtype, is_datetime64_dtype,
+    is_datetime64tz_dtype, is_extension_array_dtype, is_float_dtype,
+    is_integer_dtype, is_list_like, is_object_dtype, is_offsetlike,
+    is_period_dtype, is_timedelta64_dtype, needs_i8_conversion, pandas_dtype)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.algorithms import checked_add_with_arr, take, unique1d
 import pandas.core.common as com
-from pandas.core.algorithms import checked_add_with_arr
+
+from pandas.tseries import frequencies
+from pandas.tseries.offsets import DateOffset, Tick
 
 from .base import ExtensionOpsMixin
-from pandas.util._decorators import deprecate_kwarg
 
 
 def _make_comparison_op(cls, op):
@@ -66,7 +55,7 @@ def _make_comparison_op(cls, op):
         with warnings.catch_warnings(record=True):
             warnings.filterwarnings("ignore", "elementwise", FutureWarning)
             with np.errstate(all='ignore'):
-                result = op(self.values, np.asarray(other))
+                result = op(self._data, np.asarray(other))
 
         return result
 
@@ -120,17 +109,16 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return (self._box_func(v) for v in self.asi8)
 
     @property
-    def values(self):
-        """ return the underlying data as an ndarray """
-        return self._data.view(np.ndarray)
-
-    @property
     def asi8(self):
         # do not cache or you'll create a memory leak
-        return self.values.view('i8')
+        return self._data.view('i8')
 
-    # ------------------------------------------------------------------
-    # Array-like Methods
+    # ----------------------------------------------------------------
+    # Array-Like / EA-Interface Methods
+
+    @property
+    def nbytes(self):
+        return self._data.nbytes
 
     @property
     def shape(self):
@@ -161,7 +149,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             return self._box_func(val)
 
         if com.is_bool_indexer(key):
-            key = np.asarray(key)
+            key = np.asarray(key, dtype=bool)
             if key.all():
                 key = slice(0, None, None)
             else:
@@ -198,7 +186,71 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         return super(DatetimeLikeArrayMixin, self).astype(dtype, copy)
 
     # ------------------------------------------------------------------
+    # ExtensionArray Interface
+    # TODO:
+    #   * _from_sequence
+    #   * argsort / _values_for_argsort
+    #   * _reduce
+
+    def unique(self):
+        result = unique1d(self.asi8)
+        return type(self)(result, dtype=self.dtype)
+
+    def _validate_fill_value(self, fill_value):
+        """
+        If a fill_value is passed to `take` convert it to an i8 representation,
+        raising ValueError if this is not possible.
+
+        Parameters
+        ----------
+        fill_value : object
+
+        Returns
+        -------
+        fill_value : np.int64
+
+        Raises
+        ------
+        ValueError
+        """
+        raise AbstractMethodError(self)
+
+    def take(self, indices, allow_fill=False, fill_value=None):
+        if allow_fill:
+            fill_value = self._validate_fill_value(fill_value)
+
+        new_values = take(self.asi8,
+                          indices,
+                          allow_fill=allow_fill,
+                          fill_value=fill_value)
+
+        return type(self)(new_values, dtype=self.dtype)
+
+    @classmethod
+    def _concat_same_type(cls, to_concat):
+        dtypes = {x.dtype for x in to_concat}
+        assert len(dtypes) == 1
+        dtype = list(dtypes)[0]
+
+        values = np.concatenate([x.asi8 for x in to_concat])
+        return cls(values, dtype=dtype)
+
+    def copy(self, deep=False):
+        values = self.asi8.copy()
+        return type(self)(values, dtype=self.dtype, freq=self.freq)
+
+    def _values_for_factorize(self):
+        return self.asi8, iNaT
+
+    @classmethod
+    def _from_factorized(cls, values, original):
+        return cls(values, dtype=original.dtype)
+
+    # ------------------------------------------------------------------
     # Null Handling
+
+    def isna(self):
+        return self._isnan
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _isnan(self):
@@ -664,6 +716,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             else:  # pragma: no cover
                 return NotImplemented
 
+            if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
+                from pandas.core.arrays import TimedeltaArrayMixin
+                # TODO: infer freq?
+                return TimedeltaArrayMixin(result)
             return result
 
         cls.__add__ = __add__
@@ -728,6 +784,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             else:  # pragma: no cover
                 return NotImplemented
 
+            if is_timedelta64_dtype(result) and isinstance(result, np.ndarray):
+                from pandas.core.arrays import TimedeltaArrayMixin
+                # TODO: infer freq?
+                return TimedeltaArrayMixin(result)
             return result
 
         cls.__sub__ = __sub__

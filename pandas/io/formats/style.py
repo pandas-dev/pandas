@@ -2,12 +2,27 @@
 Module for applying conditional formatting to
 DataFrames and Series.
 """
+from collections import MutableMapping, defaultdict
+from contextlib import contextmanager
+import copy
 from functools import partial
 from itertools import product
-from contextlib import contextmanager
 from uuid import uuid1
-import copy
-from collections import defaultdict, MutableMapping
+
+import numpy as np
+
+from pandas.compat import range
+from pandas.util._decorators import Appender
+
+from pandas.core.dtypes.common import is_float, is_string_like
+from pandas.core.dtypes.generic import ABCSeries
+
+import pandas as pd
+from pandas.api.types import is_list_like
+import pandas.core.common as com
+from pandas.core.config import get_option
+from pandas.core.generic import _shared_docs
+from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 
 try:
     from jinja2 import (
@@ -18,18 +33,6 @@ except ImportError:
                       "Please install with `conda install Jinja2`\n"
                       "or `pip install Jinja2`")
 
-from pandas.core.dtypes.common import is_float, is_string_like
-
-import numpy as np
-import pandas as pd
-from pandas.api.types import is_list_like
-from pandas.compat import range
-from pandas.core.config import get_option
-from pandas.core.generic import _shared_docs
-import pandas.core.common as com
-from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
-from pandas.util._decorators import Appender
-from pandas.core.dtypes.generic import ABCSeries
 
 try:
     import matplotlib.pyplot as plt
@@ -55,16 +58,16 @@ class Styler(object):
 
     Parameters
     ----------
-    data: Series or DataFrame
-    precision: int
+    data : Series or DataFrame
+    precision : int
         precision to round floats to, defaults to pd.options.display.precision
-    table_styles: list-like, default None
+    table_styles : list-like, default None
         list of {selector: (attr, value)} dicts; see Notes
-    uuid: str, default None
+    uuid : str, default None
         a unique identifier to avoid CSS collisions; generated automatically
-    caption: str, default None
+    caption : str, default None
         caption to attach to the table
-    cell_ids: bool, default True
+    cell_ids : bool, default True
         If True, each cell will have an ``id`` attribute in their HTML tag.
         The ``id`` takes the form ``T_<uuid>_row<num_row>_col<num_col>``
         where ``<uuid>`` is the unique identifier, ``<num_row>`` is the row
@@ -356,8 +359,8 @@ class Styler(object):
 
         Parameters
         ----------
-        formatter: str, callable, or dict
-        subset: IndexSlice
+        formatter : str, callable, or dict
+        subset : IndexSlice
             An argument to ``DataFrame.loc`` that restricts which elements
             ``formatter`` is applied to.
 
@@ -418,17 +421,15 @@ class Styler(object):
 
         Parameters
         ----------
-        `**kwargs`:
-            Any additional keyword arguments are passed through
-            to ``self.template.render``. This is useful when you
-            need to provide additional variables for a custom
-            template.
+        `**kwargs` : Any additional keyword arguments are passed through
+        to ``self.template.render``. This is useful when you need to provide
+        additional variables for a custom template.
 
             .. versionadded:: 0.20
 
         Returns
         -------
-        rendered: str
+        rendered : str
             the rendered HTML
 
         Notes
@@ -469,7 +470,7 @@ class Styler(object):
         update the state of the Styler. Collects a mapping
         of {index_label: ['<property>: <value>']}
 
-        attrs: Series or DataFrame
+        attrs : Series or DataFrame
         should contain strings of '<property>: <value>;<prop2>: <val2>'
         Whitespace shouldn't matter and the final trailing ';' shouldn't
         matter.
@@ -636,7 +637,6 @@ class Styler(object):
         See Also
         --------
         Styler.where
-
         """
         self._todo.append((lambda instance: getattr(instance, '_applymap'),
                            (func, subset), kwargs))
@@ -671,7 +671,6 @@ class Styler(object):
         See Also
         --------
         Styler.applymap
-
         """
 
         if other is None:
@@ -686,7 +685,7 @@ class Styler(object):
 
         Parameters
         ----------
-        precision: int
+        precision : int
 
         Returns
         -------
@@ -725,7 +724,7 @@ class Styler(object):
 
         Returns
         -------
-        styles: list
+        styles : list
 
         See Also
         --------
@@ -740,7 +739,7 @@ class Styler(object):
 
         Parameters
         ----------
-        styles: list
+        styles : list
             list of style functions
 
         Returns
@@ -760,7 +759,7 @@ class Styler(object):
 
         Parameters
         ----------
-        uuid: str
+        uuid : str
 
         Returns
         -------
@@ -775,7 +774,7 @@ class Styler(object):
 
         Parameters
         ----------
-        caption: str
+        caption : str
 
         Returns
         -------
@@ -791,7 +790,7 @@ class Styler(object):
 
         Parameters
         ----------
-        table_styles: list
+        table_styles : list
             Each individual table_style should be a dictionary with
             ``selector`` and ``props`` keys. ``selector`` should be a CSS
             selector that the style will be applied to (automatically
@@ -834,7 +833,7 @@ class Styler(object):
 
         Parameters
         ----------
-        subset: IndexSlice
+        subset : IndexSlice
             An argument to ``DataFrame.loc`` that identifies which columns
             are hidden.
 
@@ -862,7 +861,7 @@ class Styler(object):
 
         Parameters
         ----------
-        null_color: str
+        null_color : str
 
         Returns
         -------
@@ -880,15 +879,15 @@ class Styler(object):
 
         Parameters
         ----------
-        cmap: str or colormap
+        cmap : str or colormap
             matplotlib colormap
-        low, high: float
+        low, high : float
             compress the range by these values.
-        axis: int or str
+        axis : int or str
             1 or 'columns' for columnwise, 0 or 'index' for rowwise
-        subset: IndexSlice
+        subset : IndexSlice
             a valid slice for ``data`` to limit the style application to
-        text_color_threshold: float or int
+        text_color_threshold : float or int
             luminance threshold for determining text color. Facilitates text
             visibility across varying background colors. From 0 to 1.
             0 = all text is dark colored, 1 = all text is light colored.
@@ -981,9 +980,9 @@ class Styler(object):
 
         Parameters
         ----------
-        subset: IndexSlice
+        subset : IndexSlice
             a valid slice for ``data`` to limit the style application to
-        kwargs: dict
+        kwargs : dict
             property: value pairs to be set for each cell
 
         Returns
@@ -1103,7 +1102,6 @@ class Styler(object):
 
             .. versionadded:: 0.24.0
 
-
         Returns
         -------
         self : Styler
@@ -1134,10 +1132,10 @@ class Styler(object):
 
         Parameters
         ----------
-        subset: IndexSlice, default None
+        subset : IndexSlice, default None
             a valid slice for ``data`` to limit the style application to
-        color: str, default 'yellow'
-        axis: int, str, or None; default 0
+        color : str, default 'yellow'
+        axis : int, str, or None; default 0
             0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
             or ``None`` for tablewise
 
@@ -1154,10 +1152,10 @@ class Styler(object):
 
         Parameters
         ----------
-        subset: IndexSlice, default None
+        subset : IndexSlice, default None
             a valid slice for ``data`` to limit the style application to
-        color: str, default 'yellow'
-        axis: int, str, or None; default 0
+        color : str, default 'yellow'
+        axis : int, str, or None; default 0
             0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
             or ``None`` for tablewise
 

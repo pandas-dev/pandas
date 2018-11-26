@@ -143,5 +143,5 @@ def test_mask_with_boolean_raises(index):
     if index:
         idx = CategoricalIndex(idx)
 
-    with tm.assert_raises_regex(ValueError, 'NA / NaN'):
+    with pytest.raises(ValueError, match='NA / NaN'):
         s[idx]
