@@ -2,8 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame, Period, PeriodIndex, Series, period_range)
+from pandas import DataFrame, Period, PeriodIndex, Series, period_range
 from pandas.util import testing as tm
 
 
