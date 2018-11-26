@@ -10,12 +10,13 @@ import collections
 import re
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal
+from numbers import Number
+from fractions import Fraction
 import numpy as np
 import pytz
 import pytest
-
 import pandas as pd
-from pandas._libs import tslib, lib, missing as libmissing
+from pandas._libs import lib, iNaT, missing as libmissing
 from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
                     Panel, Period, Categorical, isna, Interval,
@@ -59,7 +60,7 @@ ll_params = [
     ({'a', 1},                  'set', 'set'),                  # noqa: E241
     (set(),                     'set', 'set-empty'),            # noqa: E241
     (frozenset({'a', 1}),       'set', 'frozenset'),            # noqa: E241
-    (frozenset([]),             'set', 'frozenset-empty'),      # noqa: E241
+    (frozenset(),               'set', 'frozenset-empty'),      # noqa: E241
     (iter([1, 2]),              True,  'iterator'),             # noqa: E241
     (iter([]),                  True,  'iterator-empty'),       # noqa: E241
     ((x for x in [1, 2]),       True,  'generator'),            # noqa: E241
@@ -371,7 +372,7 @@ class TestInference(object):
                 tm.assert_numpy_array_equal(out, pos)
 
                 # too many characters
-                with tm.assert_raises_regex(ValueError, msg):
+                with pytest.raises(ValueError, match=msg):
                     lib.maybe_convert_numeric(
                         np.array(['foo_' + infinity], dtype=object),
                         na_values, maybe_int)
@@ -589,6 +590,22 @@ class TestTypeInference(object):
         arr = [u'a', np.nan, u'c']
         result = lib.infer_dtype(arr, skipna=True)
         expected = 'unicode' if PY2 else 'string'
+        assert result == expected
+
+    @pytest.mark.parametrize('dtype, missing, skipna, expected', [
+        (float, np.nan, False, 'floating'),
+        (float, np.nan, True, 'floating'),
+        (object, np.nan, False, 'floating'),
+        (object, np.nan, True, 'empty'),
+        (object, None, False, 'mixed'),
+        (object, None, True, 'empty')
+    ])
+    @pytest.mark.parametrize('box', [pd.Series, np.array])
+    def test_object_empty(self, box, missing, dtype, skipna, expected):
+        # GH 23421
+        arr = box([missing, missing], dtype=dtype)
+
+        result = lib.infer_dtype(arr, skipna=skipna)
         assert result == expected
 
     def test_datetime(self):
@@ -1167,6 +1184,8 @@ class TestIsScalar(object):
         assert is_scalar(None)
         assert is_scalar(True)
         assert is_scalar(False)
+        assert is_scalar(Number())
+        assert is_scalar(Fraction())
         assert is_scalar(0.)
         assert is_scalar(np.nan)
         assert is_scalar('foobar')
@@ -1247,7 +1266,7 @@ def test_nan_to_nat_conversions():
     }))
     df.iloc[3:6, :] = np.nan
     result = df.loc[4, 'B'].value
-    assert (result == tslib.iNaT)
+    assert (result == iNaT)
 
     s = df['B'].copy()
     s._data = s._data.setitem(indexer=tuple([slice(8, 9)]), value=np.nan)

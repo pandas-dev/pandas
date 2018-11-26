@@ -196,8 +196,8 @@ def validate_args_and_kwargs(fname, args, kwargs,
 
     See Also
     --------
-    validate_args : purely args validation
-    validate_kwargs : purely kwargs validation
+    validate_args : Purely args validation.
+    validate_kwargs : Purely kwargs validation.
 
     """
     # Check that the total number of arguments passed in (i.e.

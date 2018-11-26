@@ -185,11 +185,11 @@ class TestSeriesRank(TestData):
         # Test invalid values for na_option
         msg = "na_option must be one of 'keep', 'top', or 'bottom'"
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             na_ser.rank(na_option='bad', ascending=False)
 
         # invalid type
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             na_ser.rank(na_option=True, ascending=False)
 
         # Test with pct=True
@@ -495,3 +495,11 @@ def test_rank_first_pct(dtype, ser, exp):
         result = s.rank(method='first', pct=True)
         expected = Series(exp).astype(result.dtype)
         assert_series_equal(result, expected)
+
+
+@pytest.mark.single
+def test_pct_max_many_rows():
+        # GH 18271
+        s = Series(np.arange(2**24 + 1))
+        result = s.rank(pct=True).max()
+        assert result == 1

@@ -1,47 +1,37 @@
 
 # pylint: disable=E1101,E1103,W0232
 import datetime
-import warnings
 from sys import getsizeof
+import warnings
 
 import numpy as np
-from pandas._libs import algos as libalgos, index as libindex, lib, Timestamp
-from pandas._libs import tslibs
 
-from pandas.compat import range, zip, lrange, lzip, map
+from pandas._libs import (
+    Timestamp, algos as libalgos, index as libindex, lib, tslibs)
+import pandas.compat as compat
+from pandas.compat import lrange, lzip, map, range, zip
 from pandas.compat.numpy import function as nv
-from pandas import compat
-
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype, PandasExtensionDtype)
-from pandas.core.dtypes.common import (
-    ensure_int64,
-    ensure_platform_int,
-    is_categorical_dtype,
-    is_object_dtype,
-    is_hashable,
-    is_integer,
-    is_iterator,
-    is_list_like,
-    pandas_dtype,
-    is_scalar)
-from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
-
 from pandas.util._decorators import Appender, cache_readonly
-import pandas.core.common as com
-import pandas.core.missing as missing
+
+from pandas.core.dtypes.common import (
+    ensure_int64, ensure_platform_int, is_categorical_dtype, is_hashable,
+    is_integer, is_iterator, is_list_like, is_object_dtype, is_scalar,
+    pandas_dtype)
+from pandas.core.dtypes.dtypes import ExtensionDtype, PandasExtensionDtype
+from pandas.core.dtypes.missing import array_equivalent, isna
+
 import pandas.core.algorithms as algos
+import pandas.core.common as com
+from pandas.core.config import get_option
+import pandas.core.indexes.base as ibase
+from pandas.core.indexes.base import (
+    Index, InvalidIndexError, _index_shared_docs, ensure_index)
+from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
+import pandas.core.missing as missing
+
 from pandas.io.formats.printing import pprint_thing
 
-from pandas.core.config import get_option
-
-from pandas.core.indexes.base import (
-    Index, ensure_index,
-    InvalidIndexError,
-    _index_shared_docs)
-from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
-import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(klass='MultiIndex',
@@ -171,11 +161,11 @@ class MultiIndex(Index):
 
     See Also
     --------
-    MultiIndex.from_arrays  : Convert list of arrays to MultiIndex
+    MultiIndex.from_arrays  : Convert list of arrays to MultiIndex.
     MultiIndex.from_product : Create a MultiIndex from the cartesian product
-                              of iterables
-    MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex
-    Index : The base pandas Index type
+                              of iterables.
+    MultiIndex.from_tuples  : Convert list of tuples to a MultiIndex.
+    Index : The base pandas Index type.
 
     Attributes
     ----------
@@ -193,6 +183,7 @@ class MultiIndex(Index):
     set_levels
     set_labels
     to_frame
+    to_flat_index
     is_lexsorted
     sortlevel
     droplevel
@@ -364,7 +355,6 @@ class MultiIndex(Index):
         Returns
         -------
         new index (of same type and class...etc)
-
 
         Examples
         --------
@@ -1176,7 +1166,7 @@ class MultiIndex(Index):
         -------
         DataFrame : a DataFrame containing the original MultiIndex data.
 
-        See also
+        See Also
         --------
         DataFrame
         """
@@ -1246,6 +1236,34 @@ class MultiIndex(Index):
                       FutureWarning, stacklevel=2)
         return MultiIndex(levels=levels, labels=labels, names=names)
 
+    def to_flat_index(self):
+        """
+        Convert a MultiIndex to an Index of Tuples containing the level values.
+
+        .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        pd.Index
+            Index with the MultiIndex data represented in Tuples.
+
+        Notes
+        -----
+        This method will simply return the caller if called by anything other
+        than a MultiIndex.
+
+        Examples
+        --------
+        >>> index = pd.MultiIndex.from_product(
+        ...     [['foo', 'bar'], ['baz', 'qux']],
+        ...     names=['a', 'b'])
+        >>> index.to_flat_index()
+        Index([('foo', 'baz'), ('foo', 'qux'),
+               ('bar', 'baz'), ('bar', 'qux')],
+              dtype='object')
+        """
+        return Index(self.values, tupleize_cols=False)
+
     @property
     def is_all_dates(self):
         return False
@@ -1296,9 +1314,9 @@ class MultiIndex(Index):
 
         See Also
         --------
-        MultiIndex.from_tuples : Convert list of tuples to MultiIndex
+        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
         MultiIndex.from_product : Make a MultiIndex from cartesian product
-                                  of iterables
+                                  of iterables.
         """
         if not is_list_like(arrays):
             raise TypeError("Input must be a list / sequence of array-likes.")
@@ -1402,8 +1420,8 @@ class MultiIndex(Index):
 
         See Also
         --------
-        MultiIndex.from_arrays : Convert list of arrays to MultiIndex
-        MultiIndex.from_tuples : Convert list of tuples to MultiIndex
+        MultiIndex.from_arrays : Convert list of arrays to MultiIndex.
+        MultiIndex.from_tuples : Convert list of tuples to MultiIndex.
         """
         from pandas.core.arrays.categorical import _factorize_from_iterables
         from pandas.core.reshape.util import cartesian_product
@@ -1500,7 +1518,6 @@ class MultiIndex(Index):
         MultiIndex(levels=[[0, 1], ['a', 'b']],
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
 
-
         >>> i[2:]
         MultiIndex(levels=[[0, 1], ['a', 'b']],
                    labels=[[1, 1], [0, 1]])
@@ -1511,7 +1528,6 @@ class MultiIndex(Index):
         >>> i[2:].remove_unused_levels()
         MultiIndex(levels=[[1], ['a', 'b']],
                    labels=[[0, 0], [0, 1]])
-
         """
 
         new_levels = []
@@ -1614,7 +1630,7 @@ class MultiIndex(Index):
             return tuple(retval)
         else:
             if com.is_bool_indexer(key):
-                key = np.asarray(key)
+                key = np.asarray(key, dtype=bool)
                 sortorder = self.sortorder
             else:
                 # cannot be sure whether the result will be sorted
@@ -1804,9 +1820,9 @@ class MultiIndex(Index):
 
         See Also
         --------
-        Series.swaplevel : Swap levels i and j in a MultiIndex
+        Series.swaplevel : Swap levels i and j in a MultiIndex.
         Dataframe.swaplevel : Swap levels i and j in a MultiIndex on a
-            particular axis
+            particular axis.
 
         Examples
         --------
@@ -1885,7 +1901,7 @@ class MultiIndex(Index):
         ascending : boolean, default True
             False to sort in descending order
             Can also be a list to specify a directed ordering
-        sort_remaining : sort by the remaining levels after level.
+        sort_remaining : sort by the remaining levels after level
 
         Returns
         -------
@@ -1893,7 +1909,6 @@ class MultiIndex(Index):
             Resulting index
         indexer : np.ndarray
             Indices of output values in original index
-
         """
         from pandas.core.sorting import indexer_from_factorized
 
@@ -2204,9 +2219,9 @@ class MultiIndex(Index):
         or a sequence of such. If you want to use those, use
         :meth:`MultiIndex.get_locs` instead.
 
-        See also
+        See Also
         --------
-        Index.get_loc : get_loc method for (single-level) index.
+        Index.get_loc : The get_loc method for (single-level) index.
         MultiIndex.slice_locs : Get slice location given start label(s) and
                                 end label(s).
         MultiIndex.get_locs : Get location for a label/slice/list/mask or a
@@ -2310,7 +2325,7 @@ class MultiIndex(Index):
         ---------
         MultiIndex.get_loc  : Get location for a label or a tuple of labels.
         MultiIndex.get_locs : Get location for a label/slice/list/mask or a
-                              sequence of such
+                              sequence of such.
         """
 
         def maybe_droplevels(indexer, levels, drop_level):
@@ -2530,7 +2545,7 @@ class MultiIndex(Index):
         >>> mi.get_locs([[True, False, True], slice('e', 'f')])
         array([2], dtype=int64)
 
-        See also
+        See Also
         --------
         MultiIndex.get_loc : Get location for a label or a tuple of labels.
         MultiIndex.slice_locs : Get slice location given start label(s) and
@@ -2657,7 +2672,7 @@ class MultiIndex(Index):
         Determines if two MultiIndex objects have the same labeling information
         (the levels themselves do not necessarily have to be the same)
 
-        See also
+        See Also
         --------
         equal_levels
         """
@@ -2769,9 +2784,17 @@ class MultiIndex(Index):
             return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                           names=result_names)
 
-    def difference(self, other):
+    def difference(self, other, sort=True):
         """
         Compute sorted set difference of two MultiIndex objects
+
+        Parameters
+        ----------
+        other : MultiIndex
+        sort : bool, default True
+            Sort the resulting MultiIndex if possible
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2788,8 +2811,16 @@ class MultiIndex(Index):
                               labels=[[]] * self.nlevels,
                               names=result_names, verify_integrity=False)
 
-        difference = sorted(set(self._ndarray_values) -
-                            set(other._ndarray_values))
+        this = self._get_unique_index()
+
+        indexer = this.get_indexer(other)
+        indexer = indexer.take((indexer != -1).nonzero()[0])
+
+        label_diff = np.setdiff1d(np.arange(this.size), indexer,
+                                  assume_unique=True)
+        difference = this.values.take(label_diff)
+        if sort:
+            difference = sorted(difference)
 
         if len(difference) == 0:
             return MultiIndex(levels=[[]] * self.nlevels,

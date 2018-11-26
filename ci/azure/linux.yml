@@ -10,23 +10,21 @@ jobs:
     maxParallel: 11
     matrix:
       py27_np_19:
-        ENV_FILE: ci/azure-27-compat.yaml
+        ENV_FILE: ci/deps/azure-27-compat.yaml
         CONDA_PY: "27"
-        CONDA_ENV: pandas
         TEST_ARGS: "--skip-slow --skip-network"
 
-      py36_locale:
-        ENV_FILE: ci/azure-37-locale.yaml
+      py37_locale:
+        ENV_FILE: ci/deps/azure-37-locale.yaml
         CONDA_PY: "37"
-        CONDA_ENV: pandas
         TEST_ARGS: "--skip-slow --skip-network"
         LOCALE_OVERRIDE: "zh_CN.UTF-8"
 
       py36_locale_slow:
-        ENV_FILE: ci/azure-36-locale_slow.yaml
+        ENV_FILE: ci/deps/azure-36-locale_slow.yaml
         CONDA_PY: "36"
-        CONDA_ENV: pandas
         TEST_ARGS: "--only-slow --skip-network"
+        LOCALE_OVERRIDE: "it_IT.UTF-8"
 
   steps:
     - script: |
@@ -39,18 +37,45 @@ jobs:
       displayName: 'Before Install'
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
         ci/incremental/build.sh
       displayName: 'Build'
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
+        source activate pandas-dev
         ci/script_single.sh
         ci/script_multi.sh
         echo "[Test done]"
       displayName: 'Test'
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
-        source activate pandas && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+        source activate pandas-dev && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
     - task: PublishTestResults@2
       inputs:
         testResultsFiles: 'test-data-*.xml'
         testRunTitle: 'Linux'
+    - powershell: |
+        $junitXml = "test-data-single.xml"
+        $(Get-Content $junitXml | Out-String) -match 'failures="(.*?)"'
+        if ($matches[1] -eq 0)
+        {
+          Write-Host "No test failures in test-data-single"
+        }
+        else
+        {
+          # note that this will produce $LASTEXITCODE=1
+          Write-Error "$($matches[1]) tests failed"
+        }
+
+        $junitXmlMulti = "test-data-multiple.xml"
+        $(Get-Content $junitXmlMulti | Out-String) -match 'failures="(.*?)"'
+        if ($matches[1] -eq 0)
+        {
+          Write-Host "No test failures in test-data-multi"
+        }
+        else
+        {
+          # note that this will produce $LASTEXITCODE=1
+          Write-Error "$($matches[1]) tests failed"
+        }
+      displayName: Check for test failures

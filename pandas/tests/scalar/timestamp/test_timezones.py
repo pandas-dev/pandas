@@ -2,20 +2,21 @@
 """
 Tests for Timestamp timezone-related methods
 """
-from datetime import datetime, date, timedelta
-
+from datetime import date, datetime, timedelta
 from distutils.version import LooseVersion
+
+import dateutil
+from dateutil.tz import gettz, tzoffset
 import pytest
 import pytz
 from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
-import dateutil
-from dateutil.tz import gettz, tzoffset
 
-import pandas.util.testing as tm
+from pandas._libs.tslibs import timezones
+from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
-from pandas import Timestamp, NaT
-from pandas.errors import OutOfBoundsDatetime
+from pandas import NaT, Timestamp
+import pandas.util.testing as tm
 
 
 class TestTimestampTZOperations(object):
@@ -64,14 +65,14 @@ class TestTimestampTZOperations(object):
             ts.tz_localize('US/Eastern', ambiguous='infer')
 
         # GH#8025
-        with tm.assert_raises_regex(TypeError,
-                                    'Cannot localize tz-aware Timestamp, '
-                                    'use tz_convert for conversions'):
+        msg = ('Cannot localize tz-aware Timestamp, '
+               'use tz_convert for conversions')
+        with pytest.raises(TypeError, match=msg):
             Timestamp('2011-01-01', tz='US/Eastern').tz_localize('Asia/Tokyo')
 
-        with tm.assert_raises_regex(TypeError,
-                                    'Cannot convert tz-naive Timestamp, '
-                                    'use tz_localize to localize'):
+        msg = ('Cannot convert tz-naive Timestamp, '
+               'use tz_localize to localize')
+        with pytest.raises(TypeError, match=msg):
             Timestamp('2011-01-01').tz_convert('Asia/Tokyo')
 
     @pytest.mark.parametrize('stamp, tz', [
@@ -342,10 +343,7 @@ class TestTimestampTZOperations(object):
     def test_timestamp_timetz_equivalent_with_datetime_tz(self,
                                                           tz_naive_fixture):
         # GH21358
-        if tz_naive_fixture is not None:
-            tz = dateutil.tz.gettz(tz_naive_fixture)
-        else:
-            tz = None
+        tz = timezones.maybe_get_tz(tz_naive_fixture)
 
         stamp = Timestamp('2018-06-04 10:20:30', tz=tz)
         _datetime = datetime(2018, 6, 4, hour=10,

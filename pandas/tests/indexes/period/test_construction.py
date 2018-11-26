@@ -158,6 +158,21 @@ class TestPeriodIndex(object):
 
         pytest.raises(ValueError, PeriodIndex, vals, freq='D')
 
+    @pytest.mark.parametrize('box', [None, 'series', 'index'])
+    def test_constructor_datetime64arr_ok(self, box):
+        # https://github.com/pandas-dev/pandas/issues/23438
+        data = pd.date_range('2017', periods=4, freq="M")
+        if box is None:
+            data = data._values
+        elif box == 'series':
+            data = pd.Series(data)
+
+        result = PeriodIndex(data, freq='D')
+        expected = PeriodIndex([
+            '2017-01-31', '2017-02-28', '2017-03-31', '2017-04-30'
+        ], freq="D")
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_dtype(self):
         # passing a dtype with a tz should localize
         idx = PeriodIndex(['2013-01', '2013-03'], dtype='period[M]')
@@ -184,7 +199,7 @@ class TestPeriodIndex(object):
         assert res.dtype == 'period[M]'
 
         msg = 'specified freq and dtype are different'
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             PeriodIndex(['2011-01'], freq='M', dtype='period[D]')
 
     def test_constructor_empty(self):
@@ -193,7 +208,7 @@ class TestPeriodIndex(object):
         assert len(idx) == 0
         assert idx.freq == 'M'
 
-        with tm.assert_raises_regex(ValueError, 'freq not specified'):
+        with pytest.raises(ValueError, match='freq not specified'):
             pd.PeriodIndex([])
 
     def test_constructor_pi_nat(self):
@@ -219,35 +234,35 @@ class TestPeriodIndex(object):
         idx = PeriodIndex([pd.NaT, pd.NaT, '2011-01', '2011-01'], freq='M')
         tm.assert_index_equal(idx, exp)
 
-        with tm.assert_raises_regex(ValueError, 'freq not specified'):
+        with pytest.raises(ValueError, match='freq not specified'):
             PeriodIndex([pd.NaT, pd.NaT])
 
-        with tm.assert_raises_regex(ValueError, 'freq not specified'):
+        with pytest.raises(ValueError, match='freq not specified'):
             PeriodIndex(np.array([pd.NaT, pd.NaT]))
 
-        with tm.assert_raises_regex(ValueError, 'freq not specified'):
+        with pytest.raises(ValueError, match='freq not specified'):
             PeriodIndex(['NaT', 'NaT'])
 
-        with tm.assert_raises_regex(ValueError, 'freq not specified'):
+        with pytest.raises(ValueError, match='freq not specified'):
             PeriodIndex(np.array(['NaT', 'NaT']))
 
     def test_constructor_incompat_freq(self):
         msg = "Input has different freq=D from PeriodIndex\\(freq=M\\)"
 
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             PeriodIndex([Period('2011-01', freq='M'), pd.NaT,
                          Period('2011-01', freq='D')])
 
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             PeriodIndex(np.array([Period('2011-01', freq='M'), pd.NaT,
                                   Period('2011-01', freq='D')]))
 
         # first element is pd.NaT
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             PeriodIndex([pd.NaT, Period('2011-01', freq='M'),
                          Period('2011-01', freq='D')])
 
-        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
+        with pytest.raises(period.IncompatibleFrequency, match=msg):
             PeriodIndex(np.array([pd.NaT, Period('2011-01', freq='M'),
                                   Period('2011-01', freq='D')]))
 
@@ -324,15 +339,15 @@ class TestPeriodIndex(object):
 
         msg = ('Frequency must be positive, because it'
                ' represents span: -1M')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             PeriodIndex(['2011-01'], freq='-1M')
 
         msg = ('Frequency must be positive, because it' ' represents span: 0M')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             PeriodIndex(['2011-01'], freq='0M')
 
         msg = ('Frequency must be positive, because it' ' represents span: 0M')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             period_range('2011-01', periods=3, freq='0M')
 
     @pytest.mark.parametrize('freq', ['A', 'M', 'D', 'T', 'S'])
@@ -427,12 +442,12 @@ class TestPeriodIndex(object):
         end_intv = Period('2006-12-31', ('w', 1))
 
         msg = 'start and end must have same freq'
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             PeriodIndex(start=start, end=end_intv)
 
         msg = ('Of the three parameters: start, end, and periods, '
                'exactly two must be specified')
-        with tm.assert_raises_regex(ValueError, msg):
+        with pytest.raises(ValueError, match=msg):
             PeriodIndex(start=start)
 
     @pytest.mark.parametrize('freq', ['M', 'Q', 'A', 'D', 'B',

@@ -222,11 +222,10 @@ def read_sql_table(table_name, con, schema=None, index_col=None,
     -----
     Any datetime values with time zone information will be converted to UTC.
 
-    See also
+    See Also
     --------
     read_sql_query : Read SQL query into a DataFrame.
     read_sql
-
     """
 
     con = _engine_builder(con)
@@ -302,11 +301,10 @@ def read_sql_query(sql, con, index_col=None, coerce_float=True, params=None,
     Any datetime values with time zone information parsed via the `parse_dates`
     parameter will be converted to UTC.
 
-    See also
+    See Also
     --------
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql
-
     """
     pandas_sql = pandasSQL_builder(con)
     return pandas_sql.read_query(
@@ -366,11 +364,10 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     -------
     DataFrame
 
-    See also
+    See Also
     --------
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql_query : Read SQL query into a DataFrame.
-
     """
     pandas_sql = pandasSQL_builder(con)
 
@@ -432,7 +429,6 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
         If all columns are of the same type, one single value can be used.
-
     """
     if if_exists not in ('fail', 'replace', 'append'):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
@@ -592,12 +588,17 @@ class SQLTable(PandasObject):
         data_list = [None] * ncols
         blocks = temp._data.blocks
 
-        for i in range(len(blocks)):
-            b = blocks[i]
+        for b in blocks:
             if b.is_datetime:
-                # convert to microsecond resolution so this yields
-                # datetime.datetime
-                d = b.values.astype('M8[us]').astype(object)
+                # return datetime.datetime objects
+                if b.is_datetimetz:
+                    # GH 9086: Ensure we return datetimes with timezone info
+                    # Need to return 2-D data; DatetimeIndex is 1D
+                    d = b.values.to_pydatetime()
+                    d = np.expand_dims(d, axis=0)
+                else:
+                    # convert to microsecond resolution for datetime.datetime
+                    d = b.values.astype('M8[us]').astype(object)
             else:
                 d = np.array(b.get_values(), dtype=object)
 
@@ -612,7 +613,7 @@ class SQLTable(PandasObject):
         return column_names, data_list
 
     def _execute_insert(self, conn, keys, data_iter):
-        data = [{k: v for k, v in zip(keys, row)} for row in data_iter]
+        data = [dict(zip(keys, row)) for row in data_iter]
         conn.execute(self.insert_statement(), data)
 
     def insert(self, chunksize=None):
@@ -741,8 +742,9 @@ class SQLTable(PandasObject):
     def _create_table_setup(self):
         from sqlalchemy import Table, Column, PrimaryKeyConstraint
 
-        column_names_and_types = \
-            self._get_column_names_and_types(self._sqlalchemy_type)
+        column_names_and_types = self._get_column_names_and_types(
+            self._sqlalchemy_type
+        )
 
         columns = [Column(name, typ, index=is_index)
                    for name, typ, is_index in column_names_and_types]
@@ -841,14 +843,19 @@ class SQLTable(PandasObject):
 
         from sqlalchemy.types import (BigInteger, Integer, Float,
                                       Text, Boolean,
-                                      DateTime, Date, Time)
+                                      DateTime, Date, Time, TIMESTAMP)
 
         if col_type == 'datetime64' or col_type == 'datetime':
+            # GH 9086: TIMESTAMP is the suggested type if the column contains
+            # timezone information
             try:
-                tz = col.tzinfo  # noqa
-                return DateTime(timezone=True)
+                if col.dt.tz is not None:
+                    return TIMESTAMP(timezone=True)
             except AttributeError:
-                return DateTime
+                # The column is actually a DatetimeIndex
+                if col.tz is not None:
+                    return TIMESTAMP(timezone=True)
+            return DateTime
         if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "
                           "written as integer values (ns frequency) to the "
@@ -991,7 +998,7 @@ class SQLDatabase(PandasSQL):
         -------
         DataFrame
 
-        See also
+        See Also
         --------
         pandas.read_sql_table
         SQLDatabase.read_query
@@ -1052,9 +1059,9 @@ class SQLDatabase(PandasSQL):
         -------
         DataFrame
 
-        See also
+        See Also
         --------
-        read_sql_table : Read SQL database table into a DataFrame
+        read_sql_table : Read SQL database table into a DataFrame.
         read_sql
 
         """
@@ -1275,8 +1282,9 @@ class SQLiteTable(SQLTable):
         structure of a DataFrame.  The first entry will be a CREATE TABLE
         statement while the rest will be CREATE INDEX statements.
         """
-        column_names_and_types = \
-            self._get_column_names_and_types(self._sql_type_name)
+        column_names_and_types = self._get_column_names_and_types(
+            self._sql_type_name
+        )
 
         pat = re.compile(r'\s+')
         column_names = [col_name for col_name, _, _ in column_names_and_types]

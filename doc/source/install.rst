@@ -258,8 +258,8 @@ Optional Dependencies
 * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.18.1 or higher
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage, Version 3.4.2 or higher
-* `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1): necessary for feather-based storage.
-* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1) or `fastparquet <https://fastparquet.readthedocs.io/en/latest>`__ (>= 0.0.6) for parquet-based storage. The `snappy <https://pypi.org/project/python-snappy>`__ and `brotli <https://pypi.org/project/brotlipy>`__ are available for compression support.
+* `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.7.0): necessary for feather-based storage.
+* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.7.0) or `fastparquet <https://fastparquet.readthedocs.io/en/latest>`__ (>= 0.1.2) for parquet-based storage. The `snappy <https://pypi.org/project/python-snappy>`__ and `brotli <https://pypi.org/project/brotlipy>`__ are available for compression support.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended. Besides SQLAlchemy, you also need a database specific driver. You can find an overview of supported drivers for each SQL dialect in the `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__. Some common drivers are:
 
     * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
@@ -269,7 +269,7 @@ Optional Dependencies
 * `matplotlib <http://matplotlib.org/>`__: for plotting, Version 2.0.0 or higher.
 * For Excel I/O:
 
-    * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
+    * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd), version 1.0.0 or higher required, and writing (xlwt)
     * `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__: openpyxl version 2.4.0
       for writing .xlsx files (xlrd >= 0.9.0)
     * `XlsxWriter <https://pypi.org/project/XlsxWriter>`__: Alternative Excel writer
@@ -286,7 +286,9 @@ Optional Dependencies
   `xsel <http://www.vergenet.net/~conrad/software/xsel/>`__, or
   `xclip <https://github.com/astrand/xclip/>`__: necessary to use
   :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
-* `pandas-gbq <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__: for Google BigQuery I/O.
+* `pandas-gbq
+  <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__:
+  for Google BigQuery I/O. (pandas-gbq >= 0.8.0)
 
 
 * `Backports.lzma <https://pypi.org/project/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV; Python 3 support is built into the standard library.

@@ -107,7 +107,6 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
       warnings.warn(msg, FutureWarning)
     yes!
 
-
     To raise a warning that a keyword will be removed entirely in the future
 
     >>> @deprecate_kwarg(old_arg_name='cols', new_arg_name=None)
@@ -314,14 +313,15 @@ def indent(text, indents=1):
 
 def make_signature(func):
     """
-    Returns a string repr of the arg list of a func call, with any defaults.
+    Returns a tuple containing the paramenter list with defaults
+    and parameter list.
 
     Examples
     --------
-    >>> def f(a,b,c=2) :
-    >>>     return a*b*c
-    >>> print(_make_signature(f))
-    a,b,c=2
+    >>> def f(a, b, c=2):
+    >>>     return a * b * c
+    >>> print(make_signature(f))
+    (['a', 'b', 'c=2'], ['a', 'b', 'c'])
     """
 
     spec = signature(func)
@@ -332,7 +332,7 @@ def make_signature(func):
         n_wo_defaults = len(spec.args) - len(spec.defaults)
         defaults = ('',) * n_wo_defaults + tuple(spec.defaults)
     args = []
-    for i, (var, default) in enumerate(zip(spec.args, defaults)):
+    for var, default in zip(spec.args, defaults):
         args.append(var if default == '' else var + '=' + repr(default))
     if spec.varargs:
         args.append('*' + spec.varargs)

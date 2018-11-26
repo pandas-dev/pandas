@@ -9,10 +9,15 @@ These are used for:
 """
 
 import warnings
+
 import numpy as np
-from pandas.core.base import PandasObject
+
 from pandas.util._decorators import deprecate_kwarg
+
 from pandas.core.dtypes.cast import coerce_indexer_dtype
+
+from pandas.core.base import PandasObject
+
 from pandas.io.formats.printing import pprint_thing
 
 
@@ -23,15 +28,47 @@ class FrozenList(PandasObject, list):
     because it's technically non-hashable, will be used
     for lookups, appropriately, etc.
     """
-    # Sidenote: This has to be of type list, otherwise it messes up PyTables
-    #           typechecks
+    # Side note: This has to be of type list. Otherwise,
+    #            it messes up PyTables type checks.
 
-    def __add__(self, other):
+    def union(self, other):
+        """
+        Returns a FrozenList with other concatenated to the end of self.
+
+        Parameters
+        ----------
+        other : array-like
+            The array-like whose elements we are concatenating.
+
+        Returns
+        -------
+        diff : FrozenList
+            The collection difference between self and other.
+        """
         if isinstance(other, tuple):
             other = list(other)
-        return self.__class__(super(FrozenList, self).__add__(other))
+        return type(self)(super(FrozenList, self).__add__(other))
 
-    __iadd__ = __add__
+    def difference(self, other):
+        """
+        Returns a FrozenList with elements from other removed from self.
+
+        Parameters
+        ----------
+        other : array-like
+            The array-like whose elements we are removing self.
+
+        Returns
+        -------
+        diff : FrozenList
+            The collection difference between self and other.
+        """
+        other = set(other)
+        temp = [x for x in self if x not in other]
+        return type(self)(temp)
+
+    # TODO: Consider deprecating these in favor of `union` (xref gh-15506)
+    __add__ = __iadd__ = union
 
     # Python 2 compat
     def __getslice__(self, i, j):
@@ -132,7 +169,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
 
         See Also
         --------
-        numpy.searchsorted : equivalent function
+        numpy.searchsorted : Equivalent function.
         """
 
         # We are much more performant if the searched

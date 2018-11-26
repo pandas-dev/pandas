@@ -1,10 +1,12 @@
 import importlib
 import os
 
+from dateutil.tz import tzlocal, tzutc
 import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
+from pytz import FixedOffset, utc
 
 from pandas.compat import PY3
 import pandas.util._test_decorators as td
@@ -14,10 +16,12 @@ import pandas as pd
 hypothesis.settings.register_profile(
     "ci",
     # Hypothesis timing checks are tuned for scalars by default, so we bump
-    # them from 200ms to 5 secs per test case as the global default.  If this
+    # them from 200ms to 500ms per test case as the global default.  If this
     # is too short for a specific test, (a) try to make it faster, and (b)
-    # if it really is slow add `@settings(timeout=...)` with a working value.
-    timeout=5000,
+    # if it really is slow add `@settings(deadline=...)` with a working value,
+    # or `deadline=None` to entirely disable timeouts for that test.
+    deadline=500,
+    timeout=hypothesis.unlimited,
     suppress_health_check=(hypothesis.HealthCheck.too_slow,)
 )
 hypothesis.settings.load_profile("ci")
@@ -241,6 +245,20 @@ def datetime_tz_utc():
     return timezone.utc
 
 
+utc_objs = ['utc', 'dateutil/UTC', utc, tzutc()]
+if PY3:
+    from datetime import timezone
+    utc_objs.append(timezone.utc)
+
+
+@pytest.fixture(params=utc_objs)
+def utc_fixture(request):
+    """
+    Fixture to provide variants of UTC timezone strings and tzinfo objects
+    """
+    return request.param
+
+
 @pytest.fixture(params=['inner', 'outer', 'left', 'right'])
 def join_type(request):
     """
@@ -336,7 +354,8 @@ unique_nulls_fixture2 = unique_nulls_fixture
 
 
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
-             'dateutil/Asia/Singapore']
+             'dateutil/Asia/Singapore', tzutc(), tzlocal(), FixedOffset(300),
+             FixedOffset(0), FixedOffset(-300)]
 
 
 @td.parametrize_fixture_doc(str(TIMEZONES))
