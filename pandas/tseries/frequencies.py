@@ -5,7 +5,7 @@ import re
 import numpy as np
 from pytz import AmbiguousTimeError
 
-from pandas._libs.algos import unique_deltas
+from pandas._libs.algos import is_monotonic, unique_deltas
 from pandas._libs.tslibs import Timedelta, Timestamp
 from pandas._libs.tslibs.ccalendar import MONTH_ALIASES, int_to_weekday
 from pandas._libs.tslibs.conversion import tz_convert
@@ -295,8 +295,19 @@ class _FrequencyInferer(object):
         if len(index) < 3:
             raise ValueError('Need at least 3 dates to infer frequency')
 
-        self.is_monotonic = (self.index.is_monotonic_increasing or
-                             self.index.is_monotonic_decreasing)
+        if not hasattr(index, "is_monotonic_increasing"):
+            # i.e. TimedeltaArray, not TimedeltaIndex
+            increasing, decreasing, strict = is_monotonic(index.asi8,
+                                                          timelike=True)
+            self.is_monotonic = increasing or decreasing
+            self.strictly_monotonic = strict
+        else:
+            self.is_monotonic = (index.is_monotonic_increasing or
+                                 index.is_monotonic_decreasing)
+            strict = False
+            if self.is_monotonic and index.is_unique:
+                strict = True
+            self.strictly_monotonic = strict
 
     @cache_readonly
     def deltas(self):
@@ -323,7 +334,7 @@ class _FrequencyInferer(object):
         -------
         freqstr : str or None
         """
-        if not self.is_monotonic or not self.index.is_unique:
+        if not self.strictly_monotonic:
             return None
 
         delta = self.deltas[0]

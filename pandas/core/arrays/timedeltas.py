@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import algos, tslibs
+from pandas._libs import tslibs
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import (
@@ -24,7 +24,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.algorithms import checked_add_with_arr, unique1d
+from pandas.core.algorithms import checked_add_with_arr
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
@@ -240,22 +240,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
             raise ValueError("'fill_value' should be a Timedelta. "
                              "Got '{got}'.".format(got=fill_value))
         return fill_value
-
-    # is_monotonic_increasing, is_monotonic_decreasing, and is_unique
-    #  are needed by `frequencies.infer_freq`, which is called when accessing
-    #  the `inferred_freq` property inside the TimedeltaArray constructor
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def is_monotonic_increasing(self):
-        return algos.is_monotonic(self.asi8, timelike=True)[0]
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def is_monotonic_decreasing(self):
-        return algos.is_monotonic(self.asi8, timelike=True)[1]
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def is_unique(self):
-        return len(unique1d(self.asi8)) == len(self)
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
