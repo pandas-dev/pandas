@@ -42,7 +42,6 @@ Bug Fixes
 **Groupby/Resample/Rolling**
 
 - Bug in :meth:`DataFrame.resample` when resampling ``NaT`` in ``TimeDeltaIndex`` (:issue:`13223`).
--
 
 **Missing**
 
@@ -52,3 +51,4 @@ Bug Fixes
 **I/O**
 
 - Bug in :func:`read_csv` that caused it to raise ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
+- Bug in :meth:`DataFrame.to_dict` when the result dict contains non-Python scalars (:issue:`23753`)

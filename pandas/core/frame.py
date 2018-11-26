@@ -280,6 +280,7 @@ ValueError: columns overlap but no suffix specified:
     Index(['value'], dtype='object')
 """
 
+
 # -----------------------------------------------------------------------
 # DataFrame class
 
@@ -1221,7 +1222,8 @@ class DataFrame(NDFrame):
             return into_c((('index', self.index.tolist()),
                            ('columns', self.columns.tolist()),
                            ('data', [
-                               [com.maybe_box_datetimelike(v) for v in t] for t in self.itertuples(index=False)]
+                               list(map(com.maybe_box_datetimelike, t))
+                               for t in self.itertuples(index=False)]
                             )))
         elif orient.lower().startswith('s'):
             return into_c((k, com.maybe_box_datetimelike(v))
@@ -1229,8 +1231,8 @@ class DataFrame(NDFrame):
         elif orient.lower().startswith('r'):
             return [
                 into_c((k, com.maybe_box_datetimelike(v))
-                           for k, v in compat.iteritems(row._asdict()))
-                    for row in self.itertuples(index=False)]
+                       for k, v in compat.iteritems(row._asdict()))
+                for row in self.itertuples(index=False)]
         elif orient.lower().startswith('i'):
             if not self.index.is_unique:
                 raise ValueError(
@@ -2654,6 +2656,7 @@ class DataFrame(NDFrame):
             col = self.columns.get_loc(col)
             index = self.index.get_loc(index)
             return self._get_value(index, col, takeable=True)
+
     _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, index, col, value, takeable=False):
@@ -2698,6 +2701,7 @@ class DataFrame(NDFrame):
             self._item_cache.pop(col, None)
 
             return self
+
     _set_value.__doc__ = set_value.__doc__
 
     def _ixs(self, i, axis=0):
@@ -3161,6 +3165,7 @@ class DataFrame(NDFrame):
         4   True  1.0
         5  False  2.0
         """
+
         def _get_info_slice(obj, indexer):
             """Slice the info axis of `obj` with `indexer`."""
             if not hasattr(obj, '_info_axis_number'):
@@ -6045,9 +6050,9 @@ class DataFrame(NDFrame):
     # Function application
 
     def _gotitem(self,
-                 key,           # type: Union[str, List[str]]
-                 ndim,          # type: int
-                 subset=None    # type: Union[Series, DataFrame, None]
+                 key,  # type: Union[str, List[str]]
+                 ndim,  # type: int
+                 subset=None  # type: Union[Series, DataFrame, None]
                  ):
         # type: (...) -> Union[Series, DataFrame]
         """

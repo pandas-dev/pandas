@@ -150,7 +150,7 @@ class TestDataFrameConvertTo(TestData):
     def test_to_records_with_unicode_index(self):
         # GH13172
         # unicode_literals conflict with to_records
-        result = DataFrame([{u'a': u'x', u'b': 'y'}]).set_index(u'a')\
+        result = DataFrame([{u'a': u'x', u'b': 'y'}]).set_index(u'a') \
             .to_records()
         expected = np.rec.array([('x', 'y')], dtype=[('a', 'O'), ('b', 'O')])
         tm.assert_almost_equal(result, expected)
@@ -284,7 +284,7 @@ class TestDataFrameConvertTo(TestData):
     def test_to_dict_box_scalars(self):
         # 14216, 23753
         # make sure that we are boxing properly
-        df =  DataFrame({'a': [1, 2], 'b': [.1, .2]})
+        df = DataFrame({'a': [1, 2], 'b': [.1, .2]})
 
         result = df.to_dict()
         assert isinstance(result['a'][0], (int, long))
@@ -306,14 +306,11 @@ class TestDataFrameConvertTo(TestData):
         assert isinstance(result[0]['a'], (int, long))
         assert isinstance(result[0]['b'], float)
 
-
-
-
     def test_frame_to_dict_tz(self):
         # GH18372 When converting to dict with orient='records' columns of
         # datetime that are tz-aware were not converted to required arrays
         data = [(datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=pytz.utc),),
-                (datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=pytz.utc,),)]
+                (datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=pytz.utc, ),)]
         df = DataFrame(list(data), columns=["d", ])
 
         result = df.to_dict(orient='records')
