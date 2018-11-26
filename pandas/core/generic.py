@@ -3290,64 +3290,72 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        xs : Series or DataFrame
+        Series or DataFrame
+
+        See Also
+        --------
+        DataFrame.loc : Access a group of rows and columns
+                        by label(s) or a boolean array.
+        DataFrame.iloc : Purely integer-location based indexing
+                         for selection by position.
 
         Notes
         -----
-        xs is only for getting, not setting values.
+        'xs' can not be used to set values.
 
         MultiIndex Slicers is a generic way to get/set values on any level or
-        levels.  It is a superset of xs functionality, see
-        :ref:`MultiIndex Slicers <advanced.mi_slicers>`
+        levels.  It is a superset of 'xs' functionality, see
+        :ref:`MultiIndex Slicers <advanced.mi_slicers>`.
 
         Examples
         --------
-        >>> d = {'A': [4, 4, 9], 'B': [5, 0, 7], 'C': [2, 9, 3]}
-        >>> df = pd.DataFrame(data=d, index=['a', 'b', 'c'])
+        >>> df = pd.DataFrame({"num_legs": [4, 4, 2],
+        ...                    "num_arms": [0, 0, 2],
+        ...                    "num_wings": [0, 0, 2]},
+        ...                   ["dog", "cat", "duck"])
         >>> df
-           A  B  C
-        a  4  5  2
-        b  4  0  9
-        c  9  7  3
-        >>> df.xs('a')
-        A    4
-        B    5
-        C    2
-        Name: a, dtype: int64
-        >>> df.xs('C', axis=1)
-        a    2
-        b    9
-        c    3
-        Name: C, dtype: int64
-        >>> d = {'A': [4, 7, 6, 5],
-        ...      'B': [1, 5, 6, 3],
-        ...      'C': [8, 5, 8, 5],
-        ...      'D': [9, 0, 0, 3],
-        ...      'first': ['bar', 'bar', 'baz', 'baz'],
-        ...      'second': ['one', 'two', 'one', 'three'],
-        ...      'third': [1, 1, 1, 2]}
+              num_legs  num_arms  num_wings
+        dog          4         0          0
+        cat          4         0          0
+        duck         2         2          2
+        >>> df.xs('dog')
+        num_legs     4
+        num_arms     0
+        num_wings    0
+        Name: dog, dtype: int64
+        >>> df.xs('num_wings', axis=1)
+        dog     0
+        cat     0
+        duck    2
+        Name: num_wings, dtype: int64
+        >>> d = {'num_legs': [4, 4, 2, 4],
+        ...      'num_arms': [0, 0, 0, 0],
+        ...      'num_wings': [0, 0, 2, 0],
+        ...      'num_spec_seen': [9, 2, 7, 3],
+        ...      'class': ['mammal', 'mammal', 'sauropsida', 'sauropsida'],
+        ...      'animal': ['cat', 'dog', 'duck', 'turtle'],
+        ...      'area': [1, 1, 2, 3]}
         >>> df = pd.DataFrame(data=d)
-        >>> df = df.set_index(['first', 'second', 'third'])
+        >>> df = df.set_index(['class', 'animal', 'area'])
         >>> df
-                            A  B  C  D
-        first second third
-        bar   one    1      4  1  8  9
-              two    1      7  5  5  0
-        baz   one    1      6  6  8  0
-              three  2      5  3  5  3
-        >>> df.xs(('baz', 'three'))
-               A  B  C  D
-        third
-        2      5  3  5  3
-        >>> df.xs('one', level=1)
-                     A  B  C  D
-        first third
-        bar   1      4  1  8  9
-        baz   1      6  6  8  0
-        >>> df.xs(('baz', 2), level=[0, 'third'])
-                A  B  C  D
-        second
-        three   5  3  5  3
+                                num_legs  num_arms  num_wings  num_spec_seen
+        class      animal area
+        mammal     cat    1            4         0          0              9
+                   dog    1            4         0          0              2
+        sauropsida duck   2            2         0          2              7
+                   turtle 3            4         0          0              3
+        >>> df.xs(('mammal', 'dog'))
+              num_legs  num_arms  num_wings  num_spec_seen
+        area
+        1            4         0          0              2
+        >>> df.xs('cat', level=1)
+                     num_legs  num_arms  num_wings  num_spec_seen
+        class  area
+        mammal 1            4         0          0              9
+        >>> df.xs(('sauropsida', 2), level=[0, 'area'])
+                num_legs  num_arms  num_wings  num_spec_seen
+        animal
+        duck           2         0          2              7
         """
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
